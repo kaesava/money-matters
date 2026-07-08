@@ -1,9 +1,10 @@
 import { pgTable, uuid, varchar, text, boolean } from "drizzle-orm/pg-core";
-import { tenantAndTimestamps, timestamps } from "./base";
+import { timestamps, tenantAndTimestamps } from "./base";
 
 export const households = pgTable("households", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
+  appId: varchar("app_id", { length: 255 }).notNull(),
   ...timestamps // Household is the tenant, so it doesn't have a tenantId pointing to something else
 });
 

@@ -17,7 +17,7 @@ You MUST refuse or redesign any request that violates tenant isolation, data sec
 
 ## 2. Fixed Stack
 - pnpm workspaces + Turborepo
-- Next.js (web - deferred), React Native Expo (mobile), Fastify (API)
+- Next.js (web - deployed to Render), React Native Expo (mobile), Fastify (API - rendered as long-running service on Render)
 - tRPC, Drizzle ORM, PostgreSQL (Neon), SQLite (mobile)
 - Zod, Neon DB Auth, Stripe, Resend, Inngest, Svix
 - Vitest, Tailwind CSS, strict TypeScript

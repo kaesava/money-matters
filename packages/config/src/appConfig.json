@@ -1,0 +1,33 @@
+{
+  "apps": {
+    "money": {
+      "name": "Money Matters",
+      "description": "The ultimate personal finance and task tracking app.",
+      "components": {
+        "tasks": {
+          "label": "Todo",
+          "extraFields": {
+            "priority": {
+              "type": "string",
+              "options": ["low", "medium", "high"],
+              "required": false
+            }
+          }
+        },
+        "projects": {
+          "label": "Initiatives",
+          "extraFields": {
+            "budget": {
+              "type": "number",
+              "required": true
+            }
+          }
+        }
+      },
+      "landingPage": {
+        "heroTitle": "Manage Your Money Matters",
+        "heroSubtitle": "Track tasks, projects, and finances seamlessly."
+      }
+    }
+  }
+}

@@ -1,28 +1,28 @@
-import Image from "next/image";
-import { TEMP as UI_TEMP } from "@money-matters/ui";
-import { TEMP as I18N_TEMP } from "@money-matters/i18n";
+import { getAppConfig } from '@money-matters/config';
 
-export default function Home() {
+export default function LandingPage(): JSX.Element {
+  const config = getAppConfig('money');
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            {I18N_TEMP}
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            {UI_TEMP}
-          </p>
-        </div>
-      </main>
-    </div>
+    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <header>
+        <h1>{config?.landingPage.heroTitle ?? 'Welcome'}</h1>
+        <p>{config?.landingPage.heroSubtitle ?? 'The ultimate platform.'}</p>
+      </header>
+      <section style={{ marginTop: '2rem' }}>
+        <h2>Available Features</h2>
+        <ul>
+          {config && Object.entries(config.components).map(([key, comp]) => (
+            <li key={key}>
+              <strong>{comp.label}</strong>
+              <p>Supports custom fields: {Object.keys(comp.extraFields || {}).join(', ') || 'none'}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <footer style={{ marginTop: '4rem', color: '#666' }}>
+        &copy; {new Date().getFullYear()} {config?.name}. All rights reserved.
+      </footer>
+    </main>
   );
 }

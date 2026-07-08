@@ -9,6 +9,6 @@ export const timestamps = {
 };
 
 export const tenantAndTimestamps = {
-  tenantId: uuid("tenant_id").notNull(),
+  tenantId: uuid("tenant_id").notNull(), // This is effectively the household.id
   ...timestamps
 };

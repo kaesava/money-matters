@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["PORT", "DATABASE_URL", "INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
