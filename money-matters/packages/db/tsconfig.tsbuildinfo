@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/schema/base.ts","./src/schema/category.ts","./src/schema/household.ts","./src/schema/income.ts","./src/schema/index.ts"],"version":"6.0.3"}
