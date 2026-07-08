@@ -6,3 +6,5 @@ build/
 .turbo/
 .expo/
 coverage/
+.env
+.env.development
