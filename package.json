@@ -12,11 +12,20 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.1.0",
+    "@types/node": "latest",
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
+    "eslint": "^9",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.7.0",
     "turbo": "latest",
-    "typescript": "latest",
-    "@types/node": "latest"
-  }
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "type": "module"
 }
