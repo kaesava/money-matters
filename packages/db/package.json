@@ -13,12 +13,13 @@
   "devDependencies": {
     "@types/uuid": "^9.0.8",
     "dotenv": "^16.4.5",
-    "drizzle-kit": "^0.22.8",
-    "typescript": "latest"
+    "dotenv-cli": "^8.0.0",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^6.0.3"
   },
   "scripts": {
-    "generate": "drizzle-kit generate",
-    "push": "drizzle-kit push:pg",
+    "generate": "dotenv -e ../../.env -- drizzle-kit generate",
+    "push": "dotenv -e ../../.env -- drizzle-kit push",
     "typecheck": "tsc --noEmit",
     "build": "echo \"No build script yet\"",
     "lint": "eslint .",
