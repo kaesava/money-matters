@@ -4,7 +4,7 @@
   "private": true,
   "main": "src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "dotenv -e ../../.env -- tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint \"**/*.ts\"",
@@ -16,7 +16,7 @@
     "@money-matters/db": "workspace:*",
     "@money-matters/types": "workspace:*",
     "@trpc/server": "^11.18.0",
-    "drizzle-orm": "^0.32.2",
+    "drizzle-orm": "^0.39.0",
     "fastify": "^4.26.2",
     "inngest": "^3.19.14",
     "uuid": "^9.0.1",
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^20.19.43",
     "@types/uuid": "^9.0.8",
+    "dotenv-cli": "^8.0.0",
     "tsx": "4.7.1",
     "typescript": "^6.0.3"
   }

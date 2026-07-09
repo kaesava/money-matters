@@ -6,6 +6,9 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@money-matters/db": "workspace:*",
-    "drizzle-orm": "0.32.2"
+    "drizzle-orm": "^0.39.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

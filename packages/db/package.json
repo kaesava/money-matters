@@ -6,7 +6,7 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",
-    "drizzle-orm": "^0.32.2",
+    "drizzle-orm": "^0.39.0",
     "uuid": "^9.0.1",
     "zod": "^3.22.0"
   },
@@ -23,6 +23,7 @@
     "typecheck": "tsc --noEmit",
     "build": "echo \"No build script yet\"",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "studio": "dotenv -e ../../.env -- drizzle-kit studio"
   }
 }
