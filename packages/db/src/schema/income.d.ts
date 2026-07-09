@@ -11,8 +11,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         createdBy: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_by";
@@ -23,8 +27,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         updatedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_at";
@@ -35,8 +43,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         updatedBy: import("drizzle-orm/pg-core").PgColumn<{
             name: "updated_by";
@@ -47,8 +59,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         archivedAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "archived_at";
@@ -59,8 +75,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: false;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         tenantId: import("drizzle-orm/pg-core").PgColumn<{
             name: "tenant_id";
@@ -71,8 +91,28 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
+        }, {}, {}>;
+        appId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "app_id";
+            tableName: "income_sources";
+            dataType: "string";
+            columnType: "PgUUID";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         id: import("drizzle-orm/pg-core").PgColumn<{
             name: "id";
@@ -83,8 +123,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: true;
+            isPrimaryKey: true;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         name: import("drizzle-orm/pg-core").PgColumn<{
             name: "name";
@@ -95,8 +139,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: [string, ...string[]];
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         amount: import("drizzle-orm/pg-core").PgColumn<{
             name: "amount";
@@ -107,8 +155,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: true;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: [string, ...string[]];
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         recurrenceRule: import("drizzle-orm/pg-core").PgColumn<{
             name: "recurrence_rule";
@@ -119,8 +171,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: false;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: [string, ...string[]];
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         nextExpectedDate: import("drizzle-orm/pg-core").PgColumn<{
             name: "next_expected_date";
@@ -131,8 +187,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: false;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
         receivingAccountId: import("drizzle-orm/pg-core").PgColumn<{
             name: "receiving_account_id";
@@ -143,8 +203,12 @@ export declare const incomeSources: import("drizzle-orm/pg-core").PgTableWithCol
             driverParam: string;
             notNull: false;
             hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
             enumValues: undefined;
             baseColumn: never;
+            generated: undefined;
         }, {}, {}>;
     };
     dialect: "pg";

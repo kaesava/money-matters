@@ -11,6 +11,7 @@ exports.timestamps = {
 };
 exports.tenantAndTimestamps = {
     tenantId: (0, pg_core_1.uuid)("tenant_id").notNull(),
+    appId: (0, pg_core_1.uuid)("app_id").notNull(),
     ...exports.timestamps
 };
 //# sourceMappingURL=base.js.map

@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = {
     schema: "./src/schema/index.ts",
     out: "./drizzle",
-    driver: "pg",
+    dialect: "postgresql",
     dbCredentials: {
-        connectionString: process.env.DATABASE_URL || "",
+        url: process.env.DATABASE_URL || "",
     },
 };
 //# sourceMappingURL=drizzle.config.js.map

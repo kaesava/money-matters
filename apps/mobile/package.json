@@ -13,13 +13,19 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@money-matters/api": "workspace:^",
+    "@money-matters/i18n": "workspace:*",
+    "@money-matters/types": "workspace:^",
+    "@money-matters/ui": "workspace:*",
+    "@tanstack/react-query": "^5.101.2",
+    "@trpc/client": "^11.18.0",
+    "@trpc/react-query": "^11.18.0",
     "expo": "~51.0.28",
+    "expo-router": "^57.0.4",
+    "expo-sqlite": "~14.0.6",
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
-    "react-native": "0.74.5",
-    "expo-sqlite": "~14.0.6",
-    "@money-matters/ui": "workspace:*",
-    "@money-matters/i18n": "workspace:*"
+    "react-native": "0.74.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

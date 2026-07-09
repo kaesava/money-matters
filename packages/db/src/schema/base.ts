@@ -1,4 +1,4 @@
-import { timestamp, uuid, varchar, text, boolean } from "drizzle-orm/pg-core";
+import { timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const timestamps = {
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -10,5 +10,6 @@ export const timestamps = {
 
 export const tenantAndTimestamps = {
   tenantId: uuid("tenant_id").notNull(),
+  appId: uuid("app_id").notNull(),
   ...timestamps
 };

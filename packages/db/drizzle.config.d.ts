@@ -1,9 +1,9 @@
 declare const _default: {
     schema: string;
     out: string;
-    driver: "pg";
+    dialect: "postgresql";
     dbCredentials: {
-        connectionString: string;
+        url: string;
     };
 };
 export default _default;

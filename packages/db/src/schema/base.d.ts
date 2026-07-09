@@ -12,5 +12,6 @@ export declare const tenantAndTimestamps: {
     updatedBy: import("drizzle-orm").NotNull<import("drizzle-orm/pg-core").PgUUIDBuilderInitial<"updated_by">>;
     archivedAt: import("drizzle-orm/pg-core").PgTimestampBuilderInitial<"archived_at">;
     tenantId: import("drizzle-orm").NotNull<import("drizzle-orm/pg-core").PgUUIDBuilderInitial<"tenant_id">>;
+    appId: import("drizzle-orm").NotNull<import("drizzle-orm/pg-core").PgUUIDBuilderInitial<"app_id">>;
 };
 //# sourceMappingURL=base.d.ts.map

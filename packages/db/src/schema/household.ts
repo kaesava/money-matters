@@ -1,25 +1,10 @@
-import { pgTable, uuid, varchar, text, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, jsonb } from "drizzle-orm/pg-core";
 import { tenantAndTimestamps, timestamps } from "./base";
 
 export const households = pgTable("households", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }).notNull(),
-  ...timestamps // Household is the tenant, so it doesn't have a tenantId pointing to something else
-});
-
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey(), // ID coming from Neon Auth
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  name: varchar("name", { length: 255 }).notNull(),
-  // Multi-tenant: User belongs to a single household (for now, 1:1 or M:1)
-  householdId: uuid("household_id").references(() => households.id).notNull(),
+  fyEndMonthDay: varchar("fy_end_month_day", { length: 5 }).notNull().default("06-30"),
+  customFields: jsonb("custom_fields"),
+  appId: uuid("app_id").notNull(),
   ...timestamps
-});
-
-export const bankAccounts = pgTable("bank_accounts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: varchar("name", { length: 255 }).notNull(),
-  type: varchar("type", { length: 50 }).notNull(), // 'everyday', 'major', 'bills'
-  balance: varchar("balance", { length: 255 }).notNull().default("0"), // Stored as string to avoid precision loss, or numeric
-  ...tenantAndTimestamps,
 });
