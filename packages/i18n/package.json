@@ -5,13 +5,9 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {},
-  "devDependencies": {
-    "typescript": "latest"
-  },
   "scripts": {
-    "build": "echo \"No build script yet\"",
+    "build": "echo \"No build script needed\"",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   }
 }

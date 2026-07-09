@@ -1,8 +1,14 @@
 {
   "name": "@money-matters/types",
   "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
   "scripts": {
-    "build": "echo \"No build script yet\"",
+    "build": "echo \"No build script needed for types\"",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"

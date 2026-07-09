@@ -17,20 +17,16 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
-    "@types/node": "latest",
+    "@types/node": "20.14.9",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.7.0",
-    "turbo": "latest",
+    "turbo": "2.0.14",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   },
-  "type": "module",
-  "dependencies": {
-    "drizzle-orm": "0.32.2",
-    "inngest": "^3.19.14"
-  }
+  "type": "module"
 }
