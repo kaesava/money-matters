@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
+    "@money-matters/capability-money": "workspace:*",
     "@money-matters/db": "workspace:*",
     "@money-matters/types": "workspace:*",
     "@trpc/server": "^11.18.0",
