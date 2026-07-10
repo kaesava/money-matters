@@ -1,6 +1,8 @@
 import { db } from "@money-matters/db";
-import { categories, financialSchedules, incomeAllocationSnapshots } from "@money-matters/db/src/schema";
+// Import cleanly from the root workspace package name instead of a subfolder path
+import { categories, financialSchedules, incomeAllocationSnapshots } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
+
 
 interface CategoryContext {
   id: string;

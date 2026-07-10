@@ -1,5 +1,6 @@
 import { db } from "@money-matters/db";
-import { categories } from "@money-matters/db/src/schema";
+// Import cleanly from the root workspace package instead of a deep unmapped folder path
+import { categories } from "@money-matters/db";
 import { randomUUID } from "crypto";
 
 export async function seedMoneysmartCategories(tenantId: string, appId: string, userId: string) {
