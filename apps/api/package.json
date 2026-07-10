@@ -2,10 +2,11 @@
   "name": "@money-matters/api",
   "version": "0.1.0",
   "private": true,
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
     "dev": "dotenv -e ../../.env -- tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsup",
     "start": "node dist/index.js",
     "lint": "eslint \"**/*.ts\"",
     "typecheck": "tsc --noEmit"
@@ -26,6 +27,7 @@
     "@types/node": "^20.19.43",
     "@types/uuid": "^9.0.8",
     "dotenv-cli": "^8.0.0",
+    "tsup": "^8.5.1",
     "tsx": "4.7.1",
     "typescript": "^6.0.3"
   }
