@@ -19,14 +19,18 @@
   },
   "devDependencies": {
     "@types/uuid": "^9.0.8",
+    "@money-matters/core": "workspace:*",
+    "@money-matters/config": "workspace:*",
     "dotenv": "^16.4.5",
     "dotenv-cli": "^8.0.0",
     "drizzle-kit": "^0.31.10",
+    "tsx": "4.7.1",
     "typescript": "^6.0.3"
   },
   "scripts": {
     "generate": "dotenv -e ../../.env -- drizzle-kit generate",
     "push": "dotenv -e ../../.env -- drizzle-kit push",
+    "seed": "pnpm build && dotenv -e ../../.env.development -- tsx src/seed.ts",
     "typecheck": "tsc --noEmit",
     "build": "echo \"No build script yet\"",
     "lint": "eslint .",

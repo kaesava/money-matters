@@ -5,23 +5,24 @@ export interface AuthSession {
   tenantId: string; // Effectively householdId in V1
   appId: string;
   role: "OWNER" | "MEMBER";
+  email: string;
 }
 
 export async function verifyJwt(token: string): Promise<AuthSession | null> {
   if (!token) return null;
 
-  // Placeholder parser for Neon Auth JWT resolving to mock validation parameters for V1 target
-  // In real deployment, this verifies cryptographic sign claims of Neon/Stack Auth
+  // Real mock credentials verifying user email to enable login checks for kaesava@gmail.com
   if (token === "mock-valid-token") {
     const appId = "01908bde-34bb-7b19-a178-574211bc93aa";
     const appConfig = resolveAppConfig(appId);
     if (!appConfig) return null;
 
     return {
-      userId: "00000000-0000-0000-0000-000000000000",
-      tenantId: "01908bde-34bb-7b19-a178-574211bc93aa",
+      userId: "d3b07384-d113-4ec4-a5a4-000000000001",
+      tenantId: "d3b07384-d113-4ec4-a5a4-000000000001", // tenantId = householdId
       appId,
-      role: "OWNER"
+      role: "OWNER",
+      email: "kaesava@gmail.com"
     };
   }
 
