@@ -179,3 +179,7 @@ Must include:
 ## 26. Definition of Done
 A change is complete ONLY IF:
 - Tenant isolation enforced, Types strict, Validation strict, Tests passing, CI passing, No hardcoded strings, Observability in place, Security enforced, Documentation updated.
+
+## 27. Documentation Integrity
+- After any change (functional or technical), you MUST immediately update all relevant system markdown documents (`TECHNICAL_ARCH.md`, `FUNCTIONAL_SPEC.md`, `V2_SCOPE.md`, etc.) to keep them completely synchronized with the codebase state.
+

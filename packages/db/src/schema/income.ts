@@ -1,13 +1,16 @@
-import { pgTable, uuid, varchar, text, timestamp, numeric } from "drizzle-orm/pg-core";
-import { tenantAndTimestamps } from "./base";
-import { bankAccounts } from "./bank_account";
+import { pgTable, uuid, varchar, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { households } from "./household.js";
+import { bankAccounts } from "./bank_account.js";
+import { tenantAndTimestamps } from "./base.js";
+
+export const incomeSourceTypeEnum = pgEnum("income_source_type_enum", ["SALARY", "FREELANCE", "OTHER"]);
 
 export const incomeSources = pgTable("income_sources", {
   id: uuid("id").primaryKey().defaultRandom(),
+  householdId: uuid("household_id").references(() => households.id).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
+  type: incomeSourceTypeEnum("type").notNull().default("SALARY"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  recurrenceRule: text("recurrence_rule"),
-  nextExpectedDate: timestamp("next_expected_date", { withTimezone: true }),
   receivingAccountId: uuid("receiving_account_id").references(() => bankAccounts.id),
   ...tenantAndTimestamps
 });

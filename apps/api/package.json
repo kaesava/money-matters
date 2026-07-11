@@ -13,8 +13,11 @@
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
+    "@money-matters/capability-household": "workspace:*",
     "@money-matters/capability-money": "workspace:*",
     "@money-matters/db": "workspace:*",
+    "@money-matters/config": "workspace:*",
+    "@money-matters/core": "workspace:*",
     "@money-matters/types": "workspace:*",
     "@trpc/server": "^11.18.0",
     "drizzle-orm": "^0.39.0",

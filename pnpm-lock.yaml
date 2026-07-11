@@ -47,9 +47,18 @@ importers:
       '@fastify/cors':
         specifier: ^9.0.1
         version: 9.0.1
+      '@money-matters/capability-household':
+        specifier: workspace:*
+        version: link:../../packages/capabilities/household
       '@money-matters/capability-money':
         specifier: workspace:*
         version: link:../../packages/capabilities/money
+      '@money-matters/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@money-matters/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@money-matters/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -218,6 +227,41 @@ importers:
       drizzle-orm:
         specifier: ^0.39.0
         version: 0.39.3(@neondatabase/serverless@0.9.5)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(expo-sqlite@14.0.6(expo@51.0.28(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@19.2.7))(react@19.2.7)))
+    devDependencies:
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/config:
+    dependencies:
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/core:
+    dependencies:
+      '@money-matters/config':
+        specifier: workspace:*
+        version: link:../config
+      '@money-matters/db':
+        specifier: workspace:*
+        version: link:../db
+      '@neondatabase/serverless':
+        specifier: ^0.9.0
+        version: 0.9.5
+      drizzle-orm:
+        specifier: ^0.39.0
+        version: 0.39.3(@neondatabase/serverless@0.9.5)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(expo-sqlite@14.0.6(expo@51.0.28(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(react-native@0.74.5(@babel/core@7.29.7)(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@18.3.31)(react@19.2.7))(react@19.2.7)))
+      fastify:
+        specifier: ^4.26.2
+        version: 4.29.1
+      pino:
+        specifier: ^9.0.0
+        version: 9.14.0
     devDependencies:
       typescript:
         specifier: ^6.0.3

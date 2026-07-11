@@ -1,11 +1,13 @@
-import { inngest } from "./client";
+import { inngest } from "./client.js";
 import { seedMoneysmartCategories } from "@money-matters/capability-money";
+import { validateEnv } from "@money-matters/config";
 
 export const handleUserSignup = inngest.createFunction(
   { id: "seed-on-signup" },
   { event: "auth/user.signup" },
   async ({ event }) => {
-    await seedMoneysmartCategories(event.data.tenantId, "01908bde-34bb-7b19-a178-574211bc93aa", event.data.userId);
+    const env = validateEnv();
+    await seedMoneysmartCategories(event.data.tenantId, env.APP_MONEY_MATTERS_ID, event.data.userId);
     return { status: "Moneysmart categories provisioned." };
   }
 );

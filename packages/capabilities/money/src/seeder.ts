@@ -1,24 +1,24 @@
 import { db } from "@money-matters/db";
-// Import cleanly from the root workspace package instead of a deep unmapped folder path
 import { categories } from "@money-matters/db";
 import { randomUUID } from "crypto";
 
 export async function seedMoneysmartCategories(tenantId: string, appId: string, userId: string) {
   const defaultCategories = [
-    { name: "Groceries", type: "everyday" as const, priorityWeight: 1 },
-    { name: "Petrol", type: "everyday" as const, priorityWeight: 1 },
-    { name: "Rent/Mortgage Payment", type: "bills" as const, priorityWeight: 1 },
-    { name: "Car Registration", type: "major" as const, priorityWeight: 2 },
-    { name: "Emergency Fund", type: "major" as const, priorityWeight: 1 }
+    { name: "Groceries", type: "EVERYDAY" as const, priorityRank: null },
+    { name: "Petrol", type: "EVERYDAY" as const, priorityRank: null },
+    { name: "Rent/Mortgage Payment", type: "RECURRING" as const, priorityRank: 1 },
+    { name: "Car Registration", type: "MAJOR" as const, priorityRank: 2 },
+    { name: "Emergency Fund", type: "MAJOR" as const, priorityRank: 1 }
   ];
 
   const values = defaultCategories.map(cat => ({
     id: randomUUID(),
     tenantId,
     appId,
+    householdId: tenantId, // in V1 tenantId = householdId
     name: cat.name,
     type: cat.type,
-    priorityWeight: cat.priorityWeight,
+    priorityRank: cat.priorityRank,
     createdBy: userId,
     updatedBy: userId
   }));

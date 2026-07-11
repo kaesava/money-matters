@@ -1,12 +1,17 @@
-import { pgTable, uuid, varchar, numeric, pgEnum } from "drizzle-orm/pg-core";
-import { tenantAndTimestamps } from "./base";
+import { pgTable, uuid, varchar, boolean, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { households } from "./household.js";
+import { tenantAndTimestamps } from "./base.js";
 
-export const accountTypeEnum = pgEnum("account_type_enum", ["everyday", "bills", "major", "offset"]);
+// V1 simplified bank accounts mapping
+export const accountPurposeEnum = pgEnum("account_purpose_enum", ["INCOME_LANDING", "SAVINGS", "EVERYDAY"]);
 
 export const bankAccounts = pgTable("bank_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
-  accountName: varchar("account_name", { length: 255 }).notNull(),
-  accountType: accountTypeEnum("account_type").notNull(),
-  lastKnownBalance: numeric("last_known_balance", { precision: 12, scale: 2 }).notNull().default("0"),
+  householdId: uuid("household_id").references(() => households.id).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  // Array of purposes - an account can be an income landing AND a savings / everyday account
+  purpose: varchar("purpose", { length: 50 }).array().notNull(), 
+  lastKnownBalance: numeric("last_known_balance", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  isOffset: boolean("is_offset").notNull().default(false),
   ...tenantAndTimestamps,
 });

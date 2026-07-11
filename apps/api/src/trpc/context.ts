@@ -1,11 +1,18 @@
 import { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
+import { verifyJwt } from '@money-matters/core';
 
-export function createContext({ req, res }: CreateFastifyContextOptions) {
-  const token = req.headers.authorization?.split(" ")[1] || null;
-  // Resolve mock security profile metadata securely for V1 target
-  const tenantId = token ? "01908bde-34bb-7b19-a178-574211bc93aa" : null;
-  const appId = "01908bde-34bb-7b19-a178-574211bc93aa";
+export async function createContext({ req, res }: CreateFastifyContextOptions) {
+  const token = req.headers.authorization?.split(" ")[1] || "";
+  const session = await verifyJwt(token);
 
-  return { req, res, tenantId, appId };
+  return {
+    req,
+    res,
+    session, // Full verified session payload
+    tenantId: session?.tenantId || null,
+    appId: session?.appId || null,
+    userId: session?.userId || null,
+  };
 }
+
 export type Context = Awaited<ReturnType<typeof createContext>>;

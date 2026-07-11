@@ -1,0 +1,22 @@
+{
+  "name": "@money-matters/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@money-matters/config": "workspace:*",
+    "@money-matters/db": "workspace:*",
+    "@neondatabase/serverless": "^0.9.0",
+    "drizzle-orm": "^0.39.0",
+    "fastify": "^4.26.2",
+    "pino": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
