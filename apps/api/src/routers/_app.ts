@@ -14,7 +14,8 @@ import {
   createIncomeSourceHandler,
   createIncomeSourceScheduleHandler,
   createIncomeEventHandler,
-  calculatePaydayCascade
+  calculatePaydayCascade,
+  confirmPaydayAllocationPlan
 } from "@money-matters/capability-money";
 import { 
   CreateHouseholdCommand,
@@ -25,7 +26,8 @@ import {
   CreateCategoryScheduleCommand,
   CreateIncomeSourceCommand,
   CreateIncomeSourceScheduleCommand,
-  CreateIncomeEventCommand
+  CreateIncomeEventCommand,
+  ConfirmPlanCommand
 } from "@money-matters/types";
 import { z } from 'zod';
 
@@ -132,6 +134,18 @@ export const appRouter = router({
         ctx.appId,
         input.incomeAmount,
         input.incomeEventId
+      );
+    }),
+
+  confirmPlan: tenantProcedure
+    .input(ConfirmPlanCommand)
+    .mutation(async ({ input, ctx }) => {
+      return await confirmPaydayAllocationPlan(
+        ctx.tenantId,
+        ctx.appId,
+        ctx.userId,
+        input.planId,
+        input.lines
       );
     }),
 });

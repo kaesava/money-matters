@@ -217,6 +217,14 @@ export const SubmitReconciliationCommand = z.object({
   actualBalance: z.string().regex(/^\d+(\.\d{1,2})?$/),
 }).strict();
 
+export const ConfirmPlanCommand = z.object({
+  planId: z.string().uuid(),
+  lines: z.array(z.object({
+    lineId: z.string().uuid(),
+    confirmedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  }).strict())
+}).strict();
+
 export type HouseholdType = z.infer<typeof HouseholdSchema>;
 export type HouseholdMemberType = z.infer<typeof HouseholdMemberSchema>;
 export type BankAccountType = z.infer<typeof BankAccountSchema>;
