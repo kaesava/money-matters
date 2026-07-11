@@ -5,11 +5,12 @@ import {
   CreateBankAccountCommand, 
   UpdateBankAccountCommand 
 } from "@money-matters/types";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
+import { PgDatabase } from "drizzle-orm/pg-core";
 
-export function createHouseholdHandler(db: any) {
+export function createHouseholdHandler(db: PgDatabase<any, any, any>) {
   return async (input: z.infer<typeof CreateHouseholdCommand>, appId: string) => {
-    return await db.transaction(async (tx: any) => {
+    return await db.transaction(async (tx) => {
       // 1. Create the household record
       const [household] = await tx
         .insert(households)
@@ -45,7 +46,7 @@ export function createHouseholdHandler(db: any) {
   };
 }
 
-export function createBankAccountHandler(db: any) {
+export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
     input: z.infer<typeof CreateBankAccountCommand>, 
     tenantId: string, 
@@ -71,7 +72,7 @@ export function createBankAccountHandler(db: any) {
   };
 }
 
-export function updateBankAccountHandler(db: any) {
+export function updateBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
     accountId: string, 
     input: z.infer<typeof UpdateBankAccountCommand>, 
@@ -90,7 +91,8 @@ export function updateBankAccountHandler(db: any) {
         and(
           eq(bankAccounts.id, accountId),
           eq(bankAccounts.tenantId, tenantId),
-          eq(bankAccounts.appId, appId)
+          eq(bankAccounts.appId, appId),
+          sql`${bankAccounts.archivedAt} IS NULL`
         )
       )
       .returning();
@@ -103,7 +105,7 @@ export function updateBankAccountHandler(db: any) {
   };
 }
 
-export function archiveBankAccountHandler(db: any) {
+export function archiveBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
     accountId: string, 
     tenantId: string, 
@@ -121,7 +123,8 @@ export function archiveBankAccountHandler(db: any) {
         and(
           eq(bankAccounts.id, accountId),
           eq(bankAccounts.tenantId, tenantId),
-          eq(bankAccounts.appId, appId)
+          eq(bankAccounts.appId, appId),
+          sql`${bankAccounts.archivedAt} IS NULL`
         )
       )
       .returning();
@@ -134,7 +137,7 @@ export function archiveBankAccountHandler(db: any) {
   };
 }
 
-export function getHouseholdHandler(db: any) {
+export function getHouseholdHandler(db: PgDatabase<any, any, any>) {
   return async (tenantId: string, appId: string) => {
     const [household] = await db
       .select()
@@ -142,7 +145,8 @@ export function getHouseholdHandler(db: any) {
       .where(
         and(
           eq(households.tenantId, tenantId),
-          eq(households.appId, appId)
+          eq(households.appId, appId),
+          sql`${households.archivedAt} IS NULL`
         )
       )
       .limit(1);
@@ -156,7 +160,8 @@ export function getHouseholdHandler(db: any) {
         and(
           eq(householdMembers.householdId, household.id),
           eq(householdMembers.tenantId, tenantId),
-          eq(householdMembers.appId, appId)
+          eq(householdMembers.appId, appId),
+          sql`${householdMembers.archivedAt} IS NULL`
         )
       );
 
@@ -167,7 +172,8 @@ export function getHouseholdHandler(db: any) {
         and(
           eq(bankAccounts.householdId, household.id),
           eq(bankAccounts.tenantId, tenantId),
-          eq(bankAccounts.appId, appId)
+          eq(bankAccounts.appId, appId),
+          sql`${bankAccounts.archivedAt} IS NULL`
         )
       );
 

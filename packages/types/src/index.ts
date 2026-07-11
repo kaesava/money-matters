@@ -225,6 +225,12 @@ export const ConfirmPlanCommand = z.object({
   }).strict())
 }).strict();
 
+export const ResolveShortfallCommand = z.object({
+  donorCategoryId: z.string().uuid(),
+  recipientCategoryId: z.string().uuid(),
+  borrowedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+}).strict();
+
 export type HouseholdType = z.infer<typeof HouseholdSchema>;
 export type HouseholdMemberType = z.infer<typeof HouseholdMemberSchema>;
 export type BankAccountType = z.infer<typeof BankAccountSchema>;

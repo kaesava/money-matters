@@ -15,7 +15,10 @@ import {
   createIncomeSourceScheduleHandler,
   createIncomeEventHandler,
   calculatePaydayCascade,
-  confirmPaydayAllocationPlan
+  confirmPaydayAllocationPlan,
+  recordExpenseHandler,
+  resolveShortfallHandler,
+  listCategoriesWithHealth
 } from "@money-matters/capability-money";
 import { 
   CreateHouseholdCommand,
@@ -27,7 +30,9 @@ import {
   CreateIncomeSourceCommand,
   CreateIncomeSourceScheduleCommand,
   CreateIncomeEventCommand,
-  ConfirmPlanCommand
+  ConfirmPlanCommand,
+  RecordExpenseCommand,
+  ResolveShortfallCommand
 } from "@money-matters/types";
 import { z } from 'zod';
 
@@ -91,6 +96,12 @@ export const appRouter = router({
       return await handler(input.categoryId, input.data, ctx.tenantId, ctx.appId, ctx.userId);
     }),
 
+  listCategories: tenantProcedure
+    .query(async ({ ctx }) => {
+      const handler = listCategoriesWithHealth(db);
+      return await handler(ctx.tenantId, ctx.appId);
+    }),
+
   createCategorySchedule: tenantProcedure
     .input(CreateCategoryScheduleCommand)
     .mutation(async ({ input, ctx }) => {
@@ -147,6 +158,20 @@ export const appRouter = router({
         input.planId,
         input.lines
       );
+    }),
+
+  recordExpense: tenantProcedure
+    .input(RecordExpenseCommand)
+    .mutation(async ({ input, ctx }) => {
+      const handler = recordExpenseHandler(db);
+      return await handler(input, ctx.tenantId, ctx.appId, ctx.userId);
+    }),
+
+  resolveShortfall: tenantProcedure
+    .input(ResolveShortfallCommand)
+    .mutation(async ({ input, ctx }) => {
+      const handler = resolveShortfallHandler(db);
+      return await handler(input, ctx.tenantId, ctx.appId, ctx.userId);
     }),
 });
 
