@@ -18,10 +18,10 @@
 | ORM | Drizzle ORM | ^0.39.0 |
 | DB (server) | Neon PostgreSQL (serverless) | @neondatabase/serverless ^0.9.0 |
 | Auth | Neon Auth / Stack Auth | via @neondatabase/serverless |
-| DB (mobile) | Expo SQLite | 14.0.6 |
+| DB (mobile) | Expo SQLite | 16.0.10 |
 | Validation | Zod | ^3.23.8 |
-| Mobile framework | React Native / Expo | 0.74.5 / 51.0.28 |
-| Mobile routing | Expo Router | 57.0.4 |
+| Mobile framework | React Native / Expo | 0.81.5 / 54.0.35 |
+| Mobile routing | Expo Router | 6.0.24 |
 | Mobile styling | NativeWind | 4.0.36 |
 | Async workflows | Inngest | ^3.19.14 |
 | Push notifications | Expo Push Notifications | via expo-notifications |
