@@ -12,6 +12,109 @@ export const BaseSchema = z.object({
   archivedAt: z.date().nullable(),
 }).strict();
 
+// Status Engine Core Types
+export interface StatusStep {
+  code: string;
+  label: string;
+  color: {
+    web: {
+      border: string;
+      bg: string;
+      text: string;
+    };
+    mobile: {
+      bg: string;
+      text: string;
+    };
+  };
+}
+
+export interface StatusWorkflowConfig {
+  statuses: StatusStep[];
+  transitions: Record<string, string[]>;
+  defaultStatus: string;
+}
+
+// Default global status workflow presets (adapted from template)
+export const DEFAULT_STATUS_WORKFLOW: StatusWorkflowConfig = {
+  defaultStatus: 'New',
+  statuses: [
+    {
+      code: 'New',
+      label: 'New',
+      color: {
+        web: { border: 'border-t-slate-400', bg: 'bg-slate-50/50 text-slate-700', text: 'text-slate-700' },
+        mobile: { bg: '#f1f5f9', text: '#475569' }
+      }
+    },
+    {
+      code: 'Active',
+      label: 'Active',
+      color: {
+        web: { border: 'border-t-emerald-500', bg: 'bg-emerald-50 text-emerald-700', text: 'text-emerald-700' },
+        mobile: { bg: '#dcfce7', text: '#15803d' }
+      }
+    },
+    {
+      code: 'Pending',
+      label: 'Pending',
+      color: {
+        web: { border: 'border-t-amber-500', bg: 'bg-amber-50 text-amber-700', text: 'text-amber-700' },
+        mobile: { bg: '#fef9c3', text: '#a16207' }
+      }
+    },
+    {
+      code: 'Archived',
+      label: 'Archived',
+      color: {
+        web: { border: 'border-t-slate-400', bg: 'bg-slate-100 text-slate-500', text: 'text-slate-500' },
+        mobile: { bg: '#e2e8f0', text: '#64748b' }
+      }
+    }
+  ],
+  transitions: {
+    New: ['Active', 'Archived'],
+    Active: ['Pending', 'Archived'],
+    Pending: ['Active', 'Archived'],
+    Archived: ['Active']
+  }
+};
+
+export function getStatusColor(
+  status: string,
+  platform: 'web',
+  config?: StatusWorkflowConfig
+): StatusStep['color']['web'];
+export function getStatusColor(
+  status: string,
+  platform: 'mobile',
+  config?: StatusWorkflowConfig
+): StatusStep['color']['mobile'];
+export function getStatusColor(
+  status: string,
+  platform: 'web' | 'mobile',
+  config: StatusWorkflowConfig = DEFAULT_STATUS_WORKFLOW
+): any {
+  const step = config.statuses.find((s) => s.code.toLowerCase() === status.toLowerCase());
+  const fallback = config.statuses[0];
+  if (platform === 'web') {
+    return step ? step.color.web : fallback.color.web;
+  }
+  return step ? step.color.mobile : fallback.color.mobile;
+}
+
+export function getNextStatuses(
+  status: string,
+  config: StatusWorkflowConfig = DEFAULT_STATUS_WORKFLOW
+): string[] {
+  const matchedKey = Object.keys(config.transitions).find(
+    (k) => k.toLowerCase() === status.toLowerCase()
+  );
+  if (!matchedKey) return [];
+  return config.transitions[matchedKey] || [];
+}
+
+
 // 1. Households
 export const HouseholdSchema = BaseSchema.extend({
   name: z.string().min(1),

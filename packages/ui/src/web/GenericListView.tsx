@@ -106,10 +106,15 @@ export function GenericListView<T extends { id: string }>({
   columns,
   gridItemRender,
   onRowClick,
-  emptyStateIcon: EmptyStateIcon = Search,
+  emptyStateIcon: EmptyStateIcon = Search as any,
   emptyStateText = 'No items found',
 }: GenericListViewProps<T>) {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  
+  const ListIcon = LayoutList as any;
+  const GridIcon = LayoutGrid as any;
+  const PlusIcon = Plus as any;
+  const SearchIcon = Search as any;
 
   // Load initial view mode from local storage
   useEffect(() => {
@@ -145,7 +150,7 @@ export function GenericListView<T extends { id: string }>({
               type="button"
               title={t('neo.listView.title')}
             >
-              <LayoutList className="w-4.5 h-4.5" />
+              <ListIcon className="w-4.5 h-4.5" />
             </button>
             <button
               onClick={() => handleViewModeChange('grid')}
@@ -155,7 +160,7 @@ export function GenericListView<T extends { id: string }>({
               type="button"
               title={t('neo.listView.gridTitle')}
             >
-              <LayoutGrid className="w-4.5 h-4.5" />
+              <GridIcon className="w-4.5 h-4.5" />
             </button>
           </div>
 
@@ -166,7 +171,7 @@ export function GenericListView<T extends { id: string }>({
               onClick={onAddClick}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition duration-200"
             >
-              <Plus className="w-4 h-4" />
+              <PlusIcon className="w-4 h-4" />
               {addButtonLabel}
             </button>
           )}
@@ -176,7 +181,7 @@ export function GenericListView<T extends { id: string }>({
       {/* Filters & Search */}
       <div className="flex flex-col md:flex-row gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100 shadow-2xs">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
             placeholder={searchPlaceholder}

@@ -6,8 +6,12 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
-    "lucide-react": "^0.344.0",
+    "@money-matters/i18n": "workspace:*",
+    "@money-matters/types": "workspace:*",
+    "lucide-react": "^0.470.0",
     "react-hook-form": "^7.51.0",
+    "react-native": "0.74.5",
+    "react-native-svg": "^15.1.0",
     "zod": "^3.22.4"
   },
   "peerDependencies": {

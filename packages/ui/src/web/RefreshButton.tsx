@@ -30,6 +30,8 @@ export function RefreshButton({
     await onRefresh();
   };
 
+  const Icon = RotateCcw as any;
+
   return (
     <button
       onClick={handleClick}
@@ -38,7 +40,7 @@ export function RefreshButton({
       type="button"
       className={`p-2.5 rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
     >
-      <RotateCcw className={`w-5 h-5 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
+      <Icon className={`w-5 h-5 transition-transform ${isRefreshing ? 'animate-spin' : ''}`} />
     </button>
   );
 }

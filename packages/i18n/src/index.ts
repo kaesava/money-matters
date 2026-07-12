@@ -16,16 +16,36 @@ export const translations = {
   }
 } as const;
 
-export function t(key: string, locale: "en" = "en"): string {
+export function t(key: string, optionsOrLocale?: "en" | { defaultValue?: string; [key: string]: any }): string {
   const parts = key.split(".");
-  let current: any = translations[locale];
+  let current: any = translations.en;
   
   for (const part of parts) {
     if (current && part in current) {
       current = current[part];
     } else {
-      return key;
+      current = undefined;
+      break;
     }
   }
-  return typeof current === "string" ? current : key;
+
+  let result = typeof current === "string" ? current : undefined;
+  if (!result && optionsOrLocale && typeof optionsOrLocale === "object" && optionsOrLocale.defaultValue) {
+    result = optionsOrLocale.defaultValue;
+  }
+  if (!result) {
+    result = key;
+  }
+
+  // Basic template injection
+  if (optionsOrLocale && typeof optionsOrLocale === "object") {
+    for (const [k, v] of Object.entries(optionsOrLocale)) {
+      if (k !== "defaultValue") {
+        result = result.replace(new RegExp(`{${k}}`, "g"), String(v));
+      }
+    }
+  }
+
+  return result;
 }
+

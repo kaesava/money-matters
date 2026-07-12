@@ -11,3 +11,7 @@ export const handleUserSignup = inngest.createFunction(
     return { status: "Moneysmart categories provisioned." };
   }
 );
+
+import { createNotificationFunctions } from "@money-matters/capability-notifications";
+export const notificationFunctions = createNotificationFunctions(inngest);
+

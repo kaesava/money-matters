@@ -1,0 +1,38 @@
+{
+  "name": "@money-matters/capability-geo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./web": {
+      "import": "./src/web/index.ts",
+      "types": "./src/web/index.ts"
+    },
+    "./mobile": {
+      "import": "./src/mobile/index.ts",
+      "types": "./src/mobile/index.ts"
+    }
+  },
+  "dependencies": {
+    "@money-matters/types": "workspace:*",
+    "@money-matters/core": "workspace:*",
+    "lucide-react": "^0.470.0",
+    "react": "19.0.2",
+    "react-native": "0.74.5",
+    "react-native-svg": "^15.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

@@ -1,3 +1,4 @@
-import { handleUserSignup } from "./functions";
+import { handleUserSignup, notificationFunctions } from "./functions.js";
 
-export const functions = [handleUserSignup];
+export const functions = [handleUserSignup, ...notificationFunctions];
+
