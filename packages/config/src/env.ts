@@ -8,6 +8,13 @@ const envSchema = z.object({
   INNGEST_SIGNING_KEY: z.string().optional().default("mock-inngest-key"),
   INNGEST_EVENT_KEY: z.string().optional().default("mock-inngest-event-key"),
   APP_MONEY_MATTERS_ID: z.string().uuid().default("01908bde-34bb-7b19-a178-574211bc93aa"),
+  // Email and Storage capabilities
+  RESEND_API_KEY: z.string().optional(),
+  STORAGE_ENDPOINT: z.string().optional(),
+  STORAGE_ACCESS_KEY_ID: z.string().optional(),
+  STORAGE_SECRET_ACCESS_KEY: z.string().optional(),
+  STORAGE_REGION: z.string().optional().default("auto"),
+  STORAGE_BUCKET_NAME: z.string().optional(),
 });
 
 let envCache: z.infer<typeof envSchema> | null = null;
