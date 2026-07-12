@@ -124,7 +124,7 @@ export const HouseholdSchema = BaseSchema.extend({
 
 export const CreateHouseholdCommand = z.object({
   name: z.string().min(1),
-  userId: z.string().uuid(),
+  // userId is intentionally absent — derived server-side from the verified JWT (ctx.userId)
 }).strict();
 
 export const UpdateHouseholdCommand = z.object({

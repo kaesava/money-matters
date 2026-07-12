@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,31 +9,62 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { t } from "@money-matters/i18n";
+import { DESIGN_TOKENS } from "@money-matters/ui";
+import { authClient } from "../../lib/auth";
+import { trpc } from "../../lib/trpc";
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const createHousehold = trpc.createHousehold.useMutation();
+
   const handleSignUp = async () => {
+    if (!email || !password || !name) return;
     setLoading(true);
-    // Phase 4: simulate registration delay then go to setup wizard
-    // Phase 5: replace with real Stack Auth signUp() → createHousehold flow
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    router.replace('/(setup)/income');
+    try {
+      // 1. Create the Neon Auth account
+      const signUpResult = await authClient.signUp.email({
+        email: email.trim().toLowerCase(),
+        password,
+        name: name.trim(),
+      });
+
+      if (signUpResult.error) {
+        Alert.alert(
+          t("auth.signUpErrorTitle"),
+          signUpResult.error.message ?? t("auth.signUpErrorGeneric")
+        );
+        return;
+      }
+
+      // 2. Create the household — the server derives userId from the JWT.
+      // The JWT is now stored in secure storage by @better-auth/expo after signUp.
+      // buildTrpcClient().headers() will pick it up for this mutation.
+      await createHousehold.mutateAsync({
+        name: name.trim(),
+      });
+
+      // 3. Navigate to the setup wizard
+      router.replace("/(setup)/income");
+    } catch (err) {
+      Alert.alert(t("auth.signUpErrorTitle"), t("auth.signUpErrorGeneric"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         contentContainerStyle={styles.container}
@@ -41,17 +72,17 @@ export default function SignUpScreen() {
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← {t('common.back')}</Text>
+            <Text style={styles.backText}>← {t("common.back")}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{t('auth.signUp')}</Text>
-          <Text style={styles.subtitle}>{t('app.description')}</Text>
+          <Text style={styles.title}>{t("auth.signUp")}</Text>
+          <Text style={styles.subtitle}>{t("app.description")}</Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>{t('auth.nameLabel')}</Text>
+          <Text style={styles.label}>{t("auth.nameLabel")}</Text>
           <TextInput
             style={styles.input}
-            placeholder={t('auth.namePlaceholder')}
+            placeholder={t("auth.namePlaceholder")}
             placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
             value={name}
             onChangeText={setName}
@@ -59,10 +90,10 @@ export default function SignUpScreen() {
             autoComplete="name"
           />
 
-          <Text style={[styles.label, styles.labelGap]}>{t('auth.emailLabel')}</Text>
+          <Text style={[styles.label, styles.labelGap]}>{t("auth.emailLabel")}</Text>
           <TextInput
             style={styles.input}
-            placeholder={t('auth.emailPlaceholder')}
+            placeholder={t("auth.emailPlaceholder")}
             placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
             value={email}
             onChangeText={setEmail}
@@ -72,10 +103,10 @@ export default function SignUpScreen() {
             textContentType="emailAddress"
           />
 
-          <Text style={[styles.label, styles.labelGap]}>{t('auth.passwordLabel')}</Text>
+          <Text style={[styles.label, styles.labelGap]}>{t("auth.passwordLabel")}</Text>
           <TextInput
             style={styles.input}
-            placeholder={t('auth.passwordPlaceholder')}
+            placeholder={t("auth.passwordPlaceholder")}
             placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
             value={password}
             onChangeText={setPassword}
@@ -93,15 +124,15 @@ export default function SignUpScreen() {
             {loading ? (
               <ActivityIndicator color={DESIGN_TOKENS.colors.onPrimary} />
             ) : (
-              <Text style={styles.ctaText}>{t('auth.signUpCta')}</Text>
+              <Text style={styles.ctaText}>{t("auth.signUpCta")}</Text>
             )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerPrompt}>{t('auth.signInPrompt')} </Text>
-          <TouchableOpacity onPress={() => router.replace('/(auth)/sign-in')}>
-            <Text style={styles.footerLink}>{t('auth.signInCta')}</Text>
+          <Text style={styles.footerPrompt}>{t("auth.signInPrompt")} </Text>
+          <TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")}>
+            <Text style={styles.footerLink}>{t("auth.signInCta")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -119,15 +150,15 @@ const styles = StyleSheet.create({
   header: { marginBottom: 32 },
   backBtn: { marginBottom: 24 },
   backText: { fontSize: 14, color: DESIGN_TOKENS.colors.accent },
-  title: { fontSize: 26, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, marginBottom: 6 },
+  title: { fontSize: 26, fontWeight: "700", color: DESIGN_TOKENS.colors.primary, marginBottom: 6 },
   subtitle: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted, lineHeight: 18 },
   form: { gap: 4 },
-  label: { fontSize: 13, fontWeight: '600', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: "600", color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
   labelGap: { marginTop: 14 },
   input: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     borderRadius: DESIGN_TOKENS.radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -138,12 +169,12 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN_TOKENS.colors.accent,
     paddingVertical: 15,
     borderRadius: DESIGN_TOKENS.radius.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 24,
   },
   ctaDisabled: { opacity: 0.65 },
-  ctaText: { color: DESIGN_TOKENS.colors.onAccent, fontSize: 16, fontWeight: '700' },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
+  ctaText: { color: DESIGN_TOKENS.colors.onAccent, fontSize: 16, fontWeight: "700" },
+  footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerPrompt: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },
-  footerLink: { fontSize: 13, color: DESIGN_TOKENS.colors.accent, fontWeight: '600' },
+  footerLink: { fontSize: 13, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
 });

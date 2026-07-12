@@ -11,6 +11,7 @@
     "drizzle-orm": "^0.39.0",
     "fastify": "^4.26.2",
     "fastify-plugin": "^4.5.1",
+    "jose": "^5.9.6",
     "pino": "^9.0.0"
   },
   "devDependencies": {

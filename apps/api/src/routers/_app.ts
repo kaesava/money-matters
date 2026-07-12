@@ -1,4 +1,4 @@
-import { router, tenantProcedure, ownerProcedure, publicProcedure } from '../trpc/trpc.js';
+import { router, tenantProcedure, ownerProcedure, publicProcedure, authenticatedProcedure } from '../trpc/trpc.js';
 import { db } from "@money-matters/db";
 import { 
   createHouseholdHandler,
@@ -53,13 +53,14 @@ import { z } from 'zod';
 
 export const appRouter = router({
   // 1. Households
-  createHousehold: publicProcedure
+  createHousehold: authenticatedProcedure
     .input(CreateHouseholdCommand)
     .mutation(async ({ input, ctx }) => {
-      // In V1, appId defaults to config ID
-      const appId = ctx.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
+      // appId: prefer one already on session (existing member), fall back to registered app constant
+      const appId = ctx.appId || ctx.session?.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
       const handler = createHouseholdHandler(db);
-      return await handler(input, appId);
+      // userId comes from the verified JWT — never from client input
+      return await handler(input, appId, ctx.userId);
     }),
 
   getHousehold: tenantProcedure

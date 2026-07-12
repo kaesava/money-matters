@@ -9,38 +9,44 @@ import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
 export function createHouseholdHandler(db: PgDatabase<any, any, any>) {
-  return async (input: z.infer<typeof CreateHouseholdCommand>, appId: string) => {
+  return async (input: z.infer<typeof CreateHouseholdCommand>, appId: string, userId: string) => {
     return await db.transaction(async (tx) => {
-      // 1. Create the household record
-      const [household] = await tx
+      // Pre-generate the household UUID so tenantId = householdId in a single INSERT.
+      // The households table uses defaultRandom() but we need the ID before insert
+      // so we can set tenantId = id (the household is its own tenant scope).
+      const householdId = crypto.randomUUID();
+
+      // 1. Insert the household with tenantId = its own id
+      await tx
         .insert(households)
         .values({
-          tenantId: input.userId, // tenantId = householdId = userId in V1 signup
+          id: householdId,
+          tenantId: householdId, // tenantId = householdId ✓ (not userId)
           appId,
           name: input.name,
-          createdBy: input.userId,
-          updatedBy: input.userId,
-        })
-        .returning();
+          createdBy: userId,
+          updatedBy: userId,
+        });
 
       // 2. Add the owner record to household_members
+      //    userId → public.users.id (already upserted in createContext before this call)
       await tx
         .insert(householdMembers)
         .values({
-          householdId: household.id,
-          userId: input.userId,
+          householdId,
+          userId,
           role: "OWNER" as const,
           inviteStatus: "ACCEPTED" as const,
-          tenantId: input.userId,
+          tenantId: householdId,
           appId,
-          createdBy: input.userId,
-          updatedBy: input.userId,
+          createdBy: userId,
+          updatedBy: userId,
         });
 
-      return { 
-        success: true, 
-        householdId: household.id, 
-        tenantId: input.userId 
+      return {
+        success: true,
+        householdId,
+        tenantId: householdId,
       };
     });
   };

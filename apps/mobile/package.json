@@ -13,12 +13,14 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.6.23",
     "@money-matters/i18n": "workspace:*",
     "@money-matters/types": "workspace:^",
     "@money-matters/ui": "workspace:*",
     "@tanstack/react-query": "5.101.2",
     "@trpc/client": "11.18.0",
     "@trpc/react-query": "11.18.0",
+    "better-auth": "^1.6.23",
     "expo": "54.0.35",
     "expo-router": "6.0.24",
     "expo-sqlite": "16.0.10",

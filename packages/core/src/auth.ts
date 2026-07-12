@@ -1,30 +1,65 @@
-import { resolveAppConfig, AppConfig } from "@money-matters/config";
+import { jwtVerify, createRemoteJWKSet } from "jose";
 
 export interface AuthSession {
   userId: string;
-  tenantId: string; // Effectively householdId in V1
+  tenantId: string; // = householdId resolved by context layer
   appId: string;
   role: "OWNER" | "MEMBER";
   email: string;
 }
 
-export async function verifyJwt(token: string): Promise<AuthSession | null> {
+/** Raw claims extracted from a verified Neon Auth JWT — no DB queries. */
+export interface JwtClaims {
+  userId: string;
+  email: string;
+}
+
+const NEON_AUTH_BASE_URL = process.env["NEON_AUTH_BASE_URL"];
+const NEON_AUTH_JWKS_URL = process.env["NEON_AUTH_JWKS_URL"];
+
+// Lazy-initialise the JWKS keyset once on first use.
+// createRemoteJWKSet caches keys internally and auto-rotates on key ID miss.
+let _jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getJwks(): ReturnType<typeof createRemoteJWKSet> {
+  if (!NEON_AUTH_JWKS_URL) {
+    throw new Error("NEON_AUTH_JWKS_URL environment variable is not set.");
+  }
+  if (!_jwks) {
+    _jwks = createRemoteJWKSet(new URL(NEON_AUTH_JWKS_URL));
+  }
+  return _jwks;
+}
+
+/**
+ * Verifies a Neon Auth (Better Auth) JWT and returns the raw identity claims.
+ *
+ * IMPORTANT: This function performs NO database queries and has NO dependency on
+ * @money-matters/db. Tenant resolution (householdId → tenantId) happens in the
+ * API layer's createContext() after this call returns.
+ *
+ * Returns null if the token is missing, expired, or fails signature verification.
+ */
+export async function verifyJwt(token: string): Promise<JwtClaims | null> {
   if (!token) return null;
 
-  // Real mock credentials verifying user email to enable login checks for kaesava@gmail.com
-  if (token === "mock-valid-token") {
-    const appId = "01908bde-34bb-7b19-a178-574211bc93aa";
-    const appConfig = resolveAppConfig(appId);
-    if (!appConfig) return null;
+  try {
+    const issuer = NEON_AUTH_BASE_URL;
+    if (!issuer) {
+      throw new Error("NEON_AUTH_BASE_URL environment variable is not set.");
+    }
 
-    return {
-      userId: "d3b07384-d113-4ec4-a5a4-000000000001",
-      tenantId: "d3b07384-d113-4ec4-a5a4-000000000001", // tenantId = householdId
-      appId,
-      role: "OWNER",
-      email: "kaesava@gmail.com"
-    };
+    const { payload } = await jwtVerify(token, getJwks(), {
+      issuer,
+    });
+
+    const userId = payload.sub;
+    const email = payload["email"] as string | undefined;
+
+    if (!userId || !email) return null;
+
+    return { userId, email };
+  } catch {
+    // Covers: JWTExpired, JWSInvalid, JWSSignatureVerificationFailed, etc.
+    return null;
   }
-
-  return null;
 }
