@@ -1,12 +1,12 @@
 import { router, tenantProcedure, ownerProcedure, publicProcedure, authenticatedProcedure } from '../trpc/trpc.js';
 import { db } from "@money-matters/db";
 import { 
-  createHouseholdHandler,
+  createTenantHandler,
   createBankAccountHandler,
   updateBankAccountHandler,
   archiveBankAccountHandler,
-  getHouseholdHandler
-} from "@money-matters/capability-household";
+  getTenantHandler
+} from "@money-matters/capability-tenant";
 import {
   createCategoryHandler,
   updateCategoryHandler,
@@ -21,7 +21,7 @@ import {
   listCategoriesWithHealth
 } from "@money-matters/capability-money";
 import { 
-  CreateHouseholdCommand,
+  CreateTenantCommand,
   CreateBankAccountCommand,
   UpdateBankAccountCommand,
   CreateCategoryCommand,
@@ -52,20 +52,28 @@ import { z } from 'zod';
 
 
 export const appRouter = router({
-  // 1. Households
-  createHousehold: authenticatedProcedure
-    .input(CreateHouseholdCommand)
+  // 1. Tenants
+  createTenant: authenticatedProcedure
+    .input(CreateTenantCommand)
     .mutation(async ({ input, ctx }) => {
       // appId: prefer one already on session (existing member), fall back to registered app constant
       const appId = ctx.appId || ctx.session?.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
-      const handler = createHouseholdHandler(db);
+      const handler = createTenantHandler(db);
       // userId comes from the verified JWT — never from client input
       return await handler(input, appId, ctx.userId);
     }),
 
-  getHousehold: tenantProcedure
+  getTenantStatus: authenticatedProcedure
     .query(async ({ ctx }) => {
-      const handler = getHouseholdHandler(db);
+      return {
+        hasTenant: ctx.tenantId !== null,
+        tenantId: ctx.tenantId,
+      };
+    }),
+
+  getTenant: tenantProcedure
+    .query(async ({ ctx }) => {
+      const handler = getTenantHandler(db);
       return await handler(ctx.tenantId!, ctx.appId!);
     }),
 

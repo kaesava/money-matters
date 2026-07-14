@@ -1,9 +1,16 @@
-import { createDbClient } from "@money-matters/core";
-import { households, householdMembers, bankAccounts, categories, categorySchedules, incomeSources, incomeSourceSchedules, incomeEvents } from "@money-matters/db";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { tenants, tenantUsers, bankAccounts, categories, categorySchedules, incomeSources, incomeSourceSchedules, incomeEvents, users, apps } from "@money-matters/db";
+import { sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import dotenv from "dotenv";
 
 dotenv.config({ path: "../../.env.development" });
+
+function createDbClient(connectionString: string) {
+  const sqlClient = neon(connectionString);
+  return drizzle(sqlClient);
+}
 
 async function seed() {
   const connectionString = process.env.DATABASE_URL;
@@ -17,26 +24,75 @@ async function seed() {
 
   const tenantId = "d3b07384-d113-4ec4-a5a4-000000000001"; // Fixed tenant ID matching kaesava@gmail.com session
   const appId = "01908bde-34bb-7b19-a178-574211bc93aa";
-  const userId = "d3b07384-d113-4ec4-a5a4-000000000001";
+  let userId = "d3b07384-d113-4ec4-a5a4-000000000001";
 
-  // Clean existing tables first to ensure idempotent fresh state
+  // Check if neon_auth.user already has a user for kaesava@gmail.com
+  const existingNeonUsers = await db.execute<{ id: string; email: string }>(
+    sql`SELECT id, email FROM neon_auth.user WHERE email = 'kaesava@gmail.com' LIMIT 1`
+  );
+  const existingNeonUser = Array.isArray(existingNeonUsers) ? existingNeonUsers[0] : (existingNeonUsers as any)?.rows?.[0];
+
+  if (existingNeonUser) {
+    userId = existingNeonUser.id;
+    console.log(`Found existing Neon Auth user for kaesava@gmail.com with ID: ${userId}`);
+  } else {
+    console.log(`No existing Neon Auth user found for kaesava@gmail.com. Inserting seed user...`);
+    // Ensure the ID also doesn't conflict
+    const existingById = await db.execute(
+      sql`SELECT id FROM neon_auth.user WHERE id = ${userId} LIMIT 1`
+    );
+    const hasId = Array.isArray(existingById) ? existingById.length > 0 : (existingById as any)?.rows?.length > 0;
+    if (hasId) {
+      userId = randomUUID();
+      console.log(`Resolved UUID conflict, using generated UUID: ${userId}`);
+    }
+    await db.execute(sql`
+      INSERT INTO neon_auth.user (id, name, email, "emailVerified", "createdAt", "updatedAt")
+      VALUES (${userId}, 'Kaesava', 'kaesava@gmail.com', true, now(), now())
+    `);
+  }
+
   await db.delete(incomeEvents);
   await db.delete(incomeSourceSchedules);
   await db.delete(incomeSources);
   await db.delete(categorySchedules);
   await db.delete(categories);
   await db.delete(bankAccounts);
-  await db.delete(householdMembers);
-  await db.delete(households);
+  await db.delete(tenantUsers);
+  await db.delete(tenants);
+  await db.delete(users);
+  await db.delete(apps);
 
   console.log("🧹 Cleaned database tables.");
 
-  // 1. Households
+  // 0. Insert local mirror user record
+  await db
+    .insert(users)
+    .values({
+      id: userId,
+      email: "kaesava@gmail.com",
+      displayName: "Kaesava",
+    });
+
+  console.log("👤 Populated users table.");
+
+  // 0.5. Insert the application record
+  await db
+    .insert(apps)
+    .values({
+      id: appId,
+      name: "Money Matters",
+      slug: "money-matters",
+    });
+
+  console.log("📱 Populated apps table.");
+
+  // 1. Tenants
   const [household] = await db
-    .insert(households)
+    .insert(tenants)
     .values({
       id: tenantId,
-      name: "Kaesava's Household",
+      name: "Kaesava's Tenant",
       fyEndMonthDay: "06-30",
       premiumEnabled: true,
       tenantId,
@@ -46,15 +102,14 @@ async function seed() {
     })
     .returning();
 
-  // 2. Household Members
+  // 2. Tenant Users
   await db
-    .insert(householdMembers)
+    .insert(tenantUsers)
     .values({
-      householdId: household.id,
+      tenantId: household.id,
       userId,
       role: "OWNER" as const,
       inviteStatus: "ACCEPTED" as const,
-      tenantId,
       appId,
       createdBy: userId,
       updatedBy: userId,

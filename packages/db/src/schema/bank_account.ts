@@ -1,5 +1,5 @@
 import { pgTable, uuid, varchar, boolean, numeric, pgEnum } from "drizzle-orm/pg-core";
-import { households } from "./household.js";
+import { tenants } from "./tenant.js";
 import { tenantAndTimestamps } from "./base.js";
 
 // V1 simplified bank accounts mapping
@@ -7,7 +7,7 @@ export const accountPurposeEnum = pgEnum("account_purpose_enum", ["INCOME_LANDIN
 
 export const bankAccounts = pgTable("bank_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
-  householdId: uuid("household_id").references(() => households.id).notNull(),
+  householdId: uuid("household_id").references(() => tenants.id).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   // Array of purposes - an account can be an income landing AND a savings / everyday account
   purpose: varchar("purpose", { length: 50 }).array().notNull(), 

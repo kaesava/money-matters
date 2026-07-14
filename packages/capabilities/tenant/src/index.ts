@@ -1,54 +1,52 @@
 import { z } from "zod";
-import { households, householdMembers, bankAccounts } from "@money-matters/db";
+import { tenants, tenantUsers, bankAccounts } from "@money-matters/db";
 import { 
-  CreateHouseholdCommand, 
+  CreateTenantCommand, 
   CreateBankAccountCommand, 
   UpdateBankAccountCommand 
 } from "@money-matters/types";
 import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
-export function createHouseholdHandler(db: PgDatabase<any, any, any>) {
-  return async (input: z.infer<typeof CreateHouseholdCommand>, appId: string, userId: string) => {
-    return await db.transaction(async (tx) => {
-      // Pre-generate the household UUID so tenantId = householdId in a single INSERT.
-      // The households table uses defaultRandom() but we need the ID before insert
-      // so we can set tenantId = id (the household is its own tenant scope).
-      const householdId = crypto.randomUUID();
+export function createTenantHandler(db: PgDatabase<any, any, any>) {
+  return async (input: z.infer<typeof CreateTenantCommand>, appId: string, userId: string) => {
+    // Pre-generate the tenant UUID so tenantId = tenantId in a single INSERT.
+    // The tenants table uses defaultRandom() but we need the ID before insert
+    // so we can set tenantId = id (the tenant is its own tenant scope).
+    const tenantId = crypto.randomUUID();
 
-      // 1. Insert the household with tenantId = its own id
-      await tx
-        .insert(households)
-        .values({
-          id: householdId,
-          tenantId: householdId, // tenantId = householdId ✓ (not userId)
-          appId,
-          name: input.name,
-          createdBy: userId,
-          updatedBy: userId,
-        });
+    // 1. Insert the tenant with tenantId = its own id
+    await db
+      .insert(tenants)
+      .values({
+        id: tenantId,
+        tenantId: tenantId, // tenantId = tenantId ✓ (not userId)
+        appId,
+        name: input.name,
+        createdBy: userId,
+        updatedBy: userId,
+      });
 
-      // 2. Add the owner record to household_members
-      //    userId → public.users.id (already upserted in createContext before this call)
-      await tx
-        .insert(householdMembers)
-        .values({
-          householdId,
-          userId,
-          role: "OWNER" as const,
-          inviteStatus: "ACCEPTED" as const,
-          tenantId: householdId,
-          appId,
-          createdBy: userId,
-          updatedBy: userId,
-        });
+    // 2. Add the owner record to tenant_users
+    //    userId → public.users.id (already upserted in createContext before this call)
+    await db
+      .insert(tenantUsers)
+      .values({
+        tenantId,
+        userId,
+        role: "OWNER" as const,
+        inviteStatus: "ACCEPTED" as const,
+        tenantId: tenantId,
+        appId,
+        createdBy: userId,
+        updatedBy: userId,
+      });
 
-      return {
-        success: true,
-        householdId,
-        tenantId: householdId,
-      };
-    });
+    return {
+      success: true,
+      tenantId,
+      tenantId: tenantId,
+    };
   };
 }
 
@@ -62,7 +60,7 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
     const [bankAccount] = await db
       .insert(bankAccounts)
       .values({
-        householdId: tenantId,
+        tenantId: tenantId,
         name: input.name,
         purpose: input.purpose,
         lastKnownBalance: input.lastKnownBalance,
@@ -143,31 +141,31 @@ export function archiveBankAccountHandler(db: PgDatabase<any, any, any>) {
   };
 }
 
-export function getHouseholdHandler(db: PgDatabase<any, any, any>) {
+export function getTenantHandler(db: PgDatabase<any, any, any>) {
   return async (tenantId: string, appId: string) => {
-    const [household] = await db
+    const [tenant] = await db
       .select()
-      .from(households)
+      .from(tenants)
       .where(
         and(
-          eq(households.tenantId, tenantId),
-          eq(households.appId, appId),
-          sql`${households.archivedAt} IS NULL`
+          eq(tenants.tenantId, tenantId),
+          eq(tenants.appId, appId),
+          sql`${tenants.archivedAt} IS NULL`
         )
       )
       .limit(1);
 
-    if (!household) return null;
+    if (!tenant) return null;
 
-    const members = await db
+    const users = await db
       .select()
-      .from(householdMembers)
+      .from(tenantUsers)
       .where(
         and(
-          eq(householdMembers.householdId, household.id),
-          eq(householdMembers.tenantId, tenantId),
-          eq(householdMembers.appId, appId),
-          sql`${householdMembers.archivedAt} IS NULL`
+          eq(tenantUsers.tenantId, tenant.id),
+          eq(tenantUsers.tenantId, tenantId),
+          eq(tenantUsers.appId, appId),
+          sql`${tenantUsers.archivedAt} IS NULL`
         )
       );
 
@@ -176,7 +174,7 @@ export function getHouseholdHandler(db: PgDatabase<any, any, any>) {
       .from(bankAccounts)
       .where(
         and(
-          eq(bankAccounts.householdId, household.id),
+          eq(bankAccounts.tenantId, tenant.id),
           eq(bankAccounts.tenantId, tenantId),
           eq(bankAccounts.appId, appId),
           sql`${bankAccounts.archivedAt} IS NULL`
@@ -184,8 +182,8 @@ export function getHouseholdHandler(db: PgDatabase<any, any, any>) {
       );
 
     return {
-      ...household,
-      members,
+      ...tenant,
+      users,
       bankAccounts: accounts,
     };
   };

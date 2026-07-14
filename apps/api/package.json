@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e ../../.env -- tsx watch src/index.ts",
+    "dev": "dotenv -e ../../.env.development -e .env.development -- tsx watch src/index.ts",
     "build": "tsup",
     "start": "node dist/index.js",
     "lint": "eslint \"**/*.ts\"",
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
-    "@money-matters/capability-household": "workspace:*",
+    "@money-matters/capability-tenant": "workspace:*",
     "@money-matters/capability-money": "workspace:*",
     "@money-matters/capability-notifications": "workspace:*",
     "@money-matters/capability-file-notes": "workspace:*",

@@ -12,9 +12,14 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as Linking from "expo-linking";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
+import { setActiveSessionToken } from "../../lib/trpc";
+import * as SecureStore from "expo-secure-store";
+
+const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://kesh-imac.tail09ef18.ts.net";
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -38,12 +43,55 @@ export default function SignInScreen() {
         );
         return;
       }
-
+      const sessionToken = result.data?.token;
+      if (sessionToken) {
+        console.log(`[DEBUG client] Storing session token and caching it...`);
+        await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
+        setActiveSessionToken(sessionToken);
+      }
       // Successful sign-in — the session token is stored in secure storage.
       // Navigate to main app; the index route will redirect based on household status.
-      router.replace("/(app)");
+      router.replace("/(app)/home");
     } catch (err) {
       Alert.alert(t("auth.signInErrorTitle"), t("auth.signInErrorGeneric"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert(
+        t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
+        t("auth.enterEmailPrompt", { defaultValue: "Please enter your email address first." })
+      );
+      return;
+    }
+    setLoading(true);
+    try {
+      const appRedirectUrl = Linking.createURL("reset-password");
+      const res = await authClient.requestPasswordReset({
+        email: email.trim().toLowerCase(),
+        redirectTo: `${API_URL}/reset-password?redirect_to=${encodeURIComponent(appRedirectUrl)}`,
+      });
+
+      if (res.error) {
+        Alert.alert(
+          t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
+          res.error.message ?? t("auth.forgotPasswordError", { defaultValue: "Could not request password reset." })
+        );
+        return;
+      }
+
+      Alert.alert(
+        t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
+        t("auth.forgotPasswordSuccess", { defaultValue: "A password reset link has been sent to your email." })
+      );
+    } catch (err) {
+      Alert.alert(
+        t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
+        err instanceof Error ? err.message : String(err)
+      );
     } finally {
       setLoading(false);
     }
@@ -92,7 +140,7 @@ export default function SignInScreen() {
             textContentType="password"
           />
 
-          <TouchableOpacity style={styles.forgotRow} onPress={() => {}}>
+          <TouchableOpacity style={styles.forgotRow} onPress={handleForgotPassword}>
             <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
           </TouchableOpacity>
 

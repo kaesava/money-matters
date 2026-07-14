@@ -39,20 +39,6 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="transactions"
-        options={{
-          title: t('transactions.title'),
-          tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="paychecks"
-        options={{
-          title: t('paychecks.title'),
-          tabBarIcon: ({ focused }) => <TabIcon icon="💰" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{
           title: t('settings.title'),

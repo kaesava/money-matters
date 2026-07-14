@@ -1,7 +1,7 @@
 {
-  "name": "mobile",
+  "name": "@money-matters/mobile",
   "version": "1.0.0",
-  "main": "expo/AppEntry.js",
+  "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start",
     "start": "expo start",
@@ -22,12 +22,18 @@
     "@trpc/react-query": "11.18.0",
     "better-auth": "^1.6.23",
     "expo": "54.0.35",
+    "expo-constants": "~18.0.13",
+    "expo-linking": "~8.0.12",
+    "expo-network": "~8.0.8",
     "expo-router": "6.0.24",
+    "expo-secure-store": "^57.0.0",
     "expo-sqlite": "16.0.10",
     "expo-status-bar": "3.0.9",
+    "expo-web-browser": "~15.0.11",
     "nativewind": "4.0.36",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "react-native-css-interop": "0.0.36"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

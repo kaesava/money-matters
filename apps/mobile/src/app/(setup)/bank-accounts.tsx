@@ -6,7 +6,6 @@ import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
-import { getMockSession } from '../../lib/mock-session';
 
 const PURPOSES = ['INCOME_LANDING', 'SAVINGS', 'EVERYDAY'] as const;
 type Purpose = (typeof PURPOSES)[number];
@@ -19,7 +18,6 @@ const PURPOSE_LABELS: Record<Purpose, string> = {
 
 export default function SetupBankAccountsScreen() {
   const router = useRouter();
-  const session = getMockSession();
   const [name, setName] = useState('');
   const [purpose, setPurpose] = useState<Purpose>('INCOME_LANDING');
   const [isOffset, setIsOffset] = useState(false);

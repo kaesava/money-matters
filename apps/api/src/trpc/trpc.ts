@@ -7,8 +7,8 @@ export const router = t.router;
 export const publicProcedure = t.procedure;
 
 /**
- * Requires a verified Neon Auth JWT but does NOT require an active tenant (household).
- * Use for sign-up flows and onboarding endpoints where a household doesn't exist yet.
+ * Requires a verified Neon Auth JWT but does NOT require an active tenant (tenant).
+ * Use for sign-up flows and onboarding endpoints where a tenant doesn't exist yet.
  */
 export const authenticatedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!ctx.session?.userId) {
@@ -27,7 +27,7 @@ export const authenticatedProcedure = t.procedure.use(async ({ ctx, next }) => {
 });
 
 /**
- * Requires a verified JWT AND an active household membership.
+ * Requires a verified JWT AND an active tenant membership.
  * Enforces tenant isolation: all queries must be scoped to ctx.tenantId.
  */
 export const tenantProcedure = t.procedure.use(async ({ ctx, next }) => {

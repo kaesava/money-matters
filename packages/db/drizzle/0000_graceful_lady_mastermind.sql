@@ -7,7 +7,7 @@ CREATE TYPE "public"."income_event_status_enum" AS ENUM('UPCOMING', 'DRAFT', 'RE
 CREATE TYPE "public"."allocation_plan_status_enum" AS ENUM('DRAFT', 'REVIEWED', 'CONFIRMED');--> statement-breakpoint
 CREATE TYPE "public"."shortfall_status_enum" AS ENUM('BORROWED', 'PARTIAL', 'REPAID');--> statement-breakpoint
 CREATE TYPE "public"."transaction_flow_enum" AS ENUM('DEBIT', 'CREDIT');--> statement-breakpoint
-CREATE TABLE "households" (
+CREATE TABLE "tenants" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"fy_end_month_day" varchar(5) DEFAULT '06-30' NOT NULL,
@@ -21,14 +21,13 @@ CREATE TABLE "households" (
 	"archived_at" timestamp with time zone
 );
 --> statement-breakpoint
-CREATE TABLE "household_members" (
+CREATE TABLE "tenant_users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"household_id" uuid NOT NULL,
+	"tenant_id" uuid NOT NULL,
 	"user_id" uuid NOT NULL,
 	"role" "member_role_enum" DEFAULT 'MEMBER' NOT NULL,
 	"invite_token" uuid,
 	"invite_status" "invite_status_enum" DEFAULT 'ACCEPTED' NOT NULL,
-	"tenant_id" uuid NOT NULL,
 	"app_id" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid NOT NULL,
@@ -221,7 +220,7 @@ CREATE TABLE "transaction_ledger" (
 	CONSTRAINT "transaction_ledger_idempotency_key_unique" UNIQUE("idempotency_key")
 );
 --> statement-breakpoint
-ALTER TABLE "household_members" ADD CONSTRAINT "household_members_household_id_households_id_fk" FOREIGN KEY ("household_id") REFERENCES "public"."households"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tenant_users" ADD CONSTRAINT "tenant_users_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bank_accounts" ADD CONSTRAINT "bank_accounts_household_id_households_id_fk" FOREIGN KEY ("household_id") REFERENCES "public"."households"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "categories" ADD CONSTRAINT "categories_household_id_households_id_fk" FOREIGN KEY ("household_id") REFERENCES "public"."households"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "categories" ADD CONSTRAINT "categories_bank_account_id_bank_accounts_id_fk" FOREIGN KEY ("bank_account_id") REFERENCES "public"."bank_accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -241,8 +240,8 @@ ALTER TABLE "transaction_ledger" ADD CONSTRAINT "transaction_ledger_bank_account
 ALTER TABLE "transaction_ledger" ADD CONSTRAINT "transaction_ledger_plan_line_id_allocation_plan_lines_id_fk" FOREIGN KEY ("plan_line_id") REFERENCES "public"."allocation_plan_lines"("id") ON DELETE no action ON UPDATE no action;
 
 -- 1. Custom Indexes for Performance & Partition Keys
-CREATE INDEX IF NOT EXISTS "households_tenant_app_idx" ON "households" ("tenant_id", "app_id");
-CREATE INDEX IF NOT EXISTS "household_members_tenant_app_idx" ON "household_members" ("tenant_id", "app_id");
+CREATE INDEX IF NOT EXISTS "tenants_tenant_app_idx" ON "tenants" ("tenant_id", "app_id");
+CREATE INDEX IF NOT EXISTS "tenant_users_tenant_app_idx" ON "tenant_users" ("tenant_id", "app_id");
 CREATE INDEX IF NOT EXISTS "bank_accounts_tenant_app_idx" ON "bank_accounts" ("tenant_id", "app_id");
 CREATE INDEX IF NOT EXISTS "categories_tenant_app_idx" ON "categories" ("tenant_id", "app_id");
 CREATE INDEX IF NOT EXISTS "category_schedules_tenant_app_idx" ON "category_schedules" ("tenant_id", "app_id");
@@ -261,8 +260,8 @@ CREATE INDEX IF NOT EXISTS "transaction_ledger_cat_date_idx" ON "transaction_led
 CREATE INDEX IF NOT EXISTS "shortfall_events_active_idx" ON "shortfall_events" ("status") WHERE "status" != 'REPAID';
 
 -- 2. Row Level Security Policies (Enforcing Tenant + App Isolation Bounds)
-ALTER TABLE "households" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "household_members" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "tenants" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "tenant_users" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "bank_accounts" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "categories" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "category_schedules" ENABLE ROW LEVEL SECURITY;
@@ -278,7 +277,7 @@ ALTER TABLE "transaction_ledger" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation_households ON "households"
   FOR ALL USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid AND app_id = NULLIF(current_setting('app.current_app_id', true), '')::uuid);
 
-CREATE POLICY tenant_isolation_household_members ON "household_members"
+CREATE POLICY tenant_isolation_tenant_users ON "tenant_users"
   FOR ALL USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid AND app_id = NULLIF(current_setting('app.current_app_id', true), '')::uuid);
 
 CREATE POLICY tenant_isolation_bank_accounts ON "bank_accounts"

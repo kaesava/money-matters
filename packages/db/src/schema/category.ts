@@ -1,5 +1,5 @@
 import { pgTable, uuid, varchar, integer, boolean, pgEnum } from "drizzle-orm/pg-core";
-import { households } from "./household.js";
+import { tenants } from "./tenant.js";
 import { bankAccounts } from "./bank_account.js";
 import { tenantAndTimestamps } from "./base.js";
 
@@ -7,7 +7,7 @@ export const categoryTypeEnum = pgEnum("category_type_enum", ["MAJOR", "RECURRIN
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
-  householdId: uuid("household_id").references(() => households.id).notNull(),
+  householdId: uuid("household_id").references(() => tenants.id).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   type: categoryTypeEnum("type").notNull(),
   priorityRank: integer("priority_rank"), // Nullable for EVERYDAY categories

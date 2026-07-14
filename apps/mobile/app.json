@@ -2,6 +2,7 @@
   "expo": {
     "name": "Money Matters",
     "slug": "money-matters",
+    "scheme": "moneymatters",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +23,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-web-browser"
     ]
   }
 }

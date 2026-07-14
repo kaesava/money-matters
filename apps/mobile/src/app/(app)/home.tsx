@@ -1,4 +1,4 @@
-import React from 'react';
+ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';

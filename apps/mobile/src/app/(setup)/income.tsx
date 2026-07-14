@@ -12,7 +12,6 @@ import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
-import { getMockSession } from '../../lib/mock-session';
 
 const INCOME_TYPES = ['SALARY', 'FREELANCE', 'OTHER'] as const;
 const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const;
@@ -34,7 +33,6 @@ const FREQ_LABELS: Record<Frequency, string> = {
 
 export default function SetupIncomeScreen() {
   const router = useRouter();
-  const session = getMockSession();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<IncomeType>('SALARY');

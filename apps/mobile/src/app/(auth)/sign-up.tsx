@@ -15,19 +15,44 @@ import { useRouter } from "expo-router";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
-import { trpc } from "../../lib/trpc";
+import { trpc, setActiveSessionToken } from "../../lib/trpc";
+import * as SecureStore from "expo-secure-store";
 
 export default function SignUpScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const createHousehold = trpc.createHousehold.useMutation();
 
   const handleSignUp = async () => {
-    if (!email || !password || !name) return;
+    if (!email || !password || !confirmPassword || !name) {
+      Alert.alert(
+        t("auth.signUpErrorTitle"),
+        t("common.required", { defaultValue: "This field is required." })
+      );
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert(
+        t("auth.signUpErrorTitle"),
+        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." })
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert(
+        t("auth.signUpErrorTitle"),
+        t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." })
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       // 1. Create the Neon Auth account
@@ -37,6 +62,8 @@ export default function SignUpScreen() {
         name: name.trim(),
       });
 
+      console.log(`[DEBUG client] signUpResult:`, JSON.stringify(signUpResult, null, 2));
+
       if (signUpResult.error) {
         Alert.alert(
           t("auth.signUpErrorTitle"),
@@ -44,10 +71,14 @@ export default function SignUpScreen() {
         );
         return;
       }
+      const sessionToken = signUpResult.data?.token;
+      if (sessionToken) {
+        console.log(`[DEBUG client] Storing session token and caching it...`);
+        await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
+        setActiveSessionToken(sessionToken);
+      }
 
       // 2. Create the household — the server derives userId from the JWT.
-      // The JWT is now stored in secure storage by @better-auth/expo after signUp.
-      // buildTrpcClient().headers() will pick it up for this mutation.
       await createHousehold.mutateAsync({
         name: name.trim(),
       });
@@ -55,7 +86,10 @@ export default function SignUpScreen() {
       // 3. Navigate to the setup wizard
       router.replace("/(setup)/income");
     } catch (err) {
-      Alert.alert(t("auth.signUpErrorTitle"), t("auth.signUpErrorGeneric"));
+      Alert.alert(
+        t("auth.signUpErrorTitle"),
+        err instanceof Error ? err.message : String(err)
+      );
     } finally {
       setLoading(false);
     }
@@ -110,6 +144,20 @@ export default function SignUpScreen() {
             placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
             value={password}
             onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+          />
+
+          <Text style={[styles.label, styles.labelGap]}>
+            {t("auth.confirmPasswordLabel", { defaultValue: "Confirm Password" })}
+          </Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t("auth.confirmPasswordPlaceholder", { defaultValue: "Confirm Password" })}
+            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
             secureTextEntry
             autoComplete="new-password"
             textContentType="newPassword"

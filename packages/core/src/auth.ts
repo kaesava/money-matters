@@ -8,10 +8,10 @@ export interface AuthSession {
   email: string;
 }
 
-/** Raw claims extracted from a verified Neon Auth JWT — no DB queries. */
 export interface JwtClaims {
   userId: string;
   email: string;
+  displayName?: string;
 }
 
 const NEON_AUTH_BASE_URL = process.env["NEON_AUTH_BASE_URL"];
@@ -54,11 +54,13 @@ export async function verifyJwt(token: string): Promise<JwtClaims | null> {
 
     const userId = payload.sub;
     const email = payload["email"] as string | undefined;
+    const name = payload["name"] as string | undefined;
 
     if (!userId || !email) return null;
 
-    return { userId, email };
-  } catch {
+    return { userId, email, displayName: name };
+  } catch (err) {
+    console.error("[DEBUG verifyJwt] JWT Verification failed with error:", err);
     // Covers: JWTExpired, JWSInvalid, JWSSignatureVerificationFailed, etc.
     return null;
   }

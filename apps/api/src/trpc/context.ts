@@ -1,49 +1,69 @@
 import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
-import { verifyJwt } from "@money-matters/core";
-import { db, users, householdMembers } from "@money-matters/db";
-import { eq } from "drizzle-orm";
+import { verifyJwt, upsertUserFromJwt } from "@money-matters/core";
+import { db, tenantMembers, MONEY_MATTERS_APP_ID } from "@money-matters/db";
+import { eq, sql } from "drizzle-orm";
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
-  const token = req.headers.authorization?.split(" ")[1] ?? "";
-  const claims = await verifyJwt(token);
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(" ")[1] ?? "";
+  console.log(`[DEBUG auth] Received Authorization Header: "${authHeader}"`);
+  console.log(`[DEBUG auth] Extracted Token: "${token}"`);
+  
+  let claims = await verifyJwt(token);
+  console.log(`[DEBUG auth] Verified Claims (JWT):`, claims);
+
+  // Fallback: If JWT verification fails, check if this is an opaque session token in the database
+  if (!claims && token && token.length === 32) {
+    console.log(`[DEBUG auth] Token is not a JWT. Looking up session in database...`);
+    try {
+      const dbSessions = await db.execute<{ userId: string; email: string; name: string }>(
+        sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"
+            FROM neon_auth.session s
+            JOIN neon_auth.user u ON s."userId" = u.id
+            WHERE s.token = ${token} AND s."expiresAt" > NOW()
+            LIMIT 1`
+      );
+      const dbSession = Array.isArray(dbSessions) ? dbSessions[0] : (dbSessions as any)?.rows?.[0];
+      if (dbSession) {
+        claims = {
+          userId: dbSession.userId,
+          email: dbSession.email,
+          displayName: dbSession.name,
+        };
+        console.log(`[DEBUG auth] Verified Claims (DB):`, claims);
+      } else {
+        console.log(`[DEBUG auth] No active database session found matching this token.`);
+      }
+    } catch (err) {
+      console.error("[DEBUG auth] Database session lookup failed:", err);
+    }
+  }
 
   if (!claims) {
+    console.log(`[DEBUG auth] Authentication failed: verifyJwt returned null and no DB session matched`);
     return { req, res, session: null, userId: null, tenantId: null, email: null, appId: null };
   }
 
   // ── Eager user mirror upsert ──────────────────────────────────────────────
   // Keep public.users in sync with neon_auth.user on every authenticated request.
-  // ON CONFLICT ensures this is idempotent and race-safe.
-  await db
-    .insert(users)
-    .values({
-      id: claims.userId,
-      email: claims.email,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        email: claims.email,
-        updatedAt: new Date(),
-      },
-    });
+  await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
 
   // ── Tenant resolution ─────────────────────────────────────────────────────
-  // Resolve the user's household membership to determine tenantId for this request.
-  // If the user has not yet created a household (post-signup), tenantId is null —
-  // that is valid for the createHousehold flow which runs in authenticatedProcedure.
+  // Resolve the user's tenant membership to determine tenantId for this request.
+  // If the user has not yet created a tenant (post-signup), tenantId is null —
+  // that is valid for the createTenant flow which runs in authenticatedProcedure.
   const [membership] = await db
     .select({
-      householdId: householdMembers.householdId,
-      role: householdMembers.role,
-      appId: householdMembers.appId,
+      tenantId: tenantUsers.tenantId,
+      role: tenantUsers.role,
+      appId: tenantUsers.appId,
     })
-    .from(householdMembers)
-    .where(eq(householdMembers.userId, claims.userId))
+    .from(tenantUsers)
+    .where(eq(tenantUsers.userId, claims.userId))
     .limit(1);
 
-  const tenantId = membership?.householdId ?? null;
-  const appId = membership?.appId ?? "money-matters";
+  const tenantId = membership?.tenantId ?? null;
+  const appId = membership?.appId ?? MONEY_MATTERS_APP_ID;
 
   return {
     req,

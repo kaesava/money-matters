@@ -36,6 +36,6 @@ export const DESIGN_TOKENS = {
   }
 } as const;
 
-export * from './web/index.js';
-export * from './mobile/index.js';
+export * from './web/index';
+export * from './mobile/index';
 

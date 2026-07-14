@@ -115,26 +115,26 @@ export function getNextStatuses(
 }
 
 
-// 1. Households
-export const HouseholdSchema = BaseSchema.extend({
+// 1. Tenants
+export const TenantSchema = BaseSchema.extend({
   name: z.string().min(1),
   fyEndMonthDay: z.string().regex(/^\d{2}-\d{2}$/).default("06-30"),
   premiumEnabled: z.boolean().default(false),
 }).strict();
 
-export const CreateHouseholdCommand = z.object({
+export const CreateTenantCommand = z.object({
   name: z.string().min(1),
   // userId is intentionally absent — derived server-side from the verified JWT (ctx.userId)
 }).strict();
 
-export const UpdateHouseholdCommand = z.object({
+export const UpdateTenantCommand = z.object({
   name: z.string().min(1).optional(),
   fyEndMonthDay: z.string().regex(/^\d{2}-\d{2}$/).optional(),
 }).strict();
 
-// 2. Household Members
-export const HouseholdMemberSchema = BaseSchema.extend({
-  householdId: z.string().uuid(),
+// 2. Tenant Members
+export const TenantMemberSchema = BaseSchema.extend({
+  tenantId: z.string().uuid(),
   userId: z.string().uuid(),
   role: z.enum(["OWNER", "MEMBER"]),
   inviteToken: z.string().uuid().nullable(),
@@ -143,7 +143,7 @@ export const HouseholdMemberSchema = BaseSchema.extend({
 
 // 3. Bank Accounts
 export const BankAccountSchema = BaseSchema.extend({
-  householdId: z.string().uuid(),
+  tenantId: z.string().uuid(),
   name: z.string().min(1),
   purpose: z.array(z.enum(["INCOME_LANDING", "SAVINGS", "EVERYDAY"])).min(1),
   lastKnownBalance: z.string().default("0.00"),
@@ -166,7 +166,7 @@ export const UpdateBankAccountCommand = z.object({
 
 // 4. Categories
 export const CategorySchema = BaseSchema.extend({
-  householdId: z.string().uuid(),
+  tenantId: z.string().uuid(),
   name: z.string().min(1),
   type: z.enum(["MAJOR", "RECURRING", "EVERYDAY"]),
   priorityRank: z.number().int().min(1).nullable(),
@@ -212,7 +212,7 @@ export const CreateCategoryScheduleCommand = z.object({
 
 // 6. Income Sources
 export const IncomeSourceSchema = BaseSchema.extend({
-  householdId: z.string().uuid(),
+  tenantId: z.string().uuid(),
   name: z.string().min(1),
   type: z.enum(["SALARY", "FREELANCE", "OTHER"]),
   amount: z.string(),
@@ -334,8 +334,8 @@ export const ResolveShortfallCommand = z.object({
   borrowedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
 }).strict();
 
-export type HouseholdType = z.infer<typeof HouseholdSchema>;
-export type HouseholdMemberType = z.infer<typeof HouseholdMemberSchema>;
+export type TenantType = z.infer<typeof TenantSchema>;
+export type TenantMemberType = z.infer<typeof TenantMemberSchema>;
 export type BankAccountType = z.infer<typeof BankAccountSchema>;
 export type CategoryType = z.infer<typeof CategorySchema>;
 export type CategoryScheduleType = z.infer<typeof CategoryScheduleSchema>;

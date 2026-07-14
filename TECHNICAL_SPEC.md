@@ -1,6 +1,6 @@
 # TECHNICAL_ARCH.md — money-matters
 
-> **Last updated:** 2026-07-11  
+> **Last updated:** 2026-07-14  
 > **Status:** Early scaffolding. Significant gaps remain. See §12 for full gap registry.
 
 ---
@@ -126,12 +126,12 @@ Required indexes: `(tenantId, appId)` on every table. Additional indexes per que
 
 ### Confirmed 2026-07-11
 
-- **Provider:** Neon Auth (Stack Auth integration).
-- JWT issued by Stack Auth, verified server-side in tRPC context.
-- `tenantId` and `userId` extracted from verified JWT claims — **never from client headers**.
-- `appId` resolved from app registry config keyed by the `appId` claim in the JWT.
+- **Provider:** Neon Auth (Better Auth integration).
+- **Authentication Handshake:** Supports verification of either stateless JWTs (via JWKS keys for web/webhooks) or stateful opaque session tokens (via direct lookup in `neon_auth.session` for native Expo mobile clients, circumventing cookie/origin limitations).
+- `tenantId` and `userId` extracted from verified session claims (JWT or DB session) — **never from client headers**.
+- `appId` resolved from app registry config keyed by the `appId` claim.
 - PostgreSQL RLS policies enforce `tenantId` + `appId` at DB layer.
-- `tenantProcedure` middleware validates JWT, resolves tenantId + appId, injects into context.
+- `tenantProcedure` middleware validates JWT/session, resolves tenantId + appId, injects into context.
 
 ---
 
@@ -171,6 +171,12 @@ reconciliation.* — get expected balance, submit actual, list history
 | `notify-paycheck-upcoming` | `allocation_plan.created` | Send push notification |
 | `notify-category-red` | Cron: daily | Detect RED categories, send push |
 | `notify-reconciliation-due` | Cron: monthly | Send reconciliation reminder |
+
+### 6.4 Custom Redirect / Bridge Routes
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/reset-password` | `GET` | Mobile deep-link bridge. Accepts `token`/`error` query params and redirects the browser client to the native `moneymatters://reset-password` deep-link scheme to circumvent native redirect origin limitations in Neon Auth. |
 
 ---
 
@@ -238,23 +244,11 @@ V2: migrate to Inngest workflow for resilience (see V2_SCOPE.md).
   complete.tsx
 (app)/
   _layout.tsx (bottom nav)
-  index.tsx          # Home (dashboard)
+  home.tsx           # Home (dashboard)
+  buckets.tsx        # All categories
   buckets/
-    index.tsx        # All categories
     [id].tsx         # Category detail + history
-  transactions/
-    index.tsx        # Transaction history
-    new.tsx          # Quick-add expense
-  paychecks/
-    index.tsx        # Income events + allocation plans
-    [id].tsx         # Paycheck review screen
-    [id]/review.tsx  # Allocation adjustment screen
-  settings/
-    index.tsx
-    household.tsx
-    bank-accounts.tsx
-    categories.tsx
-    income-sources.tsx
+  settings.tsx       # Profile & Sign Out
 ```
 
 ---

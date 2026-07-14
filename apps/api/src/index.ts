@@ -34,6 +34,47 @@ server.route({
   url: "/api/inngest",
 });
 
+server.get('/reset-password', async (request, reply) => {
+  const query = request.query as Record<string, string>;
+  const token = query['token'] || '';
+  const error = query['error'] || '';
+  const redirectTo = query['redirect_to'] || 'moneymatters://reset-password';
+  
+  reply.type('text/html').send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Redirecting...</title>
+        <script>
+          const token = ${JSON.stringify(token)};
+          const error = ${JSON.stringify(error)};
+          const baseRedirect = ${JSON.stringify(redirectTo)};
+          
+          let targetUrl = baseRedirect;
+          if (targetUrl.includes('?')) {
+            if (error) targetUrl += '&error=' + encodeURIComponent(error);
+            if (token) targetUrl += '&token=' + encodeURIComponent(token);
+          } else {
+            if (error) {
+              targetUrl += '?error=' + encodeURIComponent(error);
+            } else if (token) {
+              targetUrl += '?token=' + encodeURIComponent(token);
+            }
+          }
+          window.location.href = targetUrl;
+        </script>
+      </head>
+      <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+        <h2>Redirecting to Money Matters...</h2>
+        <p>If you are not redirected automatically, <a href="#" id="manualLink">click here</a>.</p>
+        <script>
+          document.getElementById('manualLink').href = targetUrl;
+        </script>
+      </body>
+    </html>
+  `);
+});
+
 const start = async () => {
   try {
     const port = env.PORT;
