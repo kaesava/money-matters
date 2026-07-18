@@ -80,6 +80,38 @@ export default function SettingsScreen() {
       )}
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t("settings.manage", { defaultValue: "Manage" })}</Text>
+        <View style={styles.cardList}>
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/income')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>💸 {t("settings.incomeStreams", { defaultValue: "Income Streams" })}</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/categories')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>🏷️ {t("settings.categories", { defaultValue: "Budget Categories" })}</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/bank-accounts')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>🏦 {t("settings.bankAccounts", { defaultValue: "Bank Accounts" })}</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <TouchableOpacity
           style={[styles.signOutButton, loading && styles.disabledButton]}
           onPress={handleSignOut}
@@ -193,5 +225,34 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: DESIGN_TOKENS.colors.textMuted,
+  },
+  cardList: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.radius.md,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    overflow: "hidden",
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+  },
+  listItemText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: DESIGN_TOKENS.colors.textPrimary,
+  },
+  chevron: {
+    fontSize: 16,
+    color: DESIGN_TOKENS.colors.textMuted,
+    fontWeight: "bold",
+  },
+  listItemDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 16,
   },
 });

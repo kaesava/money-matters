@@ -1,5 +1,6 @@
 import { router, tenantProcedure, ownerProcedure, publicProcedure, authenticatedProcedure } from '../trpc/trpc.js';
-import { db } from "@money-matters/db";
+import { db, incomeSources, categories } from "@money-matters/db";
+import { and, eq, sql } from "drizzle-orm";
 import { 
   createTenantHandler,
   createBankAccountHandler,
@@ -120,6 +121,31 @@ export const appRouter = router({
       return await handler(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
+  archiveCategory: tenantProcedure
+    .input(z.object({ categoryId: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const [archived] = await ctx.db
+        .update(categories)
+        .set({
+          archivedAt: new Date(),
+          updatedBy: ctx.userId!,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(categories.id, input.categoryId),
+            eq(categories.tenantId, ctx.tenantId!),
+            eq(categories.appId, ctx.appId!),
+            sql`${categories.archivedAt} IS NULL`
+          )
+        )
+        .returning();
+      if (!archived) {
+        throw new Error("Category not found or access unauthorized.");
+      }
+      return { success: true };
+    }),
+
   listCategories: tenantProcedure
     .query(async ({ ctx }) => {
       const handler = listCategoriesWithHealth(ctx.db);
@@ -153,6 +179,45 @@ export const appRouter = router({
     .mutation(async ({ input, ctx }) => {
       const handler = createIncomeEventHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+    }),
+
+  listIncomeSources: tenantProcedure
+    .query(async ({ ctx }) => {
+      return await ctx.db
+        .select()
+        .from(incomeSources)
+        .where(
+          and(
+            eq(incomeSources.tenantId, ctx.tenantId!),
+            eq(incomeSources.appId, ctx.appId!),
+            sql`${incomeSources.archivedAt} IS NULL`
+          )
+        );
+    }),
+
+  archiveIncomeSource: tenantProcedure
+    .input(z.object({ id: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const [archived] = await ctx.db
+        .update(incomeSources)
+        .set({
+          archivedAt: new Date(),
+          updatedBy: ctx.userId!,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(incomeSources.id, input.id),
+            eq(incomeSources.tenantId, ctx.tenantId!),
+            eq(incomeSources.appId, ctx.appId!),
+            sql`${incomeSources.archivedAt} IS NULL`
+          )
+        )
+        .returning();
+      if (!archived) {
+        throw new Error("Income source not found or access unauthorized.");
+      }
+      return { success: true };
     }),
 
   // 5. Allocation Engine cascade trigger

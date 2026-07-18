@@ -65,6 +65,7 @@ export default function SignInScreen() {
       console.log(`[DEBUG client] Starting Google social sign-in...`);
       const result = await authClient.signIn.social({
         provider: "google",
+        callbackURL: Linking.createURL("home"),
       });
 
       console.log(`[DEBUG client] Google social sign-in response:`, result);
