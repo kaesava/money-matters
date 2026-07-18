@@ -1,10 +1,24 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, buildTrpcClient } from "../lib/trpc";
+import { authClient } from "../lib/auth";
 
 interface AppProvidersProps {
   children: React.ReactNode;
+}
+
+function SessionSyncTracker({ children }: { children: React.ReactNode }) {
+  const { data: session } = authClient.useSession();
+
+  useEffect(() => {
+    if (session?.token) {
+      console.log("[DEBUG client] Syncing active Better Auth JWT to localStorage...");
+      localStorage.setItem("session_token", session.token);
+    }
+  }, [session]);
+
+  return <>{children}</>;
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
@@ -29,7 +43,9 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <SessionSyncTracker>
+          {children}
+        </SessionSyncTracker>
       </QueryClientProvider>
     </trpc.Provider>
   );

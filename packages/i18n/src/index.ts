@@ -42,6 +42,7 @@ export const translations = {
       signUpCta: "Create Account",
       signInPrompt: "Already have an account?",
       signUpPrompt: "New to money matters?",
+      signInWithGoogle: "Sign in with Google",
       forgotPassword: "Forgot password?",
       signingIn: "Signing in…",
       signingUp: "Creating account…",
