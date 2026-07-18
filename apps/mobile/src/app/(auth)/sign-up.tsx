@@ -26,7 +26,7 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const createHousehold = trpc.createHousehold.useMutation();
+  const createTenant = trpc.createTenant.useMutation();
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !name) {
@@ -78,8 +78,8 @@ export default function SignUpScreen() {
         setActiveSessionToken(sessionToken);
       }
 
-      // 2. Create the household — the server derives userId from the JWT.
-      await createHousehold.mutateAsync({
+      // 2. Create the tenant/household — the server derives userId from the JWT.
+      await createTenant.mutateAsync({
         name: name.trim(),
       });
 

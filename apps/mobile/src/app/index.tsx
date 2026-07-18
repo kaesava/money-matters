@@ -15,7 +15,7 @@ import { trpc } from '../lib/trpc';
 export default function IndexRoute() {
   const { data: session, isPending: sessionPending } = authClient.useSession();
 
-  const { data: status, isPending: statusPending, error } = trpc.getHouseholdStatus.useQuery(
+  const { data: status, isPending: statusPending, error } = trpc.getTenantStatus.useQuery(
     undefined,
     {
       enabled: !!session,
@@ -35,7 +35,7 @@ export default function IndexRoute() {
     return <Redirect href="/(auth)/sign-in" />;
   }
 
-  if (error || !status?.hasHousehold) {
+  if (error || !status?.hasTenant) {
     return <Redirect href="/(setup)/income" />;
   }
 

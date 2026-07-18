@@ -4,10 +4,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 import { t } from '@money-matters/i18n';
 
-function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
+import { Feather } from '@expo/vector-icons';
+
+function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
   return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <Text style={[styles.iconText, focused && styles.iconTextActive]}>{icon}</Text>
+    <View style={styles.iconWrap}>
+      <Feather name={name as any} size={size} color={color} />
     </View>
   );
 }
@@ -28,21 +30,27 @@ export default function AppLayout() {
         name="home"
         options={{
           title: t('home.title'),
-          tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <TabIcon name="home" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="buckets"
         options={{
           title: t('buckets.title'),
-          tabBarIcon: ({ focused }) => <TabIcon icon="🪣" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <TabIcon name="grid" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: t('settings.title'),
-          tabBarIcon: ({ focused }) => <TabIcon icon="⚙️" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <TabIcon name="settings" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="buckets/[id]"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
@@ -66,7 +74,4 @@ const styles = StyleSheet.create({
   },
   tabLabel: { fontSize: 10, fontWeight: '600' },
   iconWrap: { alignItems: 'center', justifyContent: 'center' },
-  iconWrapActive: {},
-  iconText: { fontSize: 22, opacity: 0.5 },
-  iconTextActive: { opacity: 1 },
 });

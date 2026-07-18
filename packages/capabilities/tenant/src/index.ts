@@ -36,7 +36,6 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
         userId,
         role: "OWNER" as const,
         inviteStatus: "ACCEPTED" as const,
-        tenantId: tenantId,
         appId,
         createdBy: userId,
         updatedBy: userId,
@@ -45,7 +44,6 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
     return {
       success: true,
       tenantId,
-      tenantId: tenantId,
     };
   };
 }
@@ -60,12 +58,12 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
     const [bankAccount] = await db
       .insert(bankAccounts)
       .values({
+        householdId: tenantId,
         tenantId: tenantId,
         name: input.name,
         purpose: input.purpose,
         lastKnownBalance: input.lastKnownBalance,
         isOffset: input.isOffset,
-        tenantId,
         appId,
         createdBy: userId,
         updatedBy: userId,

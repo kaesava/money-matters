@@ -43,7 +43,6 @@ export default function SetupIncomeScreen() {
 
   const createSource = trpc.createIncomeSource.useMutation();
   const createSchedule = trpc.createIncomeSourceSchedule.useMutation();
-  const createHousehold = trpc.createHousehold.useMutation();
 
   const handleAdd = async () => {
     if (!name.trim() || !amount.trim()) return;

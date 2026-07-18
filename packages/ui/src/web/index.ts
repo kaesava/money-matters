@@ -1,3 +1,4 @@
+export { DESIGN_TOKENS } from '../tokens';
 export * from './Button';
 export * from './Input';
 export * from './Badge';

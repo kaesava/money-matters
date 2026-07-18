@@ -10,3 +10,6 @@ export { default as MobileEmailInput } from './fields/EmailInput';
 export { default as MobilePhoneInput } from './fields/PhoneInput';
 export { SmartEmailInput } from './fields/SmartEmailInput';
 export { SmartPhoneInput } from './fields/SmartPhoneInput';
+export { default as MobileScreenWrapper } from './ScreenWrapper';
+export type { ScreenWrapperProps as MobileScreenWrapperProps } from './ScreenWrapper';
+

@@ -1,6 +1,6 @@
 import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { verifyJwt, upsertUserFromJwt } from "@money-matters/core";
-import { db, tenantMembers, MONEY_MATTERS_APP_ID } from "@money-matters/db";
+import { db, tenantUsers, MONEY_MATTERS_APP_ID } from "@money-matters/db";
 import { eq, sql } from "drizzle-orm";
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
@@ -68,6 +68,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   return {
     req,
     res,
+    db: db as any, // default global database client
     session: {
       userId: claims.userId,
       email: claims.email,

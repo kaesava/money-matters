@@ -1,5 +1,6 @@
 import { db, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
+import { PgDatabase } from "drizzle-orm/pg-core";
 import { randomUUID } from "crypto";
 
 export async function confirmPaydayAllocationPlan(
@@ -7,9 +8,10 @@ export async function confirmPaydayAllocationPlan(
   appId: string,
   userId: string,
   planId: string,
-  linesInput: { lineId: string; confirmedAmount: string }[]
+  linesInput: { lineId: string; confirmedAmount: string }[],
+  dbClient: PgDatabase<any, any, any> = db
 ) {
-  return await db.transaction(async (tx) => {
+  return await dbClient.transaction(async (tx) => {
     // 1. Fetch the target draft allocation plan to confirm access and status bounds
     const [plan] = await tx
       .select()

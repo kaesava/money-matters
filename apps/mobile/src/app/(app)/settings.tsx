@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS } from "@money-matters/ui";
+import { DESIGN_TOKENS, MobileScreenWrapper } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
 import { setActiveSessionToken } from "../../lib/trpc";
 
@@ -52,11 +52,14 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t("settings.title")}</Text>
-      </View>
-
+    <MobileScreenWrapper
+      title={t("settings.title")}
+      user={session?.user}
+      onNavigateHome={() => router.push('/(app)/home')}
+      onNavigateBuckets={() => router.push('/(app)/buckets')}
+      onNavigateSettings={() => router.push('/(app)/settings')}
+      onSignOut={handleSignOut}
+    >
       {session?.user && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t("settings.profile", { defaultValue: "Profile" })}</Text>
@@ -96,7 +99,7 @@ export default function SettingsScreen() {
           {t("settings.version", { version: "1.0.0" })}
         </Text>
       </View>
-    </View>
+    </MobileScreenWrapper>
   );
 }
 

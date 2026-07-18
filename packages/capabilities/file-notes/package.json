@@ -15,9 +15,11 @@
     "@money-matters/db": "workspace:*",
     "@money-matters/types": "workspace:*",
     "@money-matters/core": "workspace:*",
+    "@money-matters/ui": "workspace:*",
     "@aws-sdk/client-s3": "^3.535.0",
     "@aws-sdk/s3-request-presigner": "^3.535.0",
     "drizzle-orm": "^0.39.0",
+    "lucide-react": "^0.470.0",
     "react": "19.1.0",
     "zod": "^3.22.4"
   },

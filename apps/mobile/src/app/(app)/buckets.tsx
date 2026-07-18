@@ -1,9 +1,13 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
-import { trpc } from '../../lib/trpc';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
+import { trpc, setActiveSessionToken } from '../../lib/trpc';
+import { authClient } from '../../lib/auth';
+import * as SecureStore from 'expo-secure-store';
+import { Feather } from '@expo/vector-icons';
+import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
 const SECTION_ORDER = ['MAJOR', 'RECURRING', 'EVERYDAY'] as const;
 const SECTION_TITLES: Record<string, string> = {
@@ -26,7 +30,9 @@ function fmt(val: string | number) {
 
 export default function BucketsScreen() {
   const router = useRouter();
-  const { data: categories, isLoading } = trpc.listCategories.useQuery();
+  const { data: session } = authClient.useSession();
+  const { data: categories, isLoading, error, refetch } = trpc.listCategories.useQuery();
+  const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
 
   const grouped = (categories ?? []).reduce<Record<string, typeof categories>>((acc, cat) => {
     const key = cat!.type;
@@ -35,58 +41,118 @@ export default function BucketsScreen() {
     return acc;
   }, {});
 
+  const handleSignOut = async () => {
+    Alert.alert(
+      t("settings.signOut", { defaultValue: "Sign Out" }),
+      t("settings.signOutConfirm", { defaultValue: "Are you sure you want to sign out?" }),
+      [
+        { text: t("common.cancel", { defaultValue: "Cancel" }), style: "cancel" },
+        {
+          text: t("settings.signOut", { defaultValue: "Sign Out" }),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await authClient.signOut();
+              await SecureStore.deleteItemAsync("money-matters-session-token");
+              setActiveSessionToken(null);
+              router.replace("/(auth)/sign-in");
+            } catch (err) {
+              Alert.alert(
+                t("common.error", { defaultValue: "Error" }),
+                err instanceof Error ? err.message : String(err)
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const D = DESIGN_TOKENS;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: D.colors.background }} contentContainerStyle={styles.container}>
-      <Text style={styles.screenTitle}>{t('buckets.title')}</Text>
+    <View style={{ flex: 1 }}>
+      <MobileScreenWrapper
+        title={t('buckets.title')}
+        user={session?.user}
+        onNavigateHome={() => router.push('/(app)/home')}
+        onNavigateBuckets={() => router.push('/(app)/buckets')}
+        onNavigateSettings={() => router.push('/(app)/settings')}
+        onSignOut={handleSignOut}
+      >
+        {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 40 }} />}
 
-      {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 40 }} />}
-
-      {SECTION_ORDER.map((section) => {
-        const items = grouped[section] ?? [];
-        if (items.length === 0) return null;
-        return (
-          <View key={section} style={styles.section}>
-            <Text style={styles.sectionTitle}>{t(SECTION_TITLES[section] ?? '')}</Text>
-            {items.map((cat) => {
-              if (!cat) return null;
-              const p = pct(cat.currentBalance, cat.targetAmount);
-              const color =
-                cat.healthStatus === 'GREEN' ? D.colors.success :
-                cat.healthStatus === 'AMBER' ? D.colors.warning :
-                cat.healthStatus === 'RED' ? D.colors.critical :
-                D.colors.accent;
-
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={styles.card}
-                  onPress={() => router.push(`/(app)/buckets/${cat.id}`)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.catName}>{cat.name}</Text>
-                    <Text style={[styles.catBalance, { color }]}>{fmt(cat.currentBalance)}</Text>
-                  </View>
-                  {cat.targetAmount && (
-                    <Text style={styles.target}>{t('buckets.target')} {fmt(cat.targetAmount)}</Text>
-                  )}
-                  {p !== null && (
-                    <>
-                      <View style={styles.barBg}>
-                        <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
-                      </View>
-                      <Text style={[styles.pctLabel, { color }]}>{t('buckets.progressPct', { pct: p })}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorTitle}>{t('common.error', { defaultValue: 'Error' })}</Text>
+            <Text style={styles.errorSubtitle}>{error.message}</Text>
           </View>
-        );
-      })}
-    </ScrollView>
+        )}
+
+        {SECTION_ORDER.map((section) => {
+          const items = grouped[section] ?? [];
+          if (items.length === 0) return null;
+          return (
+            <View key={section} style={styles.section}>
+              <Text style={styles.sectionTitle}>{t(SECTION_TITLES[section] ?? '')}</Text>
+              {items.map((cat) => {
+                if (!cat) return null;
+                const p = pct(cat.currentBalance, cat.targetAmount);
+                const color =
+                  cat.healthStatus === 'GREEN' ? D.colors.success :
+                  cat.healthStatus === 'AMBER' ? D.colors.warning :
+                  cat.healthStatus === 'RED' ? D.colors.critical :
+                  D.colors.accent;
+
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={styles.card}
+                    onPress={() => router.push(`/(app)/buckets/${cat.id}`)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.catName}>{cat.name}</Text>
+                      <Text style={[styles.catBalance, { color }]}>{fmt(cat.currentBalance)}</Text>
+                    </View>
+                    {cat.targetAmount && (
+                      <Text style={styles.target}>{t('buckets.target')} {fmt(cat.targetAmount)}</Text>
+                    )}
+                    {p !== null && (
+                      <>
+                        <View style={styles.barBg}>
+                          <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
+                        </View>
+                        <Text style={[styles.pctLabel, { color }]}>{t('buckets.progressPct', { pct: p })}</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        })}
+      </MobileScreenWrapper>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setQuickExpenseVisible(true)}
+        activeOpacity={0.8}
+      >
+        <Feather name="plus" size={24} color="#FFF" />
+      </TouchableOpacity>
+
+      <QuickExpenseModal
+        visible={quickExpenseVisible}
+        onClose={() => {
+          setQuickExpenseVisible(false);
+          // Refetch categories to update the list balances
+          refetch();
+        }}
+      />
+    </View>
   );
 }
 
@@ -108,4 +174,24 @@ const styles = StyleSheet.create({
   barBg: { height: 5, borderRadius: 3, backgroundColor: '#F3F4F6', overflow: 'hidden', marginBottom: 4 },
   barFill: { height: 5, borderRadius: 3 },
   pctLabel: { fontSize: 11, fontWeight: '600' },
+  errorContainer: { alignItems: 'center', paddingVertical: 40, gap: 8 },
+  errorIcon: { fontSize: 40 },
+  errorTitle: { fontSize: 15, fontWeight: '600', color: D.colors.textPrimary },
+  errorSubtitle: { fontSize: 13, color: D.colors.textMuted, textAlign: 'center' },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 90,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: DESIGN_TOKENS.colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
 });

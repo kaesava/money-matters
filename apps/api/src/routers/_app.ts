@@ -73,7 +73,7 @@ export const appRouter = router({
 
   getTenant: tenantProcedure
     .query(async ({ ctx }) => {
-      const handler = getTenantHandler(db);
+      const handler = getTenantHandler(ctx.db);
       return await handler(ctx.tenantId!, ctx.appId!);
     }),
 
@@ -81,7 +81,7 @@ export const appRouter = router({
   createBankAccount: tenantProcedure
     .input(CreateBankAccountCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createBankAccountHandler(db);
+      const handler = createBankAccountHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -91,14 +91,14 @@ export const appRouter = router({
       data: UpdateBankAccountCommand
     }).strict())
     .mutation(async ({ input, ctx }) => {
-      const handler = updateBankAccountHandler(db);
+      const handler = updateBankAccountHandler(ctx.db);
       return await handler(input.accountId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
   archiveBankAccount: tenantProcedure
     .input(z.object({ accountId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
-      const handler = archiveBankAccountHandler(db);
+      const handler = archiveBankAccountHandler(ctx.db);
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -106,7 +106,7 @@ export const appRouter = router({
   createCategory: tenantProcedure
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createCategoryHandler(db);
+      const handler = createCategoryHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -116,20 +116,20 @@ export const appRouter = router({
       data: UpdateCategoryCommand
     }).strict())
     .mutation(async ({ input, ctx }) => {
-      const handler = updateCategoryHandler(db);
+      const handler = updateCategoryHandler(ctx.db);
       return await handler(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
   listCategories: tenantProcedure
     .query(async ({ ctx }) => {
-      const handler = listCategoriesWithHealth(db);
+      const handler = listCategoriesWithHealth(ctx.db);
       return await handler(ctx.tenantId!, ctx.appId!);
     }),
 
   createCategorySchedule: tenantProcedure
     .input(CreateCategoryScheduleCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createCategoryScheduleHandler(db);
+      const handler = createCategoryScheduleHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -137,21 +137,21 @@ export const appRouter = router({
   createIncomeSource: tenantProcedure
     .input(CreateIncomeSourceCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createIncomeSourceHandler(db);
+      const handler = createIncomeSourceHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
   createIncomeSourceSchedule: tenantProcedure
     .input(CreateIncomeSourceScheduleCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createIncomeSourceScheduleHandler(db);
+      const handler = createIncomeSourceScheduleHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
   createIncomeEvent: tenantProcedure
     .input(CreateIncomeEventCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createIncomeEventHandler(db);
+      const handler = createIncomeEventHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -168,7 +168,8 @@ export const appRouter = router({
         ctx.tenantId!,
         ctx.appId!,
         input.incomeAmount,
-        input.incomeEventId
+        input.incomeEventId,
+        ctx.db
       );
     }),
 
@@ -180,21 +181,22 @@ export const appRouter = router({
         ctx.appId!,
         ctx.userId!,
         input.planId,
-        input.lines
+        input.lines,
+        ctx.db
       );
     }),
 
   recordExpense: tenantProcedure
     .input(RecordExpenseCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = recordExpenseHandler(db);
+      const handler = recordExpenseHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
   resolveShortfall: tenantProcedure
     .input(ResolveShortfallCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = resolveShortfallHandler(db);
+      const handler = resolveShortfallHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -207,7 +209,7 @@ export const appRouter = router({
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
-      const handler = registerDeviceTokenHandler(db);
+      const handler = registerDeviceTokenHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -218,7 +220,7 @@ export const appRouter = router({
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
-      const handler = removeDeviceTokenHandler(db);
+      const handler = removeDeviceTokenHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.userId!);
     }),
 
@@ -232,7 +234,7 @@ export const appRouter = router({
       }).strict()
     )
     .query(async ({ ctx, input }) => {
-      const handler = listFileNotesHandler(db);
+      const handler = listFileNotesHandler(ctx.db);
       return await handler(input, ctx.tenantId!);
     }),
 
@@ -240,7 +242,7 @@ export const appRouter = router({
     .input(z.object({ id: z.string().uuid() }).strict())
     .query(async ({ ctx, input }) => {
       const handler = getFileNoteDownloadUrlHandler();
-      return await handler(input.id, ctx.tenantId!, db);
+      return await handler(input.id, ctx.tenantId!, ctx.db);
     }),
 
   createPreSignedUploadUrl: tenantProcedure
@@ -275,7 +277,7 @@ export const appRouter = router({
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
-      const handler = createFileNoteHandler(db);
+      const handler = createFileNoteHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
@@ -287,28 +289,28 @@ export const appRouter = router({
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
-      const handler = updateFileNoteCommentHandler(db);
+      const handler = updateFileNoteCommentHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.userId!);
     }),
 
   archiveFileNote: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ ctx, input }) => {
-      const handler = archiveFileNoteHandler(db);
+      const handler = archiveFileNoteHandler(ctx.db);
       return await handler(input.id, ctx.tenantId!, ctx.userId!);
     }),
 
   restoreFileNote: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ ctx, input }) => {
-      const handler = restoreFileNoteHandler(db);
+      const handler = restoreFileNoteHandler(ctx.db);
       return await handler(input.id, ctx.tenantId!, ctx.userId!);
     }),
 
   purgeFileNote: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ ctx, input }) => {
-      const handler = purgeFileNoteHandler(db);
+      const handler = purgeFileNoteHandler(ctx.db);
       return await handler(input.id, ctx.tenantId!);
     }),
 

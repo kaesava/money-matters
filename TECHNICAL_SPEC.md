@@ -127,6 +127,7 @@ Required indexes: `(tenantId, appId)` on every table. Additional indexes per que
 ### Confirmed 2026-07-11
 
 - **Provider:** Neon Auth (Better Auth integration).
+- **Google Sign-In:** Uses `@better-auth/expo`'s social provider support and `expo-web-browser` to open the Google OAuth2 flow natively, returning and caching the opaque session token in native secure storage (`SecureStore`).
 - **Authentication Handshake:** Supports verification of either stateless JWTs (via JWKS keys for web/webhooks) or stateful opaque session tokens (via direct lookup in `neon_auth.session` for native Expo mobile clients, circumventing cookie/origin limitations).
 - `tenantId` and `userId` extracted from verified session claims (JWT or DB session) — **never from client headers**.
 - `appId` resolved from app registry config keyed by the `appId` claim.
@@ -228,6 +229,7 @@ V2: migrate to Inngest workflow for resilience (see V2_SCOPE.md).
 - Styling: NativeWind (Tailwind tokens in React Native).
 - SQLite: offline queue schema scaffolded in V1 for V2 sync — not wired in V1.
 - All mutations include `idempotencyKey` from V1 to enable offline replay in V2.
+- **Layout & Headroom:** Uses `MobileScreenWrapper` (from `packages/ui`) to provide dynamic safe area spacing (for dynamic islands, notches, and status bars), standard branding/back navigation headers, and a sliding profile modal overlay (spillover menu) with quick dashboard/settings links and sign out actions.
 
 **Screen structure:**
 ```

@@ -1,9 +1,13 @@
- import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+ import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
-import { trpc } from '../../lib/trpc';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
+import { trpc, setActiveSessionToken } from '../../lib/trpc';
+import { authClient } from '../../lib/auth';
+import * as SecureStore from 'expo-secure-store';
+import { Feather } from '@expo/vector-icons';
+import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
 // ─── Category Health Card ─────────────────────────────────────────────────────
 
@@ -123,53 +127,123 @@ const pStyles = StyleSheet.create({
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const categoriesQuery = trpc.listCategories.useQuery();
+  const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
 
   const categories = categoriesQuery.data ?? [];
   const onTrack = categories.filter((c) => c.healthStatus === 'GREEN').length;
   const atRisk = categories.filter((c) => c.healthStatus === 'AMBER' || c.healthStatus === 'RED').length;
 
+  const handleSignOut = async () => {
+    Alert.alert(
+      t("settings.signOut", { defaultValue: "Sign Out" }),
+      t("settings.signOutConfirm", { defaultValue: "Are you sure you want to sign out?" }),
+      [
+        { text: t("common.cancel", { defaultValue: "Cancel" }), style: "cancel" },
+        {
+          text: t("settings.signOut", { defaultValue: "Sign Out" }),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await authClient.signOut();
+              await SecureStore.deleteItemAsync("money-matters-session-token");
+              setActiveSessionToken(null);
+              router.replace("/(auth)/sign-in");
+            } catch (err) {
+              Alert.alert(
+                t("common.error", { defaultValue: "Error" }),
+                err instanceof Error ? err.message : String(err)
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const getFirstName = () => {
+    if (!session?.user?.name) return "";
+    return session.user.name.split(" ")[0];
+  };
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Good morning 👋</Text>
-        <Text style={styles.headerTitle}>{t('home.title')}</Text>
-      </View>
-
-      {/* Paycheck Panel — Phase 4 uses static mock data */}
-      <PaycheckReadinessPanel
-        daysUntil={5}
-        expectedAmount={450000}
-        onTrack={onTrack}
-        atRisk={atRisk}
-        onReview={() => router.push('/(app)/paychecks')}
-      />
-
-      {/* Category Health */}
-      <Text style={styles.sectionTitle}>{t('home.categoryHealth')}</Text>
-
-      {categoriesQuery.isLoading ? (
-        <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginTop: 24 }} />
-      ) : categories.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>📂</Text>
-          <Text style={styles.emptyTitle}>{t('home.noCategories')}</Text>
-          <Text style={styles.emptySubtitle}>{t('home.setupCategories')}</Text>
+    <View style={{ flex: 1 }}>
+      <MobileScreenWrapper
+        user={session?.user}
+        onNavigateHome={() => router.push('/(app)/home')}
+        onNavigateBuckets={() => router.push('/(app)/buckets')}
+        onNavigateSettings={() => router.push('/(app)/settings')}
+        onSignOut={handleSignOut}
+      >
+        {/* Header Greeting */}
+        <View style={styles.header}>
+          <Text style={styles.greeting}>
+            {session?.user?.name
+              ? `Good morning, ${getFirstName()} 👋`
+              : "Good morning 👋"}
+          </Text>
+          <Text style={styles.headerSubtitle}>{t('home.title')}</Text>
         </View>
-      ) : (
-        categories.map((cat) => (
-          <CategoryHealthCard
-            key={cat.id}
-            name={cat.name}
-            type={cat.type}
-            balance={cat.currentBalance}
-            target={cat.targetAmount}
-            health={cat.healthStatus}
-          />
-        ))
-      )}
-    </ScrollView>
+
+        {/* Paycheck Panel — Phase 4 uses static mock data */}
+        <PaycheckReadinessPanel
+          daysUntil={5}
+          expectedAmount={450000}
+          onTrack={onTrack}
+          atRisk={atRisk}
+          onReview={() => router.push('/(app)/paychecks')}
+        />
+
+        {/* Category Health */}
+        <Text style={styles.sectionTitle}>{t('home.categoryHealth')}</Text>
+
+        {categoriesQuery.isLoading ? (
+          <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginTop: 24 }} />
+        ) : categoriesQuery.error ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>⚠️</Text>
+            <Text style={styles.emptyTitle}>{t('common.error', { defaultValue: 'Error' })}</Text>
+            <Text style={styles.emptySubtitle}>{categoriesQuery.error.message}</Text>
+          </View>
+        ) : categories.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📂</Text>
+            <Text style={styles.emptyTitle}>{t('home.noCategories')}</Text>
+            <Text style={styles.emptySubtitle}>{t('home.setupCategories')}</Text>
+          </View>
+        ) : (
+          categories.map((cat) => (
+            <CategoryHealthCard
+              key={cat.id}
+              name={cat.name}
+              type={cat.type}
+              balance={cat.currentBalance}
+              target={cat.targetAmount}
+              health={cat.healthStatus}
+            />
+          ))
+        )}
+      </MobileScreenWrapper>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setQuickExpenseVisible(true)}
+        activeOpacity={0.8}
+      >
+        <Feather name="plus" size={24} color="#FFF" />
+      </TouchableOpacity>
+
+      <QuickExpenseModal
+        visible={quickExpenseVisible}
+        onClose={() => {
+          setQuickExpenseVisible(false);
+          // Refetch categories to update the dashboard balances
+          categoriesQuery.refetch();
+        }}
+      />
+    </View>
   );
 }
 
@@ -178,11 +252,27 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: D.colors.background },
   container: { paddingHorizontal: D.spacing.containerMargin, paddingTop: 56, paddingBottom: 100 },
   header: { marginBottom: 20 },
-  greeting: { fontSize: 13, color: D.colors.textMuted, marginBottom: 2 },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: D.colors.primary },
+  greeting: { fontSize: 14, color: D.colors.textMuted, marginBottom: 2, fontWeight: '500' },
+  headerSubtitle: { fontSize: 24, fontWeight: '700', color: D.colors.primary },
   sectionTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, color: D.colors.textMuted, textTransform: 'uppercase', marginBottom: 10 },
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 8 },
   emptyIcon: { fontSize: 40 },
   emptyTitle: { fontSize: 15, fontWeight: '600', color: D.colors.textPrimary },
   emptySubtitle: { fontSize: 13, color: D.colors.textMuted, textAlign: 'center' },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 90, // Positioned above the bottom tab bar safely
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: DESIGN_TOKENS.colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+  },
 });

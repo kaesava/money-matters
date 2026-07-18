@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
 
 function fmt(val: string | number) {
@@ -21,7 +21,8 @@ export default function BucketDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        <ActivityIndicator color={D.colors.accent} size="large" />
+        <Text style={{ marginTop: 12, color: D.colors.textMuted }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -48,13 +49,12 @@ export default function BucketDetailScreen() {
     D.colors.accent;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: D.colors.background }} contentContainerStyle={styles.container}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>← {t('common.back')}</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.title}>{cat.name}</Text>
-
+    <MobileScreenWrapper
+      title={cat.name}
+      showBack={true}
+      onBackPress={() => router.back()}
+      showProfile={false}
+    >
       <View style={styles.card}>
         <View style={styles.row}>
           <View>
@@ -84,7 +84,7 @@ export default function BucketDetailScreen() {
       <View style={styles.emptyHistory}>
         <Text style={styles.emptyText}>{t('buckets.detail.noHistory')}</Text>
       </View>
-    </ScrollView>
+    </MobileScreenWrapper>
   );
 }
 

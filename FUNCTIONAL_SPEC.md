@@ -315,6 +315,8 @@ Implementation: Expo Push Notifications + Inngest scheduled workflows.
 
 Motion: subtle — card reveals on scroll, number counting animations on balance changes. Empty states warm and encouraging.
 
+Layout & Headroom: Screen layouts are standard and consistent. They include dynamic top safe-area padding (headroom) preventing content overlap under device notches. A unified sticky header bar displays app branding (or back button for nested views), page titles, and a clickable user profile avatar. Clicking the profile avatar reveals a dropdown spillover menu containing user detail and account actions (dashboard, settings, sign out).
+
 Bottom nav: **Home** · **Buckets** · **Transactions** · **Paychecks** · **Settings**  
 Quick-add FAB: always visible, primary action.
 

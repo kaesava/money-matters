@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation.js";
+import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 
 export default function Dashboard() {
@@ -9,7 +9,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("session_token");
-    if (token !== "mock-valid-token") {
+    if (!token) {
       router.push("/");
     } else {
       setIsAuthenticated(true);

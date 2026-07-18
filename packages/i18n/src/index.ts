@@ -148,7 +148,7 @@ export const translations = {
       allOnTrack: "All categories on track 🎉",
     },
     buckets: {
-      title: "Buckets",
+      title: "Categories",
       balance: "Balance",
       target: "Target",
       progressPct: "{pct}% funded",

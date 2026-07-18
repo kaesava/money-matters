@@ -24,6 +24,21 @@ export function buildTrpcClient() {
     links: [
       httpBatchLink({
         url: `${API_BASE_URL}/trpc`,
+        fetch: async (url, options) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          try {
+            const res = await fetch(url, {
+              ...options,
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            return res;
+          } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+          }
+        },
         async headers() {
           console.log(`[DEBUG client trpc] headers() builder invoked. activeSessionToken:`, activeSessionToken ? "cached" : "empty");
           let token = activeSessionToken;

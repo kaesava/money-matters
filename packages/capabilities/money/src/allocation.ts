@@ -1,5 +1,6 @@
 import { db, categories, categorySchedules, allocationPlans, allocationPlanLines, shortfallEvents, transactionLedger, incomeEvents } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
+import { PgDatabase } from "drizzle-orm/pg-core";
 
 interface EngineCategory {
   id: string;
@@ -18,10 +19,11 @@ export async function calculatePaydayCascade(
   tenantId: string,
   appId: string,
   incomeAmount: number,
-  incomeEventId: string
+  incomeEventId: string,
+  dbClient: PgDatabase<any, any, any> = db
 ) {
   // Step 1: Fetch all categories for this household
-  const dbCategories = await db
+  const dbCategories = await dbClient
     .select()
     .from(categories)
     .where(
@@ -33,7 +35,7 @@ export async function calculatePaydayCascade(
     );
 
   // Step 2: Fetch Category Schedules (targets)
-  const dbSchedules = await db
+  const dbSchedules = await dbClient
     .select()
     .from(categorySchedules)
     .where(
@@ -45,7 +47,7 @@ export async function calculatePaydayCascade(
     );
 
   // Step 3: Fetch Open Shortfalls to calculate outstanding repayments
-  const dbShortfalls = await db
+  const dbShortfalls = await dbClient
     .select()
     .from(shortfallEvents)
     .where(
@@ -58,7 +60,7 @@ export async function calculatePaydayCascade(
     );
 
   // Step 4: Fetch transaction ledgers to calculate current balances
-  const dbTransactions = await db
+  const dbTransactions = await dbClient
     .select({
       categoryId: transactionLedger.categoryId,
       amount: transactionLedger.amount,
@@ -273,7 +275,7 @@ export async function calculatePaydayCascade(
   }
 
   // Insert Draft Allocation Plan inside transaction boundaries
-  const plan = await db.transaction(async (tx) => {
+  const plan = await dbClient.transaction(async (tx) => {
     const [insertedPlan] = await tx
       .insert(allocationPlans)
       .values({

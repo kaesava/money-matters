@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '../providers/AppProviders';
 import { DESIGN_TOKENS } from '@money-matters/ui';
+// @ts-ignore
 import '../../global.css';
 
 /**

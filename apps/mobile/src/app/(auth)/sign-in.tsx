@@ -59,6 +59,33 @@ export default function SignInScreen() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      console.log(`[DEBUG client] Starting Google social sign-in...`);
+      const result = await authClient.signIn.social({
+        provider: "google",
+      });
+
+      console.log(`[DEBUG client] Google social sign-in response:`, result);
+
+      const sessionToken = await SecureStore.getItemAsync("money-matters-session-token");
+      if (sessionToken) {
+        console.log(`[DEBUG client] Captured social session token:`, sessionToken);
+        setActiveSessionToken(sessionToken);
+      }
+      router.replace("/(app)/home");
+    } catch (err) {
+      console.error("[DEBUG client] Google sign-in failed:", err);
+      Alert.alert(
+        t("auth.signInErrorTitle", { defaultValue: "Sign In Error" }),
+        err instanceof Error ? err.message : t("auth.signInErrorGeneric", { defaultValue: "Failed to sign in." })
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleForgotPassword = async () => {
     if (!email) {
       Alert.alert(
@@ -156,6 +183,24 @@ export default function SignInScreen() {
               <Text style={styles.ctaText}>{t("auth.signInCta")}</Text>
             )}
           </TouchableOpacity>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t("auth.or", { defaultValue: "OR" })}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.googleCta, loading && styles.ctaDisabled]}
+            onPress={handleGoogleSignIn}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.googleIcon}>G</Text>
+            <Text style={styles.googleCtaText}>
+              {t("auth.signInWithGoogle", { defaultValue: "Sign in with Google" })}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Footer nav */}
@@ -220,4 +265,42 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerPrompt: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },
   footerLink: { fontSize: 13, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
+  googleCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingVertical: 14,
+    borderRadius: DESIGN_TOKENS.radius.md,
+    gap: 10,
+    marginTop: 8,
+  },
+  googleIcon: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#4285F4",
+  },
+  googleCtaText: {
+    color: DESIGN_TOKENS.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.textMuted,
+    fontWeight: "600",
+  },
 });
