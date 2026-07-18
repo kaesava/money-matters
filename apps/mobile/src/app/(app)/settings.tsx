@@ -33,6 +33,7 @@ export default function SettingsScreen() {
             setLoading(true);
             try {
               await authClient.signOut();
+              await SecureStore.deleteItemAsync("money-matters_session_token");
               await SecureStore.deleteItemAsync("money-matters-session-token");
               setActiveSessionToken(null);
               // Reset navigation to the authentication flow

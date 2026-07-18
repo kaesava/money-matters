@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Colors - Serene Elegance Palette */
+  /* Colors - Serene Elegance Palette (marketing / landing) */
   --color-primary: #8a9a5b;        /* Muted Sage Accent */
   --color-primary-soft: #f1f4e8;
   --color-background: #fbf9f1;     /* Warm White */
@@ -43,6 +43,22 @@
   --surface-container-high: #e2e4e0;
   --surface-container-highest: #d1d3cf;
   --surface-container: #edeef0;
+
+  /* ── Dashboard Design Tokens (match mobile DESIGN_TOKENS) ────────────────── */
+  /* These are used only in /dashboard routes. Landing page keeps sage-green.   */
+  --dash-navy: #1B2B4B;            /* Primary navy — backgrounds, headers */
+  --dash-teal: #00B4A6;            /* Accent teal — CTAs, highlights, progress */
+  --dash-teal-soft: rgba(0,180,166,0.1); /* Teal tint for hover/selected states */
+  --dash-bg: #F7F8FA;              /* Dashboard background */
+  --dash-surface: #FFFFFF;         /* Card surfaces */
+  --dash-border: #E5E7EB;          /* Card/divider borders */
+  --dash-text: #1B2B4B;            /* Primary text */
+  --dash-muted: #6B7280;           /* Secondary / label text */
+  --dash-success: #22C55E;         /* Green — on track */
+  --dash-warning: #F59E0B;         /* Amber — at risk */
+  --dash-critical: #EF4444;        /* Red — underfunded */
+  --dash-shadow-sm: 0 1px 3px rgba(27,43,75,0.06), 0 1px 2px rgba(27,43,75,0.04);
+  --dash-shadow-md: 0 4px 12px rgba(27,43,75,0.08), 0 2px 4px rgba(27,43,75,0.05);
 }
 
 body {

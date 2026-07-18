@@ -46,6 +46,7 @@ export default function SignInScreen() {
       const sessionToken = result.data?.token;
       if (sessionToken) {
         console.log(`[DEBUG client] Storing session token and caching it...`);
+        await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
@@ -65,14 +66,16 @@ export default function SignInScreen() {
       console.log(`[DEBUG client] Starting Google social sign-in...`);
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: Linking.createURL("home"),
+        callbackURL: "moneymatters://home",
       });
 
       console.log(`[DEBUG client] Google social sign-in response:`, result);
 
-      const sessionToken = await SecureStore.getItemAsync("money-matters-session-token");
+      const sessionToken = await SecureStore.getItemAsync("money-matters_session_token") || 
+                           await SecureStore.getItemAsync("money-matters-session-token");
       if (sessionToken) {
         console.log(`[DEBUG client] Captured social session token:`, sessionToken);
+        await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
       router.replace("/(app)/home");

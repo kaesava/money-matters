@@ -1,6 +1,6 @@
 import { router, tenantProcedure, ownerProcedure, publicProcedure, authenticatedProcedure } from '../trpc/trpc.js';
-import { db, incomeSources, categories } from "@money-matters/db";
-import { and, eq, sql } from "drizzle-orm";
+import { db, incomeSources, categories, incomeEvents, allocationPlans, allocationPlanLines } from "@money-matters/db";
+import { and, eq, sql, desc } from "drizzle-orm";
 import { 
   createTenantHandler,
   createBankAccountHandler,
@@ -218,6 +218,61 @@ export const appRouter = router({
         throw new Error("Income source not found or access unauthorized.");
       }
       return { success: true };
+    }),
+
+  // List all income events for the household (newest first)
+  listIncomeEvents: tenantProcedure
+    .query(async ({ ctx }) => {
+      return await ctx.db
+        .select()
+        .from(incomeEvents)
+        .where(
+          and(
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!),
+            sql`${incomeEvents.archivedAt} IS NULL`
+          )
+        )
+        .orderBy(desc(incomeEvents.expectedDate));
+    }),
+
+  // Fetch an existing allocation plan + its lines for a given incomeEventId
+  listAllocationPlan: tenantProcedure
+    .input(z.object({ incomeEventId: z.string().uuid() }).strict())
+    .query(async ({ input, ctx }) => {
+      const [plan] = await ctx.db
+        .select()
+        .from(allocationPlans)
+        .where(
+          and(
+            eq(allocationPlans.incomeEventId, input.incomeEventId),
+            eq(allocationPlans.tenantId, ctx.tenantId!),
+            eq(allocationPlans.appId, ctx.appId!),
+            sql`${allocationPlans.archivedAt} IS NULL`
+          )
+        )
+        .orderBy(desc(allocationPlans.createdAt))
+        .limit(1);
+
+      if (!plan) return null;
+
+      const lines = await ctx.db
+        .select({
+          id: allocationPlanLines.id,
+          categoryId: allocationPlanLines.categoryId,
+          proposedAmount: allocationPlanLines.proposedAmount,
+          confirmedAmount: allocationPlanLines.confirmedAmount,
+          reasoning: allocationPlanLines.reasoning,
+          categoryName: categories.name,
+        })
+        .from(allocationPlanLines)
+        .leftJoin(categories, eq(categories.id, allocationPlanLines.categoryId))
+        .where(eq(allocationPlanLines.planId, plan.id));
+
+      return {
+        ...plan,
+        lines: lines.map(l => ({ ...l, categoryName: l.categoryName ?? "Unknown" })),
+      };
     }),
 
   // 5. Allocation Engine cascade trigger

@@ -74,6 +74,7 @@ export default function SignUpScreen() {
       const sessionToken = signUpResult.data?.token;
       if (sessionToken) {
         console.log(`[DEBUG client] Storing session token and caching it...`);
+        await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }

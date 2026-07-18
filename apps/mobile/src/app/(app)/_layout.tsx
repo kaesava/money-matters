@@ -47,6 +47,30 @@ export default function AppLayout() {
           tabBarIcon: ({ color, size }) => <TabIcon name="settings" color={color} size={size} />,
         }}
       />
+      <Tabs.Screen
+        name="categories/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/bank-accounts"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/categories"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings/income"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

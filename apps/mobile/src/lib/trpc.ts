@@ -44,8 +44,9 @@ export function buildTrpcClient() {
           let token = activeSessionToken;
           
           if (!token) {
-            // Retrieve the stored session token manually from SecureStore
-            const sessionToken = await SecureStore.getItemAsync("money-matters-session-token");
+            // Retrieve the stored session token manually from SecureStore (check both underscore and hyphen keys)
+            const sessionToken = await SecureStore.getItemAsync("money-matters_session_token") || 
+                                 await SecureStore.getItemAsync("money-matters-session-token");
             console.log(`[DEBUG client trpc] Stored session token:`, sessionToken ? "found" : "not found");
             if (sessionToken) {
               token = sessionToken;

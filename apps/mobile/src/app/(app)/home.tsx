@@ -147,6 +147,7 @@ export default function HomeScreen() {
           onPress: async () => {
             try {
               await authClient.signOut();
+              await SecureStore.deleteItemAsync("money-matters_session_token");
               await SecureStore.deleteItemAsync("money-matters-session-token");
               setActiveSessionToken(null);
               router.replace("/(auth)/sign-in");

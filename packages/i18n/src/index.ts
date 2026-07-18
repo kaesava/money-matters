@@ -4,6 +4,13 @@ export const translations = {
       title: "money matters",
       description: "The forward-looking income allocation system engineered for absolute financial clarity without administrative friction.",
     },
+    nav: {
+      home: "Home",
+      buckets: "Buckets",
+      paychecks: "Paychecks",
+      settings: "Settings",
+      dashboardNav: "Dashboard navigation",
+    },
     common: {
       save: "Save",
       cancel: "Cancel",
@@ -133,7 +140,8 @@ export const translations = {
       },
     },
     home: {
-      title: "Home",
+      title: "Your Money Dashboard",
+      greeting: "Good morning",
       nextPaycheck: "Next Paycheck",
       paydayIn: "Payday in {days} days",
       paydayToday: "Payday today!",
@@ -199,6 +207,9 @@ export const translations = {
       confirmed: "Confirmed",
       expectedDate: "Expected {date}",
       expectedAmount: "Expected {amount}",
+      generatePlan: "Generate Plan",
+      generatePlanHint: "Generate your paycheck cascade recommendation.",
+      generating: "Generating…",
       review: {
         title: "Paycheck Review",
         incomeAmount: "Income Amount",
@@ -217,6 +228,10 @@ export const translations = {
     },
     settings: {
       title: "Settings",
+      profile: "Profile",
+      manage: "Manage",
+      signOutConfirm: "Are you sure you want to sign out?",
+      incomeStreams: "Income Streams",
       household: {
         title: "Household",
         nameLabel: "Household Name",
