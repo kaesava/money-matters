@@ -172,7 +172,7 @@ export default function HomeScreen() {
       <MobileScreenWrapper
         user={session?.user}
         onNavigateHome={() => router.push('/(app)/home')}
-        onNavigateBuckets={() => router.push('/(app)/buckets')}
+        onNavigateBuckets={() => router.push('/(app)/categories')}
         onNavigateSettings={() => router.push('/(app)/settings')}
         onSignOut={handleSignOut}
       >

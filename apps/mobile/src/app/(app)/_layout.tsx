@@ -34,7 +34,7 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="buckets"
+        name="categories"
         options={{
           title: t('buckets.title'),
           tabBarIcon: ({ color, size }) => <TabIcon name="grid" color={color} size={size} />,
@@ -45,12 +45,6 @@ export default function AppLayout() {
         options={{
           title: t('settings.title'),
           tabBarIcon: ({ color, size }) => <TabIcon name="settings" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="buckets/[id]"
-        options={{
-          href: null,
         }}
       />
     </Tabs>

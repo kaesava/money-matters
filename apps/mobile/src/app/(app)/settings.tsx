@@ -56,7 +56,7 @@ export default function SettingsScreen() {
       title={t("settings.title")}
       user={session?.user}
       onNavigateHome={() => router.push('/(app)/home')}
-      onNavigateBuckets={() => router.push('/(app)/buckets')}
+      onNavigateBuckets={() => router.push('/(app)/categories')}
       onNavigateSettings={() => router.push('/(app)/settings')}
       onSignOut={handleSignOut}
     >

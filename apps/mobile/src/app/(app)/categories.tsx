@@ -76,7 +76,7 @@ export default function BucketsScreen() {
         title={t('buckets.title')}
         user={session?.user}
         onNavigateHome={() => router.push('/(app)/home')}
-        onNavigateBuckets={() => router.push('/(app)/buckets')}
+        onNavigateBuckets={() => router.push('/(app)/categories')}
         onNavigateSettings={() => router.push('/(app)/settings')}
         onSignOut={handleSignOut}
       >
@@ -109,7 +109,7 @@ export default function BucketsScreen() {
                   <TouchableOpacity
                     key={cat.id}
                     style={styles.card}
-                    onPress={() => router.push(`/(app)/buckets/${cat.id}`)}
+                    onPress={() => router.push(`/(app)/categories/${cat.id}`)}
                     activeOpacity={0.8}
                   >
                     <View style={styles.cardHeader}>

@@ -119,7 +119,6 @@ async function seed() {
   const [everydayAccount] = await db
     .insert(bankAccounts)
     .values({
-      householdId: household.id,
       name: "ANZ Everyday Smart",
       purpose: ["EVERYDAY", "INCOME_LANDING"],
       lastKnownBalance: "1500.00",
@@ -134,7 +133,6 @@ async function seed() {
   const [savingsAccount] = await db
     .insert(bankAccounts)
     .values({
-      householdId: household.id,
       name: "Offset Saver Mortgage Link",
       purpose: ["SAVINGS"],
       lastKnownBalance: "45000.00",
@@ -170,7 +168,6 @@ async function seed() {
     const [insertedCategory] = await db
       .insert(categories)
       .values({
-        householdId: household.id,
         name: cat.name,
         type: cat.type,
         priorityRank: cat.priorityRank,
@@ -205,7 +202,6 @@ async function seed() {
   const [salarySource] = await db
     .insert(incomeSources)
     .values({
-      householdId: household.id,
       name: "Fortnightly Salary (Primary)",
       type: "SALARY" as const,
       amount: "4800.00",

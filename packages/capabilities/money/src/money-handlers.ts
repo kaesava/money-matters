@@ -24,7 +24,6 @@ export function createCategoryHandler(db: PgDatabase<any, any, any>) {
     const [category] = await db
       .insert(categories)
       .values({
-        householdId: tenantId,
         name: input.name,
         type: input.type,
         priorityRank: input.priorityRank || null,
@@ -111,7 +110,6 @@ export function createIncomeSourceHandler(db: PgDatabase<any, any, any>) {
     const [source] = await db
       .insert(incomeSources)
       .values({
-        householdId: tenantId,
         name: input.name,
         type: input.type,
         amount: input.amount,

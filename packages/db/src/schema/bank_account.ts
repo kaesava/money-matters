@@ -7,7 +7,6 @@ export const accountPurposeEnum = pgEnum("account_purpose_enum", ["INCOME_LANDIN
 
 export const bankAccounts = pgTable("bank_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
-  householdId: uuid("household_id").references(() => tenants.id).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   // Array of purposes - an account can be an income landing AND a savings / everyday account
   purpose: varchar("purpose", { length: 50 }).array().notNull(), 

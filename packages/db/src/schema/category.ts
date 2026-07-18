@@ -7,7 +7,6 @@ export const categoryTypeEnum = pgEnum("category_type_enum", ["MAJOR", "RECURRIN
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
-  householdId: uuid("household_id").references(() => tenants.id).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   type: categoryTypeEnum("type").notNull(),
   priorityRank: integer("priority_rank"), // Nullable for EVERYDAY categories

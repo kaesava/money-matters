@@ -15,7 +15,6 @@ export async function seedMoneysmartCategories(tenantId: string, appId: string, 
     id: randomUUID(),
     tenantId,
     appId,
-    householdId: tenantId, // in V1 tenantId = householdId
     name: cat.name,
     type: cat.type,
     priorityRank: cat.priorityRank,

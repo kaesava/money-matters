@@ -58,7 +58,6 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
     const [bankAccount] = await db
       .insert(bankAccounts)
       .values({
-        householdId: tenantId,
         tenantId: tenantId,
         name: input.name,
         purpose: input.purpose,
