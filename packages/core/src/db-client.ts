@@ -1,8 +1,8 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
 
 export function createDbClient(connectionString: string) {
-  const sql = neon(connectionString);
-  return drizzle(sql);
+  const pool = new Pool({ connectionString });
+  return drizzle(pool);
 }
 
