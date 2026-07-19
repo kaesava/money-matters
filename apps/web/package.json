@@ -14,6 +14,7 @@
     "@money-matters/ui": "workspace:^",
     "@money-matters/capability-budgeting": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",
+    "@money-matters/types": "workspace:*",
     "@tanstack/react-query": "^5.101.2",
     "@trpc/client": "^11.18.0",
     "@trpc/react-query": "^11.18.0",

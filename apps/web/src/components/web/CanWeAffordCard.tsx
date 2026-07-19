@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import type { CanAffordVerdictType } from "@money-matters/types";
 import { trpc } from "../../lib/trpc";
 
 export function CanWeAffordCard() {
@@ -69,19 +70,7 @@ export function CanWeAffordCard() {
   );
 }
 
-function VerdictResult({ 
-  data 
-}: { 
-  data: { 
-    verdict: string; 
-    everydayRemaining?: string; 
-    affectedBucketName?: string; 
-    newBalance?: string; 
-    daysUntilNextPaycheck?: number; 
-    amountExpected?: string; 
-    shortfall?: string; 
-  } 
-}) {
+function VerdictResult({ data }: { data: CanAffordVerdictType }) {
   const v = data.verdict;
 
   if (v === "YES") {
