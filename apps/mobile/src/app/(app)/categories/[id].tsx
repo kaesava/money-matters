@@ -6,6 +6,7 @@ import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
 import { TransactionRow } from '../../../components/TransactionRow';
 import { formatAUD } from '../../../lib/format';
+import { FileNotesSection } from '../../../components/FileNotesSection';
 
 export default function BucketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -80,6 +81,7 @@ export default function BucketDetailScreen() {
 
       <Text style={styles.sectionTitle}>{t('buckets.detail.history')}</Text>
       <CategoryTransactionsList categoryId={id!} />
+      <FileNotesSection entityType="CATEGORY" entityId={id!} />
     </MobileScreenWrapper>
   );
 }

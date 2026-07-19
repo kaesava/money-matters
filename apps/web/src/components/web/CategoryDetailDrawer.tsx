@@ -3,6 +3,7 @@ import React from "react";
 import { t } from "@money-matters/i18n";
 import { SlideOverDrawer } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
+import { FileNotesSection } from "./FileNotesSection";
 
 interface CategoryDetailDrawerProps {
   categoryId: string;
@@ -113,11 +114,12 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
           </div>
 
           {/* Transaction history section */}
-          <div className="p-6 flex flex-col gap-3">
+          <div className="p-6 flex flex-col gap-4">
             <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
               {t("buckets.detail.history")}
             </p>
             <TransactionHistory categoryId={categoryId} />
+            <FileNotesSection entityType="CATEGORY" entityId={categoryId} />
           </div>
         </div>
       ) : null}

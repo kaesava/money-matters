@@ -37,7 +37,7 @@
 
 ### V1 (simplified)
 - Categories are **not** mapped to individual bank accounts.
-- Bank accounts are tagged with a purpose at registration: `INCOME_LANDING`, `SAVINGS` (covers both MAJOR and RECURRING), `EVERYDAY`.
+- Bank accounts are tagged with a purpose at registration: `INCOME_LANDING`, `SAVINGS` (covers both REGULAR and GOAL), `EVERYDAY`.
 - After allocation plan confirmation, the app shows **one transfer instruction per distinct SAVINGS account** registered by the household.
 - If household has 1 savings account: "Transfer $X to [Account Name]"
 - If household has 2 savings accounts: "Transfer $X to [Account 1], $Y to [Account 2]" — amounts split by which categories the user associates with each account at the account-level (not category-level).

@@ -54,7 +54,7 @@ Premium gated by `premiumEnabled` and `canAffordCalculator` feature flags.
 
 | Type | Display Name | Allocation treatment |
 |---|---|---|
-| `SAVINGS` | Save Toward | Has target amount + target date. Waterfall engine funds these monthly by computing (target - balance) / monthsToTarget. |
+| `GOAL` | Save Toward | Has target amount + target date. Waterfall engine funds these monthly by computing (target - balance) / monthsToTarget. |
 | `REGULAR` | Regular Bills | Has monthly amount. Waterfall engine prorates the monthly amount based on paycheck frequency. |
 | `EVERYDAY` | Everyday Spending | Discretionary day-to-day pool. Funded by residual income swept from the waterfall. |
 
@@ -64,8 +64,8 @@ Premium gated by `premiumEnabled` and `canAffordCalculator` feature flags.
 
 The waterfall cascade runs automatically when paycheck events occur:
 1. **REGULAR categories**: Prorate monthly amount by paycheck frequency (`monthlyAmount * paycheckFrequencyDays / 30.4375`).
-2. **SAVINGS committed categories (`isCommitted = true`)**: Allocate needed monthly contribution to keep on track for `targetDate`.
-3. **SAVINGS uncommitted categories (`isCommitted = false`)**: Allocate remaining target contribution if funds permit.
+2. **GOAL committed categories (`isCommitted = true`)**: Allocate needed monthly contribution to keep on track for `targetDate`.
+3. **GOAL uncommitted categories (`isCommitted = false`)**: Allocate remaining target contribution if funds permit.
 4. **EVERYDAY excess category**: Sweeps all residual income into the everyday spending pool.
 
 ---
@@ -80,7 +80,7 @@ Shown in the setup wizard. Users can select presets or add custom categories.
 - Internet / NBN
 - Insurance
 
-### SAVINGS (Save-Toward)
+### GOAL (Save-Toward)
 - Emergency Fund *(nominated as default excess category)*
 - Annual Holiday / Travel
 - Car Replacement
