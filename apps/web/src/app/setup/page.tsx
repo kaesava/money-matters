@@ -8,18 +8,18 @@ import { trpc } from "../../lib/trpc";
 interface PresetCategory {
   id: string;
   name: string;
-  type: "MAJOR" | "RECURRING" | "EVERYDAY";
+  type: "SAVINGS" | "REGULAR" | "EVERYDAY";
   icon: string;
 }
 
 const PRESETS: PresetCategory[] = [
-  { id: "emergency", name: "Emergency Fund", type: "MAJOR", icon: "🛡️" },
-  { id: "holiday", name: "Holiday / Travel", type: "MAJOR", icon: "✈️" },
-  { id: "car", name: "Car Replacement", type: "MAJOR", icon: "🚗" },
-  { id: "rent", name: "Rent / Mortgage", type: "RECURRING", icon: "🏡" },
-  { id: "electricity", name: "Electricity", type: "RECURRING", icon: "⚡" },
-  { id: "internet", name: "Internet", type: "RECURRING", icon: "📡" },
-  { id: "insurance", name: "Insurance", type: "RECURRING", icon: "📋" },
+  { id: "emergency", name: "Emergency Fund", type: "SAVINGS", icon: "🛡️" },
+  { id: "holiday", name: "Holiday / Travel", type: "SAVINGS", icon: "✈️" },
+  { id: "car", name: "Car Replacement", type: "SAVINGS", icon: "🚗" },
+  { id: "rent", name: "Rent / Mortgage", type: "REGULAR", icon: "🏡" },
+  { id: "electricity", name: "Electricity", type: "REGULAR", icon: "⚡" },
+  { id: "internet", name: "Internet", type: "REGULAR", icon: "📡" },
+  { id: "insurance", name: "Insurance", type: "REGULAR", icon: "📋" },
   { id: "groceries", name: "Groceries", type: "EVERYDAY", icon: "🛒" },
   { id: "fuel", name: "Fuel", type: "EVERYDAY", icon: "⛽" },
   { id: "eating-out", name: "Eating Out", type: "EVERYDAY", icon: "🍽️" },
@@ -62,6 +62,7 @@ export default function SetupWizardPage() {
   const createIncomeSchedule = trpc.createIncomeSourceSchedule.useMutation();
   const createCategory = trpc.createCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
+  const updateCategory = trpc.updateCategory.useMutation();
   const createBankAccount = trpc.createBankAccount.useMutation();
 
   // Step 1 Handlers
@@ -138,7 +139,6 @@ export default function SetupWizardPage() {
       // Save all categories first
       const savedIds: Record<string, string> = {};
       
-      let rank = 1;
       for (const cat of allSelectedCategories) {
         const isExcess = cat.id === defaultExcessId;
         const res = await createCategory.mutateAsync({
@@ -147,7 +147,6 @@ export default function SetupWizardPage() {
           isDefaultExcess: isExcess,
           icon: cat.icon,
           colour: "#00B4A6",
-          priorityRank: cat.type !== "EVERYDAY" ? rank++ : undefined,
         });
         savedIds[cat.id] = res.id;
       }
@@ -173,12 +172,23 @@ export default function SetupWizardPage() {
         const targetAmount = parseFloat(targets[cat.id] || "0");
         if (targetAmount <= 0) continue;
 
-        // Default schedules
-        await createCategorySchedule.mutateAsync({
-          categoryId: dbId,
-          targetAmount: targetAmount.toFixed(2),
-          rrule: frequencies[cat.id] || "FREQ=MONTHLY",
-        });
+        // Default schedules: SAVINGS get a target date (e.g. 1 year out), REGULAR get monthly amount via category update
+        if (cat.type === "SAVINGS") {
+          const oneYearOut = new Date();
+          oneYearOut.setFullYear(oneYearOut.getFullYear() + 1);
+          await createCategorySchedule.mutateAsync({
+            categoryId: dbId,
+            targetAmount: targetAmount.toFixed(2),
+            targetDate: oneYearOut.toISOString().split("T")[0],
+          });
+        } else if (cat.type === "REGULAR") {
+          await updateCategory.mutateAsync({
+            categoryId: dbId,
+            data: {
+              monthlyAmount: targetAmount.toFixed(2),
+            }
+          });
+        }
       }
 
       setStep(4);

@@ -6,6 +6,7 @@ export interface AppConfig {
     premiumEnabled: boolean;
     partnerInvite: boolean;
     offlineSync: boolean;
+    canAffordCalculator: boolean;
   };
 }
 
@@ -19,6 +20,7 @@ const REGISTRY: Record<string, AppConfig> = {
       premiumEnabled: false,
       partnerInvite: false,
       offlineSync: false,
+      canAffordCalculator: true,
     },
   },
 };

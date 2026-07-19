@@ -168,8 +168,9 @@ export const UpdateBankAccountCommand = z.object({
 export const CategorySchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(["MAJOR", "RECURRING", "EVERYDAY"]),
-  priorityRank: z.number().int().min(1).nullable(),
+  type: z.enum(["REGULAR", "SAVINGS", "EVERYDAY"]),
+  isCommitted: z.boolean().default(false),
+  monthlyAmount: z.string().nullable(),
   isDefaultExcess: z.boolean().default(false),
   icon: z.string().nullable(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
@@ -178,8 +179,9 @@ export const CategorySchema = BaseSchema.extend({
 
 export const CreateCategoryCommand = z.object({
   name: z.string().min(1),
-  type: z.enum(["MAJOR", "RECURRING", "EVERYDAY"]),
-  priorityRank: z.number().int().min(1).optional(),
+  type: z.enum(["REGULAR", "SAVINGS", "EVERYDAY"]),
+  isCommitted: z.boolean().default(false),
+  monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   isDefaultExcess: z.boolean().default(false),
   icon: z.string().optional(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
@@ -187,7 +189,8 @@ export const CreateCategoryCommand = z.object({
 
 export const UpdateCategoryCommand = z.object({
   name: z.string().min(1).optional(),
-  priorityRank: z.number().int().min(1).optional(),
+  isCommitted: z.boolean().optional(),
+  monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   isDefaultExcess: z.boolean().optional(),
   icon: z.string().optional(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
@@ -198,15 +201,14 @@ export const UpdateCategoryCommand = z.object({
 export const CategoryScheduleSchema = BaseSchema.extend({
   categoryId: z.string().uuid(),
   targetAmount: z.string(),
-  rrule: z.string().nullable(),
   dueDate: z.string().nullable(),
-  nextDueDate: z.string().nullable(),
+  targetDate: z.string().nullable(),
 }).strict();
 
 export const CreateCategoryScheduleCommand = z.object({
   categoryId: z.string().uuid(),
   targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-  rrule: z.string().optional(),
+  targetDate: z.string().optional(),
   dueDate: z.string().optional(),
 }).strict();
 
@@ -250,7 +252,7 @@ export const IncomeEventSchema = BaseSchema.extend({
   expectedDate: z.string(),
   expectedAmount: z.string(),
   actualAmount: z.string().nullable(),
-  status: z.enum(["UPCOMING", "DRAFT", "REVIEWED", "CONFIRMED"]),
+  status: z.enum(["UPCOMING", "PENDING", "CONFIRMED"]),
 }).strict();
 
 export const CreateIncomeEventCommand = z.object({
@@ -262,7 +264,7 @@ export const CreateIncomeEventCommand = z.object({
 // 9. Allocation Plans
 export const AllocationPlanSchema = BaseSchema.extend({
   incomeEventId: z.string().uuid(),
-  status: z.enum(["DRAFT", "REVIEWED", "CONFIRMED"]),
+  status: z.enum(["PENDING", "CONFIRMED"]),
   totalIncomeAmount: z.string(),
   confirmedAt: z.date().nullable(),
 }).strict();
@@ -274,7 +276,6 @@ export const AllocationPlanLineSchema = BaseSchema.extend({
   proposedAmount: z.string(),
   confirmedAmount: z.string().nullable(),
   reasoning: z.string().nullable(),
-  isShortfallRepayment: z.boolean().default(false),
 }).strict();
 
 // 11. Transaction Ledger
@@ -286,6 +287,7 @@ export const TransactionLedgerSchema = BaseSchema.extend({
   amount: z.string(),
   idempotencyKey: z.string(),
   note: z.string().nullable(),
+  source: z.enum(["MANUAL", "IMPORT"]).default("MANUAL"),
   recordedAt: z.date(),
 }).strict();
 
@@ -295,6 +297,7 @@ export const RecordExpenseCommand = z.object({
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   idempotencyKey: z.string(),
   note: z.string().optional(),
+  source: z.enum(["MANUAL", "IMPORT"]).optional().default("MANUAL"),
 }).strict();
 
 export const ListTransactionsQuery = z.object({
@@ -308,27 +311,42 @@ export const ListCategoryTransactionsQuery = z.object({
   offset: z.number().int().default(0),
 }).strict();
 
-// 12. Shortfall Events
-export const ShortfallEventSchema = BaseSchema.extend({
-  donorCategoryId: z.string().uuid(),
-  recipientCategoryId: z.string().uuid(),
-  borrowedAmount: z.string(),
-  repaidAmount: z.string().default("0.00"),
-  status: z.enum(["BORROWED", "PARTIAL", "REPAID"]),
+// 12. "Can We Afford This?" schemas
+export const CanAffordQuery = z.object({
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
 }).strict();
 
-// 13. Savings Reconciliations
-export const SavingsReconciliationSchema = BaseSchema.extend({
-  bankAccountId: z.string().uuid(),
-  expectedBalance: z.string(),
-  actualBalance: z.string(),
-  delta: z.string(),
-  reconciledAt: z.date(),
-}).strict();
+export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
+  z.object({
+    verdict: z.literal("YES"),
+    source: z.literal("everyday"),
+    everydayRemaining: z.string(),
+  }),
+  z.object({
+    verdict: z.literal("YES_WITH_IMPACT"),
+    source: z.literal("savings"),
+    affectedBucketName: z.string(),
+    affectedBucketId: z.string(),
+    newBalance: z.string(),
+  }),
+  z.object({
+    verdict: z.literal("WAIT"),
+    daysUntilNextPaycheck: z.number().int(),
+    amountExpected: z.string(),
+  }),
+  z.object({
+    verdict: z.literal("NO"),
+    shortfall: z.string(),
+  }),
+]);
 
-export const SubmitReconciliationCommand = z.object({
-  bankAccountId: z.string().uuid(),
-  actualBalance: z.string().regex(/^\d+(\.\d{1,2})?$/),
+export const MonthlySummaryDto = z.object({
+  year: z.number().int(),
+  month: z.number().int().min(1).max(12),
+  totalIncome: z.string(),
+  totalSpent: z.string(),
+  totalSaved: z.string(),
+  everydayRemaining: z.string(),
 }).strict();
 
 export const ConfirmPlanCommand = z.object({
@@ -337,12 +355,6 @@ export const ConfirmPlanCommand = z.object({
     lineId: z.string().uuid(),
     confirmedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   }).strict())
-}).strict();
-
-export const ResolveShortfallCommand = z.object({
-  donorCategoryId: z.string().uuid(),
-  recipientCategoryId: z.string().uuid(),
-  borrowedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
 }).strict();
 
 export type TenantType = z.infer<typeof TenantSchema>;
@@ -356,5 +368,6 @@ export type IncomeEventType = z.infer<typeof IncomeEventSchema>;
 export type AllocationPlanType = z.infer<typeof AllocationPlanSchema>;
 export type AllocationPlanLineType = z.infer<typeof AllocationPlanLineSchema>;
 export type TransactionLedgerType = z.infer<typeof TransactionLedgerSchema>;
-export type ShortfallEventType = z.infer<typeof ShortfallEventSchema>;
-export type SavingsReconciliationType = z.infer<typeof SavingsReconciliationSchema>;
+export type CanAffordVerdictType = z.infer<typeof CanAffordVerdictDto>;
+export type MonthlySummaryType = z.infer<typeof MonthlySummaryDto>;
+

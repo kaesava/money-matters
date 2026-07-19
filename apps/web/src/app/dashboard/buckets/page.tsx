@@ -3,18 +3,17 @@ import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
 import { useDashboardData } from "../../../hooks/useDashboardData";
 import { BucketDetailDrawer } from "../../../components/web/BucketDetailDrawer";
-import { ShortfallResolutionDrawer } from "../../../components/web/ShortfallResolutionDrawer";
 import { DashboardError } from "../../../components/web/DashboardError";
 import { trpc } from "../../../lib/trpc";
 
 type CategoryWithHealth = {
   id: string;
   name: string;
-  type: string;
+  type: "REGULAR" | "SAVINGS" | "EVERYDAY";
   currentBalance: string;
   targetAmount: string | null;
   healthStatus: "GREEN" | "AMBER" | "RED";
-  nextDueDate: string | null;
+  targetDate: string | null;
   progressPercentage: number;
 };
 
@@ -22,8 +21,6 @@ export default function CategoriesPage() {
   const { hasTenant, isLoadingTenant, tenantError, categoriesQuery } = useDashboardData();
   
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
-  const [shortfallBucketId, setShortfallBucketId] = useState<string | null>(null);
-
   const categories = (categoriesQuery.data ?? []) as CategoryWithHealth[];
 
   const totalOnTrack = categories.filter((c) => c.healthStatus === "GREEN").length;
@@ -35,8 +32,8 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
-  const [editDueDate, setEditDueDate] = useState("");
-  const [editCategoryType, setEditCategoryType] = useState<"MAJOR" | "RECURRING" | "EVERYDAY">("MAJOR");
+  const [editTargetDate, setEditTargetDate] = useState("");
+  const [editCategoryType, setEditCategoryType] = useState<"REGULAR" | "SAVINGS" | "EVERYDAY">("REGULAR");
   const [saving, setSaving] = useState(false);
 
   const updateCategory = trpc.updateCategory.useMutation();
@@ -51,11 +48,11 @@ export default function CategoriesPage() {
           name: editName,
         }
       });
-      if (editCategoryType !== "EVERYDAY") {
+      if (editCategoryType === "SAVINGS") {
         await createCategorySchedule.mutateAsync({
           categoryId: catId,
           targetAmount: parseFloat(editTarget || "0").toFixed(2),
-          dueDate: editDueDate || undefined,
+          targetDate: editTargetDate || undefined,
         });
       }
       setEditingId(null);
@@ -71,18 +68,14 @@ export default function CategoriesPage() {
     setEditingId(cat.id);
     setEditName(cat.name);
     setEditTarget(cat.targetAmount ? parseFloat(cat.targetAmount).toFixed(2) : "0.00");
-    setEditDueDate(cat.nextDueDate ? cat.nextDueDate.split("T")[0] : "");
-    setEditCategoryType(cat.type as "MAJOR" | "RECURRING" | "EVERYDAY");
+    setEditTargetDate(cat.targetDate ? cat.targetDate.split("T")[0] : "");
+    setEditCategoryType(cat.type);
   };
 
-  // Group and format based on specifications:
-  // "Save Toward" (MAJOR) & "Regular Bills" (RECURRING).
-  // "Everyday" categories do not get split/broken down, only shown as a summarized section.
-  const saveTowardItems = categories.filter(c => c.type === "MAJOR");
-  const regularBillsItems = categories.filter(c => c.type === "RECURRING");
+  const regularBillsItems = categories.filter(c => c.type === "REGULAR");
+  const saveTowardItems = categories.filter(c => c.type === "SAVINGS");
   const everydayItems = categories.filter(c => c.type === "EVERYDAY");
 
-  // Sum Everyday Balances
   const everydayTotalBalance = everydayItems.reduce((acc, c) => acc + parseFloat(c.currentBalance), 0);
 
   const [activeTab, setActiveTab] = useState<"SAVE_TOWARD" | "REGULAR_BILLS" | "EVERYDAY">("SAVE_TOWARD");
@@ -107,7 +100,7 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* Tabs / Filter Navigation */}
+      {/* Tabs */}
       <div className="flex gap-4 border-b border-zinc-200">
         <button
           onClick={() => setActiveTab("SAVE_TOWARD")}
@@ -131,7 +124,7 @@ export default function CategoriesPage() {
             activeTab === "EVERYDAY" ? "border-[#00B4A6] text-[#1B2B4B]" : "border-transparent text-zinc-400 hover:text-zinc-600"
           }`}
         >
-          Everyday Spending (Summarized)
+          Everyday Spending (Pool)
         </button>
       </div>
 
@@ -146,7 +139,7 @@ export default function CategoriesPage() {
             <div>
               <p className="text-sm font-bold text-zinc-500 uppercase tracking-wider">Everyday Spending Pool</p>
               <p className="text-3xl font-extrabold mt-1 text-[#1B2B4B]">
-                ${(everydayTotalBalance / 100).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                ${everydayTotalBalance.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
               </p>
             </div>
             <span className="text-xs bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full font-bold">
@@ -193,7 +186,7 @@ export default function CategoriesPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 font-mono font-bold">
-                        ${(balanceVal / 100).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                        ${balanceVal.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-6 py-4 font-mono">
                         {isEditing ? (
@@ -205,7 +198,7 @@ export default function CategoriesPage() {
                             className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm w-24 focus:outline-none"
                           />
                         ) : cat.targetAmount ? (
-                          `$${(targetVal / 100).toLocaleString("en-AU", { minimumFractionDigits: 2 })}`
+                          `$${targetVal.toLocaleString("en-AU", { minimumFractionDigits: 2 })}`
                         ) : (
                           "—"
                         )}
@@ -214,12 +207,12 @@ export default function CategoriesPage() {
                         {isEditing ? (
                           <input
                             type="date"
-                            value={editDueDate}
-                            onChange={(e) => setEditDueDate(e.target.value)}
+                            value={editTargetDate}
+                            onChange={(e) => setEditTargetDate(e.target.value)}
                             className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm focus:outline-none"
                           />
-                        ) : cat.nextDueDate ? (
-                          new Date(cat.nextDueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+                        ) : cat.targetDate ? (
+                          new Date(cat.targetDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
                         ) : (
                           "—"
                         )}
@@ -283,20 +276,6 @@ export default function CategoriesPage() {
           categoryId={selectedBucketId}
           onClose={() => {
             setSelectedBucketId(null);
-            categoriesQuery.refetch();
-          }}
-          onResolveShortfall={(id) => {
-            setSelectedBucketId(null);
-            setShortfallBucketId(id);
-          }}
-        />
-      )}
-
-      {shortfallBucketId && (
-        <ShortfallResolutionDrawer
-          categoryId={shortfallBucketId}
-          onClose={() => {
-            setShortfallBucketId(null);
             categoriesQuery.refetch();
           }}
         />

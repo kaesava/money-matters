@@ -1,5 +1,5 @@
-import { router, tenantProcedure, ownerProcedure, publicProcedure, authenticatedProcedure } from '../trpc/trpc.js';
-import { db, incomeSources, categories, incomeEvents, allocationPlans, allocationPlanLines } from "@money-matters/db";
+import { router, tenantProcedure, authenticatedProcedure } from '../trpc/trpc.js';
+import { db, incomeSources, incomeSourceSchedules, categories, incomeEvents, allocationPlans, allocationPlanLines } from "@money-matters/db";
 import { and, eq, sql, desc } from "drizzle-orm";
 import { 
   createTenantHandler,
@@ -7,23 +7,23 @@ import {
   updateBankAccountHandler,
   archiveBankAccountHandler,
   getTenantHandler,
-  submitReconciliationHandler
 } from "@money-matters/capability-tenant";
 import {
-  createCategoryHandler,
-  updateCategoryHandler,
-  createCategoryScheduleHandler,
-  createIncomeSourceHandler,
-  createIncomeSourceScheduleHandler,
-  createIncomeEventHandler,
-  calculatePaydayCascade,
-  confirmPaydayAllocationPlan,
-  recordExpenseHandler,
-  resolveShortfallHandler,
-  listCategoriesWithHealth,
-  listTransactionsHandler,
-  listCategoryTransactionsHandler
-} from "@money-matters/capability-money";
+  createBucketCommand,
+  updateBucketCommand,
+  archiveBucketCommand,
+  runAllocationCommand,
+  listBucketsQuery,
+  getBucketDetailQuery,
+  getMonthlySummaryQuery,
+  upsertBucketScheduleCommand,
+} from "@money-matters/capability-budgeting";
+import {
+  recordExpenseCommand,
+  listTransactionsQuery,
+  listCategoryTransactionsQuery,
+  canAffordQuery,
+} from "@money-matters/capability-transactions";
 import { 
   CreateTenantCommand,
   CreateBankAccountCommand,
@@ -34,12 +34,10 @@ import {
   CreateIncomeSourceCommand,
   CreateIncomeSourceScheduleCommand,
   CreateIncomeEventCommand,
-  ConfirmPlanCommand,
   RecordExpenseCommand,
-  ResolveShortfallCommand,
-  SubmitReconciliationCommand,
   ListTransactionsQuery,
-  ListCategoryTransactionsQuery
+  ListCategoryTransactionsQuery,
+  CanAffordQuery,
 } from "@money-matters/types";
 import { registerDeviceTokenHandler, removeDeviceTokenHandler } from "@money-matters/capability-notifications";
 import {
@@ -55,18 +53,13 @@ import {
 import { getPlaceSuggestionsHandler, getPlaceDetailsHandler } from "@money-matters/capability-geo";
 import { z } from 'zod';
 
-
-
-
 export const appRouter = router({
   // 1. Tenants
   createTenant: authenticatedProcedure
     .input(CreateTenantCommand)
     .mutation(async ({ input, ctx }) => {
-      // appId: prefer one already on session (existing member), fall back to registered app constant
       const appId = ctx.appId || ctx.session?.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
       const handler = createTenantHandler(db);
-      // userId comes from the verified JWT — never from client input
       return await handler(input, appId, ctx.userId);
     }),
 
@@ -109,19 +102,11 @@ export const appRouter = router({
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  submitReconciliation: tenantProcedure
-    .input(SubmitReconciliationCommand)
-    .mutation(async ({ input, ctx }) => {
-      const handler = submitReconciliationHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
-    }),
-
-  // 3. Categories
+  // 3. Categories (Buckets)
   createCategory: tenantProcedure
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createCategoryHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      return await createBucketCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   updateCategory: tenantProcedure
@@ -130,73 +115,99 @@ export const appRouter = router({
       data: UpdateCategoryCommand
     }).strict())
     .mutation(async ({ input, ctx }) => {
-      const handler = updateCategoryHandler(ctx.db);
-      return await handler(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
-    }),
-
-  archiveCategory: tenantProcedure
-    .input(z.object({ categoryId: z.string().uuid() }).strict())
-    .mutation(async ({ input, ctx }) => {
-      const [archived] = await ctx.db
-        .update(categories)
-        .set({
-          archivedAt: new Date(),
-          updatedBy: ctx.userId!,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(categories.id, input.categoryId),
-            eq(categories.tenantId, ctx.tenantId!),
-            eq(categories.appId, ctx.appId!),
-            sql`${categories.archivedAt} IS NULL`
-          )
-        )
-        .returning();
-      if (!archived) {
-        throw new Error("Category not found or access unauthorized.");
-      }
-      return { success: true };
-    }),
-
-  listCategories: tenantProcedure
-    .query(async ({ ctx }) => {
-      const handler = listCategoriesWithHealth(ctx.db);
-      return await handler(ctx.tenantId!, ctx.appId!);
+      return await updateBucketCommand(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   createCategorySchedule: tenantProcedure
     .input(CreateCategoryScheduleCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createCategoryScheduleHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      return await upsertBucketScheduleCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  archiveCategory: tenantProcedure
+    .input(z.object({ categoryId: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const result = await archiveBucketCommand(input.categoryId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      if (!result) {
+        throw new Error("Category not found or access unauthorized.");
+      }
+      return { success: true };
+    }),
+
+
+
+  listCategories: tenantProcedure
+    .query(async ({ ctx }) => {
+      return await listBucketsQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+    }),
+
+  getMonthlySummary: tenantProcedure
+    .input(z.object({ year: z.number().int(), month: z.number().int().min(1).max(12) }).strict())
+    .query(async ({ input, ctx }) => {
+      return await getMonthlySummaryQuery(input.year, input.month, ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
   // 4. Income Sources & Events
   createIncomeSource: tenantProcedure
     .input(CreateIncomeSourceCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createIncomeSourceHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      const [source] = await ctx.db
+        .insert(incomeSources)
+        .values({
+          name: input.name,
+          type: input.type,
+          amount: input.amount,
+          receivingAccountId: input.receivingAccountId || null,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        })
+        .returning();
+      return source;
     }),
 
   createIncomeSourceSchedule: tenantProcedure
     .input(CreateIncomeSourceScheduleCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createIncomeSourceScheduleHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      const [schedule] = await ctx.db
+        .insert(incomeSourceSchedules)
+        .values({
+          incomeSourceId: input.incomeSourceId,
+          rrule: input.rrule,
+          startDate: input.startDate,
+          endDate: input.endDate || null,
+          occurrenceCount: input.occurrenceCount || null,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        })
+        .returning();
+      return schedule;
     }),
 
   createIncomeEvent: tenantProcedure
     .input(CreateIncomeEventCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = createIncomeEventHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      const [event] = await ctx.db
+        .insert(incomeEvents)
+        .values({
+          incomeSourceId: input.incomeSourceId,
+          expectedDate: input.expectedDate,
+          expectedAmount: input.expectedAmount,
+          status: "UPCOMING",
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        })
+        .returning();
+      return event;
     }),
 
   generateNextIncomeEvents: tenantProcedure
     .mutation(async ({ ctx }) => {
-      // Fetch all non-archived income source schedules
       const schedules = await ctx.db
         .select()
         .from(incomeSources)
@@ -209,10 +220,8 @@ export const appRouter = router({
         );
 
       const todayStr = new Date().toISOString().split('T')[0];
-      const createdCount = 0;
 
       for (const source of schedules) {
-        // V1 simplified auto income event generation for the next payday schedule within 30 days
         const [existing] = await ctx.db
           .select()
           .from(incomeEvents)
@@ -279,10 +288,9 @@ export const appRouter = router({
       return { success: true };
     }),
 
-  // List all income events for the household (newest first)
   listIncomeEvents: tenantProcedure
     .query(async ({ ctx }) => {
-      const results = await ctx.db
+      return await ctx.db
         .select({
           id: incomeEvents.id,
           expectedDate: incomeEvents.expectedDate,
@@ -303,10 +311,8 @@ export const appRouter = router({
           )
         )
         .orderBy(desc(incomeEvents.expectedDate));
-      return results;
     }),
 
-  // Fetch an existing allocation plan + its lines for a given incomeEventId
   listAllocationPlan: tenantProcedure
     .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .query(async ({ input, ctx }) => {
@@ -345,26 +351,6 @@ export const appRouter = router({
       };
     }),
 
-  // 5. Allocation Engine cascade trigger
-  syncOnLogin: tenantProcedure
-    .mutation(async ({ ctx }) => {
-      // 1. generate next upcoming income events
-      const activeSources = await ctx.db
-        .select()
-        .from(incomeSources)
-        .where(
-          and(
-            eq(incomeSources.tenantId, ctx.tenantId!),
-            eq(incomeSources.appId, ctx.appId!),
-            sql`${incomeSources.archivedAt} IS NULL`
-          )
-        );
-      
-      const createdCount = 0;
-      // V1 simplified manual login sync event trigger
-      return { success: true, processedSources: activeSources.length };
-    }),
-
   executeCascade: tenantProcedure
     .input(
       z.object({
@@ -373,24 +359,12 @@ export const appRouter = router({
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
-      return await calculatePaydayCascade(
-        ctx.tenantId!,
-        ctx.appId!,
-        input.incomeAmount,
-        input.incomeEventId,
-        ctx.db
-      );
-    }),
-
-  confirmPlan: tenantProcedure
-    .input(ConfirmPlanCommand)
-    .mutation(async ({ input, ctx }) => {
-      return await confirmPaydayAllocationPlan(
+      return await runAllocationCommand(
         ctx.tenantId!,
         ctx.appId!,
         ctx.userId!,
-        input.planId,
-        input.lines,
+        input.incomeEventId,
+        input.incomeAmount,
         ctx.db
       );
     }),
@@ -398,29 +372,26 @@ export const appRouter = router({
   recordExpense: tenantProcedure
     .input(RecordExpenseCommand)
     .mutation(async ({ input, ctx }) => {
-      const handler = recordExpenseHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
-    }),
-
-  resolveShortfall: tenantProcedure
-    .input(ResolveShortfallCommand)
-    .mutation(async ({ input, ctx }) => {
-      const handler = resolveShortfallHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      return await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   listTransactions: tenantProcedure
     .input(ListTransactionsQuery)
     .query(async ({ input, ctx }) => {
-      const handler = listTransactionsHandler(ctx.db);
-      return await handler(ctx.tenantId!, ctx.appId!, input.limit, input.offset);
+      return await listTransactionsQuery(ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
     }),
 
   listCategoryTransactions: tenantProcedure
     .input(ListCategoryTransactionsQuery)
     .query(async ({ input, ctx }) => {
-      const handler = listCategoryTransactionsHandler(ctx.db);
-      return await handler(ctx.tenantId!, ctx.appId!, input.categoryId, input.limit, input.offset);
+      return await listCategoryTransactionsQuery(input.categoryId, ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
+    }),
+
+  canAfford: tenantProcedure
+    .input(CanAffordQuery)
+    .query(async ({ input, ctx }) => {
+      const amt = parseFloat(input.amount);
+      return await canAffordQuery(amt, ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
   // 6. Push Notifications
@@ -559,8 +530,5 @@ export const appRouter = router({
       return await getPlaceDetailsHandler(input.placeId);
     }),
 });
-
-
-
 
 export type AppRouter = typeof appRouter;

@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { tenants, tenantUsers, bankAccounts, categories, transactionLedger, savingsReconciliations } from "@money-matters/db";
+import { tenants, tenantUsers, bankAccounts, categories, transactionLedger } from "@money-matters/db";
 import { 
   CreateTenantCommand, 
   CreateBankAccountCommand, 
-  UpdateBankAccountCommand,
-  SubmitReconciliationCommand
+  UpdateBankAccountCommand
 } from "@money-matters/types";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
@@ -184,117 +183,5 @@ export function getTenantHandler(db: PgDatabase<any, any, any>) {
       users,
       bankAccounts: accounts,
     };
-  };
-}
-
-export function submitReconciliationHandler(db: PgDatabase<any, any, any>) {
-  return async (
-    input: z.infer<typeof SubmitReconciliationCommand>,
-    tenantId: string,
-    appId: string,
-    userId: string
-  ) => {
-    return await db.transaction(async (tx) => {
-      // 1. Get the bank account to verify it belongs to the tenant
-      const [bankAccount] = await tx
-        .select()
-        .from(bankAccounts)
-        .where(
-          and(
-            eq(bankAccounts.id, input.bankAccountId),
-            eq(bankAccounts.tenantId, tenantId),
-            eq(bankAccounts.appId, appId),
-            sql`${bankAccounts.archivedAt} IS NULL`
-          )
-        )
-        .limit(1);
-
-      if (!bankAccount) {
-        throw new Error("Bank account not found or access unauthorized.");
-      }
-
-      // 2. Fetch all categories associated with this bank account
-      const dbCats = await tx
-        .select()
-        .from(categories)
-        .where(
-          and(
-            eq(categories.bankAccountId, input.bankAccountId),
-            eq(categories.tenantId, tenantId),
-            eq(categories.appId, appId),
-            sql`${categories.archivedAt} IS NULL`
-          )
-        );
-
-      // 3. Aggregate balances of these categories from the transaction ledger
-      let expectedBalance = 0;
-      if (dbCats.length > 0) {
-        const catIds = dbCats.map(c => c.id);
-        const txRecords = await tx
-          .select({
-            categoryId: transactionLedger.categoryId,
-            amount: transactionLedger.amount,
-            flowType: transactionLedger.flowType
-          })
-          .from(transactionLedger)
-          .where(
-            and(
-              inArray(transactionLedger.categoryId, catIds),
-              eq(transactionLedger.tenantId, tenantId),
-              eq(transactionLedger.appId, appId),
-              sql`${transactionLedger.archivedAt} IS NULL`
-            )
-          );
-
-        const balancesMap = new Map<string, number>();
-        for (const catId of catIds) {
-          balancesMap.set(catId, 0);
-        }
-        for (const ledgerTx of txRecords) {
-          const amt = parseFloat(ledgerTx.amount);
-          const current = balancesMap.get(ledgerTx.categoryId) || 0;
-          if (ledgerTx.flowType === "CREDIT") {
-            balancesMap.set(ledgerTx.categoryId, current + amt);
-          } else {
-            balancesMap.set(ledgerTx.categoryId, current - amt);
-          }
-        }
-        expectedBalance = Array.from(balancesMap.values()).reduce((sum, val) => sum + val, 0);
-      }
-
-      const actualNum = parseFloat(input.actualBalance);
-      const delta = actualNum - expectedBalance;
-
-      // 4. Save Savings Reconciliation record
-      const [reconciliation] = await tx
-        .insert(savingsReconciliations)
-        .values({
-          bankAccountId: input.bankAccountId,
-          expectedBalance: expectedBalance.toFixed(2),
-          actualBalance: actualNum.toFixed(2),
-          delta: delta.toFixed(2),
-          tenantId,
-          appId,
-          createdBy: userId,
-          updatedBy: userId,
-        })
-        .returning();
-
-      // 5. Update the bank account's last known balance to actual
-      await tx
-        .update(bankAccounts)
-        .set({
-          lastKnownBalance: actualNum.toFixed(2),
-          updatedBy: userId,
-          updatedAt: new Date(),
-        })
-        .where(eq(bankAccounts.id, input.bankAccountId));
-
-      return {
-        ...reconciliation,
-        delta: delta.toFixed(2),
-        expectedBalance: expectedBalance.toFixed(2),
-      };
-    });
   };
 }

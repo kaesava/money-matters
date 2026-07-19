@@ -28,6 +28,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
 
   const createTenant = trpc.createTenant.useMutation();
+  const registerToken = trpc.registerToken.useMutation();
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !name) {
@@ -90,7 +91,7 @@ export default function SignUpScreen() {
         const { status } = await Notifications.requestPermissionsAsync();
         if (status === 'granted') {
           const expoToken = await Notifications.getExpoPushTokenAsync();
-          trpc.registerToken.mutate({
+          registerToken.mutate({
             platform: Platform.OS === 'ios' ? 'ios' : 'android',
             token: expoToken.data,
           });

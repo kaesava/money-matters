@@ -18,6 +18,8 @@
     "@money-matters/capability-notifications": "workspace:*",
     "@money-matters/capability-file-notes": "workspace:*",
     "@money-matters/capability-geo": "workspace:*",
+    "@money-matters/capability-budgeting": "workspace:*",
+    "@money-matters/capability-transactions": "workspace:*",
     "@money-matters/db": "workspace:*",
     "@money-matters/config": "workspace:*",
     "@money-matters/core": "workspace:*",

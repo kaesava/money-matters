@@ -92,7 +92,7 @@ export function CategoryHealthCard({
         </div>
       </div>
 
-      {/* Row 2: progress bar (only for MAJOR + RECURRING) */}
+      {/* Row 2: progress bar (for REGULAR and SAVINGS with targets) */}
       {hasTarget && (
         <div className="flex flex-col gap-1">
           <div
@@ -114,16 +114,6 @@ export function CategoryHealthCard({
               </span>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Row 3: negative balance warning */}
-      {balanceNum < 0 && (
-        <div
-          className="text-xs font-bold px-2 py-1 rounded-lg"
-          style={{ backgroundColor: "rgba(239,68,68,0.08)", color: "var(--dash-critical)" }}
-        >
-          ⚠ {t("shortfall.alertTitle")}
         </div>
       )}
     </button>

@@ -1,0 +1,27 @@
+{
+  "name": "@money-matters/capability-budgeting",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@money-matters/db": "workspace:*",
+    "@money-matters/types": "workspace:*",
+    "drizzle-orm": "^0.39.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  }
+}

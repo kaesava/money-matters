@@ -27,6 +27,7 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const registerToken = trpc.registerToken.useMutation();
 
   const handleSignIn = async () => {
     if (!email || !password) return;
@@ -58,7 +59,7 @@ export default function SignInScreen() {
         if (status === 'granted') {
           const expoToken = await Notifications.getExpoPushTokenAsync();
           // We can call registerToken tRPC mutator (fire-and-forget)
-          trpc.registerToken.mutate({
+          registerToken.mutate({
             platform: Platform.OS === 'ios' ? 'ios' : 'android',
             token: expoToken.data,
           });

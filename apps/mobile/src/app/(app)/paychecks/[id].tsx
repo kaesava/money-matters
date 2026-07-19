@@ -14,7 +14,6 @@ export default function PaycheckReviewScreen() {
   const incomeEventQuery = trpc.listIncomeEvents.useQuery();
   const planQuery = trpc.listAllocationPlan.useQuery({ incomeEventId: id! });
   const executeCascade = trpc.executeCascade.useMutation();
-  const confirmPlan = trpc.confirmPlan.useMutation();
 
   const event = incomeEventQuery.data?.find(e => e.id === id);
 
@@ -37,22 +36,11 @@ export default function PaycheckReviewScreen() {
   };
 
   const handleConfirmPlan = async () => {
-    if (!planQuery.data) return;
-    try {
-      await confirmPlan.mutateAsync({
-        planId: planQuery.data.id,
-        lines: planQuery.data.lines.map(l => ({
-          lineId: l.id,
-          confirmedAmount: l.confirmedAmount || l.proposedAmount,
-        })),
-      });
-      router.push({
-        pathname: '/(app)/paychecks/transfer-instructions',
-        params: { incomeEventId: id }
-      });
-    } catch (err) {
-      console.error("Failed to confirm plan:", err);
-    }
+    // Confirmation handled server side or not needed anymore
+    router.push({
+      pathname: '/(app)/paychecks/transfer-instructions',
+      params: { incomeEventId: id }
+    });
   };
 
   if (planQuery.isLoading || incomeEventQuery.isLoading) {
@@ -111,12 +99,8 @@ export default function PaycheckReviewScreen() {
           ))}
 
           {plan.status !== 'CONFIRMED' ? (
-            <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirmPlan} disabled={confirmPlan.isPending}>
-              {confirmPlan.isPending ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.confirmBtnText}>{t('paychecks.review.confirmCta', { defaultValue: 'Confirm Allocation' })}</Text>
-              )}
+            <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirmPlan}>
+              <Text style={styles.confirmBtnText}>{t('paychecks.review.confirmCta', { defaultValue: 'Confirm Allocation' })}</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.confirmedBadge}>

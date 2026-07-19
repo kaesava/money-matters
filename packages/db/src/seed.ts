@@ -148,20 +148,20 @@ async function seed() {
   // Pre-populate canonical categories for target audience (Australian families/professionals)
   const canonicalCategories = [
     // EVERYDAY (Discretionary - Swept residual)
-    { name: "Groceries", type: "EVERYDAY" as const, priorityRank: null, excess: false, icon: "local_grocery_store", color: "#6B7280" },
-    { name: "Petrol / Transit", type: "EVERYDAY" as const, priorityRank: null, excess: false, icon: "directions_car", color: "#6B7280" },
-    { name: "Eating Out & Cafes", type: "EVERYDAY" as const, priorityRank: null, excess: false, icon: "restaurant", color: "#6B7280" },
+    { name: "Groceries", type: "EVERYDAY" as const, isCommitted: false, excess: false, icon: "local_grocery_store", color: "#6B7280" },
+    { name: "Petrol / Transit", type: "EVERYDAY" as const, isCommitted: false, excess: false, icon: "directions_car", color: "#6B7280" },
+    { name: "Eating Out & Cafes", type: "EVERYDAY" as const, isCommitted: false, excess: false, icon: "restaurant", color: "#6B7280" },
 
-    // RECURRING (Bills)
-    { name: "Rent / Mortgage Payment", type: "RECURRING" as const, priorityRank: 1, excess: false, icon: "home", color: "#EF4444", target: "3200.00", rrule: "FREQ=MONTHLY;BYMONTHDAY=1" },
-    { name: "Electricity & Gas", type: "RECURRING" as const, priorityRank: 2, excess: false, icon: "bolt", color: "#F59E0B", target: "380.00", rrule: "FREQ=MONTHLY;BYMONTHDAY=15" },
-    { name: "NBN Broadband", type: "RECURRING" as const, priorityRank: 3, excess: false, icon: "wifi", color: "#22C55E", target: "89.00", rrule: "FREQ=MONTHLY;BYMONTHDAY=10" },
-    { name: "Private Health Cover", type: "RECURRING" as const, priorityRank: 1, excess: false, icon: "health_and_safety", color: "#EF4444", target: "240.00", rrule: "FREQ=MONTHLY;BYMONTHDAY=28" },
+    // REGULAR (Bills)
+    { name: "Rent / Mortgage Payment", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "home", color: "#EF4444", monthlyAmount: "3200.00" },
+    { name: "Electricity & Gas", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "bolt", color: "#F59E0B", monthlyAmount: "380.00" },
+    { name: "NBN Broadband", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "wifi", color: "#22C55E", monthlyAmount: "89.00" },
+    { name: "Private Health Cover", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "health_and_safety", color: "#EF4444", monthlyAmount: "240.00" },
 
-    // MAJOR (Sinking target savings)
-    { name: "Emergency Fund", type: "MAJOR" as const, priorityRank: 1, excess: true, icon: "emergency", color: "#EF4444", target: "10000.00", due: "2026-12-31" },
-    { name: "Car Registration & Servicing", type: "MAJOR" as const, priorityRank: 2, excess: false, icon: "build", color: "#F59E0B", target: "1200.00", due: "2027-02-15" },
-    { name: "Annual Holiday", type: "MAJOR" as const, priorityRank: 3, excess: false, icon: "flight", color: "#22C55E", target: "8000.00", due: "2026-12-20" }
+    // SAVINGS (Sinking target savings)
+    { name: "Emergency Fund", type: "SAVINGS" as const, isCommitted: true, excess: true, icon: "emergency", color: "#EF4444", target: "10000.00", due: "2026-12-31" },
+    { name: "Car Registration & Servicing", type: "SAVINGS" as const, isCommitted: true, excess: false, icon: "build", color: "#F59E0B", target: "1200.00", due: "2027-02-15" },
+    { name: "Annual Holiday", type: "SAVINGS" as const, isCommitted: false, excess: false, icon: "flight", color: "#22C55E", target: "8000.00", due: "2026-12-20" }
   ];
 
   for (const cat of canonicalCategories) {
@@ -170,7 +170,8 @@ async function seed() {
       .values({
         name: cat.name,
         type: cat.type,
-        priorityRank: cat.priorityRank,
+        isCommitted: cat.isCommitted,
+        monthlyAmount: cat.type === "REGULAR" ? cat.monthlyAmount : null,
         isDefaultExcess: cat.excess,
         icon: cat.icon,
         colour: cat.color,
@@ -181,15 +182,14 @@ async function seed() {
       })
       .returning();
 
-    if (cat.type !== "EVERYDAY" && (cat.target)) {
+    if (cat.type === "SAVINGS" && cat.target) {
       await db
         .insert(categorySchedules)
         .values({
           categoryId: insertedCategory.id,
           targetAmount: cat.target,
-          rrule: cat.rrule || null,
+          targetDate: cat.due || null,
           dueDate: cat.due || null,
-          nextDueDate: cat.due || null,
           tenantId,
           appId,
           createdBy: userId,

@@ -133,14 +133,9 @@ export default function HomeScreen() {
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
 
-  const syncOnLogin = trpc.syncOnLogin.useMutation();
-
   React.useEffect(() => {
-    // Perform syncOnLogin call on application start
-    syncOnLogin.mutateAsync().then(() => {
-      categoriesQuery.refetch();
-      incomeEventsQuery.refetch();
-    }).catch(err => console.error(err));
+    categoriesQuery.refetch();
+    incomeEventsQuery.refetch();
   }, []);
 
   React.useEffect(() => {

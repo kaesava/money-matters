@@ -24,10 +24,10 @@ function fmt(val: string | number) {
 }
 
 /** Slide-in panel showing category detail + transaction history. */
-export function BucketDetailDrawer({ categoryId, onClose, onResolveShortfall }: BucketDetailDrawerProps) {
+export function BucketDetailDrawer({ categoryId, onClose }: BucketDetailDrawerProps) {
   const categoriesQuery = trpc.listCategories.useQuery();
 
-  const cat = (categoriesQuery.data ?? []).find((c) => c.id === categoryId);
+  const cat = (categoriesQuery.data ?? []).find((c: any) => c.id === categoryId);
 
   if (!cat && !categoriesQuery.isLoading) {
     return (
@@ -84,16 +84,6 @@ export function BucketDetailDrawer({ categoryId, onClose, onResolveShortfall }: 
               </span>
             </div>
 
-            {parseFloat(cat.currentBalance) < 0 && onResolveShortfall && (
-              <button
-                onClick={() => onResolveShortfall(categoryId)}
-                className="w-full bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5"
-              >
-                <span>⚠</span>
-                Resolve Shortfall
-              </button>
-            )}
-
             {/* Target + progress */}
             {targetNum !== null && (
               <div className="flex flex-col gap-2">
@@ -111,10 +101,10 @@ export function BucketDetailDrawer({ categoryId, onClose, onResolveShortfall }: 
             )}
 
             {/* Due date */}
-            {cat.nextDueDate && (
+            {cat.targetDate && (
               <p className="text-xs font-medium" style={{ color: "var(--dash-muted)" }}>
                 {t("buckets.nextDue", {
-                  date: new Date(cat.nextDueDate).toLocaleDateString("en-AU", {
+                  date: new Date(cat.targetDate).toLocaleDateString("en-AU", {
                     weekday: "short", day: "numeric", month: "long", year: "numeric",
                   }),
                 })}

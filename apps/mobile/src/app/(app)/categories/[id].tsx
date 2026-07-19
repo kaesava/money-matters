@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
-import ShortfallResolutionModal from '../../../components/ShortfallResolutionModal';
 import { TransactionRow } from '../../../components/TransactionRow';
 import { formatAUD } from '../../../lib/format';
 
@@ -13,7 +12,6 @@ export default function BucketDetailScreen() {
   const router = useRouter();
   const { data: categories, isLoading, refetch } = trpc.listCategories.useQuery();
   const cat = categories?.find((c) => c?.id === id);
-  const [shortfallVisible, setShortfallVisible] = useState(false);
 
   const D = DESIGN_TOKENS;
 
@@ -79,23 +77,6 @@ export default function BucketDetailScreen() {
         )}
       </View>
 
-      {currentBalanceNum < 0 && (
-        <TouchableOpacity
-          style={styles.shortfallBtn}
-          onPress={() => setShortfallVisible(true)}
-        >
-          <Text style={styles.shortfallBtnText}>⚠ Resolve Shortfall</Text>
-        </TouchableOpacity>
-      )}
-
-      <ShortfallResolutionModal
-        visible={shortfallVisible}
-        categoryId={id}
-        onClose={() => {
-          setShortfallVisible(false);
-          refetch();
-        }}
-      />
 
       <Text style={styles.sectionTitle}>{t('buckets.detail.history')}</Text>
       <CategoryTransactionsList categoryId={id!} />

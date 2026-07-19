@@ -1,8 +1,3 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
 
 /**
  * Setup Step 3 — Configure Categories
@@ -28,34 +23,29 @@ export default function SetupConfigureScreen() {
   const [excessBucketId, setExcessBucketId] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const majorRecurring = categories.filter(c => c.type === 'MAJOR' || c.type === 'RECURRING');
+  const savingsRegular = categories.filter(c => c.type === 'SAVINGS' || c.type === 'REGULAR');
 
   const handleSaveAll = async () => {
     setSaving(true);
     try {
-      // 1. Save schedules for MAJOR + RECURRING categories
-      for (const cat of majorRecurring) {
+      for (const cat of savingsRegular) {
         const targetVal = targets[cat.id] || '0';
-        const rruleVal = schedules[cat.id] || 'FREQ=MONTHLY;BYDAY=15';
-        const priorityVal = parseInt(priorities[cat.id] || '3');
 
         await createCategorySchedule.mutateAsync({
           categoryId: cat.id,
           targetAmount: parseFloat(targetVal).toFixed(2),
-          rrule: rruleVal,
         });
 
         await updateCategory.mutateAsync({
           categoryId: cat.id,
           data: {
-            priorityRank: priorityVal,
             isDefaultExcess: excessBucketId === cat.id,
           },
         });
       }
       router.push('/(setup)/bank-accounts');
     } catch (err) {
-      Alert.alert("Configuration Error", "Could not save category targets/schedules.");
+      Alert.alert("Configuration Error", "Could not save category targets.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -81,7 +71,7 @@ export default function SetupConfigureScreen() {
       <Text style={styles.title}>{t('setup.configure.title')}</Text>
       <Text style={styles.subtitle}>{t('setup.configure.subtitle')}</Text>
 
-      {majorRecurring.map((cat) => (
+      {savingsRegular.map((cat) => (
         <View key={cat.id} style={styles.configCard}>
           <Text style={styles.cardName}>{cat.name}</Text>
           
@@ -93,31 +83,14 @@ export default function SetupConfigureScreen() {
             onChangeText={(val) => setTargets(prev => ({ ...prev, [cat.id]: val }))}
             placeholder="0.00"
           />
-
-          <Text style={styles.label}>{t('setup.configure.priorityLabel')}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            value={priorities[cat.id] || ''}
-            onChangeText={(val) => setPriorities(prev => ({ ...prev, [cat.id]: val }))}
-            placeholder="3"
-          />
-
-          <Text style={styles.label}>{t('setup.configure.scheduleLabel')}</Text>
-          <TextInput
-            style={styles.input}
-            value={schedules[cat.id] || ''}
-            onChangeText={(val) => setSchedules(prev => ({ ...prev, [cat.id]: val }))}
-            placeholder="FREQ=MONTHLY;BYDAY=15"
-          />
         </View>
       ))}
 
-      {majorRecurring.length > 0 && (
+      {savingsRegular.length > 0 && (
         <View style={styles.configCard}>
           <Text style={styles.label}>{t('setup.configure.excessLabel', { defaultValue: 'Default Excess Bucket' })}</Text>
           <View style={styles.pickerRow}>
-            {majorRecurring.map(cat => (
+            {savingsRegular.map(cat => (
               <TouchableOpacity
                 key={cat.id}
                 style={[styles.pickerItem, excessBucketId === cat.id && styles.pickerItemActive]}

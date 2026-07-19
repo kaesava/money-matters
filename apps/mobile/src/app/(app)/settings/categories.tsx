@@ -13,12 +13,12 @@ import { useRouter } from 'expo-router';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
 
-const CATEGORY_TYPES = ['MAJOR', 'RECURRING', 'EVERYDAY'] as const;
+const CATEGORY_TYPES = ['SAVINGS', 'REGULAR', 'EVERYDAY'] as const;
 type CategoryType = (typeof CATEGORY_TYPES)[number];
 
 const CATEGORY_TYPE_LABELS: Record<CategoryType, string> = {
-  MAJOR: 'Save Toward (Major)',
-  RECURRING: 'Regular Bills (Recurring)',
+  SAVINGS: 'Save Toward (Savings)',
+  REGULAR: 'Regular Bills (Regular)',
   EVERYDAY: 'Day-to-Day (Everyday)',
 };
 
@@ -26,8 +26,7 @@ export default function SettingsCategoriesScreen() {
   const router = useRouter();
 
   const [name, setName] = useState('');
-  const [type, setType] = useState<CategoryType>('RECURRING');
-  const [priorityRank, setPriorityRank] = useState('1');
+  const [type, setType] = useState<CategoryType>('REGULAR');
   const [adding, setAdding] = useState(false);
 
   // Queries & Mutations
@@ -38,26 +37,14 @@ export default function SettingsCategoriesScreen() {
   const handleAdd = async () => {
     if (!name.trim()) return;
     
-    let rank: number | undefined = undefined;
-    if (type !== 'EVERYDAY') {
-      const parsedRank = parseInt(priorityRank);
-      if (isNaN(parsedRank) || parsedRank < 1) {
-        Alert.alert("Invalid Priority", "Please enter a valid positive integer for priority.");
-        return;
-      }
-      rank = parsedRank;
-    }
-
     setAdding(true);
     try {
       await createCategory.mutateAsync({
         name: name.trim(),
         type,
-        priorityRank: rank,
       });
 
       setName('');
-      setPriorityRank('1');
       refetch();
       Alert.alert("Success", "Category added successfully.");
     } catch (err) {
@@ -119,7 +106,6 @@ export default function SettingsCategoriesScreen() {
                     <Text style={styles.rowName}>{cat.name}</Text>
                     <Text style={styles.rowMeta}>
                       {CATEGORY_TYPE_LABELS[cat.type as CategoryType]} 
-                      {cat.priorityRank ? ` • Priority ${cat.priorityRank}` : ''}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -163,19 +149,6 @@ export default function SettingsCategoriesScreen() {
             ))}
           </View>
 
-          {type !== 'EVERYDAY' && (
-            <>
-              <Text style={[styles.label, styles.gap]}>Priority Rank (1 = Highest)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. 1"
-                keyboardType="numeric"
-                value={priorityRank}
-                onChangeText={setPriorityRank}
-                placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-              />
-            </>
-          )}
 
           <TouchableOpacity
             style={[styles.addBtn, adding && styles.btnDisabled]}
