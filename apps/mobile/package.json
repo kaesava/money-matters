@@ -32,13 +32,14 @@
     "expo-status-bar": "3.0.9",
     "expo-web-browser": "~15.0.11",
     "nativewind": "4.0.36",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-css-interop": "0.0.36"
+    "react": "18.3.1",
+    "react-native": "0.76.7",
+    "react-native-css-interop": "0.0.36",
+    "react-native-reanimated": "~3.16.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@types/react": "^19.1.17",
+    "@types/react": "~18.3.12",
     "dotenv-cli": "^8.0.0",
     "tailwindcss": "^3.4.1"
   },

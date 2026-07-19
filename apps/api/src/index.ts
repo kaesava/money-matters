@@ -14,7 +14,8 @@ const env = validateEnv();
 
 const server = fastify({ 
   maxParamLength: 5000,
-  logger: logger 
+  logger: logger,
+  disableRequestLogging: true
 });
 
 // Configure correlation ID tracking and rate limiting limits securely
