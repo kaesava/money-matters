@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "npx concurrently -k -p \"[{name}]\" -n \"app,inngest\" -c \"cyan,magenta\" \"turbo run dev\" \"pnpm run dev:inngest\"",
+    "dev:inngest": "npx inngest-cli@latest dev -u https://kesh-imac.tail09ef18.ts.net/api/inngest",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
