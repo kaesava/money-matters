@@ -44,7 +44,7 @@ export const tenantProcedure = t.procedure.use(async ({ ctx, next }) => {
 
   // Wrap the call in a database transaction to scope the SET LOCAL session setting.
   return await db.transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL app.current_tenant_id = ${ctx.tenantId}`);
+    await tx.execute(sql`SELECT set_config('app.current_tenant_id', ${ctx.tenantId}, true)`);
     return next({
       ctx: {
         ...ctx,

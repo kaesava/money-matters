@@ -60,8 +60,7 @@ export async function verifyJwt(token: string): Promise<JwtClaims | null> {
 
     return { userId, email, displayName: name };
   } catch (err) {
-    console.error("[DEBUG verifyJwt] JWT Verification failed with error:", err);
-    // Covers: JWTExpired, JWSInvalid, JWSSignatureVerificationFailed, etc.
+    console.log("[DEBUG verifyJwt] JWT Verification failed (expected for database session tokens):", err instanceof Error ? err.message : err);
     return null;
   }
 }
