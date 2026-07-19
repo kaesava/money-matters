@@ -21,8 +21,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router]);
 
   // Redirect unauthenticated users
+  React.useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.replace("/sign-in");
+    }
+  }, [isPending, session, router]);
+
   if (!isPending && !session?.user) {
-    if (typeof window !== "undefined") router.replace("/sign-in");
     return null;
   }
 
