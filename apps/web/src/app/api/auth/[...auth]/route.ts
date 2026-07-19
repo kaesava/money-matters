@@ -54,11 +54,12 @@ async function handleProxy(req: NextRequest) {
     }
 
     const response = await fetch(targetUrl, options);
-    const body = await response.text();
+    const buffer = await response.arrayBuffer();
 
     console.log(`[DEBUG Auth Proxy] Target response status: ${response.status}`);
     if (response.status >= 400) {
-      console.log(`[DEBUG Auth Proxy] Target error response: ${body}`);
+      const errorText = new TextDecoder().decode(buffer);
+      console.log(`[DEBUG Auth Proxy] Target error response: ${errorText}`);
     }
 
     const responseHeaders = new Headers();
@@ -73,7 +74,7 @@ async function handleProxy(req: NextRequest) {
       }
     });
 
-    return new Response(body, {
+    return new Response(buffer, {
       status: response.status,
       headers: responseHeaders,
     });
