@@ -22,6 +22,7 @@ async function handleProxy(req: NextRequest) {
     }
 
     const targetUrl = `${authBase}${path}${url.search}`;
+    console.log(`[DEBUG Auth Proxy] Forwarding ${req.method} to ${targetUrl}`);
 
     const headers = new Headers();
     req.headers.forEach((value, key) => {
@@ -43,6 +44,11 @@ async function handleProxy(req: NextRequest) {
 
     const response = await fetch(targetUrl, options);
     const body = await response.text();
+
+    console.log(`[DEBUG Auth Proxy] Target response status: ${response.status}`);
+    if (response.status >= 400) {
+      console.log(`[DEBUG Auth Proxy] Target error response: ${body}`);
+    }
 
     const responseHeaders = new Headers();
     response.headers.forEach((value, key) => {
