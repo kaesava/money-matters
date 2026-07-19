@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "dotenv -e ../../.env.development -e .env.development -- expo start",
-    "start": "dotenv -e ../../.env.development -e .env.development -- expo start",
-    "android": "dotenv -e ../../.env.development -e .env.development -- expo start --android",
-    "ios": "dotenv -e ../../.env.development -e .env.development -- expo start --ios",
-    "web": "dotenv -e ../../.env.development -e .env.development -- expo start --web",
+    "dev": "dotenv-cli -e ../../.env.development -e .env.development -- expo start",
+    "start": "dotenv-cli -e ../../.env.development -e .env.development -- expo start",
+    "android": "dotenv-cli -e ../../.env.development -e .env.development -- expo start --android",
+    "ios": "dotenv-cli -e ../../.env.development -e .env.development -- expo start --ios",
+    "web": "dotenv-cli -e ../../.env.development -e .env.development -- expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
