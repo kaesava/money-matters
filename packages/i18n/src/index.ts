@@ -52,6 +52,7 @@ export const translations = {
       signUpPrompt: "New to money matters?",
       signInWithGoogle: "Sign in with Google",
       forgotPassword: "Forgot password?",
+      or: "or",
       signingIn: "Signing in…",
       signingUp: "Creating account…",
       signInErrorTitle: "Sign In Failed",
