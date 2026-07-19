@@ -26,10 +26,18 @@ async function handleProxy(req: NextRequest) {
 
     const headers = new Headers();
     req.headers.forEach((value, key) => {
-      headers.set(key, value);
+      // Exclude proxy forwarding headers that confuse the auth server hostname checks
+      const lowerKey = key.toLowerCase();
+      if (
+        !lowerKey.startsWith("x-forwarded-") && 
+        lowerKey !== "host" && 
+        lowerKey !== "forwarded"
+      ) {
+        headers.set(key, value);
+      }
     });
 
-    // Align host header
+    // Align host header to the target auth server domain
     const targetHost = new URL(authBase).host;
     headers.set("host", targetHost);
 
