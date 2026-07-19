@@ -6,6 +6,19 @@ export default defineConfig({
   clean: true,
   platform: "node",
   shims: true,
+  // Make third-party dependencies external so they are resolved from node_modules at runtime
+  external: [
+    "pino",
+    "drizzle-orm",
+    "@neondatabase/serverless",
+    "fastify",
+    "@fastify/cors",
+    "inngest",
+    "zod",
+    "jose",
+    "better-auth",
+    "uuid"
+  ],
   // Force tsup to inline internal workspace modules so the output is self-contained
   noExternal: [
     "@money-matters/capability-tenant",
