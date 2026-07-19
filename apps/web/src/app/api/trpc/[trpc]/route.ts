@@ -40,18 +40,22 @@ async function handleProxy(req: NextRequest) {
     }
 
     const response = await fetch(targetUrl, options);
+    const buffer = await response.arrayBuffer();
     
-    const body = await response.text();
-    
-    // Forward the headers, removing transfer-encoding if present
+    // Forward the headers, removing compression and transport headers
     const responseHeaders = new Headers();
     response.headers.forEach((value, key) => {
-      if (key.toLowerCase() !== "transfer-encoding") {
+      const lowerKey = key.toLowerCase();
+      if (
+        lowerKey !== "transfer-encoding" && 
+        lowerKey !== "content-encoding" && 
+        lowerKey !== "content-length"
+      ) {
         responseHeaders.set(key, value);
       }
     });
 
-    return new Response(body, {
+    return new Response(buffer, {
       status: response.status,
       headers: responseHeaders,
     });
