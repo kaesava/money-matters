@@ -4,6 +4,8 @@ export default defineConfig({
   entry: ["src/index.ts"],
   format: ["esm"],
   clean: true,
+  platform: "node",
+  shims: true,
   // Force tsup to inline internal workspace modules so the output is self-contained
   noExternal: [
     "@money-matters/capability-tenant",
