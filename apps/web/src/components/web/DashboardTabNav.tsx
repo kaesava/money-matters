@@ -16,8 +16,8 @@ const NAV_ITEMS = [
     ),
   },
   {
-    key: "buckets",
-    label: () => t("nav.buckets"),
+    key: "categories",
+    label: () => t("nav.categories"),
     href: "/dashboard/buckets",
     icon: (active: boolean) => (
       <svg className="w-4 h-4" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>

@@ -2,11 +2,12 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { trpc } from "../../lib/trpc";
+import { useDashboardData } from "../../hooks/useDashboardData";
 import { PaycheckReadinessCard } from "../../components/web/PaycheckReadinessCard";
 import { CategoryHealthCard } from "../../components/web/CategoryHealthCard";
 import { BucketDetailDrawer } from "../../components/web/BucketDetailDrawer";
 import { AllocationReviewDrawer } from "../../components/web/AllocationReviewDrawer";
+import { DashboardError } from "../../components/web/DashboardError";
 import { authClient } from "../../lib/auth";
 
 const SECTION_ORDER = ["MAJOR", "RECURRING", "EVERYDAY"] as const;
@@ -31,8 +32,7 @@ type CategoryWithHealth = {
 export default function DashboardPage() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const categoriesQuery = trpc.listCategories.useQuery();
-  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
+  const { hasTenant, isLoadingTenant, tenantError, categoriesQuery, incomeEventsQuery } = useDashboardData();
 
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
   const [reviewEventId, setReviewEventId] = useState<string | null>(null);
@@ -40,7 +40,6 @@ export default function DashboardPage() {
   const categories = (categoriesQuery.data ?? []) as CategoryWithHealth[];
   const incomeEvents = incomeEventsQuery.data ?? [];
 
-  // Find the next upcoming or draft income event
   const nextEvent =
     incomeEvents.find((e) => e.status === "DRAFT") ??
     incomeEvents.find((e) => e.status === "UPCOMING") ??
@@ -63,12 +62,29 @@ export default function DashboardPage() {
 
   const firstName = session?.user?.name?.split(" ")[0] ?? null;
 
+  // Show spinner while resolving tenant
+  if (isLoadingTenant) {
+    return <FullPageSpinner />;
+  }
+
+  // Network/API error on the tenant check itself
+  if (tenantError) {
+    return <DashboardError error={tenantError} onRetry={() => window.location.reload()} />;
+  }
+
+  // User is authenticated but hasn't completed setup
+  if (!hasTenant) {
+    return <SetupRequired onGoToSetup={() => router.push("/setup")} />;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Greeting */}
       <div>
         <p className="text-sm font-medium" style={{ color: "var(--dash-muted)" }}>
-          {firstName ? `${t("home.greeting", { defaultValue: "Good morning" })}, ${firstName} 👋` : `${t("home.greeting", { defaultValue: "Good morning" })} 👋`}
+          {firstName
+            ? `${t("home.greeting")}, ${firstName} 👋`
+            : `${t("home.greeting")} 👋`}
         </p>
         <h1 className="text-2xl font-bold mt-0.5" style={{ color: "var(--dash-text)" }}>
           {t("home.title")}
@@ -78,10 +94,12 @@ export default function DashboardPage() {
       {/* Paycheck Readiness Card */}
       {incomeEventsQuery.isLoading ? (
         <div className="h-36 rounded-2xl animate-pulse" style={{ backgroundColor: "var(--dash-navy)", opacity: 0.3 }} />
+      ) : incomeEventsQuery.error ? (
+        <DashboardError error={incomeEventsQuery.error} onRetry={() => incomeEventsQuery.refetch()} compact />
       ) : (
         <PaycheckReadinessCard
           daysUntil={daysUntil}
-          expectedAmount={nextEvent ? parseInt(nextEvent.expectedAmount, 10) : null}
+          expectedAmount={nextEvent ? parseInt(nextEvent.expectedAmount ?? "0", 10) : null}
           sourceName={null}
           onTrack={onTrack}
           atRisk={atRisk}
@@ -103,11 +121,7 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : categoriesQuery.error ? (
-          <div className="flex flex-col items-center gap-2 py-12 text-center">
-            <span className="text-3xl">⚠️</span>
-            <p className="text-sm font-semibold" style={{ color: "var(--dash-text)" }}>{t("common.error")}</p>
-            <p className="text-xs" style={{ color: "var(--dash-muted)" }}>{categoriesQuery.error.message}</p>
-          </div>
+          <DashboardError error={categoriesQuery.error} onRetry={() => categoriesQuery.refetch()} compact />
         ) : categories.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-12 text-center">
             <span className="text-3xl">📂</span>
@@ -145,7 +159,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Bucket Detail Drawer */}
       {selectedBucketId && (
         <BucketDetailDrawer
           categoryId={selectedBucketId}
@@ -153,7 +166,6 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Allocation Review Drawer */}
       {reviewEventId && (
         <AllocationReviewDrawer
           incomeEventId={reviewEventId}
@@ -164,6 +176,38 @@ export default function DashboardPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function FullPageSpinner() {
+  return (
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <div
+        className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+        style={{ borderColor: "var(--dash-teal)" }}
+      />
+    </div>
+  );
+}
+
+function SetupRequired({ onGoToSetup }: { onGoToSetup: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-20 text-center">
+      <span className="text-4xl">🏠</span>
+      <h2 className="text-xl font-bold" style={{ color: "var(--dash-text)" }}>
+        {t("setup.title")}
+      </h2>
+      <p className="text-sm max-w-xs" style={{ color: "var(--dash-muted)" }}>
+        {t("setup.complete.subtitle")}
+      </p>
+      <button
+        onClick={onGoToSetup}
+        className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
+        style={{ backgroundColor: "var(--dash-teal)" }}
+      >
+        {t("setup.complete.goDashboard", { defaultValue: "Complete Setup" })}
+      </button>
     </div>
   );
 }

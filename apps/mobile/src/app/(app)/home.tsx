@@ -1,6 +1,6 @@
  import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc, setActiveSessionToken } from '../../lib/trpc';
@@ -127,9 +127,23 @@ const pStyles = StyleSheet.create({
 
 export default function HomeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ token?: string }>();
   const { data: session } = authClient.useSession();
   const categoriesQuery = trpc.listCategories.useQuery();
   const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
+
+  React.useEffect(() => {
+    if (params.token) {
+      console.log(`[DEBUG client] Deep link token received on Home:`, params.token);
+      (async () => {
+        await SecureStore.setItemAsync("money-matters_session_token", params.token!);
+        await SecureStore.setItemAsync("money-matters-session-token", params.token!);
+        setActiveSessionToken(params.token!);
+        categoriesQuery.refetch();
+        router.setParams({ token: undefined });
+      })();
+    }
+  }, [params.token]);
 
   const categories = categoriesQuery.data ?? [];
   const onTrack = categories.filter((c) => c.healthStatus === 'GREEN').length;

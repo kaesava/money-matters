@@ -43,7 +43,7 @@ function fmt(val: string | number) {
 export function CategoryHealthCard({
   id,
   name,
-  type,
+  type: _type,
   balance,
   target,
   health,

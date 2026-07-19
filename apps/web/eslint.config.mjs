@@ -14,6 +14,19 @@ const eslintConfig = [
       "next-env.d.ts",
       "global.d.ts"
     ]
+  },
+  {
+    rules: {
+      // Allow _ prefix to mark intentionally unused variables (TypeScript convention)
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        }
+      ]
+    }
   }
 ];
 

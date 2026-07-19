@@ -24,9 +24,6 @@ function fmtDollars(centsStr: string | number) {
   return `$${(n / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function parseCents(dollarStr: string): number {
-  return Math.round(parseFloat(dollarStr.replace(/[^0-9.]/g, "")) * 100);
-}
 
 /**
  * Allocation Review Drawer.

@@ -45,7 +45,7 @@ export default function SignInPage() {
         localStorage.setItem("session_token", sessionToken);
       }
       router.push("/dashboard");
-    } catch (err) {
+    } catch (_err) {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);

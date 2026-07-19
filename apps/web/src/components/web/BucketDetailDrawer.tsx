@@ -41,7 +41,6 @@ export function BucketDetailDrawer({ categoryId, onClose }: BucketDetailDrawerPr
 
   const health = (cat?.healthStatus ?? "GREEN") as HealthStatus;
   const color = STATUS_COLOR[health];
-  const balanceNum = cat ? parseFloat(cat.currentBalance) : 0;
   const targetNum = cat?.targetAmount ? parseFloat(cat.targetAmount) : null;
   const pct = cat?.progressPercentage ?? 0;
 
@@ -126,7 +125,7 @@ export function BucketDetailDrawer({ categoryId, onClose }: BucketDetailDrawerPr
 }
 
 /** Inner component to load and display transaction history for a category */
-function TransactionHistory({ categoryId }: { categoryId: string }) {
+function TransactionHistory({ categoryId: _categoryId }: { categoryId: string }) {
   // We use listCategories to get the basic category data; 
   // In a full implementation this would call a dedicated getTransactionsByCategory query.
   // For V1, we show a placeholder with the data we have.

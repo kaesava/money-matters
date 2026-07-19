@@ -1,8 +1,10 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { trpc } from "../../../lib/trpc";
+import { useDashboardData } from "../../../hooks/useDashboardData";
 import { AllocationReviewDrawer } from "../../../components/web/AllocationReviewDrawer";
+import { DashboardError } from "../../../components/web/DashboardError";
 
 type IncomeEventStatus = "UPCOMING" | "DRAFT" | "REVIEWED" | "CONFIRMED";
 
@@ -14,7 +16,9 @@ const STATUS_CONFIG: Record<IncomeEventStatus, { label: string; color: string; b
 };
 
 function fmtDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-AU", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric",
+  });
 }
 
 function fmtAmount(amountStr: string) {
@@ -24,32 +28,47 @@ function fmtAmount(amountStr: string) {
 
 /** Paychecks page — income events list with status badges and Review CTA */
 export default function PaychecksPage() {
-  const eventsQuery = trpc.listIncomeEvents.useQuery();
+  const router = useRouter();
+  const { hasTenant, isLoadingTenant, tenantError, incomeEventsQuery } = useDashboardData();
   const [reviewEventId, setReviewEventId] = useState<string | null>(null);
 
-  const events = eventsQuery.data ?? [];
+  const events = incomeEventsQuery.data ?? [];
+  const isLoading = isLoadingTenant || incomeEventsQuery.isLoading;
+  const error = tenantError ?? incomeEventsQuery.error;
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold" style={{ color: "var(--dash-text)" }}>
           {t("paychecks.title")}
         </h1>
       </div>
 
-      {/* Content */}
-      {eventsQuery.isLoading ? (
+      {isLoading ? (
         <div className="flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-20 rounded-xl animate-pulse" style={{ backgroundColor: "var(--dash-border)" }} />
           ))}
         </div>
-      ) : eventsQuery.error ? (
-        <div className="flex flex-col items-center gap-2 py-16 text-center">
-          <span className="text-3xl">⚠️</span>
-          <p className="text-sm font-semibold" style={{ color: "var(--dash-text)" }}>{t("common.error")}</p>
-          <p className="text-xs" style={{ color: "var(--dash-muted)" }}>{eventsQuery.error.message}</p>
+      ) : error ? (
+        <DashboardError
+          error={error}
+          onRetry={() => {
+            incomeEventsQuery.refetch();
+            window.location.reload();
+          }}
+        />
+      ) : !hasTenant ? (
+        <div className="flex flex-col items-center gap-3 py-16 text-center">
+          <span className="text-3xl">🏠</span>
+          <p className="text-sm font-semibold" style={{ color: "var(--dash-text)" }}>{t("setup.title")}</p>
+          <button
+            onClick={() => router.push("/setup")}
+            className="px-5 py-2 rounded-xl text-sm font-bold text-white"
+            style={{ backgroundColor: "var(--dash-teal)" }}
+          >
+            {t("setup.complete.goDashboard", { defaultValue: "Complete Setup" })}
+          </button>
         </div>
       ) : events.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
@@ -60,10 +79,7 @@ export default function PaychecksPage() {
       ) : (
         <div
           className="rounded-xl overflow-hidden"
-          style={{
-            border: "1px solid var(--dash-border)",
-            backgroundColor: "var(--dash-surface)",
-          }}
+          style={{ border: "1px solid var(--dash-border)", backgroundColor: "var(--dash-surface)" }}
         >
           {events.map((event: (typeof events)[0], i: number) => {
             const status = (event.status ?? "UPCOMING") as IncomeEventStatus;
@@ -76,20 +92,20 @@ export default function PaychecksPage() {
                 id={`income-event-${event.id}`}
                 className="flex items-center gap-4 px-5 py-4 transition-colors"
                 style={{
-                  borderBottom: i < events.length - 1 ? "1px solid var(--dash-border)" : "none",
+                  borderBottom: i < events.length - 1 ? `1px solid var(--dash-border)` : "none",
                 }}
               >
-                {/* Left: date + source */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold truncate" style={{ color: "var(--dash-text)" }}>
                     {event.expectedDate ? fmtDate(event.expectedDate) : "—"}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: "var(--dash-muted)" }}>
-                    {t("paychecks.expectedAmount", { amount: event.expectedAmount ? fmtAmount(event.expectedAmount) : "—" })}
+                    {t("paychecks.expectedAmount", {
+                      amount: event.expectedAmount ? fmtAmount(event.expectedAmount) : "—",
+                    })}
                   </p>
                 </div>
 
-                {/* Status badge */}
                 <span
                   className="px-2.5 py-1 rounded-full text-xs font-bold shrink-0"
                   style={{ backgroundColor: cfg.bg, color: cfg.color }}
@@ -97,7 +113,6 @@ export default function PaychecksPage() {
                   {t(cfg.label)}
                 </span>
 
-                {/* Review CTA for actionable events */}
                 {isDraftOrUpcoming && (
                   <button
                     id={`review-btn-${event.id}`}
@@ -114,13 +129,12 @@ export default function PaychecksPage() {
         </div>
       )}
 
-      {/* Allocation Review Drawer */}
       {reviewEventId && (
         <AllocationReviewDrawer
           incomeEventId={reviewEventId}
           onClose={() => {
             setReviewEventId(null);
-            eventsQuery.refetch();
+            incomeEventsQuery.refetch();
           }}
         />
       )}

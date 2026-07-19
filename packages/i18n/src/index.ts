@@ -7,6 +7,7 @@ export const translations = {
     nav: {
       home: "Home",
       buckets: "Buckets",
+      categories: "Categories",
       paychecks: "Paychecks",
       settings: "Settings",
       dashboardNav: "Dashboard navigation",
