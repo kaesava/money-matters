@@ -1,0 +1,25 @@
+{
+  "cli": {
+    "version": ">= 21.0.2",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://money-matters-api.onrender.com",
+        "EXPO_PUBLIC_NEON_AUTH_URL": "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -13,18 +13,29 @@
       "backgroundColor": "#1B2B4B"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kaesava.moneymatters",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1B2B4B"
-      }
+      },
+      "package": "com.kaesava.moneymatters"
     },
     "plugins": [
       "expo-router",
       "expo-sqlite",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5cf01baf-7dc6-43bf-aa23-a72da2de4aaf"
+      }
+    }
   }
 }
