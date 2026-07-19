@@ -16,8 +16,9 @@ async function handleProxy(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/api\/trpc/, "");
-    // Default local Fastify server runs on port 3001
-    const targetUrl = `http://localhost:3001/trpc${path}${url.search}`;
+    // Resolve API target base dynamically from environment variable
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const targetUrl = `${apiBase}/trpc${path}${url.search}`;
 
     const headers = new Headers();
     // Copy incoming headers
@@ -26,7 +27,8 @@ async function handleProxy(req: NextRequest) {
     });
     
     // Explicitly set host to align with the target endpoint
-    headers.set("host", "localhost:3001");
+    const targetHost = new URL(apiBase).host;
+    headers.set("host", targetHost);
 
     const options: RequestInit = {
       method: req.method,
