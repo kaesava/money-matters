@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 
 export interface AuthSession {
@@ -60,7 +61,7 @@ export async function verifyJwt(token: string): Promise<JwtClaims | null> {
 
     return { userId, email, displayName: name };
   } catch (err) {
-    console.log("[DEBUG verifyJwt] JWT Verification failed (expected for database session tokens):", err instanceof Error ? err.message : err);
+    logger.debug("[verifyJwt] JWT Verification failed (expected for database session tokens): " + (err instanceof Error ? err.message : String(err)));
     return null;
   }
 }

@@ -138,7 +138,7 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
                   disabled={recordExpenseMutation.isPending}
                 >
                   <option value="">{t("transactions.newExpense.categoryPlaceholder")}</option>
-                  {categories.map((cat: any) => (
+                  {categories.map((cat: { id: string; name: string }) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>

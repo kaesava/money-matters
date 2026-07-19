@@ -27,7 +27,7 @@ function fmt(val: string | number) {
 export function BucketDetailDrawer({ categoryId, onClose }: BucketDetailDrawerProps) {
   const categoriesQuery = trpc.listCategories.useQuery();
 
-  const cat = (categoriesQuery.data ?? []).find((c: any) => c.id === categoryId);
+  const cat = (categoriesQuery.data ?? []).find((c: { id: string }) => c.id === categoryId);
 
   if (!cat && !categoriesQuery.isLoading) {
     return (

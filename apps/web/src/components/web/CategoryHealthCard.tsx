@@ -53,7 +53,6 @@ export function CategoryHealthCard({
 }: CategoryHealthCardProps) {
   const color = STATUS_COLOR[health];
   const bg = STATUS_BG[health];
-  const balanceNum = parseFloat(balance);
   const hasTarget = target != null && parseFloat(target) > 0;
 
   const dueDateLabel = nextDueDate

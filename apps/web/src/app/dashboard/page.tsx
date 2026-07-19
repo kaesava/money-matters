@@ -30,12 +30,11 @@ type CategoryWithHealth = {
 export default function DashboardPage() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const { hasTenant, isLoadingTenant, tenantError, categoriesQuery, incomeEventsQuery } = useDashboardData();
+  const { hasTenant, isLoadingTenant, tenantError, categoriesQuery } = useDashboardData();
 
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
 
   const categories = (categoriesQuery.data ?? []) as CategoryWithHealth[];
-  const incomeEvents = incomeEventsQuery.data ?? [];
 
   const onTrack = categories.filter((c) => c.healthStatus === "GREEN").length;
   const atRisk = categories.filter((c) => c.healthStatus === "AMBER" || c.healthStatus === "RED").length;

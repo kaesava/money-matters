@@ -26,6 +26,8 @@ export default defineConfig({
     "@money-matters/capability-notifications",
     "@money-matters/capability-file-notes",
     "@money-matters/capability-geo",
+    "@money-matters/capability-budgeting",
+    "@money-matters/capability-transactions",
     "@money-matters/config",
     "@money-matters/core",
     "@money-matters/db",

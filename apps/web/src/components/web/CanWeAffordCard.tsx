@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 
 export function CanWeAffordCard() {
@@ -70,7 +69,19 @@ export function CanWeAffordCard() {
   );
 }
 
-function VerdictResult({ data }: { data: any }) {
+function VerdictResult({ 
+  data 
+}: { 
+  data: { 
+    verdict: string; 
+    everydayRemaining?: string; 
+    affectedBucketName?: string; 
+    newBalance?: string; 
+    daysUntilNextPaycheck?: number; 
+    amountExpected?: string; 
+    shortfall?: string; 
+  } 
+}) {
   const v = data.verdict;
 
   if (v === "YES") {
@@ -81,7 +92,7 @@ function VerdictResult({ data }: { data: any }) {
           <span>YES, YOU CAN!</span>
         </div>
         <p className="text-xs text-emerald-600 font-semibold leading-relaxed">
-          This fits completely inside your everyday spending pool. You will have ${parseFloat(data.everydayRemaining).toLocaleString()} remaining.
+          This fits completely inside your everyday spending pool. You will have ${parseFloat(data.everydayRemaining!).toLocaleString()} remaining.
         </p>
       </div>
     );
@@ -95,7 +106,7 @@ function VerdictResult({ data }: { data: any }) {
           <span>YES, WITH IMPACT</span>
         </div>
         <p className="text-xs text-amber-600 font-semibold leading-relaxed">
-          Everyday spending isn't enough, but it will dip into your "{data.affectedBucketName}" savings bucket surplus by leaving a new balance of ${parseFloat(data.newBalance).toLocaleString()}.
+          Everyday spending isn&apos;t enough, but it will dip into your &quot;{data.affectedBucketName}&quot; savings bucket surplus by leaving a new balance of ${parseFloat(data.newBalance!).toLocaleString()}.
         </p>
       </div>
     );
@@ -109,7 +120,7 @@ function VerdictResult({ data }: { data: any }) {
           <span>WAIT FOR PAYDAY</span>
         </div>
         <p className="text-xs text-blue-600 font-semibold leading-relaxed">
-          Wait {data.daysUntilNextPaycheck} days. Your next paycheck of ${parseFloat(data.amountExpected).toLocaleString()} will cover this purchase.
+          Wait {data.daysUntilNextPaycheck} days. Your next paycheck of ${parseFloat(data.amountExpected!).toLocaleString()} will cover this purchase.
         </p>
       </div>
     );
@@ -123,7 +134,7 @@ function VerdictResult({ data }: { data: any }) {
         <span>NO</span>
       </div>
       <p className="text-xs text-rose-600 font-semibold leading-relaxed">
-        This exceeds your currently available everyday spending and savings limits by ${parseFloat(data.shortfall).toLocaleString()}.
+        This exceeds your currently available everyday spending and savings limits by ${parseFloat(data.shortfall!).toLocaleString()}.
       </p>
     </div>
   );

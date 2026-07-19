@@ -108,12 +108,10 @@ export function AppHeader({ user, onQuickExpense, onSignOut }: AppHeaderProps) {
               </p>
             </div>
 
-            {/* Navigation items */}
             <div className="py-1">
               {[
                 { label: t("nav.home"), href: "/dashboard" },
                 { label: t("nav.categories"), href: "/dashboard/buckets" },
-                { label: t("nav.paychecks"), href: "/dashboard/paychecks" },
                 { label: t("nav.settings"), href: "/dashboard/settings" },
               ].map((item) => (
                 <button
