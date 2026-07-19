@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "expo start",
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "dev": "dotenv -e ../../.env.development -e .env.development -- expo start",
+    "start": "dotenv -e ../../.env.development -e .env.development -- expo start",
+    "android": "dotenv -e ../../.env.development -e .env.development -- expo start --android",
+    "ios": "dotenv -e ../../.env.development -e .env.development -- expo start --ios",
+    "web": "dotenv -e ../../.env.development -e .env.development -- expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
@@ -39,6 +39,7 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "^19.1.17",
+    "dotenv-cli": "^8.0.0",
     "tailwindcss": "^3.4.1"
   },
   "private": true
