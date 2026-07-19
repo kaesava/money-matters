@@ -4,7 +4,7 @@ import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { CreateCategoryScheduleCommand } from "@money-matters/types";
 
-export async function upsertBucketScheduleCommand(
+export async function upsertCategoryScheduleCommand(
   input: z.infer<typeof CreateCategoryScheduleCommand>,
   tenantId: string,
   appId: string,

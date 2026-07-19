@@ -2,8 +2,8 @@ import { db, categories } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
-export async function archiveBucketCommand(
-  bucketId: string,
+export async function archiveCategoryCommand(
+  categoryId: string,
   tenantId: string,
   appId: string,
   userId: string,
@@ -18,7 +18,7 @@ export async function archiveBucketCommand(
     })
     .where(
       and(
-        eq(categories.id, bucketId),
+        eq(categories.id, categoryId),
         eq(categories.tenantId, tenantId),
         eq(categories.appId, appId)
       )

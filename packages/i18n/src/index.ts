@@ -108,8 +108,8 @@ export const translations = {
         selectedCount: "{count} selected",
         addCustom: "Add Custom Category",
         customNamePlaceholder: "e.g. Pet Expenses",
-        majorSection: "Save Toward (Major)",
-        recurringSection: "Regular Bills (Recurring)",
+        majorSection: "Save Toward (Goals)",
+        recurringSection: "Regular Bills",
         everydaySection: "Day-to-Day Spending",
       },
       configure: {

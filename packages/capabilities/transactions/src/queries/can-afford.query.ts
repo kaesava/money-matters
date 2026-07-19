@@ -89,7 +89,7 @@ export async function canAffordQuery(
   let bestSavingsSurplus = 0;
 
   for (const cat of dbCats) {
-    if (cat.type === "SAVINGS" && !cat.isCommitted) {
+    if (cat.type === "GOAL" && !cat.isCommitted) {
       const sched = schedulesMap.get(cat.id);
       const balance = balancesMap[cat.id] || 0;
       if (sched) {

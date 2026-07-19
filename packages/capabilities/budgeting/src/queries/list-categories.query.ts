@@ -2,7 +2,7 @@ import { db, categories, categorySchedules, transactionLedger } from "@money-mat
 import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
-export async function listBucketsQuery(
+export async function listCategoriesQuery(
   tenantId: string,
   appId: string,
   dbClient: PgDatabase<any, any, any> = db
@@ -78,7 +78,7 @@ export async function listBucketsQuery(
       } else if (balance < monthlyAmount) {
         health = "AMBER";
       }
-    } else if (cat.type === "SAVINGS" && sched) {
+    } else if (cat.type === "GOAL" && sched) {
       const targetAmount = parseFloat(sched.targetAmount || "0");
       progressPct = targetAmount > 0 ? Math.min(100, Math.round((balance / targetAmount) * 100)) : 100;
       if (balance <= 0) {

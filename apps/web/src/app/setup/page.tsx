@@ -8,14 +8,14 @@ import { trpc } from "../../lib/trpc";
 interface PresetCategory {
   id: string;
   name: string;
-  type: "SAVINGS" | "REGULAR" | "EVERYDAY";
+  type: "GOAL" | "REGULAR" | "EVERYDAY";
   icon: string;
 }
 
 const PRESETS: PresetCategory[] = [
-  { id: "emergency", name: "Emergency Fund", type: "SAVINGS", icon: "🛡️" },
-  { id: "holiday", name: "Holiday / Travel", type: "SAVINGS", icon: "✈️" },
-  { id: "car", name: "Car Replacement", type: "SAVINGS", icon: "🚗" },
+  { id: "emergency", name: "Emergency Fund", type: "GOAL", icon: "🛡️" },
+  { id: "holiday", name: "Holiday / Travel", type: "GOAL", icon: "✈️" },
+  { id: "car", name: "Car Replacement", type: "GOAL", icon: "🚗" },
   { id: "rent", name: "Rent / Mortgage", type: "REGULAR", icon: "🏡" },
   { id: "electricity", name: "Electricity", type: "REGULAR", icon: "⚡" },
   { id: "internet", name: "Internet", type: "REGULAR", icon: "📡" },
@@ -172,8 +172,8 @@ export default function SetupWizardPage() {
         const targetAmount = parseFloat(targets[cat.id] || "0");
         if (targetAmount <= 0) continue;
 
-        // Default schedules: SAVINGS get a target date (e.g. 1 year out), REGULAR get monthly amount via category update
-        if (cat.type === "SAVINGS") {
+        // Default schedules: GOAL get a target date (e.g. 1 year out), REGULAR get monthly amount via category update
+        if (cat.type === "GOAL") {
           const oneYearOut = new Date();
           oneYearOut.setFullYear(oneYearOut.getFullYear() + 1);
           await createCategorySchedule.mutateAsync({

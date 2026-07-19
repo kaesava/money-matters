@@ -23,7 +23,7 @@ export default function SetupConfigureScreen() {
   const [excessBucketId, setExcessBucketId] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const savingsRegular = categories.filter(c => c.type === 'SAVINGS' || c.type === 'REGULAR');
+  const savingsRegular = categories.filter(c => c.type === 'GOAL' || c.type === 'REGULAR');
 
   const handleSaveAll = async () => {
     setSaving(true);

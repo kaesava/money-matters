@@ -18,7 +18,7 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "holiday-committed-id",
         name: "Car Insurance",
-        type: "SAVINGS",
+        type: "GOAL",
         isCommitted: true,
         isDefaultExcess: false,
         monthlyAmount: null,
@@ -29,7 +29,7 @@ describe("paycheck cascade allocation engine", () => {
       {
         id: "uncommitted-id",
         name: "Holiday",
-        type: "SAVINGS",
+        type: "GOAL",
         isCommitted: false,
         isDefaultExcess: false,
         monthlyAmount: null,

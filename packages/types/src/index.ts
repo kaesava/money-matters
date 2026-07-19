@@ -168,7 +168,7 @@ export const UpdateBankAccountCommand = z.object({
 export const CategorySchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(["REGULAR", "SAVINGS", "EVERYDAY"]),
+  type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   isCommitted: z.boolean().default(false),
   monthlyAmount: z.string().nullable(),
   isDefaultExcess: z.boolean().default(false),
@@ -179,7 +179,7 @@ export const CategorySchema = BaseSchema.extend({
 
 export const CreateCategoryCommand = z.object({
   name: z.string().min(1),
-  type: z.enum(["REGULAR", "SAVINGS", "EVERYDAY"]),
+  type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   isCommitted: z.boolean().default(false),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   isDefaultExcess: z.boolean().default(false),

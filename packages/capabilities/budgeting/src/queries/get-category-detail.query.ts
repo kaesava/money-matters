@@ -2,8 +2,8 @@ import { db, categories, transactionLedger } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
-export async function getBucketDetailQuery(
-  bucketId: string,
+export async function getCategoryDetailQuery(
+  categoryId: string,
   tenantId: string,
   appId: string,
   limit = 30,
@@ -15,7 +15,7 @@ export async function getBucketDetailQuery(
     .from(categories)
     .where(
       and(
-        eq(categories.id, bucketId),
+        eq(categories.id, categoryId),
         eq(categories.tenantId, tenantId),
         eq(categories.appId, appId),
         sql`${categories.archivedAt} IS NULL`
@@ -23,7 +23,7 @@ export async function getBucketDetailQuery(
     );
 
   if (!category) {
-    throw new Error("Bucket not found.");
+    throw new Error("Category not found.");
   }
 
   const txs = await dbClient
@@ -31,7 +31,7 @@ export async function getBucketDetailQuery(
     .from(transactionLedger)
     .where(
       and(
-        eq(transactionLedger.categoryId, bucketId),
+        eq(transactionLedger.categoryId, categoryId),
         eq(transactionLedger.tenantId, tenantId),
         eq(transactionLedger.appId, appId),
         sql`${transactionLedger.archivedAt} IS NULL`
@@ -42,7 +42,7 @@ export async function getBucketDetailQuery(
     .offset(offset);
 
   return {
-    bucket: category,
+    category,
     transactions: txs,
   };
 }

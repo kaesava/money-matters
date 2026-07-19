@@ -65,13 +65,13 @@ export default function SettingsPage() {
           style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
         >
           {[
-            { label: `💸 ${t("settings.incomeSources.title")}`, id: "settings-income-link" },
-            { label: `🏷️ ${t("settings.categories.title")}`, id: "settings-categories-link" },
-            { label: `🏦 ${t("settings.bankAccounts.title")}`, id: "settings-bank-link" },
+            { label: `📦 Archived Items`, id: "settings-archived-link", onClick: () => router.push("/dashboard/settings/archived") },
+            { label: `🏦 ${t("settings.bankAccounts.title")}`, id: "settings-bank-link", onClick: undefined },
           ].map((item, i, arr) => (
             <div key={item.id}>
               <button
                 id={item.id}
+                onClick={item.onClick}
                 className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-medium transition-colors hover:bg-gray-50 text-left"
                 style={{ color: "var(--dash-text)" }}
               >

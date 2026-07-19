@@ -9,10 +9,10 @@ import * as SecureStore from 'expo-secure-store';
 import { Feather } from '@expo/vector-icons';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
-const SECTION_ORDER = ['MAJOR', 'RECURRING', 'EVERYDAY'] as const;
+const SECTION_ORDER = ['GOAL', 'REGULAR', 'EVERYDAY'] as const;
 const SECTION_TITLES: Record<string, string> = {
-  MAJOR: 'buckets.majorSection',
-  RECURRING: 'buckets.recurringSection',
+  GOAL: 'buckets.majorSection',
+  REGULAR: 'buckets.recurringSection',
   EVERYDAY: 'buckets.everydaySection',
 };
 

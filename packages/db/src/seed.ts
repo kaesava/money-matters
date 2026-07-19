@@ -158,10 +158,10 @@ async function seed() {
     { name: "NBN Broadband", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "wifi", color: "#22C55E", monthlyAmount: "89.00" },
     { name: "Private Health Cover", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "health_and_safety", color: "#EF4444", monthlyAmount: "240.00" },
 
-    // SAVINGS (Sinking target savings)
-    { name: "Emergency Fund", type: "SAVINGS" as const, isCommitted: true, excess: true, icon: "emergency", color: "#EF4444", target: "10000.00", due: "2026-12-31" },
-    { name: "Car Registration & Servicing", type: "SAVINGS" as const, isCommitted: true, excess: false, icon: "build", color: "#F59E0B", target: "1200.00", due: "2027-02-15" },
-    { name: "Annual Holiday", type: "SAVINGS" as const, isCommitted: false, excess: false, icon: "flight", color: "#22C55E", target: "8000.00", due: "2026-12-20" }
+    // GOAL (Target savings)
+    { name: "Emergency Fund", type: "GOAL" as const, isCommitted: true, excess: true, icon: "emergency", color: "#EF4444", target: "10000.00", due: "2026-12-31" },
+    { name: "Car Registration & Servicing", type: "GOAL" as const, isCommitted: true, excess: false, icon: "build", color: "#F59E0B", target: "1200.00", due: "2027-02-15" },
+    { name: "Annual Holiday", type: "GOAL" as const, isCommitted: false, excess: false, icon: "flight", color: "#22C55E", target: "8000.00", due: "2026-12-20" }
   ];
 
   for (const cat of canonicalCategories) {
@@ -182,7 +182,7 @@ async function seed() {
       })
       .returning();
 
-    if (cat.type === "SAVINGS" && cat.target) {
+    if (cat.type === "GOAL" && cat.target) {
       await db
         .insert(categorySchedules)
         .values({

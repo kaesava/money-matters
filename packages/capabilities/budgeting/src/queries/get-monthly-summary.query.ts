@@ -58,7 +58,7 @@ export async function getMonthlySummaryQuery(
     if (tx.flowType === "CREDIT") {
       // Income cascade allocations represent income
       totalIncome += val;
-      if (catType === "SAVINGS") {
+      if (catType === "GOAL") {
         totalSaved += val;
       }
     } else {

@@ -4,22 +4,22 @@ import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { CategoryHealthCard } from "../../components/web/CategoryHealthCard";
-import { BucketDetailDrawer } from "../../components/web/BucketDetailDrawer";
+import { CategoryDetailDrawer } from "../../components/web/CategoryDetailDrawer";
 import { CanWeAffordCard } from "../../components/web/CanWeAffordCard";
 import { DashboardError } from "../../components/web/DashboardError";
 import { authClient } from "../../lib/auth";
 
-const SECTION_ORDER = ["REGULAR", "SAVINGS", "EVERYDAY"] as const;
+const SECTION_ORDER = ["REGULAR", "GOAL", "EVERYDAY"] as const;
 const SECTION_LABELS: Record<string, string> = {
   REGULAR: "buckets.recurringSection", // mapping to 'Regular Bills' in i18n
-  SAVINGS: "buckets.majorSection",     // mapping to 'Save Toward' in i18n
+  GOAL: "buckets.majorSection",        // mapping to 'Save Toward' in i18n
   EVERYDAY: "buckets.everydaySection", // mapping to 'Day-to-Day' in i18n
 };
 
 type CategoryWithHealth = {
   id: string;
   name: string;
-  type: "REGULAR" | "SAVINGS" | "EVERYDAY";
+  type: "REGULAR" | "GOAL" | "EVERYDAY";
   currentBalance: string;
   targetAmount: string | null;
   healthStatus: "GREEN" | "AMBER" | "RED";
@@ -167,7 +167,7 @@ export default function DashboardPage() {
 
       {/* Details Slide-Over Drawer */}
       {selectedBucketId && (
-        <BucketDetailDrawer
+        <CategoryDetailDrawer
           categoryId={selectedBucketId}
           onClose={() => setSelectedBucketId(null)}
         />

@@ -9,14 +9,16 @@ import {
   getTenantHandler,
 } from "@money-matters/capability-tenant";
 import {
-  createBucketCommand,
-  updateBucketCommand,
-  archiveBucketCommand,
+  createCategoryCommand,
+  updateCategoryCommand,
+  archiveCategoryCommand,
+  restoreItemCommand,
   runAllocationCommand,
-  listBucketsQuery,
-  getBucketDetailQuery,
+  listCategoriesQuery,
+  getCategoryDetailQuery,
   getMonthlySummaryQuery,
-  upsertBucketScheduleCommand,
+  listArchivedItemsQuery,
+  upsertCategoryScheduleCommand,
 } from "@money-matters/capability-budgeting";
 import {
   recordExpenseCommand,
@@ -102,11 +104,11 @@ export const appRouter = router({
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  // 3. Categories (Buckets)
+  // 3. Categories
   createCategory: tenantProcedure
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
-      return await createBucketCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return await createCategoryCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   updateCategory: tenantProcedure
@@ -115,21 +117,48 @@ export const appRouter = router({
       data: UpdateCategoryCommand
     }).strict())
     .mutation(async ({ input, ctx }) => {
-      return await updateBucketCommand(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return await updateCategoryCommand(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   createCategorySchedule: tenantProcedure
     .input(CreateCategoryScheduleCommand)
     .mutation(async ({ input, ctx }) => {
-      return await upsertBucketScheduleCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return await upsertCategoryScheduleCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   archiveCategory: tenantProcedure
     .input(z.object({ categoryId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
-      const result = await archiveBucketCommand(input.categoryId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      const result = await archiveCategoryCommand(input.categoryId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
       if (!result) {
         throw new Error("Category not found or access unauthorized.");
+      }
+      return { success: true };
+    }),
+
+  listArchivedItems: tenantProcedure
+    .query(async ({ ctx }) => {
+      return await listArchivedItemsQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+    }),
+
+  restoreItem: tenantProcedure
+    .input(
+      z.object({
+        itemId: z.string().uuid(),
+        itemType: z.enum(["CATEGORY", "INCOME_SOURCE", "BANK_ACCOUNT"]),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const result = await restoreItemCommand(
+        input.itemId,
+        input.itemType,
+        ctx.tenantId!,
+        ctx.appId!,
+        ctx.userId!,
+        ctx.db
+      );
+      if (!result) {
+        throw new Error("Item not found or access unauthorized.");
       }
       return { success: true };
     }),
@@ -138,7 +167,7 @@ export const appRouter = router({
 
   listCategories: tenantProcedure
     .query(async ({ ctx }) => {
-      return await listBucketsQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+      return await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
   getMonthlySummary: tenantProcedure
@@ -351,7 +380,7 @@ export const appRouter = router({
       };
     }),
 
-  executeCascade: tenantProcedure
+  runAllocation: tenantProcedure
     .input(
       z.object({
         incomeAmount: z.number().positive(),

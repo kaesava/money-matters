@@ -13,7 +13,7 @@ export default function PaycheckReviewScreen() {
   
   const incomeEventQuery = trpc.listIncomeEvents.useQuery();
   const planQuery = trpc.listAllocationPlan.useQuery({ incomeEventId: id! });
-  const executeCascade = trpc.executeCascade.useMutation();
+  const runAllocation = trpc.runAllocation.useMutation();
 
   const event = incomeEventQuery.data?.find(e => e.id === id);
 
@@ -25,7 +25,7 @@ export default function PaycheckReviewScreen() {
   const handleGeneratePlan = async () => {
     if (!event) return;
     try {
-      await executeCascade.mutateAsync({
+      await runAllocation.mutateAsync({
         incomeEventId: event.id,
         incomeAmount: parseFloat(event.expectedAmount),
       });
@@ -77,8 +77,8 @@ export default function PaycheckReviewScreen() {
       {!plan ? (
         <View style={styles.noPlan}>
           <Text style={styles.noPlanText}>{t('paychecks.review.noPlanYet', { defaultValue: 'Allocation plan not yet generated' })}</Text>
-          <TouchableOpacity style={styles.generateBtn} onPress={handleGeneratePlan} disabled={executeCascade.isPending}>
-            {executeCascade.isPending ? (
+          <TouchableOpacity style={styles.generateBtn} onPress={handleGeneratePlan} disabled={runAllocation.isPending}>
+            {runAllocation.isPending ? (
               <ActivityIndicator color="#FFF" />
             ) : (
               <Text style={styles.generateBtnText}>{t('paychecks.generatePlan', { defaultValue: 'Generate Plan' })}</Text>

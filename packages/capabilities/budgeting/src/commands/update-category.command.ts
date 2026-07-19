@@ -1,18 +1,18 @@
-import { db, categories, categorySchedules } from "@money-matters/db";
-import { eq, and, sql } from "drizzle-orm";
+import { db, categories } from "@money-matters/db";
+import { eq, and } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { CreateCategoryCommand } from "@money-matters/types";
+import { UpdateCategoryCommand } from "@money-matters/types";
 
-export async function createBucketCommand(
-  input: z.infer<typeof CreateCategoryCommand>,
+export async function updateCategoryCommand(
+  categoryId: string,
+  input: z.infer<typeof UpdateCategoryCommand>,
   tenantId: string,
   appId: string,
   userId: string,
   dbClient: PgDatabase<any, any, any> = db
 ) {
   return await dbClient.transaction(async (tx) => {
-    // 1. If this is default excess, disable other default excess
     if (input.isDefaultExcess) {
       await tx
         .update(categories)
@@ -26,24 +26,28 @@ export async function createBucketCommand(
         );
     }
 
-    // 2. Insert category
-    const [cat] = await tx
-      .insert(categories)
-      .values({
+    const [updated] = await tx
+      .update(categories)
+      .set({
         name: input.name,
-        type: input.type as any,
         isCommitted: input.isCommitted,
-        monthlyAmount: input.monthlyAmount || null,
+        monthlyAmount: input.monthlyAmount,
         isDefaultExcess: input.isDefaultExcess,
-        icon: input.icon || null,
-        colour: input.colour || null,
-        tenantId,
-        appId,
-        createdBy: userId,
+        icon: input.icon,
+        colour: input.colour,
+        bankAccountId: input.bankAccountId,
         updatedBy: userId,
+        updatedAt: new Date(),
       })
+      .where(
+        and(
+          eq(categories.id, categoryId),
+          eq(categories.tenantId, tenantId),
+          eq(categories.appId, appId)
+        )
+      )
       .returning();
 
-    return cat;
+    return updated;
   });
 }

@@ -4,7 +4,7 @@ import { t } from "@money-matters/i18n";
 import { SlideOverDrawer } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
 
-interface BucketDetailDrawerProps {
+interface CategoryDetailDrawerProps {
   categoryId: string;
   onClose: () => void;
   onResolveShortfall?: (categoryId: string) => void;
@@ -24,7 +24,7 @@ function fmt(val: string | number) {
 }
 
 /** Slide-in panel showing category detail + transaction history. */
-export function BucketDetailDrawer({ categoryId, onClose }: BucketDetailDrawerProps) {
+export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDrawerProps) {
   const categoriesQuery = trpc.listCategories.useQuery();
 
   const cat = (categoriesQuery.data ?? []).find((c: { id: string }) => c.id === categoryId);

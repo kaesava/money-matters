@@ -1,14 +1,14 @@
-export type BucketType = "REGULAR" | "SAVINGS" | "EVERYDAY";
+export type BucketType = "REGULAR" | "GOAL" | "EVERYDAY";
 
 export interface EngineBucket {
   id: string;
   name: string;
   type: BucketType;
-  isCommitted: boolean;      // SAVINGS: true means funded first
-  isDefaultExcess: boolean;  // EVERYDAY/SAVINGS: default excess destination
+  isCommitted: boolean;      // GOAL: true means funded first
+  isDefaultExcess: boolean;  // EVERYDAY/GOAL: default excess destination
   monthlyAmount: number | null;   // REGULAR: amount targeted monthly
-  targetAmount: number | null;    // SAVINGS: total amount targeted
-  targetDate: string | null;      // SAVINGS: ISO target date
+  targetAmount: number | null;    // GOAL: total amount targeted
+  targetDate: string | null;      // GOAL: ISO target date
   currentBalance: number;
 }
 
@@ -37,8 +37,8 @@ export interface AllocationEngineOutput {
  * 
  * Steps:
  * 1. REGULAR (Bills): Monthly amount prorated by pay frequency: monthlyAmount * (frequencyDays / 30.4375)
- * 2. SAVINGS (Committed): monthlyContribution = (targetAmount - balance) / monthsRemaining
- * 3. SAVINGS (Uncommitted): same monthlyContribution formula, funded if funds remain
+ * 2. GOAL (Committed): monthlyContribution = (targetAmount - balance) / monthsRemaining
+ * 3. GOAL (Uncommitted): same monthlyContribution formula, funded if funds remain
  * 4. EVERYDAY / Default Excess: receives the remaining residual income
  */
 export function runAllocationEngine(input: AllocationEngineInput): AllocationEngineOutput {
@@ -47,8 +47,8 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   // Group buckets
   const regularBuckets = input.buckets.filter((b) => b.type === "REGULAR");
-  const savingsCommitted = input.buckets.filter((b) => b.type === "SAVINGS" && b.isCommitted);
-  const savingsUncommitted = input.buckets.filter((b) => b.type === "SAVINGS" && !b.isCommitted);
+  const goalCommitted = input.buckets.filter((b) => b.type === "GOAL" && b.isCommitted);
+  const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted);
   const excessBucket = input.buckets.find((b) => b.isDefaultExcess) || input.buckets.find((b) => b.type === "EVERYDAY");
 
   // Step 1: REGULAR (Bills)
@@ -67,8 +67,8 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     });
   }
 
-  // Helper for SAVINGS monthly target calculation
-  const fundSavings = (bucketsList: EngineBucket[]) => {
+  // Helper for GOAL monthly target calculation
+  const fundGoals = (bucketsList: EngineBucket[]) => {
     for (const bucket of bucketsList) {
       const target = bucket.targetAmount ?? 0;
       const current = bucket.currentBalance;
@@ -96,11 +96,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   };
 
-  // Step 2: SAVINGS (Committed)
-  fundSavings(savingsCommitted);
+  // Step 2: GOAL (Committed)
+  fundGoals(goalCommitted);
 
-  // Step 3: SAVINGS (Uncommitted)
-  fundSavings(savingsUncommitted);
+  // Step 3: GOAL (Uncommitted)
+  fundGoals(goalUncommitted);
 
   // Step 4: EVERYDAY / Default Excess Sweep
   if (excessBucket) {

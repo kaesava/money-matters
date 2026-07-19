@@ -94,16 +94,16 @@ export default function SettingsScreen() {
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/categories')}
+            onPress={() => router.push('/(app)/settings/archived' as any)}
             activeOpacity={0.7}
           >
-            <Text style={styles.listItemText}>🏷️ {t("settings.categories", { defaultValue: "Budget Categories" })}</Text>
+            <Text style={styles.listItemText}>📦 Archived Items</Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/bank-accounts')}
+            onPress={() => router.push('/(app)/settings/bank-accounts' as any)}
             activeOpacity={0.7}
           >
             <Text style={styles.listItemText}>🏦 {t("settings.bankAccounts", { defaultValue: "Bank Accounts" })}</Text>
