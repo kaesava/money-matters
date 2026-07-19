@@ -37,9 +37,12 @@ async function handleProxy(req: NextRequest) {
       }
     });
 
-    // Align host header to the target auth server domain
+    // Align host, origin, and referer headers to match the target auth server domain to bypass CSRF checking
     const targetHost = new URL(authBase).host;
+    const targetOrigin = new URL(authBase).origin;
     headers.set("host", targetHost);
+    headers.set("origin", targetOrigin);
+    headers.set("referer", authBase);
 
     const options: RequestInit = {
       method: req.method,
