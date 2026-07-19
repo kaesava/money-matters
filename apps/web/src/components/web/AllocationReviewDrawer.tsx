@@ -216,6 +216,35 @@ export function AllocationReviewDrawer({ incomeEventId, onClose }: AllocationRev
               </div>
             </div>
 
+            {/* Paycheck deficit soft warnings */}
+            {(() => {
+              const underfunded = lines.filter((line) => {
+                const amt = parseFloat(getAmount(line));
+                const text = (line.reasoning || "").toLowerCase();
+                return (
+                  text.includes("shortfall") ||
+                  text.includes("deficit") ||
+                  text.includes("underfunded") ||
+                  text.includes("partially") ||
+                  (amt === 0 && text.includes("target"))
+                );
+              });
+              if (underfunded.length === 0) return null;
+              return (
+                <div className="mx-6 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2">
+                  <span className="text-amber-600 font-bold text-sm shrink-0">⚠️</span>
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-xs font-bold text-amber-800">
+                      Underfunded Categories Detected
+                    </p>
+                    <p className="text-[11px] text-amber-700 leading-normal">
+                      {underfunded.length} priority categories (including {underfunded[0].categoryName}) will not be fully funded by this paycheck. You can proceed with confirmation or adjust allocations manually.
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Allocation lines */}
             <div className="flex-1 overflow-y-auto">
               <div className="px-6 pt-4 pb-2">

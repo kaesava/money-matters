@@ -5,6 +5,7 @@ import { t } from "@money-matters/i18n";
 import { useDashboardData } from "../../../hooks/useDashboardData";
 import { CategoryHealthCard } from "../../../components/web/CategoryHealthCard";
 import { BucketDetailDrawer } from "../../../components/web/BucketDetailDrawer";
+import { ShortfallResolutionDrawer } from "../../../components/web/ShortfallResolutionDrawer";
 import { DashboardError } from "../../../components/web/DashboardError";
 
 const SECTION_ORDER = ["MAJOR", "RECURRING", "EVERYDAY"] as const;
@@ -31,6 +32,7 @@ export default function CategoriesPage() {
   const { hasTenant, isLoadingTenant, tenantError, categoriesQuery } = useDashboardData();
   
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
+  const [shortfallBucketId, setShortfallBucketId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "MAJOR" | "RECURRING" | "EVERYDAY">("ALL");
 
@@ -184,6 +186,20 @@ export default function CategoriesPage() {
           categoryId={selectedBucketId}
           onClose={() => {
             setSelectedBucketId(null);
+            categoriesQuery.refetch();
+          }}
+          onResolveShortfall={(id) => {
+            setSelectedBucketId(null);
+            setShortfallBucketId(id);
+          }}
+        />
+      )}
+
+      {shortfallBucketId && (
+        <ShortfallResolutionDrawer
+          categoryId={shortfallBucketId}
+          onClose={() => {
+            setShortfallBucketId(null);
             categoriesQuery.refetch();
           }}
         />

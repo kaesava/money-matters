@@ -6,7 +6,8 @@ import {
   createBankAccountHandler,
   updateBankAccountHandler,
   archiveBankAccountHandler,
-  getTenantHandler
+  getTenantHandler,
+  submitReconciliationHandler
 } from "@money-matters/capability-tenant";
 import {
   createCategoryHandler,
@@ -33,7 +34,8 @@ import {
   CreateIncomeEventCommand,
   ConfirmPlanCommand,
   RecordExpenseCommand,
-  ResolveShortfallCommand
+  ResolveShortfallCommand,
+  SubmitReconciliationCommand
 } from "@money-matters/types";
 import { registerDeviceTokenHandler, removeDeviceTokenHandler } from "@money-matters/capability-notifications";
 import {
@@ -101,6 +103,13 @@ export const appRouter = router({
     .mutation(async ({ input, ctx }) => {
       const handler = archiveBankAccountHandler(ctx.db);
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
+    }),
+
+  submitReconciliation: tenantProcedure
+    .input(SubmitReconciliationCommand)
+    .mutation(async ({ input, ctx }) => {
+      const handler = submitReconciliationHandler(ctx.db);
+      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
   // 3. Categories

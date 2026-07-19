@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
+import ShortfallResolutionModal from '../../../components/ShortfallResolutionModal';
 
 function fmt(val: string | number) {
   const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -13,8 +14,9 @@ function fmt(val: string | number) {
 export default function BucketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { data: categories, isLoading } = trpc.listCategories.useQuery();
+  const { data: categories, isLoading, refetch } = trpc.listCategories.useQuery();
   const cat = categories?.find((c) => c?.id === id);
+  const [shortfallVisible, setShortfallVisible] = useState(false);
 
   const D = DESIGN_TOKENS;
 
@@ -80,6 +82,24 @@ export default function BucketDetailScreen() {
         )}
       </View>
 
+      {currentBalanceNum < 0 && (
+        <TouchableOpacity
+          style={styles.shortfallBtn}
+          onPress={() => setShortfallVisible(true)}
+        >
+          <Text style={styles.shortfallBtnText}>⚠ Resolve Shortfall</Text>
+        </TouchableOpacity>
+      )}
+
+      <ShortfallResolutionModal
+        visible={shortfallVisible}
+        categoryId={id}
+        onClose={() => {
+          setShortfallVisible(false);
+          refetch();
+        }}
+      />
+
       <Text style={styles.sectionTitle}>{t('buckets.detail.history')}</Text>
       <View style={styles.emptyHistory}>
         <Text style={styles.emptyText}>{t('buckets.detail.noHistory')}</Text>
@@ -107,4 +127,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, color: D.colors.textMuted, textTransform: 'uppercase', marginBottom: 12 },
   emptyHistory: { alignItems: 'center', paddingVertical: 32 },
   emptyText: { fontSize: 13, color: D.colors.textMuted },
+  shortfallBtn: { backgroundColor: '#FEF2F2', borderColor: '#FEE2E2', borderWidth: 1, borderRadius: D.radius.md, paddingVertical: 12, alignItems: 'center', marginBottom: 24 },
+  shortfallBtnText: { color: '#B91C1C', fontWeight: '700', fontSize: 13 },
 });

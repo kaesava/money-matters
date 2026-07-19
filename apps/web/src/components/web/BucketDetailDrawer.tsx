@@ -7,6 +7,7 @@ import { trpc } from "../../lib/trpc";
 interface BucketDetailDrawerProps {
   categoryId: string;
   onClose: () => void;
+  onResolveShortfall?: (categoryId: string) => void;
 }
 
 type HealthStatus = "GREEN" | "AMBER" | "RED";
@@ -23,7 +24,7 @@ function fmt(val: string | number) {
 }
 
 /** Slide-in panel showing category detail + transaction history. */
-export function BucketDetailDrawer({ categoryId, onClose }: BucketDetailDrawerProps) {
+export function BucketDetailDrawer({ categoryId, onClose, onResolveShortfall }: BucketDetailDrawerProps) {
   const categoriesQuery = trpc.listCategories.useQuery();
 
   const cat = (categoriesQuery.data ?? []).find((c) => c.id === categoryId);
@@ -82,6 +83,16 @@ export function BucketDetailDrawer({ categoryId, onClose }: BucketDetailDrawerPr
                 {health === "GREEN" ? "On Track" : health === "AMBER" ? "At Risk" : "Underfunded"}
               </span>
             </div>
+
+            {parseFloat(cat.currentBalance) < 0 && onResolveShortfall && (
+              <button
+                onClick={() => onResolveShortfall(categoryId)}
+                className="w-full bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm flex items-center justify-center gap-1.5"
+              >
+                <span>⚠</span>
+                Resolve Shortfall
+              </button>
+            )}
 
             {/* Target + progress */}
             {targetNum !== null && (

@@ -41,6 +41,13 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="reconcile"
+        options={{
+          title: "Reconcile",
+          tabBarIcon: ({ color, size }) => <TabIcon name="check-square" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: t('settings.title'),

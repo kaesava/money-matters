@@ -6,6 +6,7 @@ import { useDashboardData } from "../../hooks/useDashboardData";
 import { PaycheckReadinessCard } from "../../components/web/PaycheckReadinessCard";
 import { CategoryHealthCard } from "../../components/web/CategoryHealthCard";
 import { BucketDetailDrawer } from "../../components/web/BucketDetailDrawer";
+import { ShortfallResolutionDrawer } from "../../components/web/ShortfallResolutionDrawer";
 import { AllocationReviewDrawer } from "../../components/web/AllocationReviewDrawer";
 import { DashboardError } from "../../components/web/DashboardError";
 import { authClient } from "../../lib/auth";
@@ -36,6 +37,7 @@ export default function DashboardPage() {
 
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
   const [reviewEventId, setReviewEventId] = useState<string | null>(null);
+  const [shortfallBucketId, setShortfallBucketId] = useState<string | null>(null);
 
   const categories = (categoriesQuery.data ?? []) as CategoryWithHealth[];
   const incomeEvents = incomeEventsQuery.data ?? [];
@@ -229,6 +231,20 @@ export default function DashboardPage() {
         <BucketDetailDrawer
           categoryId={selectedBucketId}
           onClose={() => setSelectedBucketId(null)}
+          onResolveShortfall={(id) => {
+            setSelectedBucketId(null);
+            setShortfallBucketId(id);
+          }}
+        />
+      )}
+
+      {shortfallBucketId && (
+        <ShortfallResolutionDrawer
+          categoryId={shortfallBucketId}
+          onClose={() => {
+            setShortfallBucketId(null);
+            categoriesQuery.refetch();
+          }}
         />
       )}
 
