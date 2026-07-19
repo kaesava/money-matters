@@ -1,11 +1,28 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui';
+import { trpc } from '../../lib/trpc';
 
 export default function SetupCompleteScreen() {
   const router = useRouter();
+  const generateEvents = trpc.generateNextIncomeEvents.useMutation();
+  const [loading, setLoading] = useState(false);
+
+  const handleFinish = async () => {
+    setLoading(true);
+    try {
+      await generateEvents.mutateAsync();
+      router.replace('/(app)/home');
+    } catch (err) {
+      console.error("Failed to generate initial events:", err);
+      // Fallback redirect
+      router.replace('/(app)/home');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -15,10 +32,15 @@ export default function SetupCompleteScreen() {
 
       <TouchableOpacity
         style={styles.btn}
-        onPress={() => router.replace('/(app)/home')}
+        onPress={handleFinish}
         activeOpacity={0.85}
+        disabled={loading}
       >
-        <Text style={styles.btnText}>{t('setup.complete.goDashboard')}</Text>
+        {loading ? (
+          <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} />
+        ) : (
+          <Text style={styles.btnText}>{t('setup.complete.goDashboard')}</Text>
+        )}
       </TouchableOpacity>
     </View>
   );

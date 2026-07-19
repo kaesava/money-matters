@@ -8,7 +8,7 @@ export async function confirmPaydayAllocationPlan(
   appId: string,
   userId: string,
   planId: string,
-  linesInput: { lineId: string; confirmedAmount: string }[],
+  linesInput: { lineId: string; confirmedAmount: string; deferred?: boolean }[],
   dbClient: PgDatabase<any, any, any> = db
 ) {
   return await dbClient.transaction(async (tx) => {
@@ -47,34 +47,47 @@ export async function confirmPaydayAllocationPlan(
       const confirmedValue = confirmedLinesMap.get(line.id) || line.proposedAmount;
       const amountFloat = parseFloat(confirmedValue);
 
-      // Update the plan line status
-      await tx
-        .update(allocationPlanLines)
-        .set({
-          confirmedAmount: confirmedValue,
-          updatedBy: userId,
-          updatedAt: new Date()
-        })
-        .where(eq(allocationPlanLines.id, line.id));
+      // Support deferring plan line updates (set confirmedAmount to '0.00' and skip credit insert if deferred)
+      const isDeferred = linesInput.find(l => l.lineId === line.id)?.deferred ?? false;
 
-      if (amountFloat > 0) {
-        // Record CREDIT transaction posting in the ledger
-        const idempotencyKey = `plan-confirm-${planId}-line-${line.id}-${randomUUID()}`;
+      if (isDeferred) {
         await tx
-          .insert(transactionLedger)
-          .values({
-            categoryId: line.categoryId,
-            planLineId: line.id,
-            flowType: "CREDIT",
-            amount: confirmedValue,
-            idempotencyKey,
-            note: `Paycheck allocation confirm: ${line.reasoning || ""}`,
-            recordedAt: new Date(),
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId
-          });
+          .update(allocationPlanLines)
+          .set({
+            confirmedAmount: "0.00",
+            updatedBy: userId,
+            updatedAt: new Date()
+          })
+          .where(eq(allocationPlanLines.id, line.id));
+      } else {
+        await tx
+          .update(allocationPlanLines)
+          .set({
+            confirmedAmount: confirmedValue,
+            updatedBy: userId,
+            updatedAt: new Date()
+          })
+          .where(eq(allocationPlanLines.id, line.id));
+
+        if (amountFloat > 0) {
+          // Record CREDIT transaction posting in the ledger
+          const idempotencyKey = `plan-confirm-${planId}-line-${line.id}-${randomUUID()}`;
+          await tx
+            .insert(transactionLedger)
+            .values({
+              categoryId: line.categoryId,
+              planLineId: line.id,
+              flowType: "CREDIT",
+              amount: confirmedValue,
+              idempotencyKey,
+              note: `Paycheck allocation confirm: ${line.reasoning || ""}`,
+              recordedAt: new Date(),
+              tenantId,
+              appId,
+              createdBy: userId,
+              updatedBy: userId
+            });
+        }
       }
     }
 

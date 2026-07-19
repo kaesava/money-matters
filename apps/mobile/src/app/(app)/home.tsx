@@ -130,7 +130,18 @@ export default function HomeScreen() {
   const params = useLocalSearchParams<{ token?: string }>();
   const { data: session } = authClient.useSession();
   const categoriesQuery = trpc.listCategories.useQuery();
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
+
+  const syncOnLogin = trpc.syncOnLogin.useMutation();
+
+  React.useEffect(() => {
+    // Perform syncOnLogin call on application start
+    syncOnLogin.mutateAsync().then(() => {
+      categoriesQuery.refetch();
+      incomeEventsQuery.refetch();
+    }).catch(err => console.error(err));
+  }, []);
 
   React.useEffect(() => {
     if (params.token) {
@@ -140,14 +151,27 @@ export default function HomeScreen() {
         await SecureStore.setItemAsync("money-matters-session-token", params.token!);
         setActiveSessionToken(params.token!);
         categoriesQuery.refetch();
+        incomeEventsQuery.refetch();
         router.setParams({ token: undefined });
       })();
     }
   }, [params.token]);
 
   const categories = categoriesQuery.data ?? [];
+  const incomeEventsList = incomeEventsQuery.data ?? [];
   const onTrack = categories.filter((c) => c.healthStatus === 'GREEN').length;
   const atRisk = categories.filter((c) => c.healthStatus === 'AMBER' || c.healthStatus === 'RED').length;
+
+  // Find next upcoming or draft event sorted by date
+  const nextPaycheck = [...incomeEventsList]
+    .filter(e => e.status === 'UPCOMING' || e.status === 'DRAFT')
+    .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime())[0];
+
+  let daysUntil = 0;
+  if (nextPaycheck) {
+    const diffTime = new Date(nextPaycheck.expectedDate).getTime() - new Date().getTime();
+    daysUntil = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  }
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -201,14 +225,23 @@ export default function HomeScreen() {
           <Text style={styles.headerSubtitle}>{t('home.title')}</Text>
         </View>
 
-        {/* Paycheck Panel — Phase 4 uses static mock data */}
-        <PaycheckReadinessPanel
-          daysUntil={5}
-          expectedAmount={450000}
-          onTrack={onTrack}
-          atRisk={atRisk}
-          onReview={() => router.push('/(app)/paychecks')}
-        />
+        {/* Paycheck Panel */}
+        {incomeEventsQuery.isLoading ? (
+          <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginVertical: 20 }} />
+        ) : nextPaycheck ? (
+          <PaycheckReadinessPanel
+            daysUntil={daysUntil}
+            expectedAmount={parseInt(nextPaycheck.expectedAmount)}
+            onTrack={onTrack}
+            atRisk={atRisk}
+            onReview={() => router.push({ pathname: '/(app)/paychecks/[id]', params: { id: nextPaycheck.id } })}
+          />
+        ) : (
+          <View style={styles.noPaycheckCard}>
+            <Text style={styles.noPaycheckTitle}>{t('home.noPaycheck', { defaultValue: 'No paychecks scheduled' })}</Text>
+            <Text style={styles.noPaycheckSubtitle}>{t('home.noPaycheckSubtitle', { defaultValue: 'Add an income source in Settings to get started' })}</Text>
+          </View>
+        )}
 
         {/* Category Health */}
         <Text style={styles.sectionTitle}>{t('home.categoryHealth')}</Text>
@@ -274,6 +307,27 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 40 },
   emptyTitle: { fontSize: 15, fontWeight: '600', color: D.colors.textPrimary },
   emptySubtitle: { fontSize: 13, color: D.colors.textMuted, textAlign: 'center' },
+  noPaycheckCard: {
+    backgroundColor: D.colors.surface,
+    borderRadius: D.radius.xl,
+    padding: D.spacing.cardPadding,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noPaycheckTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: D.colors.textPrimary,
+    marginBottom: 4,
+  },
+  noPaycheckSubtitle: {
+    fontSize: 13,
+    color: D.colors.textMuted,
+    textAlign: 'center',
+  },
   fab: {
     position: 'absolute',
     right: 20,

@@ -297,6 +297,17 @@ export const RecordExpenseCommand = z.object({
   note: z.string().optional(),
 }).strict();
 
+export const ListTransactionsQuery = z.object({
+  limit: z.number().int().max(100).default(50),
+  offset: z.number().int().default(0),
+}).strict();
+
+export const ListCategoryTransactionsQuery = z.object({
+  categoryId: z.string().uuid(),
+  limit: z.number().int().max(100).default(30),
+  offset: z.number().int().default(0),
+}).strict();
+
 // 12. Shortfall Events
 export const ShortfallEventSchema = BaseSchema.extend({
   donorCategoryId: z.string().uuid(),

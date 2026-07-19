@@ -10,7 +10,7 @@ import {
   RecordExpenseCommand,
   ResolveShortfallCommand
 } from "@money-matters/types";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 import { randomUUID } from "crypto";
 
@@ -183,24 +183,67 @@ export function recordExpenseHandler(db: PgDatabase<any, any, any>) {
     appId: string,
     userId: string
   ) => {
-    const [expense] = await db
-      .insert(transactionLedger)
-      .values({
-        categoryId: input.categoryId,
-        bankAccountId: input.bankAccountId || null,
-        flowType: "DEBIT",
-        amount: input.amount,
-        idempotencyKey: input.idempotencyKey || `expense-manual-${randomUUID()}`,
-        note: input.note || null,
-        recordedAt: new Date(),
-        tenantId,
-        appId,
-        createdBy: userId,
-        updatedBy: userId,
-      })
-      .returning();
+    return await db.transaction(async (tx) => {
+      const [expense] = await tx
+        .insert(transactionLedger)
+        .values({
+          categoryId: input.categoryId,
+          bankAccountId: input.bankAccountId || null,
+          flowType: "DEBIT",
+          amount: input.amount,
+          idempotencyKey: input.idempotencyKey || `expense-manual-${randomUUID()}`,
+          note: input.note || null,
+          recordedAt: new Date(),
+          tenantId,
+          appId,
+          createdBy: userId,
+          updatedBy: userId,
+        })
+        .returning();
 
-    return expense;
+      // Retrieve all category ledger records to calculate current balance
+      const txRecords = await tx
+        .select({ amount: transactionLedger.amount, flowType: transactionLedger.flowType })
+        .from(transactionLedger)
+        .where(
+          and(
+            eq(transactionLedger.categoryId, input.categoryId),
+            eq(transactionLedger.tenantId, tenantId),
+            sql`${transactionLedger.archivedAt} IS NULL`
+          )
+        );
+
+      let balance = 0;
+      txRecords.forEach((r) => {
+        const amt = parseFloat(r.amount);
+        if (r.flowType === "CREDIT") {
+          balance += amt;
+        } else {
+          balance -= amt;
+        }
+      });
+
+      const [cat] = await tx
+        .select()
+        .from(categories)
+        .where(eq(categories.id, input.categoryId));
+
+      if (balance < 0 && cat && !cat.lastNotifiedAt) {
+        // Mark lastNotifiedAt to suppress until it recovers to green
+        await tx
+          .update(categories)
+          .set({ lastNotifiedAt: new Date() })
+          .where(eq(categories.id, input.categoryId));
+      } else if (balance >= 0 && cat && cat.lastNotifiedAt) {
+        // Clear lastNotifiedAt suppression since we recovered to green/neutral
+        await tx
+          .update(categories)
+          .set({ lastNotifiedAt: null })
+          .where(eq(categories.id, input.categoryId));
+      }
+
+      return expense;
+    });
   };
 }
 
@@ -341,12 +384,32 @@ export function listCategoriesWithHealth(db: PgDatabase<any, any, any>) {
         if (balance <= 0) {
           health = "RED";
         } else if (sched.nextDueDate) {
-          const dueDate = new Date(sched.nextDueDate);
-          const timeDiff = dueDate.getTime() - today.getTime();
-          // Alert RED if balance is insufficient and time is short
-          if (timeDiff < 0 && balance < target) {
+          const nextDue = new Date(sched.nextDueDate);
+          // Set period duration: Default to 30 days if no rrule string is parsed
+          let periodDays = 30;
+          if (sched.rrule) {
+            if (sched.rrule.includes("WEEKLY")) {
+              if (sched.rrule.includes("INTERVAL=2")) {
+                periodDays = 14;
+              } else {
+                periodDays = 7;
+              }
+            } else if (sched.rrule.includes("MONTHLY")) {
+              periodDays = 30;
+            }
+          }
+
+          const startDate = new Date(nextDue.getTime() - periodDays * 24 * 60 * 60 * 1000);
+          const totalDuration = nextDue.getTime() - startDate.getTime();
+          const elapsed = today.getTime() - startDate.getTime();
+          const fraction = Math.max(0, Math.min(1, elapsed / totalDuration));
+          const expectedAccumulation = target * fraction;
+
+          if (nextDue.getTime() < today.getTime() && balance < target) {
             health = "RED";
-          } else if (balance < target * 0.5) {
+          } else if (balance >= expectedAccumulation) {
+            health = "GREEN";
+          } else {
             health = "AMBER";
           }
         }
@@ -364,5 +427,64 @@ export function listCategoriesWithHealth(db: PgDatabase<any, any, any>) {
         healthStatus: health
       };
     });
+  };
+}
+
+export function listTransactionsHandler(db: PgDatabase<any, any, any>) {
+  return async (tenantId: string, appId: string, limit = 50, offset = 0) => {
+    return await db
+      .select({
+        id: transactionLedger.id,
+        categoryId: transactionLedger.categoryId,
+        bankAccountId: transactionLedger.bankAccountId,
+        planLineId: transactionLedger.planLineId,
+        flowType: transactionLedger.flowType,
+        amount: transactionLedger.amount,
+        note: transactionLedger.note,
+        recordedAt: transactionLedger.recordedAt,
+        categoryName: categories.name,
+      })
+      .from(transactionLedger)
+      .leftJoin(categories, eq(transactionLedger.categoryId, categories.id))
+      .where(
+        and(
+          eq(transactionLedger.tenantId, tenantId),
+          eq(transactionLedger.appId, appId),
+          sql`${transactionLedger.archivedAt} IS NULL`
+        )
+      )
+      .orderBy(desc(transactionLedger.recordedAt))
+      .limit(limit)
+      .offset(offset);
+  };
+}
+
+export function listCategoryTransactionsHandler(db: PgDatabase<any, any, any>) {
+  return async (tenantId: string, appId: string, categoryId: string, limit = 30, offset = 0) => {
+    return await db
+      .select({
+        id: transactionLedger.id,
+        categoryId: transactionLedger.categoryId,
+        bankAccountId: transactionLedger.bankAccountId,
+        planLineId: transactionLedger.planLineId,
+        flowType: transactionLedger.flowType,
+        amount: transactionLedger.amount,
+        note: transactionLedger.note,
+        recordedAt: transactionLedger.recordedAt,
+        categoryName: categories.name,
+      })
+      .from(transactionLedger)
+      .leftJoin(categories, eq(transactionLedger.categoryId, categories.id))
+      .where(
+        and(
+          eq(transactionLedger.tenantId, tenantId),
+          eq(transactionLedger.appId, appId),
+          eq(transactionLedger.categoryId, categoryId),
+          sql`${transactionLedger.archivedAt} IS NULL`
+        )
+      )
+      .orderBy(desc(transactionLedger.recordedAt))
+      .limit(limit)
+      .offset(offset);
   };
 }

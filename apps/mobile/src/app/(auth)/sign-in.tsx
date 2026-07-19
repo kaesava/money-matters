@@ -16,8 +16,9 @@ import * as Linking from "expo-linking";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
-import { setActiveSessionToken } from "../../lib/trpc";
+import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
+import * as Notifications from "expo-notifications";
 
 const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://kesh-imac.tail09ef18.ts.net";
 
@@ -50,6 +51,22 @@ export default function SignInScreen() {
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
+      
+      // Request and register push notifications token asynchronously
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          const expoToken = await Notifications.getExpoPushTokenAsync();
+          // We can call registerToken tRPC mutator (fire-and-forget)
+          trpc.registerToken.mutate({
+            platform: Platform.OS === 'ios' ? 'ios' : 'android',
+            token: expoToken.data,
+          });
+        }
+      } catch (pushErr) {
+        console.warn("Could not register push token:", pushErr);
+      }
+
       // Successful sign-in — the session token is stored in secure storage.
       // Navigate to main app; the index route will redirect based on household status.
       router.replace("/(app)/home");

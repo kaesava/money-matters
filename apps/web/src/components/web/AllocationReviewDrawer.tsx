@@ -88,13 +88,16 @@ export function AllocationReviewDrawer({ incomeEventId, onClose }: AllocationRev
     setEditingLineId(null);
   }
 
+  const [deferredLineIds, setDeferredLineIds] = useState<Set<string>>(new Set());
+
   function handleConfirm() {
     if (!plan?.id) return;
     confirmPlan.mutate({
       planId: plan.id,
       lines: lines.map((line) => ({
         lineId: line.id,
-        confirmedAmount: getAmount(line),
+        confirmedAmount: deferredLineIds.has(line.id) ? "0" : getAmount(line),
+        deferred: deferredLineIds.has(line.id),
       })),
     });
   }
@@ -297,14 +300,33 @@ export function AllocationReviewDrawer({ incomeEventId, onClose }: AllocationRev
                             />
                           </div>
                         ) : (
-                          <button
-                            onClick={() => handleStartEdit(line)}
-                            className="text-sm font-bold tabular-nums shrink-0 px-2 py-1 rounded-lg transition-colors hover:bg-opacity-10"
-                            style={{ color: "var(--dash-teal)" }}
-                            title={t("paychecks.review.adjustHint")}
-                          >
-                            {fmtDollars(amount)}
-                          </button>
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <button
+                              onClick={() => handleStartEdit(line)}
+                              className="text-sm font-bold tabular-nums px-2 py-1 rounded-lg transition-colors hover:bg-opacity-10"
+                              style={{ color: "var(--dash-teal)" }}
+                              title={t("paychecks.review.adjustHint")}
+                            >
+                              {deferredLineIds.has(line.id) ? "$0.00 (Deferred)" : fmtDollars(amount)}
+                            </button>
+                            {line.reasoning?.toLowerCase().includes("repay") && (
+                              <label className="flex items-center gap-1 text-[11px] font-semibold cursor-pointer text-gray-500">
+                                <input
+                                  type="checkbox"
+                                  checked={deferredLineIds.has(line.id)}
+                                  onChange={(e) => {
+                                    setDeferredLineIds(prev => {
+                                      const next = new Set(prev);
+                                      if (e.target.checked) next.add(line.id);
+                                      else next.delete(line.id);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                                Defer
+                              </label>
+                            )}
+                          </div>
                         )}
                       </div>
                     );

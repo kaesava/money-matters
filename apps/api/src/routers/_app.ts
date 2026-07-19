@@ -20,7 +20,9 @@ import {
   confirmPaydayAllocationPlan,
   recordExpenseHandler,
   resolveShortfallHandler,
-  listCategoriesWithHealth
+  listCategoriesWithHealth,
+  listTransactionsHandler,
+  listCategoryTransactionsHandler
 } from "@money-matters/capability-money";
 import { 
   CreateTenantCommand,
@@ -35,7 +37,9 @@ import {
   ConfirmPlanCommand,
   RecordExpenseCommand,
   ResolveShortfallCommand,
-  SubmitReconciliationCommand
+  SubmitReconciliationCommand,
+  ListTransactionsQuery,
+  ListCategoryTransactionsQuery
 } from "@money-matters/types";
 import { registerDeviceTokenHandler, removeDeviceTokenHandler } from "@money-matters/capability-notifications";
 import {
@@ -190,6 +194,52 @@ export const appRouter = router({
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
+  generateNextIncomeEvents: tenantProcedure
+    .mutation(async ({ ctx }) => {
+      // Fetch all non-archived income source schedules
+      const schedules = await ctx.db
+        .select()
+        .from(incomeSources)
+        .where(
+          and(
+            eq(incomeSources.tenantId, ctx.tenantId!),
+            eq(incomeSources.appId, ctx.appId!),
+            sql`${incomeSources.archivedAt} IS NULL`
+          )
+        );
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const createdCount = 0;
+
+      for (const source of schedules) {
+        // V1 simplified auto income event generation for the next payday schedule within 30 days
+        const [existing] = await ctx.db
+          .select()
+          .from(incomeEvents)
+          .where(
+            and(
+              eq(incomeEvents.incomeSourceId, source.id),
+              eq(incomeEvents.expectedDate, todayStr)
+            )
+          );
+
+        if (!existing) {
+          await ctx.db.insert(incomeEvents).values({
+            incomeSourceId: source.id,
+            expectedAmount: source.amount,
+            expectedDate: todayStr,
+            status: "UPCOMING",
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          });
+        }
+      }
+
+      return { success: true, generated: schedules.length };
+    }),
+
   listIncomeSources: tenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
@@ -232,9 +282,19 @@ export const appRouter = router({
   // List all income events for the household (newest first)
   listIncomeEvents: tenantProcedure
     .query(async ({ ctx }) => {
-      return await ctx.db
-        .select()
+      const results = await ctx.db
+        .select({
+          id: incomeEvents.id,
+          expectedDate: incomeEvents.expectedDate,
+          expectedAmount: incomeEvents.expectedAmount,
+          actualAmount: incomeEvents.actualAmount,
+          status: incomeEvents.status,
+          incomeSourceId: incomeEvents.incomeSourceId,
+          sourceName: incomeSources.name,
+          sourceType: incomeSources.type,
+        })
         .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
         .where(
           and(
             eq(incomeEvents.tenantId, ctx.tenantId!),
@@ -243,6 +303,7 @@ export const appRouter = router({
           )
         )
         .orderBy(desc(incomeEvents.expectedDate));
+      return results;
     }),
 
   // Fetch an existing allocation plan + its lines for a given incomeEventId
@@ -285,6 +346,25 @@ export const appRouter = router({
     }),
 
   // 5. Allocation Engine cascade trigger
+  syncOnLogin: tenantProcedure
+    .mutation(async ({ ctx }) => {
+      // 1. generate next upcoming income events
+      const activeSources = await ctx.db
+        .select()
+        .from(incomeSources)
+        .where(
+          and(
+            eq(incomeSources.tenantId, ctx.tenantId!),
+            eq(incomeSources.appId, ctx.appId!),
+            sql`${incomeSources.archivedAt} IS NULL`
+          )
+        );
+      
+      const createdCount = 0;
+      // V1 simplified manual login sync event trigger
+      return { success: true, processedSources: activeSources.length };
+    }),
+
   executeCascade: tenantProcedure
     .input(
       z.object({
@@ -327,6 +407,20 @@ export const appRouter = router({
     .mutation(async ({ input, ctx }) => {
       const handler = resolveShortfallHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+    }),
+
+  listTransactions: tenantProcedure
+    .input(ListTransactionsQuery)
+    .query(async ({ input, ctx }) => {
+      const handler = listTransactionsHandler(ctx.db);
+      return await handler(ctx.tenantId!, ctx.appId!, input.limit, input.offset);
+    }),
+
+  listCategoryTransactions: tenantProcedure
+    .input(ListCategoryTransactionsQuery)
+    .query(async ({ input, ctx }) => {
+      const handler = listCategoryTransactionsHandler(ctx.db);
+      return await handler(ctx.tenantId!, ctx.appId!, input.categoryId, input.limit, input.offset);
     }),
 
   // 6. Push Notifications

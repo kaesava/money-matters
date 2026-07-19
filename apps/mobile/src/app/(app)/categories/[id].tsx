@@ -5,11 +5,8 @@ import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
 import ShortfallResolutionModal from '../../../components/ShortfallResolutionModal';
-
-function fmt(val: string | number) {
-  const num = typeof val === 'string' ? parseFloat(val) : val;
-  return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`;
-}
+import { TransactionRow } from '../../../components/TransactionRow';
+import { formatAUD } from '../../../lib/format';
 
 export default function BucketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,12 +58,12 @@ export default function BucketDetailScreen() {
         <View style={styles.row}>
           <View>
             <Text style={styles.metaLabel}>{t('buckets.detail.currentBalance')}</Text>
-            <Text style={[styles.balanceValue, { color }]}>{fmt(cat.currentBalance)}</Text>
+            <Text style={[styles.balanceValue, { color }]}>{formatAUD(cat.currentBalance)}</Text>
           </View>
           {cat.targetAmount && (
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.metaLabel}>{t('buckets.detail.targetAmount')}</Text>
-              <Text style={styles.targetValue}>{fmt(cat.targetAmount)}</Text>
+              <Text style={styles.targetValue}>{formatAUD(cat.targetAmount)}</Text>
             </View>
           )}
         </View>
@@ -101,10 +98,39 @@ export default function BucketDetailScreen() {
       />
 
       <Text style={styles.sectionTitle}>{t('buckets.detail.history')}</Text>
-      <View style={styles.emptyHistory}>
-        <Text style={styles.emptyText}>{t('buckets.detail.noHistory')}</Text>
-      </View>
+      <CategoryTransactionsList categoryId={id!} />
     </MobileScreenWrapper>
+  );
+}
+
+function CategoryTransactionsList({ categoryId }: { categoryId: string }) {
+  const { data: transactions = [], isLoading } = trpc.listCategoryTransactions.useQuery({ categoryId });
+
+  if (isLoading) {
+    return <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginTop: 20 }} />;
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <View style={styles.emptyHistory}>
+        <Text style={styles.emptyText}>{t('buckets.detail.noHistory', { defaultValue: 'No transactions yet.' })}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ paddingBottom: 40 }}>
+      {transactions.map((tx) => (
+        <TransactionRow
+          key={tx.id}
+          amount={tx.amount}
+          flowType={tx.flowType}
+          categoryName={tx.categoryName || 'Unknown'}
+          note={tx.note}
+          recordedAt={tx.recordedAt}
+        />
+      ))}
+    </View>
   );
 }
 

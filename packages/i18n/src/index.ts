@@ -11,6 +11,8 @@ export const translations = {
       paychecks: "Paychecks",
       settings: "Settings",
       dashboardNav: "Dashboard navigation",
+      reconcile: "Reconcile",
+      transactions: "Transactions",
     },
     common: {
       save: "Save",

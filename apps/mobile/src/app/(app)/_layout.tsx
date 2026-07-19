@@ -36,22 +36,35 @@ export default function AppLayout() {
       <Tabs.Screen
         name="categories"
         options={{
-          title: t('buckets.title'),
+          title: t('nav.categories'),
           tabBarIcon: ({ color, size }) => <TabIcon name="grid" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          title: t('nav.transactions'),
+          tabBarIcon: ({ color, size }) => <TabIcon name="list" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="paychecks"
+        options={{
+          title: t('nav.paychecks'),
+          tabBarIcon: ({ color, size }) => <TabIcon name="dollar-sign" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="reconcile"
         options={{
-          title: "Reconcile",
+          title: t('nav.reconcile'),
           tabBarIcon: ({ color, size }) => <TabIcon name="check-square" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: t('settings.title'),
-          tabBarIcon: ({ color, size }) => <TabIcon name="settings" color={color} size={size} />,
+          href: null,
         }}
       />
       <Tabs.Screen

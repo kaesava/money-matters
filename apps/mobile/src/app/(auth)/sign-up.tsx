@@ -17,6 +17,7 @@ import { DESIGN_TOKENS } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
+import * as Notifications from "expo-notifications";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -83,6 +84,20 @@ export default function SignUpScreen() {
       await createTenant.mutateAsync({
         name: name.trim(),
       });
+
+      // Request and register push notifications token asynchronously
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          const expoToken = await Notifications.getExpoPushTokenAsync();
+          trpc.registerToken.mutate({
+            platform: Platform.OS === 'ios' ? 'ios' : 'android',
+            token: expoToken.data,
+          });
+        }
+      } catch (pushErr) {
+        console.warn("Could not register push token:", pushErr);
+      }
 
       // 3. Navigate to the setup wizard
       router.replace("/(setup)/income");
