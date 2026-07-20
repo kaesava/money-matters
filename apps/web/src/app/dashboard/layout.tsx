@@ -18,6 +18,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    key: "timeline",
+    label: () => "Timeline",
+    href: "/dashboard/timeline",
+    icon: (active: boolean) => (
+      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
     key: "categories",
     label: () => t("nav.categories"),
     href: "/dashboard/categories",
@@ -29,7 +39,7 @@ const NAV_ITEMS = [
   },
   {
     key: "paychecks",
-    label: () => t("nav.paychecks"),
+    label: () => "Income Sources",
     href: "/dashboard/paychecks",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>

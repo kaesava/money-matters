@@ -66,7 +66,7 @@ export default function SettingsPage() {
         >
           {[
             { label: `📦 Archived Items`, id: "settings-archived-link", onClick: () => router.push("/dashboard/settings/archived") },
-            { label: `🏦 ${t("settings.bankAccounts.title")}`, id: "settings-bank-link", onClick: undefined },
+            { label: `🏦 ${t("settings.bankAccounts.title")}`, id: "settings-bank-link", onClick: () => router.push("/dashboard/settings/bank-accounts") },
           ].map((item, i, arr) => (
             <div key={item.id}>
               <button

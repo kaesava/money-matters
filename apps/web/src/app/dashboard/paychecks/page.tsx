@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import { DashboardError } from "../../../components/web/DashboardError";
@@ -12,6 +13,7 @@ function fmt(val: string | number) {
 }
 
 export default function PaychecksPage() {
+  const router = useRouter();
   const [showAddModal, setShowAddModal] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -47,10 +49,7 @@ export default function PaychecksPage() {
   };
 
   const handleRunAllocation = (eventId: string, expectedAmount: string) => {
-    runAllocationMutation.mutate({
-      incomeEventId: eventId,
-      incomeAmount: parseFloat(expectedAmount),
-    });
+    router.push(`/dashboard/paychecks/cascade?eventId=${eventId}&amount=${expectedAmount}`);
   };
 
   const sources = sourcesQuery.data ?? [];

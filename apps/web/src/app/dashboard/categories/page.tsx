@@ -20,18 +20,30 @@ type CategoryWithHealth = {
 export default function CategoriesPage() {
   const { hasTenant, isLoadingTenant, tenantError, categoriesQuery } = useDashboardData();
   
-  const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+
+  // New Category State
   const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
+  const [newType, setNewType] = useState<"REGULAR" | "GOAL">("REGULAR");
   const [newMonthlyAmount, setNewMonthlyAmount] = useState("");
   const [newTargetAmount, setNewTargetAmount] = useState("");
   const [newTargetDate, setNewTargetDate] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // Move Money State
+  const [moveSourceId, setMoveSourceId] = useState("");
+  const [moveDestId, setMoveDestId] = useState("");
+  const [moveAmount, setMoveAmount] = useState("");
+  const [moving, setMoving] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
   const categories = (categoriesQuery.data ?? []) as CategoryWithHealth[];
 
   const createCategory = trpc.createCategory.useMutation();
+  const moveMoneyMutation = trpc.moveMoney.useMutation();
+
   const totalOnTrack = categories.filter((c) => c.healthStatus === "GREEN").length;
   const totalAtRisk = categories.filter((c) => c.healthStatus === "AMBER" || c.healthStatus === "RED").length;
 
@@ -81,6 +93,36 @@ export default function CategoriesPage() {
     setEditCategoryType(cat.type);
   };
 
+  const handleMoveMoneySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMoveError(null);
+    if (!moveSourceId || !moveDestId || !moveAmount || parseFloat(moveAmount) <= 0) {
+      setMoveError("Please verify all fields and ensure amount is positive.");
+      return;
+    }
+    if (moveSourceId === moveDestId) {
+      setMoveError("Source and Destination categories must be different.");
+      return;
+    }
+    setMoving(true);
+    try {
+      await moveMoneyMutation.mutateAsync({
+        sourceCategoryId: moveSourceId,
+        destinationCategoryId: moveDestId,
+        amount: parseFloat(moveAmount).toFixed(2),
+      });
+      setShowMoveModal(false);
+      setMoveSourceId("");
+      setMoveDestId("");
+      setMoveAmount("");
+      categoriesQuery.refetch();
+    } catch (err: any) {
+      setMoveError(err.message || "Failed to move money.");
+    } finally {
+      setMoving(false);
+    }
+  };
+
   const regularBillsItems = categories.filter(c => c.type === "REGULAR");
   const saveTowardItems = categories.filter(c => c.type === "GOAL");
   const everydayItems = categories.filter(c => c.type === "EVERYDAY");
@@ -108,16 +150,26 @@ export default function CategoriesPage() {
           )}
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
-          style={{ backgroundColor: "var(--dash-teal)" }}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          <span>New Bucket</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMoveModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border border-zinc-200 bg-white text-[#1B2B4B] transition-all hover:bg-zinc-50 active:scale-95 shadow-sm"
+          >
+            <span>↔</span>
+            <span>Move Money</span>
+          </button>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95 shadow-sm"
+            style={{ backgroundColor: "var(--dash-teal)" }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>New Category</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -274,10 +326,10 @@ export default function CategoriesPage() {
                               Edit
                             </button>
                             <button
-                              onClick={() => setSelectedBucketId(cat.id)}
+                              onClick={() => setSelectedCategoryId(cat.id)}
                               className="text-xs font-bold text-white bg-[#1B2B4B] rounded-lg px-3 py-1.5 hover:opacity-90"
                             >
-                              View History
+                              View Details
                             </button>
                           </div>
                         )}
@@ -291,17 +343,17 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {selectedBucketId && (
+      {selectedCategoryId && (
         <CategoryDetailDrawer
-          categoryId={selectedBucketId}
+          categoryId={selectedCategoryId}
           onClose={() => {
-            setSelectedBucketId(null);
+            setSelectedCategoryId(null);
             categoriesQuery.refetch();
           }}
         />
       )}
 
-      {/* New Bucket Modal */}
+      {/* New Category Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div
@@ -310,7 +362,7 @@ export default function CategoriesPage() {
           />
           <div className="relative pointer-events-auto w-full max-w-md bg-white shadow-2xl rounded-2xl border border-zinc-200 p-6 flex flex-col gap-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#1B2B4B]">Create New Bucket</h3>
+              <h3 className="text-lg font-bold text-[#1B2B4B]">Create New Category</h3>
               <button onClick={() => setShowCreateModal(false)} className="text-zinc-400 hover:text-zinc-600">
                 ✕
               </button>
@@ -349,7 +401,7 @@ export default function CategoriesPage() {
               className="flex flex-col gap-4"
             >
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Bucket Name</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Category Name</label>
                 <input
                   type="text"
                   required
@@ -361,15 +413,14 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Bucket Type</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Category Type</label>
                 <select
                   value={newType}
-                  onChange={(e) => setNewType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
+                  onChange={(e) => setNewType(e.target.value as "REGULAR" | "GOAL")}
                   className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
                 >
                   <option value="REGULAR">REGULAR (Bills & Commitments)</option>
                   <option value="GOAL">GOAL (Save Toward Target)</option>
-                  <option value="EVERYDAY">EVERYDAY (Day-to-day Pool)</option>
                 </select>
               </div>
 
@@ -425,7 +476,93 @@ export default function CategoriesPage() {
                   disabled={creating}
                   className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50"
                 >
-                  {creating ? "Creating..." : "Create Bucket"}
+                  {creating ? "Creating..." : "Create Category"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Move Money Modal */}
+      {showMoveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity"
+            onClick={(e) => { if (e.target === e.currentTarget) setShowMoveModal(false); }}
+          />
+          <div className="relative pointer-events-auto w-full max-w-md bg-white shadow-2xl rounded-2xl border border-zinc-200 p-6 flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-[#1B2B4B]">Move Money between Categories</h3>
+              <button onClick={() => setShowMoveModal(false)} className="text-zinc-400 hover:text-zinc-600">
+                ✕
+              </button>
+            </div>
+
+            {moveError && (
+              <div className="text-xs font-semibold text-rose-600 bg-rose-50 px-3 py-2 rounded-xl">
+                {moveError}
+              </div>
+            )}
+
+            <form onSubmit={handleMoveMoneySubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Source Category (From)</label>
+                <select
+                  required
+                  value={moveSourceId}
+                  onChange={(e) => setMoveSourceId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                >
+                  <option value="">Select source category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} (${parseFloat(c.currentBalance).toFixed(2)})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Destination Category (To)</label>
+                <select
+                  required
+                  value={moveDestId}
+                  onChange={(e) => setMoveDestId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                >
+                  <option value="">Select destination category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} (${parseFloat(c.currentBalance).toFixed(2)})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Amount ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                  value={moveAmount}
+                  onChange={(e) => setMoveAmount(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMoveModal(false)}
+                  className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={moving}
+                  className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50"
+                >
+                  {moving ? "Transferring..." : "Move Money"}
                 </button>
               </div>
             </form>

@@ -357,6 +357,12 @@ export const ConfirmPlanCommand = z.object({
   }).strict())
 }).strict();
 
+export const MoveMoneyCommand = z.object({
+  sourceCategoryId: z.string().uuid(),
+  destinationCategoryId: z.string().uuid(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+}).strict();
+
 export type TenantType = z.infer<typeof TenantSchema>;
 export type TenantMemberType = z.infer<typeof TenantMemberSchema>;
 export type BankAccountType = z.infer<typeof BankAccountSchema>;
@@ -370,4 +376,6 @@ export type AllocationPlanLineType = z.infer<typeof AllocationPlanLineSchema>;
 export type TransactionLedgerType = z.infer<typeof TransactionLedgerSchema>;
 export type CanAffordVerdictType = z.infer<typeof CanAffordVerdictDto>;
 export type MonthlySummaryType = z.infer<typeof MonthlySummaryDto>;
+export type MoveMoneyType = z.infer<typeof MoveMoneyCommand>;
+
 

@@ -90,10 +90,10 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
 
 const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  container: { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: D.colors.border },
+  container: { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E5E7EB' },
   sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, color: D.colors.textMuted, textTransform: 'uppercase', marginBottom: 10 },
   formRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  input: { flex: 1, backgroundColor: D.colors.surface, borderRadius: D.radius.md, borderWidth: 1, borderColor: D.colors.border, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: D.colors.textPrimary },
+  input: { flex: 1, backgroundColor: D.colors.surface, borderRadius: D.radius.md, borderWidth: 1, borderColor: '#E5E7EB', paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: D.colors.textPrimary },
   postBtn: { backgroundColor: D.colors.accent, borderRadius: D.radius.md, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
   disabledBtn: { opacity: 0.5 },
   postBtnText: { color: '#FFF', fontSize: 13, fontWeight: '700' },

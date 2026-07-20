@@ -1,5 +1,5 @@
 import { router, tenantProcedure, authenticatedProcedure } from '../trpc/trpc.js';
-import { db, incomeSources, incomeSourceSchedules, categories, incomeEvents, allocationPlans, allocationPlanLines } from "@money-matters/db";
+import { db, incomeSources, incomeSourceSchedules, categories, incomeEvents, allocationPlans, allocationPlanLines, bankAccounts } from "@money-matters/db";
 import { and, eq, sql, desc } from "drizzle-orm";
 import { 
   createTenantHandler,
@@ -19,6 +19,9 @@ import {
   getMonthlySummaryQuery,
   listArchivedItemsQuery,
   upsertCategoryScheduleCommand,
+  moveMoneyCommand,
+  confirmAllocationCommand,
+  previewAllocationQuery,
 } from "@money-matters/capability-budgeting";
 import {
   recordExpenseCommand,
@@ -40,7 +43,9 @@ import {
   ListTransactionsQuery,
   ListCategoryTransactionsQuery,
   CanAffordQuery,
+  MoveMoneyCommand,
 } from "@money-matters/types";
+import { ConfirmAllocationInput } from "@money-matters/capability-budgeting";
 import { registerDeviceTokenHandler, removeDeviceTokenHandler } from "@money-matters/capability-notifications";
 import {
   listFileNotesHandler,
@@ -104,6 +109,20 @@ export const appRouter = router({
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
+  listBankAccounts: tenantProcedure
+    .query(async ({ ctx }) => {
+      return await ctx.db
+        .select()
+        .from(bankAccounts)
+        .where(
+          and(
+            eq(bankAccounts.tenantId, ctx.tenantId!),
+            eq(bankAccounts.appId, ctx.appId!),
+            sql`${bankAccounts.archivedAt} IS NULL`
+          )
+        );
+    }),
+
   // 3. Categories
   createCategory: tenantProcedure
     .input(CreateCategoryCommand)
@@ -134,6 +153,12 @@ export const appRouter = router({
         throw new Error("Category not found or access unauthorized.");
       }
       return { success: true };
+    }),
+
+  moveMoney: tenantProcedure
+    .input(MoveMoneyCommand)
+    .mutation(async ({ input, ctx }) => {
+      return await moveMoneyCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   listArchivedItems: tenantProcedure
@@ -394,6 +419,35 @@ export const appRouter = router({
         ctx.userId!,
         input.incomeEventId,
         input.incomeAmount,
+        ctx.db
+      );
+    }),
+
+  previewAllocation: tenantProcedure
+    .input(
+      z.object({
+        incomeEventId: z.string().uuid(),
+        incomeAmount: z.number().positive(),
+      }).strict()
+    )
+    .query(async ({ input, ctx }) => {
+      return await previewAllocationQuery(
+        ctx.tenantId!,
+        ctx.appId!,
+        input.incomeEventId,
+        input.incomeAmount,
+        ctx.db
+      );
+    }),
+
+  confirmAllocation: tenantProcedure
+    .input(ConfirmAllocationInput)
+    .mutation(async ({ input, ctx }) => {
+      return await confirmAllocationCommand(
+        input,
+        ctx.tenantId!,
+        ctx.appId!,
+        ctx.userId!,
         ctx.db
       );
     }),

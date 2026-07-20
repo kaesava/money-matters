@@ -45,12 +45,9 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
       return;
     }
 
-    // Convert dollars to cents string for the API
-    const amountCents = (amountNum * 100).toFixed(0);
-
     recordExpenseMutation.mutate({
       categoryId,
-      amount: amountCents,
+      amount: amountNum.toFixed(2),
       note: note || undefined,
       idempotencyKey: `expense-web-${Date.now()}-${Math.random()}`,
     });
