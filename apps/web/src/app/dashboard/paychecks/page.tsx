@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import { DashboardError } from "../../../components/web/DashboardError";
 
@@ -15,9 +14,17 @@ function fmt(val: string | number) {
 export default function PaychecksPage() {
   const router = useRouter();
 
+  // Strategic Fix: Move queries to the top so we can leverage their inferred types immediately
+  const sourcesQuery = trpc.listIncomeSources.useQuery();
+  const eventsQuery = trpc.listIncomeEvents.useQuery();
+  const sources = sourcesQuery.data ?? [];
+  const events = eventsQuery.data ?? [];
+
   // Dialog State
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingSource, setEditingSource] = useState<any>(null);
+  
+  // Strategic Fix: Use typeof to grab the exact inferred type from the array
+  const [editingSource, setEditingSource] = useState<typeof sources[number] | null>(null);
 
   // Form Fields
   const [name, setName] = useState("");
@@ -27,12 +34,11 @@ export default function PaychecksPage() {
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [frequency, setFrequency] = useState("FORTNIGHTLY");
 
-  const sourcesQuery = trpc.listIncomeSources.useQuery();
-  const eventsQuery = trpc.listIncomeEvents.useQuery();
+  const createScheduleMutation = trpc.createIncomeSourceSchedule.useMutation();
+  const createEventMutation = trpc.createIncomeEvent.useMutation();
 
   const createSourceMutation = trpc.createIncomeSource.useMutation({
     onSuccess: async (newSource) => {
-      // Create schedule or event
       if (isRecurring) {
         let rrule = "FREQ=WEEKLY;INTERVAL=2"; // default fortnightly
         if (frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
@@ -45,7 +51,6 @@ export default function PaychecksPage() {
           startDate: new Date(startDate).toISOString(),
         });
       } else {
-        // One-off: create income event directly
         await createEventMutation.mutateAsync({
           incomeSourceId: newSource.id,
           expectedAmount: parseFloat(amount).toFixed(2),
@@ -73,9 +78,6 @@ export default function PaychecksPage() {
       eventsQuery.refetch();
     },
   });
-
-  const createScheduleMutation = trpc.createIncomeSourceSchedule.useMutation();
-  const createEventMutation = trpc.createIncomeEvent.useMutation();
 
   const runAllocationMutation = trpc.runAllocation.useMutation({
     onSuccess: () => {
@@ -117,11 +119,11 @@ export default function PaychecksPage() {
     });
   };
 
-  const handleEditClick = (src: any) => {
+  const handleEditClick = (src: typeof sources[number]) => {
     setEditingSource(src);
     setName(src.name);
-    setAmount(parseFloat(src.amount).toFixed(2));
-    setType(src.type);
+    setAmount(parseFloat(src.amount.toString()).toFixed(2));
+    setType(src.type as IncomeType);
     setIsRecurring(!!src.rrule);
     if (src.startDate) {
       setStartDate(src.startDate.split("T")[0]);
@@ -137,9 +139,6 @@ export default function PaychecksPage() {
   const handleRunAllocation = (eventId: string, expectedAmount: string) => {
     router.push(`/dashboard/paychecks/cascade?eventId=${eventId}&amount=${expectedAmount}`);
   };
-
-  const sources = sourcesQuery.data ?? [];
-  const events = eventsQuery.data ?? [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -181,7 +180,8 @@ export default function PaychecksPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {sources.map((src: any) => (
+            {/* Strategic Fix: Implicitly mapped parameter, no typing required! */}
+            {sources.map((src) => (
               <div
                 key={src.id}
                 className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex items-center justify-between hover:border-zinc-200 transition-all group"
@@ -194,7 +194,7 @@ export default function PaychecksPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-xl font-black text-[#1B2B4B]">
-                    {fmt(src.amount)}
+                    {fmt(src.amount.toString())}
                   </span>
                   <button
                     onClick={() => handleEditClick(src)}

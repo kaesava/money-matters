@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { DashboardError } from "../../../../components/web/DashboardError";
 
@@ -17,19 +16,23 @@ export default function CascadePage() {
   const amountStr = searchParams.get("amount") || "0.00";
   const amount = parseFloat(amountStr);
 
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const previewQuery = trpc.previewAllocation.useQuery(
     { incomeEventId: eventId, incomeAmount: amount },
     { enabled: !!eventId && amount > 0 }
   );
 
+  // Strategic Fix: Handle the error natively through tRPC to perfectly infer the error type
   const confirmMutation = trpc.confirmAllocation.useMutation({
     onSuccess: () => {
       router.push("/dashboard/paychecks");
     },
+    onError: (error) => {
+      setErrorMessage(error.message || "Failed to confirm allocation.");
+    }
   });
-
-  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize custom amounts when preview data loads
   useEffect(() => {
@@ -59,7 +62,8 @@ export default function CascadePage() {
 
   const remaining = amount - totalAllocated;
 
-  const handleConfirm = async () => {
+  // Strategic Fix: Removed async/await and try/catch blocks. We just trigger the mutation.
+  const handleConfirm = () => {
     setErrorMessage(null);
     if (Math.abs(remaining) > 0.01) {
       setErrorMessage(`Allocated sum must equal paycheck total exactly. Delta: ${fmt(remaining)}`);
@@ -75,15 +79,11 @@ export default function CascadePage() {
       };
     });
 
-    try {
-      await confirmMutation.mutateAsync({
-        incomeEventId: eventId,
-        incomeAmount: amount,
-        lines: submissionLines,
-      });
-    } catch (err: any) {
-      setErrorMessage(err.message || "Failed to confirm allocation.");
-    }
+    confirmMutation.mutate({
+      incomeEventId: eventId,
+      incomeAmount: amount,
+      lines: submissionLines,
+    });
   };
 
   if (!eventId || amount <= 0) {

@@ -35,6 +35,8 @@ export async function updateCategoryCommand(
         isDefaultExcess: input.isDefaultExcess,
         rolloverRule: input.rolloverRule,
         isDefaultSavings: input.isDefaultSavings,
+        everydayTargetKeepAmount: input.everydayTargetKeepAmount,
+        everydaySweepFrequency: input.everydaySweepFrequency,
         icon: input.icon,
         colour: input.colour,
         bankAccountId: input.bankAccountId,

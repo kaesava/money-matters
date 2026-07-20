@@ -1,9 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { DashboardError } from "../../../components/web/DashboardError";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;

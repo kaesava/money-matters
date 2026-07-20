@@ -1,24 +1,21 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { DashboardError } from "../../../../components/web/DashboardError";
 
-function fmt(val: string | number) {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+type AccountPurpose = "INCOME_LANDING" | "SAVINGS" | "EVERYDAY";
 
 export default function BankAccountsPage() {
   const router = useRouter();
   const [showAddModal, setShowAddModal] = useState(false);
   const [name, setName] = useState("");
-  const [purpose, setPurpose] = useState<"INCOME_LANDING" | "SAVINGS" | "EVERYDAY">("INCOME_LANDING");
+  const [purpose, setPurpose] = useState<AccountPurpose>("INCOME_LANDING");
   const [isOffset, setIsOffset] = useState(false);
   const [adding, setAdding] = useState(false);
 
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
+  const accounts = bankAccountsQuery.data ?? [];
+
   const createBankAccountMutation = trpc.createBankAccount.useMutation({
     onSuccess: () => {
       setShowAddModal(false);
@@ -45,8 +42,6 @@ export default function BankAccountsPage() {
       setAdding(false);
     }
   };
-
-  const accounts = bankAccountsQuery.data ?? [];
 
   return (
     <div className="flex flex-col gap-6 max-w-xl">
@@ -80,7 +75,8 @@ export default function BankAccountsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {accounts.map((acc: any) => (
+          {/* Strategic Fix: Implicit inference for `acc` */}
+          {accounts.map((acc) => (
             <div
               key={acc.id}
               className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex items-center justify-between"
@@ -131,7 +127,7 @@ export default function BankAccountsPage() {
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Purpose / Tag</label>
                 <select
                   value={purpose}
-                  onChange={(e) => setPurpose(e.target.value as any)}
+                  onChange={(e) => setPurpose(e.target.value as AccountPurpose)}
                   className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
                 >
                   <option value="INCOME_LANDING">INCOME LANDING (Salary landing spot)</option>

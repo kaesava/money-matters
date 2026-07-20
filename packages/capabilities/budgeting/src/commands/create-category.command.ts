@@ -37,6 +37,8 @@ export async function createCategoryCommand(
         isDefaultExcess: input.isDefaultExcess,
         rolloverRule: input.rolloverRule || "ROLLOVER",
         isDefaultSavings: input.isDefaultSavings || false,
+        everydayTargetKeepAmount: input.everydayTargetKeepAmount || null,
+        everydaySweepFrequency: input.everydaySweepFrequency || null,
         icon: input.icon || null,
         colour: input.colour || null,
         tenantId,

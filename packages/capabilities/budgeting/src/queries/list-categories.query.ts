@@ -132,6 +132,8 @@ export async function listCategoriesQuery(
       isDefaultExcess: cat.isDefaultExcess,
       rolloverRule: (cat as any).rolloverRule || "ROLLOVER",
       isDefaultSavings: (cat as any).isDefaultSavings || false,
+      everydayTargetKeepAmount: (cat as any).everydayTargetKeepAmount || null,
+      everydaySweepFrequency: (cat as any).everydaySweepFrequency || null,
       monthlyAmount: cat.monthlyAmount || null,
       icon: cat.icon || null,
       colour: cat.colour || null,

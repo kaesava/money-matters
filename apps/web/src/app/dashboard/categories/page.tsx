@@ -6,28 +6,6 @@ import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDraw
 import { DashboardError } from "../../../components/web/DashboardError";
 import { trpc } from "../../../lib/trpc";
 
-type CategoryWithHealth = {
-  id: string;
-  name: string;
-  type: "REGULAR" | "GOAL" | "EVERYDAY";
-  isCommitted: boolean;
-  isDefaultExcess: boolean;
-  rolloverRule: "ROLLOVER" | "SWEEP" | "RESET";
-  isDefaultSavings: boolean;
-  monthlyAmount: string | null;
-  icon: string | null;
-  colour: string | null;
-  bankAccountId: string | null;
-  currentBalance: string;
-  targetAmount: string | null;
-  targetDate: string | null;
-  rrule: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  progressPercentage: number;
-  healthStatus: "GREEN" | "AMBER" | "RED";
-};
-
 export default function CategoriesPage() {
   const { hasTenant, isLoadingTenant, tenantError, categoriesQuery } = useDashboardData();
   
@@ -50,7 +28,8 @@ export default function CategoriesPage() {
   const [moving, setMoving] = useState(false);
   const [moveError, setMoveError] = useState<string | null>(null);
 
-  const categories = (categoriesQuery.data ?? []) as CategoryWithHealth[];
+  // Strategic Fix: Removed manual type casting. Let tRPC infer the exact type.
+  const categories = categoriesQuery.data ?? [];
 
   const createCategory = trpc.createCategory.useMutation();
   const moveMoneyMutation = trpc.moveMoney.useMutation();
@@ -69,6 +48,8 @@ export default function CategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [editRolloverRule, setEditRolloverRule] = useState<"ROLLOVER" | "SWEEP" | "RESET">("ROLLOVER");
   const [editIsDefaultSavings, setEditIsDefaultSavings] = useState(false);
+  const [editEverydayTargetKeepAmount, setEditEverydayTargetKeepAmount] = useState("");
+  const [editEverydaySweepFrequency, setEditEverydaySweepFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY">("MONTHLY");
 
   const updateCategory = trpc.updateCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
@@ -82,9 +63,11 @@ export default function CategoriesPage() {
           name: editName,
           rolloverRule: editRolloverRule,
           isDefaultSavings: editIsDefaultSavings,
+          everydayTargetKeepAmount: editCategoryType === "EVERYDAY" && editEverydayTargetKeepAmount ? parseFloat(editEverydayTargetKeepAmount).toFixed(2) : undefined,
+          everydaySweepFrequency: editCategoryType === "EVERYDAY" ? editEverydaySweepFrequency : undefined,
         }
       });
-      if (editTarget && editTarget !== "0.00") {
+      if (editTarget && editTarget !== "0.00" && editCategoryType !== "EVERYDAY") {
         await createCategorySchedule.mutateAsync({
           categoryId: catId,
           targetAmount: parseFloat(editTarget || "0").toFixed(2),
@@ -100,14 +83,19 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleStartEdit = (cat: CategoryWithHealth) => {
+  // Strategic Fix: Use typeof to grab the exact inferred type from the array
+  const handleStartEdit = (cat: typeof categories[number]) => {
     setEditingId(cat.id);
     setEditName(cat.name);
     setEditTarget(cat.targetAmount ? parseFloat(cat.targetAmount).toFixed(2) : "0.00");
     setEditTargetDate(cat.targetDate ? cat.targetDate.split("T")[0] : "");
     setEditCategoryType(cat.type);
-    setEditRolloverRule((cat as any).rolloverRule || "ROLLOVER");
-    setEditIsDefaultSavings((cat as any).isDefaultSavings || false);
+    
+    // Strategic Fix: No more `any` casts needed. 
+    setEditRolloverRule(cat.rolloverRule || "ROLLOVER");
+    setEditIsDefaultSavings(cat.isDefaultSavings || false);
+    setEditEverydayTargetKeepAmount(cat.everydayTargetKeepAmount ? parseFloat(cat.everydayTargetKeepAmount).toFixed(2) : "");
+    setEditEverydaySweepFrequency(cat.everydaySweepFrequency || "MONTHLY");
   };
 
   const handleMoveMoneySubmit = async (e: React.FormEvent) => {
@@ -133,8 +121,8 @@ export default function CategoriesPage() {
       setMoveDestId("");
       setMoveAmount("");
       categoriesQuery.refetch();
-    } catch (err: any) {
-      setMoveError(err.message || "Failed to move money.");
+    } catch (err: unknown) {
+      setMoveError(err instanceof Error ? err.message : "Failed to move money.");
     } finally {
       setMoving(false);
     }
@@ -280,13 +268,28 @@ export default function CategoriesPage() {
                       </td>
                       <td className="px-6 py-4 font-mono">
                         {isEditing ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={editTarget}
-                            onChange={(e) => setEditTarget(e.target.value)}
-                            className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm w-24 focus:outline-none"
-                          />
+                          cat.type === "EVERYDAY" ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] text-zinc-400">Keep Limit</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={editEverydayTargetKeepAmount}
+                                onChange={(e) => setEditEverydayTargetKeepAmount(e.target.value)}
+                                className="border border-zinc-200 rounded-lg px-2.5 py-1 text-xs w-24 focus:outline-none"
+                              />
+                            </div>
+                          ) : (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editTarget}
+                              onChange={(e) => setEditTarget(e.target.value)}
+                              className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm w-24 focus:outline-none"
+                            />
+                          )
+                        ) : cat.type === "EVERYDAY" ? (
+                          cat.everydayTargetKeepAmount ? `$${parseFloat(cat.everydayTargetKeepAmount).toLocaleString("en-AU", { minimumFractionDigits: 2 })}` : "—"
                         ) : cat.targetAmount ? (
                           `$${targetVal.toLocaleString("en-AU", { minimumFractionDigits: 2 })}`
                         ) : (
@@ -295,12 +298,29 @@ export default function CategoriesPage() {
                       </td>
                       <td className="px-6 py-4 text-zinc-500">
                         {isEditing ? (
-                          <input
-                            type="date"
-                            value={editTargetDate}
-                            onChange={(e) => setEditTargetDate(e.target.value)}
-                            className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm focus:outline-none"
-                          />
+                          cat.type === "EVERYDAY" ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] text-zinc-400">Sweep Freq</span>
+                              <select
+                                value={editEverydaySweepFrequency}
+                                onChange={(e) => setEditEverydaySweepFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY")}
+                                className="border border-zinc-200 rounded-lg px-2 py-1 text-xs focus:outline-none"
+                              >
+                                <option value="WEEKLY">Weekly</option>
+                                <option value="FORTNIGHTLY">Fortnightly</option>
+                                <option value="MONTHLY">Monthly</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <input
+                              type="date"
+                              value={editTargetDate}
+                              onChange={(e) => setEditTargetDate(e.target.value)}
+                              className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm focus:outline-none"
+                            />
+                          )
+                        ) : cat.type === "EVERYDAY" ? (
+                          cat.everydaySweepFrequency ? `Sweep: ${cat.everydaySweepFrequency}` : "—"
                         ) : cat.targetDate ? (
                           new Date(cat.targetDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
                         ) : (
@@ -312,7 +332,7 @@ export default function CategoriesPage() {
                           <div className="flex flex-col gap-2">
                             <select
                               value={editRolloverRule}
-                              onChange={(e) => setEditRolloverRule(e.target.value as any)}
+                              onChange={(e) => setEditRolloverRule(e.target.value as "ROLLOVER" | "SWEEP" | "RESET")}
                               className="border border-zinc-200 rounded-lg px-2 py-1 text-xs focus:outline-none"
                             >
                               <option value="ROLLOVER">Rollover</option>
