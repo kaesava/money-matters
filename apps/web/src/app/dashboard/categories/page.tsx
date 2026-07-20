@@ -80,7 +80,6 @@ export default function CategoriesPage() {
         categoryId: catId,
         data: {
           name: editName,
-          type: editCategoryType,
           rolloverRule: editRolloverRule,
           isDefaultSavings: editIsDefaultSavings,
         }
