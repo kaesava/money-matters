@@ -40,7 +40,7 @@ export async function recordExpenseCommand(
         idempotencyKey: input.idempotencyKey || `expense-manual-${randomUUID()}`,
         note: input.note || null,
         source: input.source || "MANUAL",
-        recordedAt: new Date(),
+        recordedAt: input.date ? new Date(input.date) : new Date(),
         tenantId,
         appId,
         createdBy: userId,

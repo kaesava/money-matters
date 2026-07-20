@@ -22,7 +22,7 @@ export interface ScreenWrapperProps {
   onBackPress?: () => void;
   onSignOut?: () => void;
   onNavigateHome?: () => void;
-  onNavigateBuckets?: () => void;
+  onNavigateCategories?: () => void;
   onNavigateSettings?: () => void;
   children: React.ReactNode;
   scrollable?: boolean;
@@ -36,7 +36,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   onBackPress,
   onSignOut,
   onNavigateHome,
-  onNavigateBuckets,
+  onNavigateCategories,
   onNavigateSettings,
   children,
   scrollable = true,
@@ -173,10 +173,10 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
               </TouchableOpacity>
             )}
 
-            {onNavigateBuckets && (
+            {onNavigateCategories && (
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={() => handleMenuAction(onNavigateBuckets)}
+                onPress={() => handleMenuAction(onNavigateCategories)}
               >
                 <Feather name="grid" size={16} color={D.colors.textPrimary} />
                 <Text style={styles.menuItemText}>Categories</Text>

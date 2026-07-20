@@ -306,6 +306,7 @@ export const RecordExpenseCommand = z.object({
   categoryId: z.string().uuid(),
   bankAccountId: z.string().uuid().optional(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  date: z.string().optional(),
   idempotencyKey: z.string(),
   note: z.string().optional(),
   source: z.enum(["MANUAL", "IMPORT"]).optional().default("MANUAL"),

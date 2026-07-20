@@ -10,11 +10,22 @@ type CategoryWithHealth = {
   id: string;
   name: string;
   type: "REGULAR" | "GOAL" | "EVERYDAY";
+  isCommitted: boolean;
+  isDefaultExcess: boolean;
+  rolloverRule: "ROLLOVER" | "SWEEP" | "RESET";
+  isDefaultSavings: boolean;
+  monthlyAmount: string | null;
+  icon: string | null;
+  colour: string | null;
+  bankAccountId: string | null;
   currentBalance: string;
   targetAmount: string | null;
-  healthStatus: "GREEN" | "AMBER" | "RED";
   targetDate: string | null;
+  rrule: string | null;
+  startDate: string | null;
+  endDate: string | null;
   progressPercentage: number;
+  healthStatus: "GREEN" | "AMBER" | "RED";
 };
 
 export default function CategoriesPage() {
