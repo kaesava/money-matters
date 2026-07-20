@@ -44,7 +44,7 @@ export default function PaychecksScreen() {
         title={t('paychecks.title', { defaultValue: 'Paychecks' })}
         user={session?.user}
         onNavigateHome={() => router.push('/(app)/home')}
-        onNavigateBuckets={() => router.push('/(app)/categories')}
+        onNavigateCategories={() => router.push('/(app)/categories')}
         onNavigateSettings={() => router.push('/(app)/settings')}
       >
         {isLoading ? (

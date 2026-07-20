@@ -31,7 +31,7 @@ export default function TransactionsScreen() {
       title={t('transactions.title', { defaultValue: 'Transactions' })}
       user={session?.user}
       onNavigateHome={() => router.push('/(app)/home')}
-      onNavigateBuckets={() => router.push('/(app)/categories')}
+      onNavigateCategories={() => router.push('/(app)/categories')}
       onNavigateSettings={() => router.push('/(app)/settings')}
     >
       {isLoading ? (
