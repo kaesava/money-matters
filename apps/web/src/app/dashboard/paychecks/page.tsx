@@ -14,29 +14,85 @@ function fmt(val: string | number) {
 
 export default function PaychecksPage() {
   const router = useRouter();
+
+  // Dialog State
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingSource, setEditingSource] = useState<any>(null);
+
+  // Form Fields
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<IncomeType>("SALARY");
+  const [isRecurring, setIsRecurring] = useState(true);
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [frequency, setFrequency] = useState("FORTNIGHTLY");
 
   const sourcesQuery = trpc.listIncomeSources.useQuery();
   const eventsQuery = trpc.listIncomeEvents.useQuery();
 
   const createSourceMutation = trpc.createIncomeSource.useMutation({
-    onSuccess: () => {
-      setShowAddModal(false);
-      setName("");
-      setAmount("");
+    onSuccess: async (newSource) => {
+      // Create schedule or event
+      if (isRecurring) {
+        let rrule = "FREQ=WEEKLY;INTERVAL=2"; // default fortnightly
+        if (frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
+        else if (frequency === "MONTHLY") rrule = "FREQ=MONTHLY";
+        else if (frequency === "ANNUALLY") rrule = "FREQ=YEARLY";
+
+        await createScheduleMutation.mutateAsync({
+          incomeSourceId: newSource.id,
+          rrule,
+          startDate: new Date(startDate).toISOString(),
+        });
+      } else {
+        // One-off: create income event directly
+        await createEventMutation.mutateAsync({
+          incomeSourceId: newSource.id,
+          expectedAmount: parseFloat(amount).toFixed(2),
+          expectedDate: new Date(startDate).toISOString(),
+        });
+      }
+      resetForm();
       sourcesQuery.refetch();
       eventsQuery.refetch();
     },
   });
+
+  const updateSourceMutation = trpc.updateIncomeSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      sourcesQuery.refetch();
+      eventsQuery.refetch();
+    },
+  });
+
+  const archiveSourceMutation = trpc.archiveIncomeSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      sourcesQuery.refetch();
+      eventsQuery.refetch();
+    },
+  });
+
+  const createScheduleMutation = trpc.createIncomeSourceSchedule.useMutation();
+  const createEventMutation = trpc.createIncomeEvent.useMutation();
 
   const runAllocationMutation = trpc.runAllocation.useMutation({
     onSuccess: () => {
       eventsQuery.refetch();
     },
   });
+
+  const resetForm = () => {
+    setShowAddModal(false);
+    setEditingSource(null);
+    setName("");
+    setAmount("");
+    setType("SALARY");
+    setIsRecurring(true);
+    setStartDate(new Date().toISOString().split("T")[0]);
+    setFrequency("FORTNIGHTLY");
+  };
 
   const handleCreateSource = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +102,36 @@ export default function PaychecksPage() {
       type,
       amount: parseFloat(amount).toFixed(2),
     });
+  };
+
+  const handleUpdateSource = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSource || !name.trim() || !amount || parseFloat(amount) <= 0) return;
+    updateSourceMutation.mutate({
+      id: editingSource.id,
+      data: {
+        name: name.trim(),
+        type,
+        amount: parseFloat(amount).toFixed(2),
+      },
+    });
+  };
+
+  const handleEditClick = (src: any) => {
+    setEditingSource(src);
+    setName(src.name);
+    setAmount(parseFloat(src.amount).toFixed(2));
+    setType(src.type);
+    setIsRecurring(!!src.rrule);
+    if (src.startDate) {
+      setStartDate(src.startDate.split("T")[0]);
+    }
+    if (src.rrule) {
+      if (src.rrule.includes("INTERVAL=2")) setFrequency("FORTNIGHTLY");
+      else if (src.rrule.includes("YEARLY")) setFrequency("ANNUALLY");
+      else if (src.rrule.includes("MONTHLY")) setFrequency("MONTHLY");
+      else setFrequency("WEEKLY");
+    }
   };
 
   const handleRunAllocation = (eventId: string, expectedAmount: string) => {
@@ -61,15 +147,15 @@ export default function PaychecksPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
-            {t("paychecks.title", { defaultValue: "Paychecks & Income" })}
+            Income Sources & Scheduled Deposits
           </h1>
           <p className="text-sm font-semibold text-zinc-500 mt-1">
-            Manage your recurring salary and trigger paycheck waterfall allocations.
+            Manage your recurring salaries, wages, freelance incomes, or one-off bonuses.
           </p>
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => { resetForm(); setShowAddModal(true); }}
           className="px-4 py-2.5 rounded-xl font-bold text-sm text-white shadow-md transition-all hover:opacity-90 active:scale-95 bg-[#00B4A6] flex items-center justify-center gap-2"
         >
           <span>+</span>
@@ -95,20 +181,28 @@ export default function PaychecksPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {sources.map((src) => (
+            {sources.map((src: any) => (
               <div
                 key={src.id}
-                className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex items-center justify-between"
+                className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex items-center justify-between hover:border-zinc-200 transition-all group"
               >
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#00B4A6]">
-                    {src.type}
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#00B4A6]">
+                    {src.type} {src.rrule ? `• ${src.rrule.includes("INTERVAL=2") ? "Fortnightly" : "Recurring"}` : "• One-off"}
                   </span>
                   <h3 className="text-base font-bold text-[#1B2B4B]">{src.name}</h3>
                 </div>
-                <span className="text-xl font-black text-[#1B2B4B]">
-                  {fmt(src.amount)}
-                </span>
+                <div className="flex items-center gap-4">
+                  <span className="text-xl font-black text-[#1B2B4B]">
+                    {fmt(src.amount)}
+                  </span>
+                  <button
+                    onClick={() => handleEditClick(src)}
+                    className="text-xs font-bold text-zinc-400 hover:text-[#1B2B4B] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -118,7 +212,7 @@ export default function PaychecksPage() {
       {/* Upcoming Paycheck Events & Waterfall Allocations */}
       <div className="flex flex-col gap-4">
         <h2 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-          Paycheck Events & Allocations
+          Scheduled Deposits & allocations
         </h2>
 
         {eventsQuery.isLoading ? (
@@ -164,7 +258,7 @@ export default function PaychecksPage() {
                       disabled={runAllocationMutation.isPending}
                       className="px-3.5 py-2 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-sm"
                     >
-                      {runAllocationMutation.isPending ? "Allocating..." : "Run Waterfall"}
+                      {runAllocationMutation.isPending ? "Allocating..." : "Run Cascade"}
                     </button>
                   )}
                 </div>
@@ -174,25 +268,27 @@ export default function PaychecksPage() {
         )}
       </div>
 
-      {/* Add Income Source Modal */}
-      {showAddModal && (
+      {/* Add / Edit Income Source Modal */}
+      {(showAddModal || editingSource) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div
             className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity"
-            onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
+            onClick={resetForm}
           />
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#1B2B4B]">New Income Source</h2>
+              <h2 className="text-lg font-bold text-[#1B2B4B]">
+                {editingSource ? "Edit Income Source" : "New Income Source"}
+              </h2>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={resetForm}
                 className="text-zinc-400 hover:text-zinc-600 text-sm font-bold p-1"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateSource} className="flex flex-col gap-4">
+            <form onSubmit={editingSource ? handleUpdateSource : handleCreateSource} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Name</label>
                 <input
@@ -232,13 +328,75 @@ export default function PaychecksPage() {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={createSourceMutation.isPending}
-                className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md"
-              >
-                {createSourceMutation.isPending ? "Creating..." : "Save Income Source"}
-              </button>
+              {!editingSource && (
+                <>
+                  <div className="flex items-center gap-2 py-1">
+                    <input
+                      type="checkbox"
+                      id="isRecurring"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#00B4A6] focus:ring-[#00B4A6]"
+                    />
+                    <label htmlFor="isRecurring" className="text-xs font-bold text-zinc-600 select-none">
+                      Is this a recurring deposit?
+                    </label>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                      {isRecurring ? "Starting Date" : "Deposit Date"}
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                    />
+                  </div>
+
+                  {isRecurring && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Frequency</label>
+                      <select
+                        value={frequency}
+                        onChange={(e) => setFrequency(e.target.value)}
+                        className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                      >
+                        <option value="WEEKLY">Weekly</option>
+                        <option value="FORTNIGHTLY">Fortnightly</option>
+                        <option value="MONTHLY">Monthly</option>
+                        <option value="ANNUALLY">Annually</option>
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="flex flex-col gap-2 mt-2">
+                <button
+                  type="submit"
+                  disabled={createSourceMutation.isPending || updateSourceMutation.isPending}
+                  className="w-full py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md"
+                >
+                  {editingSource ? "Save Changes" : "Save Income Source"}
+                </button>
+
+                {editingSource && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this income source?")) {
+                        archiveSourceMutation.mutate({ id: editingSource.id });
+                      }
+                    }}
+                    className="w-full py-3 rounded-xl font-bold text-sm text-red-500 border border-red-200 hover:bg-red-50 transition-all"
+                  >
+                    Delete Income Source
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>

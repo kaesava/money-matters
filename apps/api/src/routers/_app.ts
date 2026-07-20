@@ -37,6 +37,7 @@ import {
   UpdateCategoryCommand,
   CreateCategoryScheduleCommand,
   CreateIncomeSourceCommand,
+  UpdateIncomeSourceCommand,
   CreateIncomeSourceScheduleCommand,
   CreateIncomeEventCommand,
   RecordExpenseCommand,
@@ -221,6 +222,37 @@ export const appRouter = router({
       return source;
     }),
 
+  updateIncomeSource: tenantProcedure
+    .input(z.object({
+      id: z.string().uuid(),
+      data: UpdateIncomeSourceCommand,
+    }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const [updated] = await ctx.db
+        .update(incomeSources)
+        .set({
+          name: input.data.name,
+          type: input.data.type,
+          amount: input.data.amount,
+          receivingAccountId: input.data.receivingAccountId,
+          updatedBy: ctx.userId!,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(incomeSources.id, input.id),
+            eq(incomeSources.tenantId, ctx.tenantId!),
+            eq(incomeSources.appId, ctx.appId!),
+            sql`${incomeSources.archivedAt} IS NULL`
+          )
+        )
+        .returning();
+      if (!updated) {
+        throw new Error("Income source not found or unauthorized.");
+      }
+      return updated;
+    }),
+
   createIncomeSourceSchedule: tenantProcedure
     .input(CreateIncomeSourceScheduleCommand)
     .mutation(async ({ input, ctx }) => {
@@ -306,8 +338,19 @@ export const appRouter = router({
   listIncomeSources: tenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
-        .select()
+        .select({
+          id: incomeSources.id,
+          name: incomeSources.name,
+          type: incomeSources.type,
+          amount: incomeSources.amount,
+          receivingAccountId: incomeSources.receivingAccountId,
+          scheduleId: incomeSourceSchedules.id,
+          rrule: incomeSourceSchedules.rrule,
+          startDate: incomeSourceSchedules.startDate,
+          endDate: incomeSourceSchedules.endDate,
+        })
         .from(incomeSources)
+        .leftJoin(incomeSourceSchedules, eq(incomeSources.id, incomeSourceSchedules.incomeSourceId))
         .where(
           and(
             eq(incomeSources.tenantId, ctx.tenantId!),

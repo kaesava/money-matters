@@ -239,6 +239,13 @@ export const CreateIncomeSourceCommand = z.object({
   receivingAccountId: z.string().uuid().optional(),
 }).strict();
 
+export const UpdateIncomeSourceCommand = z.object({
+  name: z.string().min(1).optional(),
+  type: z.enum(["SALARY", "WAGES", "FREELANCE", "OTHER"]).optional(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  receivingAccountId: z.string().uuid().optional(),
+}).strict();
+
 // 7. Income Source Schedules
 export const IncomeSourceScheduleSchema = BaseSchema.extend({
   incomeSourceId: z.string().uuid(),
