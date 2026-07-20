@@ -112,6 +112,8 @@ export function AppHeader({ user, onQuickExpense, onSignOut }: AppHeaderProps) {
               {[
                 { label: t("nav.home"), href: "/dashboard" },
                 { label: t("nav.categories"), href: "/dashboard/categories" },
+                { label: t("nav.paychecks"), href: "/dashboard/paychecks" },
+                { label: t("transactions.title", { defaultValue: "Transactions" }), href: "/dashboard/transactions" },
                 { label: t("nav.settings"), href: "/dashboard/settings" },
               ].map((item) => (
                 <button

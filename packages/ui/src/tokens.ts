@@ -10,6 +10,9 @@ export const DESIGN_TOKENS = {
     background: "#F7F8FA",  // Soft off-white
     surface: "#FFFFFF",     // White for containers/cards
     surfaceVariant: "#F3F4F6",
+
+    // Border Colors
+    border: "#E5E7EB",      // Light Grey
     
     // Status (Traffic Light Colors)
     success: "#22C55E",     // Green (On Track / Income)

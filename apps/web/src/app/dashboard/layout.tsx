@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   {
     key: "categories",
     label: () => t("nav.categories"),
-    href: "/dashboard/buckets",
+    href: "/dashboard/categories",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -38,9 +38,9 @@ const NAV_ITEMS = [
     ),
   },
   {
-    key: "reconcile",
-    label: () => "Reconcile",
-    href: "/dashboard/reconcile",
+    key: "transactions",
+    label: () => t("transactions.title", { defaultValue: "Transactions" }),
+    href: "/dashboard/transactions",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />

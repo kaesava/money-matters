@@ -216,14 +216,14 @@ export const CreateCategoryScheduleCommand = z.object({
 export const IncomeSourceSchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(["SALARY", "FREELANCE", "OTHER"]),
+  type: z.enum(["SALARY", "WAGES", "FREELANCE", "OTHER"]),
   amount: z.string(),
   receivingAccountId: z.string().uuid().nullable(),
 }).strict();
 
 export const CreateIncomeSourceCommand = z.object({
   name: z.string().min(1),
-  type: z.enum(["SALARY", "FREELANCE", "OTHER"]),
+  type: z.enum(["SALARY", "WAGES", "FREELANCE", "OTHER"]),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   receivingAccountId: z.string().uuid().optional(),
 }).strict();

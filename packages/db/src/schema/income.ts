@@ -3,7 +3,7 @@ import { tenants } from "./tenant.js";
 import { bankAccounts } from "./bank_account.js";
 import { tenantAndTimestamps } from "./base.js";
 
-export const incomeSourceTypeEnum = pgEnum("income_source_type_enum", ["SALARY", "FREELANCE", "OTHER"]);
+export const incomeSourceTypeEnum = pgEnum("income_source_type_enum", ["SALARY", "WAGES", "FREELANCE", "OTHER"]);
 
 export const incomeSources = pgTable("income_sources", {
   id: uuid("id").primaryKey().defaultRandom(),
