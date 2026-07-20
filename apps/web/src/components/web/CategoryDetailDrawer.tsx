@@ -32,7 +32,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 
   if (!cat && !categoriesQuery.isLoading) {
     return (
-      <SlideOverDrawer title={t("buckets.detail.title")} onClose={onClose} widthClass="max-w-lg">
+      <SlideOverDrawer title={t("categories.detail.title")} onClose={onClose} widthClass="max-w-lg">
         <div className="p-6 flex flex-col items-center gap-2 py-12">
           <span className="text-3xl">⚠️</span>
           <p className="text-sm font-semibold" style={{ color: "var(--dash-text)" }}>{t("common.error")}</p>
@@ -48,7 +48,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 
   return (
     <SlideOverDrawer
-      title={cat?.name ?? t("buckets.detail.title")}
+      title={cat?.name ?? t("categories.detail.title")}
       subtitle={cat?.type ?? ""}
       onClose={onClose}
       widthClass="max-w-lg"
@@ -67,7 +67,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-                  {t("buckets.detail.currentBalance")}
+                  {t("categories.detail.currentBalance")}
                 </p>
                 <p className="text-3xl font-extrabold mt-1 tabular-nums" style={{ color }}>
                   {fmt(cat.currentBalance)}
@@ -89,7 +89,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
             {targetNum !== null && (
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between text-xs font-medium" style={{ color: "var(--dash-muted)" }}>
-                  <span>{t("buckets.detail.targetAmount")}: {fmt(targetNum)}</span>
+                  <span>{t("categories.detail.targetAmount")}: {fmt(targetNum)}</span>
                   <span>{pct}%</span>
                 </div>
                 <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${color}18` }}>
@@ -104,7 +104,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
             {/* Due date */}
             {cat.targetDate && (
               <p className="text-xs font-medium" style={{ color: "var(--dash-muted)" }}>
-                {t("buckets.nextDue", {
+                {t("categories.nextDue", {
                   date: new Date(cat.targetDate).toLocaleDateString("en-AU", {
                     weekday: "short", day: "numeric", month: "long", year: "numeric",
                   }),
@@ -116,7 +116,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
           {/* Transaction history section */}
           <div className="p-6 flex flex-col gap-4">
             <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-              {t("buckets.detail.history")}
+              {t("categories.detail.history")}
             </p>
             <TransactionHistory categoryId={categoryId} />
             <FileNotesSection entityType="CATEGORY" entityId={categoryId} />
@@ -139,10 +139,10 @@ function TransactionHistory({ categoryId: _categoryId }: { categoryId: string })
     >
       <span className="text-2xl">📋</span>
       <p className="text-sm font-medium" style={{ color: "var(--dash-text)" }}>
-        {t("buckets.detail.history")}
+        {t("categories.detail.history")}
       </p>
       <p className="text-xs" style={{ color: "var(--dash-muted)" }}>
-        {t("buckets.detail.noHistory")}
+        {t("categories.detail.noHistory")}
       </p>
     </div>
   );

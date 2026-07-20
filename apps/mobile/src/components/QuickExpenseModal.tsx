@@ -25,6 +25,7 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [note, setNote] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const D = DESIGN_TOKENS;
@@ -49,6 +50,7 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
         categoryId: selectedCategoryId,
         amount: parseFloat(amount).toFixed(2),
         note: note.trim() || undefined,
+        date: date ? new Date(date).toISOString() : undefined,
         idempotencyKey: (typeof crypto !== 'undefined' && crypto.randomUUID) 
           ? crypto.randomUUID() 
           : Math.random().toString(36).substring(2) + Date.now().toString(36),
@@ -140,6 +142,18 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
                     );
                   })}
                 </View>
+              </View>
+
+              {/* Date Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
+                <TextInput
+                  style={styles.noteInput}
+                  placeholder="YYYY-MM-DD"
+                  value={date}
+                  onChangeText={setDate}
+                  placeholderTextColor={D.colors.textMuted}
+                />
               </View>
 
               {/* Note Input */}

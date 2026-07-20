@@ -11,9 +11,9 @@ import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
 const SECTION_ORDER = ['GOAL', 'REGULAR', 'EVERYDAY'] as const;
 const SECTION_TITLES: Record<string, string> = {
-  GOAL: 'buckets.majorSection',
-  REGULAR: 'buckets.recurringSection',
-  EVERYDAY: 'buckets.everydaySection',
+  GOAL: 'categories.majorSection',
+  REGULAR: 'categories.recurringSection',
+  EVERYDAY: 'categories.everydaySection',
 };
 
 function pct(balance: string, target: string | null) {
@@ -28,7 +28,7 @@ function fmt(val: string | number) {
   return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
-export default function BucketsScreen() {
+export default function CategoriesScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const { data: categories, isLoading, error, refetch } = trpc.listCategories.useQuery();
@@ -74,10 +74,10 @@ export default function BucketsScreen() {
   return (
     <View style={{ flex: 1 }}>
       <MobileScreenWrapper
-        title={t('buckets.title')}
+        title={t('categories.title')}
         user={session?.user}
         onNavigateHome={() => router.push('/(app)/home')}
-        onNavigateBuckets={() => router.push('/(app)/categories')}
+        onNavigateCategories={() => router.push('/(app)/categories')}
         onNavigateSettings={() => router.push('/(app)/settings')}
         onSignOut={handleSignOut}
       >
@@ -118,14 +118,14 @@ export default function BucketsScreen() {
                       <Text style={[styles.catBalance, { color }]}>{fmt(cat.currentBalance)}</Text>
                     </View>
                     {cat.targetAmount && (
-                      <Text style={styles.target}>{t('buckets.target')} {fmt(cat.targetAmount)}</Text>
+                      <Text style={styles.target}>{t('categories.target')} {fmt(cat.targetAmount)}</Text>
                     )}
                     {p !== null && (
                       <>
                         <View style={styles.barBg}>
                           <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
                         </View>
-                        <Text style={[styles.pctLabel, { color }]}>{t('buckets.progressPct', { pct: p })}</Text>
+                        <Text style={[styles.pctLabel, { color }]}>{t('categories.progressPct', { pct: p })}</Text>
                       </>
                     )}
                   </TouchableOpacity>

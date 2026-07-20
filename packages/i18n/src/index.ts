@@ -6,7 +6,6 @@ export const translations = {
     },
     nav: {
       home: "Home",
-      buckets: "Buckets",
       categories: "Categories",
       paychecks: "Paychecks",
       settings: "Settings",
@@ -121,7 +120,7 @@ export const translations = {
         dueDateLabel: "Due Date",
         priorityLabel: "Priority Rank",
         priorityHint: "1 = highest priority. Same number = funded together.",
-        excessLabel: "Default Excess Bucket",
+        excessLabel: "Default Excess Category",
         excessHint: "Surplus income flows here (usually Emergency Fund).",
       },
       bankAccounts: {
@@ -160,7 +159,7 @@ export const translations = {
       setupCategories: "Complete setup to see your categories.",
       allOnTrack: "All categories on track 🎉",
     },
-    buckets: {
+    categories: {
       title: "Categories",
       balance: "Balance",
       target: "Target",

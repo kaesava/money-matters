@@ -8,7 +8,7 @@ import { TransactionRow } from '../../../components/TransactionRow';
 import { formatAUD } from '../../../lib/format';
 import { FileNotesSection } from '../../../components/FileNotesSection';
 
-export default function BucketDetailScreen() {
+export default function CategoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: categories, isLoading, refetch } = trpc.listCategories.useQuery();
@@ -56,12 +56,12 @@ export default function BucketDetailScreen() {
       <View style={styles.card}>
         <View style={styles.row}>
           <View>
-            <Text style={styles.metaLabel}>{t('buckets.detail.currentBalance')}</Text>
+            <Text style={styles.metaLabel}>{t('categories.detail.currentBalance')}</Text>
             <Text style={[styles.balanceValue, { color }]}>{formatAUD(cat.currentBalance)}</Text>
           </View>
           {cat.targetAmount && (
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.metaLabel}>{t('buckets.detail.targetAmount')}</Text>
+              <Text style={styles.metaLabel}>{t('categories.detail.targetAmount')}</Text>
               <Text style={styles.targetValue}>{formatAUD(cat.targetAmount)}</Text>
             </View>
           )}
@@ -69,7 +69,7 @@ export default function BucketDetailScreen() {
 
         {pct !== null && (
           <>
-            <Text style={styles.metaLabel}>{t('buckets.detail.progressBar')}</Text>
+            <Text style={styles.metaLabel}>{t('categories.detail.progressBar')}</Text>
             <View style={styles.barBg}>
               <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: color }]} />
             </View>
@@ -79,7 +79,7 @@ export default function BucketDetailScreen() {
       </View>
 
 
-      <Text style={styles.sectionTitle}>{t('buckets.detail.history')}</Text>
+      <Text style={styles.sectionTitle}>{t('categories.detail.history')}</Text>
       <CategoryTransactionsList categoryId={id!} />
       <FileNotesSection entityType="CATEGORY" entityId={id!} />
     </MobileScreenWrapper>
@@ -96,7 +96,7 @@ function CategoryTransactionsList({ categoryId }: { categoryId: string }) {
   if (transactions.length === 0) {
     return (
       <View style={styles.emptyHistory}>
-        <Text style={styles.emptyText}>{t('buckets.detail.noHistory', { defaultValue: 'No transactions yet.' })}</Text>
+        <Text style={styles.emptyText}>{t('categories.detail.noHistory', { defaultValue: 'No transactions yet.' })}</Text>
       </View>
     );
   }

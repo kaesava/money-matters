@@ -12,9 +12,9 @@ import { trpc } from "../../lib/trpc";
 
 const SECTION_ORDER = ["REGULAR", "GOAL", "EVERYDAY"] as const;
 const SECTION_LABELS: Record<string, string> = {
-  REGULAR: "buckets.recurringSection", 
-  GOAL: "buckets.majorSection",        
-  EVERYDAY: "buckets.everydaySection", 
+  REGULAR: "categories.recurringSection", 
+  GOAL: "categories.majorSection",        
+  EVERYDAY: "categories.everydaySection", 
 };
 
 type CategoryWithHealth = {

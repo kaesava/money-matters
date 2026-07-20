@@ -20,9 +20,6 @@ const PRESETS: PresetCategory[] = [
   { id: "electricity", name: "Electricity", type: "REGULAR", icon: "⚡" },
   { id: "internet", name: "Internet", type: "REGULAR", icon: "📡" },
   { id: "insurance", name: "Insurance", type: "REGULAR", icon: "📋" },
-  { id: "groceries", name: "Groceries", type: "EVERYDAY", icon: "🛒" },
-  { id: "fuel", name: "Fuel", type: "EVERYDAY", icon: "⛽" },
-  { id: "eating-out", name: "Eating Out", type: "EVERYDAY", icon: "🍽️" },
 ];
 
 export default function SetupWizardPage() {
@@ -121,7 +118,7 @@ export default function SetupWizardPage() {
     const newCat: PresetCategory = {
       id: newId,
       name: customCategoryName.trim(),
-      type: "EVERYDAY",
+      type: "REGULAR",
       icon: "📦",
     };
     setCustomCategories((prev) => [...prev, newCat]);
@@ -164,7 +161,7 @@ export default function SetupWizardPage() {
     try {
       const savedIds = JSON.parse(sessionStorage.getItem("saved_category_ids") || "{}");
       
-      const majorAndRecurring = allSelectedCategories.filter((c) => c.type !== "EVERYDAY");
+      const majorAndRecurring = allSelectedCategories;
       for (const cat of majorAndRecurring) {
         const dbId = savedIds[cat.id];
         if (!dbId) continue;
@@ -427,7 +424,6 @@ export default function SetupWizardPage() {
             {/* Target configuring rows */}
             <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2">
               {allSelectedCategories
-                .filter((c) => c.type !== "EVERYDAY")
                 .map((cat) => (
                   <div key={cat.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 bg-zinc-50 border border-zinc-100 rounded-xl">
                     <div className="flex items-center gap-2">

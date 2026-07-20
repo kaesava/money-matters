@@ -56,6 +56,8 @@ export default function CategoriesPage() {
   const [editTargetDate, setEditTargetDate] = useState("");
   const [editCategoryType, setEditCategoryType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
   const [saving, setSaving] = useState(false);
+  const [editRolloverRule, setEditRolloverRule] = useState<"ROLLOVER" | "SWEEP" | "RESET">("ROLLOVER");
+  const [editIsDefaultSavings, setEditIsDefaultSavings] = useState(false);
 
   const updateCategory = trpc.updateCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
@@ -67,9 +69,12 @@ export default function CategoriesPage() {
         categoryId: catId,
         data: {
           name: editName,
+          type: editCategoryType,
+          rolloverRule: editRolloverRule,
+          isDefaultSavings: editIsDefaultSavings,
         }
       });
-      if (editCategoryType === "GOAL") {
+      if (editTarget && editTarget !== "0.00") {
         await createCategorySchedule.mutateAsync({
           categoryId: catId,
           targetAmount: parseFloat(editTarget || "0").toFixed(2),
@@ -91,6 +96,8 @@ export default function CategoriesPage() {
     setEditTarget(cat.targetAmount ? parseFloat(cat.targetAmount).toFixed(2) : "0.00");
     setEditTargetDate(cat.targetDate ? cat.targetDate.split("T")[0] : "");
     setEditCategoryType(cat.type);
+    setEditRolloverRule((cat as any).rolloverRule || "ROLLOVER");
+    setEditIsDefaultSavings((cat as any).isDefaultSavings || false);
   };
 
   const handleMoveMoneySubmit = async (e: React.FormEvent) => {
@@ -232,6 +239,7 @@ export default function CategoriesPage() {
                   <th className="px-6 py-4">Current Balance</th>
                   <th className="px-6 py-4">Target Amount</th>
                   <th className="px-6 py-4">Target Date</th>
+                  <th className="px-6 py-4">Rollover</th>
                   <th className="px-6 py-4">% Funded</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -287,6 +295,37 @@ export default function CategoriesPage() {
                           new Date(cat.targetDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
                         ) : (
                           "—"
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-zinc-500">
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2">
+                            <select
+                              value={editRolloverRule}
+                              onChange={(e) => setEditRolloverRule(e.target.value as any)}
+                              className="border border-zinc-200 rounded-lg px-2 py-1 text-xs focus:outline-none"
+                            >
+                              <option value="ROLLOVER">Rollover</option>
+                              <option value="SWEEP">Sweep</option>
+                              <option value="RESET">Reset</option>
+                            </select>
+                            {cat.type === "GOAL" && (
+                              <label className="flex items-center gap-1 text-[10px]">
+                                <input
+                                  type="checkbox"
+                                  checked={editIsDefaultSavings}
+                                  onChange={(e) => setEditIsDefaultSavings(e.target.checked)}
+                                /> Default Savings
+                              </label>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col">
+                            <span className="text-xs font-semibold">{cat.rolloverRule || "ROLLOVER"}</span>
+                            {cat.type === "GOAL" && cat.isDefaultSavings && (
+                              <span className="text-[10px] text-[#00B4A6]">Default Savings</span>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="px-6 py-4">

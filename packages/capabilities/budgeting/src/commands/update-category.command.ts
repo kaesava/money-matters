@@ -33,6 +33,8 @@ export async function updateCategoryCommand(
         isCommitted: input.isCommitted,
         monthlyAmount: input.monthlyAmount,
         isDefaultExcess: input.isDefaultExcess,
+        rolloverRule: input.rolloverRule,
+        isDefaultSavings: input.isDefaultSavings,
         icon: input.icon,
         colour: input.colour,
         bankAccountId: input.bankAccountId,

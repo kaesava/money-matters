@@ -95,7 +95,7 @@ function VerdictResult({ data }: { data: CanAffordVerdictType }) {
           <span>YES, WITH IMPACT</span>
         </div>
         <p className="text-xs text-amber-600 font-semibold leading-relaxed">
-          Everyday spending isn&apos;t enough, but it will dip into your &quot;{data.affectedBucketName}&quot; savings bucket surplus by leaving a new balance of ${parseFloat(data.newBalance!).toLocaleString()}.
+          Everyday spending isn&apos;t enough, but it will dip into your &quot;{data.affectedBucketName}&quot; savings category surplus by leaving a new balance of ${parseFloat(data.newBalance!).toLocaleString()}.
         </p>
       </div>
     );

@@ -180,11 +180,14 @@ export const CategorySchema = BaseSchema.extend({
 export const CreateCategoryCommand = z.object({
   name: z.string().min(1),
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
-  isCommitted: z.boolean().default(false),
+  isCommitted: z.boolean().default(false).optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-  isDefaultExcess: z.boolean().default(false),
+  isDefaultExcess: z.boolean().default(false).optional(),
+  rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
+  isDefaultSavings: z.boolean().optional(),
   icon: z.string().optional(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  bankAccountId: z.string().uuid().optional(),
 }).strict();
 
 export const UpdateCategoryCommand = z.object({
@@ -192,6 +195,8 @@ export const UpdateCategoryCommand = z.object({
   isCommitted: z.boolean().optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   isDefaultExcess: z.boolean().optional(),
+  rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
+  isDefaultSavings: z.boolean().optional(),
   icon: z.string().optional(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   bankAccountId: z.string().uuid().optional(),
@@ -203,6 +208,9 @@ export const CategoryScheduleSchema = BaseSchema.extend({
   targetAmount: z.string(),
   dueDate: z.string().nullable(),
   targetDate: z.string().nullable(),
+  rrule: z.string().nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
 }).strict();
 
 export const CreateCategoryScheduleCommand = z.object({
@@ -210,6 +218,9 @@ export const CreateCategoryScheduleCommand = z.object({
   targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   targetDate: z.string().optional(),
   dueDate: z.string().optional(),
+  rrule: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 }).strict();
 
 // 6. Income Sources

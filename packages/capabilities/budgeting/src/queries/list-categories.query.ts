@@ -70,19 +70,48 @@ export async function listCategoriesQuery(
     let health: "GREEN" | "AMBER" | "RED" = "GREEN";
     let progressPct = 100;
 
-    if (cat.type === "REGULAR") {
-      const monthlyAmount = cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : 0;
-      progressPct = monthlyAmount > 0 ? Math.min(100, Math.round((balance / monthlyAmount) * 100)) : 100;
-      if (balance <= 0) {
-        health = "RED";
-      } else if (balance < monthlyAmount) {
-        health = "AMBER";
+    if (balance < 0) {
+      health = "RED";
+    } else if (cat.type === "REGULAR") {
+      const targetAmount = sched?.targetAmount ? parseFloat(sched.targetAmount) : (cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : 0);
+      progressPct = targetAmount > 0 ? Math.min(100, Math.round((balance / targetAmount) * 100)) : 100;
+      
+      let expectedPct = 100;
+      if (sched?.startDate && sched?.dueDate) {
+        const start = new Date(sched.startDate).getTime();
+        const end = new Date(sched.dueDate).getTime();
+        const now = today.getTime();
+        if (now > end) {
+          expectedPct = 100;
+          if (balance < targetAmount) health = "RED";
+        } else if (now > start) {
+          expectedPct = ((now - start) / (end - start)) * 100;
+          if (progressPct < expectedPct) health = "AMBER";
+          else health = "GREEN";
+        } else {
+          expectedPct = 0;
+          health = "GREEN";
+        }
+      } else {
+        if (balance < targetAmount) health = "AMBER";
       }
     } else if (cat.type === "GOAL" && sched) {
       const targetAmount = parseFloat(sched.targetAmount || "0");
       progressPct = targetAmount > 0 ? Math.min(100, Math.round((balance / targetAmount) * 100)) : 100;
-      if (balance <= 0) {
-        health = "RED";
+      
+      let expectedPct = 100;
+      if (sched.startDate && sched.targetDate) {
+        const start = new Date(sched.startDate).getTime();
+        const end = new Date(sched.targetDate).getTime();
+        const now = today.getTime();
+        if (now > end) {
+          expectedPct = 100;
+          if (balance < targetAmount) health = "RED";
+        } else if (now > start) {
+          expectedPct = ((now - start) / (end - start)) * 100;
+          if (progressPct < expectedPct) health = "AMBER";
+          else health = "GREEN";
+        }
       } else if (sched.targetDate) {
         const targetD = new Date(sched.targetDate);
         if (targetD.getTime() < today.getTime() && balance < targetAmount) {
@@ -92,7 +121,6 @@ export async function listCategoriesQuery(
         }
       }
     } else {
-      // EVERYDAY
       health = balance >= 0 ? "GREEN" : "RED";
     }
 
@@ -102,13 +130,18 @@ export async function listCategoriesQuery(
       type: cat.type,
       isCommitted: cat.isCommitted,
       isDefaultExcess: cat.isDefaultExcess,
+      rolloverRule: (cat as any).rolloverRule || "ROLLOVER",
+      isDefaultSavings: (cat as any).isDefaultSavings || false,
       monthlyAmount: cat.monthlyAmount || null,
       icon: cat.icon || null,
       colour: cat.colour || null,
       bankAccountId: cat.bankAccountId || null,
       currentBalance: balance.toFixed(2),
-      targetAmount: sched?.targetAmount || null,
-      targetDate: sched?.targetDate || null,
+      targetAmount: sched?.targetAmount || cat.monthlyAmount || null,
+      targetDate: sched?.targetDate || sched?.dueDate || null,
+      rrule: (sched as any)?.rrule || null,
+      startDate: (sched as any)?.startDate || null,
+      endDate: (sched as any)?.endDate || null,
       progressPercentage: progressPct,
       healthStatus: health,
     };

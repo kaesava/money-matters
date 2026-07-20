@@ -56,12 +56,12 @@ export function CategoryHealthCard({
   const hasTarget = target != null && parseFloat(target) > 0;
 
   const dueDateLabel = nextDueDate
-    ? t("buckets.nextDue", { date: new Date(nextDueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) })
+    ? t("categories.nextDue", { date: new Date(nextDueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) })
     : null;
 
   return (
     <button
-      id={`bucket-card-${id}`}
+      id={`category-card-${id}`}
       onClick={onClick}
       className="w-full text-left rounded-xl p-4 flex flex-col gap-3 transition-all hover:-translate-y-0.5 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[--dash-teal]"
       style={{
@@ -105,11 +105,11 @@ export function CategoryHealthCard({
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs font-semibold" style={{ color }}>
-              {t("buckets.progressPct", { pct: progressPercentage })}
+              {t("categories.progressPct", { pct: progressPercentage })}
             </span>
             {target && (
               <span className="text-xs" style={{ color: "var(--dash-muted)" }}>
-                {t("buckets.target")} {fmt(target!)}
+                {t("categories.target")} {fmt(target!)}
               </span>
             )}
           </div>

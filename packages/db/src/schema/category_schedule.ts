@@ -8,6 +8,9 @@ export const categorySchedules = pgTable("category_schedules", {
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }).notNull(),
   dueDate: date("due_date"), // Absolute date for one-off targets
   targetDate: date("target_date"), // Date when target GOAL is needed
+  rrule: text("rrule"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
   ...tenantAndTimestamps,
 });
 

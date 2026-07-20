@@ -35,6 +35,8 @@ export async function createCategoryCommand(
         isCommitted: input.isCommitted,
         monthlyAmount: input.monthlyAmount || null,
         isDefaultExcess: input.isDefaultExcess,
+        rolloverRule: input.rolloverRule || "ROLLOVER",
+        isDefaultSavings: input.isDefaultSavings || false,
         icon: input.icon || null,
         colour: input.colour || null,
         tenantId,

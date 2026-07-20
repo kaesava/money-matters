@@ -89,7 +89,7 @@ export default function Home() {
               Experience the Paycheck Cascade
             </h2>
             <p className="text-zinc-600 leading-relaxed">
-              Drag the paycheck slider to simulate how your earnings automatically flow into virtual buckets based on prioritised due dates. 
+              Drag the paycheck slider to simulate how your earnings automatically flow into virtual categories based on prioritised due dates. 
             </p>
             <div className="bg-[#fbf9f1] p-6 rounded-xl border border-[#e2e4e0] flex flex-col gap-4">
               <div className="flex justify-between font-bold text-sm">

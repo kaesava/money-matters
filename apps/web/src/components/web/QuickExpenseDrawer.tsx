@@ -13,6 +13,7 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [note, setNote] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -49,6 +50,7 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
       categoryId,
       amount: amountNum.toFixed(2),
       note: note || undefined,
+      date: date ? new Date(date).toISOString() : undefined,
       idempotencyKey: `expense-web-${Date.now()}-${Math.random()}`,
     });
   }
@@ -142,6 +144,25 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
                   ))}
                 </select>
               )}
+            </div>
+
+            {/* Date */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+                Date
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border text-sm font-semibold focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  border: "1px solid var(--dash-border)",
+                  backgroundColor: "var(--dash-surface)",
+                  color: "var(--dash-text)",
+                }}
+                disabled={recordExpenseMutation.isPending}
+              />
             </div>
 
             {/* Note */}
