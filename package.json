@@ -10,8 +10,9 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "npx concurrently -k -p \"[{name}]\" -n \"app,inngest\" -c \"cyan,magenta\" \"turbo run dev\" \"pnpm run dev:inngest\"",
+    "dev": "npx concurrently -k -p \"[{name}]\" -n \"app,inngest,dbstudio\" -c \"cyan,magenta,black\" \"turbo run dev\" \"pnpm run dev:inngest\" \"pnpm run db:studio\"",
     "dev:inngest": "npx inngest-cli@latest dev -u https://kesh-imac.tail09ef18.ts.net/api/inngest",
+    "db:studio": "pnpm --filter=@money-matters/db studio",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

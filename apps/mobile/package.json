@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "npx dotenv-cli -e ../../.env.development -e .env.development -- expo start",
-    "start": "npx dotenv-cli -e ../../.env.development -e .env.development -- expo start",
+    "dev": "npx dotenv-cli -e ../../.env.development -e .env.development -- expo start --clear",
+    "start": "npx dotenv-cli -e ../../.env.development -e .env.development -- expo start --clear",
     "android": "npx dotenv-cli -e ../../.env.development -e .env.development -- expo start --android",
     "ios": "npx dotenv-cli -e ../../.env.development -e .env.development -- expo start --ios",
     "web": "npx dotenv-cli -e ../../.env.development -e .env.development -- expo start --web",
