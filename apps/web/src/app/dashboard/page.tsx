@@ -202,14 +202,34 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 pb-12">
-      {/* Quick Actions Collapsible Header */}
-      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+      {/* 4 Summary Stat Chips (Always visible above Quick Actions) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 rounded-2xl bg-white border border-zinc-200/80 shadow-sm flex flex-col gap-1">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Total Income</span>
+          <span className="text-xl font-black text-[#1B2B4B]">{fmt(summaryQuery.data?.totalIncome || "0.00")}</span>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-zinc-200/80 shadow-sm flex flex-col gap-1">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Spent this Month</span>
+          <span className="text-xl font-black text-rose-600">{fmt(summaryQuery.data?.totalSpent || "0.00")}</span>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-zinc-200/80 shadow-sm flex flex-col gap-1">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Saved this Month</span>
+          <span className="text-xl font-black text-[#00B4A6]">{fmt(summaryQuery.data?.totalSaved || "0.00")}</span>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-zinc-200/80 shadow-sm flex flex-col gap-1">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Everyday Balance</span>
+          <span className="text-xl font-black text-[#1B2B4B]">{fmt(summaryQuery.data?.everydayRemaining || "0.00")}</span>
+        </div>
+      </div>
+
+      {/* Quick Actions Collapsible Section */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
         <div className="p-4 sm:p-6 flex items-center justify-between bg-zinc-50/50 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <span className="text-xl">⚡</span>
             <div>
-              <h2 className="text-lg font-black text-[#1B2B4B]">Quick Actions & Summary</h2>
-              <p className="text-xs text-zinc-500 font-semibold">Your financial overview and immediate tools</p>
+              <h2 className="text-lg font-black text-[#1B2B4B]">Quick Actions</h2>
+              <p className="text-xs text-zinc-500 font-semibold">Immediate financial tools and calculators</p>
             </div>
           </div>
 
@@ -223,26 +243,6 @@ export default function DashboardPage() {
 
         {isQuickActionsOpen && (
           <div className="p-4 sm:p-6 flex flex-col gap-6">
-            {/* Card 0: Summary Stat Chips */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Total Income</span>
-                <span className="text-xl font-black text-[#1B2B4B]">{fmt(summaryQuery.data?.totalIncome || "0.00")}</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Spent this Month</span>
-                <span className="text-xl font-black text-rose-600">{fmt(summaryQuery.data?.totalSpent || "0.00")}</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Saved this Month</span>
-                <span className="text-xl font-black text-[#00B4A6]">{fmt(summaryQuery.data?.totalSaved || "0.00")}</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Everyday Balance</span>
-                <span className="text-xl font-black text-[#1B2B4B]">{fmt(summaryQuery.data?.everydayRemaining || "0.00")}</span>
-              </div>
-            </div>
-
             {/* Grid of Action Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Card 1: Quick Add Expense */}

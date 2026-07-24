@@ -98,14 +98,25 @@ export function AppHeader({ user, onQuickExpense, onSignOut }: AppHeaderProps) {
             className="absolute right-0 mt-2 w-56 rounded-xl overflow-hidden z-50"
             role="menu"
           >
-            {/* User info */}
-            <div className="px-4 py-3 border-b" style={{ borderColor: "var(--dash-border)" }}>
-              <p className="text-sm font-semibold truncate" style={{ color: "var(--dash-text)" }}>
+            {/* User info - Click to navigate to User Profile */}
+            <div
+              onClick={() => {
+                router.push("/dashboard/settings");
+                setDropdownOpen(false);
+              }}
+              className="px-4 py-3 border-b cursor-pointer hover:bg-slate-50 transition-colors"
+              style={{ borderColor: "var(--dash-border)" }}
+              title="View User Profile"
+            >
+              <p className="text-sm font-bold truncate" style={{ color: "var(--dash-text)" }}>
                 {user?.name ?? "—"}
               </p>
               <p className="text-xs truncate" style={{ color: "var(--dash-muted)" }}>
                 {user?.email ?? ""}
               </p>
+              <span className="text-[10px] font-bold text-[#00B4A6] hover:underline mt-0.5 block">
+                View User Profile →
+              </span>
             </div>
 
             <div className="py-1">
