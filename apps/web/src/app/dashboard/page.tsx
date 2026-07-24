@@ -13,6 +13,7 @@ function fmt(val: string | number) {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const utils = trpc.useUtils();
   const todayYear = new Date().getFullYear();
   const todayMonth = new Date().getMonth() + 1;
 
@@ -62,6 +63,7 @@ export default function DashboardPage() {
   // Mutations
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: () => {
+      utils.listTransactions.invalidate();
       categoriesQuery.refetch();
       summaryQuery.refetch();
       setQuickAmount("");
@@ -73,6 +75,7 @@ export default function DashboardPage() {
 
   const reconcileMutation = trpc.reconcileBankBalance.useMutation({
     onSuccess: () => {
+      utils.listTransactions.invalidate();
       bankAccountsQuery.refetch();
       categoriesQuery.refetch();
       setReconcilingAccountId(null);
@@ -81,6 +84,7 @@ export default function DashboardPage() {
 
   const markPaidMutation = trpc.markExpensePaid.useMutation({
     onSuccess: () => {
+      utils.listTransactions.invalidate();
       expenseEventsQuery.refetch();
       categoriesQuery.refetch();
       summaryQuery.refetch();
@@ -161,7 +165,7 @@ export default function DashboardPage() {
       expectedAmount: e.expectedAmount,
       categoryName: "Income Allocation",
       categoryId: null,
-      note: e.sourceType || "Income",
+      note: "Income Deposit",
     }));
 
   const expenseEventsMapped = (expenseEventsQuery.data ?? [])

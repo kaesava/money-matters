@@ -186,6 +186,8 @@ export const CreateCategoryCommand = z.object({
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   isCommitted: z.boolean().default(false).optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  targetDate: z.string().optional(),
   isDefaultExcess: z.boolean().default(false).optional(),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
   isDefaultSavings: z.boolean().optional(),
@@ -201,6 +203,8 @@ export const UpdateCategoryCommand = z.object({
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]).optional(),
   isCommitted: z.boolean().optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  targetDate: z.string().optional(),
   isDefaultExcess: z.boolean().optional(),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
   isDefaultSavings: z.boolean().optional(),
@@ -243,14 +247,12 @@ export const IncomeSourceSchema = BaseSchema.extend({
 
 export const CreateIncomeSourceCommand = z.object({
   name: z.string().min(1),
-  type: z.enum(["SALARY", "WAGES", "FREELANCE", "OTHER"]),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   receivingAccountId: z.string().uuid().optional(),
 }).strict();
 
 export const UpdateIncomeSourceCommand = z.object({
   name: z.string().min(1).optional(),
-  type: z.enum(["SALARY", "WAGES", "FREELANCE", "OTHER"]).optional(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   receivingAccountId: z.string().uuid().optional(),
 }).strict();
@@ -391,6 +393,16 @@ export const MoveMoneyCommand = z.object({
   sourceCategoryId: z.string().uuid(),
   destinationCategoryId: z.string().uuid(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+}).strict();
+
+export const UserPreferencesSchema = z.object({
+  quickActionsCollapsed: z.boolean().default(false),
+  timezone: z.string().default("UTC"),
+}).strict();
+
+export const UpdateUserPreferencesCommand = z.object({
+  quickActionsCollapsed: z.boolean().optional(),
+  timezone: z.string().optional(),
 }).strict();
 
 export type TenantType = z.infer<typeof TenantSchema>;

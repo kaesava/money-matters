@@ -48,6 +48,18 @@ export async function createCategoryCommand(
       })
       .returning();
 
+    if (input.targetAmount && input.type === "GOAL") {
+      await tx.insert(categorySchedules).values({
+        categoryId: cat.id,
+        targetAmount: input.targetAmount,
+        targetDate: input.targetDate || null,
+        tenantId,
+        appId,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+    }
+
     return cat;
   });
 }

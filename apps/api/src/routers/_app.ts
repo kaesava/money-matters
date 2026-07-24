@@ -97,13 +97,14 @@ export const appRouter = router({
             eq(userPreferences.tenantId, ctx.tenantId!)
           )
         );
-      return pref || { quickActionsCollapsed: false };
+      return pref || { quickActionsCollapsed: false, timezone: "Australia/Sydney" };
     }),
 
   updateUserPreferences: tenantProcedure
     .input(
       z.object({
         quickActionsCollapsed: z.boolean().optional(),
+        timezone: z.string().optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
@@ -122,6 +123,7 @@ export const appRouter = router({
           .update(userPreferences)
           .set({
             quickActionsCollapsed: input.quickActionsCollapsed ?? existing.quickActionsCollapsed,
+            timezone: input.timezone ?? existing.timezone,
             updatedAt: new Date(),
           })
           .where(eq(userPreferences.id, existing.id))
@@ -134,6 +136,7 @@ export const appRouter = router({
             userId: ctx.userId!,
             tenantId: ctx.tenantId!,
             quickActionsCollapsed: input.quickActionsCollapsed ?? false,
+            timezone: input.timezone ?? "Australia/Sydney",
           })
           .returning();
         return inserted;
@@ -414,13 +417,21 @@ export const appRouter = router({
 
   // 4. Income Sources & Events
   createIncomeSource: tenantProcedure
-    .input(CreateIncomeSourceCommand)
+    .input(
+      z.object({
+        name: z.string().min(1),
+        amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+        receivingAccountId: z.string().uuid().optional(),
+        isRecurring: z.boolean().default(true),
+        startDate: z.string().optional(),
+        frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+      }).strict()
+    )
     .mutation(async ({ input, ctx }) => {
       const [source] = await ctx.db
         .insert(incomeSources)
         .values({
           name: input.name,
-          type: input.type,
           amount: input.amount,
           receivingAccountId: input.receivingAccountId || null,
           tenantId: ctx.tenantId!,
@@ -429,20 +440,68 @@ export const appRouter = router({
           updatedBy: ctx.userId!,
         })
         .returning();
+
+      if (input.isRecurring && input.startDate) {
+        let rrule = "FREQ=MONTHLY";
+        if (input.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
+        else if (input.frequency === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
+        else if (input.frequency === "ANNUALLY") rrule = "FREQ=YEARLY";
+
+        await ctx.db.insert(incomeSourceSchedules).values({
+          incomeSourceId: source.id,
+          rrule,
+          startDate: input.startDate,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        });
+
+        // Burst 12 months of upcoming income events
+        const dates = generateBurstDates(rrule, input.startDate, null, 12);
+        for (const d of dates) {
+          await ctx.db.insert(incomeEvents).values({
+            incomeSourceId: source.id,
+            expectedDate: d.toISOString().split("T")[0],
+            expectedAmount: input.amount,
+            status: "UPCOMING",
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          });
+        }
+      } else if (input.startDate) {
+        // One-off income event
+        await ctx.db.insert(incomeEvents).values({
+          incomeSourceId: source.id,
+          expectedDate: input.startDate,
+          expectedAmount: input.amount,
+          status: "UPCOMING",
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        });
+      }
+
       return source;
     }),
 
   updateIncomeSource: tenantProcedure
     .input(z.object({
       id: z.string().uuid(),
-      data: UpdateIncomeSourceCommand,
+      data: z.object({
+        name: z.string().min(1).optional(),
+        amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+        receivingAccountId: z.string().uuid().optional(),
+      }).strict(),
     }).strict())
     .mutation(async ({ input, ctx }) => {
       const [updated] = await ctx.db
         .update(incomeSources)
         .set({
           name: input.data.name,
-          type: input.data.type,
           amount: input.data.amount,
           receivingAccountId: input.data.receivingAccountId,
           updatedBy: ctx.userId!,
@@ -551,7 +610,6 @@ export const appRouter = router({
         .select({
           id: incomeSources.id,
           name: incomeSources.name,
-          type: incomeSources.type,
           amount: incomeSources.amount,
           receivingAccountId: incomeSources.receivingAccountId,
           scheduleId: incomeSourceSchedules.id,
@@ -621,7 +679,6 @@ export const appRouter = router({
           status: incomeEvents.status,
           incomeSourceId: incomeEvents.incomeSourceId,
           sourceName: incomeSources.name,
-          sourceType: incomeSources.type,
         })
         .from(incomeEvents)
         .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
@@ -642,7 +699,6 @@ export const appRouter = router({
         .select({
           id: expenseSources.id,
           name: expenseSources.name,
-          type: expenseSources.type,
           amount: expenseSources.amount,
           categoryId: expenseSources.categoryId,
           categoryName: categories.name,
@@ -667,9 +723,8 @@ export const appRouter = router({
     .input(
       z.object({
         name: z.string().min(1),
-        type: z.enum(["UTILITY", "SUBSCRIPTION", "RENT_MORTGAGE", "INSURANCE", "OTHER"]),
         amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-        categoryId: z.string().uuid().optional(),
+        categoryId: z.string().uuid(),
         isRecurring: z.boolean().default(true),
         startDate: z.string().optional(),
         frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
@@ -680,9 +735,8 @@ export const appRouter = router({
         .insert(expenseSources)
         .values({
           name: input.name,
-          type: input.type,
           amount: input.amount,
-          categoryId: input.categoryId || null,
+          categoryId: input.categoryId,
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -711,7 +765,7 @@ export const appRouter = router({
         for (const d of dates) {
           await ctx.db.insert(expenseEvents).values({
             expenseSourceId: source.id,
-            categoryId: input.categoryId || null,
+            categoryId: input.categoryId,
             name: input.name,
             expectedDate: d.toISOString().split("T")[0],
             expectedAmount: input.amount,
@@ -726,7 +780,7 @@ export const appRouter = router({
         // One-off expense event
         await ctx.db.insert(expenseEvents).values({
           expenseSourceId: source.id,
-          categoryId: input.categoryId || null,
+          categoryId: input.categoryId,
           name: input.name,
           expectedDate: input.startDate,
           expectedAmount: input.amount,
@@ -747,7 +801,6 @@ export const appRouter = router({
         id: z.string().uuid(),
         data: z.object({
           name: z.string().min(1).optional(),
-          type: z.enum(["UTILITY", "SUBSCRIPTION", "RENT_MORTGAGE", "INSURANCE", "OTHER"]).optional(),
           amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
           categoryId: z.string().uuid().optional(),
         }).strict(),
@@ -758,7 +811,6 @@ export const appRouter = router({
         .update(expenseSources)
         .set({
           name: input.data.name,
-          type: input.data.type,
           amount: input.data.amount,
           categoryId: input.data.categoryId,
           updatedBy: ctx.userId!,

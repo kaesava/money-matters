@@ -3,6 +3,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { authClient } from "../../../lib/auth";
+import { trpc } from "../../../lib/trpc";
 
 /** Settings page — profile info, manage links, sign out */
 export default function SettingsPage() {
@@ -20,6 +21,13 @@ export default function SettingsPage() {
   const initials = session?.user?.name
     ? session.user.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
     : "?";
+
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const updateUserPrefMut = trpc.updateUserPreferences.useMutation({
+    onSuccess: () => userPrefQuery.refetch(),
+  });
+
+  const currentTimezone = userPrefQuery.data?.timezone || "Australia/Sydney";
 
   return (
     <div className="flex flex-col gap-6 max-w-lg">
@@ -54,6 +62,40 @@ export default function SettingsPage() {
           </div>
         </section>
       )}
+
+      {/* User Preferences & Timezone Card */}
+      <section className="flex flex-col gap-2">
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+          Preferences & Timezone
+        </p>
+        <div
+          className="p-4 rounded-xl flex flex-col gap-3"
+          style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
+        >
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-zinc-700">Display Timezone</label>
+            <select
+              value={currentTimezone}
+              onChange={(e) => updateUserPrefMut.mutate({ timezone: e.target.value })}
+              className="px-3 py-2 text-xs font-bold rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+            >
+              <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
+              <option value="Australia/Melbourne">Australia/Melbourne (AEST/AEDT)</option>
+              <option value="Australia/Brisbane">Australia/Brisbane (AEST)</option>
+              <option value="Australia/Adelaide">Australia/Adelaide (ACST)</option>
+              <option value="Australia/Perth">Australia/Perth (AWST)</option>
+              <option value="Pacific/Auckland">Pacific/Auckland (NZST)</option>
+              <option value="America/New_York">America/New_York (EST/EDT)</option>
+              <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+              <option value="Europe/London">Europe/London (GMT/BST)</option>
+              <option value="UTC">Coordinated Universal Time (UTC)</option>
+            </select>
+            <p className="text-[10px] text-zinc-400 mt-0.5">
+              All dates and times are stored in UTC in the database and formatted in your local timezone.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Manage section */}
       <section className="flex flex-col gap-2">

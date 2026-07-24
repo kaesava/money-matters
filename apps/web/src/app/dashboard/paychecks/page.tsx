@@ -1,12 +1,9 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { trpc } from "../../../lib/trpc";
-import { DashboardError } from "../../../components/web/DashboardError";
-
-type IncomeType = "SALARY" | "WAGES" | "FREELANCE" | "OTHER";
-type ExpenseType = "UTILITY" | "SUBSCRIPTION" | "RENT_MORTGAGE" | "INSURANCE" | "OTHER";
+import { FilterBar } from "../../../components/web/FilterBar";
+import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
+import { SourceBurstDetailModal } from "../../../components/web/SourceBurstDetailModal";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -14,445 +11,324 @@ function fmt(val: string | number) {
 }
 
 export default function IncomeAndExpensesPage() {
-  const router = useRouter();
-
-  // Active Tab / Form Modal State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
-  const [editingItem, setEditingItem] = useState<any>(null);
-
-  // Form Fields
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [incomeType, setIncomeType] = useState<IncomeType>("SALARY");
-  const [expenseType, setExpenseType] = useState<ExpenseType>("OTHER");
-  const [categoryId, setCategoryId] = useState("");
-  const [isRecurring, setIsRecurring] = useState(true);
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("FORTNIGHTLY");
-
-  // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const sourcesQuery = trpc.listIncomeSources.useQuery();
+  const utils = trpc.useUtils();
+  const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
   const categoriesQuery = trpc.listCategories.useQuery();
 
-  const createIncomeSourceMutation = trpc.createIncomeSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      sourcesQuery.refetch();
-    },
-  });
-
-  const createExpenseSourceMutation = trpc.createExpenseSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      expenseSourcesQuery.refetch();
-    },
-  });
-
-  const updateIncomeSourceMutation = trpc.updateIncomeSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      sourcesQuery.refetch();
-    },
-  });
-
-  const updateExpenseSourceMutation = trpc.updateExpenseSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      expenseSourcesQuery.refetch();
-    },
-  });
-
-  const archiveIncomeSourceMutation = trpc.archiveIncomeSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      sourcesQuery.refetch();
-    },
-  });
-
-  const archiveExpenseSourceMutation = trpc.archiveExpenseSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      expenseSourcesQuery.refetch();
-    },
-  });
-
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        resetForm();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  const resetForm = () => {
-    setShowAddModal(false);
-    setEditingItem(null);
-    setName("");
-    setAmount("");
-    setIncomeType("SALARY");
-    setExpenseType("OTHER");
-    setCategoryId("");
-    setIsRecurring(true);
-    setStartDate(new Date().toISOString().split("T")[0]);
-    setFrequency("FORTNIGHTLY");
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !amount || parseFloat(amount) <= 0) return;
-
-    if (modalMode === "INCOME") {
-      if (editingItem) {
-        updateIncomeSourceMutation.mutate({
-          id: editingItem.id,
-          data: {
-            name: name.trim(),
-            type: incomeType,
-            amount: parseFloat(amount).toFixed(2),
-          },
-        });
-      } else {
-        createIncomeSourceMutation.mutate({
-          name: name.trim(),
-          type: incomeType,
-          amount: parseFloat(amount).toFixed(2),
-        });
-      }
-    } else {
-      if (editingItem) {
-        updateExpenseSourceMutation.mutate({
-          id: editingItem.id,
-          data: {
-            name: name.trim(),
-            type: expenseType,
-            amount: parseFloat(amount).toFixed(2),
-            categoryId: categoryId || undefined,
-          },
-        });
-      } else {
-        createExpenseSourceMutation.mutate({
-          name: name.trim(),
-          type: expenseType,
-          amount: parseFloat(amount).toFixed(2),
-          categoryId: categoryId || undefined,
-          isRecurring,
-          startDate,
-          frequency,
-        });
-      }
-    }
-  };
-
-  const handleEditClick = (item: any, mode: "INCOME" | "EXPENSE") => {
-    setModalMode(mode);
-    setEditingItem(item);
-    setName(item.name);
-    setAmount(parseFloat(item.amount).toFixed(2));
-    if (mode === "INCOME") {
-      setIncomeType(item.type);
-    } else {
-      setExpenseType(item.type);
-      setCategoryId(item.categoryId || "");
-    }
-    setIsRecurring(!!item.rrule);
-    if (item.startDate) setStartDate(item.startDate.split("T")[0]);
-    setShowAddModal(true);
-  };
-
-  const handleDeleteClick = (id: string, mode: "INCOME" | "EXPENSE") => {
-    if (!confirm(`Are you sure you want to archive this ${mode.toLowerCase()} source?`)) return;
-    if (mode === "INCOME") {
-      archiveIncomeSourceMutation.mutate({ id });
-    } else {
-      archiveExpenseSourceMutation.mutate({ id });
-    }
-  };
-
-  let incomeSourcesList = sourcesQuery.data ?? [];
-  let expenseSourcesList = expenseSourcesQuery.data ?? [];
-
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase();
-    incomeSourcesList = incomeSourcesList.filter((s) => s.name.toLowerCase().includes(q) || s.type.toLowerCase().includes(q));
-    expenseSourcesList = expenseSourcesList.filter((s) => s.name.toLowerCase().includes(q) || s.type.toLowerCase().includes(q));
-  }
-
+  const incomeSources = incomeSourcesQuery.data ?? [];
+  const expenseSources = expenseSourcesQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
 
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [recurrenceFilter, setRecurrenceFilter] = useState("ALL");
+
+  // Modals State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
+  const [sourceToEdit, setSourceToEdit] = useState<any>(null);
+
+  // Burst Detail Hyperlink Modal State
+  const [burstModalOpen, setBurstModalOpen] = useState(false);
+  const [burstModalMode, setBurstModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
+  const [burstSourceId, setBurstSourceId] = useState<string | null>(null);
+  const [burstSourceName, setBurstSourceName] = useState("");
+  const [burstSourceAmount, setBurstSourceAmount] = useState("");
+  const [burstCategoryName, setBurstCategoryName] = useState("");
+
+  // Mutations
+  const archiveIncomeMut = trpc.archiveIncomeSource.useMutation({
+    onSuccess: () => {
+      utils.listIncomeSources.invalidate();
+      utils.listIncomeEvents.invalidate();
+    },
+  });
+
+  const archiveExpenseMut = trpc.archiveExpenseSource.useMutation({
+    onSuccess: () => {
+      utils.listExpenseSources.invalidate();
+      utils.listExpenseEvents.invalidate();
+    },
+  });
+
+  const handleArchiveIncome = async (inc: any) => {
+    if (confirm(`Are you sure you want to archive income source "${inc.name}"?`)) {
+      try {
+        await archiveIncomeMut.mutateAsync({ id: inc.id });
+      } catch (err: any) {
+        alert(err.message || "Failed to archive income source.");
+      }
+    }
+  };
+
+  const handleArchiveExpense = async (exp: any) => {
+    if (confirm(`Are you sure you want to archive expense source "${exp.name}"?`)) {
+      try {
+        await archiveExpenseMut.mutateAsync({ id: exp.id });
+      } catch (err: any) {
+        alert(err.message || "Failed to archive expense source.");
+      }
+    }
+  };
+
+  // Filter Logic
+  const filteredIncome = incomeSources.filter((i) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (q && !i.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const filteredExpense = expenseSources.filter((e) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (q && !e.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
   return (
-    <div className="flex flex-col gap-8 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
+      {/* Header & Main Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#1B2B4B]">Income & Expenses</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">Configure recurring and one-off income sources and bills</p>
+          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Income & Expenses</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-0.5">
+            Configure recurring paychecks, bonuses, utility bills, and fixed obligations.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { resetForm(); setModalMode("INCOME"); setShowAddModal(true); }}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
+            type="button"
+            onClick={() => {
+              setModalMode("INCOME");
+              setSourceToEdit(null);
+              setIsModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all flex items-center gap-2 shadow-sm"
           >
-            + Add Income Source
+            <span>💰</span>
+            <span>Add Income Source</span>
           </button>
+
           <button
-            onClick={() => { resetForm(); setModalMode("EXPENSE"); setShowAddModal(true); }}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#1B2B4B] hover:opacity-90 transition-all shadow-sm"
+            type="button"
+            onClick={() => {
+              setModalMode("EXPENSE");
+              setSourceToEdit(null);
+              setIsModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
           >
-            + Add Expense Source
+            <span>💸</span>
+            <span>Add Expense Bill</span>
           </button>
         </div>
       </div>
 
-      {/* Search Input */}
-      <div className="p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm flex items-center justify-between">
-        <input
-          type="text"
-          placeholder="Search income and expense sources..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full max-w-md px-4 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-        />
-      </div>
+      {/* Filter Bar */}
+      <FilterBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search income deposit or bill name..."
+        onClearAll={() => setSearchQuery("")}
+      />
 
-      {/* Split Tables Container */}
+      {/* Split Side-by-Side Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Table 1: Income Sources */}
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 bg-zinc-50/50 border-b border-zinc-100 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-[#1B2B4B] flex items-center gap-2">
-              <span>💵</span> Income Sources
-            </h2>
-            <span className="text-xs font-semibold text-zinc-400">{incomeSourcesList.length} total</span>
+        {/* Income Sources Table */}
+        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-6 py-4 bg-emerald-50/50 border-b border-zinc-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">💵</span>
+              <h3 className="text-sm font-black text-[#1B2B4B]">Income Sources ({filteredIncome.length})</h3>
+            </div>
+            <span className="text-[10px] font-extrabold uppercase text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+              Inflows
+            </span>
           </div>
 
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-zinc-100 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Expected Amount</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 font-semibold">
-              {incomeSourcesList.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-zinc-400">No income sources configured.</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                  <th className="px-5 py-3.5">Deposit Name</th>
+                  <th className="px-5 py-3.5">Expected Amount</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
-              ) : (
-                incomeSourcesList.map((src) => (
-                  <tr key={src.id} className="hover:bg-zinc-50/50 transition-colors">
-                    <td className="px-4 py-3 text-[#1B2B4B] font-bold">{src.name}</td>
-                    <td className="px-4 py-3 text-zinc-500">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800">
-                        {src.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-emerald-600 font-bold">+{fmt(src.amount)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleEditClick(src, "INCOME")} className="text-zinc-400 hover:text-[#1B2B4B]">Edit</button>
-                        <button onClick={() => handleDeleteClick(src.id, "INCOME")} className="text-rose-400 hover:text-rose-600">Archive</button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {filteredIncome.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
+                      No income sources configured.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredIncome.map((inc) => (
+                    <tr key={inc.id} className="hover:bg-zinc-50/50 transition-colors font-semibold">
+                      <td className="px-5 py-3.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBurstModalMode("INCOME");
+                            setBurstSourceId(inc.id);
+                            setBurstSourceName(inc.name);
+                            setBurstSourceAmount(inc.amount);
+                            setBurstCategoryName("");
+                            setBurstModalOpen(true);
+                          }}
+                          className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
+                        >
+                          {inc.name}
+                        </button>
+                      </td>
+                      <td className="px-5 py-3.5 font-mono font-extrabold text-emerald-600">
+                        {fmt(inc.amount)}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalMode("INCOME");
+                              setSourceToEdit(inc);
+                              setIsModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleArchiveIncome(inc)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
+                          >
+                            Archive
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Table 2: Expense Sources */}
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 bg-zinc-50/50 border-b border-zinc-100 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-[#1B2B4B] flex items-center gap-2">
-              <span>📄</span> Expense Sources (Bills)
-            </h2>
-            <span className="text-xs font-semibold text-zinc-400">{expenseSourcesList.length} total</span>
+        {/* Expense Sources Table */}
+        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-6 py-4 bg-teal-50/50 border-b border-zinc-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">💳</span>
+              <h3 className="text-sm font-black text-[#1B2B4B]">Expense Bills ({filteredExpense.length})</h3>
+            </div>
+            <span className="text-[10px] font-extrabold uppercase text-[#00B4A6] bg-teal-100 px-2 py-0.5 rounded-full">
+              Mandatory Category Outflows
+            </span>
           </div>
 
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-zinc-100 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 font-semibold">
-              {expenseSourcesList.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-zinc-400">No expense sources configured.</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                  <th className="px-5 py-3.5">Bill Name</th>
+                  <th className="px-5 py-3.5">Category</th>
+                  <th className="px-5 py-3.5">Amount</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
-              ) : (
-                expenseSourcesList.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-zinc-50/50 transition-colors">
-                    <td className="px-4 py-3 text-[#1B2B4B] font-bold">{exp.name}</td>
-                    <td className="px-4 py-3 text-zinc-500">{exp.categoryName || "Uncategorized"}</td>
-                    <td className="px-4 py-3 font-mono text-[#1B2B4B] font-bold">-{fmt(exp.amount)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleEditClick(exp, "EXPENSE")} className="text-zinc-400 hover:text-[#1B2B4B]">Edit</button>
-                        <button onClick={() => handleDeleteClick(exp.id, "EXPENSE")} className="text-rose-400 hover:text-rose-600">Archive</button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {filteredExpense.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
+                      No expense bills configured.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredExpense.map((exp) => {
+                    const cat = categories.find((c) => c.id === exp.categoryId);
+                    return (
+                      <tr key={exp.id} className="hover:bg-zinc-50/50 transition-colors font-semibold">
+                        <td className="px-5 py-3.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBurstModalMode("EXPENSE");
+                              setBurstSourceId(exp.id);
+                              setBurstSourceName(exp.name);
+                              setBurstSourceAmount(exp.amount);
+                              setBurstCategoryName(cat?.name || "Category");
+                              setBurstModalOpen(true);
+                            }}
+                            className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
+                          >
+                            {exp.name}
+                          </button>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700">
+                            {cat?.name || "Unassigned"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 font-mono font-extrabold text-[#1B2B4B]">
+                          {fmt(exp.amount)}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModalMode("EXPENSE");
+                                setSourceToEdit(exp);
+                                setIsModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleArchiveExpense(exp)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
+                            >
+                              Archive
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* Add / Edit Form Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={resetForm} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#1B2B4B]">
-                {editingItem ? `Edit ${modalMode === "INCOME" ? "Income" : "Expense"} Source` : `New ${modalMode === "INCOME" ? "Income" : "Expense"} Source`}
-              </h2>
-              <button onClick={resetForm} className="text-zinc-400 font-bold p-1">✕</button>
-            </div>
+      {/* Shared Add/Edit Income and Expense Modal */}
+      <IncomeExpenseFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        mode={modalMode}
+        sourceToEdit={sourceToEdit}
+        onSuccess={() => {
+          utils.listIncomeSources.invalidate();
+          utils.listExpenseSources.invalidate();
+          utils.listIncomeEvents.invalidate();
+          utils.listExpenseEvents.invalidate();
+        }}
+      />
 
-            <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder={modalMode === "INCOME" ? "e.g. Primary Salary" : "e.g. Electricity Bill"}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                />
-              </div>
-
-              {modalMode === "INCOME" ? (
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Income Type</label>
-                  <select
-                    value={incomeType}
-                    onChange={(e) => setIncomeType(e.target.value as any)}
-                    className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                  >
-                    <option value="SALARY">Salary</option>
-                    <option value="WAGES">Wages</option>
-                    <option value="FREELANCE">Freelance</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Expense Type</label>
-                    <select
-                      value={expenseType}
-                      onChange={(e) => setExpenseType(e.target.value as any)}
-                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                    >
-                      <option value="UTILITY">Utility</option>
-                      <option value="SUBSCRIPTION">Subscription</option>
-                      <option value="RENT_MORTGAGE">Rent / Mortgage</option>
-                      <option value="INSURANCE">Insurance</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Linked Category</label>
-                    <select
-                      value={categoryId}
-                      onChange={(e) => setCategoryId(e.target.value)}
-                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                    >
-                      <option value="">Select Category...</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Amount ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                />
-              </div>
-
-              {!editingItem && (
-                <>
-                  <div className="flex items-center gap-2 py-1">
-                    <input
-                      type="checkbox"
-                      id="isRecurring"
-                      checked={isRecurring}
-                      onChange={(e) => setIsRecurring(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#00B4A6] focus:ring-[#00B4A6]"
-                    />
-                    <label htmlFor="isRecurring" className="text-xs font-bold text-zinc-600 select-none">
-                      Is this a recurring deposit/bill?
-                    </label>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                      {isRecurring ? "Start Date" : "Event Date"}
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                    />
-                  </div>
-
-                  {isRecurring && (
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Frequency</label>
-                      <select
-                        value={frequency}
-                        onChange={(e) => setFrequency(e.target.value as any)}
-                        className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                      >
-                        <option value="WEEKLY">Weekly</option>
-                        <option value="FORTNIGHTLY">Fortnightly</option>
-                        <option value="MONTHLY">Monthly</option>
-                        <option value="ANNUALLY">Annually</option>
-                      </select>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <button
-                type="submit"
-                className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
-              >
-                {editingItem ? "Save Changes" : `Save ${modalMode === "INCOME" ? "Income" : "Expense"} Source`}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Burst Detail Hyperlink Modal */}
+      <SourceBurstDetailModal
+        isOpen={burstModalOpen}
+        onClose={() => setBurstModalOpen(false)}
+        mode={burstModalMode}
+        sourceId={burstSourceId}
+        sourceName={burstSourceName}
+        sourceAmount={burstSourceAmount}
+        categoryName={burstCategoryName}
+      />
     </div>
   );
 }

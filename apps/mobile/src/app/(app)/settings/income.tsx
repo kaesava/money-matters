@@ -64,7 +64,6 @@ export default function SettingsIncomeScreen() {
 
       const source = await createSource.mutateAsync({
         name: name.trim(),
-        type,
         amount: numericAmount.toFixed(2),
       });
 
@@ -136,7 +135,7 @@ export default function SettingsIncomeScreen() {
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{item.name}</Text>
                     <Text style={styles.rowMeta}>
-                      {item.type} • ${parseFloat(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ${parseFloat(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </Text>
                   </View>
                   <TouchableOpacity

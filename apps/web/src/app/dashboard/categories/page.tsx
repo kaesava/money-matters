@@ -1,11 +1,13 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState } from "react";
 import { trpc } from "../../../lib/trpc";
-import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
 import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
-import { DashboardError } from "../../../components/web/DashboardError";
+import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
+import { FilterBar } from "../../../components/web/FilterBar";
+import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
+
+type SortField = "name" | "type" | "balance" | "health";
+type SortDir = "asc" | "desc";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -13,274 +15,194 @@ function fmt(val: string | number) {
 }
 
 export default function CategoriesPage() {
-  const searchParams = useSearchParams();
-  const initialHealthFilter = searchParams.get("health") || "ALL";
-
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showMoveModal, setShowMoveModal] = useState(false);
-
-  // Filters & Search State
-  const [healthFilter, setHealthFilter] = useState<string>(initialHealthFilter);
-  const [typeFilter, setTypeFilter] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Sort State
-  const [sortField, setSortField] = useState<"name" | "type" | "balance" | "health">("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-
-  // New Category Form
-  const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState<"REGULAR" | "GOAL">("REGULAR");
-  const [newMonthlyAmount, setNewMonthlyAmount] = useState("");
-  const [newTargetAmount, setNewTargetAmount] = useState("");
-  const [newTargetDate, setNewTargetDate] = useState("");
-  const [creating, setCreating] = useState(false);
-
-  // Edit Category State
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editTarget, setEditTarget] = useState("");
-  const [editTargetDate, setEditTargetDate] = useState("");
-  const [editCategoryType, setEditCategoryType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
-  const [editRolloverRule, setEditRolloverRule] = useState<"ROLLOVER" | "SWEEP" | "RESET">("ROLLOVER");
-  const [editIsDefaultSavings, setEditIsDefaultSavings] = useState(false);
-  const [editEverydayTargetKeepAmount, setEditEverydayTargetKeepAmount] = useState("");
-  const [editEverydaySweepFrequency, setEditEverydaySweepFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY">("MONTHLY");
-  const [saving, setSaving] = useState(false);
-
+  const utils = trpc.useUtils();
   const categoriesQuery = trpc.listCategories.useQuery();
-  const createCategory = trpc.createCategory.useMutation();
-  const updateCategory = trpc.updateCategory.useMutation();
-  const createCategorySchedule = trpc.createCategorySchedule.useMutation();
-  const archiveCategory = trpc.archiveCategory.useMutation();
-
-  // Escape key global shortcut
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setShowCreateModal(false);
-        setShowMoveModal(false);
-        setEditingId(null);
-        setSelectedCategoryId(null);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   const categories = categoriesQuery.data ?? [];
 
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim()) return;
-    setCreating(true);
-    try {
-      const newCat = await createCategory.mutateAsync({
-        name: newName.trim(),
-        type: newType,
-        monthlyAmount: newType === "REGULAR" && newMonthlyAmount ? parseFloat(newMonthlyAmount).toFixed(2) : undefined,
-      });
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [healthFilter, setHealthFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
 
-      if (newType === "GOAL" && newTargetAmount) {
-        await createCategorySchedule.mutateAsync({
-          categoryId: newCat.id,
-          targetAmount: parseFloat(newTargetAmount).toFixed(2),
-          targetDate: newTargetDate || undefined,
-        });
-      }
+  // Sort State
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-      setNewName("");
-      setNewMonthlyAmount("");
-      setNewTargetAmount("");
-      setNewTargetDate("");
-      setShowCreateModal(false);
-      categoriesQuery.refetch();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCreating(false);
-    }
-  };
+  // Selection & Modals
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<any>(null);
+  const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
 
-  const handleSaveCategoryDetails = async (catId: string) => {
-    setSaving(true);
-    try {
-      await updateCategory.mutateAsync({
-        categoryId: catId,
-        data: {
-          name: editName,
-          type: editCategoryType,
-          rolloverRule: editRolloverRule,
-          isDefaultSavings: editIsDefaultSavings,
-          everydayTargetKeepAmount: editCategoryType === "EVERYDAY" && editEverydayTargetKeepAmount ? parseFloat(editEverydayTargetKeepAmount).toFixed(2) : undefined,
-          everydaySweepFrequency: editCategoryType === "EVERYDAY" ? editEverydaySweepFrequency : undefined,
-        },
-      });
-
-      if (editTarget && editTarget !== "0.00" && editCategoryType !== "EVERYDAY") {
-        await createCategorySchedule.mutateAsync({
-          categoryId: catId,
-          targetAmount: parseFloat(editTarget || "0").toFixed(2),
-          targetDate: editTargetDate || undefined,
-        });
-      }
-
-      setEditingId(null);
-      categoriesQuery.refetch();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleStartEdit = (cat: any) => {
-    setEditingId(cat.id);
-    setEditName(cat.name);
-    setEditTarget(cat.targetAmount ? parseFloat(cat.targetAmount).toFixed(2) : "0.00");
-    setEditTargetDate(cat.targetDate ? cat.targetDate.split("T")[0] : "");
-    setEditCategoryType(cat.type);
-    setEditRolloverRule(cat.rolloverRule || "ROLLOVER");
-    setEditIsDefaultSavings(cat.isDefaultSavings || false);
-    setEditEverydayTargetKeepAmount(cat.everydayTargetKeepAmount ? parseFloat(cat.everydayTargetKeepAmount).toFixed(2) : "");
-    setEditEverydaySweepFrequency(cat.everydaySweepFrequency || "MONTHLY");
-  };
-
-  const handleArchiveCategory = async (catId: string) => {
-    if (!confirm("Are you sure you want to archive this category?")) return;
-    try {
-      await archiveCategory.mutateAsync({ categoryId: catId });
-      categoriesQuery.refetch();
-    } catch (err: any) {
-      alert(err?.message || "Failed to archive category.");
-    }
-  };
-
-  // Filter categories
-  let filtered = [...categories];
-
-  if (healthFilter !== "ALL") {
-    filtered = filtered.filter((c) => c.healthStatus === healthFilter);
-  }
-
-  if (typeFilter !== "ALL") {
-    filtered = filtered.filter((c) => c.type === typeFilter);
-  }
-
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase();
-    filtered = filtered.filter((c) => c.name.toLowerCase().includes(q));
-  }
-
-  // Sort categories
-  filtered.sort((a, b) => {
-    let comp = 0;
-    if (sortField === "name") comp = a.name.localeCompare(b.name);
-    else if (sortField === "type") comp = a.type.localeCompare(b.type);
-    else if (sortField === "balance") comp = parseFloat(a.currentBalance) - parseFloat(b.currentBalance);
-    else if (sortField === "health") comp = a.healthStatus.localeCompare(b.healthStatus);
-
-    return sortDir === "asc" ? comp : -comp;
+  // Mutations
+  const archiveCategoryMut = trpc.archiveCategory.useMutation({
+    onSuccess: () => {
+      utils.listCategories.invalidate();
+      utils.listCategories.invalidate();
+    },
   });
 
-  const toggleSort = (field: "name" | "type" | "balance" | "health") => {
+  const handleArchive = async (cat: any) => {
+    if (cat.type === "EVERYDAY") {
+      alert("The Everyday category cannot be archived or deleted.");
+      return;
+    }
+    if (confirm(`Are you sure you want to archive "${cat.name}"?`)) {
+      try {
+        await archiveCategoryMut.mutateAsync({ categoryId: cat.id });
+      } catch (err: any) {
+        alert(err.message || "Failed to archive category.");
+      }
+    }
+  };
+
+  const toggleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
       setSortDir("asc");
     }
   };
 
+  // Filter & Sort Logic
+  const filtered = categories.filter((c) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (q && !c.name.toLowerCase().includes(q)) return false;
+    if (healthFilter !== "ALL" && c.healthStatus !== healthFilter) return false;
+    if (typeFilter !== "ALL" && c.type !== typeFilter) return false;
+    return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    let comparison = 0;
+    if (sortField === "name") {
+      comparison = a.name.localeCompare(b.name);
+    } else if (sortField === "type") {
+      comparison = a.type.localeCompare(b.type);
+    } else if (sortField === "balance") {
+      comparison = parseFloat(a.currentBalance) - parseFloat(b.currentBalance);
+    } else if (sortField === "health") {
+      const order = { RED: 0, AMBER: 1, GREEN: 2 };
+      comparison = (order[a.healthStatus as keyof typeof order] ?? 1) - (order[b.healthStatus as keyof typeof order] ?? 1);
+    }
+    return sortDir === "asc" ? comparison : -comparison;
+  });
+
+  // Summary Metrics
+  const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
+  const atRiskCount = categories.filter((c) => c.healthStatus === "AMBER" || c.healthStatus === "RED").length;
+
   return (
-    <div className="flex flex-col gap-8 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
+      {/* Header & Main Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#1B2B4B]">Categories</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">Manage Regular Bills, Save Toward targets, and Everyday pool</p>
+          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Categories & Savings Pools</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-0.5">
+            Manage your Everyday pool, Regular Bills, and Save Toward target pools.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowMoveModal(true)}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm flex items-center gap-1.5"
+            type="button"
+            onClick={() => setIsMoveMoneyOpen(true)}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-teal-50 text-[#00B4A6] hover:bg-teal-100 border border-teal-200 transition-all flex items-center gap-2 shadow-sm"
           >
-            <span>🔄</span> Move Money
+            <span>↔️</span>
+            <span>Move Money</span>
           </button>
-
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#1B2B4B] hover:opacity-90 transition-all shadow-sm"
+            type="button"
+            onClick={() => {
+              setCategoryToEdit(null);
+              setIsFormModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
           >
-            + Create Category
+            <span>➕</span>
+            <span>New Category</span>
           </button>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="Search categories..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="px-4 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-        />
-
-        {/* Filter Groups */}
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Health Filter */}
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
-            <span className="text-[10px] font-extrabold text-zinc-400 uppercase px-2">Health:</span>
-            {[
-              { id: "ALL", label: "All" },
-              { id: "GREEN", label: "On Track 🟢" },
-              { id: "AMBER", label: "At Risk 🟠" },
-              { id: "RED", label: "Missed 🔴" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setHealthFilter(f.id)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-                  healthFilter === f.id ? "bg-white text-[#1B2B4B] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+      {/* Top Health Counters */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 bg-white rounded-2xl border border-zinc-100 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Total Categories</p>
+            <p className="text-2xl font-black text-[#1B2B4B] mt-0.5">{categories.length}</p>
           </div>
+          <span className="text-2xl">📁</span>
+        </div>
 
-          {/* Type Filter */}
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
-            <span className="text-[10px] font-extrabold text-zinc-400 uppercase px-2">Type:</span>
-            {[
+        <div
+          onClick={() => setHealthFilter("GREEN")}
+          className="p-4 bg-white rounded-2xl border border-emerald-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-all"
+        >
+          <div>
+            <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">On Track (Green)</p>
+            <p className="text-2xl font-black text-emerald-600 mt-0.5">{onTrackCount}</p>
+          </div>
+          <span className="text-2xl">✅</span>
+        </div>
+
+        <div
+          onClick={() => setHealthFilter("AMBER")}
+          className="p-4 bg-white rounded-2xl border border-amber-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-amber-300 transition-all"
+        >
+          <div>
+            <p className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">At Risk / Missed</p>
+            <p className="text-2xl font-black text-amber-600 mt-0.5">{atRiskCount}</p>
+          </div>
+          <span className="text-2xl">⚠️</span>
+        </div>
+      </div>
+
+      {/* Consistent Filter Bar */}
+      <FilterBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search category name..."
+        filterGroups={[
+          {
+            label: "Health",
+            value: healthFilter,
+            onChange: setHealthFilter,
+            defaultValue: "ALL",
+            options: [
+              { id: "ALL", label: "All" },
+              { id: "GREEN", label: "On Track" },
+              { id: "AMBER", label: "At Risk" },
+              { id: "RED", label: "Missed" },
+            ],
+          },
+          {
+            label: "Type",
+            value: typeFilter,
+            onChange: setTypeFilter,
+            defaultValue: "ALL",
+            options: [
               { id: "ALL", label: "All" },
               { id: "GOAL", label: "Save Toward" },
               { id: "REGULAR", label: "Regular Bills" },
               { id: "EVERYDAY", label: "Everyday" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setTypeFilter(f.id)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-                  typeFilter === f.id ? "bg-white text-[#1B2B4B] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+            ],
+          },
+        ]}
+        onClearAll={() => {
+          setSearchQuery("");
+          setHealthFilter("ALL");
+          setTypeFilter("ALL");
+        }}
+      />
 
       {/* Categories Table */}
-      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-zinc-100 bg-zinc-50/50 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
+            <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
               <th onClick={() => toggleSort("name")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Category Name {sortField === "name" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
@@ -290,7 +212,7 @@ export default function CategoriesPage() {
               <th onClick={() => toggleSort("balance")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Current Balance {sortField === "balance" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
-              <th className="px-6 py-4">Target / Limit</th>
+              <th className="px-6 py-4">Target / Keep Limit</th>
               <th onClick={() => toggleSort("health")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Funding Health {sortField === "health" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
@@ -298,52 +220,42 @@ export default function CategoriesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-xs text-zinc-400">
+                <td colSpan={6} className="px-6 py-8 text-center text-xs text-zinc-400 font-medium">
                   No matching categories found.
                 </td>
               </tr>
             ) : (
-              filtered.map((cat) => {
-                const isEditing = editingId === cat.id;
+              sorted.map((cat) => {
                 const balanceVal = parseFloat(cat.currentBalance);
                 const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
                 const pct = targetVal > 0 ? Math.min(100, Math.round((balanceVal / targetVal) * 100)) : 100;
-
                 const healthColor =
                   cat.healthStatus === "GREEN" ? "#22C55E" : cat.healthStatus === "AMBER" ? "#F59E0B" : "#EF4444";
 
                 return (
                   <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
-                    {/* Name / Hyperlink */}
+                    {/* Category Name (Clickable Hyperlink) */}
                     <td className="px-6 py-4">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="px-2 py-1 border border-zinc-200 rounded-lg text-xs"
-                        />
-                      ) : (
-                        <button
-                          onClick={() => setSelectedCategoryId(cat.id)}
-                          className="text-[#00B4A6] hover:underline font-bold text-left"
-                        >
-                          {cat.name}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategoryId(cat.id)}
+                        className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
+                      >
+                        {cat.name}
+                      </button>
                     </td>
 
                     {/* Type */}
                     <td className="px-6 py-4 text-zinc-500">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-700">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-700 uppercase">
                         {cat.type === "GOAL" ? "Save Toward" : cat.type === "REGULAR" ? "Regular Bill" : "Everyday"}
                       </span>
                     </td>
 
                     {/* Balance */}
-                    <td className="px-6 py-4 font-mono font-bold text-[#1B2B4B]">{fmt(balanceVal)}</td>
+                    <td className="px-6 py-4 font-mono font-extrabold text-[#1B2B4B]">{fmt(balanceVal)}</td>
 
                     {/* Target / Keep Limit */}
                     <td className="px-6 py-4 font-mono text-zinc-600">
@@ -362,46 +274,33 @@ export default function CategoriesPage() {
                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: healthColor }} />
                         </div>
-                        <span className="text-[10px] font-bold text-zinc-500">{pct}% ({cat.healthStatus})</span>
+                        <span className="text-[10px] font-extrabold text-zinc-500">{pct}% ({cat.healthStatus})</span>
                       </div>
                     </td>
 
-                    {/* Actions */}
+                    {/* Actions: Edit Modal & Archive */}
                     <td className="px-6 py-4 text-right">
-                      {isEditing ? (
-                        <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategoryToEdit(cat);
+                            setIsFormModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                        >
+                          Edit
+                        </button>
+                        {cat.type !== "EVERYDAY" && (
                           <button
-                            onClick={() => handleSaveCategoryDetails(cat.id)}
-                            disabled={saving}
-                            className="px-2.5 py-1 bg-[#00B4A6] text-white rounded-lg text-xs font-bold"
+                            type="button"
+                            onClick={() => handleArchive(cat)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
                           >
-                            Save
+                            Archive
                           </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="px-2.5 py-1 bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleStartEdit(cat)}
-                            className="text-xs font-bold text-zinc-400 hover:text-[#1B2B4B]"
-                          >
-                            Edit
-                          </button>
-                          {cat.type !== "EVERYDAY" && (
-                            <button
-                              onClick={() => handleArchiveCategory(cat.id)}
-                              className="text-xs font-bold text-rose-400 hover:text-rose-600"
-                            >
-                              Archive
-                            </button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -413,95 +312,24 @@ export default function CategoriesPage() {
 
       {/* Shared Move Money Modal */}
       <MoveMoneyModal
-        isOpen={showMoveModal}
-        onClose={() => setShowMoveModal(false)}
-        onSuccess={() => categoriesQuery.refetch()}
+        isOpen={isMoveMoneyOpen}
+        onClose={() => setIsMoveMoneyOpen(false)}
+        onSuccess={() => {
+          utils.listCategories.invalidate();
+          utils.listCategories.invalidate();
+        }}
       />
 
-      {/* Create Category Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#1B2B4B]">Create New Category</h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-zinc-400 font-bold p-1">✕</button>
-            </div>
-
-            <form onSubmit={handleCreateCategory} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Category Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Car Insurance"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Category Type</label>
-                <select
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value as any)}
-                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                >
-                  <option value="REGULAR">Regular Bill (Recurring obligation)</option>
-                  <option value="GOAL">Save Toward (Target savings pool)</option>
-                </select>
-                <span className="text-[10px] text-zinc-400 mt-1">Note: Additional Everyday categories cannot be created.</span>
-              </div>
-
-              {newType === "REGULAR" ? (
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Monthly Amount ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={newMonthlyAmount}
-                    onChange={(e) => setNewMonthlyAmount(e.target.value)}
-                    className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                  />
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Target ($)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={newTargetAmount}
-                      onChange={(e) => setNewTargetAmount(e.target.value)}
-                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Target Date</label>
-                    <input
-                      type="date"
-                      value={newTargetDate}
-                      onChange={(e) => setNewTargetDate(e.target.value)}
-                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={creating}
-                className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
-              >
-                {creating ? "Creating..." : "Save Category"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Unified Add/Edit Category Modal */}
+      <CategoryFormModal
+        isOpen={isFormModalOpen}
+        onClose={() => setIsFormModalOpen(false)}
+        categoryToEdit={categoryToEdit}
+        onSuccess={() => {
+          utils.listCategories.invalidate();
+          utils.listCategories.invalidate();
+        }}
+      />
 
       {/* Category Detail Drawer */}
       <CategoryDetailDrawer

@@ -1,4 +1,4 @@
-import { db, categories } from "@money-matters/db";
+import { db, categories, categorySchedules } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -51,6 +51,41 @@ export async function updateCategoryCommand(
         )
       )
       .returning();
+
+    if (input.targetAmount !== undefined) {
+      const [sched] = await tx
+        .select()
+        .from(categorySchedules)
+        .where(
+          and(
+            eq(categorySchedules.categoryId, categoryId),
+            eq(categorySchedules.tenantId, tenantId),
+            eq(categorySchedules.appId, appId)
+          )
+        );
+
+      if (sched) {
+        await tx
+          .update(categorySchedules)
+          .set({
+            targetAmount: input.targetAmount,
+            targetDate: input.targetDate !== undefined ? input.targetDate : sched.targetDate,
+            updatedBy: userId,
+            updatedAt: new Date(),
+          })
+          .where(eq(categorySchedules.id, sched.id));
+      } else {
+        await tx.insert(categorySchedules).values({
+          categoryId,
+          targetAmount: input.targetAmount,
+          targetDate: input.targetDate || null,
+          tenantId,
+          appId,
+          createdBy: userId,
+          updatedBy: userId,
+        });
+      }
+    }
 
     return updated;
   });

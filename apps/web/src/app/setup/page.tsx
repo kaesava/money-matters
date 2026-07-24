@@ -79,7 +79,6 @@ export default function SetupWizardPage() {
 
       const source = await createIncomeSource.mutateAsync({
         name: incomeName.trim(),
-        type: incomeType,
         amount: numericAmount.toFixed(2),
       });
 

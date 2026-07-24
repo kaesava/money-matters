@@ -1,8 +1,10 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { trpc } from "../../../lib/trpc";
-import { DashboardError } from "../../../components/web/DashboardError";
+import { FilterBar } from "../../../components/web/FilterBar";
+
+type SortField = "recordedAt" | "amount" | "categoryName";
+type SortDir = "asc" | "desc";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -10,84 +12,84 @@ function fmt(val: string | number) {
 }
 
 export default function TransactionsPage() {
-  // Filter State
-  const [typeFilter, setTypeFilter] = useState<string>("ALL");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [flowFilter, setFlowFilter] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-
-  // Sort State (Default: descending date)
-  const [sortField, setSortField] = useState<"date" | "category" | "amount">("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
+  const utils = trpc.useUtils();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
   const categoriesQuery = trpc.listCategories.useQuery();
 
   const transactions = (transactionsQuery.data as any) ?? [];
   const categories = categoriesQuery.data ?? [];
 
-  // Filter Logic
-  let filtered = [...transactions];
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [flowFilter, setFlowFilter] = useState("ALL");
+  const [categoryTypeFilter, setCategoryTypeFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
 
-  if (flowFilter !== "ALL") {
-    filtered = filtered.filter((t) => t.flowType === flowFilter);
-  }
+  // Sort State
+  const [sortField, setSortField] = useState<SortField>("recordedAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  if (categoryFilter !== "ALL") {
-    filtered = filtered.filter((t) => t.categoryId === categoryFilter);
-  }
-
-  if (typeFilter !== "ALL") {
-    const matchingCategoryIds = new Set(categories.filter((c) => c.type === typeFilter).map((c) => c.id));
-    filtered = filtered.filter((t) => matchingCategoryIds.has(t.categoryId));
-  }
-
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase();
-    filtered = filtered.filter(
-      (t) =>
-        (t.categoryName || "").toLowerCase().includes(q) ||
-        (t.note || "").toLowerCase().includes(q) ||
-        t.amount.includes(q)
-    );
-  }
-
-  // Sort Logic
-  filtered.sort((a, b) => {
-    let comp = 0;
-    if (sortField === "date") {
-      comp = new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime();
-    } else if (sortField === "category") {
-      comp = (a.categoryName || "").localeCompare(b.categoryName || "");
-    } else if (sortField === "amount") {
-      comp = parseFloat(a.amount) - parseFloat(b.amount);
-    }
-    return sortDir === "asc" ? comp : -comp;
-  });
-
-  const toggleSort = (field: "date" | "category" | "amount") => {
+  // Toggle Sort
+  const toggleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
       setSortDir("desc");
     }
   };
 
-  // CSV Export Handler
-  const handleExportCSV = () => {
-    const headers = ["ID", "Date", "Category", "Flow", "Amount", "Source", "Note"];
-    const rows = filtered.map((t) => [
-      t.id,
-      new Date(t.recordedAt).toISOString(),
-      `"${t.categoryName || "Uncategorized"}"`,
-      t.flowType,
-      t.amount,
-      t.source || "MANUAL",
-      `"${(t.note || "").replace(/"/g, '""')}"`,
+  // Filter Logic
+  const filtered = transactions.filter((tx: any) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (
+      q &&
+      !tx.note?.toLowerCase().includes(q) &&
+      !tx.categoryName?.toLowerCase().includes(q) &&
+      !tx.amount.includes(q)
+    ) {
+      return false;
+    }
+
+    if (flowFilter !== "ALL" && tx.flowType !== flowFilter) return false;
+
+    if (categoryTypeFilter !== "ALL") {
+      const cat = categories.find((c) => c.id === tx.categoryId);
+      if (!cat || cat.type !== categoryTypeFilter) return false;
+    }
+
+    if (categoryFilter !== "ALL" && tx.categoryId !== categoryFilter) return false;
+
+    return true;
+  });
+
+  // Sort Logic
+  const sorted = [...filtered].sort((a: any, b: any) => {
+    let comparison = 0;
+    if (sortField === "recordedAt") {
+      comparison = new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime();
+    } else if (sortField === "amount") {
+      comparison = parseFloat(a.amount) - parseFloat(b.amount);
+    } else if (sortField === "categoryName") {
+      comparison = (a.categoryName || "").localeCompare(b.categoryName || "");
+    }
+    return sortDir === "asc" ? comparison : -comparison;
+  });
+
+  // CSV Export
+  const handleExportCsv = () => {
+    if (sorted.length === 0) return;
+    const headers = ["Date", "Category", "Flow", "Amount", "Source", "Note"];
+    const rows = sorted.map((tx: any) => [
+      `"${new Date(tx.recordedAt).toISOString().split("T")[0]}"`,
+      `"${tx.categoryName || "Uncategorized"}"`,
+      `"${tx.flowType}"`,
+      `"${tx.amount}"`,
+      `"${tx.source || "MANUAL"}"`,
+      `"${(tx.note || "").replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent = [headers.join(","), ...rows.map((r: any) => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -99,131 +101,132 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
+      {/* Header & Export */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-[#1B2B4B]">Transactions</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">Audit log of all recorded expenses, income allocations, and transfers</p>
+          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Transaction History</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-0.5">
+            Audit log of all manual and imported ledger debits and credits.
+          </p>
         </div>
 
         <button
-          onClick={handleExportCSV}
-          className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm flex items-center gap-1.5"
+          type="button"
+          onClick={handleExportCsv}
+          disabled={sorted.length === 0}
+          className="px-4 py-2.5 rounded-xl font-bold text-xs bg-zinc-100 text-[#1B2B4B] hover:bg-zinc-200 border border-zinc-200 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
         >
-          <span>📥</span> Export CSV
+          <span>📥</span>
+          <span>Export CSV ({sorted.length})</span>
         </button>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="Search by category, note, or amount..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="px-4 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] w-full lg:w-72"
-        />
-
-        {/* Filter Groups */}
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Flow Filter */}
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
-            <span className="text-[10px] font-extrabold text-zinc-400 uppercase px-2">Flow:</span>
-            {[
+      {/* Consistent Filter Bar */}
+      <FilterBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search note, category, amount..."
+        filterGroups={[
+          {
+            label: "Flow",
+            value: flowFilter,
+            onChange: setFlowFilter,
+            defaultValue: "ALL",
+            options: [
               { id: "ALL", label: "All" },
-              { id: "DEBIT", label: "Debit (-)" },
-              { id: "CREDIT", label: "Credit (+)" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFlowFilter(f.id)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-                  flowFilter === f.id ? "bg-white text-[#1B2B4B] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Category Type Filter */}
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
-            <span className="text-[10px] font-extrabold text-zinc-400 uppercase px-2">Type:</span>
-            {[
+              { id: "DEBIT", label: "Debits (-)" },
+              { id: "CREDIT", label: "Credits (+)" },
+            ],
+          },
+          {
+            label: "Category Type",
+            value: categoryTypeFilter,
+            onChange: setCategoryTypeFilter,
+            defaultValue: "ALL",
+            options: [
               { id: "ALL", label: "All" },
-              { id: "GOAL", label: "Save Toward" },
-              { id: "REGULAR", label: "Regular Bills" },
               { id: "EVERYDAY", label: "Everyday" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setTypeFilter(f.id)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-                  typeFilter === f.id ? "bg-white text-[#1B2B4B] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Category Filter Dropdown */}
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-          >
-            <option value="ALL">All Categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+              { id: "REGULAR", label: "Regular Bills" },
+              { id: "GOAL", label: "Save Toward" },
+            ],
+          },
+        ]}
+        onClearAll={() => {
+          setSearchQuery("");
+          setFlowFilter("ALL");
+          setCategoryTypeFilter("ALL");
+          setCategoryFilter("ALL");
+        }}
+      />
 
       {/* Transactions Table */}
-      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-zinc-100 bg-zinc-50/50 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
-              <th onClick={() => toggleSort("date")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
-                Date {sortField === "date" && (sortDir === "asc" ? "▲" : "▼")}
+            <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
+              <th onClick={() => toggleSort("recordedAt")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+                Date & Time {sortField === "recordedAt" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
-              <th onClick={() => toggleSort("category")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
-                Category {sortField === "category" && (sortDir === "asc" ? "▲" : "▼")}
+              <th onClick={() => toggleSort("categoryName")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+                Category {sortField === "categoryName" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
-              <th className="px-6 py-4">Note / Source</th>
-              <th onClick={() => toggleSort("amount")} className="px-6 py-4 cursor-pointer hover:text-zinc-700 text-right">
+              <th className="px-6 py-4">Flow</th>
+              <th onClick={() => toggleSort("amount")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Amount {sortField === "amount" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
+              <th className="px-6 py-4">Source</th>
+              <th className="px-6 py-4">Note / Context</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {transactionsQuery.isLoading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-xs text-zinc-400">Loading transactions...</td>
+                <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
+                  Loading transactions...
+                </td>
               </tr>
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-xs text-zinc-400">No matching transactions found.</td>
+                <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
+                  No matching transactions found.
+                </td>
               </tr>
             ) : (
-              filtered.map((tx) => (
-                <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
-                  <td className="px-6 py-4 text-zinc-500">
-                    {new Date(tx.recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </td>
-                  <td className="px-6 py-4 text-[#1B2B4B] font-bold">{tx.categoryName || "Uncategorized"}</td>
-                  <td className="px-6 py-4 text-zinc-500">
-                    {tx.note || "—"} <span className="text-[10px] text-zinc-400">({tx.source || "MANUAL"})</span>
-                  </td>
-                  <td className={`px-6 py-4 font-mono font-bold text-right ${tx.flowType === "DEBIT" ? "text-rose-600" : "text-emerald-600"}`}>
-                    {tx.flowType === "DEBIT" ? "-" : "+"}{fmt(tx.amount)}
-                  </td>
-                </tr>
-              ))
+              sorted.map((tx: any) => {
+                const isDebit = tx.flowType === "DEBIT";
+                return (
+                  <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
+                    <td className="px-6 py-4 text-zinc-500 font-medium">
+                      {new Date(tx.recordedAt).toLocaleString("en-AU", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-[#1B2B4B]">{tx.categoryName || "Uncategorized"}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          isDebit ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        }`}
+                      >
+                        {isDebit ? "Debit (-)" : "Credit (+)"}
+                      </span>
+                    </td>
+                    <td className={`px-6 py-4 font-mono font-extrabold ${isDebit ? "text-rose-600" : "text-emerald-600"}`}>
+                      {isDebit ? "-" : "+"}{fmt(tx.amount)}
+                    </td>
+                    <td className="px-6 py-4 text-zinc-500">
+                      <span className="px-2 py-0.5 bg-zinc-100 rounded text-[10px] font-bold">
+                        {tx.source || "MANUAL"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-600 truncate max-w-xs">{tx.note || "—"}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

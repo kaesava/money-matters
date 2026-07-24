@@ -59,7 +59,6 @@ export default function SetupIncomeScreen() {
 
       const source = await createSource.mutateAsync({
         name: name.trim(),
-        type,
         amount: numericAmount.toFixed(2),
       });
 

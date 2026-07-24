@@ -209,7 +209,6 @@ async function seed() {
     .insert(incomeSources)
     .values({
       name: "Fortnightly Salary (Primary)",
-      type: "SALARY" as const,
       amount: "4800.00",
       receivingAccountId: everydayAccount.id,
       tenantId,
