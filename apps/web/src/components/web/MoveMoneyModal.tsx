@@ -18,6 +18,10 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
   const moveMoneyMutation = trpc.moveMoney.useMutation();
 
   const categories = categoriesQuery.data ?? [];
+  const everydayCat = categories.find((c) => c.type === "EVERYDAY");
+  const maxSavingsCat = [...categories]
+    .filter((c) => c.type !== "EVERYDAY" && parseFloat(c.currentBalance || "0") > 0)
+    .sort((a, b) => parseFloat(b.currentBalance || "0") - parseFloat(a.currentBalance || "0"))[0];
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -30,6 +34,12 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const applyPreset = (fromId: string, toId: string, presetAmt: string) => {
+    setSourceCategoryId(fromId);
+    setDestinationCategoryId(toId);
+    setAmount(presetAmt);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +96,30 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
         </div>
 
         {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-xs font-bold">{error}</div>}
+
+        {everydayCat && maxSavingsCat && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
+              ⚡ 1-Tap Quick Presets
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => applyPreset(maxSavingsCat.id, everydayCat.id, "50")}
+                className="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 font-bold text-xs hover:bg-sky-100 transition-all"
+              >
+                Top Up Everyday ($50)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset(maxSavingsCat.id, everydayCat.id, "100")}
+                className="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 font-bold text-xs hover:bg-sky-100 transition-all"
+              >
+                Top Up Everyday ($100)
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">

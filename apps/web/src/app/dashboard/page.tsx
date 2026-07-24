@@ -253,6 +253,23 @@ export default function DashboardPage() {
     }
   };
 
+  const confirmPaydayMutation = trpc.confirmPayday.useMutation({
+    onSuccess: () => {
+      utils.listIncomeEvents.invalidate();
+      utils.listCategories.invalidate();
+      utils.listTransactions.invalidate();
+      utils.getMonthlySummary.invalidate();
+    },
+  });
+
+  const handleQuickApprovePayday = (eventId: string, amount: string) => {
+    confirmPaydayMutation.mutate({
+      incomeEventId: eventId,
+      actualAmount: amount,
+      lines: [],
+    });
+  };
+
   return (
     <div className="flex flex-col gap-8 pb-12">
       <DashboardHeaderHero
@@ -261,6 +278,7 @@ export default function DashboardPage() {
         fmt={fmt}
         fmtAUDate={fmtAUDate}
         onProcessPayday={(id) => setPaydayPreviewEventId(id)}
+        onQuickApprovePayday={handleQuickApprovePayday}
       />
 
       <DashboardMetricsCards summary={summaryQuery.data} fmt={fmt} />
