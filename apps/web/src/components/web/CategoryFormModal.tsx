@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
 
@@ -78,7 +79,7 @@ export function CategoryFormModal({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setErrorMsg("Category name is required.");
+      setErrorMsg(t("categories.nameRequired"));
       return;
     }
 
@@ -112,8 +113,9 @@ export function CategoryFormModal({
       await utils.listCategories.invalidate();
       if (onSuccess) onSuccess();
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err.message || "Failed to save category.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t("categories.saveFailed");
+      setErrorMsg(message);
     } finally {
       setSubmitting(false);
     }
@@ -123,8 +125,8 @@ export function CategoryFormModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? `Edit Category: ${categoryToEdit.name}` : "Create New Category"}
-      subtitle={isEdit ? "Update category specifications" : "Add a new savings target or regular obligation"}
+      title={isEdit ? t("categories.editTitle", { name: categoryToEdit.name }) : t("categories.createTitle")}
+      subtitle={isEdit ? t("categories.updateSubtitle") : t("categories.createSubtitle")}
       isDirty={isDirty}
       onSave={handleSave}
     >
@@ -144,11 +146,11 @@ export function CategoryFormModal({
         {/* Category Name */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-            Category Name
+            {t("categories.nameLabel")}
           </label>
           <input
             type="text"
-            placeholder="e.g. Groceries, Netflix, Emergency Fund"
+            placeholder={t("categories.namePlaceholder")}
             value={name}
             disabled={type === "EVERYDAY"}
             onChange={(e) => setName(e.target.value)}
@@ -159,17 +161,17 @@ export function CategoryFormModal({
         {/* Type Selection */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-            Category Type
+            {t("categories.typeLabel")}
           </label>
           <select
             value={type}
             disabled={isEdit || type === "EVERYDAY"}
-            onChange={(e) => setType(e.target.value as any)}
+            onChange={(e) => setType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
             className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 text-zinc-900"
           >
-            <option value="REGULAR">Regular Bill (Recurring obligation)</option>
-            <option value="GOAL">Save Toward (Target savings pool)</option>
-            {type === "EVERYDAY" && <option value="EVERYDAY">Everyday Spending</option>}
+            <option value="REGULAR">{t("categories.typeRegular")}</option>
+            <option value="GOAL">{t("categories.typeGoal")}</option>
+            {type === "EVERYDAY" && <option value="EVERYDAY">{t("categories.typeEveryday")}</option>}
           </select>
         </div>
 
@@ -177,7 +179,7 @@ export function CategoryFormModal({
         {type === "REGULAR" && (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Monthly Amount ($)
+              {t("categories.monthlyAmountLabel")}
             </label>
             <input
               type="number"
@@ -194,7 +196,7 @@ export function CategoryFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                Target ($)
+                {t("categories.targetLabel")}
               </label>
               <input
                 type="number"
@@ -207,7 +209,7 @@ export function CategoryFormModal({
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                Target Date
+                {t("categories.targetDateLabel")}
               </label>
               <input
                 type="date"
@@ -222,7 +224,7 @@ export function CategoryFormModal({
         {type === "EVERYDAY" && (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Target Keep Amount ($)
+              {t("categories.targetKeepLabel")}
             </label>
             <input
               type="number"
@@ -238,14 +240,14 @@ export function CategoryFormModal({
         {/* Linked Bank Account */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-            Linked Bank Account (Optional)
+            {t("categories.linkedAccountLabel")}
           </label>
           <select
             value={bankAccountId}
             onChange={(e) => setBankAccountId(e.target.value)}
             className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
           >
-            <option value="">-- No Account Linked --</option>
+            <option value="">{t("categories.noAccountLinked")}</option>
             {bankAccounts.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -261,14 +263,14 @@ export function CategoryFormModal({
             onClick={onClose}
             className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-800 transition-all"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="submit"
             disabled={submitting}
             className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
           >
-            {submitting ? "Saving..." : isEdit ? "Save Changes" : "Create Category"}
+            {submitting ? t("common.loading") : isEdit ? t("common.saveChanges") : t("categories.createButton")}
           </button>
         </div>
       </form>

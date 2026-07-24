@@ -7,7 +7,8 @@
   "dependencies": {},
   "scripts": {
     "build": "echo \"No build script needed\"",
-    "lint": "eslint .",
+    "check-i18n": "node src/check-i18n.js",
+    "lint": "node src/check-i18n.js",
     "typecheck": "tsc --noEmit"
   }
 }

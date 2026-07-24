@@ -2,6 +2,7 @@
 
 import { RotateCcw } from 'lucide-react';
 import React from 'react';
+import { t } from '@money-matters/i18n';
 
 interface RefreshButtonProps {
   /** Called when the user clicks refresh. Can be async. */
@@ -23,7 +24,7 @@ interface RefreshButtonProps {
 export function RefreshButton({
   onRefresh,
   isRefreshing = false,
-  title = 'Refresh',
+  title = t('common.refresh'),
   className = '',
 }: RefreshButtonProps) {
   const handleClick = async () => {

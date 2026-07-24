@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 
@@ -38,7 +39,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Notes & Comments</Text>
+      <Text style={styles.sectionTitle}>{t('fileNotes.title')}</Text>
 
       {/* Input row */}
       <View style={styles.formRow}>
@@ -46,7 +47,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
           style={styles.input}
           value={comment}
           onChangeText={setComment}
-          placeholder="Add a note or comment..."
+          placeholder={t('fileNotes.placeholder')}
           placeholderTextColor={D.colors.textMuted}
         />
         <TouchableOpacity
@@ -57,7 +58,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
           {createFileNoteMutation.isPending ? (
             <ActivityIndicator color="#FFF" size="small" />
           ) : (
-            <Text style={styles.postBtnText}>Post</Text>
+            <Text style={styles.postBtnText}>{t('fileNotes.post')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -66,7 +67,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
       {notesQuery.isLoading ? (
         <ActivityIndicator color={D.colors.accent} style={{ marginTop: 12 }} />
       ) : notes.length === 0 ? (
-        <Text style={styles.emptyNotes}>No notes added yet.</Text>
+        <Text style={styles.emptyNotes}>{t('fileNotes.empty')}</Text>
       ) : (
         <View style={styles.notesList}>
           {notes.map((n) => (

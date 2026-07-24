@@ -6,14 +6,15 @@ import { trpc } from "../../../../lib/trpc";
 export default function BankAccountsPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
+  const accounts = bankAccountsQuery.data ?? [];
+  type BankAccountItem = typeof accounts[number];
+
   const [showModal, setShowModal] = useState(false);
-  const [accountToEdit, setAccountToEdit] = useState<any>(null);
+  const [accountToEdit, setAccountToEdit] = useState<BankAccountItem | null>(null);
   const [name, setName] = useState("");
   const [unbudgetedBuffer, setUnbudgetedBuffer] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
-  const accounts = bankAccountsQuery.data ?? [];
 
   const createBankAccountMut = trpc.createBankAccount.useMutation();
   const updateBankAccountMut = trpc.updateBankAccount.useMutation();
@@ -26,20 +27,21 @@ export default function BankAccountsPage() {
     setShowModal(true);
   };
 
-  const handleOpenEdit = (acc: any) => {
+  const handleOpenEdit = (acc: BankAccountItem) => {
     setAccountToEdit(acc);
     setName(acc.name);
     setUnbudgetedBuffer(acc.unbudgetedBuffer || "0.00");
     setShowModal(true);
   };
 
-  const handleArchive = async (acc: any) => {
+  const handleArchive = async (acc: BankAccountItem) => {
     if (confirm(`Are you sure you want to archive bank account "${acc.name}"?`)) {
       try {
         await archiveBankAccountMut.mutateAsync({ accountId: acc.id });
         await utils.listBankAccountsWithExpected.invalidate();
-      } catch (err: any) {
-        alert(err.message || "Failed to archive bank account.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to archive bank account.";
+        alert(message);
       }
     }
   };
@@ -65,8 +67,9 @@ export default function BankAccountsPage() {
       }
       await utils.listBankAccountsWithExpected.invalidate();
       setShowModal(false);
-    } catch (err: any) {
-      alert(err.message || "Failed to save bank account.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save bank account.";
+      alert(message);
     } finally {
       setSubmitting(false);
     }
@@ -107,7 +110,7 @@ export default function BankAccountsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {accounts.map((acc: any) => {
+          {accounts.map((acc: BankAccountItem) => {
             const actualNum = parseFloat(acc.lastKnownBalance || "0");
             const expectedNum = parseFloat(acc.expectedBalance || "0");
             const bufferNum = parseFloat(acc.unbudgetedBuffer || "0");

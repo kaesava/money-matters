@@ -12,11 +12,21 @@ function fmt(val: string | number) {
 }
 
 export default function TransactionsPage() {
-  const utils = trpc.useUtils();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
   const categoriesQuery = trpc.listCategories.useQuery();
 
-  const transactions = (transactionsQuery.data as any) ?? [];
+  interface TransactionItem {
+    id: string;
+    recordedAt: string | Date;
+    categoryId: string;
+    categoryName?: string;
+    amount: string;
+    flowType: "DEBIT" | "CREDIT";
+    source?: string;
+    note?: string | null;
+  }
+
+  const transactions = (transactionsQuery.data as TransactionItem[]) ?? [];
   const categories = categoriesQuery.data ?? [];
 
   // Filter States
@@ -29,13 +39,6 @@ export default function TransactionsPage() {
   const [sortField, setSortField] = useState<SortField>("recordedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  // Grouping State for Payday and Move Money Batches
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
-  };
-
   // Toggle Sort
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -47,7 +50,7 @@ export default function TransactionsPage() {
   };
 
   // Filter Logic
-  const filtered = transactions.filter((tx: any) => {
+  const filtered = transactions.filter((tx: TransactionItem) => {
     const q = searchQuery.toLowerCase().trim();
     if (
       q &&
@@ -71,7 +74,7 @@ export default function TransactionsPage() {
   });
 
   // Sort Logic
-  const sorted = [...filtered].sort((a: any, b: any) => {
+  const sorted = [...filtered].sort((a: TransactionItem, b: TransactionItem) => {
     let comparison = 0;
     if (sortField === "recordedAt") {
       comparison = new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime();
@@ -87,7 +90,7 @@ export default function TransactionsPage() {
   const handleExportCsv = () => {
     if (sorted.length === 0) return;
     const headers = ["Date", "Category", "Flow", "Amount", "Source", "Note"];
-    const rows = sorted.map((tx: any) => [
+    const rows = sorted.map((tx: TransactionItem) => [
       `"${new Date(tx.recordedAt).toISOString().split("T")[0]}"`,
       `"${tx.categoryName || "Uncategorized"}"`,
       `"${tx.flowType}"`,
@@ -96,7 +99,7 @@ export default function TransactionsPage() {
       `"${(tx.note || "").replace(/"/g, '""')}"`,
     ]);
 
-    const csvContent = [headers.join(","), ...rows.map((r: any) => r.join(","))].join("\n");
+    const csvContent = [headers.join(","), ...rows.map((r: string[]) => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -200,7 +203,7 @@ export default function TransactionsPage() {
                 </td>
               </tr>
             ) : (
-              sorted.map((tx: any) => {
+              sorted.map((tx: TransactionItem) => {
                 const isDebit = tx.flowType === "DEBIT";
                 return (
                   <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">

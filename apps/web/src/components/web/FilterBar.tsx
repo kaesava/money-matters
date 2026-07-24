@@ -24,7 +24,7 @@ export interface FilterGroupProps {
 export function FilterBar({
   searchQuery,
   onSearchChange,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = t("common.searchPlaceholder"),
   filterGroups = [],
   onClearAll,
 }: FilterGroupProps) {
@@ -98,7 +98,7 @@ export function FilterBar({
             className="px-3 py-1.5 text-xs font-bold rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-1.5"
           >
             <span>✕</span>
-            <span>Clear All</span>
+            <span>{t("searchSelect.clearSelection")}</span>
           </button>
         )}
       </div>

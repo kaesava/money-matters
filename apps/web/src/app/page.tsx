@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
@@ -18,7 +19,6 @@ export default function Home() {
 
   if (!isClient) return null;
 
-  // Paycheck Allocation Simulator Math
   const rentAlloc = Math.min(1200, paycheckAmount * 0.48);
   const utilitiesAlloc = Math.min(300, Math.max(0, (paycheckAmount - rentAlloc) * 0.25));
   const emergencyAlloc = Math.min(500, Math.max(0, (paycheckAmount - rentAlloc - utilitiesAlloc) * 0.35));
@@ -38,13 +38,13 @@ export default function Home() {
               onClick={() => router.push("/sign-in")}
               className="text-sm font-semibold text-zinc-600 hover:text-[#1B2B4B] transition-colors"
             >
-              {t("auth.signInCta", { defaultValue: "Sign In" })}
+              {t("auth.signInCta")}
             </button>
             <button
               onClick={() => router.push("/sign-up")}
               className="bg-[#8a9a5b] hover:bg-[#738349] text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors shadow-sm"
             >
-              Get Started Free
+              {t("landing.getStartedFree")}
             </button>
           </div>
         </div>
@@ -53,13 +53,15 @@ export default function Home() {
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-20 text-center flex flex-col items-center gap-8">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f1f4e8] border border-[#e2e4e0] text-xs font-bold text-[#8a9a5b] tracking-wider uppercase">
-          ✨ Next-gen envelope budgeting
+          {t("landing.badge")}
         </div>
         <h1 className="text-5xl md:text-6xl font-extrabold text-[#1B2B4B] tracking-tight max-w-3xl leading-[1.15]">
-          Know exactly where your <span className="text-[#8a9a5b]">paycheck</span> needs to go.
+          {t("landing.heroTitlePart1")}
+          <span className="text-[#8a9a5b]">{t("landing.heroTitleSpan")}</span>
+          {t("landing.heroTitlePart2")}
         </h1>
         <p className="text-lg md:text-xl text-zinc-500 max-w-2xl leading-relaxed">
-          {t("app.description")} Unlike manual trackers, our automated recommendations engine structures your priorities so bills are covered before you spend.
+          {t("landing.descriptionExtra")}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-2">
@@ -67,7 +69,7 @@ export default function Home() {
             onClick={() => router.push("/sign-up")}
             className="bg-[#1B2B4B] hover:opacity-90 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-md text-base"
           >
-            Create Your Account
+            {t("landing.createAccount")}
           </button>
           <button
             onClick={() => {
@@ -76,7 +78,7 @@ export default function Home() {
             }}
             className="bg-white border border-[#e2e4e0] hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-4 rounded-xl transition-all text-base"
           >
-            Try Interactive Simulator
+            {t("landing.trySimulator")}
           </button>
         </div>
       </section>
@@ -86,14 +88,14 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-center">
           <div className="md:col-span-5 flex flex-col gap-6">
             <h2 className="text-3xl font-bold tracking-tight text-[#1B2B4B]">
-              Experience the Paycheck Cascade
+              {t("landing.simulatorTitle")}
             </h2>
             <p className="text-zinc-600 leading-relaxed">
-              Drag the paycheck slider to simulate how your earnings automatically flow into virtual categories based on prioritised due dates. 
+              {t("landing.simulatorDescription")}
             </p>
             <div className="bg-[#fbf9f1] p-6 rounded-xl border border-[#e2e4e0] flex flex-col gap-4">
               <div className="flex justify-between font-bold text-sm">
-                <span>Simulated Paycheck</span>
+                <span>{t("landing.simulatedPaycheck")}</span>
                 <span className="text-[#8a9a5b]">${paycheckAmount.toLocaleString()}</span>
               </div>
               <input
@@ -113,12 +115,12 @@ export default function Home() {
           </div>
 
           <div className="md:col-span-7 bg-[#fbf9f1] p-6 rounded-2xl border border-[#e2e4e0] shadow-sm flex flex-col gap-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Real-Time Recommendations</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">{t("landing.realTimeRecs")}</h3>
             
             {/* Category 1: Major/Recurring (High priority) */}
             <div className="bg-white p-4 rounded-xl border border-[#e2e4e0] flex flex-col gap-2">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-zinc-800 text-sm">🏡 Rent / Mortgage (Priority 1)</span>
+                <span className="font-semibold text-zinc-800 text-sm">{t("landing.rentMortgage")}</span>
                 <span className="text-emerald-600 font-bold text-sm">${rentAlloc.toFixed(0)} / $1,200</span>
               </div>
               <div className="w-full bg-[#fbf9f1] h-3.5 rounded-full overflow-hidden border border-zinc-100">
@@ -132,7 +134,7 @@ export default function Home() {
             {/* Category 2: Recurring Bills */}
             <div className="bg-white p-4 rounded-xl border border-[#e2e4e0] flex flex-col gap-2">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-zinc-800 text-sm">⚡ Electricity & Bills (Priority 2)</span>
+                <span className="font-semibold text-zinc-800 text-sm">{t("landing.electricityBills")}</span>
                 <span className={`${utilitiesAlloc >= 300 ? "text-emerald-600" : "text-amber-500"} font-bold text-sm`}>
                   ${utilitiesAlloc.toFixed(0)} / $300
                 </span>
@@ -148,7 +150,7 @@ export default function Home() {
             {/* Category 3: Major Savings */}
             <div className="bg-white p-4 rounded-xl border border-[#e2e4e0] flex flex-col gap-2">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-zinc-800 text-sm">🛡️ Emergency Savings (Priority 3)</span>
+                <span className="font-semibold text-zinc-800 text-sm">{t("landing.emergencySavings")}</span>
                 <span className={`${emergencyAlloc >= 500 ? "text-emerald-600" : "text-amber-500"} font-bold text-sm`}>
                   ${emergencyAlloc.toFixed(0)} / $500
                 </span>
@@ -164,7 +166,7 @@ export default function Home() {
             {/* Category 4: Everyday Discretionary */}
             <div className="bg-white p-4 rounded-xl border border-[#e2e4e0] flex flex-col gap-2">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-zinc-800 text-sm">🛒 Everyday Spending (Residual)</span>
+                <span className="font-semibold text-zinc-800 text-sm">{t("landing.everydaySpending")}</span>
                 <span className="text-zinc-600 font-bold text-sm">${everydayAlloc.toFixed(0)}</span>
               </div>
               <div className="w-full bg-[#fbf9f1] h-3.5 rounded-full overflow-hidden border border-zinc-100">
@@ -182,41 +184,41 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-6 py-24 flex flex-col gap-16">
         <div className="text-center max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold tracking-tight text-[#1B2B4B] mb-4">
-            Designed for forward-looking financial clarity.
+            {t("landing.featuresHeading")}
           </h2>
           <p className="text-zinc-500">
-            A visual system that empowers you to control where money flows long before it arrives.
+            {t("landing.featuresSubheading")}
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          <div className="ui-card flex flex-col gap-4">
+          <div className="p-6 rounded-2xl bg-white border border-[#e2e4e0] shadow-sm flex flex-col gap-4">
             <div className="w-12 h-12 bg-[#f1f4e8] border border-[#e2e4e0] rounded-xl flex items-center justify-center text-xl text-[#8a9a5b]">
               📊
             </div>
-            <h3 className="text-lg font-bold text-[#1B2B4B]">Automatic Envelope Cascade</h3>
+            <h3 className="text-lg font-bold text-[#1B2B4B]">{t("landing.feature1Title")}</h3>
             <p className="text-zinc-500 text-sm leading-relaxed">
-              No manual distribution needed. Our pro-rata recommendation engine automatically calculates your upcoming due dates and savings goals.
+              {t("landing.feature1Desc")}
             </p>
           </div>
 
-          <div className="ui-card flex flex-col gap-4">
+          <div className="p-6 rounded-2xl bg-white border border-[#e2e4e0] shadow-sm flex flex-col gap-4">
             <div className="w-12 h-12 bg-[#f1f4e8] border border-[#e2e4e0] rounded-xl flex items-center justify-center text-xl text-[#8a9a5b]">
               🚦
             </div>
-            <h3 className="text-lg font-bold text-[#1B2B4B]">Traffic Light Health Check</h3>
+            <h3 className="text-lg font-bold text-[#1B2B4B]">{t("landing.feature2Title")}</h3>
             <p className="text-zinc-500 text-sm leading-relaxed">
-              Instantly see where you stand. Visual status indicators turn green, amber, or red based on payment proximity and target readiness.
+              {t("landing.feature2Desc")}
             </p>
           </div>
 
-          <div className="ui-card flex flex-col gap-4">
+          <div className="p-6 rounded-2xl bg-white border border-[#e2e4e0] shadow-sm flex flex-col gap-4">
             <div className="w-12 h-12 bg-[#f1f4e8] border border-[#e2e4e0] rounded-xl flex items-center justify-center text-xl text-[#8a9a5b]">
               🚨
             </div>
-            <h3 className="text-lg font-bold text-[#1B2B4B]">Shortfall Protection Alerts</h3>
+            <h3 className="text-lg font-bold text-[#1B2B4B]">{t("landing.feature3Title")}</h3>
             <p className="text-zinc-500 text-sm leading-relaxed">
-              Receive smart warning notifications when bills overdraw. Instantly move funds between everyday pools to maintain coverage.
+              {t("landing.feature3Desc")}
             </p>
           </div>
         </div>
@@ -226,16 +228,16 @@ export default function Home() {
       <section className="bg-[#1B2B4B] text-white py-16 text-center">
         <div className="max-w-3xl mx-auto px-6 flex flex-col items-center gap-6">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Take command of your pay cycle today.
+            {t("landing.conversionTitle")}
           </h2>
           <p className="text-zinc-400 text-sm md:text-base max-w-xl leading-relaxed">
-            Create your account in under 2 minutes. Start allocating your paycheck with clarity.
+            {t("landing.conversionDesc")}
           </p>
           <button
             onClick={() => router.push("/sign-up")}
             className="bg-[#8a9a5b] hover:bg-[#738349] text-white font-bold px-8 py-3.5 rounded-xl transition-all shadow-md text-base mt-2"
           >
-            Create Free Account
+            {t("landing.createFreeAccount")}
           </button>
         </div>
       </section>
@@ -243,10 +245,10 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-[#e2e4e0] bg-[#f5f4eb] py-8 text-center text-xs text-zinc-400">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <span className="font-semibold text-zinc-500">© 2026 {t("app.title")}. Built in Melbourne.</span>
+          <span className="font-semibold text-zinc-500">{t("landing.copyright", { appName: t("app.title") })}</span>
           <div className="flex gap-4">
-            <a href="#" className="hover:underline">Privacy Policy</a>
-            <a href="#" className="hover:underline">Terms of Service</a>
+            <a href="#" className="hover:underline">{t("landing.privacyPolicy")}</a>
+            <a href="#" className="hover:underline">{t("landing.termsOfService")}</a>
           </div>
         </div>
       </footer>

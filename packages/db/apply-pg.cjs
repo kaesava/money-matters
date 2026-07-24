@@ -1,3 +1,4 @@
+/* global process, console */
 const { Client } = require("@neondatabase/serverless");
 
 async function run() {

@@ -30,8 +30,18 @@ export function SourceBurstDetailModal({
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, { enabled: isOpen && mode === "INCOME" });
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: isOpen && mode === "EXPENSE" });
 
-  const allEvents = mode === "INCOME" ? (incomeEventsQuery.data ?? []) : (expenseEventsQuery.data ?? []);
-  const sourceEvents = allEvents.filter((e: any) =>
+  interface EventItem {
+    id: string;
+    incomeSourceId?: string | null;
+    expenseSourceId?: string | null;
+    status: string;
+    expectedDate: string;
+    expectedAmount: string;
+    actualAmount?: string | null;
+  }
+
+  const allEvents = (mode === "INCOME" ? (incomeEventsQuery.data ?? []) : (expenseEventsQuery.data ?? [])) as EventItem[];
+  const sourceEvents = allEvents.filter((e: EventItem) =>
     mode === "INCOME" ? e.incomeSourceId === sourceId : e.expenseSourceId === sourceId
   );
 
@@ -72,7 +82,7 @@ export function SourceBurstDetailModal({
             </div>
           ) : (
             <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-xl overflow-hidden bg-white">
-              {sourceEvents.map((evt: any) => {
+              {sourceEvents.map((evt: EventItem) => {
                 const isPaid = evt.status === "PAID";
                 const isOverdue = !isPaid && new Date(evt.expectedDate) < new Date();
 

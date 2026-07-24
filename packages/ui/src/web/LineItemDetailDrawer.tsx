@@ -32,19 +32,19 @@ export function LineItemDetailDrawer({
     return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(cents / 100);
   };
 
-  const title = lineItem.name || lineItem.description || 'Line Item Details';
+  const title = lineItem.name || lineItem.description || t('neo.lineItemDetail.defaultTitle');
   const subtotal = lineItem.quantity * lineItem.unitPriceCents;
   const gstRate = lineItem.gstRate ?? 10; // Default 10%
   const gstAmount = lineItem.gstAmountCents ?? Math.round(subtotal * (gstRate / 100));
   const total = lineItem.totalAmountCents ?? (subtotal + gstAmount);
 
   const fields = [
-    { label: 'Description', value: title, isImportant: true },
-    { label: 'Quantity', value: lineItem.quantity.toString() },
-    { label: 'Unit Price', value: formatCents(lineItem.unitPriceCents) },
-    { label: 'Subtotal', value: formatCents(subtotal) },
-    { label: `GST (${gstRate}%)`, value: formatCents(gstAmount) },
-    { label: 'Total Amount', value: formatCents(total), isImportant: true },
+    { label: t('common.description'), value: title, isImportant: true },
+    { label: t('common.quantity'), value: lineItem.quantity.toString() },
+    { label: t('common.unitPrice'), value: formatCents(lineItem.unitPriceCents) },
+    { label: t('common.subtotal'), value: formatCents(subtotal) },
+    { label: t('common.gst', { rate: gstRate }), value: formatCents(gstAmount) },
+    { label: t('common.totalAmount'), value: formatCents(total), isImportant: true },
   ];
 
   return (

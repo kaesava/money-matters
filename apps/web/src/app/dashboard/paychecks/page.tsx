@@ -22,12 +22,11 @@ export default function IncomeAndExpensesPage() {
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
-  const [recurrenceFilter, setRecurrenceFilter] = useState("ALL");
 
   // Modals State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
-  const [sourceToEdit, setSourceToEdit] = useState<any>(null);
+  const [sourceToEdit, setSourceToEdit] = useState<React.ComponentProps<typeof IncomeExpenseFormModal>["sourceToEdit"]>(undefined);
 
   // Burst Detail Hyperlink Modal State
   const [burstModalOpen, setBurstModalOpen] = useState(false);
@@ -52,22 +51,27 @@ export default function IncomeAndExpensesPage() {
     },
   });
 
-  const handleArchiveIncome = async (inc: any) => {
+  type IncomeItem = typeof incomeSources[number];
+  type ExpenseItem = typeof expenseSources[number];
+
+  const handleArchiveIncome = async (inc: IncomeItem) => {
     if (confirm(`Are you sure you want to archive income source "${inc.name}"?`)) {
       try {
         await archiveIncomeMut.mutateAsync({ id: inc.id });
-      } catch (err: any) {
-        alert(err.message || "Failed to archive income source.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to archive income source.";
+        alert(message);
       }
     }
   };
 
-  const handleArchiveExpense = async (exp: any) => {
+  const handleArchiveExpense = async (exp: ExpenseItem) => {
     if (confirm(`Are you sure you want to archive expense source "${exp.name}"?`)) {
       try {
         await archiveExpenseMut.mutateAsync({ id: exp.id });
-      } catch (err: any) {
-        alert(err.message || "Failed to archive expense source.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to archive expense source.";
+        alert(message);
       }
     }
   };

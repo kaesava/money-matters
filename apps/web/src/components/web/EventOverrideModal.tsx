@@ -27,7 +27,6 @@ export default function EventOverrideModal({
   const utils = trpc.useUtils();
   const [amount, setAmount] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
   const [updateSeries, setUpdateSeries] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +37,6 @@ export default function EventOverrideModal({
     if (eventToEdit) {
       setAmount(eventToEdit.expectedAmount);
       setExpectedDate(eventToEdit.expectedDate);
-      setPaymentMethod(eventToEdit.paymentMethod || "DIRECT_DEBIT");
       setUpdateSeries(false);
     }
   }, [eventToEdit]);

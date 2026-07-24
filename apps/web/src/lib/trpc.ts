@@ -1,9 +1,21 @@
+/**
+ * Web Application tRPC Client Instantiation
+ * 
+ * Provides type-safe React Query hooks and custom httpBatchLink network layer configured with
+ * 10-second request timeout guards and localStorage bearer token injection.
+ */
 import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "../../../api/src/routers/_app";
 
+/** Type-safe React Query hooks bound to full-stack tRPC AppRouter definitions. */
 export const trpc = createTRPCReact<AppRouter>();
 
+/**
+ * Builds configured tRPC client instance with fetch timeout handling and auth header binding.
+ *
+ * @returns Configured tRPC client instance
+ */
 export function buildTrpcClient() {
   return trpc.createClient({
     links: [
@@ -35,3 +47,4 @@ export function buildTrpcClient() {
     ],
   });
 }
+

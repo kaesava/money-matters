@@ -1,6 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { t } from "@money-matters/i18n";
+import React, { useEffect, useState, useCallback } from "react";
 
 export interface ModalDialogProps {
   isOpen: boolean;
@@ -26,13 +25,13 @@ export function ModalDialog({
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const handleRequestClose = () => {
+  const handleRequestClose = useCallback(() => {
     if (isDirty) {
       setShowConfirm(true);
     } else {
       onClose();
     }
-  };
+  }, [isDirty, onClose]);
 
   const handleConfirmDiscard = () => {
     setShowConfirm(false);
@@ -70,7 +69,7 @@ export function ModalDialog({
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen, isDirty]);
+  }, [isOpen, handleRequestClose]);
 
   if (!isOpen) return null;
 

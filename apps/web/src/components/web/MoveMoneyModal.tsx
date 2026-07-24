@@ -65,8 +65,9 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
       setAmount("");
       if (onSuccess) onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err?.message || "Failed to move money.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to move money.";
+      setError(message);
     }
   };
 

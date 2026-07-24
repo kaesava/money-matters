@@ -75,3 +75,12 @@
 - Responsive search across Category, Note, and Amount.
 - Multi-column sorting (default: descending date).
 - One-click CSV Export.
+
+---
+
+## 7. Internationalization (i18n) & Localization Governance
+
+- **Zero Hardcoded User-Facing Text**: 100% of user-facing UI labels, error messages, headings, modal prompts, placeholders, and tooltips are externalized into `@money-matters/i18n`.
+- **Dynamic Parameter Interpolation**: Support multi-language rendering and dynamic parameters (e.g. `{page}`, `{totalPages}`, `{rate}`, `{appName}`).
+- **Cross-Platform String Alignment**: Shared dictionary keys ensure consistent terminology between Web (`apps/web`), Mobile (`apps/mobile`), and UI primitives (`packages/ui`).
+- **Automated Verification**: Build & lint pipeline executes `check-i18n` verification script to validate key presence and prevent un-translated strings.

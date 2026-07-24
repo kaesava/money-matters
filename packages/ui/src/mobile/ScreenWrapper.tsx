@@ -1,18 +1,15 @@
 import React, { useState } from "react";
-import { Feather } from "@expo/vector-icons";
 import {
   View,
-  Text,
   StyleSheet,
-  TouchableOpacity,
   SafeAreaView,
   StatusBar,
   Platform,
   ScrollView,
-  Modal,
-  Pressable,
 } from "react-native";
 import { DESIGN_TOKENS } from "../tokens";
+import { ScreenHeader } from "./ScreenHeader";
+import { ScreenMenuModal } from "./ScreenMenuModal";
 
 export interface ScreenWrapperProps {
   title?: string;
@@ -44,7 +41,6 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const D = DESIGN_TOKENS;
 
-  // Get initials for profile bubble
   const getInitials = () => {
     if (!user?.name) return "U";
     return user.name
@@ -58,61 +54,11 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   const handleMenuAction = (callback?: () => void) => {
     setMenuVisible(false);
     if (callback) {
-      // Small timeout to let modal animation finish smoothly before navigating/signing out
       setTimeout(() => {
         callback();
       }, 100);
     }
   };
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      {/* Left Area: Back Button or Branding */}
-      <View style={styles.leftContainer}>
-        {showBack ? (
-          <TouchableOpacity
-            onPress={onBackPress}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backArrow}>←</Text>
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.brandContainer}>
-            <Text style={styles.brandLogo}>🪙</Text>
-            <Text style={styles.brandText}>money matters</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Middle Area: Title (Optional, fits in middle if back/profile exist) */}
-      <View style={styles.titleContainer}>
-        {title ? (
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {title}
-          </Text>
-        ) : null}
-      </View>
-
-      {/* Right Area: Profile Bubble */}
-      <View style={styles.rightContainer}>
-        {showProfile && user ? (
-          <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
-            style={styles.avatarButton}
-            activeOpacity={0.8}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials()}</Text>
-            </View>
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 36 }} />
-        )}
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -120,7 +66,16 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         barStyle="dark-content"
         backgroundColor={D.colors.background}
       />
-      {renderHeader()}
+      <ScreenHeader
+        title={title}
+        showBack={showBack}
+        onBackPress={onBackPress}
+        showProfile={showProfile}
+        user={user}
+        getInitials={getInitials}
+        onOpenMenu={() => setMenuVisible(true)}
+        styles={styles}
+      />
 
       {scrollable ? (
         <ScrollView
@@ -134,86 +89,18 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         <View style={[styles.contentContainer, { flex: 1 }]}>{children}</View>
       )}
 
-      {/* Spillover Menu Modal */}
-      <Modal
+      <ScreenMenuModal
         visible={menuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View style={styles.modalContent}>
-            {/* User Profile Card Header */}
-            <View style={styles.menuProfileHeader}>
-              <View style={styles.menuAvatar}>
-                <Text style={styles.menuAvatarText}>{getInitials()}</Text>
-              </View>
-              <View style={styles.menuProfileInfo}>
-                <Text style={styles.menuProfileName} numberOfLines={1}>
-                  {user?.name || "User"}
-                </Text>
-                <Text style={styles.menuProfileEmail} numberOfLines={1}>
-                  {user?.email || ""}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.menuDivider} />
-            {/* Spillover Menu Options */}
-            {onNavigateHome && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleMenuAction(onNavigateHome)}
-              >
-                <Feather name="home" size={16} color={D.colors.textPrimary} />
-                <Text style={styles.menuItemText}>Dashboard</Text>
-              </TouchableOpacity>
-            )}
-
-            {onNavigateCategories && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleMenuAction(onNavigateCategories)}
-              >
-                <Feather name="grid" size={16} color={D.colors.textPrimary} />
-                <Text style={styles.menuItemText}>Categories</Text>
-              </TouchableOpacity>
-            )}
-
-            {onNavigateSettings && (
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleMenuAction(onNavigateSettings)}
-              >
-                <Feather name="settings" size={16} color={D.colors.textPrimary} />
-                <Text style={styles.menuItemText}>Settings</Text>
-              </TouchableOpacity>
-            )}
-
-            <View style={styles.menuDivider} />
-
-            {onSignOut && (
-              <TouchableOpacity
-                style={[styles.menuItem, styles.signOutMenuItem]}
-                onPress={() => handleMenuAction(onSignOut)}
-              >
-                <Feather name="log-out" size={16} color={D.colors.critical} />
-                <Text style={styles.signOutText}>Sign Out</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setMenuVisible(false)}
-            >
-              <Text style={styles.cancelText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
+        onClose={() => setMenuVisible(false)}
+        user={user}
+        getInitials={getInitials}
+        handleMenuAction={handleMenuAction}
+        onNavigateHome={onNavigateHome}
+        onNavigateCategories={onNavigateCategories}
+        onNavigateSettings={onNavigateSettings}
+        onSignOut={onSignOut}
+        styles={styles}
+      />
     </SafeAreaView>
   );
 };
@@ -233,7 +120,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: DESIGN_TOKENS.spacing.containerMargin,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
-    // Premium shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -321,14 +207,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: DESIGN_TOKENS.spacing.containerMargin,
     paddingTop: DESIGN_TOKENS.spacing.sectionGap,
-    paddingBottom: 100, // Safe room for bottom tabs and FAB
+    paddingBottom: 100,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(27, 43, 75, 0.4)", // Dark translucent backdrop using Brand Navy
+    backgroundColor: "rgba(27, 43, 75, 0.4)",
     justifyContent: "flex-start",
     alignItems: "flex-end",
-    paddingTop: Platform.OS === "ios" ? 80 : 64, // Position modal below header
+    paddingTop: Platform.OS === "ios" ? 80 : 64,
     paddingRight: 16,
   },
   modalContent: {
@@ -398,7 +284,6 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.textPrimary,
   },
   signOutMenuItem: {
-    // Subtle red background warning highlight for sign out
     backgroundColor: "rgba(239, 68, 68, 0.04)",
   },
   signOutText: {

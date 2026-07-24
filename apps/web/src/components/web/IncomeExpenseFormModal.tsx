@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
+import { RecurrenceFields } from "./forms/RecurrenceFields";
+
 
 export interface IncomeExpenseFormModalProps {
   isOpen: boolean;
@@ -28,8 +30,11 @@ export function IncomeExpenseFormModal({
   const categoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
 
-  const categories = categoriesQuery.data ?? [];
-  const bankAccounts = bankAccountsQuery.data ?? [];
+  const categoriesData = categoriesQuery.data;
+  const bankAccountsData = bankAccountsQuery.data;
+
+  const categories = React.useMemo(() => categoriesData ?? [], [categoriesData]);
+  const bankAccounts = React.useMemo(() => bankAccountsData ?? [], [bankAccountsData]);
 
   const createIncomeMut = trpc.createIncomeSource.useMutation();
   const updateIncomeMut = trpc.updateIncomeSource.useMutation();
@@ -65,7 +70,7 @@ export function IncomeExpenseFormModal({
       setStartDate(new Date().toISOString().split("T")[0]);
     }
     setErrorMsg("");
-  }, [sourceToEdit, isOpen]);
+  }, [sourceToEdit, isOpen, bankAccounts, categories]);
 
   const isDirty = isEdit
     ? name !== (sourceToEdit?.name || "") ||
@@ -141,8 +146,9 @@ export function IncomeExpenseFormModal({
 
       if (onSuccess) onSuccess();
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err.message || `Failed to save ${mode.toLowerCase()} source.`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : `Failed to save ${mode.toLowerCase()} source.`;
+      setErrorMsg(message);
     } finally {
       setSubmitting(false);
     }
@@ -250,77 +256,14 @@ export function IncomeExpenseFormModal({
           </div>
         )}
 
-        {/* Recurrence Settings (For New items or schedule updates) */}
-        <div className="flex flex-col gap-3 pt-3 border-t border-zinc-100">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-extrabold uppercase tracking-wider text-[#1B2B4B]">
-                Recurrence Schedule
-              </label>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsRecurring(true)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                    isRecurring ? "bg-[#1B2B4B] text-white shadow-sm" : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
-                  Recurring
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsRecurring(false)}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                    !isRecurring ? "bg-[#1B2B4B] text-white shadow-sm" : "bg-zinc-100 text-zinc-600"
-                  }`}
-                >
-                  One-off
-                </button>
-              </div>
-            </div>
-
-            {isRecurring ? (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                    Frequency
-                  </label>
-                  <select
-                    value={frequency}
-                    onChange={(e) => setFrequency(e.target.value as any)}
-                    className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
-                  >
-                    <option value="WEEKLY">Weekly</option>
-                    <option value="FORTNIGHTLY">Fortnightly</option>
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="ANNUALLY">Annually (Yearly)</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                    First Date
-                  </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  Event Date
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
-                />
-              </div>
-            )}
-          </div>
+        <RecurrenceFields
+          isRecurring={isRecurring}
+          setIsRecurring={setIsRecurring}
+          frequency={frequency}
+          setFrequency={setFrequency}
+          startDate={startDate}
+          setStartDate={setStartDate}
+        />
 
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-zinc-100">

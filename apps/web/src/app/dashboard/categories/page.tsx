@@ -31,7 +31,8 @@ export default function CategoriesPage() {
   // Selection & Modals
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<any>(null);
+  type CategoryItem = NonNullable<typeof categories>[number];
+  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItem | null>(null);
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
 
   // Mutations
@@ -42,7 +43,7 @@ export default function CategoriesPage() {
     },
   });
 
-  const handleArchive = async (cat: any) => {
+  const handleArchive = async (cat: CategoryItem) => {
     if (cat.type === "EVERYDAY") {
       alert("The Everyday category cannot be archived or deleted.");
       return;
@@ -50,8 +51,9 @@ export default function CategoriesPage() {
     if (confirm(`Are you sure you want to archive "${cat.name}"?`)) {
       try {
         await archiveCategoryMut.mutateAsync({ categoryId: cat.id });
-      } catch (err: any) {
-        alert(err.message || "Failed to archive category.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to archive category.";
+        alert(message);
       }
     }
   };

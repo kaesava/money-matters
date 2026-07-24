@@ -41,6 +41,7 @@ export default function PaydayPreviewModal({
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showMismatchWarning, setShowMismatchWarning] = useState(false);
 
   const previewQuery = trpc.previewPayday.useQuery(
     { incomeEventId: incomeEventId! },
@@ -73,8 +74,6 @@ export default function PaydayPreviewModal({
   );
   const numericActual = parseFloat(actualAmount) || 0;
   const unallocated = numericActual - totalAllocated;
-
-  const [showMismatchWarning, setShowMismatchWarning] = useState(false);
 
   const handleConfirm = async (overrideMismatch = false) => {
     setErrorMsg("");
@@ -116,7 +115,9 @@ export default function PaydayPreviewModal({
     try {
       const parts = dStr.split("-");
       if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } catch (e) {}
+    } catch {
+      // ignore
+    }
     return dStr;
   };
 

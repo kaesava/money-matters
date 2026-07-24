@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Linking, Platform, ActivityIndicator, ScrollView } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, Platform } from 'react-native';
 import { useGeoService } from '../context.js';
 import { StructuredAddress } from '../types.js';
+import { AddressSuggestionsDropdown } from './AddressSuggestionsDropdown.js';
+import { AddressManualFields } from './AddressManualFields.js';
 
 interface SmartAddressInputProps {
   label: string;
@@ -13,32 +14,6 @@ interface SmartAddressInputProps {
   onSelectAddress?: (addr: StructuredAddress) => void;
   placeholder?: string;
   error?: string | null;
-}
-
-const AUSTRALIAN_STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'];
-
-function MapPinIcon({ color }: { color: string }): React.JSX.Element {
-  return (
-    // @ts-ignore
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      {/* @ts-ignore */}
-      <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      {/* @ts-ignore */}
-      <Path d="M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-    </Svg>
-  );
-}
-
-function SearchIcon({ color }: { color: string }): React.JSX.Element {
-  return (
-    // @ts-ignore
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      {/* @ts-ignore */}
-      <Circle cx={11} cy={11} r={8} />
-      {/* @ts-ignore */}
-      <Path d="m21 21-4.3-4.3" />
-    </Svg>
-  );
 }
 
 const parseAddress = (addrStr: string, defaultCountry = 'Australia'): StructuredAddress => {
@@ -76,7 +51,6 @@ export function SmartAddressInput({
   onAddressChange,
   onCountryChange,
   onSelectAddress,
-  placeholder,
   error,
 }: SmartAddressInputProps): React.JSX.Element {
   const isAustralia = country === 'Australia';
@@ -201,175 +175,33 @@ export function SmartAddressInput({
       </View>
 
       {showAustraliaAuto && (
-        <View style={styles.autocompleteWrapper}>
-          <View style={styles.inputWrapper}>
-            <View style={styles.searchIconWrapper}>
-              <SearchIcon color="#94a3b8" />
-            </View>
-            <TextInput
-              style={[styles.uiInput, styles.searchInput]}
-              value={searchQuery}
-              onChangeText={(text: string) => {
-                setSearchQuery(text);
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-              placeholder="Search Australian address..."
-              placeholderTextColor="#94a3b8"
-              autoCorrect={false}
-            />
-            {isFetchingSuggestions && (
-              <ActivityIndicator 
-                size="small" 
-                color="#0f172a" 
-                style={styles.spinner}
-              />
-            )}
-          </View>
-
-          {showDropdown && searchQuery.length >= 3 && (suggestions.length > 0 || isFetchingSuggestions) && (
-            <View style={styles.dropdown}>
-              {suggestions.length > 0 ? (
-                suggestions.map((item: any) => (
-                  <TouchableOpacity
-                    key={item.placeId}
-                    style={styles.dropdownItem}
-                    onPress={() => setSelectedPlaceId(item.placeId)}
-                  >
-                    <Text style={styles.dropdownText}>{item.description}</Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                isFetchingSuggestions && (
-                  <Text style={styles.dropdownPlaceholder}>Searching...</Text>
-                )
-              )}
-            </View>
-          )}
-
-          {addressObj.street ? (
-            <View style={styles.selectedAddressCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardHeaderLeft}>
-                  <MapPinIcon color="#0f172a" />
-                  <Text style={styles.selectedAddressTitle}>Selected Address</Text>
-                </View>
-                <TouchableOpacity onPress={handleOpenMap} style={styles.mapBtn}>
-                  <Text style={styles.mapBtnText}>View Map</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.selectedAddressText}>
-                {addressObj.street}
-              </Text>
-              <Text style={styles.selectedAddressSubtext}>
-                {addressObj.suburb}, {addressObj.state} {addressObj.postcode}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setIsManual(true)}
-                style={styles.manualLinkBtn}
-              >
-                <Text style={styles.manualLinkText}>Edit manually</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
+        <AddressSuggestionsDropdown
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          showDropdown={showDropdown}
+          setShowDropdown={setShowDropdown}
+          suggestions={suggestions}
+          isFetchingSuggestions={isFetchingSuggestions}
+          setSelectedPlaceId={setSelectedPlaceId}
+          addressObj={addressObj}
+          handleOpenMap={handleOpenMap}
+          setIsManual={setIsManual}
+          styles={styles}
+        />
       )}
 
       {(!isAustralia || isManual) && (
-        <View style={styles.manualFields}>
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Street Address</Text>
-            <TextInput
-              style={styles.uiInput}
-              value={addressObj.street}
-              onChangeText={(val: string) => updateAddressFields({ street: val })}
-              placeholder="e.g. 123 Main St"
-              placeholderTextColor="#94a3b8"
-            />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>City / Suburb</Text>
-            <TextInput
-              style={styles.uiInput}
-              value={addressObj.suburb}
-              onChangeText={(val: string) => updateAddressFields({ suburb: val })}
-              placeholder="e.g. Sydney"
-              placeholderTextColor="#94a3b8"
-            />
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.fieldGroup, { flex: 1, marginRight: 12 }]}>
-              <Text style={styles.fieldLabel}>State / Region</Text>
-              {isAustralia ? (
-                <View style={styles.stateSelectWrapper}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                    {AUSTRALIAN_STATES.map((st) => {
-                      const isActive = addressObj.state === st;
-                      return (
-                        <TouchableOpacity
-                          key={st}
-                          onPress={() => updateAddressFields({ state: st })}
-                          style={[styles.statePill, isActive && styles.statePillActive]}
-                        >
-                          <Text style={[styles.statePillText, isActive && styles.statePillTextActive]}>{st}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              ) : (
-                <TextInput
-                  style={styles.uiInput}
-                  value={addressObj.state}
-                  onChangeText={(val: string) => updateAddressFields({ state: val })}
-                  placeholder="e.g. NSW"
-                  placeholderTextColor="#94a3b8"
-                />
-              )}
-            </View>
-
-            <View style={[styles.fieldGroup, { width: 120 }]}>
-              <Text style={styles.fieldLabel}>Postcode</Text>
-              <TextInput
-                style={styles.uiInput}
-                value={addressObj.postcode}
-                onChangeText={(val: string) => updateAddressFields({ postcode: val })}
-                placeholder="e.g. 2000"
-                placeholderTextColor="#94a3b8"
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-
-          {!isAustralia && (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Country</Text>
-              <TextInput
-                style={styles.uiInput}
-                value={addressObj.country}
-                onChangeText={(val: string) => updateAddressFields({ country: val })}
-                placeholder="e.g. United Kingdom"
-                placeholderTextColor="#94a3b8"
-              />
-            </View>
-          )}
-
-          {isAustralia && isManual && (
-            <TouchableOpacity
-              onPress={() => setIsManual(false)}
-              style={styles.manualLinkBtn}
-            >
-              <Text style={styles.manualLinkText}>Use Autocomplete</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <AddressManualFields
+          addressObj={addressObj}
+          updateAddressFields={updateAddressFields}
+          isAustralia={isAustralia}
+          onCountryChange={onCountryChange}
+          setIsManual={setIsManual}
+          styles={styles}
+        />
       )}
 
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 }
@@ -379,9 +211,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   uiLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1e293b',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
     marginBottom: 8,
   },
   toggleContainer: {
@@ -393,9 +225,8 @@ const styles = StyleSheet.create({
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: 8,
   },
   toggleBtnActive: {
@@ -407,57 +238,63 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   toggleBtnText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
     color: '#64748b',
-    fontWeight: '500',
   },
   toggleBtnActiveText: {
     color: '#0f172a',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   autocompleteWrapper: {
     position: 'relative',
-    zIndex: 30,
+    zIndex: 10,
   },
   inputWrapper: {
-    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
+    position: 'relative',
   },
   searchIconWrapper: {
     position: 'absolute',
-    left: 14,
-    zIndex: 10,
+    left: 12,
+    zIndex: 1,
+  },
+  uiInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0f172a',
   },
   searchInput: {
     flex: 1,
-    paddingLeft: 42,
-    marginBottom: 0,
-    height: 52,
+    paddingLeft: 38,
+    paddingRight: 40,
   },
   spinner: {
     position: 'absolute',
-    right: 14,
+    right: 12,
   },
   dropdown: {
-    position: 'absolute',
-    top: 56,
-    left: 0,
-    right: 0,
     backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
     borderWidth: 1,
-    borderRadius: 8,
-    zIndex: 999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    marginTop: 4,
     maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
   },
   dropdownItem: {
-    padding: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
@@ -466,24 +303,24 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   dropdownPlaceholder: {
-    padding: 14,
+    padding: 12,
     fontSize: 13,
     color: '#94a3b8',
-    fontStyle: 'italic',
+    textAlign: 'center',
   },
   selectedAddressCard: {
-    marginTop: 12,
     backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   cardHeaderLeft: {
     flexDirection: 'row',
@@ -491,27 +328,27 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   selectedAddressTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   mapBtn: {
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: '#ffffff',
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
   },
   mapBtnText: {
     fontSize: 11,
-    color: '#64748b',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#334155',
   },
   selectedAddressText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#1e293b',
+    fontWeight: '700',
+    color: '#0f172a',
   },
   selectedAddressSubtext: {
     fontSize: 13,
@@ -519,68 +356,62 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   manualLinkBtn: {
-    marginTop: 12,
+    marginTop: 10,
     alignSelf: 'flex-start',
   },
   manualLinkText: {
     fontSize: 12,
-    color: '#0f172a',
     fontWeight: '600',
+    color: '#2563eb',
   },
   manualFields: {
     gap: 12,
   },
   fieldGroup: {
-    marginBottom: 0,
+    gap: 4,
   },
   fieldLabel: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#64748b',
-    marginBottom: 6,
+    fontWeight: '600',
+    color: '#475569',
   },
-  uiInput: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#1e293b',
-    height: 48,
-  },
-  row: {
+  stateContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
   },
-  stateSelectWrapper: {
-    height: 48,
-    justifyContent: 'center',
-  },
-  statePill: {
+  stateBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#e2e8f0',
   },
-  statePillActive: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#2563eb',
+  stateBtnActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
   },
-  statePillText: {
+  stateBtnText: {
     fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  statePillTextActive: {
-    color: '#2563eb',
     fontWeight: '600',
+    color: '#475569',
+  },
+  stateBtnActiveText: {
+    color: '#ffffff',
+  },
+  backToSearchBtn: {
+    marginTop: 8,
+  },
+  backToSearchText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2563eb',
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 12,
-    marginTop: 4,
-    fontWeight: '500',
+    color: '#ef4444',
+    marginTop: 6,
   },
 });

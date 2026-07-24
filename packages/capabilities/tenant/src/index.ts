@@ -1,3 +1,9 @@
+/**
+ * Capability Tenant & Bank Account Management
+ * 
+ * Provides command handlers for tenant creation, user membership binding, bank account management,
+ * and tenant configuration queries.
+ */
 import { z } from "zod";
 import { tenants, tenantUsers, bankAccounts, categories, transactionLedger } from "@money-matters/db";
 import { 
@@ -8,6 +14,12 @@ import {
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
+/**
+ * Creates a new tenant scope and assigns the creator user as OWNER.
+ *
+ * @param db - Drizzle PostgreSQL database client
+ * @returns Command execution handler function
+ */
 export function createTenantHandler(db: PgDatabase<any, any, any>) {
   return async (input: z.infer<typeof CreateTenantCommand>, appId: string, userId: string) => {
     // Pre-generate the tenant UUID so tenantId = tenantId in a single INSERT.
@@ -48,6 +60,12 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
   };
 }
 
+/**
+ * Creates a new bank account within the tenant scope.
+ *
+ * @param db - Drizzle PostgreSQL database client
+ * @returns Command handler creating bank account records
+ */
 export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
     input: z.infer<typeof CreateBankAccountCommand>, 
@@ -72,6 +90,12 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
   };
 }
 
+/**
+ * Updates an existing bank account within the tenant scope.
+ *
+ * @param db - Drizzle PostgreSQL database client
+ * @returns Command handler updating bank account parameters
+ */
 export function updateBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
     accountId: string, 
@@ -105,6 +129,12 @@ export function updateBankAccountHandler(db: PgDatabase<any, any, any>) {
   };
 }
 
+/**
+ * Archives a bank account within the tenant scope after ensuring no linked categories exist.
+ *
+ * @param db - Drizzle PostgreSQL database client
+ * @returns Command handler performing soft-delete archiving
+ */
 export function archiveBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
     accountId: string, 
@@ -152,6 +182,12 @@ export function archiveBankAccountHandler(db: PgDatabase<any, any, any>) {
   };
 }
 
+/**
+ * Fetches tenant details, member users, and active bank accounts.
+ *
+ * @param db - Drizzle PostgreSQL database client
+ * @returns Query handler returning aggregated tenant object
+ */
 export function getTenantHandler(db: PgDatabase<any, any, any>) {
   return async (tenantId: string, appId: string) => {
     const [tenant] = await db
@@ -199,3 +235,4 @@ export function getTenantHandler(db: PgDatabase<any, any, any>) {
     };
   };
 }
+

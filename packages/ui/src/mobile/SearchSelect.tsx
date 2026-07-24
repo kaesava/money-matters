@@ -3,14 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  Modal,
-  FlatList,
-  SafeAreaView,
   StyleProp,
   ViewStyle,
 } from 'react-native';
+import { t } from '@money-matters/i18n';
+import { SearchSelectModal } from './SearchSelectModal';
 
 export interface MobileSearchSelectOption {
   value: string;
@@ -97,276 +95,172 @@ export const SearchSelect: React.FC<MobileSearchSelectProps> = ({
             </View>
           ) : (
             <Text style={styles.placeholderText}>
-              {placeholder || 'Tap to select...'}
+              {placeholder || t('common.tapToSelect')}
             </Text>
           )}
         </View>
         <Text style={styles.chevron}>▼</Text>
       </TouchableOpacity>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Modal
+      <SearchSelectModal
         visible={modalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={handleClose}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {label || 'Select Option'}
-            </Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.searchBox}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder={searchPlaceholder || 'Search...'}
-              placeholderTextColor="#94a3b8"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus={true}
-              autoCapitalize="none"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-            />
-            {searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                <Text style={styles.clearButtonText}>✕</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          <FlatList
-            data={filteredOptions}
-            keyExtractor={(item) => item.value}
-            contentContainerStyle={styles.listContent}
-            ListHeaderComponent={() => {
-              if (required) return null;
-              return (
-                <TouchableOpacity
-                  activeOpacity={0.6}
-                  onPress={() => handleSelect('')}
-                  style={styles.clearSelectionRow}
-                >
-                  <Text style={styles.clearSelectionText}>
-                    ✕ None (Clear)
-                  </Text>
-                </TouchableOpacity>
-              );
-            }}
-            ListEmptyComponent={() => (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  No options found
-                </Text>
-              </View>
-            )}
-            renderItem={({ item }) => {
-              const isSelected = item.value === value;
-              return (
-                <TouchableOpacity
-                  activeOpacity={0.6}
-                  onPress={() => handleSelect(item.value)}
-                  style={[styles.optionRow, isSelected ? styles.optionRowSelected : null]}
-                >
-                  {renderOption ? (
-                    renderOption(item, isSelected)
-                  ) : (
-                    <View style={styles.optionContent}>
-                      <Text style={[styles.optionLabel, isSelected ? styles.optionLabelSelected : null]}>
-                        {item.label}
-                      </Text>
-                      {item.subLabel ? (
-                        <Text style={styles.optionSubLabel}>{item.subLabel}</Text>
-                      ) : null}
-                    </View>
-                  )}
-                  {isSelected ? (
-                    <Text style={styles.checkmark}>✓</Text>
-                  ) : null}
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </SafeAreaView>
-      </Modal>
+        onClose={handleClose}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        searchPlaceholder={searchPlaceholder}
+        filteredOptions={filteredOptions}
+        value={value}
+        handleSelect={handleSelect}
+        renderOption={renderOption}
+        styles={styles}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1e293b',
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 6,
   },
   requiredStar: {
-    color: '#ef4444',
+    color: '#EF4444',
   },
   trigger: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 52,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 48,
   },
   triggerError: {
-    borderColor: '#ef4444',
+    borderColor: '#EF4444',
   },
   triggerContent: {
     flex: 1,
-    justifyContent: 'center',
-    paddingRight: 8,
+    marginRight: 8,
   },
   triggerText: {
-    fontSize: 16,
-    color: '#1e293b',
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   triggerSubText: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: 11,
+    color: '#64748B',
     marginTop: 2,
   },
   placeholderText: {
-    fontSize: 16,
-    color: '#94a3b8',
+    fontSize: 14,
+    color: '#94A3B8',
   },
   chevron: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontSize: 10,
+    color: '#64748B',
   },
   errorText: {
-    color: '#ef4444',
-    fontSize: 12,
+    fontSize: 11,
+    color: '#EF4444',
     marginTop: 4,
-    fontWeight: '500',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FFFFFF',
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
+    borderBottomColor: '#F1F5F9',
+    gap: 12,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: '#94a3b8',
-    fontWeight: 'bold',
-  },
-  searchBox: {
+  searchInputContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingHorizontal: 12,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  searchIcon: {
+    fontSize: 14,
+    marginRight: 6,
   },
   searchInput: {
     flex: 1,
-    height: 48,
-    fontSize: 16,
-    color: '#1e293b',
-  },
-  clearButton: {
-    padding: 4,
-  },
-  clearButtonText: {
     fontSize: 14,
-    color: '#94a3b8',
-    fontWeight: 'bold',
+    color: '#0F172A',
+    height: 40,
+  },
+  closeButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  closeButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#00B4A6',
   },
   listContent: {
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
-  clearSelectionRow: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    marginBottom: 8,
-  },
-  clearSelectionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#ef4444',
-  },
-  optionRow: {
+  optionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
     paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
+    borderBottomColor: '#F8FAFC',
   },
-  optionRowSelected: {
-    backgroundColor: '#eff6ff',
+  optionItemSelected: {
+    backgroundColor: '#F0FDFA',
   },
-  optionContent: {
+  optionTextContainer: {
     flex: 1,
-    paddingRight: 10,
   },
   optionLabel: {
-    fontSize: 16,
-    color: '#1e293b',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   optionLabelSelected: {
-    fontWeight: '600',
-    color: '#2563eb',
+    color: '#00B4A6',
+    fontWeight: '700',
   },
   optionSubLabel: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 3,
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
   checkmark: {
-    fontSize: 18,
-    color: '#2563eb',
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#00B4A6',
+    marginLeft: 12,
   },
   emptyContainer: {
-    paddingVertical: 40,
+    padding: 32,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   emptyText: {
-    fontSize: 15,
-    color: '#64748b',
+    fontSize: 13,
+    color: '#94A3B8',
   },
 });
 

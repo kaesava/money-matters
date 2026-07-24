@@ -1,3 +1,9 @@
+/**
+ * Environment Configuration & Runtime Validation
+ * 
+ * Enforces strong type validation for system environment variables using Zod.
+ * Caches validated environment variables for high-performance access across microservices and API routes.
+ */
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -20,6 +26,12 @@ const envSchema = z.object({
 
 let envCache: z.infer<typeof envSchema> | null = null;
 
+/**
+ * Validates runtime environment variables against envSchema.
+ * Throws a descriptive error if critical parameters (e.g. DATABASE_URL) are missing or invalid.
+ *
+ * @returns Validated environment object
+ */
 export function validateEnv(): z.infer<typeof envSchema> {
   if (envCache) return envCache;
 
@@ -32,3 +44,4 @@ export function validateEnv(): z.infer<typeof envSchema> {
   envCache = result.data;
   return envCache;
 }
+

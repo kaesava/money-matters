@@ -152,9 +152,18 @@ function TransactionHistory({ categoryId }: { categoryId: string }) {
     );
   }
 
+  interface TransactionItem {
+    id: string;
+    note?: string | null;
+    categoryName?: string;
+    recordedAt: string | Date;
+    flowType: string;
+    amount: string;
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      {txs.slice(0, 5).map((tx: any) => (
+      {(txs as TransactionItem[]).slice(0, 5).map((tx: TransactionItem) => (
         <div key={tx.id} className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-between text-xs">
           <div className="flex flex-col gap-0.5">
             <span className="font-bold text-[#1B2B4B]">{tx.note || tx.categoryName || "Expense"}</span>

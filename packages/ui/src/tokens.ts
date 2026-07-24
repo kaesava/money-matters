@@ -1,3 +1,9 @@
+/**
+ * Monorepo UI Design System Tokens
+ * 
+ * Centralized design tokens governing palette colors (brand navy, teal accent, traffic light status),
+ * border radii, and spatial layouts across Web and React Native Mobile applications.
+ */
 export const DESIGN_TOKENS = {
   colors: {
     // Brand Colors
@@ -38,3 +44,4 @@ export const DESIGN_TOKENS = {
     sectionGap: 24
   }
 } as const;
+

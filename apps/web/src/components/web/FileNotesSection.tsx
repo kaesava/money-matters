@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 
 interface FileNotesSectionProps {
@@ -38,7 +39,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
   return (
     <div className="flex flex-col gap-3 pt-4 border-t" style={{ borderColor: "var(--dash-border)" }}>
       <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-        Notes & Comments
+        {t("fileNotes.title")}
       </p>
 
       {/* Comment Form */}
@@ -47,7 +48,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
           type="text"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Add a note or comment..."
+          placeholder={t("fileNotes.placeholder")}
           className="flex-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
         />
         <button
@@ -55,15 +56,15 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
           disabled={createFileNoteMutation.isPending || !comment.trim()}
           className="px-3 py-2 text-xs font-bold text-white rounded-xl transition-opacity bg-[#00B4A6] hover:opacity-90 disabled:opacity-50"
         >
-          {createFileNoteMutation.isPending ? "Posting..." : "Post"}
+          {createFileNoteMutation.isPending ? t("fileNotes.posting") : t("fileNotes.post")}
         </button>
       </form>
 
       {/* Notes List */}
       {notesQuery.isLoading ? (
-        <p className="text-xs text-zinc-400">Loading notes...</p>
+        <p className="text-xs text-zinc-400">{t("fileNotes.loading")}</p>
       ) : notes.length === 0 ? (
-        <p className="text-xs text-zinc-400 italic">No notes added yet.</p>
+        <p className="text-xs text-zinc-400 italic">{t("fileNotes.empty")}</p>
       ) : (
         <div className="flex flex-col gap-2">
           {notes.map((note) => (

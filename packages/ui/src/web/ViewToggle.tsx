@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '@money-matters/i18n';
 
 interface ViewToggleProps {
   viewMode: 'list' | 'board';
@@ -12,8 +13,8 @@ export function ViewToggle({
   viewMode,
   onChange,
   showBoardOption = true,
-  listLabel = 'List',
-  boardLabel = 'Board',
+  listLabel = t('common.viewList'),
+  boardLabel = t('common.viewBoard'),
 }: ViewToggleProps) {
   return (
     <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-max">
