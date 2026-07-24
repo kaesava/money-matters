@@ -1,334 +1,403 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { DashboardError } from "../../../components/web/DashboardError";
 
 type IncomeType = "SALARY" | "WAGES" | "FREELANCE" | "OTHER";
+type ExpenseType = "UTILITY" | "SUBSCRIPTION" | "RENT_MORTGAGE" | "INSURANCE" | "OTHER";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function PaychecksPage() {
+export default function IncomeAndExpensesPage() {
   const router = useRouter();
 
-  // Strategic Fix: Move queries to the top so we can leverage their inferred types immediately
-  const sourcesQuery = trpc.listIncomeSources.useQuery();
-  const eventsQuery = trpc.listIncomeEvents.useQuery();
-  const sources = sourcesQuery.data ?? [];
-  const events = eventsQuery.data ?? [];
-
-  // Dialog State
+  // Active Tab / Form Modal State
   const [showAddModal, setShowAddModal] = useState(false);
-  
-  // Strategic Fix: Use typeof to grab the exact inferred type from the array
-  const [editingSource, setEditingSource] = useState<typeof sources[number] | null>(null);
+  const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   // Form Fields
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState<IncomeType>("SALARY");
+  const [incomeType, setIncomeType] = useState<IncomeType>("SALARY");
+  const [expenseType, setExpenseType] = useState<ExpenseType>("OTHER");
+  const [categoryId, setCategoryId] = useState("");
   const [isRecurring, setIsRecurring] = useState(true);
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const [frequency, setFrequency] = useState("FORTNIGHTLY");
+  const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("FORTNIGHTLY");
 
-  const createScheduleMutation = trpc.createIncomeSourceSchedule.useMutation();
-  const createEventMutation = trpc.createIncomeEvent.useMutation();
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const createSourceMutation = trpc.createIncomeSource.useMutation({
-    onSuccess: async (newSource) => {
-      if (isRecurring) {
-        let rrule = "FREQ=WEEKLY;INTERVAL=2"; // default fortnightly
-        if (frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
-        else if (frequency === "MONTHLY") rrule = "FREQ=MONTHLY";
-        else if (frequency === "ANNUALLY") rrule = "FREQ=YEARLY";
+  const sourcesQuery = trpc.listIncomeSources.useQuery();
+  const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
+  const categoriesQuery = trpc.listCategories.useQuery();
 
-        await createScheduleMutation.mutateAsync({
-          incomeSourceId: newSource.id,
-          rrule,
-          startDate: new Date(startDate).toISOString(),
-        });
-      } else {
-        await createEventMutation.mutateAsync({
-          incomeSourceId: newSource.id,
-          expectedAmount: parseFloat(amount).toFixed(2),
-          expectedDate: new Date(startDate).toISOString(),
-        });
+  const createIncomeSourceMutation = trpc.createIncomeSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      sourcesQuery.refetch();
+    },
+  });
+
+  const createExpenseSourceMutation = trpc.createExpenseSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      expenseSourcesQuery.refetch();
+    },
+  });
+
+  const updateIncomeSourceMutation = trpc.updateIncomeSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      sourcesQuery.refetch();
+    },
+  });
+
+  const updateExpenseSourceMutation = trpc.updateExpenseSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      expenseSourcesQuery.refetch();
+    },
+  });
+
+  const archiveIncomeSourceMutation = trpc.archiveIncomeSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      sourcesQuery.refetch();
+    },
+  });
+
+  const archiveExpenseSourceMutation = trpc.archiveExpenseSource.useMutation({
+    onSuccess: () => {
+      resetForm();
+      expenseSourcesQuery.refetch();
+    },
+  });
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        resetForm();
       }
-      resetForm();
-      sourcesQuery.refetch();
-      eventsQuery.refetch();
-    },
-  });
-
-  const updateSourceMutation = trpc.updateIncomeSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      sourcesQuery.refetch();
-      eventsQuery.refetch();
-    },
-  });
-
-  const archiveSourceMutation = trpc.archiveIncomeSource.useMutation({
-    onSuccess: () => {
-      resetForm();
-      sourcesQuery.refetch();
-      eventsQuery.refetch();
-    },
-  });
-
-  const runAllocationMutation = trpc.runAllocation.useMutation({
-    onSuccess: () => {
-      eventsQuery.refetch();
-    },
-  });
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const resetForm = () => {
     setShowAddModal(false);
-    setEditingSource(null);
+    setEditingItem(null);
     setName("");
     setAmount("");
-    setType("SALARY");
+    setIncomeType("SALARY");
+    setExpenseType("OTHER");
+    setCategoryId("");
     setIsRecurring(true);
     setStartDate(new Date().toISOString().split("T")[0]);
     setFrequency("FORTNIGHTLY");
   };
 
-  const handleCreateSource = (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !amount || parseFloat(amount) <= 0) return;
-    createSourceMutation.mutate({
-      name: name.trim(),
-      type,
-      amount: parseFloat(amount).toFixed(2),
-    });
-  };
 
-  const handleUpdateSource = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingSource || !name.trim() || !amount || parseFloat(amount) <= 0) return;
-    updateSourceMutation.mutate({
-      id: editingSource.id,
-      data: {
-        name: name.trim(),
-        type,
-        amount: parseFloat(amount).toFixed(2),
-      },
-    });
-  };
-
-  const handleEditClick = (src: typeof sources[number]) => {
-    setEditingSource(src);
-    setName(src.name);
-    setAmount(parseFloat(src.amount.toString()).toFixed(2));
-    setType(src.type as IncomeType);
-    setIsRecurring(!!src.rrule);
-    if (src.startDate) {
-      setStartDate(src.startDate.split("T")[0]);
+    if (modalMode === "INCOME") {
+      if (editingItem) {
+        updateIncomeSourceMutation.mutate({
+          id: editingItem.id,
+          data: {
+            name: name.trim(),
+            type: incomeType,
+            amount: parseFloat(amount).toFixed(2),
+          },
+        });
+      } else {
+        createIncomeSourceMutation.mutate({
+          name: name.trim(),
+          type: incomeType,
+          amount: parseFloat(amount).toFixed(2),
+        });
+      }
+    } else {
+      if (editingItem) {
+        updateExpenseSourceMutation.mutate({
+          id: editingItem.id,
+          data: {
+            name: name.trim(),
+            type: expenseType,
+            amount: parseFloat(amount).toFixed(2),
+            categoryId: categoryId || undefined,
+          },
+        });
+      } else {
+        createExpenseSourceMutation.mutate({
+          name: name.trim(),
+          type: expenseType,
+          amount: parseFloat(amount).toFixed(2),
+          categoryId: categoryId || undefined,
+          isRecurring,
+          startDate,
+          frequency,
+        });
+      }
     }
-    if (src.rrule) {
-      if (src.rrule.includes("INTERVAL=2")) setFrequency("FORTNIGHTLY");
-      else if (src.rrule.includes("YEARLY")) setFrequency("ANNUALLY");
-      else if (src.rrule.includes("MONTHLY")) setFrequency("MONTHLY");
-      else setFrequency("WEEKLY");
+  };
+
+  const handleEditClick = (item: any, mode: "INCOME" | "EXPENSE") => {
+    setModalMode(mode);
+    setEditingItem(item);
+    setName(item.name);
+    setAmount(parseFloat(item.amount).toFixed(2));
+    if (mode === "INCOME") {
+      setIncomeType(item.type);
+    } else {
+      setExpenseType(item.type);
+      setCategoryId(item.categoryId || "");
+    }
+    setIsRecurring(!!item.rrule);
+    if (item.startDate) setStartDate(item.startDate.split("T")[0]);
+    setShowAddModal(true);
+  };
+
+  const handleDeleteClick = (id: string, mode: "INCOME" | "EXPENSE") => {
+    if (!confirm(`Are you sure you want to archive this ${mode.toLowerCase()} source?`)) return;
+    if (mode === "INCOME") {
+      archiveIncomeSourceMutation.mutate({ id });
+    } else {
+      archiveExpenseSourceMutation.mutate({ id });
     }
   };
 
-  const handleRunAllocation = (eventId: string, expectedAmount: string) => {
-    router.push(`/dashboard/paychecks/cascade?eventId=${eventId}&amount=${expectedAmount}`);
-  };
+  let incomeSourcesList = sourcesQuery.data ?? [];
+  let expenseSourcesList = expenseSourcesQuery.data ?? [];
+
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    incomeSourcesList = incomeSourcesList.filter((s) => s.name.toLowerCase().includes(q) || s.type.toLowerCase().includes(q));
+    expenseSourcesList = expenseSourcesList.filter((s) => s.name.toLowerCase().includes(q) || s.type.toLowerCase().includes(q));
+  }
+
+  const categories = categoriesQuery.data ?? [];
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
-            Income Sources & Scheduled Deposits
-          </h1>
-          <p className="text-sm font-semibold text-zinc-500 mt-1">
-            Manage your recurring salaries, wages, freelance incomes, or one-off bonuses.
-          </p>
+          <h1 className="text-3xl font-black text-[#1B2B4B]">Income & Expenses</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-1">Configure recurring and one-off income sources and bills</p>
         </div>
 
-        <button
-          onClick={() => { resetForm(); setShowAddModal(true); }}
-          className="px-4 py-2.5 rounded-xl font-bold text-sm text-white shadow-md transition-all hover:opacity-90 active:scale-95 bg-[#00B4A6] flex items-center justify-center gap-2"
-        >
-          <span>+</span>
-          <span>Add Income Source</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { resetForm(); setModalMode("INCOME"); setShowAddModal(true); }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
+          >
+            + Add Income Source
+          </button>
+          <button
+            onClick={() => { resetForm(); setModalMode("EXPENSE"); setShowAddModal(true); }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#1B2B4B] hover:opacity-90 transition-all shadow-sm"
+          >
+            + Add Expense Source
+          </button>
+        </div>
       </div>
 
-      {/* Income Sources List */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-          Income Sources
-        </h2>
-
-        {sourcesQuery.isLoading ? (
-          <div className="h-24 rounded-2xl animate-pulse bg-zinc-200/50" />
-        ) : sourcesQuery.error ? (
-          <DashboardError error={sourcesQuery.error} onRetry={() => sourcesQuery.refetch()} compact />
-        ) : sources.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-white border border-zinc-100 text-center flex flex-col items-center gap-2">
-            <span className="text-3xl">💵</span>
-            <p className="text-sm font-semibold text-zinc-700">No income sources configured yet.</p>
-            <p className="text-xs text-zinc-400">Add your regular salary or wages to get started.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Strategic Fix: Implicitly mapped parameter, no typing required! */}
-            {sources.map((src) => (
-              <div
-                key={src.id}
-                className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex items-center justify-between hover:border-zinc-200 transition-all group"
-              >
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#00B4A6]">
-                    {src.type} {src.rrule ? `• ${src.rrule.includes("INTERVAL=2") ? "Fortnightly" : "Recurring"}` : "• One-off"}
-                  </span>
-                  <h3 className="text-base font-bold text-[#1B2B4B]">{src.name}</h3>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xl font-black text-[#1B2B4B]">
-                    {fmt(src.amount.toString())}
-                  </span>
-                  <button
-                    onClick={() => handleEditClick(src)}
-                    className="text-xs font-bold text-zinc-400 hover:text-[#1B2B4B] opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Edit
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Search Input */}
+      <div className="p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm flex items-center justify-between">
+        <input
+          type="text"
+          placeholder="Search income and expense sources..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full max-w-md px-4 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+        />
       </div>
 
-      {/* Upcoming Paycheck Events & Waterfall Allocations */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-          Scheduled Deposits & allocations
-        </h2>
-
-        {eventsQuery.isLoading ? (
-          <div className="h-24 rounded-2xl animate-pulse bg-zinc-200/50" />
-        ) : events.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-white border border-zinc-100 text-center text-xs text-zinc-400">
-            No upcoming paycheck events recorded yet.
+      {/* Split Tables Container */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Table 1: Income Sources */}
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-4 bg-zinc-50/50 border-b border-zinc-100 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#1B2B4B] flex items-center gap-2">
+              <span>💵</span> Income Sources
+            </h2>
+            <span className="text-xs font-semibold text-zinc-400">{incomeSourcesList.length} total</span>
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {events.map((evt) => (
-              <div
-                key={evt.id}
-                className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-[#1B2B4B]">
-                      {evt.sourceName || "Paycheck"}
-                    </span>
-                    <span
-                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                        evt.status === "CONFIRMED"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {evt.status}
-                    </span>
-                  </div>
-                  <span className="text-xs text-zinc-400">
-                    Expected: {new Date(evt.expectedDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
-                  </span>
-                </div>
 
-                <div className="flex items-center gap-4">
-                  <span className="text-lg font-black text-[#1B2B4B]">
-                    {fmt(evt.expectedAmount)}
-                  </span>
-                  {evt.status !== "CONFIRMED" && (
-                    <button
-                      onClick={() => handleRunAllocation(evt.id, evt.expectedAmount)}
-                      disabled={runAllocationMutation.isPending}
-                      className="px-3.5 py-2 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-sm"
-                    >
-                      {runAllocationMutation.isPending ? "Allocating..." : "Run Cascade"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-zinc-100 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Expected Amount</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 font-semibold">
+              {incomeSourcesList.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-zinc-400">No income sources configured.</td>
+                </tr>
+              ) : (
+                incomeSourcesList.map((src) => (
+                  <tr key={src.id} className="hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-4 py-3 text-[#1B2B4B] font-bold">{src.name}</td>
+                    <td className="px-4 py-3 text-zinc-500">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-800">
+                        {src.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-emerald-600 font-bold">+{fmt(src.amount)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => handleEditClick(src, "INCOME")} className="text-zinc-400 hover:text-[#1B2B4B]">Edit</button>
+                        <button onClick={() => handleDeleteClick(src.id, "INCOME")} className="text-rose-400 hover:text-rose-600">Archive</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Table 2: Expense Sources */}
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-4 bg-zinc-50/50 border-b border-zinc-100 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#1B2B4B] flex items-center gap-2">
+              <span>📄</span> Expense Sources (Bills)
+            </h2>
+            <span className="text-xs font-semibold text-zinc-400">{expenseSourcesList.length} total</span>
           </div>
-        )}
+
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-zinc-100 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 font-semibold">
+              {expenseSourcesList.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-zinc-400">No expense sources configured.</td>
+                </tr>
+              ) : (
+                expenseSourcesList.map((exp) => (
+                  <tr key={exp.id} className="hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-4 py-3 text-[#1B2B4B] font-bold">{exp.name}</td>
+                    <td className="px-4 py-3 text-zinc-500">{exp.categoryName || "Uncategorized"}</td>
+                    <td className="px-4 py-3 font-mono text-[#1B2B4B] font-bold">-{fmt(exp.amount)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => handleEditClick(exp, "EXPENSE")} className="text-zinc-400 hover:text-[#1B2B4B]">Edit</button>
+                        <button onClick={() => handleDeleteClick(exp.id, "EXPENSE")} className="text-rose-400 hover:text-rose-600">Archive</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Add / Edit Income Source Modal */}
-      {(showAddModal || editingSource) && (
+      {/* Add / Edit Form Modal */}
+      {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity"
-            onClick={resetForm}
-          />
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10 animate-in fade-in zoom-in-95 duration-200">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={resetForm} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#1B2B4B]">
-                {editingSource ? "Edit Income Source" : "New Income Source"}
+                {editingItem ? `Edit ${modalMode === "INCOME" ? "Income" : "Expense"} Source` : `New ${modalMode === "INCOME" ? "Income" : "Expense"} Source`}
               </h2>
-              <button
-                onClick={resetForm}
-                className="text-zinc-400 hover:text-zinc-600 text-sm font-bold p-1"
-              >
-                ✕
-              </button>
+              <button onClick={resetForm} className="text-zinc-400 font-bold p-1">✕</button>
             </div>
 
-            <form onSubmit={editingSource ? handleUpdateSource : handleCreateSource} className="flex flex-col gap-4">
+            <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Name</label>
                 <input
                   type="text"
                   required
+                  placeholder={modalMode === "INCOME" ? "e.g. Primary Salary" : "e.g. Electricity Bill"}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Primary Salary"
                   className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Type</label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as IncomeType)}
-                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                >
-                  <option value="SALARY">Salary</option>
-                  <option value="WAGES">Wages</option>
-                  <option value="FREELANCE">Freelance</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
+              {modalMode === "INCOME" ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Income Type</label>
+                  <select
+                    value={incomeType}
+                    onChange={(e) => setIncomeType(e.target.value as any)}
+                    className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                  >
+                    <option value="SALARY">Salary</option>
+                    <option value="WAGES">Wages</option>
+                    <option value="FREELANCE">Freelance</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Expense Type</label>
+                    <select
+                      value={expenseType}
+                      onChange={(e) => setExpenseType(e.target.value as any)}
+                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                    >
+                      <option value="UTILITY">Utility</option>
+                      <option value="SUBSCRIPTION">Subscription</option>
+                      <option value="RENT_MORTGAGE">Rent / Mortgage</option>
+                      <option value="INSURANCE">Insurance</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Linked Category</label>
+                    <select
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                    >
+                      <option value="">Select Category...</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Expected Net Amount ($)</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Amount ($)</label>
                 <input
                   type="number"
                   step="0.01"
                   required
+                  placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
                   className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                 />
               </div>
 
-              {!editingSource && (
+              {!editingItem && (
                 <>
                   <div className="flex items-center gap-2 py-1">
                     <input
@@ -339,13 +408,13 @@ export default function PaychecksPage() {
                       className="w-4 h-4 rounded text-[#00B4A6] focus:ring-[#00B4A6]"
                     />
                     <label htmlFor="isRecurring" className="text-xs font-bold text-zinc-600 select-none">
-                      Is this a recurring deposit?
+                      Is this a recurring deposit/bill?
                     </label>
                   </div>
 
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                      {isRecurring ? "Starting Date" : "Deposit Date"}
+                      {isRecurring ? "Start Date" : "Event Date"}
                     </label>
                     <input
                       type="date"
@@ -361,7 +430,7 @@ export default function PaychecksPage() {
                       <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Frequency</label>
                       <select
                         value={frequency}
-                        onChange={(e) => setFrequency(e.target.value)}
+                        onChange={(e) => setFrequency(e.target.value as any)}
                         className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                       >
                         <option value="WEEKLY">Weekly</option>
@@ -374,29 +443,12 @@ export default function PaychecksPage() {
                 </>
               )}
 
-              <div className="flex flex-col gap-2 mt-2">
-                <button
-                  type="submit"
-                  disabled={createSourceMutation.isPending || updateSourceMutation.isPending}
-                  className="w-full py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md"
-                >
-                  {editingSource ? "Save Changes" : "Save Income Source"}
-                </button>
-
-                {editingSource && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this income source?")) {
-                        archiveSourceMutation.mutate({ id: editingSource.id });
-                      }
-                    }}
-                    className="w-full py-3 rounded-xl font-bold text-sm text-red-500 border border-red-200 hover:bg-red-50 transition-all"
-                  >
-                    Delete Income Source
-                  </button>
-                )}
-              </div>
+              <button
+                type="submit"
+                className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
+              >
+                {editingItem ? "Save Changes" : `Save ${modalMode === "INCOME" ? "Income" : "Expense"} Source`}
+              </button>
             </form>
           </div>
         </div>

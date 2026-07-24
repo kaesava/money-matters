@@ -50,15 +50,14 @@ export default function AppLayout() {
       <Tabs.Screen
         name="paychecks"
         options={{
-          title: t('nav.paychecks'),
+          title: "Income & Expenses",
           tabBarIcon: ({ color, size }) => <TabIcon name="dollar-sign" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="reconcile"
         options={{
-          title: t('nav.reconcile'),
-          tabBarIcon: ({ color, size }) => <TabIcon name="check-square" color={color} size={size} />,
+          href: null,
         }}
       />
       <Tabs.Screen

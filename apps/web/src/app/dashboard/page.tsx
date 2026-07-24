@@ -1,277 +1,589 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { t } from "@money-matters/i18n";
-import { useDashboardData } from "../../hooks/useDashboardData";
-import { CategoryHealthCard } from "../../components/web/CategoryHealthCard";
-import { CategoryDetailDrawer } from "../../components/web/CategoryDetailDrawer";
-import { CanWeAffordCard } from "../../components/web/CanWeAffordCard";
-import { DashboardError } from "../../components/web/DashboardError";
-import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
+import { MoveMoneyModal } from "../../components/web/MoveMoneyModal";
+import { DashboardError } from "../../components/web/DashboardError";
 
-const SECTION_ORDER = ["REGULAR", "GOAL", "EVERYDAY"] as const;
-const SECTION_LABELS: Record<string, string> = {
-  REGULAR: "categories.recurringSection", 
-  GOAL: "categories.majorSection",        
-  EVERYDAY: "categories.everydaySection", 
-};
-
-type CategoryWithHealth = {
-  id: string;
-  name: string;
-  type: "REGULAR" | "GOAL" | "EVERYDAY";
-  currentBalance: string;
-  targetAmount: string | null;
-  healthStatus: "GREEN" | "AMBER" | "RED";
-  targetDate: string | null;
-  progressPercentage: number;
-};
+function fmt(val: string | number) {
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { data: session } = authClient.useSession();
-  const { hasTenant, isLoadingTenant, tenantError, categoriesQuery } = useDashboardData();
+  const todayYear = new Date().getFullYear();
+  const todayMonth = new Date().getMonth() + 1;
 
-  const now = new Date();
-  const monthlySummaryQuery = trpc.getMonthlySummary.useQuery({
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
+  // Preferences & State
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const updateUserPrefMutation = trpc.updateUserPreferences.useMutation({
+    onSuccess: () => userPrefQuery.refetch(),
   });
 
-  const eventsQuery = trpc.listIncomeEvents.useQuery();
+  const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(true);
+  const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  // Quick Expense Form
+  const [quickCategoryId, setQuickCategoryId] = useState("");
+  const [quickAmount, setQuickAmount] = useState("");
+  const [quickDate, setQuickDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [quickNote, setQuickNote] = useState("");
+  const [quickMsg, setQuickMsg] = useState<string | null>(null);
 
-  const categories = (categoriesQuery.data ?? []) as CategoryWithHealth[];
-  const events = eventsQuery.data ?? [];
-  const upcomingPaychecks = events.filter((e) => e.status === "UPCOMING").slice(0, 2);
+  // Can Afford State
+  const [canAffordAmount, setCanAffordAmount] = useState("");
 
-  const onTrack = categories.filter((c) => c.healthStatus === "GREEN").length;
-  const atRisk = categories.filter((c) => c.healthStatus === "AMBER" || c.healthStatus === "RED").length;
-  const critical = categories.filter((c) => c.healthStatus === "RED").length;
+  // Reconcile State
+  const [reconcilingAccountId, setReconcilingAccountId] = useState<string | null>(null);
+  const [reconcileActualAmount, setReconcileActualAmount] = useState("");
+  const [reconcileTargetCategoryId, setReconcileTargetCategoryId] = useState("");
 
-  const grouped = categories.reduce<Record<string, CategoryWithHealth[]>>((acc, cat) => {
-    if (!acc[cat.type]) acc[cat.type] = [];
-    acc[cat.type]!.push(cat);
-    return acc;
-  }, {});
+  // Upcoming Filter & Search State
+  const [upcomingFilter, setUpcomingFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [upcomingSearch, setUpcomingSearch] = useState("");
 
-  const firstName = session?.user?.name?.split(" ")[0] ?? null;
+  // Upcoming Event Modal Edit State
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [editEventDate, setEditEventDate] = useState("");
+  const [editEventAmount, setEditEventAmount] = useState("");
+  const [editEventName, setEditEventName] = useState("");
+  const [editEventCategoryId, setEditEventCategoryId] = useState("");
 
-  if (isLoadingTenant) {
-    return <FullPageSpinner />;
-  }
+  // Queries
+  const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
+  const categoriesQuery = trpc.listCategories.useQuery();
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+  const canAffordQuery = trpc.canAfford.useQuery({ amount: canAffordAmount }, { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 });
 
-  if (tenantError) {
-    return <DashboardError error={tenantError} onRetry={() => window.location.reload()} />;
-  }
+  // Mutations
+  const recordExpenseMutation = trpc.recordExpense.useMutation({
+    onSuccess: () => {
+      categoriesQuery.refetch();
+      summaryQuery.refetch();
+      setQuickAmount("");
+      setQuickNote("");
+      setQuickMsg("Expense recorded successfully!");
+      setTimeout(() => setQuickMsg(null), 3000);
+    },
+  });
 
-  if (!hasTenant) {
-    return <SetupRequired onGoToSetup={() => router.push("/setup")} />;
-  }
+  const reconcileMutation = trpc.reconcileBankBalance.useMutation({
+    onSuccess: () => {
+      bankAccountsQuery.refetch();
+      categoriesQuery.refetch();
+      setReconcilingAccountId(null);
+    },
+  });
 
-  const summary = monthlySummaryQuery.data || {
-    totalIncome: "0.00",
-    totalSpent: "0.00",
-    totalSaved: "0.00",
-    everydayRemaining: "0.00",
+  const markPaidMutation = trpc.markExpensePaid.useMutation({
+    onSuccess: () => {
+      expenseEventsQuery.refetch();
+      categoriesQuery.refetch();
+      summaryQuery.refetch();
+    },
+  });
+
+  useEffect(() => {
+    if (userPrefQuery.data) {
+      setIsQuickActionsOpen(!userPrefQuery.data.quickActionsCollapsed);
+    }
+  }, [userPrefQuery.data]);
+
+  // Global Escape key listener
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMoveMoneyOpen(false);
+        setEditingEvent(null);
+        setReconcilingAccountId(null);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleToggleQuickActions = () => {
+    const nextState = !isQuickActionsOpen;
+    setIsQuickActionsOpen(nextState);
+    updateUserPrefMutation.mutate({ quickActionsCollapsed: !nextState });
   };
 
+  const handleQuickExpenseSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickCategoryId || !quickAmount || parseFloat(quickAmount) <= 0) return;
+    recordExpenseMutation.mutate({
+      categoryId: quickCategoryId,
+      amount: parseFloat(quickAmount).toFixed(2),
+      flowType: "DEBIT",
+      note: quickNote || "Quick Expense",
+      recordedAt: new Date(quickDate).toISOString(),
+    });
+  };
+
+  const handleMarkExpensePaid = (evt: any) => {
+    const cat = categoriesQuery.data?.find((c) => c.id === evt.categoryId);
+    const balance = cat ? parseFloat(cat.currentBalance) : 0;
+    const amount = parseFloat(evt.expectedAmount);
+
+    if (cat && balance < amount) {
+      if (!confirm(`Warning: Payment of ${fmt(amount)} exceeds "${cat.name}" balance (${fmt(balance)}). Category balance will become negative (${fmt(balance - amount)}). Proceed?`)) {
+        return;
+      }
+    }
+
+    markPaidMutation.mutate({
+      eventId: evt.id,
+      actualAmount: evt.expectedAmount,
+      note: `Paid ${evt.name}`,
+    });
+  };
+
+  const handleAllocateIncome = (evt: any) => {
+    router.push(`/dashboard/paychecks/cascade?eventId=${evt.id}&amount=${evt.expectedAmount}`);
+  };
+
+  const categories = categoriesQuery.data ?? [];
+  const atRiskCount = categories.filter((c) => c.healthStatus === "AMBER").length;
+  const missedCount = categories.filter((c) => c.healthStatus === "RED").length;
+
+  // Combine Income Events & Expense Events into unified Upcoming Events
+  const incomeEventsMapped = (incomeEventsQuery.data ?? [])
+    .filter((e) => e.status === "UPCOMING")
+    .map((e) => ({
+      id: e.id,
+      type: "INCOME" as const,
+      name: e.sourceName || "Paycheck Deposit",
+      expectedDate: e.expectedDate,
+      expectedAmount: e.expectedAmount,
+      categoryName: "Income Allocation",
+      categoryId: null,
+      note: e.sourceType || "Income",
+    }));
+
+  const expenseEventsMapped = (expenseEventsQuery.data ?? [])
+    .filter((e) => e.status === "UPCOMING")
+    .map((e) => ({
+      id: e.id,
+      type: "EXPENSE" as const,
+      name: e.name,
+      expectedDate: e.expectedDate,
+      expectedAmount: e.expectedAmount,
+      categoryName: e.categoryName || "Uncategorized",
+      categoryId: e.categoryId,
+      note: e.note || "Bill/Expense",
+    }));
+
+  let combinedUpcoming = [...incomeEventsMapped, ...expenseEventsMapped];
+
+  if (upcomingFilter === "INCOME") {
+    combinedUpcoming = combinedUpcoming.filter((e) => e.type === "INCOME");
+  } else if (upcomingFilter === "EXPENSE") {
+    combinedUpcoming = combinedUpcoming.filter((e) => e.type === "EXPENSE");
+  }
+
+  if (upcomingSearch.trim()) {
+    const q = upcomingSearch.toLowerCase();
+    combinedUpcoming = combinedUpcoming.filter(
+      (e) => e.name.toLowerCase().includes(q) || e.categoryName.toLowerCase().includes(q) || e.note.toLowerCase().includes(q)
+    );
+  }
+
+  combinedUpcoming.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
   return (
-    <div className="flex flex-col gap-8">
-      {/* Greeting Header */}
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">
-          {firstName ? `${t("home.greeting")}, ${firstName} 👋` : `${t("home.greeting")} 👋`}
-        </p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
-          Overview
-        </h1>
-      </div>
-
-      {/* Monthly Summary Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-1">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase">Total Income</span>
-          <span className="text-xl font-black text-[#1B2B4B]">${parseFloat(summary.totalIncome).toLocaleString("en-AU", { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-1">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase">Spent this Month</span>
-          <span className="text-xl font-black text-[#1B2B4B]">${parseFloat(summary.totalSpent).toLocaleString("en-AU", { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-1">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase">Saved this Month</span>
-          <span className="text-xl font-black text-[#00B4A6]">${parseFloat(summary.totalSaved).toLocaleString("en-AU", { minimumFractionDigits: 2 })}</span>
-        </div>
-        <div className="p-5 rounded-2xl bg-[#1B2B4B] text-white flex flex-col gap-1 shadow-md">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase">Everyday Balance</span>
-          <span className="text-xl font-black text-[#00B4A6]">${parseFloat(summary.everydayRemaining).toLocaleString("en-AU", { minimumFractionDigits: 2 })}</span>
-        </div>
-      </div>
-
-      {/* Bento Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left column (2/3 width on desktop) - Category list health grid */}
-        <div className="lg:col-span-2 flex flex-col gap-8">
-          <div className="flex flex-col gap-6">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#1B2B4B]/70">
-              Category Allocation Health
-            </h2>
-
-            {categoriesQuery.isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-2xl animate-pulse bg-zinc-200/50" />
-                ))}
-              </div>
-            ) : categoriesQuery.error ? (
-              <DashboardError error={categoriesQuery.error} onRetry={() => categoriesQuery.refetch()} compact />
-            ) : categories.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-16 text-center bg-white rounded-2xl border border-zinc-100 shadow-sm">
-                <span className="text-4xl">📂</span>
-                <p className="text-sm font-semibold text-zinc-700">{t("home.noCategories")}</p>
-                <p className="text-xs text-zinc-400">{t("home.setupCategories")}</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-8">
-                {SECTION_ORDER.map((section) => {
-                  const items = grouped[section] ?? [];
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={section} className="flex flex-col gap-3">
-                      <p className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-                        {t(SECTION_LABELS[section] ?? "")}
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {items.map((cat) => (
-                          <CategoryHealthCard
-                            key={cat.id}
-                            id={cat.id}
-                            name={cat.name}
-                            type={cat.type}
-                            balance={cat.currentBalance}
-                            target={cat.targetAmount}
-                            health={cat.healthStatus}
-                            nextDueDate={cat.targetDate}
-                            progressPercentage={cat.progressPercentage}
-                            onClick={() => setSelectedCategoryId(cat.id)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+    <div className="flex flex-col gap-8 pb-12">
+      {/* Quick Actions Collapsible Header */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 flex items-center justify-between bg-zinc-50/50 border-b border-zinc-100">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">⚡</span>
+            <div>
+              <h2 className="text-lg font-black text-[#1B2B4B]">Quick Actions & Summary</h2>
+              <p className="text-xs text-zinc-500 font-semibold">Your financial overview and immediate tools</p>
+            </div>
           </div>
+
+          <button
+            onClick={handleToggleQuickActions}
+            className="px-3 py-1.5 rounded-xl border border-zinc-200 text-xs font-bold text-zinc-600 hover:bg-white transition-all"
+          >
+            {isQuickActionsOpen ? "Collapse ▲" : "Expand ▼"}
+          </button>
         </div>
 
-        {/* Right column (1/3 width on desktop) - Overview & Affordability calculator */}
-        <div className="flex flex-col gap-6">
-          {/* Can We Afford This calculator widget */}
-          <CanWeAffordCard />
+        {isQuickActionsOpen && (
+          <div className="p-4 sm:p-6 flex flex-col gap-6">
+            {/* Card 0: Summary Stat Chips */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Total Income</span>
+                <span className="text-xl font-black text-[#1B2B4B]">{fmt(summaryQuery.data?.totalIncome || "0.00")}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Spent this Month</span>
+                <span className="text-xl font-black text-rose-600">{fmt(summaryQuery.data?.totalSpent || "0.00")}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Saved this Month</span>
+                <span className="text-xl font-black text-[#00B4A6]">{fmt(summaryQuery.data?.totalSaved || "0.00")}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex flex-col gap-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Everyday Balance</span>
+                <span className="text-xl font-black text-[#1B2B4B]">{fmt(summaryQuery.data?.everydayRemaining || "0.00")}</span>
+              </div>
+            </div>
 
-          {/* Quick confirmation widget */}
-          {upcomingPaychecks.length > 0 && (
-            <div className="p-6 rounded-2xl border bg-white shadow-md border-zinc-100 flex flex-col gap-4">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
-                Action Required
-              </h3>
-              <div className="flex flex-col gap-3">
-                {upcomingPaychecks.map((evt) => (
-                  <div key={evt.id} className="p-4 rounded-xl bg-zinc-50 border border-zinc-100 flex flex-col gap-2">
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-bold text-[#1B2B4B]">{evt.sourceName || "Paycheck"}</span>
-                      <span className="text-xs font-black text-[#1B2B4B]">
-                        ${parseFloat(evt.expectedAmount).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => router.push(`/dashboard/paychecks/cascade?eventId=${evt.id}&amount=${evt.expectedAmount}`)}
-                      className="w-full py-2 rounded-lg text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 transition-all shadow-sm"
+            {/* Grid of Action Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Card 1: Quick Add Expense */}
+              <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#1B2B4B]">Quick Add Expense</h3>
+                  <span className="text-xs text-zinc-400">Draw down</span>
+                </div>
+
+                {quickMsg && <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold">{quickMsg}</div>}
+
+                <form onSubmit={handleQuickExpenseSubmit} className="flex flex-col gap-3">
+                  <select
+                    value={quickCategoryId}
+                    onChange={(e) => setQuickCategoryId(e.target.value)}
+                    required
+                    className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                  >
+                    <option value="">Select Category...</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} (${parseFloat(c.currentBalance).toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Amount ($)"
+                      value={quickAmount}
+                      onChange={(e) => setQuickAmount(e.target.value)}
+                      required
+                      className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                    />
+                    <input
+                      type="date"
+                      value={quickDate}
+                      onChange={(e) => setQuickDate(e.target.value)}
+                      required
+                      className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                    />
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Note (optional)"
+                    value={quickNote}
+                    onChange={(e) => setQuickNote(e.target.value)}
+                    className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={recordExpenseMutation.isPending}
+                    className="py-2.5 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                  >
+                    {recordExpenseMutation.isPending ? "Recording..." : "Record Expense"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Card 2: Bank Balances & Reconciliation */}
+              <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#1B2B4B]">Bank Balances & Reconcile</h3>
+                  <button
+                    onClick={() => router.push("/dashboard/settings/bank-accounts")}
+                    className="text-xs font-bold text-[#00B4A6] hover:underline"
+                  >
+                    Settings ›
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {(bankAccountsQuery.data ?? []).map((acc: any) => {
+                    const actualNum = parseFloat(acc.lastKnownBalance || "0");
+                    const expectedNum = parseFloat(acc.expectedBalance || "0");
+                    const isDiff = Math.abs(actualNum - expectedNum) >= 0.01;
+
+                    return (
+                      <div key={acc.id} className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-between text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-[#1B2B4B]">{acc.name}</span>
+                          <span className="text-[10px] text-zinc-400">Expected: {fmt(expectedNum)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-[#1B2B4B]">{fmt(actualNum)}</span>
+                          <button
+                            onClick={() => {
+                              setReconcilingAccountId(acc.id);
+                              setReconcileActualAmount(acc.lastKnownBalance || "0.00");
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                              isDiff ? "bg-amber-100 text-amber-800 animate-pulse" : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300"
+                            }`}
+                          >
+                            {isDiff ? "Reconcile!" : "Adjust"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Card 3: Can We Afford This? + Card 4 & 5 */}
+              <div className="flex flex-col gap-4">
+                {/* Can We Afford Widget */}
+                <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-3">
+                  <h3 className="text-sm font-bold text-[#1B2B4B]">Can We Afford This?</h3>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Amount ($)"
+                      value={canAffordAmount}
+                      onChange={(e) => setCanAffordAmount(e.target.value)}
+                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                    />
+                  </div>
+
+                  {canAffordQuery.data && (
+                    <div
+                      className={`p-3 rounded-xl text-xs font-bold ${
+                        canAffordQuery.data.verdict === "YES"
+                          ? "bg-emerald-50 text-emerald-800"
+                          : canAffordQuery.data.verdict === "YES_WITH_IMPACT"
+                          ? "bg-amber-50 text-amber-800"
+                          : "bg-rose-50 text-rose-800"
+                      }`}
                     >
-                      Confirm Paycheck
+                      {canAffordQuery.data.verdict === "YES" && `YES! Available in Everyday (${fmt(canAffordQuery.data.everydayRemaining)} left)`}
+                      {canAffordQuery.data.verdict === "YES_WITH_IMPACT" && `YES WITH IMPACT: Dips into savings (${canAffordQuery.data.affectedBucketName})`}
+                      {canAffordQuery.data.verdict === "WAIT" && `WAIT: Paycheck due in ${canAffordQuery.data.daysUntilNextPaycheck} days`}
+                      {canAffordQuery.data.verdict === "NO" && `NO: Shortfall of ${fmt(canAffordQuery.data.shortfall)}`}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card 4: Move Money Button & Card 5: Category Health Counters */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setMoveMoneyOpen(true)}
+                    className="p-4 rounded-2xl bg-[#00B4A6] text-white font-bold text-xs shadow-sm hover:opacity-90 active:scale-95 transition-all flex flex-col items-center justify-center gap-1"
+                  >
+                    <span className="text-lg">🔄</span>
+                    <span>Move Money</span>
+                  </button>
+
+                  <div className="grid grid-rows-2 gap-2">
+                    <button
+                      onClick={() => router.push("/dashboard/categories?health=AMBER")}
+                      className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-between text-xs font-bold hover:bg-amber-100 transition-colors"
+                    >
+                      <span>At Risk</span>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">{atRiskCount}</span>
+                    </button>
+                    <button
+                      onClick={() => router.push("/dashboard/categories?health=RED")}
+                      className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between text-xs font-bold hover:bg-rose-100 transition-colors"
+                    >
+                      <span>Missed</span>
+                      <span className="px-2 py-0.5 rounded-full bg-rose-200 text-rose-900">{missedCount}</span>
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quick status summary widget */}
-          <div className="p-6 rounded-2xl border bg-white shadow-md border-zinc-100 flex flex-col gap-6 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-            <h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-400">
-              Health Status Summary
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-[#22C55E]/5 border border-[#22C55E]/10 flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-emerald-600 uppercase">On Track</span>
-                <span className="text-2xl font-extrabold text-emerald-700">{onTrack}</span>
-              </div>
-              <div className="p-4 rounded-xl bg-[#EF4444]/5 border border-[#EF4444]/10 flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-rose-600 uppercase">At Risk</span>
-                <span className="text-2xl font-extrabold text-rose-700">{atRisk}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 pt-2 border-t border-zinc-100">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-500 font-semibold">Total Categories</span>
-                <span className="font-extrabold text-[#1B2B4B]">{categories.length}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-500 font-semibold">Critical (Red)</span>
-                <span className="font-extrabold text-rose-600">{critical}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Details Slide-Over Drawer */}
-      {selectedCategoryId && (
-        <CategoryDetailDrawer
-          categoryId={selectedCategoryId}
-          onClose={() => {
-            setSelectedCategoryId(null);
-            categoriesQuery.refetch();
-          }}
-        />
-      )}
-    </div>
-  );
-}
+      {/* Unified Upcoming Events Section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-black text-[#1B2B4B]">Upcoming Events</h2>
+            <p className="text-xs text-zinc-500 font-semibold">Scheduled income deposits & upcoming bill payments</p>
+          </div>
 
-function FullPageSpinner() {
-  return (
-    <div className="flex items-center justify-center min-h-[40vh]">
-      <div
-        className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-        style={{ borderColor: "var(--dash-teal)" }}
+          {/* Filter Tabs & Search Input */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search upcoming..."
+              value={upcomingSearch}
+              onChange={(e) => setUpcomingSearch(e.target.value)}
+              className="px-3.5 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+            />
+
+            <div className="flex bg-zinc-100 p-1 rounded-xl">
+              {(["ALL", "INCOME", "EXPENSE"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setUpcomingFilter(tab)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    upcomingFilter === tab ? "bg-white text-[#1B2B4B] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
+                  }`}
+                >
+                  {tab === "ALL" ? "All" : tab === "INCOME" ? "Income & Paychecks" : "Bills & Expenses"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {combinedUpcoming.length === 0 ? (
+          <div className="p-8 rounded-2xl bg-white border border-zinc-100 text-center text-xs text-zinc-400">
+            No upcoming events found.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {combinedUpcoming.map((evt) => {
+              const isOverdue = evt.expectedDate < todayStr;
+
+              return (
+                <div
+                  key={`${evt.type}-${evt.id}`}
+                  className={`p-4 rounded-2xl bg-white border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
+                    isOverdue ? "border-amber-300 bg-amber-50/20" : "border-zinc-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{evt.type === "INCOME" ? "💵" : "📄"}</span>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-[#1B2B4B]">{evt.name}</span>
+                        {isOverdue && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
+                            ACTION REQUIRED
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                            evt.type === "INCOME" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                          }`}
+                        >
+                          {evt.type}
+                        </span>
+                      </div>
+                      <span className="text-xs text-zinc-400">
+                        Date: {new Date(evt.expectedDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })} • Category: {evt.categoryName} • {evt.note}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className={`text-lg font-black ${evt.type === "INCOME" ? "text-emerald-600" : "text-[#1B2B4B]"}`}>
+                      {evt.type === "INCOME" ? "+" : "-"}{fmt(evt.expectedAmount)}
+                    </span>
+
+                    {evt.type === "INCOME" ? (
+                      <button
+                        onClick={() => handleAllocateIncome(evt)}
+                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
+                      >
+                        Allocate Waterfall
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleMarkExpensePaid(evt)}
+                        disabled={markPaidMutation.isPending}
+                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#1B2B4B] hover:opacity-90 transition-all shadow-sm"
+                      >
+                        Mark Paid
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Shared Move Money Modal */}
+      <MoveMoneyModal
+        isOpen={moveMoneyOpen}
+        onClose={() => setMoveMoneyOpen(false)}
+        onSuccess={() => {
+          categoriesQuery.refetch();
+          summaryQuery.refetch();
+        }}
       />
-    </div>
-  );
-}
 
-function SetupRequired({ onGoToSetup }: { onGoToSetup: () => void }) {
-  return (
-    <div className="flex flex-col items-center gap-4 py-20 text-center">
-      <span className="text-4xl">🏠</span>
-      <h2 className="text-xl font-bold" style={{ color: "var(--dash-text)" }}>
-        {t("setup.title")}
-      </h2>
-      <p className="text-sm max-w-xs" style={{ color: "var(--dash-muted)" }}>
-        {t("setup.complete.subtitle")}
-      </p>
-      <button
-        onClick={onGoToSetup}
-        className="px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
-        style={{ backgroundColor: "var(--dash-teal)" }}
-      >
-        {t("setup.complete.goDashboard", { defaultValue: "Complete Setup" })}
-      </button>
+      {/* Reconcile Modal */}
+      {reconcilingAccountId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setReconcilingAccountId(null)} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#1B2B4B]">Bank Balance Reconciliation</h2>
+              <button onClick={() => setReconcilingAccountId(null)} className="text-zinc-400 font-bold p-1">✕</button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                reconcileMutation.mutate({
+                  accountId: reconcilingAccountId,
+                  actualBalance: parseFloat(reconcileActualAmount).toFixed(2),
+                  targetCategoryId: reconcileTargetCategoryId || undefined,
+                });
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Actual Bank Balance ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={reconcileActualAmount}
+                  onChange={(e) => setReconcileActualAmount(e.target.value)}
+                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Target Category for Surplus (if surplus)</label>
+                <select
+                  value={reconcileTargetCategoryId}
+                  onChange={(e) => setReconcileTargetCategoryId(e.target.value)}
+                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                >
+                  <option value="">Default Tenant Surplus Category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={reconcileMutation.isPending}
+                className="py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
+              >
+                {reconcileMutation.isPending ? "Reconciling..." : "Confirm Reconciliation"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

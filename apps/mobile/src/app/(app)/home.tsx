@@ -1,342 +1,296 @@
- import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Modal, TextInput } from 'react-native';
+import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
-import { trpc, setActiveSessionToken } from '../../lib/trpc';
+import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import * as SecureStore from 'expo-secure-store';
 import { Feather } from '@expo/vector-icons';
-import { QuickExpenseModal } from '../../components/QuickExpenseModal';
-
-// ─── Category Health Card ─────────────────────────────────────────────────────
-
-interface CategoryHealthCardProps {
-  name: string;
-  type: string;
-  balance: string;
-  target: string | null;
-  health: 'GREEN' | 'AMBER' | 'RED';
-}
-
-function CategoryHealthCard({ name, type, balance, target, health }: CategoryHealthCardProps) {
-  const D = DESIGN_TOKENS;
-  const balanceNum = parseFloat(balance);
-  const targetNum = target ? parseFloat(target) : null;
-  const pct = targetNum && targetNum > 0 ? Math.min(Math.round((balanceNum / targetNum) * 100), 100) : null;
-  const color =
-    health === 'GREEN' ? D.colors.success :
-    health === 'AMBER' ? D.colors.warning :
-    health === 'RED' ? D.colors.critical :
-    D.colors.accent;
-
-  const fmt = (val: string) => {
-    const num = parseFloat(val);
-    return `$${num.toFixed(0)}`;
-  };
-
-  return (
-    <View style={hStyles.card}>
-      <View style={hStyles.row}>
-        <View style={[hStyles.dot, { backgroundColor: color }]} />
-        <Text style={hStyles.name} numberOfLines={1}>{name}</Text>
-        <Text style={hStyles.balance}>{fmt(balance)}</Text>
-      </View>
-      {pct !== null && (
-        <View style={hStyles.barBg}>
-          <View style={[hStyles.barFill, { width: `${pct}%`, backgroundColor: color }]} />
-        </View>
-      )}
-    </View>
-  );
-}
-
-const hStyles = StyleSheet.create({
-  card: { backgroundColor: DESIGN_TOKENS.colors.surface, borderRadius: DESIGN_TOKENS.radius.md, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: '#E5E7EB' },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-  name: { flex: 1, fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary, fontWeight: '600' },
-  balance: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },
-  barBg: { height: 4, borderRadius: 2, backgroundColor: '#F3F4F6', overflow: 'hidden' },
-  barFill: { height: 4, borderRadius: 2 },
-});
-
-// ─── Paycheck Readiness Panel ─────────────────────────────────────────────────
-
-interface PaycheckReadinessPanelProps {
-  daysUntil: number;
-  expectedAmount: number;
-  onTrack: number;
-  atRisk: number;
-  onReview: () => void;
-}
-
-function PaycheckReadinessPanel({ daysUntil, expectedAmount, onTrack, atRisk, onReview }: PaycheckReadinessPanelProps) {
-  const D = DESIGN_TOKENS;
-  const fmt = (cents: number) => `$${(cents / 100).toFixed(0)}`;
-  const dayLabel = daysUntil === 0 ? t('home.paydayToday') : t('home.paydayIn', { days: daysUntil });
-
-  return (
-    <View style={pStyles.panel}>
-      <View style={pStyles.topRow}>
-        <View>
-          <Text style={pStyles.sectionLabel}>{t('home.nextPaycheck')}</Text>
-          <Text style={pStyles.amount}>{fmt(expectedAmount)}</Text>
-          <Text style={pStyles.dayLabel}>{dayLabel}</Text>
-        </View>
-        <TouchableOpacity style={pStyles.reviewBtn} onPress={onReview} activeOpacity={0.85}>
-          <Text style={pStyles.reviewText}>{t('home.reviewAllocation')}</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={pStyles.statsRow}>
-        <View style={pStyles.stat}>
-          <View style={[pStyles.statDot, { backgroundColor: D.colors.success }]} />
-          <Text style={pStyles.statText}>{t('home.onTrack', { count: onTrack })}</Text>
-        </View>
-        <View style={pStyles.stat}>
-          <View style={[pStyles.statDot, { backgroundColor: D.colors.warning }]} />
-          <Text style={pStyles.statText}>{t('home.atRisk', { count: atRisk })}</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-const pStyles = StyleSheet.create({
-  panel: {
-    backgroundColor: DESIGN_TOKENS.colors.primary, borderRadius: DESIGN_TOKENS.radius.xl,
-    padding: DESIGN_TOKENS.spacing.cardPadding + 4, marginBottom: 20,
-  },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  sectionLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '600', letterSpacing: 0.6, marginBottom: 4 },
-  amount: { fontSize: 28, fontWeight: '700', color: '#FFFFFF' },
-  dayLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  reviewBtn: {
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: DESIGN_TOKENS.radius.md,
-  },
-  reviewText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
-  statsRow: { flexDirection: 'row', gap: 20 },
-  stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statDot: { width: 8, height: 8, borderRadius: 4 },
-  statText: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
-});
-
-// ─── Home Screen ──────────────────────────────────────────────────────────────
+import { formatAUD } from '../../lib/format';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ token?: string }>();
+  const todayYear = new Date().getFullYear();
+  const todayMonth = new Date().getMonth() + 1;
+
+  const [upcomingFilter, setUpcomingFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
+  const [reconcileModalVisible, setReconcileModalVisible] = useState(false);
+  const [reconcileAccountId, setReconcileAccountId] = useState<string | null>(null);
+  const [reconcileActualAmount, setReconcileActualAmount] = useState('');
+  const [reconciling, setReconciling] = useState(false);
+
   const { data: session } = authClient.useSession();
+  const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const categoriesQuery = trpc.listCategories.useQuery();
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
-  const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
 
-  React.useEffect(() => {
-    categoriesQuery.refetch();
-    incomeEventsQuery.refetch();
-  }, []);
+  const markPaidMutation = trpc.markExpensePaid.useMutation({
+    onSuccess: () => {
+      expenseEventsQuery.refetch();
+      categoriesQuery.refetch();
+      summaryQuery.refetch();
+    },
+  });
 
-  React.useEffect(() => {
-    if (params.token) {
-      console.log(`[DEBUG client] Deep link token received on Home:`, params.token);
-      (async () => {
-        await SecureStore.setItemAsync("money-matters_session_token", params.token!);
-        await SecureStore.setItemAsync("money-matters-session-token", params.token!);
-        setActiveSessionToken(params.token!);
-        categoriesQuery.refetch();
-        incomeEventsQuery.refetch();
-        router.setParams({ token: undefined });
-      })();
-    }
-  }, [params.token]);
+  const reconcileMutation = trpc.reconcileBankBalance.useMutation({
+    onSuccess: () => {
+      bankAccountsQuery.refetch();
+      categoriesQuery.refetch();
+      setReconcileModalVisible(false);
+    },
+  });
 
   const categories = categoriesQuery.data ?? [];
-  const incomeEventsList = incomeEventsQuery.data ?? [];
-  const onTrack = categories.filter((c) => c.healthStatus === 'GREEN').length;
-  const atRisk = categories.filter((c) => c.healthStatus === 'AMBER' || c.healthStatus === 'RED').length;
+  const atRiskCount = categories.filter((c) => c.healthStatus === 'AMBER').length;
+  const missedCount = categories.filter((c) => c.healthStatus === 'RED').length;
 
-  // Find next upcoming or draft event sorted by date
-  const nextPaycheck = [...incomeEventsList]
-    .filter(e => e.status === 'UPCOMING' || e.status === 'DRAFT')
-    .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime())[0];
+  const incomeEventsList = (incomeEventsQuery.data ?? [])
+    .filter((e) => e.status === 'UPCOMING')
+    .map((e) => ({
+      id: e.id,
+      type: 'INCOME' as const,
+      name: e.sourceName || 'Paycheck Deposit',
+      expectedDate: e.expectedDate,
+      expectedAmount: e.expectedAmount,
+      categoryName: 'Income Allocation',
+    }));
 
-  let daysUntil = 0;
-  if (nextPaycheck) {
-    const diffTime = new Date(nextPaycheck.expectedDate).getTime() - new Date().getTime();
-    daysUntil = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  }
+  const expenseEventsList = (expenseEventsQuery.data ?? [])
+    .filter((e) => e.status === 'UPCOMING')
+    .map((e) => ({
+      id: e.id,
+      type: 'EXPENSE' as const,
+      name: e.name,
+      expectedDate: e.expectedDate,
+      expectedAmount: e.expectedAmount,
+      categoryName: e.categoryName || 'Uncategorized',
+    }));
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      t("settings.signOut", { defaultValue: "Sign Out" }),
-      t("settings.signOutConfirm", { defaultValue: "Are you sure you want to sign out?" }),
-      [
-        { text: t("common.cancel", { defaultValue: "Cancel" }), style: "cancel" },
-        {
-          text: t("settings.signOut", { defaultValue: "Sign Out" }),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await authClient.signOut();
-              await SecureStore.deleteItemAsync("money-matters_session_token");
-              await SecureStore.deleteItemAsync("money-matters-session-token");
-              setActiveSessionToken(null);
-              router.replace("/(auth)/sign-in");
-            } catch (err) {
-              Alert.alert(
-                t("common.error", { defaultValue: "Error" }),
-                err instanceof Error ? err.message : String(err)
-              );
-            }
-          },
-        },
-      ]
-    );
+  let combinedEvents = [...incomeEventsList, ...expenseEventsList];
+  if (upcomingFilter === 'INCOME') combinedEvents = combinedEvents.filter((e) => e.type === 'INCOME');
+  else if (upcomingFilter === 'EXPENSE') combinedEvents = combinedEvents.filter((e) => e.type === 'EXPENSE');
+
+  combinedEvents.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
+
+  const handleMarkPaid = (evt: any) => {
+    markPaidMutation.mutate({ eventId: evt.id });
   };
 
-  const getFirstName = () => {
-    if (!session?.user?.name) return "";
-    return session.user.name.split(" ")[0];
+  const handleReconcileSubmit = async () => {
+    if (!reconcileAccountId || !reconcileActualAmount) return;
+    setReconciling(true);
+    try {
+      await reconcileMutation.mutateAsync({
+        accountId: reconcileAccountId,
+        actualBalance: parseFloat(reconcileActualAmount).toFixed(2),
+      });
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : String(err));
+    } finally {
+      setReconciling(false);
+    }
   };
+
+  const D = DESIGN_TOKENS;
 
   return (
-    <View style={{ flex: 1 }}>
-      <MobileScreenWrapper
-        user={session?.user}
-        onNavigateHome={() => router.push('/(app)/home')}
-        onNavigateCategories={() => router.push('/(app)/categories')}
-        onNavigateSettings={() => router.push('/(app)/settings')}
-        onSignOut={handleSignOut}
-      >
+    <MobileScreenWrapper
+      user={session?.user}
+      onNavigateHome={() => router.push('/(app)/home')}
+      onNavigateCategories={() => router.push('/(app)/categories')}
+      onNavigateSettings={() => router.push('/(app)/settings')}
+    >
+      <ScrollView contentContainerStyle={{ paddingBottom: 100, gap: 16 }}>
         {/* Header Greeting */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>
-            {session?.user?.name
-              ? `Good morning, ${getFirstName()} 👋`
-              : "Good morning 👋"}
-          </Text>
-          <Text style={styles.headerSubtitle}>{t('home.title')}</Text>
+          <Text style={styles.greeting}>Good day 👋</Text>
+          <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
 
-        {/* Paycheck Panel */}
-        {incomeEventsQuery.isLoading ? (
-          <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginVertical: 20 }} />
-        ) : nextPaycheck ? (
-          <PaycheckReadinessPanel
-            daysUntil={daysUntil}
-            expectedAmount={parseInt(nextPaycheck.expectedAmount)}
-            onTrack={onTrack}
-            atRisk={atRisk}
-            onReview={() => router.push({ pathname: '/(app)/paychecks/[id]', params: { id: nextPaycheck.id } })}
-          />
-        ) : (
-          <View style={styles.noPaycheckCard}>
-            <Text style={styles.noPaycheckTitle}>{t('home.noPaycheck', { defaultValue: 'No paychecks scheduled' })}</Text>
-            <Text style={styles.noPaycheckSubtitle}>{t('home.noPaycheckSubtitle', { defaultValue: 'Add an income source in Settings to get started' })}</Text>
+        {/* 4 Summary Chips */}
+        <View style={styles.grid2x2}>
+          <View style={styles.chip}>
+            <Text style={styles.chipLabel}>TOTAL INCOME</Text>
+            <Text style={styles.chipValue}>{formatAUD(summaryQuery.data?.totalIncome || '0')}</Text>
           </View>
-        )}
+          <View style={styles.chip}>
+            <Text style={styles.chipLabel}>SPENT THIS MONTH</Text>
+            <Text style={[styles.chipValue, { color: D.colors.critical }]}>{formatAUD(summaryQuery.data?.totalSpent || '0')}</Text>
+          </View>
+          <View style={styles.chip}>
+            <Text style={styles.chipLabel}>SAVED THIS MONTH</Text>
+            <Text style={[styles.chipValue, { color: D.colors.accent }]}>{formatAUD(summaryQuery.data?.totalSaved || '0')}</Text>
+          </View>
+          <View style={styles.chip}>
+            <Text style={styles.chipLabel}>EVERYDAY BALANCE</Text>
+            <Text style={styles.chipValue}>{formatAUD(summaryQuery.data?.everydayRemaining || '0')}</Text>
+          </View>
+        </View>
 
-        {/* Category Health */}
-        <Text style={styles.sectionTitle}>{t('home.categoryHealth')}</Text>
+        {/* Bank Balances & Reconciliation */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Bank Balances & Reconciliation</Text>
+          <View style={{ gap: 8, marginTop: 8 }}>
+            {(bankAccountsQuery.data ?? []).map((acc: any) => {
+              const actualNum = parseFloat(acc.lastKnownBalance || '0');
+              const expectedNum = parseFloat(acc.expectedBalance || '0');
+              const isDiff = Math.abs(actualNum - expectedNum) >= 0.01;
 
-        {categoriesQuery.isLoading ? (
-          <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginTop: 24 }} />
-        ) : categoriesQuery.error ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>⚠️</Text>
-            <Text style={styles.emptyTitle}>{t('common.error', { defaultValue: 'Error' })}</Text>
-            <Text style={styles.emptySubtitle}>{categoriesQuery.error.message}</Text>
+              return (
+                <View key={acc.id} style={styles.accRow}>
+                  <View>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{acc.name}</Text>
+                    <Text style={{ fontSize: 10, color: '#9CA3AF' }}>Expected: {formatAUD(expectedNum)}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{formatAUD(actualNum)}</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setReconcileAccountId(acc.id);
+                        setReconcileActualAmount(acc.lastKnownBalance || '0');
+                        setReconcileModalVisible(true);
+                      }}
+                      style={[
+                        styles.reconcileBtn,
+                        isDiff && { backgroundColor: '#FEF3C7' },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: isDiff ? '#92400E' : '#4B5563' }}>
+                        {isDiff ? 'Reconcile!' : 'Adjust'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
           </View>
-        ) : categories.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📂</Text>
-            <Text style={styles.emptyTitle}>{t('home.noCategories')}</Text>
-            <Text style={styles.emptySubtitle}>{t('home.setupCategories')}</Text>
+        </View>
+
+        {/* At Risk & Missed Shortcuts */}
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/categories')}
+            style={[styles.statusBox, { backgroundColor: '#FEF3C7' }]}
+          >
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#92400E' }}>At Risk</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: '#92400E' }}>{atRiskCount}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/categories')}
+            style={[styles.statusBox, { backgroundColor: '#FEE2E2' }]}
+          >
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#991B1B' }}>Missed</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: '#991B1B' }}>{missedCount}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Unified Upcoming Events */}
+        <View style={styles.card}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={styles.cardTitle}>Upcoming Events</Text>
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              {(['ALL', 'INCOME', 'EXPENSE'] as const).map((tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  onPress={() => setUpcomingFilter(tab)}
+                  style={[
+                    styles.tabFilter,
+                    upcomingFilter === tab && styles.tabFilterActive,
+                  ]}
+                >
+                  <Text style={[styles.tabFilterText, upcomingFilter === tab && styles.tabFilterTextActive]}>
+                    {tab === 'ALL' ? 'All' : tab === 'INCOME' ? 'Income' : 'Bills'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        ) : (
-          categories.map((cat) => (
-            <CategoryHealthCard
-              key={cat.id}
-              name={cat.name}
-              type={cat.type}
-              balance={cat.currentBalance}
-              target={cat.targetAmount}
-              health={cat.healthStatus}
+
+          {combinedEvents.length === 0 ? (
+            <Text style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginVertical: 16 }}>
+              No upcoming events found.
+            </Text>
+          ) : (
+            <View style={{ gap: 8 }}>
+              {combinedEvents.map((evt) => (
+                <View key={`${evt.type}-${evt.id}`} style={styles.eventRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{evt.name}</Text>
+                    <Text style={{ fontSize: 10, color: '#9CA3AF' }}>
+                      {new Date(evt.expectedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} • {evt.categoryName}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: evt.type === 'INCOME' ? '#10B981' : '#1B2B4B' }}>
+                      {evt.type === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}
+                    </Text>
+                    {evt.type === 'EXPENSE' && (
+                      <TouchableOpacity onPress={() => handleMarkPaid(evt)} style={styles.markPaidBtn}>
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#FFF' }}>Mark Paid</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Reconcile Modal */}
+      <Modal visible={reconcileModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1B2B4B' }}>Reconcile Bank Balance</Text>
+              <TouchableOpacity onPress={() => setReconcileModalVisible(false)}>
+                <Text style={{ color: '#9CA3AF', fontSize: 16 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 12, color: '#4B5563', marginBottom: 8 }}>Actual Bank Balance ($)</Text>
+            <TextInput
+              value={reconcileActualAmount}
+              onChangeText={setReconcileActualAmount}
+              keyboardType="numeric"
+              style={styles.modalInput}
             />
-          ))
-        )}
-      </MobileScreenWrapper>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setQuickExpenseVisible(true)}
-        activeOpacity={0.8}
-      >
-        <Feather name="plus" size={24} color="#FFF" />
-      </TouchableOpacity>
-
-      <QuickExpenseModal
-        visible={quickExpenseVisible}
-        onClose={() => {
-          setQuickExpenseVisible(false);
-          // Refetch categories to update the dashboard balances
-          categoriesQuery.refetch();
-        }}
-      />
-    </View>
+            <TouchableOpacity onPress={handleReconcileSubmit} disabled={reconciling} style={styles.confirmBtn}>
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>
+                {reconciling ? 'Reconciling...' : 'Confirm Reconciliation'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </MobileScreenWrapper>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: D.colors.background },
-  container: { paddingHorizontal: D.spacing.containerMargin, paddingTop: 56, paddingBottom: 100 },
-  header: { marginBottom: 20 },
-  greeting: { fontSize: 14, color: D.colors.textMuted, marginBottom: 2, fontWeight: '500' },
-  headerSubtitle: { fontSize: 24, fontWeight: '700', color: D.colors.primary },
-  sectionTitle: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5, color: D.colors.textMuted, textTransform: 'uppercase', marginBottom: 10 },
-  emptyState: { alignItems: 'center', paddingVertical: 40, gap: 8 },
-  emptyIcon: { fontSize: 40 },
-  emptyTitle: { fontSize: 15, fontWeight: '600', color: D.colors.textPrimary },
-  emptySubtitle: { fontSize: 13, color: D.colors.textMuted, textAlign: 'center' },
-  noPaycheckCard: {
-    backgroundColor: D.colors.surface,
-    borderRadius: D.radius.xl,
-    padding: D.spacing.cardPadding,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noPaycheckTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: D.colors.textPrimary,
-    marginBottom: 4,
-  },
-  noPaycheckSubtitle: {
-    fontSize: 13,
-    color: D.colors.textMuted,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 90, // Positioned above the bottom tab bar safely
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
+  header: { marginBottom: 12 },
+  greeting: { fontSize: 12, color: '#9CA3AF', fontWeight: '500' },
+  headerTitle: { fontSize: 24, fontWeight: '900', color: '#1B2B4B' },
+  grid2x2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { flex: 1, minWidth: '45%', backgroundColor: '#FFF', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' },
+  chipLabel: { fontSize: 9, fontWeight: 'bold', color: '#9CA3AF', letterSpacing: 0.5 },
+  chipValue: { fontSize: 16, fontWeight: '900', color: '#1B2B4B', marginTop: 2 },
+  card: { backgroundColor: '#FFF', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+  cardTitle: { fontSize: 14, fontWeight: '800', color: '#1B2B4B' },
+  accRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  reconcileBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
+  statusBox: { flex: 1, borderRadius: 12, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  tabFilter: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
+  tabFilterActive: { backgroundColor: '#00B4A6' },
+  tabFilterText: { fontSize: 10, fontWeight: 'bold', color: '#6B7280' },
+  tabFilterTextActive: { color: '#FFF' },
+  eventRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  markPaidBtn: { backgroundColor: '#1B2B4B', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  modalInput: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12, padding: 12, fontSize: 16, marginBottom: 16, color: '#1B2B4B' },
+  confirmBtn: { backgroundColor: '#00B4A6', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
 });

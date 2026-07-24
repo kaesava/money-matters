@@ -322,8 +322,10 @@ export const RecordExpenseCommand = z.object({
   categoryId: z.string().uuid(),
   bankAccountId: z.string().uuid().optional(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  flowType: z.enum(["DEBIT", "CREDIT"]).optional().default("DEBIT"),
   date: z.string().optional(),
-  idempotencyKey: z.string(),
+  recordedAt: z.string().optional(),
+  idempotencyKey: z.string().optional(),
   note: z.string().optional(),
   source: z.enum(["MANUAL", "IMPORT"]).optional().default("MANUAL"),
 }).strict();

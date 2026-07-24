@@ -12,3 +12,4 @@ export * from "./queries/list-archived-items.query.js";
 export * from "./queries/preview-allocation.query.js";
 export * from "./commands/confirm-allocation.command.js";
 export * from "./engine/allocation-engine.js";
+export * from "./engine/burst-engine.js";

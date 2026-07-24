@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { tenants, tenantUsers, bankAccounts, categories, categorySchedules, incomeSources, incomeSourceSchedules, incomeEvents, users, apps } from "@money-matters/db";
+import { tenants, tenantUsers, bankAccounts, categories, categorySchedules, incomeSources, incomeSourceSchedules, incomeEvents, allocationPlans, allocationPlanLines, transactionLedger, expenseSources, expenseSourceSchedules, expenseEvents, userPreferences, users, apps } from "@money-matters/db";
 import { sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import dotenv from "dotenv";
@@ -52,11 +52,18 @@ async function seed() {
     `);
   }
 
+  await db.delete(transactionLedger);
+  await db.delete(allocationPlanLines);
+  await db.delete(allocationPlans);
+  await db.delete(expenseEvents);
+  await db.delete(expenseSourceSchedules);
+  await db.delete(expenseSources);
   await db.delete(incomeEvents);
   await db.delete(incomeSourceSchedules);
   await db.delete(incomeSources);
   await db.delete(categorySchedules);
   await db.delete(categories);
+  await db.delete(userPreferences);
   await db.delete(bankAccounts);
   await db.delete(tenantUsers);
   await db.delete(tenants);
@@ -147,21 +154,19 @@ async function seed() {
   // 4. Categories
   // Pre-populate canonical categories for target audience (Australian families/professionals)
   const canonicalCategories = [
-    // EVERYDAY (Discretionary - Swept residual)
-    { name: "Groceries", type: "EVERYDAY" as const, isCommitted: false, excess: false, icon: "local_grocery_store", color: "#6B7280" },
-    { name: "Petrol / Transit", type: "EVERYDAY" as const, isCommitted: false, excess: false, icon: "directions_car", color: "#6B7280" },
-    { name: "Eating Out & Cafes", type: "EVERYDAY" as const, isCommitted: false, excess: false, icon: "restaurant", color: "#6B7280" },
+    // EVERYDAY (Discretionary - 1 single pool category)
+    { name: "Everyday", type: "EVERYDAY" as const, isCommitted: false, excess: false, icon: "account_balance_wallet", color: "#00B4A6", bankAccountId: everydayAccount.id },
 
     // REGULAR (Bills)
-    { name: "Rent / Mortgage Payment", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "home", color: "#EF4444", monthlyAmount: "3200.00" },
-    { name: "Electricity & Gas", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "bolt", color: "#F59E0B", monthlyAmount: "380.00" },
-    { name: "NBN Broadband", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "wifi", color: "#22C55E", monthlyAmount: "89.00" },
-    { name: "Private Health Cover", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "health_and_safety", color: "#EF4444", monthlyAmount: "240.00" },
+    { name: "Rent / Mortgage Payment", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "home", color: "#EF4444", monthlyAmount: "3200.00", bankAccountId: everydayAccount.id },
+    { name: "Electricity & Gas", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "bolt", color: "#F59E0B", monthlyAmount: "380.00", bankAccountId: everydayAccount.id },
+    { name: "NBN Broadband", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "wifi", color: "#22C55E", monthlyAmount: "89.00", bankAccountId: everydayAccount.id },
+    { name: "Private Health Cover", type: "REGULAR" as const, isCommitted: false, excess: false, icon: "health_and_safety", color: "#EF4444", monthlyAmount: "240.00", bankAccountId: everydayAccount.id },
 
     // GOAL (Target savings)
-    { name: "Emergency Fund", type: "GOAL" as const, isCommitted: true, excess: true, icon: "emergency", color: "#EF4444", target: "10000.00", due: "2026-12-31" },
-    { name: "Car Registration & Servicing", type: "GOAL" as const, isCommitted: true, excess: false, icon: "build", color: "#F59E0B", target: "1200.00", due: "2027-02-15" },
-    { name: "Annual Holiday", type: "GOAL" as const, isCommitted: false, excess: false, icon: "flight", color: "#22C55E", target: "8000.00", due: "2026-12-20" }
+    { name: "Emergency Fund", type: "GOAL" as const, isCommitted: true, excess: true, icon: "emergency", color: "#EF4444", target: "10000.00", due: "2026-12-31", bankAccountId: savingsAccount.id },
+    { name: "Car Registration & Servicing", type: "GOAL" as const, isCommitted: true, excess: false, icon: "build", color: "#F59E0B", target: "1200.00", due: "2027-02-15", bankAccountId: savingsAccount.id },
+    { name: "Annual Holiday", type: "GOAL" as const, isCommitted: false, excess: false, icon: "flight", color: "#22C55E", target: "8000.00", due: "2026-12-20", bankAccountId: savingsAccount.id }
   ];
 
   for (const cat of canonicalCategories) {
@@ -175,6 +180,7 @@ async function seed() {
         isDefaultExcess: cat.excess,
         icon: cat.icon,
         colour: cat.color,
+        bankAccountId: cat.bankAccountId || null,
         tenantId,
         appId,
         createdBy: userId,

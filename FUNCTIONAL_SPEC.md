@@ -1,115 +1,77 @@
-# Functional Specification — money-matters
+# FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-07-19  
-> **Canonical reference for product behaviour. Update this file whenever functional decisions are made.**  
-> Derived from APP_DESCRIPTION.md + design Q&A sessions. Where this file conflicts with APP_DESCRIPTION.md, this file wins.
-
----
-
-## 1. Product Vision
-
-Money-matters is a **proactive paycheck allocator** for Australian salaried professionals and families. It solves the gap between earning money and confidently knowing where it needs to go.
-
-Every time income arrives, the app automatically runs a waterfall cascade to allocate that income across virtual savings "buckets", so critical expenses and savings are always funded in time.
-
-**Success metric:** A household that never misses a payment because they didn't save enough, and always knows exactly what they can spend day-to-day.
-
-**Differentiator vs YNAB:** The math of *how to split each paycheck* is done for you (allocation waterfall). You don't need to manually assign dollars to categories.  
-**Differentiator vs passive trackers (Frollo, Pocketbook):** Forward-looking, not backward-looking. No bank sync required.
+> **Last updated:** 2026-07-24  
+> **Status:** V2 Core Functional Specification.
 
 ---
 
-## 2. Audience & Roles
+## 1. Overview & Terminology
 
-**Target:** Salaried professionals and families (AU), aged 28–60, moderate-to-complex expense structures (mortgages, children, insurance, irregular major costs).
-
-### Household Model
-- A **Household** is the root entity. All data belongs to a Household.
-- `tenantId` = `householdId` — the isolation boundary for all data.
-- Multi-user within a household: **all members share full read/write access** to all data (no private categories in V1).
-
-### Roles
-
-| Role | Capabilities |
-|---|---|
-| **Owner** | First user to sign up. Manages setup, income sources, category config, can invite partner. |
-| **Member** | Invited partner. Full access to all budgets, categories, transactions. |
-
-**Partner invite is V2.** The `household_members` table is built in V1 schema — Owner is the first row with `role = OWNER`.
+- **Everyday Pool**: Single discretionary spending category per household. Seeded automatically on tenant creation.
+- **Regular Bills**: Recurring fixed obligations (e.g. Rent, Electricity, Internet).
+- **Save Toward (Goals)**: Target savings categories with target amounts and target dates.
+- **Income & Expenses**: Management of recurring and one-off income sources and expense bills.
+- **Bank Reconciliation**: Adjusting actual bank account balances against expected balance calculated from linked categories.
 
 ---
 
-## 3. Monetisation
+## 2. Archival Rules & Data Integrity
 
-| Tier | Features |
-|---|---|
-| **Free** | Manual allocation (rules-based engine), full core flows |
-| **Premium** | AI-powered smart allocation, can-afford indicators, priority suggestions |
+1. **Category Archival**:
+   - Blocked if there are active upcoming expenses or pending income allocations against the category.
+   - Default Everyday category cannot be deleted or archived.
+   - Default savings or default excess pool categories cannot be archived.
 
-Premium gated by `premiumEnabled` and `canAffordCalculator` feature flags.
+2. **Bank Account Archival**:
+   - Blocked if non-archived categories are linked to the account.
 
----
-
-## 4. Category Types (Canonical)
-
-| Type | Display Name | Allocation treatment |
-|---|---|---|
-| `GOAL` | Save Toward | Has target amount + target date. Waterfall engine funds these monthly by computing (target - balance) / monthsToTarget. |
-| `REGULAR` | Regular Bills | Has monthly amount. Waterfall engine prorates the monthly amount based on paycheck frequency. |
-| `EVERYDAY` | Everyday Spending | Discretionary day-to-day pool. Funded by residual income swept from the waterfall. |
+3. **Income / Expense Source Archival**:
+   - Blocked if active upcoming events are scheduled for that source.
 
 ---
 
-## 5. Paycheck Cascade Allocation Waterfall
+## 3. Dashboard Experience (Web & Mobile)
 
-The waterfall cascade runs automatically when paycheck events occur:
-1. **REGULAR categories**: Prorate monthly amount by paycheck frequency (`monthlyAmount * paycheckFrequencyDays / 30.4375`).
-2. **GOAL committed categories (`isCommitted = true`)**: Allocate needed monthly contribution to keep on track for `targetDate`.
-3. **GOAL uncommitted categories (`isCommitted = false`)**: Allocate remaining target contribution if funds permit.
-4. **EVERYDAY excess category**: Sweeps all residual income into the everyday spending pool.
-
----
-
-## 6. Pre-Populated Category List (AU Households)
-
-Shown in the setup wizard. Users can select presets or add custom categories.
-
-### REGULAR (Bills)
-- Rent / Mortgage Repayment
-- Electricity
-- Internet / NBN
-- Insurance
-
-### GOAL (Save-Toward)
-- Emergency Fund *(nominated as default excess category)*
-- Annual Holiday / Travel
-- Car Replacement
-
-### EVERYDAY (Everyday Spending)
-- Groceries
-- Petrol / Transport
-- Eating Out & Takeaway
+- **Collapsible Quick Actions Panel**:
+  - Persists open/collapsed state per user across logins.
+  - 4 Stat Chips: Total Income, Spent this Month, Saved this Month, Everyday Balance.
+  - Quick Add Expense drawer/form + recurring category shortcuts.
+  - Bank Account Balances & Reconciliation card with link to Bank Settings.
+  - Interactive "Can We Afford This?" calculator widget.
+  - Shared "Move Money" button & modal.
+  - Category Health shortcuts (At Risk - Orange, Missed - Red) taking user to pre-filtered Categories tab.
+- **Unified Upcoming Events Panel**:
+  - Combined Income Deposits and Expense Bills sorted by ascending date.
+  - Filter tabs: All, Income & Paychecks, Bills & Expenses.
+  - Responsive search across names, categories, and notes.
+  - Distinct styling for past overdue events (Action Required).
+  - Inline modal editing for date, amount, name, and category.
+  - "Allocate Waterfall" button for Income and "Mark Paid" button for Expenses (converts event to a transaction and removes from upcoming list).
 
 ---
 
-## 7. Core User Flows
+## 4. Categories Management
 
-### 7.1 Setup Wizard (new household)
-- **Step 1 — Income Sources**: Add income name, type, expected net amount, and frequency.
-- **Step 2 — Categories**: Select from default presets.
-- **Step 3 — Category Configuration**: Setup target amounts/dates for SAVINGS and monthly bills for REGULAR.
-- **Step 4 — Bank Accounts**: Add bank account tag (e.g. INCOME_LANDING, SAVINGS, EVERYDAY).
-
-### 7.2 "Can We Afford This?" Calculator
-This is the key differentiator widget:
-- User inputs a target transaction amount.
-- **YES**: Verdict returns green if it fits within the everyday discretionary pool.
-- **YES_WITH_IMPACT**: Verdict returns amber if it exceeds everyday pool but fits within uncommitted savings surplus.
-- **WAIT**: Verdict returns amber if the next paycheck is within 14 days and resolves the amount.
-- **NO**: Verdict returns red if the amount exceeds all pools.
+- Filter groups:
+  - Health: All, On Track (Green), At Risk (Orange), Missed (Red).
+  - Type: All, Save Toward, Regular Bills, Everyday.
+- Sorting across Category Name, Type, Balance, and Health.
+- Clicking Category Name opens Category Detail Drawer with full transaction history.
+- Move Money modal for instant transfer between categories.
 
 ---
 
-## 8. Bank Account Model
-- Bank accounts are tagged with a purpose: `INCOME_LANDING`, `SAVINGS`, `EVERYDAY`.
-- Confirmation automatically handles allocations by printing credit/debit records to the ledger.
+## 5. Income & Expenses Management
+
+- Split side-by-side or stacked tables for Income Sources and Expense Sources.
+- One-off vs recurring schedule definitions.
+- 12-month rolling burst engine for future event generation.
+
+---
+
+## 6. Transactions & Audit Export
+
+- Filter groups: Category Type, Category, Flow (Debit / Credit).
+- Responsive search across Category, Note, and Amount.
+- Multi-column sorting (default: descending date).
+- One-click CSV Export.

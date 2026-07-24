@@ -1,19 +1,35 @@
 "use client";
-import React, { useState } from "react";
-import { t } from "@money-matters/i18n";
-import { useDashboardData } from "../../../hooks/useDashboardData";
+
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { trpc } from "../../../lib/trpc";
+import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
 import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
 import { DashboardError } from "../../../components/web/DashboardError";
-import { trpc } from "../../../lib/trpc";
+
+function fmt(val: string | number) {
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function CategoriesPage() {
-  const { hasTenant, isLoadingTenant, tenantError, categoriesQuery } = useDashboardData();
-  
+  const searchParams = useSearchParams();
+  const initialHealthFilter = searchParams.get("health") || "ALL";
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
 
-  // New Category State
+  // Filters & Search State
+  const [healthFilter, setHealthFilter] = useState<string>(initialHealthFilter);
+  const [typeFilter, setTypeFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Sort State
+  const [sortField, setSortField] = useState<"name" | "type" | "balance" | "health">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // New Category Form
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<"REGULAR" | "GOAL">("REGULAR");
   const [newMonthlyAmount, setNewMonthlyAmount] = useState("");
@@ -21,38 +37,71 @@ export default function CategoriesPage() {
   const [newTargetDate, setNewTargetDate] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Move Money State
-  const [moveSourceId, setMoveSourceId] = useState("");
-  const [moveDestId, setMoveDestId] = useState("");
-  const [moveAmount, setMoveAmount] = useState("");
-  const [moving, setMoving] = useState(false);
-  const [moveError, setMoveError] = useState<string | null>(null);
-
-  // Strategic Fix: Removed manual type casting. Let tRPC infer the exact type.
-  const categories = categoriesQuery.data ?? [];
-
-  const createCategory = trpc.createCategory.useMutation();
-  const moveMoneyMutation = trpc.moveMoney.useMutation();
-
-  const totalOnTrack = categories.filter((c) => c.healthStatus === "GREEN").length;
-  const totalAtRisk = categories.filter((c) => c.healthStatus === "AMBER" || c.healthStatus === "RED").length;
-
-  const isLoading = isLoadingTenant || categoriesQuery.isLoading;
-  const error = tenantError ?? categoriesQuery.error;
-
+  // Edit Category State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editTarget, setEditTarget] = useState("");
   const [editTargetDate, setEditTargetDate] = useState("");
   const [editCategoryType, setEditCategoryType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
-  const [saving, setSaving] = useState(false);
   const [editRolloverRule, setEditRolloverRule] = useState<"ROLLOVER" | "SWEEP" | "RESET">("ROLLOVER");
   const [editIsDefaultSavings, setEditIsDefaultSavings] = useState(false);
   const [editEverydayTargetKeepAmount, setEditEverydayTargetKeepAmount] = useState("");
   const [editEverydaySweepFrequency, setEditEverydaySweepFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY">("MONTHLY");
+  const [saving, setSaving] = useState(false);
 
+  const categoriesQuery = trpc.listCategories.useQuery();
+  const createCategory = trpc.createCategory.useMutation();
   const updateCategory = trpc.updateCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
+  const archiveCategory = trpc.archiveCategory.useMutation();
+
+  // Escape key global shortcut
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setShowCreateModal(false);
+        setShowMoveModal(false);
+        setEditingId(null);
+        setSelectedCategoryId(null);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const categories = categoriesQuery.data ?? [];
+
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setCreating(true);
+    try {
+      const newCat = await createCategory.mutateAsync({
+        name: newName.trim(),
+        type: newType,
+        monthlyAmount: newType === "REGULAR" && newMonthlyAmount ? parseFloat(newMonthlyAmount).toFixed(2) : undefined,
+      });
+
+      if (newType === "GOAL" && newTargetAmount) {
+        await createCategorySchedule.mutateAsync({
+          categoryId: newCat.id,
+          targetAmount: parseFloat(newTargetAmount).toFixed(2),
+          targetDate: newTargetDate || undefined,
+        });
+      }
+
+      setNewName("");
+      setNewMonthlyAmount("");
+      setNewTargetAmount("");
+      setNewTargetDate("");
+      setShowCreateModal(false);
+      categoriesQuery.refetch();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleSaveCategoryDetails = async (catId: string) => {
     setSaving(true);
@@ -61,12 +110,14 @@ export default function CategoriesPage() {
         categoryId: catId,
         data: {
           name: editName,
+          type: editCategoryType,
           rolloverRule: editRolloverRule,
           isDefaultSavings: editIsDefaultSavings,
           everydayTargetKeepAmount: editCategoryType === "EVERYDAY" && editEverydayTargetKeepAmount ? parseFloat(editEverydayTargetKeepAmount).toFixed(2) : undefined,
           everydaySweepFrequency: editCategoryType === "EVERYDAY" ? editEverydaySweepFrequency : undefined,
-        }
+        },
       });
+
       if (editTarget && editTarget !== "0.00" && editCategoryType !== "EVERYDAY") {
         await createCategorySchedule.mutateAsync({
           categoryId: catId,
@@ -74,6 +125,7 @@ export default function CategoriesPage() {
           targetDate: editTargetDate || undefined,
         });
       }
+
       setEditingId(null);
       categoriesQuery.refetch();
     } catch (err) {
@@ -83,561 +135,379 @@ export default function CategoriesPage() {
     }
   };
 
-  // Strategic Fix: Use typeof to grab the exact inferred type from the array
-  const handleStartEdit = (cat: typeof categories[number]) => {
+  const handleStartEdit = (cat: any) => {
     setEditingId(cat.id);
     setEditName(cat.name);
     setEditTarget(cat.targetAmount ? parseFloat(cat.targetAmount).toFixed(2) : "0.00");
     setEditTargetDate(cat.targetDate ? cat.targetDate.split("T")[0] : "");
     setEditCategoryType(cat.type);
-    
-    // Strategic Fix: No more `any` casts needed. 
     setEditRolloverRule(cat.rolloverRule || "ROLLOVER");
     setEditIsDefaultSavings(cat.isDefaultSavings || false);
     setEditEverydayTargetKeepAmount(cat.everydayTargetKeepAmount ? parseFloat(cat.everydayTargetKeepAmount).toFixed(2) : "");
     setEditEverydaySweepFrequency(cat.everydaySweepFrequency || "MONTHLY");
   };
 
-  const handleMoveMoneySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMoveError(null);
-    if (!moveSourceId || !moveDestId || !moveAmount || parseFloat(moveAmount) <= 0) {
-      setMoveError("Please verify all fields and ensure amount is positive.");
-      return;
-    }
-    if (moveSourceId === moveDestId) {
-      setMoveError("Source and Destination categories must be different.");
-      return;
-    }
-    setMoving(true);
+  const handleArchiveCategory = async (catId: string) => {
+    if (!confirm("Are you sure you want to archive this category?")) return;
     try {
-      await moveMoneyMutation.mutateAsync({
-        sourceCategoryId: moveSourceId,
-        destinationCategoryId: moveDestId,
-        amount: parseFloat(moveAmount).toFixed(2),
-      });
-      setShowMoveModal(false);
-      setMoveSourceId("");
-      setMoveDestId("");
-      setMoveAmount("");
+      await archiveCategory.mutateAsync({ categoryId: catId });
       categoriesQuery.refetch();
-    } catch (err: unknown) {
-      setMoveError(err instanceof Error ? err.message : "Failed to move money.");
-    } finally {
-      setMoving(false);
+    } catch (err: any) {
+      alert(err?.message || "Failed to archive category.");
     }
   };
 
-  const regularBillsItems = categories.filter(c => c.type === "REGULAR");
-  const saveTowardItems = categories.filter(c => c.type === "GOAL");
-  const everydayItems = categories.filter(c => c.type === "EVERYDAY");
+  // Filter categories
+  let filtered = [...categories];
 
-  const everydayTotalBalance = everydayItems.reduce((acc, c) => acc + parseFloat(c.currentBalance), 0);
+  if (healthFilter !== "ALL") {
+    filtered = filtered.filter((c) => c.healthStatus === healthFilter);
+  }
 
-  const [activeTab, setActiveTab] = useState<"SAVE_TOWARD" | "REGULAR_BILLS" | "EVERYDAY">("SAVE_TOWARD");
+  if (typeFilter !== "ALL") {
+    filtered = filtered.filter((c) => c.type === typeFilter);
+  }
 
-  const activeItems = 
-    activeTab === "SAVE_TOWARD" ? saveTowardItems :
-    activeTab === "REGULAR_BILLS" ? regularBillsItems : [];
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter((c) => c.name.toLowerCase().includes(q));
+  }
+
+  // Sort categories
+  filtered.sort((a, b) => {
+    let comp = 0;
+    if (sortField === "name") comp = a.name.localeCompare(b.name);
+    else if (sortField === "type") comp = a.type.localeCompare(b.type);
+    else if (sortField === "balance") comp = parseFloat(a.currentBalance) - parseFloat(b.currentBalance);
+    else if (sortField === "health") comp = a.healthStatus.localeCompare(b.healthStatus);
+
+    return sortDir === "asc" ? comp : -comp;
+  });
+
+  const toggleSort = (field: "name" | "type" | "balance" | "health") => {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <div className="flex items-start justify-between">
+    <div className="flex flex-col gap-8 pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--dash-text)" }}>
-            {t("nav.categories")}
-          </h1>
-          {!isLoading && !error && hasTenant && (
-            <p className="text-sm mt-0.5" style={{ color: "var(--dash-muted)" }}>
-              {t("home.onTrack", { count: totalOnTrack })} · {t("home.atRisk", { count: totalAtRisk })}
-            </p>
-          )}
+          <h1 className="text-3xl font-black text-[#1B2B4B]">Categories</h1>
+          <p className="text-xs text-zinc-500 font-semibold mt-1">Manage Regular Bills, Save Toward targets, and Everyday pool</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowMoveModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border border-zinc-200 bg-white text-[#1B2B4B] transition-all hover:bg-zinc-50 active:scale-95 shadow-sm"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm flex items-center gap-1.5"
           >
-            <span>↔</span>
-            <span>Move Money</span>
+            <span>🔄</span> Move Money
           </button>
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95 shadow-sm"
-            style={{ backgroundColor: "var(--dash-teal)" }}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#1B2B4B] hover:opacity-90 transition-all shadow-sm"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>New Category</span>
+            + Create Category
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-4 border-b border-zinc-200">
-        <button
-          onClick={() => setActiveTab("SAVE_TOWARD")}
-          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
-            activeTab === "SAVE_TOWARD" ? "border-[#00B4A6] text-[#1B2B4B]" : "border-transparent text-zinc-400 hover:text-zinc-600"
-          }`}
-        >
-          Save Toward ({saveTowardItems.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("REGULAR_BILLS")}
-          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
-            activeTab === "REGULAR_BILLS" ? "border-[#00B4A6] text-[#1B2B4B]" : "border-transparent text-zinc-400 hover:text-zinc-600"
-          }`}
-        >
-          Regular Bills ({regularBillsItems.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("EVERYDAY")}
-          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
-            activeTab === "EVERYDAY" ? "border-[#00B4A6] text-[#1B2B4B]" : "border-transparent text-zinc-400 hover:text-zinc-600"
-          }`}
-        >
-          Everyday Spending (Pool)
-        </button>
+      {/* Filter & Search Bar */}
+      <div className="p-4 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search categories..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="px-4 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+        />
+
+        {/* Filter Groups */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Health Filter */}
+          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
+            <span className="text-[10px] font-extrabold text-zinc-400 uppercase px-2">Health:</span>
+            {[
+              { id: "ALL", label: "All" },
+              { id: "GREEN", label: "On Track 🟢" },
+              { id: "AMBER", label: "At Risk 🟠" },
+              { id: "RED", label: "Missed 🔴" },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setHealthFilter(f.id)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                  healthFilter === f.id ? "bg-white text-[#1B2B4B] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Type Filter */}
+          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
+            <span className="text-[10px] font-extrabold text-zinc-400 uppercase px-2">Type:</span>
+            {[
+              { id: "ALL", label: "All" },
+              { id: "GOAL", label: "Save Toward" },
+              { id: "REGULAR", label: "Regular Bills" },
+              { id: "EVERYDAY", label: "Everyday" },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setTypeFilter(f.id)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                  typeFilter === f.id ? "bg-white text-[#1B2B4B] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Content View */}
-      {isLoading ? (
-        <div className="h-64 rounded-2xl animate-pulse bg-zinc-200/50" />
-      ) : error ? (
-        <DashboardError error={error} onRetry={() => categoriesQuery.refetch()} />
-      ) : activeTab === "EVERYDAY" ? (
-        <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm font-bold text-zinc-500 uppercase tracking-wider">Everyday Spending Pool</p>
-              <p className="text-3xl font-extrabold mt-1 text-[#1B2B4B]">
-                ${everydayTotalBalance.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <span className="text-xs bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full font-bold">
-              Active
-            </span>
-          </div>
-          <p className="text-xs text-zinc-400 leading-relaxed">
-            Everyday spending categories are aggregated to avoid micro-management. Your transactions are recorded directly from this balance pool without manual allocations per-category.
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-200 text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Current Balance</th>
-                  <th className="px-6 py-4">Target Amount</th>
-                  <th className="px-6 py-4">Target Date</th>
-                  <th className="px-6 py-4">Rollover</th>
-                  <th className="px-6 py-4">% Funded</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200">
-                {activeItems.map((cat) => {
-                  const isEditing = editingId === cat.id;
-                  const balanceVal = parseFloat(cat.currentBalance);
-                  const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
-                  const percent = targetVal > 0 ? Math.min(100, Math.round((balanceVal / targetVal) * 100)) : 0;
+      {/* Categories Table */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-zinc-100 bg-zinc-50/50 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
+              <th onClick={() => toggleSort("name")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+                Category Name {sortField === "name" && (sortDir === "asc" ? "▲" : "▼")}
+              </th>
+              <th onClick={() => toggleSort("type")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+                Type {sortField === "type" && (sortDir === "asc" ? "▲" : "▼")}
+              </th>
+              <th onClick={() => toggleSort("balance")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+                Current Balance {sortField === "balance" && (sortDir === "asc" ? "▲" : "▼")}
+              </th>
+              <th className="px-6 py-4">Target / Limit</th>
+              <th onClick={() => toggleSort("health")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+                Funding Health {sortField === "health" && (sortDir === "asc" ? "▲" : "▼")}
+              </th>
+              <th className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-xs text-zinc-400">
+                  No matching categories found.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((cat) => {
+                const isEditing = editingId === cat.id;
+                const balanceVal = parseFloat(cat.currentBalance);
+                const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
+                const pct = targetVal > 0 ? Math.min(100, Math.round((balanceVal / targetVal) * 100)) : 100;
 
-                  return (
-                    <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-sm">
-                      <td className="px-6 py-4 font-semibold text-[#1B2B4B]">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm focus:outline-none"
-                          />
-                        ) : (
-                          cat.name
-                        )}
-                      </td>
-                      <td className="px-6 py-4 font-mono font-bold">
-                        ${balanceVal.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 font-mono">
-                        {isEditing ? (
-                          cat.type === "EVERYDAY" ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[10px] text-zinc-400">Keep Limit</span>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={editEverydayTargetKeepAmount}
-                                onChange={(e) => setEditEverydayTargetKeepAmount(e.target.value)}
-                                className="border border-zinc-200 rounded-lg px-2.5 py-1 text-xs w-24 focus:outline-none"
-                              />
-                            </div>
-                          ) : (
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={editTarget}
-                              onChange={(e) => setEditTarget(e.target.value)}
-                              className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm w-24 focus:outline-none"
-                            />
-                          )
-                        ) : cat.type === "EVERYDAY" ? (
-                          cat.everydayTargetKeepAmount ? `$${parseFloat(cat.everydayTargetKeepAmount).toLocaleString("en-AU", { minimumFractionDigits: 2 })}` : "—"
-                        ) : cat.targetAmount ? (
-                          `$${targetVal.toLocaleString("en-AU", { minimumFractionDigits: 2 })}`
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-zinc-500">
-                        {isEditing ? (
-                          cat.type === "EVERYDAY" ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="text-[10px] text-zinc-400">Sweep Freq</span>
-                              <select
-                                value={editEverydaySweepFrequency}
-                                onChange={(e) => setEditEverydaySweepFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY")}
-                                className="border border-zinc-200 rounded-lg px-2 py-1 text-xs focus:outline-none"
-                              >
-                                <option value="WEEKLY">Weekly</option>
-                                <option value="FORTNIGHTLY">Fortnightly</option>
-                                <option value="MONTHLY">Monthly</option>
-                              </select>
-                            </div>
-                          ) : (
-                            <input
-                              type="date"
-                              value={editTargetDate}
-                              onChange={(e) => setEditTargetDate(e.target.value)}
-                              className="border border-zinc-200 rounded-lg px-2.5 py-1 text-sm focus:outline-none"
-                            />
-                          )
-                        ) : cat.type === "EVERYDAY" ? (
-                          cat.everydaySweepFrequency ? `Sweep: ${cat.everydaySweepFrequency}` : "—"
-                        ) : cat.targetDate ? (
-                          new Date(cat.targetDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-zinc-500">
-                        {isEditing ? (
-                          <div className="flex flex-col gap-2">
-                            <select
-                              value={editRolloverRule}
-                              onChange={(e) => setEditRolloverRule(e.target.value as "ROLLOVER" | "SWEEP" | "RESET")}
-                              className="border border-zinc-200 rounded-lg px-2 py-1 text-xs focus:outline-none"
-                            >
-                              <option value="ROLLOVER">Rollover</option>
-                              <option value="SWEEP">Sweep</option>
-                              <option value="RESET">Reset</option>
-                            </select>
-                            {cat.type === "GOAL" && (
-                              <label className="flex items-center gap-1 text-[10px]">
-                                <input
-                                  type="checkbox"
-                                  checked={editIsDefaultSavings}
-                                  onChange={(e) => setEditIsDefaultSavings(e.target.checked)}
-                                /> Default Savings
-                              </label>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col">
-                            <span className="text-xs font-semibold">{cat.rolloverRule || "ROLLOVER"}</span>
-                            {cat.type === "GOAL" && cat.isDefaultSavings && (
-                              <span className="text-[10px] text-[#00B4A6]">Default Savings</span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 bg-zinc-100 rounded-full overflow-hidden shrink-0">
-                            <div
-                              className="h-full bg-[#00B4A6] rounded-full"
-                              style={{ width: `${percent}%` }}
-                            />
-                          </div>
-                          <span className="font-bold text-xs text-[#00B4A6]">{percent}%</span>
+                const healthColor =
+                  cat.healthStatus === "GREEN" ? "#22C55E" : cat.healthStatus === "AMBER" ? "#F59E0B" : "#EF4444";
+
+                return (
+                  <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
+                    {/* Name / Hyperlink */}
+                    <td className="px-6 py-4">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="px-2 py-1 border border-zinc-200 rounded-lg text-xs"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => setSelectedCategoryId(cat.id)}
+                          className="text-[#00B4A6] hover:underline font-bold text-left"
+                        >
+                          {cat.name}
+                        </button>
+                      )}
+                    </td>
+
+                    {/* Type */}
+                    <td className="px-6 py-4 text-zinc-500">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-700">
+                        {cat.type === "GOAL" ? "Save Toward" : cat.type === "REGULAR" ? "Regular Bill" : "Everyday"}
+                      </span>
+                    </td>
+
+                    {/* Balance */}
+                    <td className="px-6 py-4 font-mono font-bold text-[#1B2B4B]">{fmt(balanceVal)}</td>
+
+                    {/* Target / Keep Limit */}
+                    <td className="px-6 py-4 font-mono text-zinc-600">
+                      {cat.type === "EVERYDAY" ? (
+                        cat.everydayTargetKeepAmount ? `Keep: ${fmt(cat.everydayTargetKeepAmount)}` : "—"
+                      ) : cat.targetAmount ? (
+                        fmt(cat.targetAmount)
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+
+                    {/* Progress & Health Bar */}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1 w-32">
+                        <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: healthColor }} />
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {isEditing ? (
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleSaveCategoryDetails(cat.id)}
-                              disabled={saving}
-                              className="bg-[#00B4A6] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:opacity-90 disabled:opacity-50"
-                            >
-                              {saving ? "Saving..." : "Save"}
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="border border-zinc-200 text-zinc-500 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-zinc-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleStartEdit(cat)}
-                              className="text-xs font-bold border border-zinc-200 rounded-lg px-3 py-1.5 hover:bg-zinc-50 text-zinc-600"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => setSelectedCategoryId(cat.id)}
-                              className="text-xs font-bold text-white bg-[#1B2B4B] rounded-lg px-3 py-1.5 hover:opacity-90"
-                            >
-                              View Details
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                        <span className="text-[10px] font-bold text-zinc-500">{pct}% ({cat.healthStatus})</span>
+                      </div>
+                    </td>
 
-      {selectedCategoryId && (
-        <CategoryDetailDrawer
-          categoryId={selectedCategoryId}
-          onClose={() => {
-            setSelectedCategoryId(null);
-            categoriesQuery.refetch();
-          }}
-        />
-      )}
+                    {/* Actions */}
+                    <td className="px-6 py-4 text-right">
+                      {isEditing ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleSaveCategoryDetails(cat.id)}
+                            disabled={saving}
+                            className="px-2.5 py-1 bg-[#00B4A6] text-white rounded-lg text-xs font-bold"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="px-2.5 py-1 bg-zinc-200 text-zinc-700 rounded-lg text-xs font-bold"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleStartEdit(cat)}
+                            className="text-xs font-bold text-zinc-400 hover:text-[#1B2B4B]"
+                          >
+                            Edit
+                          </button>
+                          {cat.type !== "EVERYDAY" && (
+                            <button
+                              onClick={() => handleArchiveCategory(cat.id)}
+                              className="text-xs font-bold text-rose-400 hover:text-rose-600"
+                            >
+                              Archive
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {/* New Category Modal */}
+      {/* Shared Move Money Modal */}
+      <MoveMoneyModal
+        isOpen={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        onSuccess={() => categoriesQuery.refetch()}
+      />
+
+      {/* Create Category Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity"
-            onClick={(e) => { if (e.target === e.currentTarget) setShowCreateModal(false); }}
-          />
-          <div className="relative pointer-events-auto w-full max-w-md bg-white shadow-2xl rounded-2xl border border-zinc-200 p-6 flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#1B2B4B]">Create New Category</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-zinc-400 hover:text-zinc-600">
-                ✕
-              </button>
+              <h2 className="text-lg font-bold text-[#1B2B4B]">Create New Category</h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-zinc-400 font-bold p-1">✕</button>
             </div>
 
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!newName) return;
-                setCreating(true);
-                try {
-                  const created = await createCategory.mutateAsync({
-                    name: newName,
-                    type: newType,
-                    monthlyAmount: newType === "REGULAR" && newMonthlyAmount ? newMonthlyAmount : undefined,
-                  });
-                  if (newType === "GOAL" && newTargetAmount) {
-                    await createCategorySchedule.mutateAsync({
-                      categoryId: created.id,
-                      targetAmount: newTargetAmount,
-                      targetDate: newTargetDate || undefined,
-                    });
-                  }
-                  setShowCreateModal(false);
-                  setNewName("");
-                  setNewMonthlyAmount("");
-                  setNewTargetAmount("");
-                  setNewTargetDate("");
-                  categoriesQuery.refetch();
-                } catch (err) {
-                  console.error(err);
-                } finally {
-                  setCreating(false);
-                }
-              }}
-              className="flex flex-col gap-4"
-            >
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Category Name</label>
+            <form onSubmit={handleCreateCategory} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Category Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Electricity & Gas"
+                  placeholder="e.g. Car Insurance"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Category Type</label>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Category Type</label>
                 <select
                   value={newType}
-                  onChange={(e) => setNewType(e.target.value as "REGULAR" | "GOAL")}
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                  onChange={(e) => setNewType(e.target.value as any)}
+                  className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                 >
-                  <option value="REGULAR">REGULAR (Bills & Commitments)</option>
-                  <option value="GOAL">GOAL (Save Toward Target)</option>
+                  <option value="REGULAR">Regular Bill (Recurring obligation)</option>
+                  <option value="GOAL">Save Toward (Target savings pool)</option>
                 </select>
+                <span className="text-[10px] text-zinc-400 mt-1">Note: Additional Everyday categories cannot be created.</span>
               </div>
 
-              {newType === "REGULAR" && (
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Monthly Target ($)</label>
+              {newType === "REGULAR" ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Monthly Amount ($)</label>
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="e.g. 150.00"
+                    placeholder="0.00"
                     value={newMonthlyAmount}
                     onChange={(e) => setNewMonthlyAmount(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                    className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                   />
                 </div>
-              )}
-
-              {newType === "GOAL" && (
-                <>
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Goal Target Amount ($)</label>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Target ($)</label>
                     <input
                       type="number"
                       step="0.01"
-                      placeholder="e.g. 5000.00"
+                      placeholder="0.00"
                       value={newTargetAmount}
                       onChange={(e) => setNewTargetAmount(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Target Date (Optional)</label>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Target Date</label>
                     <input
                       type="date"
                       value={newTargetDate}
                       onChange={(e) => setNewTargetDate(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
+                      className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                     />
                   </div>
-                </>
+                </div>
               )}
 
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50"
-                >
-                  {creating ? "Creating..." : "Create Category"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Move Money Modal */}
-      {showMoveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity"
-            onClick={(e) => { if (e.target === e.currentTarget) setShowMoveModal(false); }}
-          />
-          <div className="relative pointer-events-auto w-full max-w-md bg-white shadow-2xl rounded-2xl border border-zinc-200 p-6 flex flex-col gap-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#1B2B4B]">Move Money between Categories</h3>
-              <button onClick={() => setShowMoveModal(false)} className="text-zinc-400 hover:text-zinc-600">
-                ✕
+              <button
+                type="submit"
+                disabled={creating}
+                className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
+              >
+                {creating ? "Creating..." : "Save Category"}
               </button>
-            </div>
-
-            {moveError && (
-              <div className="text-xs font-semibold text-rose-600 bg-rose-50 px-3 py-2 rounded-xl">
-                {moveError}
-              </div>
-            )}
-
-            <form onSubmit={handleMoveMoneySubmit} className="flex flex-col gap-4">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Source Category (From)</label>
-                <select
-                  required
-                  value={moveSourceId}
-                  onChange={(e) => setMoveSourceId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
-                >
-                  <option value="">Select source category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name} (${parseFloat(c.currentBalance).toFixed(2)})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Destination Category (To)</label>
-                <select
-                  required
-                  value={moveDestId}
-                  onChange={(e) => setMoveDestId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
-                >
-                  <option value="">Select destination category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name} (${parseFloat(c.currentBalance).toFixed(2)})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 block mb-1">Amount ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  placeholder="0.00"
-                  value={moveAmount}
-                  onChange={(e) => setMoveAmount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowMoveModal(false)}
-                  className="px-4 py-2 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={moving}
-                  className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50"
-                >
-                  {moving ? "Transferring..." : "Move Money"}
-                </button>
-              </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Category Detail Drawer */}
+      <CategoryDetailDrawer
+        categoryId={selectedCategoryId}
+        onClose={() => setSelectedCategoryId(null)}
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { trpc } from "../../lib/trpc";
 import { FileNotesSection } from "./FileNotesSection";
 
 interface CategoryDetailDrawerProps {
-  categoryId: string;
+  categoryId: string | null;
   onClose: () => void;
   onResolveShortfall?: (categoryId: string) => void;
 }
@@ -26,6 +26,8 @@ function fmt(val: string | number) {
 
 /** Slide-in panel showing category detail + transaction history. */
 export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDrawerProps) {
+  if (!categoryId) return null;
+
   const categoriesQuery = trpc.listCategories.useQuery();
 
   const cat = (categoriesQuery.data ?? []).find((c: { id: string }) => c.id === categoryId);
@@ -128,22 +130,46 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 }
 
 /** Inner component to load and display transaction history for a category */
-function TransactionHistory({ categoryId: _categoryId }: { categoryId: string }) {
-  // We use listCategories to get the basic category data; 
-  // In a full implementation this would call a dedicated getTransactionsByCategory query.
-  // For V1, we show a placeholder with the data we have.
+function TransactionHistory({ categoryId }: { categoryId: string }) {
+  const transactionsQuery = trpc.listCategoryTransactions.useQuery({ categoryId });
+  const txs = transactionsQuery.data ?? [];
+
+  if (transactionsQuery.isLoading) {
+    return <div className="py-6 text-center text-xs text-zinc-400">Loading history...</div>;
+  }
+
+  if (txs.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center gap-2 py-8 rounded-xl text-center"
+        style={{ backgroundColor: "var(--dash-bg)" }}
+      >
+        <span className="text-2xl">📋</span>
+        <p className="text-sm font-medium" style={{ color: "var(--dash-text)" }}>
+          {t("categories.detail.history")}
+        </p>
+        <p className="text-xs" style={{ color: "var(--dash-muted)" }}>
+          {t("categories.detail.noHistory")}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="flex flex-col items-center gap-2 py-8 rounded-xl text-center"
-      style={{ backgroundColor: "var(--dash-bg)" }}
-    >
-      <span className="text-2xl">📋</span>
-      <p className="text-sm font-medium" style={{ color: "var(--dash-text)" }}>
-        {t("categories.detail.history")}
-      </p>
-      <p className="text-xs" style={{ color: "var(--dash-muted)" }}>
-        {t("categories.detail.noHistory")}
-      </p>
+    <div className="flex flex-col gap-2">
+      {txs.map((tx: any) => (
+        <div key={tx.id} className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-between text-xs">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-bold text-[#1B2B4B]">{tx.note || tx.categoryName || "Expense"}</span>
+            <span className="text-[10px] text-zinc-400">
+              {new Date(tx.recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+          </div>
+          <span className={`font-black ${tx.flowType === "DEBIT" ? "text-rose-600" : "text-emerald-600"}`}>
+            {tx.flowType === "DEBIT" ? "-" : "+"}{fmt(tx.amount)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

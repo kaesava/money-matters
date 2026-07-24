@@ -1,5 +1,5 @@
-import { db, categories } from "@money-matters/db";
-import { eq, and } from "drizzle-orm";
+import { db, categories, expenseEvents } from "@money-matters/db";
+import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function archiveCategoryCommand(
@@ -9,6 +9,42 @@ export async function archiveCategoryCommand(
   userId: string,
   dbClient: PgDatabase<any, any, any> = db
 ) {
+  // 1. Fetch category
+  const [cat] = await dbClient
+    .select()
+    .from(categories)
+    .where(
+      and(
+        eq(categories.id, categoryId),
+        eq(categories.tenantId, tenantId),
+        eq(categories.appId, appId)
+      )
+    );
+
+  if (!cat) throw new Error("Category not found.");
+  if (cat.type === "EVERYDAY") {
+    throw new Error("The default Everyday category cannot be deleted or archived.");
+  }
+  if (cat.isDefaultSavings || cat.isDefaultExcess) {
+    throw new Error("Cannot archive a category configured as default savings or default excess pool.");
+  }
+
+  // 2. Check for upcoming expense events
+  const pendingEvents = await dbClient
+    .select()
+    .from(expenseEvents)
+    .where(
+      and(
+        eq(expenseEvents.categoryId, categoryId),
+        eq(expenseEvents.status, "UPCOMING"),
+        sql`${expenseEvents.archivedAt} IS NULL`
+      )
+    );
+
+  if (pendingEvents.length > 0) {
+    throw new Error("Cannot archive a category that has upcoming expenses assigned to it.");
+  }
+
   const [archived] = await dbClient
     .update(categories)
     .set({

@@ -113,6 +113,21 @@ export function archiveBankAccountHandler(db: PgDatabase<any, any, any>) {
     appId: string, 
     userId: string
   ) => {
+    // 1. Check for linked categories
+    const linkedCategories = await db
+      .select()
+      .from(categories)
+      .where(
+        and(
+          eq(categories.bankAccountId, accountId),
+          sql`${categories.archivedAt} IS NULL`
+        )
+      );
+
+    if (linkedCategories.length > 0) {
+      throw new Error("Cannot archive a bank account that has active categories linked to it.");
+    }
+
     const [archived] = await db
       .update(bankAccounts)
       .set({
