@@ -202,9 +202,7 @@ export default function SetupWizardPage() {
     try {
       await createBankAccount.mutateAsync({
         name: bankName.trim(),
-        purpose: [bankPurpose],
         lastKnownBalance: balanceNum.toFixed(2),
-        isOffset: bankOffset,
       });
 
       setAddedBanks((prev) => [...prev, bankName.trim()]);

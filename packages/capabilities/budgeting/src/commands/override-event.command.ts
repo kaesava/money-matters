@@ -18,7 +18,6 @@ export async function overrideEventCommand(
         .set({
           expectedAmount: input.amount,
           expectedDate: input.expectedDate,
-          paymentMethod: input.paymentMethod || null,
           isOverridden: true,
           updatedBy: userId,
           updatedAt: new Date(),
@@ -58,7 +57,6 @@ export async function overrideEventCommand(
         .set({
           expectedAmount: input.amount,
           expectedDate: input.expectedDate,
-          paymentMethod: input.paymentMethod || null,
           isOverridden: true,
           updatedBy: userId,
           updatedAt: new Date(),

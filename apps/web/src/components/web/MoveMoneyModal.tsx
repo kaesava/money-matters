@@ -43,6 +43,17 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
       return;
     }
 
+    const sourceCat = categories.find((c) => c.id === sourceCategoryId);
+    if (sourceCat) {
+      const sourceBal = parseFloat(sourceCat.currentBalance || "0");
+      const transferAmt = parseFloat(amount);
+      if (transferAmt > sourceBal) {
+        if (!confirm(`Warning: Transferring $${transferAmt.toFixed(2)} exceeds "${sourceCat.name}" balance ($${sourceBal.toFixed(2)}). Source category balance will become negative ($${(sourceBal - transferAmt).toFixed(2)}). Proceed?`)) {
+          return;
+        }
+      }
+    }
+
     try {
       await moveMoneyMutation.mutateAsync({
         sourceCategoryId,

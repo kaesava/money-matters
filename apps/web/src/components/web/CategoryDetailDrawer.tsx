@@ -131,7 +131,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 
 /** Inner component to load and display transaction history for a category */
 function TransactionHistory({ categoryId }: { categoryId: string }) {
-  const transactionsQuery = trpc.listCategoryTransactions.useQuery({ categoryId });
+  const transactionsQuery = trpc.listCategoryTransactions.useQuery({ categoryId, limit: 5 });
   const txs = transactionsQuery.data ?? [];
 
   if (transactionsQuery.isLoading) {
@@ -141,15 +141,12 @@ function TransactionHistory({ categoryId }: { categoryId: string }) {
   if (txs.length === 0) {
     return (
       <div
-        className="flex flex-col items-center gap-2 py-8 rounded-xl text-center"
+        className="flex flex-col items-center gap-2 py-6 rounded-xl text-center"
         style={{ backgroundColor: "var(--dash-bg)" }}
       >
-        <span className="text-2xl">📋</span>
-        <p className="text-sm font-medium" style={{ color: "var(--dash-text)" }}>
-          {t("categories.detail.history")}
-        </p>
-        <p className="text-xs" style={{ color: "var(--dash-muted)" }}>
-          {t("categories.detail.noHistory")}
+        <span className="text-xl">📋</span>
+        <p className="text-xs font-semibold" style={{ color: "var(--dash-muted)" }}>
+          No transaction history for this category.
         </p>
       </div>
     );
@@ -157,7 +154,7 @@ function TransactionHistory({ categoryId }: { categoryId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {txs.map((tx: any) => (
+      {txs.slice(0, 5).map((tx: any) => (
         <div key={tx.id} className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-between text-xs">
           <div className="flex flex-col gap-0.5">
             <span className="font-bold text-[#1B2B4B]">{tx.note || tx.categoryName || "Expense"}</span>
@@ -170,6 +167,16 @@ function TransactionHistory({ categoryId }: { categoryId: string }) {
           </span>
         </div>
       ))}
+
+      <div className="pt-2 text-right">
+        <a
+          href={`/dashboard/transactions?categoryId=${categoryId}`}
+          className="text-xs font-bold text-[#00B4A6] hover:underline inline-flex items-center gap-1"
+        >
+          <span>View All Transactions</span>
+          <span>→</span>
+        </a>
+      </div>
     </div>
   );
 }

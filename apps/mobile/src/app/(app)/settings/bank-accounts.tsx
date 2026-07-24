@@ -54,14 +54,11 @@ export default function SettingsBankAccountsScreen() {
     try {
       await createBankAccount.mutateAsync({
         name: name.trim(),
-        purpose: [purpose],
         lastKnownBalance: numBalance.toFixed(2),
-        isOffset,
       });
 
       setName('');
       setBalance('');
-      setIsOffset(false);
       refetch();
       Alert.alert("Success", "Bank account added successfully.");
     } catch (err) {
@@ -124,8 +121,7 @@ export default function SettingsBankAccountsScreen() {
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{acc.name}</Text>
                     <Text style={styles.rowMeta}>
-                      {PURPOSE_LABELS[acc.purpose[0] as Purpose]}
-                      {acc.isOffset ? ' (Offset)' : ''} • ${parseFloat(acc.lastKnownBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      Balance: ${parseFloat(acc.lastKnownBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </Text>
                   </View>
                   <TouchableOpacity

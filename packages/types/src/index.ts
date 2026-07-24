@@ -145,23 +145,20 @@ export const TenantMemberSchema = BaseSchema.extend({
 export const BankAccountSchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
-  purpose: z.array(z.enum(["INCOME_LANDING", "SAVINGS", "EVERYDAY"])).min(1),
   lastKnownBalance: z.string().default("0.00"),
-  isOffset: z.boolean().default(false),
+  unbudgetedBuffer: z.string().default("0.00"),
 }).strict();
 
 export const CreateBankAccountCommand = z.object({
   name: z.string().min(1),
-  purpose: z.array(z.enum(["INCOME_LANDING", "SAVINGS", "EVERYDAY"])).min(1),
-  lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00"),
-  isOffset: z.boolean().default(false),
+  lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
+  unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
 }).strict();
 
 export const UpdateBankAccountCommand = z.object({
   name: z.string().min(1).optional(),
-  purpose: z.array(z.enum(["INCOME_LANDING", "SAVINGS", "EVERYDAY"])).min(1).optional(),
   lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-  isOffset: z.boolean().optional(),
+  unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
 }).strict();
 
 // 4. Categories
@@ -171,6 +168,7 @@ export const CategorySchema = BaseSchema.extend({
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   isCommitted: z.boolean().default(false),
   monthlyAmount: z.string().nullable(),
+  budgetFrequency: z.enum(["FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY"),
   isDefaultExcess: z.boolean().default(false),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).default("ROLLOVER"),
   isDefaultSavings: z.boolean().default(false),
@@ -186,6 +184,7 @@ export const CreateCategoryCommand = z.object({
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   isCommitted: z.boolean().default(false).optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  budgetFrequency: z.enum(["FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   targetDate: z.string().optional(),
   isDefaultExcess: z.boolean().default(false).optional(),
@@ -203,6 +202,7 @@ export const UpdateCategoryCommand = z.object({
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]).optional(),
   isCommitted: z.boolean().optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  budgetFrequency: z.enum(["FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   targetDate: z.string().optional(),
   isDefaultExcess: z.boolean().optional(),
@@ -312,11 +312,12 @@ export const TransactionLedgerSchema = BaseSchema.extend({
   categoryId: z.string().uuid(),
   bankAccountId: z.string().uuid().nullable(),
   planLineId: z.string().uuid().nullable(),
+  transferGroupId: z.string().uuid().nullable().optional(),
   flowType: z.enum(["DEBIT", "CREDIT"]),
   amount: z.string(),
   idempotencyKey: z.string(),
   note: z.string().nullable(),
-  source: z.enum(["MANUAL", "IMPORT"]).default("MANUAL"),
+  source: z.enum(["MANUAL", "AUTO", "IMPORT"]).default("MANUAL"),
   recordedAt: z.date(),
 }).strict();
 
@@ -329,12 +330,14 @@ export const RecordExpenseCommand = z.object({
   recordedAt: z.string().optional(),
   idempotencyKey: z.string().optional(),
   note: z.string().optional(),
-  source: z.enum(["MANUAL", "IMPORT"]).optional().default("MANUAL"),
+  source: z.enum(["MANUAL", "AUTO", "IMPORT"]).optional().default("MANUAL"),
+  transferGroupId: z.string().uuid().optional(),
 }).strict();
 
 export const ListTransactionsQuery = z.object({
   limit: z.number().int().max(100).default(50),
   offset: z.number().int().default(0),
+  categoryId: z.string().uuid().optional(),
 }).strict();
 
 export const ListCategoryTransactionsQuery = z.object({
@@ -410,7 +413,6 @@ export const OverrideEventCommand = z.object({
   eventType: z.enum(["INCOME", "EXPENSE"]),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   expectedDate: z.string(),
-  paymentMethod: z.string().optional(),
   updateSeries: z.boolean().default(false),
 }).strict();
 

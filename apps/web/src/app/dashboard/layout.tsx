@@ -18,16 +18,6 @@ const NAV_ITEMS = [
     ),
   },
   {
-    key: "timeline",
-    label: () => "Timeline",
-    href: "/dashboard/timeline",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
-  {
     key: "categories",
     label: () => t("nav.categories"),
     href: "/dashboard/categories",
@@ -39,7 +29,7 @@ const NAV_ITEMS = [
   },
   {
     key: "paychecks",
-    label: () => "Income Sources",
+    label: () => "Income & Expenses",
     href: "/dashboard/paychecks",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
@@ -211,7 +201,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* User profile section at the bottom */}
       <div className="p-4 border-t border-white/10 shrink-0">
-        <div className={`flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 ${sidebarCollapsed ? "justify-center" : ""}`}>
+        <div
+          onClick={() => router.push("/dashboard/settings")}
+          className={`flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors ${sidebarCollapsed ? "justify-center" : ""}`}
+          title="View User Profile in Settings"
+        >
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15" style={{ backgroundColor: "var(--dash-teal)" }}>
             {initials}
           </div>

@@ -31,8 +31,7 @@ export default function TransferInstructionsScreen() {
 
   // Compute transfer sum per bank account based on the plan categories mapping
   // V1 maps at Category Type level: Savings accounts host MAJOR & RECURRING, Everyday hosts EVERYDAY.
-  const savingsAccounts = bankAccounts.filter(a => a.purpose.includes('SAVINGS'));
-  const everydayAccounts = bankAccounts.filter(a => a.purpose.includes('EVERYDAY'));
+  const primaryAccounts = bankAccounts;
 
   let majorRecurringSum = 0;
   let everydaySum = 0;
@@ -68,22 +67,10 @@ export default function TransferInstructionsScreen() {
 
         <Text style={styles.sectionTitle}>{t('paychecks.review.transferInstructions', { defaultValue: 'Transfer Instructions' })}</Text>
 
-        {savingsAccounts.map(account => (
+        {primaryAccounts.map(account => (
           <View key={account.id} style={styles.instructionCard}>
             <Text style={styles.accountLabel}>{account.name}</Text>
-            {account.isOffset ? (
-              <Text style={styles.offsetText}>{t('paychecks.review.offsetAccount', { defaultValue: 'Offset account — no transfer needed' })}</Text>
-            ) : (
-              <Text style={styles.amountText}>{formatAUD(majorRecurringSum)}</Text>
-            )}
-          </View>
-        ))}
-
-        {everydayAccounts.map(account => (
-          <View key={account.id} style={styles.instructionCard}>
-            <Text style={styles.accountLabel}>{account.name}</Text>
-            <Text style={styles.amountText}>{formatAUD(everydaySum)}</Text>
-            <Text style={styles.everydayLabel}>{t('paychecks.transfer.everydayLabel', { defaultValue: 'Keep in everyday account' })}</Text>
+            <Text style={styles.amountText}>{formatAUD(majorRecurringSum + everydaySum)}</Text>
           </View>
         ))}
 

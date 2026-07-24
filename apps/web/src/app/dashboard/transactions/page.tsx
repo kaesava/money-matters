@@ -29,6 +29,13 @@ export default function TransactionsPage() {
   const [sortField, setSortField] = useState<SortField>("recordedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
+  // Grouping State for Payday and Move Money Batches
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+  };
+
   // Toggle Sort
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -204,7 +211,12 @@ export default function TransactionsPage() {
                       })}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-bold text-[#1B2B4B]">{tx.categoryName || "Uncategorized"}</span>
+                      <a
+                        href={`/dashboard/categories?search=${encodeURIComponent(tx.categoryName || "")}`}
+                        className="font-bold text-[#00B4A6] hover:underline cursor-pointer"
+                      >
+                        {tx.categoryName || "Uncategorized"}
+                      </a>
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -219,7 +231,13 @@ export default function TransactionsPage() {
                       {isDebit ? "-" : "+"}{fmt(tx.amount)}
                     </td>
                     <td className="px-6 py-4 text-zinc-500">
-                      <span className="px-2 py-0.5 bg-zinc-100 rounded text-[10px] font-bold">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                          tx.source === "AUTO"
+                            ? "bg-teal-50 text-[#00B4A6] border border-teal-200"
+                            : "bg-zinc-100 text-zinc-700 border border-zinc-200"
+                        }`}
+                      >
                         {tx.source || "MANUAL"}
                       </span>
                     </td>

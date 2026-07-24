@@ -251,8 +251,7 @@ export function IncomeExpenseFormModal({
         )}
 
         {/* Recurrence Settings (For New items or schedule updates) */}
-        {!isEdit && (
-          <div className="flex flex-col gap-3 pt-3 border-t border-zinc-100">
+        <div className="flex flex-col gap-3 pt-3 border-t border-zinc-100">
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold uppercase tracking-wider text-[#1B2B4B]">
                 Recurrence Schedule
@@ -322,7 +321,6 @@ export function IncomeExpenseFormModal({
               </div>
             )}
           </div>
-        )}
 
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-zinc-100">

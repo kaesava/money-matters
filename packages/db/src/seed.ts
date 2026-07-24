@@ -127,9 +127,8 @@ async function seed() {
     .insert(bankAccounts)
     .values({
       name: "ANZ Everyday Smart",
-      purpose: ["EVERYDAY", "INCOME_LANDING"],
       lastKnownBalance: "1500.00",
-      isOffset: false,
+      unbudgetedBuffer: "0.00",
       tenantId,
       appId,
       createdBy: userId,
@@ -141,9 +140,8 @@ async function seed() {
     .insert(bankAccounts)
     .values({
       name: "Offset Saver Mortgage Link",
-      purpose: ["SAVINGS"],
       lastKnownBalance: "45000.00",
-      isOffset: true,
+      unbudgetedBuffer: "0.00",
       tenantId,
       appId,
       createdBy: userId,

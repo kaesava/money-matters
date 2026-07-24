@@ -205,7 +205,8 @@ export const appRouter = router({
 
       return accounts.map((acc) => {
         const linkedCats = allCategories.filter((c) => c.bankAccountId === acc.id);
-        const expectedBalance = linkedCats.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
+        const buffer = parseFloat(acc.unbudgetedBuffer || "0");
+        const expectedBalance = linkedCats.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0) + buffer;
         return {
           ...acc,
           expectedBalance: expectedBalance.toFixed(2),
@@ -229,7 +230,9 @@ export const appRouter = router({
 
       const allCategories = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
       const linkedCats = allCategories.filter((c) => c.bankAccountId === accountId);
-      const expected = linkedCats.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
+      const [account] = await ctx.db.select().from(bankAccounts).where(eq(bankAccounts.id, accountId));
+      const buffer = parseFloat(account?.unbudgetedBuffer || "0");
+      const expected = linkedCats.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0) + buffer;
 
       const diff = actual - expected;
 
@@ -243,20 +246,14 @@ export const appRouter = router({
       }
 
       if (diff > 0) {
-        // Surplus: allocate into target category or tenant default surplus category
+        // Surplus: allocate into target category
         let surplusCatId = input.targetCategoryId;
         if (!surplusCatId) {
-          const [t] = await ctx.db.select().from(tenants).where(eq(tenants.id, ctx.tenantId!));
-          surplusCatId = t?.defaultSurplusCategoryId || undefined;
-        }
-
-        if (!surplusCatId) {
-          // Fall back to first GOAL or EVERYDAY category
           const fallback = linkedCats.find((c) => c.type === "GOAL") || linkedCats.find((c) => c.type === "EVERYDAY") || allCategories[0];
           surplusCatId = fallback?.id;
         }
 
-        if (!surplusCatId) throw new Error("No target category found to allocate surplus.");
+        if (!surplusCatId) throw new Error("Please select a target category to allocate the surplus.");
 
         // Record CREDIT transaction
         await recordExpenseCommand(
@@ -273,14 +270,6 @@ export const appRouter = router({
           ctx.userId!,
           ctx.db
         );
-
-        // Update defaultSurplusCategoryId on tenant if user specified targetCategoryId
-        if (input.targetCategoryId) {
-          await ctx.db
-            .update(tenants)
-            .set({ defaultSurplusCategoryId: input.targetCategoryId })
-            .where(eq(tenants.id, ctx.tenantId!));
-        }
       } else {
         // Deficit: draw down from categories
         const drawdowns = input.drawdowns || [];
@@ -1121,7 +1110,7 @@ export const appRouter = router({
   listTransactions: tenantProcedure
     .input(ListTransactionsQuery)
     .query(async ({ input, ctx }) => {
-      return await listTransactionsQuery(ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
+      return await listTransactionsQuery(ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db, input.categoryId);
     }),
 
   listCategoryTransactions: tenantProcedure

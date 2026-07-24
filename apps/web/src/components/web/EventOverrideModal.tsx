@@ -54,7 +54,6 @@ export default function EventOverrideModal({
         eventType: eventToEdit.eventType,
         amount: (parseFloat(amount) || 0).toFixed(2),
         expectedDate,
-        paymentMethod,
         updateSeries,
       });
 
@@ -91,31 +90,23 @@ export default function EventOverrideModal({
           </div>
         )}
 
-        {/* Scope Choice */}
-        <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex flex-col gap-2">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-            Recurrence Scope
-          </span>
-          <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-zinc-800">
-            <input
-              type="radio"
-              name="scope"
-              checked={!updateSeries}
-              onChange={() => setUpdateSeries(false)}
-              className="accent-[#00B4A6]"
-            />
-            <span>Only this occurrence (Recommended)</span>
-          </label>
-          <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-zinc-800">
-            <input
-              type="radio"
-              name="scope"
-              checked={updateSeries}
-              onChange={() => setUpdateSeries(true)}
-              className="accent-[#00B4A6]"
-            />
-            <span>This and all future occurrences (Update Master Series)</span>
-          </label>
+        {/* Notice & Link to Master Series */}
+        <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200/80 flex items-center justify-between text-xs">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-extrabold text-[#1B2B4B]">Single Occurrence Edit</span>
+            <span className="text-[11px] text-zinc-600">Editing this specific {eventToEdit.eventType.toLowerCase()} date or amount.</span>
+          </div>
+          <a
+            href="/dashboard/paychecks"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = `/dashboard/paychecks?search=${encodeURIComponent(eventToEdit.name)}`;
+            }}
+            className="text-xs font-black text-[#00B4A6] hover:underline flex items-center gap-1 shrink-0 ml-2"
+          >
+            <span>Edit Master Series</span>
+            <span>→</span>
+          </a>
         </div>
 
         {/* Amount & Date */}
@@ -143,24 +134,6 @@ export default function EventOverrideModal({
               className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
             />
           </div>
-        </div>
-
-        {/* Payment Method */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-            Payment Method Tag (Optional)
-          </label>
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-          >
-            <option value="DIRECT_DEBIT">Direct Debit (Bank Auto-Pay)</option>
-            <option value="BPAY">BPAY (Biller Code)</option>
-            <option value="OSKO">Osko / PayID Instant Transfer</option>
-            <option value="CARD">Credit / Debit Card</option>
-            <option value="DIRECT_DEPOSIT">Direct Employer Payroll Deposit</option>
-          </select>
         </div>
 
         {/* Form Actions */}

@@ -150,6 +150,7 @@ export async function runAllocationCommand(
 
       // Issue credit entry in ledger if confirmedVal > 0
       if (confirmedVal > 0) {
+        const isCustomized = customLinesMap?.has(line.bucketId) && Math.abs(customLinesMap.get(line.bucketId)! - line.proposedAmount) >= 0.01;
         await tx.insert(transactionLedger).values({
           tenantId,
           appId,
@@ -159,7 +160,7 @@ export async function runAllocationCommand(
           amount: confirmedVal.toFixed(2),
           idempotencyKey: `paydayalloc-${insertedLine.id}`,
           note: `Payday Allocation: ${line.reasoning}`,
-          source: "MANUAL",
+          source: isCustomized ? "MANUAL" : "AUTO",
           createdBy: userId,
           updatedBy: userId,
         });

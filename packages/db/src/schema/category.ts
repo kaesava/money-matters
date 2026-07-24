@@ -19,6 +19,7 @@ export const categories = pgTable("categories", {
   everydaySweepFrequency: varchar("everyday_sweep_frequency", { length: 20 }),
   icon: varchar("icon", { length: 50 }),
   colour: varchar("colour", { length: 7 }), // Hex color code e.g. '#00B4A6'
+  budgetFrequency: varchar("budget_frequency", { length: 20 }).default("MONTHLY"), // FORTNIGHTLY, MONTHLY, ANNUALLY
   bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable for V1, populated in V2
   lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
   ...tenantAndTimestamps,

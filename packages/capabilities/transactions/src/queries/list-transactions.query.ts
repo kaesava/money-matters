@@ -7,14 +7,26 @@ export async function listTransactionsQuery(
   appId: string,
   limit = 50,
   offset = 0,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: PgDatabase<any, any, any> = db,
+  categoryId?: string
 ) {
+  const conditions = [
+    eq(transactionLedger.tenantId, tenantId),
+    eq(transactionLedger.appId, appId),
+    sql`${transactionLedger.archivedAt} IS NULL`,
+  ];
+
+  if (categoryId) {
+    conditions.push(eq(transactionLedger.categoryId, categoryId));
+  }
+
   return await dbClient
     .select({
       id: transactionLedger.id,
       categoryId: transactionLedger.categoryId,
       bankAccountId: transactionLedger.bankAccountId,
       planLineId: transactionLedger.planLineId,
+      transferGroupId: transactionLedger.transferGroupId,
       flowType: transactionLedger.flowType,
       amount: transactionLedger.amount,
       note: transactionLedger.note,
@@ -24,13 +36,7 @@ export async function listTransactionsQuery(
     })
     .from(transactionLedger)
     .leftJoin(categories, eq(transactionLedger.categoryId, categories.id))
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(transactionLedger.recordedAt))
     .limit(limit)
     .offset(offset);

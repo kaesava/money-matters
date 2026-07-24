@@ -74,9 +74,18 @@ export default function PaydayPreviewModal({
   const numericActual = parseFloat(actualAmount) || 0;
   const unallocated = numericActual - totalAllocated;
 
-  const handleConfirm = async () => {
+  const [showMismatchWarning, setShowMismatchWarning] = useState(false);
+
+  const handleConfirm = async (overrideMismatch = false) => {
     setErrorMsg("");
+
+    if (!overrideMismatch && Math.abs(numericActual - totalAllocated) >= 0.01) {
+      setShowMismatchWarning(true);
+      return;
+    }
+
     setSubmitting(true);
+    setShowMismatchWarning(false);
     try {
       const payloadLines = Object.entries(linesMap).map(([bucketId, amount]) => ({
         bucketId,
@@ -85,7 +94,7 @@ export default function PaydayPreviewModal({
 
       await confirmPaydayMut.mutateAsync({
         incomeEventId,
-        actualAmount: numericActual.toFixed(2),
+        actualAmount: totalAllocated.toFixed(2),
         lines: payloadLines,
       });
 
@@ -131,6 +140,35 @@ export default function PaydayPreviewModal({
           </div>
         ) : (
           <>
+            {showMismatchWarning && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">⚠️</span>
+                  <span>Paycheck Total Allocation Mismatch</span>
+                </div>
+                <p className="font-normal text-zinc-700">
+                  The sum of your category allocations (${totalAllocated.toFixed(2)} AUD) does not equal the entered paycheck total (${numericActual.toFixed(2)} AUD).
+                  The total paycheck amount will be adjusted to match allocated total (${totalAllocated.toFixed(2)} AUD).
+                </p>
+                <div className="flex items-center justify-end gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowMismatchWarning(false)}
+                    className="px-3 py-1.5 rounded-lg border border-amber-300 text-zinc-700 font-bold text-xs hover:bg-white"
+                  >
+                    Adjust Lines
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleConfirm(true)}
+                    className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold text-xs hover:bg-amber-700"
+                  >
+                    Proceed with ${totalAllocated.toFixed(2)} AUD
+                  </button>
+                </div>
+              </div>
+            )}
+
             {errorMsg && (
               <div className="p-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
                 {errorMsg}
@@ -224,7 +262,7 @@ export default function PaydayPreviewModal({
               <button
                 type="button"
                 disabled={submitting}
-                onClick={handleConfirm}
+                onClick={() => handleConfirm()}
                 className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
               >
                 {submitting ? "Processing..." : "Confirm & Distribute Payday"}

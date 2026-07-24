@@ -32,8 +32,6 @@ export default function SetupBankAccountsScreen() {
     try {
       await createAccount.mutateAsync({
         name: name.trim(),
-        purpose: [purpose],
-        isOffset,
       });
       setAdded((p) => [...p, name.trim()]);
       setName('');

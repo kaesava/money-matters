@@ -60,9 +60,8 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
       .values({
         tenantId: tenantId,
         name: input.name,
-        purpose: input.purpose,
         lastKnownBalance: input.lastKnownBalance,
-        isOffset: input.isOffset,
+        unbudgetedBuffer: input.unbudgetedBuffer,
         appId,
         createdBy: userId,
         updatedBy: userId,

@@ -91,7 +91,8 @@ export default function CategoriesPage() {
 
   // Summary Metrics
   const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
-  const atRiskCount = categories.filter((c) => c.healthStatus === "AMBER" || c.healthStatus === "RED").length;
+  const atRiskCount = categories.filter((c) => c.healthStatus === "AMBER").length;
+  const missedCount = categories.filter((c) => c.healthStatus === "RED").length;
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
@@ -100,7 +101,7 @@ export default function CategoriesPage() {
         <div>
           <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Categories & Savings Pools</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-            Manage your Everyday pool, Regular Bills, and Save Toward target pools.
+            Manage your Everyday pool, Bills, and Save Toward target pools.
           </p>
         </div>
 
@@ -128,8 +129,12 @@ export default function CategoriesPage() {
       </div>
 
       {/* Top Health Counters */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-white rounded-2xl border border-zinc-100 shadow-sm flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div
+          onClick={() => setHealthFilter("ALL")}
+          className="p-4 bg-white rounded-2xl border border-zinc-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-zinc-300 transition-all"
+          title="Click to view All Categories"
+        >
           <div>
             <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Total Categories</p>
             <p className="text-2xl font-black text-[#1B2B4B] mt-0.5">{categories.length}</p>
@@ -142,7 +147,7 @@ export default function CategoriesPage() {
           className="p-4 bg-white rounded-2xl border border-emerald-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-all"
         >
           <div>
-            <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">On Track (Green)</p>
+            <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">On Track</p>
             <p className="text-2xl font-black text-emerald-600 mt-0.5">{onTrackCount}</p>
           </div>
           <span className="text-2xl">✅</span>
@@ -153,10 +158,21 @@ export default function CategoriesPage() {
           className="p-4 bg-white rounded-2xl border border-amber-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-amber-300 transition-all"
         >
           <div>
-            <p className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">At Risk / Missed</p>
+            <p className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">At Risk</p>
             <p className="text-2xl font-black text-amber-600 mt-0.5">{atRiskCount}</p>
           </div>
           <span className="text-2xl">⚠️</span>
+        </div>
+
+        <div
+          onClick={() => setHealthFilter("RED")}
+          className="p-4 bg-white rounded-2xl border border-rose-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-rose-300 transition-all"
+        >
+          <div>
+            <p className="text-[10px] font-extrabold text-rose-600 uppercase tracking-wider">Missed</p>
+            <p className="text-2xl font-black text-rose-600 mt-0.5">{missedCount}</p>
+          </div>
+          <span className="text-2xl">🚨</span>
         </div>
       </div>
 

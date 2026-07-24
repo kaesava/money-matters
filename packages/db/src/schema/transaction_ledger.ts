@@ -5,7 +5,7 @@ import { allocationPlanLines } from "./allocation_plan_line.js";
 import { tenantAndTimestamps } from "./base.js";
 
 export const transactionFlowEnum = pgEnum("transaction_flow_enum", ["DEBIT", "CREDIT"]);
-export const transactionSourceEnum = pgEnum("transaction_source_enum", ["MANUAL", "IMPORT"]);
+export const transactionSourceEnum = pgEnum("transaction_source_enum", ["MANUAL", "AUTO", "IMPORT"]);
 
 export const transactionLedger = pgTable("transaction_ledger", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -17,6 +17,7 @@ export const transactionLedger = pgTable("transaction_ledger", {
   idempotencyKey: text("idempotency_key").unique().notNull(),
   note: text("note"),
   source: transactionSourceEnum("source").notNull().default("MANUAL"),
+  transferGroupId: uuid("transfer_group_id"),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
   ...tenantAndTimestamps,
 });

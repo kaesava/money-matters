@@ -131,6 +131,18 @@ export default function DashboardPage() {
   const handleQuickExpenseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickCategoryId || !quickAmount || parseFloat(quickAmount) <= 0) return;
+
+    const targetCat = categories.find((c) => c.id === quickCategoryId);
+    if (targetCat) {
+      const currentBal = parseFloat(targetCat.currentBalance || "0");
+      const expenseAmt = parseFloat(quickAmount);
+      if (expenseAmt > currentBal) {
+        if (!confirm(`Warning: Recording this expense of ${fmt(expenseAmt)} exceeds "${targetCat.name}" balance (${fmt(currentBal)}). Category balance will become negative (${fmt(currentBal - expenseAmt)}). Do you wish to proceed?`)) {
+          return;
+        }
+      }
+    }
+
     recordExpenseMutation.mutate({
       categoryId: quickCategoryId,
       amount: parseFloat(quickAmount).toFixed(2),
