@@ -229,17 +229,17 @@ export const en = {
     termsOfService: "Terms of Service",
   },
   paychecks: {
-    title: "Paychecks",
+    title: "Paychecks & Income",
     empty: "No paychecks found",
     emptySubtitle: "Scheduled paychecks will appear here.",
     source: "Income Source",
-    generatePlan: "Generate Waterfall Plan",
+    generatePlan: "Calculate Payday Split",
     review: {
-      title: "Paycheck Waterfall Review",
+      title: "Payday Split Review",
       noPlanYet: "No allocation plan calculated yet.",
       allocationBreakdown: "Category Allocation Breakdown",
       confirmCta: "Confirm & Allocate Paycheck",
-      confirmed: "Paycheck Waterfall Allocated!",
+      confirmed: "Payday Split Allocated!",
       transferInstructions: "Bank Transfer Instructions",
     },
     transfer: {

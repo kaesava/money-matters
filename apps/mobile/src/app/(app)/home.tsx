@@ -24,7 +24,7 @@ export default function HomeScreen() {
     onSuccess: () => userPrefQuery.refetch(),
   });
 
-  const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(true);
+  const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
 
   // Modals state
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
@@ -77,6 +77,15 @@ export default function HomeScreen() {
     },
   });
 
+  const confirmPaydayMutation = trpc.confirmPayday.useMutation({
+    onSuccess: () => {
+      incomeEventsQuery.refetch();
+      categoriesQuery.refetch();
+      summaryQuery.refetch();
+      Alert.alert('Payday Allocated!', 'Payday split allocated successfully.');
+    },
+  });
+
   const reconcileMutation = trpc.reconcileBankBalance.useMutation({
     onSuccess: () => {
       bankAccountsQuery.refetch();
@@ -88,6 +97,14 @@ export default function HomeScreen() {
   const categories = categoriesQuery.data ?? [];
   const atRiskCount = categories.filter((c) => c.healthStatus === 'AMBER').length;
   const missedCount = categories.filter((c) => c.healthStatus === 'RED').length;
+
+  const handleQuickApprovePayday = (evt: any) => {
+    confirmPaydayMutation.mutate({
+      incomeEventId: evt.id,
+      actualAmount: evt.expectedAmount,
+      lines: [],
+    });
+  };
 
   const handleMarkPaid = (evt: any) => {
     const cat = categories.find((c) => c.id === evt.categoryId);
@@ -188,7 +205,7 @@ export default function HomeScreen() {
           <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
 
-        {/* Next Payday Banner */}
+        {/* ZONE 1: Payday Hero Banner & 4 Summary Stat Chips */}
         {nextPaydayEvent && (
           <View style={styles.paydayHeroCard}>
             <View style={{ flex: 1 }}>
@@ -198,17 +215,28 @@ export default function HomeScreen() {
                 {formatAUD(nextPaydayEvent.expectedAmount)} • {daysUntilPayday === 0 ? 'Today!' : `in ${daysUntilPayday} days`}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setPaydayWizardEventId(nextPaydayEvent.id)}
-              style={styles.processPaydayBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.processPaydayBtnText}>Process Payday ⚡</Text>
-            </TouchableOpacity>
+
+            <View style={{ gap: 6, alignItems: 'flex-end' }}>
+              <TouchableOpacity
+                onPress={() => handleQuickApprovePayday(nextPaydayEvent)}
+                disabled={confirmPaydayMutation.isPending}
+                style={styles.quickApproveBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.quickApproveBtnText}>⚡ 1-Tap Quick Approve</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setPaydayWizardEventId(nextPaydayEvent.id)}
+                style={styles.processPaydayBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.processPaydayBtnText}>Edit & Review Split →</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
-        {/* 4 Summary Chips */}
         <View style={styles.grid2x2}>
           <View style={styles.chip}>
             <Text style={styles.chipLabel}>TOTAL INCOME</Text>
@@ -228,120 +256,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Quick Actions Collapsible Section */}
-        <View style={styles.card}>
-          <View style={styles.quickActionsHeader}>
-            <Text style={styles.cardTitle}>⚡ Quick Actions</Text>
-            <TouchableOpacity onPress={handleToggleQuickActions} style={styles.toggleBtn}>
-              <Text style={styles.toggleBtnText}>{isQuickActionsOpen ? 'Collapse ▲' : 'Expand ▼'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {isQuickActionsOpen && (
-            <View style={{ gap: 12, marginTop: 12 }}>
-              {/* Affordability Widget */}
-              <View style={styles.widgetBox}>
-                <Text style={styles.widgetTitle}>Can We Afford This?</Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                  <TextInput
-                    value={canAffordAmount}
-                    onChangeText={setCanAffordAmount}
-                    placeholder="Enter amount ($)"
-                    keyboardType="numeric"
-                    placeholderTextColor={D.colors.textMuted}
-                    style={styles.widgetInput}
-                  />
-                </View>
-                {canAffordQuery.data && (
-                  <Text
-                    style={[
-                      styles.affordResult,
-                      {
-                        color:
-                          canAffordQuery.data.verdict === "YES" || canAffordQuery.data.verdict === "YES_WITH_IMPACT"
-                            ? '#10B981'
-                            : '#EF4444',
-                      },
-                    ]}
-                  >
-                    {canAffordQuery.data.verdict === "YES"
-                      ? `✓ Yes! Remaining balance: ${formatAUD(canAffordQuery.data.everydayRemaining)}`
-                      : canAffordQuery.data.verdict === "YES_WITH_IMPACT"
-                      ? `✓ Yes, using savings from ${canAffordQuery.data.affectedBucketName}`
-                      : canAffordQuery.data.verdict === "WAIT"
-                      ? `⌛ Wait ${canAffordQuery.data.daysUntilNextPaycheck} days for next paycheck`
-                      : `✕ Cannot afford: shortfall of ${formatAUD(canAffordQuery.data.shortfall)}`}
-                  </Text>
-                )}
-              </View>
-
-              {/* Action Buttons Row */}
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  onPress={() => setMoveMoneyVisible(true)}
-                  style={[styles.actionBtn, { backgroundColor: '#00B4A6' }]}
-                >
-                  <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>🔄 Move Money</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => router.push('/(app)/categories?health=AMBER')}
-                  style={[styles.actionBtn, { backgroundColor: '#FEF3C7' }]}
-                >
-                  <Text style={{ color: '#92400E', fontWeight: '800', fontSize: 12 }}>At Risk ({atRiskCount})</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => router.push('/(app)/categories?health=RED')}
-                  style={[styles.actionBtn, { backgroundColor: '#FEE2E2' }]}
-                >
-                  <Text style={{ color: '#991B1B', fontWeight: '800', fontSize: 12 }}>Missed ({missedCount})</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Bank Balances & Reconciliation */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Bank Balances & Reconciliation</Text>
-          <View style={{ gap: 8, marginTop: 8 }}>
-            {(bankAccountsQuery.data ?? []).map((acc: any) => {
-              const actualNum = parseFloat(acc.lastKnownBalance || '0');
-              const expectedNum = parseFloat(acc.expectedBalance || '0');
-              const isDiff = Math.abs(actualNum - expectedNum) >= 0.01;
-
-              return (
-                <View key={acc.id} style={styles.accRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{acc.name}</Text>
-                    <Text style={{ fontSize: 10, color: '#9CA3AF' }}>Expected: {formatAUD(expectedNum)}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{formatAUD(actualNum)}</Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setReconcileAccountId(acc.id);
-                        setReconcileActualAmount(acc.lastKnownBalance || '0');
-                        setReconcileModalVisible(true);
-                      }}
-                      style={[styles.reconcileBtn, isDiff && { backgroundColor: '#FEF3C7' }]}
-                    >
-                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: isDiff ? '#92400E' : '#4B5563' }}>
-                        {isDiff ? 'Reconcile!' : 'Adjust'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Unified Upcoming Events */}
+        {/* ZONE 2: Unified Upcoming Events & Payments List */}
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={styles.cardTitle}>Upcoming Events</Text>
+            <Text style={styles.cardTitle}>Upcoming Events & Payments</Text>
             <View style={{ flexDirection: 'row', gap: 4 }}>
               {(['ALL', 'INCOME', 'EXPENSE'] as const).map((tab) => (
                 <TouchableOpacity
@@ -350,7 +268,7 @@ export default function HomeScreen() {
                   style={[styles.tabFilter, upcomingFilter === tab && styles.tabFilterActive]}
                 >
                   <Text style={[styles.tabFilterText, upcomingFilter === tab && styles.tabFilterTextActive]}>
-                    {tab === 'ALL' ? 'All' : tab === 'INCOME' ? 'Income' : 'Bills'}
+                    {tab === 'ALL' ? 'All' : tab === 'INCOME' ? 'Paydays' : 'Bills'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -402,7 +320,7 @@ export default function HomeScreen() {
 
                       {evt.type === 'INCOME' ? (
                         <TouchableOpacity onPress={() => setPaydayWizardEventId(evt.id)} style={styles.processBtn}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Process</Text>
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Review Split</Text>
                         </TouchableOpacity>
                       ) : (
                         <TouchableOpacity onPress={() => handleMarkPaid(evt)} style={styles.markPaidBtn}>
@@ -415,6 +333,116 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
+        </View>
+
+        {/* ZONE 3: Collapsible Tools Drawer */}
+        <View style={styles.card}>
+          <View style={styles.quickActionsHeader}>
+            <Text style={styles.cardTitle}>🛠️ Tools & Financial Calculators</Text>
+            <TouchableOpacity onPress={handleToggleQuickActions} style={styles.toggleBtn}>
+              <Text style={styles.toggleBtnText}>{isQuickActionsOpen ? 'Collapse ▲' : 'Expand ▼'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {isQuickActionsOpen && (
+            <View style={{ gap: 12, marginTop: 12 }}>
+              {/* Affordability Widget */}
+              <View style={styles.widgetBox}>
+                <Text style={styles.widgetTitle}>Can We Afford This?</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                  <TextInput
+                    value={canAffordAmount}
+                    onChangeText={setCanAffordAmount}
+                    placeholder="Enter amount ($)"
+                    keyboardType="numeric"
+                    placeholderTextColor={D.colors.textMuted}
+                    style={styles.widgetInput}
+                  />
+                </View>
+                {canAffordQuery.data && (
+                  <Text
+                    style={[
+                      styles.affordResult,
+                      {
+                        color:
+                          canAffordQuery.data.verdict === 'YES' || canAffordQuery.data.verdict === 'YES_WITH_IMPACT'
+                            ? '#10B981'
+                            : '#EF4444',
+                      },
+                    ]}
+                  >
+                    {canAffordQuery.data.verdict === 'YES'
+                      ? `✓ Yes! Remaining balance: ${formatAUD(canAffordQuery.data.everydayRemaining)}`
+                      : canAffordQuery.data.verdict === 'YES_WITH_IMPACT'
+                      ? `✓ Yes, using savings from ${canAffordQuery.data.affectedBucketName}`
+                      : canAffordQuery.data.verdict === 'WAIT'
+                      ? `⌛ Wait ${canAffordQuery.data.daysUntilNextPaycheck} days for next paycheck`
+                      : `✕ Cannot afford: shortfall of ${formatAUD(canAffordQuery.data.shortfall)}`}
+                  </Text>
+                )}
+              </View>
+
+              {/* Action Buttons Row */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setMoveMoneyVisible(true)}
+                  style={[styles.actionBtn, { backgroundColor: '#00B4A6' }]}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>🔄 Move Money</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => router.push('/(app)/categories?health=AMBER')}
+                  style={[styles.actionBtn, { backgroundColor: '#FEF3C7' }]}
+                >
+                  <Text style={{ color: '#92400E', fontWeight: '800', fontSize: 12 }}>Needs Attention ({atRiskCount})</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => router.push('/(app)/categories?health=RED')}
+                  style={[styles.actionBtn, { backgroundColor: '#FEE2E2' }]}
+                >
+                  <Text style={{ color: '#991B1B', fontWeight: '800', fontSize: 12 }}>Behind ({missedCount})</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Bank Balances & Reconciliation */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Bank Balances & Reconciliation</Text>
+          <View style={{ gap: 8, marginTop: 8 }}>
+            {(bankAccountsQuery.data ?? []).map((acc: any) => {
+              const actualNum = parseFloat(acc.lastKnownBalance || '0');
+              const expectedNum = parseFloat(acc.expectedBalance || '0');
+              const isDiff = Math.abs(actualNum - expectedNum) >= 0.01;
+
+              return (
+                <View key={acc.id} style={styles.accRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{acc.name}</Text>
+                    <Text style={{ fontSize: 10, color: '#9CA3AF' }}>Expected: {formatAUD(expectedNum)}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{formatAUD(actualNum)}</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setReconcileAccountId(acc.id);
+                        setReconcileActualAmount(acc.lastKnownBalance || '0');
+                        setReconcileModalVisible(true);
+                      }}
+                      style={[styles.reconcileBtn, isDiff && { backgroundColor: '#FEF3C7' }]}
+                    >
+                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: isDiff ? '#92400E' : '#4B5563' }}>
+                        {isDiff ? 'Reconcile!' : 'Adjust'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         </View>
       </ScrollView>
 
@@ -516,8 +544,10 @@ const styles = StyleSheet.create({
   paydayHeroTag: { fontSize: 9, fontWeight: '900', color: '#E0F2FE', letterSpacing: 0.8 },
   paydayHeroTitle: { fontSize: 16, fontWeight: '900', color: '#FFF', marginTop: 2 },
   paydayHeroSubtitle: { fontSize: 11, color: '#CCFBF1', marginTop: 2 },
-  processPaydayBtn: { backgroundColor: '#1B2B4B', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  processPaydayBtnText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+  quickApproveBtn: { backgroundColor: '#1B2B4B', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  quickApproveBtnText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+  processPaydayBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  processPaydayBtnText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
   grid2x2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flex: 1, minWidth: '45%', backgroundColor: '#FFF', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' },
   chipLabel: { fontSize: 9, fontWeight: 'bold', color: '#9CA3AF', letterSpacing: 0.5 },

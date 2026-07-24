@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui';
 import { trpc } from '../lib/trpc';
 import { formatAUD } from '../lib/format';
@@ -18,6 +18,11 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
   const [toCategoryId, setToCategoryId] = useState('');
   const [amount, setAmount] = useState('');
 
+  const everydayCat = categories.find((c) => c.type === 'EVERYDAY');
+  const maxSavingsCat = [...categories]
+    .filter((c) => c.type !== 'EVERYDAY' && parseFloat(c.currentBalance || '0') > 0)
+    .sort((a, b) => parseFloat(b.currentBalance || '0') - parseFloat(a.currentBalance || '0'))[0];
+
   const moveMoneyMut = trpc.moveMoney.useMutation({
     onSuccess: () => {
       setFromCategoryId('');
@@ -27,6 +32,12 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
       onClose();
     },
   });
+
+  const applyPreset = (fromId: string, toId: string, presetAmt: string) => {
+    setFromCategoryId(fromId);
+    setToCategoryId(toId);
+    setAmount(presetAmt);
+  };
 
   const handleSubmit = async () => {
     if (!fromCategoryId || !toCategoryId || !amount || parseFloat(amount) <= 0) {
@@ -77,8 +88,29 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
       visible={visible}
       onClose={onClose}
       title="Move Money"
-      subtitle="Instantly transfer funds between categories"
+      subtitle="Instantly transfer funds between category pools"
     >
+      {/* 1-Tap Presets */}
+      {everydayCat && maxSavingsCat && (
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>1-Tap Quick Presets</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
+            <TouchableOpacity
+              onPress={() => applyPreset(maxSavingsCat.id, everydayCat.id, '50')}
+              style={styles.presetChip}
+            >
+              <Text style={styles.presetText}>⚡ Top Up Everyday ($50)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => applyPreset(maxSavingsCat.id, everydayCat.id, '100')}
+              style={styles.presetChip}
+            >
+              <Text style={styles.presetText}>⚡ Top Up Everyday ($100)</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      )}
+
       <View style={styles.formGroup}>
         <Text style={styles.label}>From Category (Debited)</Text>
         <View style={styles.pickerContainer}>
@@ -145,6 +177,9 @@ const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   formGroup: { gap: 6, marginBottom: 8 },
   label: { fontSize: 12, fontWeight: '700', color: D.colors.textPrimary },
+  presetRow: { flexDirection: 'row', gap: 6 },
+  presetChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, backgroundColor: '#E0F2FE', borderWidth: 1, borderColor: '#BAE6FD' },
+  presetText: { fontSize: 11, fontWeight: '700', color: '#0369A1' },
   input: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
