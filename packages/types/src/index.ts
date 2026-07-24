@@ -405,6 +405,31 @@ export const UpdateUserPreferencesCommand = z.object({
   timezone: z.string().optional(),
 }).strict();
 
+export const OverrideEventCommand = z.object({
+  eventId: z.string().uuid(),
+  eventType: z.enum(["INCOME", "EXPENSE"]),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  expectedDate: z.string(),
+  paymentMethod: z.string().optional(),
+  updateSeries: z.boolean().default(false),
+}).strict();
+
+export const SkipEventsCommand = z.object({
+  eventIds: z.array(z.string().uuid()).min(1),
+  eventType: z.enum(["INCOME", "EXPENSE"]),
+}).strict();
+
+export const ConfirmPaydayCommand = z.object({
+  incomeEventId: z.string().uuid(),
+  actualAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  lines: z.array(
+    z.object({
+      bucketId: z.string().uuid(),
+      amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+    }).strict()
+  ),
+}).strict();
+
 export type TenantType = z.infer<typeof TenantSchema>;
 export type TenantMemberType = z.infer<typeof TenantMemberSchema>;
 export type BankAccountType = z.infer<typeof BankAccountSchema>;

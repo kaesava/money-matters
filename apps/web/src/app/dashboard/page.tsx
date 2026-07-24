@@ -11,6 +11,9 @@ function fmt(val: string | number) {
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+import PaydayPreviewModal from "@/components/web/PaydayPreviewModal";
+import EventOverrideModal from "@/components/web/EventOverrideModal";
+
 export default function DashboardPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -25,6 +28,13 @@ export default function DashboardPage() {
 
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(true);
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
+
+  // Payday & Override Modal States
+  const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
+  
+  // Natively infer the exact prop type required by the EventOverrideModal
+  const [eventToOverride, setEventToOverride] = useState<React.ComponentProps<typeof EventOverrideModal>["eventToEdit"]>(null);
+  const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([]);
 
   // Quick Expense Form
   const [quickCategoryId, setQuickCategoryId] = useState("");
@@ -45,13 +55,6 @@ export default function DashboardPage() {
   const [upcomingFilter, setUpcomingFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
   const [upcomingSearch, setUpcomingSearch] = useState("");
 
-  // Upcoming Event Modal Edit State
-  const [editingEvent, setEditingEvent] = useState<any>(null);
-  const [editEventDate, setEditEventDate] = useState("");
-  const [editEventAmount, setEditEventAmount] = useState("");
-  const [editEventName, setEditEventName] = useState("");
-  const [editEventCategoryId, setEditEventCategoryId] = useState("");
-
   // Queries
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const categoriesQuery = trpc.listCategories.useQuery();
@@ -59,6 +62,15 @@ export default function DashboardPage() {
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const canAffordQuery = trpc.canAfford.useQuery({ amount: canAffordAmount }, { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 });
+
+  // Skip Mutation
+  const skipEventsMutation = trpc.skipEvents.useMutation({
+    onSuccess: () => {
+      incomeEventsQuery.refetch();
+      expenseEventsQuery.refetch();
+      setSelectedEventKeys([]);
+    },
+  });
 
   // Mutations
   const recordExpenseMutation = trpc.recordExpense.useMutation({
@@ -102,7 +114,7 @@ export default function DashboardPage() {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setMoveMoneyOpen(false);
-        setEditingEvent(null);
+        setEventToOverride(null);
         setReconcilingAccountId(null);
       }
     }
@@ -128,7 +140,7 @@ export default function DashboardPage() {
     });
   };
 
-  const handleMarkExpensePaid = (evt: any) => {
+  const handleMarkExpensePaid = (evt: { categoryId: string | null; expectedAmount: string; id: string; name: string }) => {
     const cat = categoriesQuery.data?.find((c) => c.id === evt.categoryId);
     const balance = cat ? parseFloat(cat.currentBalance) : 0;
     const amount = parseFloat(evt.expectedAmount);
@@ -146,7 +158,7 @@ export default function DashboardPage() {
     });
   };
 
-  const handleAllocateIncome = (evt: any) => {
+  const handleAllocateIncome = (evt: { id: string; expectedAmount: string }) => {
     router.push(`/dashboard/paychecks/cascade?eventId=${evt.id}&amount=${evt.expectedAmount}`);
   };
 
@@ -166,6 +178,7 @@ export default function DashboardPage() {
       categoryName: "Income Allocation",
       categoryId: null,
       note: "Income Deposit",
+      isNextPayday: "isNextPayday" in e ? Boolean(e.isNextPayday) : false,
     }));
 
   const expenseEventsMapped = (expenseEventsQuery.data ?? [])
@@ -179,6 +192,7 @@ export default function DashboardPage() {
       categoryName: e.categoryName || "Uncategorized",
       categoryId: e.categoryId,
       note: e.note || "Bill/Expense",
+      isNextPayday: false,
     }));
 
   let combinedUpcoming = [...incomeEventsMapped, ...expenseEventsMapped];
@@ -200,8 +214,61 @@ export default function DashboardPage() {
 
   const todayStr = new Date().toISOString().split("T")[0];
 
+  // Resolve Next Immediate Payday Event
+  const nextPaydayEvent = (incomeEventsQuery.data ?? []).find((e) => e.status === "UPCOMING");
+  let daysUntilPayday: number | null = null;
+  if (nextPaydayEvent) {
+    const diffTime = new Date(nextPaydayEvent.expectedDate).getTime() - new Date(todayStr).getTime();
+    daysUntilPayday = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  const fmtAUDate = (dStr: string) => {
+    try {
+      const parts = dStr.split("-");
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } catch (e) {}
+    return dStr;
+  };
+
   return (
     <div className="flex flex-col gap-8 pb-12">
+      {/* 🟢 Next Payday Hero Banner */}
+      {nextPaydayEvent && (
+        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#1B2B4B] to-[#2C426E] text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-700/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#00B4A6]/20 border border-[#00B4A6]/40 flex items-center justify-center text-2xl flex-shrink-0">
+              📅
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-[#00B4A6]">
+                  Next Payday Countdown
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {daysUntilPayday !== null && daysUntilPayday <= 0
+                    ? "DUE TODAY!"
+                    : `In ${daysUntilPayday} days`}
+                </span>
+              </div>
+              <h3 className="text-lg font-black text-white">
+                {nextPaydayEvent.sourceName || "Primary Salary"} — {fmt(nextPaydayEvent.actualAmount || nextPaydayEvent.expectedAmount)} AUD
+              </h3>
+              <p className="text-xs text-slate-300 font-semibold">
+                Scheduled for {fmtAUDate(nextPaydayEvent.expectedDate)}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setPaydayPreviewEventId(nextPaydayEvent.id)}
+            className="px-6 py-3 rounded-2xl text-xs font-black text-white bg-[#00B4A6] hover:bg-[#009b8f] active:scale-95 transition-all shadow-md flex items-center gap-2 flex-shrink-0"
+          >
+            <span>Process Payday</span>
+            <span>→</span>
+          </button>
+        </div>
+      )}
+
       {/* 4 Summary Stat Chips (Always visible above Quick Actions) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-zinc-200/80 shadow-sm flex flex-col gap-1">
@@ -319,7 +386,8 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  {(bankAccountsQuery.data ?? []).map((acc: any) => {
+                  {/* tRPC perfectly infers 'acc' here, no manual types needed */}
+                  {(bankAccountsQuery.data ?? []).map((acc) => {
                     const actualNum = parseFloat(acc.lastKnownBalance || "0");
                     const expectedNum = parseFloat(acc.expectedBalance || "0");
                     const isDiff = Math.abs(actualNum - expectedNum) >= 0.01;
@@ -427,6 +495,30 @@ export default function DashboardPage() {
 
           {/* Filter Tabs & Search Input */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {selectedEventKeys.length > 0 && (
+              <button
+                onClick={() => {
+                  const incomeIds = selectedEventKeys
+                    .filter((k) => k.startsWith("INCOME-"))
+                    .map((k) => k.replace("INCOME-", ""));
+                  const expenseIds = selectedEventKeys
+                    .filter((k) => k.startsWith("EXPENSE-"))
+                    .map((k) => k.replace("EXPENSE-", ""));
+
+                  if (incomeIds.length > 0) {
+                    skipEventsMutation.mutate({ eventIds: incomeIds, eventType: "INCOME" });
+                  }
+                  if (expenseIds.length > 0) {
+                    skipEventsMutation.mutate({ eventIds: expenseIds, eventType: "EXPENSE" });
+                  }
+                }}
+                disabled={skipEventsMutation.isPending}
+                className="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold text-xs shadow-sm hover:bg-amber-600 transition-all"
+              >
+                Bulk Skip ({selectedEventKeys.length})
+              </button>
+            )}
+
             <input
               type="text"
               placeholder="Search upcoming..."
@@ -459,22 +551,42 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-3">
             {combinedUpcoming.map((evt) => {
               const isOverdue = evt.expectedDate < todayStr;
+              const eventKey = `${evt.type}-${evt.id}`;
+              const isSelected = selectedEventKeys.includes(eventKey);
+              const isNextPayday = evt.isNextPayday;
 
               return (
                 <div
-                  key={`${evt.type}-${evt.id}`}
+                  key={eventKey}
                   className={`p-4 rounded-2xl bg-white border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
                     isOverdue ? "border-amber-300 bg-amber-50/20" : "border-zinc-100"
                   }`}
                 >
                   <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEventKeys((prev) => [...prev, eventKey]);
+                        } else {
+                          setSelectedEventKeys((prev) => prev.filter((k) => k !== eventKey));
+                        }
+                      }}
+                      className="w-4 h-4 rounded-lg border-zinc-300 text-[#00B4A6] focus:ring-[#00B4A6]"
+                    />
                     <span className="text-2xl">{evt.type === "INCOME" ? "💵" : "📄"}</span>
                     <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-[#1B2B4B]">{evt.name}</span>
                         {isOverdue && (
                           <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
                             ACTION REQUIRED
+                          </span>
+                        )}
+                        {evt.type === "INCOME" && isNextPayday && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#00B4A6]/20 text-[#00B4A6] border border-[#00B4A6]/40">
+                            NEXT PAYDAY
                           </span>
                         )}
                         <span
@@ -486,30 +598,50 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <span className="text-xs text-zinc-400">
-                        Date: {new Date(evt.expectedDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })} • Category: {evt.categoryName} • {evt.note}
+                        Date: {fmtAUDate(evt.expectedDate)} • Category: {evt.categoryName} • {evt.note}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <span className={`text-lg font-black ${evt.type === "INCOME" ? "text-emerald-600" : "text-[#1B2B4B]"}`}>
                       {evt.type === "INCOME" ? "+" : "-"}{fmt(evt.expectedAmount)}
                     </span>
 
+                    <button
+                      onClick={() => setEventToOverride({
+                        id: evt.id,
+                        eventType: evt.type,
+                        name: evt.name,
+                        expectedDate: evt.expectedDate,
+                        expectedAmount: evt.expectedAmount,
+                      })}
+                      className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                      title="Edit occurrence or series"
+                    >
+                      ✏️ Edit
+                    </button>
+
                     {evt.type === "INCOME" ? (
-                      <button
-                        onClick={() => handleAllocateIncome(evt)}
-                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
-                      >
-                        Allocate Waterfall
-                      </button>
+                      isNextPayday ? (
+                        <button
+                          onClick={() => setPaydayPreviewEventId(evt.id)}
+                          className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
+                        >
+                          Process Payday
+                        </button>
+                      ) : (
+                        <span className="px-3.5 py-2 rounded-xl text-xs font-bold text-zinc-400 bg-zinc-100 cursor-not-allowed">
+                          Projected
+                        </span>
+                      )
                     ) : (
                       <button
                         onClick={() => handleMarkExpensePaid(evt)}
                         disabled={markPaidMutation.isPending}
                         className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#1B2B4B] hover:opacity-90 transition-all shadow-sm"
                       >
-                        Mark Paid
+                        Pay Bill
                       </button>
                     )}
                   </div>
@@ -519,6 +651,29 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Payday Preview Modal */}
+      <PaydayPreviewModal
+        isOpen={!!paydayPreviewEventId}
+        incomeEventId={paydayPreviewEventId}
+        onClose={() => setPaydayPreviewEventId(null)}
+        onSuccess={() => {
+          incomeEventsQuery.refetch();
+          categoriesQuery.refetch();
+          summaryQuery.refetch();
+        }}
+      />
+
+      {/* Event Override Modal */}
+      <EventOverrideModal
+        isOpen={!!eventToOverride}
+        eventToEdit={eventToOverride}
+        onClose={() => setEventToOverride(null)}
+        onSuccess={() => {
+          incomeEventsQuery.refetch();
+          expenseEventsQuery.refetch();
+        }}
+      />
 
       {/* Shared Move Money Modal */}
       <MoveMoneyModal

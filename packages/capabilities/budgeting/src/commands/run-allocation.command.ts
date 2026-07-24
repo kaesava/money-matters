@@ -9,7 +9,8 @@ export async function runAllocationCommand(
   userId: string,
   incomeEventId: string,
   incomeAmount: number,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: PgDatabase<any, any, any> = db,
+  customLines?: { bucketId: string; amount: string }[]
 ) {
   // 1. Fetch Categories
   const dbCats = await dbClient
@@ -72,7 +73,6 @@ export async function runAllocationCommand(
     .from(incomeEvents)
     .where(eq(incomeEvents.id, incomeEventId));
 
-  // Determine pay frequency days (default 14 for fortnightly)
   let freqDays = 14;
   if (event) {
     const [source] = await dbClient
@@ -80,7 +80,6 @@ export async function runAllocationCommand(
       .from(incomeSources)
       .where(eq(incomeSources.id, event.incomeSourceId));
     if (source) {
-      // Crude parsing of RRULE intervals
       const expectedAmount = parseFloat(source.amount);
     }
   }
@@ -109,6 +108,10 @@ export async function runAllocationCommand(
     paycheckFrequencyDays: freqDays,
   });
 
+  const customLinesMap = customLines
+    ? new Map(customLines.map((l) => [l.bucketId, parseFloat(l.amount)]))
+    : null;
+
   // 5. Execute DB write transaction
   const plan = await dbClient.transaction(async (tx) => {
     const [insertedPlan] = await tx
@@ -117,7 +120,7 @@ export async function runAllocationCommand(
         tenantId,
         appId,
         incomeEventId,
-        status: "CONFIRMED", // Auto-confirmed directly
+        status: "CONFIRMED",
         totalIncomeAmount: incomeAmount.toFixed(2),
         confirmedAt: new Date(),
         createdBy: userId,
@@ -126,6 +129,10 @@ export async function runAllocationCommand(
       .returning();
 
     for (const line of engineOutput.lines) {
+      const confirmedVal = customLinesMap?.has(line.bucketId)
+        ? customLinesMap.get(line.bucketId)!
+        : line.proposedAmount;
+
       const [insertedLine] = await tx
         .insert(allocationPlanLines)
         .values({
@@ -134,24 +141,24 @@ export async function runAllocationCommand(
           planId: insertedPlan.id,
           categoryId: line.bucketId,
           proposedAmount: line.proposedAmount.toFixed(2),
-          confirmedAmount: line.proposedAmount.toFixed(2),
+          confirmedAmount: confirmedVal.toFixed(2),
           reasoning: line.reasoning,
           createdBy: userId,
           updatedBy: userId,
         })
         .returning();
 
-      // If proposed allocation is > 0, issue credit entry in ledger
-      if (line.proposedAmount > 0) {
+      // Issue credit entry in ledger if confirmedVal > 0
+      if (confirmedVal > 0) {
         await tx.insert(transactionLedger).values({
           tenantId,
           appId,
           categoryId: line.bucketId,
           planLineId: insertedLine.id,
           flowType: "CREDIT",
-          amount: line.proposedAmount.toFixed(2),
-          idempotencyKey: `autoalloc-${insertedLine.id}`,
-          note: `Paycheck Cascade Allocation: ${line.reasoning}`,
+          amount: confirmedVal.toFixed(2),
+          idempotencyKey: `paydayalloc-${insertedLine.id}`,
+          note: `Payday Allocation: ${line.reasoning}`,
           source: "MANUAL",
           createdBy: userId,
           updatedBy: userId,

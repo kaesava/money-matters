@@ -1,9 +1,9 @@
-import { pgTable, uuid, numeric, pgEnum, date, varchar } from "drizzle-orm/pg-core";
+import { pgTable, uuid, numeric, pgEnum, date, varchar, boolean } from "drizzle-orm/pg-core";
 import { expenseSources } from "./expense_source.js";
 import { categories } from "./category.js";
 import { tenantAndTimestamps } from "./base.js";
 
-export const expenseEventStatusEnum = pgEnum("expense_event_status_enum", ["UPCOMING", "PAID", "CANCELLED"]);
+export const expenseEventStatusEnum = pgEnum("expense_event_status_enum", ["UPCOMING", "SKIPPED", "PAID", "CANCELLED"]);
 
 export const expenseEvents = pgTable("expense_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -14,6 +14,8 @@ export const expenseEvents = pgTable("expense_events", {
   expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
   actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),
   note: varchar("note", { length: 500 }),
+  isOverridden: boolean("is_overridden").notNull().default(false),
+  paymentMethod: varchar("payment_method", { length: 50 }),
   status: expenseEventStatusEnum("status").notNull().default("UPCOMING"),
   ...tenantAndTimestamps,
 });

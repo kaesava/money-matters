@@ -23,6 +23,9 @@ import {
   confirmAllocationCommand,
   previewAllocationQuery,
   generateBurstDates,
+  previewPaydayQuery,
+  overrideEventCommand,
+  skipEventsCommand,
 } from "@money-matters/capability-budgeting";
 import {
   recordExpenseCommand,
@@ -46,6 +49,9 @@ import {
   ListCategoryTransactionsQuery,
   CanAffordQuery,
   MoveMoneyCommand,
+  OverrideEventCommand,
+  SkipEventsCommand,
+  ConfirmPaydayCommand,
 } from "@money-matters/types";
 import { ConfirmAllocationInput } from "@money-matters/capability-budgeting";
 import { registerDeviceTokenHandler, removeDeviceTokenHandler } from "@money-matters/capability-notifications";
@@ -402,7 +408,37 @@ export const appRouter = router({
       return { success: true };
     }),
 
+  previewPayday: tenantProcedure
+    .input(z.object({ incomeEventId: z.string().uuid() }).strict())
+    .query(async ({ input, ctx }) => {
+      return await previewPaydayQuery(input.incomeEventId, ctx.tenantId!, ctx.appId!, ctx.db);
+    }),
 
+  confirmPayday: tenantProcedure
+    .input(ConfirmPaydayCommand)
+    .mutation(async ({ input, ctx }) => {
+      return await runAllocationCommand(
+        ctx.tenantId!,
+        ctx.appId!,
+        ctx.userId!,
+        input.incomeEventId,
+        parseFloat(input.actualAmount),
+        ctx.db,
+        input.lines
+      );
+    }),
+
+  overrideEvent: tenantProcedure
+    .input(OverrideEventCommand)
+    .mutation(async ({ input, ctx }) => {
+      return await overrideEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  skipEvents: tenantProcedure
+    .input(SkipEventsCommand)
+    .mutation(async ({ input, ctx }) => {
+      return await skipEventsCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
 
   listCategories: tenantProcedure
     .query(async ({ ctx }) => {
@@ -670,12 +706,14 @@ export const appRouter = router({
 
   listIncomeEvents: tenantProcedure
     .query(async ({ ctx }) => {
-      return await ctx.db
+      const events = await ctx.db
         .select({
           id: incomeEvents.id,
           expectedDate: incomeEvents.expectedDate,
           expectedAmount: incomeEvents.expectedAmount,
           actualAmount: incomeEvents.actualAmount,
+          isOverridden: incomeEvents.isOverridden,
+          paymentMethod: incomeEvents.paymentMethod,
           status: incomeEvents.status,
           incomeSourceId: incomeEvents.incomeSourceId,
           sourceName: incomeSources.name,
@@ -690,6 +728,14 @@ export const appRouter = router({
           )
         )
         .orderBy(asc(incomeEvents.expectedDate));
+
+      const firstUpcoming = events.find((e) => e.status === "UPCOMING");
+      const nextId = firstUpcoming?.id;
+
+      return events.map((e) => ({
+        ...e,
+        isNextPayday: e.id === nextId,
+      }));
     }),
 
   // 5. Expense Sources & Events
@@ -875,6 +921,8 @@ export const appRouter = router({
           expectedDate: expenseEvents.expectedDate,
           expectedAmount: expenseEvents.expectedAmount,
           actualAmount: expenseEvents.actualAmount,
+          isOverridden: expenseEvents.isOverridden,
+          paymentMethod: expenseEvents.paymentMethod,
           note: expenseEvents.note,
           status: expenseEvents.status,
           categoryId: expenseEvents.categoryId,
