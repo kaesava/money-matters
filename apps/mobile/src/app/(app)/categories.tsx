@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
-import { trpc, setActiveSessionToken } from '../../lib/trpc';
+import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar } from '@money-matters/ui';
+import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import * as SecureStore from 'expo-secure-store';
 import { Feather } from '@expo/vector-icons';
-import { QuickExpenseModal } from '../../components/QuickExpenseModal';
+import { formatAUD } from '../../lib/format';
 
-const SECTION_ORDER = ['GOAL', 'REGULAR', 'EVERYDAY'] as const;
-const SECTION_TITLES: Record<string, string> = {
-  GOAL: 'categories.majorSection',
-  REGULAR: 'categories.recurringSection',
-  EVERYDAY: 'categories.everydaySection',
-};
+import { CategoryFormModal } from '../../components/CategoryFormModal';
+import { MoveMoneyModal } from '../../components/MoveMoneyModal';
+
+type SortField = 'name' | 'type' | 'balance' | 'health';
+type SortDir = 'asc' | 'desc';
 
 function pct(balance: string, target: string | null) {
   const balanceNum = parseFloat(balance);
@@ -23,51 +21,84 @@ function pct(balance: string, target: string | null) {
   return Math.min(Math.round((balanceNum / targetNum) * 100), 100);
 }
 
-function fmt(val: string | number) {
-  const num = typeof val === 'string' ? parseFloat(val) : val;
-  return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-}
-
 export default function CategoriesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ health?: string }>();
+
   const { data: session } = authClient.useSession();
-  const { data: categories, isLoading, error, refetch } = trpc.listCategories.useQuery();
-  const [quickExpenseVisible, setQuickExpenseVisible] = useState(false);
+  const { data: categories = [], isLoading, error, refetch } = trpc.listCategories.useQuery();
 
-  const grouped = (categories ?? []).reduce<Record<string, typeof categories>>((acc, cat) => {
-    const key = cat!.type;
-    if (!acc[key]) acc[key] = [];
-    acc[key]!.push(cat);
-    return acc;
-  }, {});
+  // Filters & Sorting State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [healthFilter, setHealthFilter] = useState<string>(params.health ?? 'ALL');
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      t("settings.signOut", { defaultValue: "Sign Out" }),
-      t("settings.signOutConfirm", { defaultValue: "Are you sure you want to sign out?" }),
-      [
-        { text: t("common.cancel", { defaultValue: "Cancel" }), style: "cancel" },
-        {
-          text: t("settings.signOut", { defaultValue: "Sign Out" }),
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await authClient.signOut();
-              await SecureStore.deleteItemAsync("money-matters_session_token");
-              await SecureStore.deleteItemAsync("money-matters-session-token");
-              setActiveSessionToken(null);
-              router.replace("/(auth)/sign-in");
-            } catch (err) {
-              Alert.alert(
-                t("common.error", { defaultValue: "Error" }),
-                err instanceof Error ? err.message : String(err)
-              );
-            }
-          },
+  // Modals
+  const [categoryFormVisible, setCategoryFormVisible] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<any>(null);
+  const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
+
+  const archiveMut = trpc.archiveCategory.useMutation({
+    onSuccess: () => refetch(),
+  });
+
+  const handleArchive = (cat: any) => {
+    if (cat.type === 'EVERYDAY') {
+      Alert.alert('Archive Locked', 'The Everyday category cannot be archived or deleted.');
+      return;
+    }
+    Alert.alert('Archive Category', `Are you sure you want to archive "${cat.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Archive',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await archiveMut.mutateAsync({ categoryId: cat.id });
+          } catch (err) {
+            Alert.alert('Error', err instanceof Error ? err.message : String(err));
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  // Filter & Sort Logic
+  const filtered = categories.filter((c) => {
+    if (!c) return false;
+    const q = searchQuery.toLowerCase().trim();
+    if (q && !c.name.toLowerCase().includes(q)) return false;
+    if (healthFilter !== 'ALL' && c.healthStatus !== healthFilter) return false;
+    if (typeFilter !== 'ALL' && c.type !== typeFilter) return false;
+    return true;
+  });
+
+  const sorted = [...filtered].sort((a: any, b: any) => {
+    let comparison = 0;
+    if (sortField === 'name') comparison = a.name.localeCompare(b.name);
+    else if (sortField === 'type') comparison = a.type.localeCompare(b.type);
+    else if (sortField === 'balance') comparison = parseFloat(a.currentBalance) - parseFloat(b.currentBalance);
+    else if (sortField === 'health') {
+      const order = { RED: 0, AMBER: 1, GREEN: 2 };
+      comparison = (order[a.healthStatus as keyof typeof order] ?? 1) - (order[b.healthStatus as keyof typeof order] ?? 1);
+    }
+    return sortDir === 'asc' ? comparison : -comparison;
+  });
+
+  const onTrackCount = categories.filter((c) => c?.healthStatus === 'GREEN').length;
+  const atRiskCount = categories.filter((c) => c?.healthStatus === 'AMBER').length;
+  const missedCount = categories.filter((c) => c?.healthStatus === 'RED').length;
 
   const D = DESIGN_TOKENS;
 
@@ -79,46 +110,136 @@ export default function CategoriesScreen() {
         onNavigateHome={() => router.push('/(app)/home')}
         onNavigateCategories={() => router.push('/(app)/categories')}
         onNavigateSettings={() => router.push('/(app)/settings')}
-        onSignOut={handleSignOut}
       >
-        {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 40 }} />}
+        <ScrollView contentContainerStyle={{ paddingBottom: 100, gap: 14 }}>
+          {/* Header Action Controls */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => setMoveMoneyVisible(true)}
+              style={styles.moveMoneyHeaderBtn}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.moveMoneyHeaderBtnText}>↔️ Move Money</Text>
+            </TouchableOpacity>
 
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorTitle}>{t('common.error', { defaultValue: 'Error' })}</Text>
-            <Text style={styles.errorSubtitle}>{error.message}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setCategoryToEdit(null);
+                setCategoryFormVisible(true);
+              }}
+              style={styles.newCategoryHeaderBtn}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.newCategoryHeaderBtnText}>➕ New Category</Text>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {SECTION_ORDER.map((section) => {
-          const items = grouped[section] ?? [];
-          if (items.length === 0) return null;
-          return (
-            <View key={section} style={styles.section}>
-              <Text style={styles.sectionTitle}>{t(SECTION_TITLES[section] ?? '')}</Text>
-              {items.map((cat) => {
-                if (!cat) return null;
-                const p = pct(cat.currentBalance, cat.targetAmount);
-                const color =
-                  cat.healthStatus === 'GREEN' ? D.colors.success :
-                  cat.healthStatus === 'AMBER' ? D.colors.warning :
-                  cat.healthStatus === 'RED' ? D.colors.critical :
-                  D.colors.accent;
+          {/* Top Health Counters */}
+          <View style={styles.grid2x2}>
+            <TouchableOpacity onPress={() => setHealthFilter('ALL')} style={styles.statChip}>
+              <Text style={styles.statChipLabel}>TOTAL</Text>
+              <Text style={styles.statChipVal}>{categories.length}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setHealthFilter('GREEN')} style={[styles.statChip, { borderColor: '#A7F3D0' }]}>
+              <Text style={[styles.statChipLabel, { color: '#059669' }]}>ON TRACK</Text>
+              <Text style={[styles.statChipVal, { color: '#059669' }]}>{onTrackCount}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setHealthFilter('AMBER')} style={[styles.statChip, { borderColor: '#FDE68A' }]}>
+              <Text style={[styles.statChipLabel, { color: '#D97706' }]}>AT RISK</Text>
+              <Text style={[styles.statChipVal, { color: '#D97706' }]}>{atRiskCount}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setHealthFilter('RED')} style={[styles.statChip, { borderColor: '#FECDD3' }]}>
+              <Text style={[styles.statChipLabel, { color: '#E11D48' }]}>MISSED</Text>
+              <Text style={[styles.statChipVal, { color: '#E11D48' }]}>{missedCount}</Text>
+            </TouchableOpacity>
+          </View>
 
-                return (
+          {/* Search, Filter & Sort Bar */}
+          <MobileFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search category name..."
+            filterGroups={[
+              {
+                label: 'Health',
+                value: healthFilter,
+                onChange: setHealthFilter,
+                options: [
+                  { id: 'ALL', label: 'All' },
+                  { id: 'GREEN', label: 'On Track' },
+                  { id: 'AMBER', label: 'At Risk' },
+                  { id: 'RED', label: 'Missed' },
+                ],
+              },
+              {
+                label: 'Type',
+                value: typeFilter,
+                onChange: setTypeFilter,
+                options: [
+                  { id: 'ALL', label: 'All' },
+                  { id: 'GOAL', label: 'Save Toward' },
+                  { id: 'REGULAR', label: 'Regular Bills' },
+                  { id: 'EVERYDAY', label: 'Everyday' },
+                ],
+              },
+            ]}
+            onClearAll={() => {
+              setSearchQuery('');
+              setHealthFilter('ALL');
+              setTypeFilter('ALL');
+            }}
+          />
+
+          {/* Sort Selector Chips */}
+          <View style={styles.sortRow}>
+            <Text style={styles.sortLabel}>Sort By:</Text>
+            {(['name', 'type', 'balance', 'health'] as const).map((f) => (
+              <TouchableOpacity
+                key={f}
+                onPress={() => toggleSort(f)}
+                style={[styles.sortChip, sortField === f && styles.sortChipActive]}
+              >
+                <Text style={[styles.sortChipText, sortField === f && styles.sortChipTextActive]}>
+                  {f.toUpperCase()} {sortField === f ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 40 }} />}
+
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorIcon}>⚠️</Text>
+              <Text style={styles.errorTitle}>{t('common.error', { defaultValue: 'Error' })}</Text>
+              <Text style={styles.errorSubtitle}>{error.message}</Text>
+            </View>
+          )}
+
+          {/* Categories List Cards */}
+          {sorted.length === 0 ? (
+            <Text style={styles.emptyText}>No matching categories found.</Text>
+          ) : (
+            sorted.map((cat: any) => {
+              const p = pct(cat.currentBalance, cat.targetAmount);
+              const color =
+                cat.healthStatus === 'GREEN' ? D.colors.success :
+                cat.healthStatus === 'AMBER' ? D.colors.warning :
+                cat.healthStatus === 'RED' ? D.colors.critical :
+                D.colors.accent;
+
+              return (
+                <View key={cat.id} style={styles.card}>
                   <TouchableOpacity
-                    key={cat.id}
-                    style={styles.card}
-                    onPress={() => router.push(`/(app)/categories/${cat.id}`)}
+                    onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
                     activeOpacity={0.8}
                   >
                     <View style={styles.cardHeader}>
                       <Text style={styles.catName}>{cat.name}</Text>
-                      <Text style={[styles.catBalance, { color }]}>{fmt(cat.currentBalance)}</Text>
+                      <Text style={[styles.catBalance, { color }]}>{formatAUD(cat.currentBalance)}</Text>
                     </View>
                     {cat.targetAmount && (
-                      <Text style={styles.target}>{t('categories.target')} {fmt(cat.targetAmount)}</Text>
+                      <Text style={styles.target}>{t('categories.target')} {formatAUD(cat.targetAmount)}</Text>
                     )}
                     {p !== null && (
                       <>
@@ -129,29 +250,57 @@ export default function CategoriesScreen() {
                       </>
                     )}
                   </TouchableOpacity>
-                );
-              })}
-            </View>
-          );
-        })}
+
+                  {/* Actions Row */}
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setCategoryToEdit(cat);
+                        setCategoryFormVisible(true);
+                      }}
+                      style={styles.actionBtn}
+                    >
+                      <Text style={styles.actionBtnText}>Edit</Text>
+                    </TouchableOpacity>
+
+                    {cat.type !== 'EVERYDAY' && (
+                      <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
+                        <Text style={styles.archiveBtnText}>Archive</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </ScrollView>
       </MobileScreenWrapper>
 
       {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => setQuickExpenseVisible(true)}
+        onPress={() => {
+          setCategoryToEdit(null);
+          setCategoryFormVisible(true);
+        }}
         activeOpacity={0.8}
       >
         <Feather name="plus" size={24} color="#FFF" />
       </TouchableOpacity>
 
-      <QuickExpenseModal
-        visible={quickExpenseVisible}
-        onClose={() => {
-          setQuickExpenseVisible(false);
-          // Refetch categories to update the list balances
-          refetch();
-        }}
+      {/* Unified Category Form Modal */}
+      <CategoryFormModal
+        visible={categoryFormVisible}
+        categoryToEdit={categoryToEdit}
+        onClose={() => setCategoryFormVisible(false)}
+        onSuccess={() => refetch()}
+      />
+
+      {/* Move Money Modal */}
+      <MoveMoneyModal
+        visible={moveMoneyVisible}
+        onClose={() => setMoveMoneyVisible(false)}
+        onSuccess={() => refetch()}
       />
     </View>
   );
@@ -159,22 +308,39 @@ export default function CategoriesScreen() {
 
 const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: D.spacing.containerMargin, paddingTop: 56, paddingBottom: 100 },
-  screenTitle: { fontSize: 24, fontWeight: '700', color: D.colors.primary, marginBottom: 20 },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, color: D.colors.textMuted, textTransform: 'uppercase', marginBottom: 10 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginVertical: 4 },
+  moveMoneyHeaderBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: '#E0F2FE', alignItems: 'center' },
+  moveMoneyHeaderBtnText: { fontSize: 12, fontWeight: '800', color: '#0369A1' },
+  newCategoryHeaderBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: '#00B4A6', alignItems: 'center' },
+  newCategoryHeaderBtnText: { fontSize: 12, fontWeight: '800', color: '#FFF' },
+  grid2x2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statChip: { flex: 1, minWidth: '45%', backgroundColor: '#FFF', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#E5E7EB' },
+  statChipLabel: { fontSize: 9, fontWeight: '800', color: '#9CA3AF', letterSpacing: 0.5 },
+  statChipVal: { fontSize: 18, fontWeight: '900', color: '#1B2B4B', marginTop: 2 },
+  sortRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sortLabel: { fontSize: 10, fontWeight: '700', color: D.colors.textMuted, textTransform: 'uppercase' },
+  sortChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
+  sortChipActive: { backgroundColor: '#1B2B4B' },
+  sortChipText: { fontSize: 10, fontWeight: '700', color: D.colors.textMuted },
+  sortChipTextActive: { color: '#FFF' },
+  emptyText: { textAlign: 'center', fontSize: 12, color: D.colors.textMuted, marginVertical: 20 },
   card: {
     backgroundColor: D.colors.surface, borderRadius: D.radius.lg,
     padding: D.spacing.cardPadding, marginBottom: 8,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: '#E5E7EB',
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  catName: { fontSize: 14, fontWeight: '600', color: D.colors.textPrimary, flex: 1 },
-  catBalance: { fontSize: 15, fontWeight: '700' },
+  catName: { fontSize: 15, fontWeight: '700', color: D.colors.textPrimary, flex: 1 },
+  catBalance: { fontSize: 15, fontWeight: '800' },
   target: { fontSize: 11, color: D.colors.textMuted, marginBottom: 8 },
   barBg: { height: 5, borderRadius: 3, backgroundColor: '#F3F4F6', overflow: 'hidden', marginBottom: 4 },
   barFill: { height: 5, borderRadius: 3 },
   pctLabel: { fontSize: 11, fontWeight: '600' },
+  actionRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  actionBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
+  actionBtnText: { fontSize: 11, fontWeight: '700', color: D.colors.textPrimary },
+  archiveBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#FEE2E2' },
+  archiveBtnText: { fontSize: 11, fontWeight: '700', color: '#991B1B' },
   errorContainer: { alignItems: 'center', paddingVertical: 40, gap: 8 },
   errorIcon: { fontSize: 40 },
   errorTitle: { fontSize: 15, fontWeight: '600', color: D.colors.textPrimary },

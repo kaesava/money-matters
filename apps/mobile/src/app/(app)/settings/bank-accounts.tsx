@@ -1,94 +1,37 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Switch,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
-
-const PURPOSES = ['INCOME_LANDING', 'SAVINGS', 'EVERYDAY'] as const;
-type Purpose = (typeof PURPOSES)[number];
-
-const PURPOSE_LABELS: Record<Purpose, string> = {
-  INCOME_LANDING: 'Income Landing',
-  SAVINGS: 'Savings / Bills',
-  EVERYDAY: 'Everyday Spending',
-};
+import { BankAccountFormModal } from '../../../components/BankAccountFormModal';
+import { formatAUD } from '../../../lib/format';
 
 export default function SettingsBankAccountsScreen() {
   const router = useRouter();
 
-  const [name, setName] = useState('');
-  const [purpose, setPurpose] = useState<Purpose>('SAVINGS');
-  const [balance, setBalance] = useState('');
-  const [isOffset, setIsOffset] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [accountToEdit, setAccountToEdit] = useState<any>(null);
 
   // Queries & Mutations
   const { data: tenant, isLoading, refetch } = trpc.getTenant.useQuery();
-  const createBankAccount = trpc.createBankAccount.useMutation();
   const archiveBankAccount = trpc.archiveBankAccount.useMutation();
 
-  const handleAdd = async () => {
-    if (!name.trim()) return;
-
-    let numBalance = 0;
-    if (balance.trim()) {
-      const parsedBalance = parseFloat(balance);
-      if (isNaN(parsedBalance)) {
-        Alert.alert("Invalid Balance", "Please enter a valid numeric value for the balance.");
-        return;
-      }
-      numBalance = parsedBalance;
-    }
-
-    setAdding(true);
-    try {
-      await createBankAccount.mutateAsync({
-        name: name.trim(),
-        lastKnownBalance: numBalance.toFixed(2),
-      });
-
-      setName('');
-      setBalance('');
-      refetch();
-      Alert.alert("Success", "Bank account added successfully.");
-    } catch (err) {
-      Alert.alert("Error", err instanceof Error ? err.message : "Failed to add bank account.");
-    } finally {
-      setAdding(false);
-    }
-  };
-
   const handleArchive = (accountId: string, name: string) => {
-    Alert.alert(
-      "Archive Bank Account",
-      `Are you sure you want to archive the bank account "${name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Archive",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await archiveBankAccount.mutateAsync({ accountId });
-              refetch();
-              Alert.alert("Success", "Bank account archived.");
-            } catch (err) {
-              Alert.alert("Error", err instanceof Error ? err.message : "Failed to archive account.");
-            }
+    Alert.alert('Archive Bank Account', `Are you sure you want to archive "${name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Archive',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await archiveBankAccount.mutateAsync({ accountId });
+            refetch();
+          } catch (err) {
+            Alert.alert('Error', err instanceof Error ? err.message : 'Failed to archive account.');
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const accounts = tenant?.bankAccounts || [];
@@ -99,15 +42,28 @@ export default function SettingsBankAccountsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Bank Accounts</Text>
-        <Text style={styles.subtitle}>Register and update accounts used for paycheck distributions.</Text>
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={styles.title}>Bank Accounts</Text>
+            <Text style={styles.subtitle}>Register checking, bill, and savings accounts.</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              setAccountToEdit(null);
+              setModalVisible(true);
+            }}
+            style={styles.addHeaderBtn}
+          >
+            <Text style={styles.addHeaderBtnText}>➕ Add Account</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Current Accounts List */}
+      {/* Accounts List */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Current Accounts</Text>
+        <Text style={styles.sectionTitle}>Registered Bank Accounts ({accounts.length})</Text>
         {isLoading ? (
-          <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginVertical: 12 }} />
+          <ActivityIndicator color={DESIGN_TOKENS.colors.accent} style={{ marginVertical: 20 }} />
         ) : accounts.length === 0 ? (
           <View style={styles.cardEmpty}>
             <Text style={styles.emptyText}>No bank accounts registered.</Text>
@@ -120,16 +76,24 @@ export default function SettingsBankAccountsScreen() {
                 <View style={styles.row}>
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{acc.name}</Text>
-                    <Text style={styles.rowMeta}>
-                      Balance: ${parseFloat(acc.lastKnownBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </Text>
+                    <Text style={styles.rowMeta}>Statement Balance: {formatAUD(acc.lastKnownBalance || '0')}</Text>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => handleArchive(acc.id, acc.name)}
-                    style={styles.archiveBtn}
-                  >
-                    <Text style={styles.archiveText}>Delete</Text>
-                  </TouchableOpacity>
+
+                  <View style={styles.btnRow}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setAccountToEdit(acc);
+                        setModalVisible(true);
+                      }}
+                      style={styles.editBtn}
+                    >
+                      <Text style={styles.editText}>Edit</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => handleArchive(acc.id, acc.name)} style={styles.archiveBtn}>
+                      <Text style={styles.archiveText}>Archive</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -137,70 +101,13 @@ export default function SettingsBankAccountsScreen() {
         )}
       </View>
 
-      {/* Add New Bank Account */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Add Bank Account</Text>
-        <View style={styles.formCard}>
-          <Text style={styles.label}>Account Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Commonwealth Offset"
-            value={name}
-            onChangeText={setName}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-          />
-
-          <Text style={[styles.label, styles.gap]}>Account Purpose</Text>
-          <View style={styles.optionRow}>
-            {PURPOSES.map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[styles.optionBtn, purpose === p && styles.optionBtnActive]}
-                onPress={() => setPurpose(p)}
-              >
-                <Text style={[styles.optionText, purpose === p && styles.optionTextActive]}>
-                  {PURPOSE_LABELS[p]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={[styles.label, styles.gap]}>Starting Balance</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="0.00"
-            keyboardType="numeric"
-            value={balance}
-            onChangeText={setBalance}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-          />
-
-          <View style={styles.switchRow}>
-            <View>
-              <Text style={styles.switchLabel}>Is Offset Account</Text>
-              <Text style={styles.switchSublabel}>Connects to a mortgage home loan</Text>
-            </View>
-            <Switch
-              value={isOffset}
-              onValueChange={setIsOffset}
-              trackColor={{ false: '#D1D5DB', true: DESIGN_TOKENS.colors.accent }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.addBtn, adding && styles.btnDisabled]}
-            onPress={handleAdd}
-            disabled={adding}
-          >
-            {adding ? (
-              <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} />
-            ) : (
-              <Text style={styles.addBtnText}>Add Bank Account</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Unified Bank Account Modal */}
+      <BankAccountFormModal
+        visible={modalVisible}
+        accountToEdit={accountToEdit}
+        onClose={() => setModalVisible(false)}
+        onSuccess={() => refetch()}
+      />
     </ScrollView>
   );
 }
@@ -212,33 +119,18 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     backgroundColor: DESIGN_TOKENS.colors.background,
   },
-  header: {
-    marginBottom: 24,
-  },
-  backBtn: {
-    marginBottom: 16,
-  },
-  backText: {
-    fontSize: 16,
-    color: DESIGN_TOKENS.colors.accent,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.primary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textMuted,
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 24,
-  },
+  header: { marginBottom: 20 },
+  backBtn: { marginBottom: 12 },
+  backText: { fontSize: 15, color: DESIGN_TOKENS.colors.accent, fontWeight: '700' },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: '900', color: DESIGN_TOKENS.colors.primary },
+  subtitle: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 },
+  addHeaderBtn: { backgroundColor: '#00B4A6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  addHeaderBtnText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+  section: { marginBottom: 24 },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     textTransform: 'uppercase',
     color: DESIGN_TOKENS.colors.textMuted,
     marginBottom: 8,
@@ -255,37 +147,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: 14,
   },
-  rowInfo: {
-    flex: 1,
-  },
-  rowName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  rowMeta: {
-    fontSize: 13,
-    color: DESIGN_TOKENS.colors.textMuted,
-    marginTop: 2,
-  },
-  archiveBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#EF4444',
-    borderRadius: DESIGN_TOKENS.radius.sm,
-  },
-  archiveText: {
-    color: '#EF4444',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
+  rowInfo: { flex: 1 },
+  rowName: { fontSize: 15, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary },
+  rowMeta: { fontSize: 12, fontWeight: '700', color: DESIGN_TOKENS.colors.primary, marginTop: 2 },
+  rowPurpose: { fontSize: 10, color: DESIGN_TOKENS.colors.textMuted, marginTop: 1 },
+  btnRow: { flexDirection: 'row', gap: 6 },
+  editBtn: { paddingVertical: 5, paddingHorizontal: 10, backgroundColor: '#F3F4F6', borderRadius: 6 },
+  editText: { color: DESIGN_TOKENS.colors.textPrimary, fontSize: 11, fontWeight: '700' },
+  archiveBtn: { paddingVertical: 5, paddingHorizontal: 10, backgroundColor: '#FEE2E2', borderRadius: 6 },
+  archiveText: { color: '#991B1B', fontSize: 11, fontWeight: '700' },
+  divider: { height: 1, backgroundColor: '#E5E7EB' },
   cardEmpty: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: DESIGN_TOKENS.radius.md,
@@ -294,93 +167,5 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
   },
-  emptyText: {
-    color: DESIGN_TOKENS.colors.textMuted,
-    fontSize: 14,
-  },
-  formCard: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 16,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
-    marginBottom: 6,
-  },
-  gap: {
-    marginTop: 16,
-  },
-  input: {
-    backgroundColor: DESIGN_TOKENS.colors.background,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  optionRow: {
-    flexDirection: 'column',
-    gap: 8,
-  },
-  optionBtn: {
-    width: '100%',
-    backgroundColor: DESIGN_TOKENS.colors.background,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  optionBtnActive: {
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    borderColor: DESIGN_TOKENS.colors.accent,
-  },
-  optionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  optionTextActive: {
-    color: DESIGN_TOKENS.colors.onAccent,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  switchLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  switchSublabel: {
-    fontSize: 12,
-    color: DESIGN_TOKENS.colors.textMuted,
-    marginTop: 2,
-  },
-  addBtn: {
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  addBtnText: {
-    color: DESIGN_TOKENS.colors.onAccent,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  emptyText: { color: DESIGN_TOKENS.colors.textMuted, fontSize: 13 },
 });

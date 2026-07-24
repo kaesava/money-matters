@@ -12,4 +12,8 @@ export { SmartEmailInput } from './fields/SmartEmailInput';
 export { SmartPhoneInput } from './fields/SmartPhoneInput';
 export { default as MobileScreenWrapper } from './ScreenWrapper';
 export type { ScreenWrapperProps as MobileScreenWrapperProps } from './ScreenWrapper';
+export { default as MobileFilterBar } from './MobileFilterBar';
+export type { MobileFilterBarProps, MobileFilterGroup, MobileFilterOption } from './MobileFilterBar';
+export { default as MobileModalDialog } from './MobileModalDialog';
+export type { MobileModalDialogProps } from './MobileModalDialog';
 

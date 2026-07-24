@@ -7,6 +7,7 @@ export const en = {
     home: "Home",
     categories: "Categories",
     paychecks: "Paychecks",
+    incomeExpenses: "Income & Expenses",
     settings: "Settings",
     dashboardNav: "Dashboard navigation",
     reconcile: "Reconcile",

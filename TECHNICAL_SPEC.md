@@ -109,9 +109,9 @@ households (tenant)
 
 | Capability | Web UI (`apps/web`) | Mobile UI (`apps/mobile`) | Test & Doc Status |
 | :--- | :--- | :--- | :--- |
-| `@money-matters/capability-tenant` | Bank Reconciliation, `/dashboard/settings/bank-accounts` | `home.tsx` Bank Reconciliation modal, `/settings/bank-accounts` | 100% Tested & Documented |
-| `@money-matters/capability-budgeting` | `/dashboard/categories` (Health/Type filter groups, sortable columns), MoveMoneyModal | `/(app)/categories`, `/(app)/categories/[id]` modal edit | 100% Tested & Documented |
-| `@money-matters/capability-transactions` | Main Dashboard Quick Actions, `/dashboard/transactions` (CSV export) | `home.tsx` Quick Actions, `/(app)/transactions` | 100% Tested & Documented |
+| `@money-matters/capability-tenant` | Bank Reconciliation, `/dashboard/settings/bank-accounts` (CRUD, purpose linking) | `home.tsx` Bank Reconciliation modal (target category picker), `/settings/bank-accounts` (`BankAccountFormModal` CRUD) | 100% Tested & Documented |
+| `@money-matters/capability-budgeting` | `/dashboard/categories` (Health/Type filters, sort, CRUD), `MoveMoneyModal`, `PaydayPreviewModal` | `/(app)/categories` (`MobileFilterBar`, sort, health stat chips, `CategoryFormModal` CRUD), `MoveMoneyModal`, `PaydayPreviewWizard` | 100% Tested & Documented |
+| `@money-matters/capability-transactions` | Main Dashboard Quick Actions (CanAfford), `/dashboard/transactions` (Search, Filters, Sort, CSV export) | `home.tsx` Quick Actions (`user_preferences` collapse sync, CanAfford), `/(app)/transactions` (`MobileFilterBar`, Sort, Native CSV Share, Category hyperlinks) | 100% Tested & Documented |
 | `@money-matters/capability-file-notes` | `FileNotesSection` in `CategoryDetailDrawer` | `FileNotesSection` in `categories/[id]` | 100% Tested & Documented |
 | `@money-matters/capability-notifications` | Push token API ready | `registerToken` called on auth in `sign-in.tsx` | 100% Tested & Documented |
 | `@money-matters/capability-geo` | Location search ready | Location search ready | 100% Tested & Documented |
