@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Paperclip, Download } from 'lucide-react';
-import { useFileNotes } from './useFileNotes.js';
+import { useFileNotes } from './useFileNotes';
 import { SlideOverDrawer } from '@money-matters/ui';
 
 interface FileNotesDrawerProps {

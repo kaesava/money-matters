@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { useNotificationService } from './context.js';
+import { useNotificationService } from './context';
 import { logger } from '@money-matters/core';
 
 Notifications.setNotificationHandler({

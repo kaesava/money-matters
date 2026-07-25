@@ -1,2 +1,2 @@
-export * from './context.js';
-export * from './usePushNotifications.js';
+export * from './context';
+export * from './usePushNotifications';

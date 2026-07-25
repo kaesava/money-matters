@@ -1,3 +1,3 @@
-export * from '../context.js';
-export * from './useFileNotes.js';
-export * from './FileNotesDrawer.js';
+export * from '../context';
+export * from './useFileNotes';
+export * from './FileNotesDrawer';
