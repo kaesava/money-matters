@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-07-25  
-> **Status:** Overhaul & Feature Parity Complete. 100% Documentation (TSDoc) and 100% Unit Test Coverage across all monorepo layers (`packages/*` and `apps/*`).
+> **Last updated:** 2026-07-26  
+> **Status:** Overhaul & Feature Parity Complete. Standardized category health status terminology (Behind, Needs Attention, On Track), top-section CanWeAfford widget, and Metro ESM bundler resolution verified across web and mobile.
 
 ---
 
