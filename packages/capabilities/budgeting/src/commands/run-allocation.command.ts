@@ -165,7 +165,7 @@ export async function runAllocationCommand(
           amount: confirmedVal.toFixed(2),
           idempotencyKey: `paydayalloc-${insertedLine.id}`,
           note: `Payday Allocation: ${line.reasoning}`,
-          source: isCustomized ? "MANUAL" : "AUTO",
+          source: "MANUAL",
           createdBy: userId,
           updatedBy: userId,
         });
