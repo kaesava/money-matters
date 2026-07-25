@@ -42,6 +42,12 @@ export default function CategoriesScreen() {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
+  React.useEffect(() => {
+    if (params.health !== undefined) {
+      setHealthFilter(params.health);
+    }
+  }, [params.health]);
+
   // Pagination State
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -112,8 +118,8 @@ export default function CategoriesScreen() {
   });
 
   const onTrackCount = categories.filter((c) => c?.healthStatus === 'GREEN').length;
-  const atRiskCount = categories.filter((c) => c?.healthStatus === 'AMBER').length;
-  const missedCount = categories.filter((c) => c?.healthStatus === 'RED').length;
+  const needsAttentionCount = categories.filter((c) => c?.healthStatus === 'AMBER').length;
+  const behindCount = categories.filter((c) => c?.healthStatus === 'RED').length;
 
   const D = DESIGN_TOKENS;
 
@@ -151,21 +157,51 @@ export default function CategoriesScreen() {
 
           {/* Top Health Counters */}
           <View style={styles.grid2x2}>
-            <TouchableOpacity onPress={() => setHealthFilter('ALL')} style={styles.statChip}>
+            <TouchableOpacity
+              onPress={() => setHealthFilter('ALL')}
+              style={[
+                styles.statChip,
+                healthFilter === 'ALL' && { backgroundColor: '#F1F5F9', borderWidth: 2, borderColor: '#64748B' },
+              ]}
+            >
               <Text style={styles.statChipLabel}>TOTAL</Text>
               <Text style={styles.statChipVal}>{categories.length}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setHealthFilter('GREEN')} style={[styles.statChip, { borderColor: '#A7F3D0' }]}>
+
+            <TouchableOpacity
+              onPress={() => setHealthFilter('GREEN')}
+              style={[
+                styles.statChip,
+                { borderColor: '#A7F3D0' },
+                healthFilter === 'GREEN' && { backgroundColor: '#ECFDF5', borderWidth: 2, borderColor: '#10B981' },
+              ]}
+            >
               <Text style={[styles.statChipLabel, { color: '#059669' }]}>ON TRACK</Text>
               <Text style={[styles.statChipVal, { color: '#059669' }]}>{onTrackCount}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setHealthFilter('AMBER')} style={[styles.statChip, { borderColor: '#FDE68A' }]}>
-              <Text style={[styles.statChipLabel, { color: '#D97706' }]}>AT RISK</Text>
-              <Text style={[styles.statChipVal, { color: '#D97706' }]}>{atRiskCount}</Text>
+
+            <TouchableOpacity
+              onPress={() => setHealthFilter('AMBER')}
+              style={[
+                styles.statChip,
+                { borderColor: '#FDE68A' },
+                healthFilter === 'AMBER' && { backgroundColor: '#FFFBEB', borderWidth: 2, borderColor: '#F59E0B' },
+              ]}
+            >
+              <Text style={[styles.statChipLabel, { color: '#D97706' }]}>NEEDS ATTENTION</Text>
+              <Text style={[styles.statChipVal, { color: '#D97706' }]}>{needsAttentionCount}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setHealthFilter('RED')} style={[styles.statChip, { borderColor: '#FECDD3' }]}>
-              <Text style={[styles.statChipLabel, { color: '#E11D48' }]}>MISSED</Text>
-              <Text style={[styles.statChipVal, { color: '#E11D48' }]}>{missedCount}</Text>
+
+            <TouchableOpacity
+              onPress={() => setHealthFilter('RED')}
+              style={[
+                styles.statChip,
+                { borderColor: '#FECDD3' },
+                healthFilter === 'RED' && { backgroundColor: '#FEF2F2', borderWidth: 2, borderColor: '#EF4444' },
+              ]}
+            >
+              <Text style={[styles.statChipLabel, { color: '#E11D48' }]}>BEHIND</Text>
+              <Text style={[styles.statChipVal, { color: '#E11D48' }]}>{behindCount}</Text>
             </TouchableOpacity>
           </View>
 

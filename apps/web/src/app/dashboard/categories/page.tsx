@@ -21,20 +21,24 @@ export default function CategoriesPage() {
   const utils = trpc.useUtils();
   const searchParams = useSearchParams();
   const paramSearch = searchParams.get("search") || searchParams.get("name") || "";
+  const paramHealth = searchParams.get("health") || searchParams.get("status") || "ALL";
 
   const categoriesQuery = trpc.listCategories.useQuery();
   const categories = categoriesQuery.data ?? [];
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState(paramSearch);
+  const [healthFilter, setHealthFilter] = useState(paramHealth);
+  const [typeFilter, setTypeFilter] = useState("ALL");
 
   useEffect(() => {
     if (paramSearch) {
       setSearchQuery(paramSearch);
     }
-  }, [paramSearch]);
-  const [healthFilter, setHealthFilter] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState("ALL");
+    if (paramHealth) {
+      setHealthFilter(paramHealth);
+    }
+  }, [paramSearch, paramHealth]);
 
   // Sort State
   const [sortField, setSortField] = useState<SortField>("name");
@@ -116,8 +120,8 @@ export default function CategoriesPage() {
 
   // Summary Metrics
   const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
-  const atRiskCount = categories.filter((c) => c.healthStatus === "AMBER").length;
-  const missedCount = categories.filter((c) => c.healthStatus === "RED").length;
+  const needsAttentionCount = categories.filter((c) => c.healthStatus === "AMBER").length;
+  const behindCount = categories.filter((c) => c.healthStatus === "RED").length;
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
@@ -157,11 +161,15 @@ export default function CategoriesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div
           onClick={() => setHealthFilter("ALL")}
-          className="p-4 bg-white rounded-2xl border border-zinc-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-zinc-300 transition-all"
+          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+            healthFilter === "ALL"
+              ? "bg-slate-100 border-slate-400 ring-2 ring-slate-400/40 shadow-md scale-[1.02]"
+              : "bg-white border-zinc-100 shadow-sm hover:border-zinc-300"
+          }`}
           title="Click to view All Categories"
         >
           <div>
-            <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Total Categories</p>
+            <p className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider">Total Categories</p>
             <p className="text-2xl font-black text-[#1B2B4B] mt-0.5">{categories.length}</p>
           </div>
           <span className="text-2xl">📁</span>
@@ -169,10 +177,14 @@ export default function CategoriesPage() {
 
         <div
           onClick={() => setHealthFilter("GREEN")}
-          className="p-4 bg-white rounded-2xl border border-emerald-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-emerald-300 transition-all"
+          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+            healthFilter === "GREEN"
+              ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/40 shadow-md scale-[1.02]"
+              : "bg-white border-emerald-100 shadow-sm hover:border-emerald-300"
+          }`}
         >
           <div>
-            <p className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">On Track</p>
+            <p className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">On Track</p>
             <p className="text-2xl font-black text-emerald-600 mt-0.5">{onTrackCount}</p>
           </div>
           <span className="text-2xl">✅</span>
@@ -180,22 +192,30 @@ export default function CategoriesPage() {
 
         <div
           onClick={() => setHealthFilter("AMBER")}
-          className="p-4 bg-white rounded-2xl border border-amber-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-amber-300 transition-all"
+          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+            healthFilter === "AMBER"
+              ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/40 shadow-md scale-[1.02]"
+              : "bg-white border-amber-100 shadow-sm hover:border-amber-300"
+          }`}
         >
           <div>
-            <p className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">At Risk</p>
-            <p className="text-2xl font-black text-amber-600 mt-0.5">{atRiskCount}</p>
+            <p className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider">Needs Attention</p>
+            <p className="text-2xl font-black text-amber-600 mt-0.5">{needsAttentionCount}</p>
           </div>
           <span className="text-2xl">⚠️</span>
         </div>
 
         <div
           onClick={() => setHealthFilter("RED")}
-          className="p-4 bg-white rounded-2xl border border-rose-100 shadow-sm flex items-center justify-between cursor-pointer hover:border-rose-300 transition-all"
+          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+            healthFilter === "RED"
+              ? "bg-rose-50 border-rose-500 ring-2 ring-rose-500/40 shadow-md scale-[1.02]"
+              : "bg-white border-rose-100 shadow-sm hover:border-rose-300"
+          }`}
         >
           <div>
-            <p className="text-[10px] font-extrabold text-rose-600 uppercase tracking-wider">Missed</p>
-            <p className="text-2xl font-black text-rose-600 mt-0.5">{missedCount}</p>
+            <p className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider">Behind</p>
+            <p className="text-2xl font-black text-rose-600 mt-0.5">{behindCount}</p>
           </div>
           <span className="text-2xl">🚨</span>
         </div>

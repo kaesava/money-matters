@@ -16,9 +16,11 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
-// Force Metro to resolve singleton packages to the local project node_modules
+// Force Metro to resolve singleton packages and map ESM .js relative imports to .ts/.tsx files
 const singletons = ["react", "react-native", "expo", "react-dom", "@tanstack/react-query"];
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Handle singleton packages
   if (singletons.includes(moduleName)) {
     return context.resolveRequest(
       context,
@@ -26,6 +28,18 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       platform
     );
   }
+
+  // Handle ESM relative .js extensions for TypeScript source files in monorepo packages
+  if (moduleName.endsWith(".js") && (moduleName.startsWith(".") || moduleName.startsWith("/"))) {
+    // Strip the .js extension so Metro resolves .ts / .tsx / .js automatically using standard sourceExts
+    const extensionlessName = moduleName.slice(0, -3);
+    try {
+      return context.resolveRequest(context, extensionlessName, platform);
+    } catch (err) {
+      // Fallback to original moduleName
+    }
+  }
+
   return context.resolveRequest(context, moduleName, platform);
 };
 

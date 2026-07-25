@@ -5,17 +5,12 @@ import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { MoveMoneyModal } from "../../components/web/MoveMoneyModal";
 import PaydayPreviewModal from "@/components/web/PaydayPreviewModal";
-import UpcomingExpenseModal from "@/components/web/UpcomingExpenseModal";
 
 import { DashboardHeroCard } from "./components/DashboardHeroCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
-import { CollapsibleSection } from "@money-matters/ui/web";
 
 import { QuickExpenseCard } from "@/components/web/dashboard/QuickExpenseCard";
 import { BankReconcileCard } from "@/components/web/dashboard/BankReconcileCard";
-import { CanAffordCard } from "@/components/web/dashboard/CanAffordCard";
-import { UpcomingEventsList, UpcomingEvent } from "@/components/web/dashboard/UpcomingEventsList";
-import { BankReconcileModal } from "@/components/web/dashboard/BankReconcileModal";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -29,11 +24,8 @@ export default function DashboardPage() {
   const todayMonth = new Date().getMonth() + 1;
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
   const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
-  const [upcomingExpenseToEdit, setUpcomingExpenseToEdit] = useState<any | null>(null);
-  const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<any | null>(null);
 
   const [quickType, setQuickType] = useState<"DEBIT" | "CREDIT">("DEBIT");
   const [quickName, setQuickName] = useState("");
@@ -52,7 +44,10 @@ export default function DashboardPage() {
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
-  const canAffordQuery = trpc.canAfford.useQuery({ amount: canAffordAmount }, { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 });
+  const canAffordQuery = trpc.canAfford.useQuery(
+    { amount: canAffordAmount },
+    { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
+  );
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: (_, variables) => {
@@ -76,8 +71,9 @@ export default function DashboardPage() {
   });
 
   const categories = categoriesQuery.data ?? [];
-  const atRiskCount = categories.filter((c) => c.healthStatus === "AMBER").length;
-  const missedCount = categories.filter((c) => c.healthStatus === "RED").length;
+  const needsAttentionCount = categories.filter((c) => c.healthStatus === "AMBER").length;
+  const behindCount = categories.filter((c) => c.healthStatus === "RED").length;
+  const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || "0");
 
   const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === "UPCOMING");
@@ -138,22 +134,28 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6">
-      {/* Hero Card */}
+      {/* Top Hero Card with Everyday Balance & Can We Afford This Widget */}
       <DashboardHeroCard
         everydayBalance={everydayBalance}
-        atRiskCount={atRiskCount}
-        missedCount={missedCount}
+        needsAttentionCount={needsAttentionCount}
+        behindCount={behindCount}
+        onTrackCount={onTrackCount}
+        canAffordAmount={canAffordAmount}
+        setCanAffordAmount={setCanAffordAmount}
+        canAffordData={canAffordQuery.data}
         nextPayday={nextPaydayData}
         onPressNextPay={(id) => setPaydayPreviewEventId(id)}
+        onSelectFilter={(health) => router.push(`/dashboard/categories?health=${health}`)}
         formatAUD={fmt}
       />
 
       {/* Attention Items */}
       <AttentionItemsList items={attentionItems} onMarkPaid={handleMarkPaidItem} formatAUD={fmt} />
 
-      {/* Collapsible Quick Actions & Tools */}
-      <CollapsibleSection title="Quick Actions & Financial Tools" defaultOpen={false}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Permanent (Non-Collapsible) Quick Actions & Financial Tools */}
+      <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm space-y-4">
+        <h2 className="text-base font-bold text-[#1B2B4B]">Quick Actions & Financial Tools</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <QuickExpenseCard
             quickType={quickType}
             setQuickType={setQuickType}
@@ -182,15 +184,8 @@ export default function DashboardPage() {
             onReconcile={(id) => setReconcilingAccountId(id)}
             fmt={fmt}
           />
-
-          <CanAffordCard
-            canAffordAmount={canAffordAmount}
-            setCanAffordAmount={setCanAffordAmount}
-            canAffordData={canAffordQuery.data}
-            fmt={fmt}
-          />
         </div>
-      </CollapsibleSection>
+      </div>
 
       {/* Modals */}
       {moveMoneyOpen && (

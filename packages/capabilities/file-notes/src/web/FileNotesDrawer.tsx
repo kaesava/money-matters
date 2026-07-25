@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Paperclip, Download } from 'lucide-react';
 import { useFileNotes } from './useFileNotes';
-import { SlideOverDrawer } from '@money-matters/ui';
+import { SlideOverDrawer } from '@money-matters/ui/web';
 
 interface FileNotesDrawerProps {
   entityType: 'expenses' | 'categories' | string;

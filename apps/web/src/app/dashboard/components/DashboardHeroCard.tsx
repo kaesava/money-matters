@@ -1,11 +1,16 @@
 'use client';
 
 import React from 'react';
+import { CanAffordVerdictType } from '@money-matters/types';
 
 export interface WebDashboardHeroCardProps {
   readonly everydayBalance: number;
-  readonly atRiskCount: number;
-  readonly missedCount: number;
+  readonly needsAttentionCount: number;
+  readonly behindCount: number;
+  readonly onTrackCount: number;
+  readonly canAffordAmount: string;
+  readonly setCanAffordAmount: (amt: string) => void;
+  readonly canAffordData?: CanAffordVerdictType | null;
   readonly nextPayday?: {
     readonly id: string;
     readonly name: string;
@@ -13,20 +18,23 @@ export interface WebDashboardHeroCardProps {
     readonly expectedDate: string;
   } | null;
   readonly onPressNextPay: (eventId: string) => void;
+  readonly onSelectFilter?: (health: string) => void;
   readonly formatAUD: (val: number | string) => string;
 }
 
 export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
   everydayBalance,
-  atRiskCount,
-  missedCount,
+  needsAttentionCount,
+  behindCount,
+  onTrackCount,
+  canAffordAmount,
+  setCanAffordAmount,
+  canAffordData,
   nextPayday,
   onPressNextPay,
+  onSelectFilter,
   formatAUD,
 }) => {
-  const statusBg = missedCount > 0 ? 'bg-red-100 text-red-800' : atRiskCount > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800';
-  const statusText = missedCount > 0 ? `${missedCount} Missed` : atRiskCount > 0 ? `${atRiskCount} At Risk` : 'On Track';
-
   let daysAwayText = '';
   if (nextPayday?.expectedDate) {
     const today = new Date();
@@ -40,18 +48,96 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Everyday Balance</span>
-          <h1 className="text-4xl font-bold text-gray-900 mt-1">{formatAUD(everydayBalance)}</h1>
+    <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm mb-6 flex flex-col gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        {/* Left Column: Everyday Balance + Sleek Interactive Badges */}
+        <div className="space-y-3 flex-1">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Everyday Balance</span>
+            <h1 className="text-4xl font-bold text-gray-900 mt-1">{formatAUD(everydayBalance)}</h1>
+          </div>
+
+          {/* 3 Premium Interactive Category Health Badges */}
+          <div className="flex items-center gap-2.5 flex-wrap pt-1">
+            {/* Behind Badge */}
+            <button
+              type="button"
+              onClick={() => onSelectFilter?.('RED')}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200/80 hover:bg-rose-100/90 shadow-2xs hover:shadow-xs transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+              </span>
+              <span>Behind</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-200/80 text-rose-950">
+                {behindCount}
+              </span>
+            </button>
+
+            {/* Needs Attention Badge */}
+            <button
+              type="button"
+              onClick={() => onSelectFilter?.('AMBER')}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200/80 hover:bg-amber-100/90 shadow-2xs hover:shadow-xs transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              </span>
+              <span>Needs Attention</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-200/80 text-amber-950">
+                {needsAttentionCount}
+              </span>
+            </button>
+
+            {/* On Track Badge */}
+            <button
+              type="button"
+              onClick={() => onSelectFilter?.('GREEN')}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-200/80 hover:bg-emerald-100/90 shadow-2xs hover:shadow-xs transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span>On Track</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-200/80 text-emerald-950">
+                {onTrackCount}
+              </span>
+            </button>
+          </div>
         </div>
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBg}`}>
-          ● {statusText}
-        </span>
+
+        {/* Right Column: "Can We Afford This?" Widget directly next to Everyday Balance */}
+        <div className="w-full lg:w-80 bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col gap-2">
+          <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">Can We Afford This?</h3>
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Enter amount ($)"
+            value={canAffordAmount}
+            onChange={(e) => setCanAffordAmount(e.target.value)}
+            className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          {canAffordData && (
+            <div
+              className={`p-2.5 rounded-lg text-xs font-bold ${
+                canAffordData.verdict === 'YES'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : canAffordData.verdict === 'YES_WITH_IMPACT'
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-rose-100 text-rose-800'
+              }`}
+            >
+              {canAffordData.verdict === 'YES' && `YES! Available in Everyday (${formatAUD(canAffordData.everydayRemaining)} left)`}
+              {canAffordData.verdict === 'YES_WITH_IMPACT' && `YES WITH IMPACT: Dips into ${canAffordData.affectedBucketName}`}
+              {canAffordData.verdict === 'WAIT' && `WAIT: Paycheck due in ${canAffordData.daysUntilNextPaycheck} days`}
+              {canAffordData.verdict === 'NO' && `NO: Shortfall of ${formatAUD(canAffordData.shortfall)}`}
+            </div>
+          )}
+        </div>
       </div>
 
-      <hr className="my-4 border-gray-100" />
+      <hr className="my-2 border-gray-100" />
 
       {nextPayday ? (
         <div className="flex items-center justify-between">

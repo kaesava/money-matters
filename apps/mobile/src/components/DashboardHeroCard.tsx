@@ -1,13 +1,18 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui';
+import { CanAffordVerdictType } from '@money-matters/types';
 import { formatAUD } from '../lib/format';
 
 export interface DashboardHeroCardProps {
   readonly everydayBalance: number;
-  readonly atRiskCount: number;
-  readonly missedCount: number;
+  readonly needsAttentionCount: number;
+  readonly behindCount: number;
+  readonly onTrackCount: number;
+  readonly canAffordAmount: string;
+  readonly setCanAffordAmount: (amt: string) => void;
+  readonly canAffordData?: CanAffordVerdictType | null;
   readonly nextPayday?: {
     readonly id: string;
     readonly name: string;
@@ -15,27 +20,21 @@ export interface DashboardHeroCardProps {
     readonly expectedDate: string;
   } | null;
   readonly onPressNextPay: (eventId: string) => void;
+  readonly onSelectFilter?: (health: string) => void;
 }
 
 export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
   everydayBalance,
-  atRiskCount,
-  missedCount,
+  needsAttentionCount,
+  behindCount,
+  onTrackCount,
+  canAffordAmount,
+  setCanAffordAmount,
+  canAffordData,
   nextPayday,
   onPressNextPay,
+  onSelectFilter,
 }) => {
-  const statusColor = missedCount > 0
-    ? DESIGN_TOKENS.colors.critical
-    : atRiskCount > 0
-    ? DESIGN_TOKENS.colors.warning
-    : DESIGN_TOKENS.colors.success;
-
-  const statusText = missedCount > 0
-    ? `${missedCount} Missed`
-    : atRiskCount > 0
-    ? `${atRiskCount} At Risk`
-    : 'On Track';
-
   let daysAwayText = '';
   if (nextPayday?.expectedDate) {
     const today = new Date();
@@ -54,14 +53,94 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
 
   return (
     <View style={styles.card}>
-      <View style={styles.topRow}>
-        <View>
+      {/* Top Section: Everyday Balance + Integrated Can We Afford This Widget */}
+      <View style={styles.topSection}>
+        <View style={styles.balanceContainer}>
           <Text style={styles.label}>Everyday Balance</Text>
           <Text style={styles.balance}>{formatAUD(everydayBalance)}</Text>
+
+          {/* 3 Premium Interactive Category Health Badges */}
+          <View style={styles.badgesRow}>
+            {/* Behind Badge */}
+            <TouchableOpacity
+              style={[styles.statusBadge, styles.redBadge]}
+              onPress={() => onSelectFilter?.('RED')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.statusDot, { backgroundColor: '#E11D48' }]} />
+              <Text style={[styles.statusText, { color: '#9F1239' }]}>Behind</Text>
+              <View style={[styles.countPill, { backgroundColor: '#FECDD3' }]}>
+                <Text style={[styles.countText, { color: '#881337' }]}>{behindCount}</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Needs Attention Badge */}
+            <TouchableOpacity
+              style={[styles.statusBadge, styles.amberBadge]}
+              onPress={() => onSelectFilter?.('AMBER')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.statusDot, { backgroundColor: '#D97706' }]} />
+              <Text style={[styles.statusText, { color: '#92400E' }]}>Needs Attention</Text>
+              <View style={[styles.countPill, { backgroundColor: '#FDE68A' }]}>
+                <Text style={[styles.countText, { color: '#78350F' }]}>{needsAttentionCount}</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* On Track Badge */}
+            <TouchableOpacity
+              style={[styles.statusBadge, styles.greenBadge]}
+              onPress={() => onSelectFilter?.('GREEN')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+              <Text style={[styles.statusText, { color: '#065F46' }]}>On Track</Text>
+              <View style={[styles.countPill, { backgroundColor: '#A7F3D0' }]}>
+                <Text style={[styles.countText, { color: '#064E3B' }]}>{onTrackCount}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
-          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+
+        {/* Can We Afford This Widget inline in top section */}
+        <View style={styles.affordBox}>
+          <Text style={styles.affordTitle}>Can We Afford This?</Text>
+          <TextInput
+            keyboardType="decimal-pad"
+            placeholder="Amount ($)"
+            value={canAffordAmount}
+            onChangeText={setCanAffordAmount}
+            style={styles.affordInput}
+            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+          />
+          {canAffordData && (
+            <View
+              style={[
+                styles.verdictBox,
+                canAffordData.verdict === 'YES'
+                  ? styles.yesBox
+                  : canAffordData.verdict === 'YES_WITH_IMPACT'
+                  ? styles.impactBox
+                  : styles.noBox,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.verdictText,
+                  canAffordData.verdict === 'YES'
+                    ? styles.yesText
+                    : canAffordData.verdict === 'YES_WITH_IMPACT'
+                    ? styles.impactText
+                    : styles.noText,
+                ]}
+              >
+                {canAffordData.verdict === 'YES' && `YES! Available (${formatAUD(canAffordData.everydayRemaining)} left)`}
+                {canAffordData.verdict === 'YES_WITH_IMPACT' && `YES WITH IMPACT: ${canAffordData.affectedBucketName}`}
+                {canAffordData.verdict === 'WAIT' && `WAIT: Paycheck in ${canAffordData.daysUntilNextPaycheck} days`}
+                {canAffordData.verdict === 'NO' && `NO: Shortfall ${formatAUD(canAffordData.shortfall)}`}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -103,91 +182,170 @@ const styles = StyleSheet.create({
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderRadius: DESIGN_TOKENS.radius.lg,
     padding: DESIGN_TOKENS.spacing.cardPadding,
-    marginBottom: DESIGN_TOKENS.spacing.stackGap,
     borderWidth: 1,
     borderColor: DESIGN_TOKENS.colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: DESIGN_TOKENS.spacing.stackGap,
   },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  topSection: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  balanceContainer: {
+    flex: 1,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '700',
     color: DESIGN_TOKENS.colors.textMuted,
-    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   balance: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: '800',
     color: DESIGN_TOKENS.colors.textPrimary,
-    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingLeft: 10,
+    paddingRight: 6,
     paddingVertical: 5,
-    borderRadius: 20,
+    borderRadius: DESIGN_TOKENS.radius.full,
     gap: 6,
+    borderWidth: 1,
+  },
+  redBadge: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#FECDD3',
+  },
+  amberBadge: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  greenBadge: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
   },
   statusDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
   },
   statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  countPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 2,
+  },
+  countText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  affordBox: {
+    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+  },
+  affordTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  affordInput: {
+    height: 36,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    paddingHorizontal: 10,
     fontSize: 12,
-    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+  },
+  verdictBox: {
+    marginTop: 6,
+    padding: 6,
+    borderRadius: 6,
+  },
+  yesBox: {
+    backgroundColor: '#F0FDF4',
+  },
+  impactBox: {
+    backgroundColor: '#FFFBEB',
+  },
+  noBox: {
+    backgroundColor: '#FEF2F2',
+  },
+  verdictText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  yesText: {
+    color: '#166534',
+  },
+  impactText: {
+    color: '#92400E',
+  },
+  noText: {
+    color: '#991B1B',
   },
   divider: {
     height: 1,
     backgroundColor: DESIGN_TOKENS.colors.border,
-    marginVertical: DESIGN_TOKENS.spacing.stackGap,
+    marginVertical: 12,
   },
   paydayRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   paydayLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: DESIGN_TOKENS.spacing.stackGap,
-    flex: 1,
+    gap: 10,
   },
   payIconBg: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#E0F2FE',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
     alignItems: 'center',
     justifyContent: 'center',
   },
   payTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: DESIGN_TOKENS.colors.textPrimary,
   },
   paySub: {
-    fontSize: 12,
+    fontSize: 11,
     color: DESIGN_TOKENS.colors.textMuted,
-    marginTop: 2,
+    marginTop: 1,
   },
   payActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
   },
   payActionText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: DESIGN_TOKENS.colors.primary,
   },
 });

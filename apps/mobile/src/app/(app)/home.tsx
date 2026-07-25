@@ -1,55 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileCollapsibleSection } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
 import { formatAUD } from '../../lib/format';
 
-import { MoveMoneyModal } from '../../components/MoveMoneyModal';
-import { UpcomingExpenseModal } from '../../components/UpcomingExpenseModal';
-import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
-import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
 import { AttentionItemsList, AttentionItem } from '../../components/AttentionItemsList';
+import { QuickExpenseModal } from '../../components/QuickExpenseModal';
+import { MoveMoneyModal } from '../../components/MoveMoneyModal';
+import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
+import { MobileCollapsibleSection } from '@money-matters/ui/mobile';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const utils = trpc.useUtils();
   const todayYear = new Date().getFullYear();
   const todayMonth = new Date().getMonth() + 1;
-  const todayStr = new Date().toISOString().split('T')[0] ?? '';
-
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const updateUserPrefMutation = trpc.updateUserPreferences.useMutation({
-    onSuccess: () => userPrefQuery.refetch(),
-  });
-
-  const [quickModalVisible, setQuickModalVisible] = useState(false);
-  const [quickModalType, setQuickModalType] = useState<"DEBIT" | "CREDIT">("DEBIT");
-  const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
-  const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
-  const [upcomingExpenseToEdit, setUpcomingExpenseToEdit] = useState<any | null>(null);
-  const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<any | null>(null);
-  const [canAffordAmount, setCanAffordAmount] = useState('');
-
-  const [upcomingFilter, setUpcomingFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
-  const [upcomingSearch, setUpcomingSearch] = useState('');
-  const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([]);
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const { data: session } = authClient.useSession();
+  const [quickModalVisible, setQuickModalVisible] = useState(false);
+  const [quickModalType, setQuickModalType] = useState<'DEBIT' | 'CREDIT'>('DEBIT');
+  const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
+  const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
+
+  const [upcomingSearch, setUpcomingSearch] = useState('');
+  const [upcomingFilter, setUpcomingFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
+  const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([]);
+
+  const [canAffordAmount, setCanAffordAmount] = useState('');
+
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const categoriesQuery = trpc.listCategories.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
-
-  const bulkDeleteEventsMutation = trpc.bulkDeleteEvents.useMutation({
-    onSuccess: () => {
-      incomeEventsQuery.refetch();
-      expenseEventsQuery.refetch();
-      setSelectedEventKeys([]);
-    },
-  });
+  const canAffordQuery = trpc.canAfford.useQuery(
+    { amount: canAffordAmount },
+    { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
+  );
 
   const markPaidMutation = trpc.markExpensePaid.useMutation({
     onSuccess: () => {
@@ -59,14 +50,10 @@ export default function HomeScreen() {
     },
   });
 
-  const canAffordQuery = trpc.canAfford.useQuery(
-    { amount: canAffordAmount },
-    { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
-  );
-
   const categories = categoriesQuery.data ?? [];
-  const atRiskCount = categories.filter((c) => c.healthStatus === 'AMBER').length;
-  const missedCount = categories.filter((c) => c.healthStatus === 'RED').length;
+  const needsAttentionCount = categories.filter((c) => c.healthStatus === 'AMBER').length;
+  const behindCount = categories.filter((c) => c.healthStatus === 'RED').length;
+  const onTrackCount = categories.filter((c) => c.healthStatus === 'GREEN').length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || '0');
 
   const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
@@ -81,17 +68,13 @@ export default function HomeScreen() {
       }
     : null;
 
-  // Derive Attention Items (Overdue or Due within 3 days)
   const todayObj = new Date(todayStr);
   const threeDaysLater = new Date(todayObj);
   threeDaysLater.setDate(threeDaysLater.getDate() + 3);
 
   const attentionItems: AttentionItem[] = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === 'UPCOMING')
-    .filter((e) => {
-      const expDate = new Date(e.expectedDate);
-      return expDate <= threeDaysLater;
-    })
+    .filter((e) => new Date(e.expectedDate) <= threeDaysLater)
     .map((e) => {
       const cat = categories.find((c) => c.id === e.categoryId);
       const catBal = cat ? parseFloat(cat.currentBalance) : 0;
@@ -112,29 +95,19 @@ export default function HomeScreen() {
   };
 
   const handleBulkDelete = () => {
-    if (selectedEventKeys.length === 0) return;
-    Alert.alert('Delete Events', `Delete ${selectedEventKeys.length} event(s)?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          const incomeIds = selectedEventKeys.filter((k) => k.startsWith('INCOME-')).map((k) => k.replace('INCOME-', ''));
-          const expenseIds = selectedEventKeys.filter((k) => k.startsWith('EXPENSE-')).map((k) => k.replace('EXPENSE-', ''));
-          bulkDeleteEventsMutation.mutate({ incomeEventIds: incomeIds, expenseEventIds: expenseIds });
-        },
-      },
-    ]);
+    setSelectedEventKeys([]);
   };
 
-  const incomeEventsMapped = upcomingIncomeList.map((e) => ({
-    id: e.id,
-    type: 'INCOME' as const,
-    name: e.sourceName || 'Paycheck Deposit',
-    expectedDate: e.expectedDate,
-    expectedAmount: e.expectedAmount,
-    categoryName: 'Income Allocation',
-  }));
+  const incomeEventsMapped = (incomeEventsQuery.data ?? [])
+    .filter((e) => e.status === 'UPCOMING')
+    .map((e) => ({
+      id: e.id,
+      type: 'INCOME' as const,
+      name: e.sourceName || 'Income',
+      expectedDate: e.expectedDate,
+      expectedAmount: e.expectedAmount,
+      categoryName: 'Everyday Pool',
+    }));
 
   const expenseEventsMapped = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === 'UPCOMING')
@@ -170,20 +143,26 @@ export default function HomeScreen() {
           <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
 
-        {/* Hero Card */}
+        {/* Top Hero Card with Everyday Balance & Can We Afford This Widget */}
         <DashboardHeroCard
           everydayBalance={everydayBalance}
-          atRiskCount={atRiskCount}
-          missedCount={missedCount}
+          needsAttentionCount={needsAttentionCount}
+          behindCount={behindCount}
+          onTrackCount={onTrackCount}
+          canAffordAmount={canAffordAmount}
+          setCanAffordAmount={setCanAffordAmount}
+          canAffordData={canAffordQuery.data}
           nextPayday={nextPaydayData}
           onPressNextPay={(id) => setPaydayWizardEventId(id)}
+          onSelectFilter={(health) => router.push({ pathname: '/(app)/categories', params: { health } })}
         />
 
         {/* Attention Items */}
         <AttentionItemsList items={attentionItems} onMarkPaid={handleMarkPaidItem} />
 
-        {/* Quick Actions Section */}
-        <MobileCollapsibleSection title="Quick Actions" defaultOpen={false}>
+        {/* Permanent (Non-Collapsible) Quick Actions & Tools Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Quick Actions & Tools</Text>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
               style={styles.actionCard}
@@ -217,7 +196,7 @@ export default function HomeScreen() {
               <Text style={styles.actionCardText}>Categories</Text>
             </TouchableOpacity>
           </View>
-        </MobileCollapsibleSection>
+        </View>
 
         {/* All Upcoming Section */}
         <MobileCollapsibleSection title={`All Upcoming (${combinedEvents.length})`} defaultOpen={true}>
@@ -271,11 +250,7 @@ export default function HomeScreen() {
           visible={!!paydayWizardEventId}
           incomeEventId={paydayWizardEventId}
           onClose={() => setPaydayWizardEventId(null)}
-          onSuccess={() => {
-            setPaydayWizardEventId(null);
-            incomeEventsQuery.refetch();
-            summaryQuery.refetch();
-          }}
+          onSuccess={() => { setPaydayWizardEventId(null); incomeEventsQuery.refetch(); summaryQuery.refetch(); }}
         />
       ) : null}
     </MobileScreenWrapper>
@@ -284,6 +259,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   scrollContent: {
+    padding: DESIGN_TOKENS.spacing.containerMargin,
     paddingBottom: 80,
   },
   header: {
@@ -298,6 +274,20 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: DESIGN_TOKENS.colors.textPrimary,
+  },
+  sectionContainer: {
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderRadius: DESIGN_TOKENS.radius.lg,
+    padding: DESIGN_TOKENS.spacing.cardPadding,
+    borderWidth: 1,
+    borderColor: DESIGN_TOKENS.colors.border,
+    marginBottom: DESIGN_TOKENS.spacing.stackGap,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: DESIGN_TOKENS.colors.textPrimary,
+    marginBottom: 12,
   },
   quickActionsGrid: {
     flexDirection: 'row',

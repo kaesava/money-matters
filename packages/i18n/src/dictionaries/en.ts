@@ -190,6 +190,11 @@ export const en = {
       history: "Transaction History",
       noHistory: "No transactions recorded for this category yet.",
     },
+    health: {
+      onTrack: "On Track",
+      needsAttention: "Needs Attention",
+      behind: "Behind",
+    },
   },
   landing: {
     getStartedFree: "Get Started Free",
