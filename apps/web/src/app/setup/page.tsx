@@ -55,7 +55,6 @@ export default function SetupWizardPage() {
 
   // tRPC Mutations
   const createIncomeSource = trpc.createIncomeSource.useMutation();
-  const createIncomeSchedule = trpc.createIncomeSourceSchedule.useMutation();
   const createCategory = trpc.createCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
   const createBankAccount = trpc.createBankAccount.useMutation();
@@ -67,22 +66,12 @@ export default function SetupWizardPage() {
     
     setAddingIncome(true);
     try {
-      const rrule =
-        incomeFreq === "WEEKLY"
-          ? "FREQ=WEEKLY"
-          : incomeFreq === "FORTNIGHTLY"
-          ? "FREQ=WEEKLY;INTERVAL=2"
-          : "FREQ=MONTHLY";
-
-      const source = await createIncomeSource.mutateAsync({
+      await createIncomeSource.mutateAsync({
         name: incomeName.trim(),
         amount: numericAmount.toFixed(2),
-      });
-
-      await createIncomeSchedule.mutateAsync({
-        incomeSourceId: source.id,
-        rrule,
+        isRecurring: true,
         startDate: incomeStartDate || new Date().toISOString().split("T")[0]!,
+        frequency: incomeFreq,
       });
 
       setAddedIncome((prev) => [...prev, `${incomeName.trim()} (${incomeFreq})`]);

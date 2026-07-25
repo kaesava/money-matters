@@ -1,5 +1,5 @@
 import { tenantProcedure } from '../trpc/trpc.js';
-import { expenseSources, categories, expenseSourceSchedules, expenseEvents } from "@money-matters/db";
+import { expenseSources, categories, expenseEvents } from "@money-matters/db";
 import { and, eq, sql, asc } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
@@ -15,14 +15,12 @@ export const expensesRouter = {
           amount: expenseSources.amount,
           categoryId: expenseSources.categoryId,
           categoryName: categories.name,
-          scheduleId: expenseSourceSchedules.id,
-          rrule: expenseSourceSchedules.rrule,
-          startDate: expenseSourceSchedules.startDate,
-          endDate: expenseSourceSchedules.endDate,
+          rrule: expenseSources.rrule,
+          startDate: expenseSources.startDate,
+          endDate: expenseSources.endDate,
         })
         .from(expenseSources)
         .leftJoin(categories, eq(expenseSources.categoryId, categories.id))
-        .leftJoin(expenseSourceSchedules, eq(expenseSources.id, expenseSourceSchedules.expenseSourceId))
         .where(
           and(
             eq(expenseSources.tenantId, ctx.tenantId!),
@@ -44,12 +42,22 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      let rrule: string | null = null;
+      if (input.isRecurring && input.startDate) {
+        if (input.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
+        else if (input.frequency === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
+        else if (input.frequency === "ANNUALLY") rrule = "FREQ=YEARLY";
+        else rrule = "FREQ=MONTHLY";
+      }
+
       const [source] = await ctx.db
         .insert(expenseSources)
         .values({
           name: input.name,
           amount: input.amount,
           categoryId: input.categoryId,
+          rrule,
+          startDate: input.startDate || null,
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -57,22 +65,7 @@ export const expensesRouter = {
         })
         .returning();
 
-      if (input.isRecurring && input.startDate) {
-        let rrule = "FREQ=MONTHLY";
-        if (input.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
-        else if (input.frequency === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
-        else if (input.frequency === "ANNUALLY") rrule = "FREQ=YEARLY";
-
-        await ctx.db.insert(expenseSourceSchedules).values({
-          expenseSourceId: source.id,
-          rrule,
-          startDate: input.startDate,
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        });
-
+      if (input.isRecurring && input.startDate && rrule) {
         const dates = generateBurstDates(rrule, input.startDate, null, 12);
         for (const d of dates) {
           await ctx.db.insert(expenseEvents).values({
@@ -135,11 +128,6 @@ export const expensesRouter = {
 
       if (!source) throw new Error("Expense source not found.");
 
-      const [existingSchedule] = await ctx.db
-        .select()
-        .from(expenseSourceSchedules)
-        .where(eq(expenseSourceSchedules.expenseSourceId, source.id));
-
       const events = await ctx.db
         .select()
         .from(expenseEvents)
@@ -152,59 +140,38 @@ export const expensesRouter = {
       const newAmount = input.data.amount ?? source.amount;
       const newCategoryId = input.data.categoryId ?? source.categoryId;
 
-      const wasRecurring = !!existingSchedule;
+      const wasRecurring = !!source.rrule;
       const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
 
       let newStartDate = input.data.startDate;
       if (!newStartDate) {
-        if (existingSchedule?.startDate) newStartDate = existingSchedule.startDate;
+        if (source.startDate) newStartDate = source.startDate;
         else if (unperformedEvents.length > 0 && unperformedEvents[0].expectedDate) newStartDate = unperformedEvents[0].expectedDate;
         else newStartDate = new Date().toISOString().split("T")[0];
       }
 
       const newFreq = input.data.frequency;
-      let rrule = existingSchedule?.rrule || "FREQ=MONTHLY";
-      if (newFreq === "WEEKLY") rrule = "FREQ=WEEKLY";
-      else if (newFreq === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
-      else if (newFreq === "MONTHLY") rrule = "FREQ=MONTHLY";
-      else if (newFreq === "ANNUALLY") rrule = "FREQ=YEARLY";
+      let rrule: string | null = isRecurring ? (source.rrule || "FREQ=MONTHLY") : null;
+      if (isRecurring && newFreq) {
+        if (newFreq === "WEEKLY") rrule = "FREQ=WEEKLY";
+        else if (newFreq === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
+        else if (newFreq === "MONTHLY") rrule = "FREQ=MONTHLY";
+        else if (newFreq === "ANNUALLY") rrule = "FREQ=YEARLY";
+      }
 
       const typeChanged = wasRecurring !== isRecurring;
       const scheduleOrFreqChanged = isRecurring && (
         typeChanged ||
-        (input.data.startDate && input.data.startDate !== existingSchedule?.startDate) ||
-        (newFreq && rrule !== existingSchedule?.rrule)
+        (input.data.startDate && input.data.startDate !== source.startDate) ||
+        (newFreq && rrule !== source.rrule)
       );
 
       if (typeChanged || scheduleOrFreqChanged) {
-        // Delete all unperformed future events
         for (const evt of unperformedEvents) {
           await ctx.db.delete(expenseEvents).where(eq(expenseEvents.id, evt.id));
         }
 
-        if (isRecurring) {
-          if (existingSchedule) {
-            await ctx.db
-              .update(expenseSourceSchedules)
-              .set({
-                rrule,
-                startDate: newStartDate,
-                updatedAt: new Date(),
-                updatedBy: ctx.userId!,
-              })
-              .where(eq(expenseSourceSchedules.id, existingSchedule.id));
-          } else {
-            await ctx.db.insert(expenseSourceSchedules).values({
-              expenseSourceId: source.id,
-              rrule,
-              startDate: newStartDate,
-              tenantId: ctx.tenantId!,
-              appId: ctx.appId!,
-              createdBy: ctx.userId!,
-              updatedBy: ctx.userId!,
-            });
-          }
-
+        if (isRecurring && rrule) {
           const dates = generateBurstDates(rrule, newStartDate, null, 12);
           for (const d of dates) {
             await ctx.db.insert(expenseEvents).values({
@@ -221,10 +188,6 @@ export const expensesRouter = {
             });
           }
         } else {
-          if (existingSchedule) {
-            await ctx.db.delete(expenseSourceSchedules).where(eq(expenseSourceSchedules.id, existingSchedule.id));
-          }
-
           await ctx.db.insert(expenseEvents).values({
             expenseSourceId: source.id,
             categoryId: newCategoryId,
@@ -239,7 +202,6 @@ export const expensesRouter = {
           });
         }
       } else {
-        // Schedule structure didn't change: update unperformed events
         for (const evt of unperformedEvents) {
           await ctx.db
             .update(expenseEvents)
@@ -261,6 +223,8 @@ export const expensesRouter = {
           name: newName,
           amount: newAmount,
           categoryId: newCategoryId,
+          rrule,
+          startDate: isRecurring ? newStartDate : (input.data.startDate || source.startDate),
           updatedAt: new Date(),
           updatedBy: ctx.userId!,
         })
@@ -285,7 +249,6 @@ export const expensesRouter = {
       const paidEvents = events.filter((e) => e.status !== "UPCOMING");
       const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
 
-      // Delete unperformed future events
       for (const evt of unperformedEvents) {
         await ctx.db.delete(expenseEvents).where(eq(expenseEvents.id, evt.id));
       }

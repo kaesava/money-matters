@@ -29,7 +29,9 @@
   "scripts": {
     "generate": "npx dotenv-cli -e ../../.env.development -- drizzle-kit generate",
     "push": "npx dotenv-cli -e ../../.env.development -- drizzle-kit push",
+    "push:prod": "npx dotenv-cli -e ../../.env -- drizzle-kit push",
     "seed": "pnpm build && npx dotenv-cli -e ../../.env.development -- tsx src/seed.ts",
+    "seed:prod": "pnpm build && npx dotenv-cli -e ../../.env -- tsx src/seed.ts",
     "typecheck": "tsc --noEmit",
     "build": "echo \"No build script yet\"",
     "lint": "eslint .",

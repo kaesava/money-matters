@@ -50,21 +50,20 @@ Migrate from the current `MAJOR | RECURRING | EVERYDAY` + RRULE + shortfall/reco
 Income (paycheck arrives)
     │
     ▼
-Auto-allocation engine runs
+5-Step Auto-Allocation Engine Runs
     │
-    ├── REGULAR buckets (bills): fund to monthly amount, prorated per paycheck
+    ├── Step 0: DEFICIT REPAIR — Mandatory first priority. Restores any negative categories back to $0.
+    │
+    ├── Step 1: REGULAR buckets (bills): fund to monthly amount, prorated per paycheck
     │   (Mortgage, Electricity, Phone, Netflix...)
     │
-    ├── SAVINGS — Committed (isCommitted=true): fund monthly contribution
+    ├── Step 2: SAVINGS — Committed (isCommitted=true): fund monthly contribution
     │   (Car Rego, School Fees, Council Rates...)
     │
-    ├── SAVINGS — Uncommitted: fund monthly contribution if funds remain
-    │   (Holiday, Christmas, Home Reno...)
+    ├── Step 3: EVERYDAY Top-Up Cap: fund to reset Everyday pool back to target cap
+    │   (TopUp = max(0, TargetEverydayCap - CurrentEverydayBalance))
     │
-    └── EVERYDAY: everything left over
-        (Single pool, or optional named sub-buckets)
-
-"Can we afford this?" = run this engine in reverse from a given spend amount
+    └── Step 4: SAVINGS — Uncommitted / Surplus Sweep: leftover excess swept to Mortgage Offset / Emergency Fund
 ```
 
 ---

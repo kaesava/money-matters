@@ -1,11 +1,13 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { tenants, tenantUsers, bankAccounts, categories, categorySchedules, incomeSources, incomeSourceSchedules, incomeEvents, allocationPlans, allocationPlanLines, transactionLedger, expenseSources, expenseSourceSchedules, expenseEvents, userPreferences, users, apps } from "@money-matters/db";
+import { tenants, tenantUsers, bankAccounts, categories, categorySchedules, incomeSources, incomeEvents, allocationPlans, allocationPlanLines, transactionLedger, expenseSources, expenseEvents, userPreferences, users, apps } from "@money-matters/db";
 import { sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import dotenv from "dotenv";
 
-dotenv.config({ path: "../../.env.development" });
+if (!process.env.DATABASE_URL) {
+  dotenv.config({ path: "../../.env.development" });
+}
 
 function createDbClient(connectionString: string) {
   const sqlClient = neon(connectionString);
@@ -52,14 +54,18 @@ async function seed() {
     `);
   }
 
+  // Ensure DB schema migrations for source schedule consolidation
+  await db.execute(sql`DROP TABLE IF EXISTS expense_source_schedules CASCADE`);
+  await db.execute(sql`DROP TABLE IF EXISTS income_source_schedules CASCADE`);
+  await db.execute(sql`ALTER TABLE income_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
+  await db.execute(sql`ALTER TABLE expense_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
+
   await db.delete(transactionLedger);
   await db.delete(allocationPlanLines);
   await db.delete(allocationPlans);
   await db.delete(expenseEvents);
-  await db.delete(expenseSourceSchedules);
   await db.delete(expenseSources);
   await db.delete(incomeEvents);
-  await db.delete(incomeSourceSchedules);
   await db.delete(incomeSources);
   await db.delete(categorySchedules);
   await db.delete(categories);
@@ -202,32 +208,21 @@ async function seed() {
     }
   }
 
-  // 5. Income Sources & Schedules
+  // 5. Income Sources
   const [salarySource] = await db
     .insert(incomeSources)
     .values({
       name: "Fortnightly Salary (Primary)",
       amount: "4800.00",
       receivingAccountId: everydayAccount.id,
+      rrule: "FREQ=WEEKLY;INTERVAL=2",
+      startDate: "2026-07-01",
       tenantId,
       appId,
       createdBy: userId,
       updatedBy: userId,
     })
     .returning();
-
-  await db
-    .insert(incomeSourceSchedules)
-    .values({
-      incomeSourceId: salarySource.id,
-      rrule: "FREQ=WEEKLY;INTERVAL=2;BYDAY=WE",
-      startDate: "2026-07-01",
-      nextOccurrenceDate: "2026-07-15",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    });
 
   // 6. Pre-populate initial upcoming paydays
   await db

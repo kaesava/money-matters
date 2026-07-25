@@ -68,10 +68,11 @@ export interface AllocationEngineOutput {
  * Pure allocation waterfall calculation engine.
  * 
  * Steps:
+ * 0. DEFICIT REPAIR: Priority 1 - Any bucket with currentBalance < 0 is restored to $0.
  * 1. REGULAR (Bills): Monthly amount prorated by pay frequency: monthlyAmount * (frequencyDays / 30.4375)
  * 2. GOAL (Committed): monthlyContribution = (targetAmount - balance) / monthsRemaining
- * 3. GOAL (Uncommitted): same monthlyContribution formula, funded if funds remain
- * 4. EVERYDAY / Default Excess: receives the remaining residual income
+ * 3. EVERYDAY Top-Up: Top up Everyday bucket to target allowance cap: max(0, targetAmount - balance)
+ * 4. GOAL (Uncommitted) & Default Excess: Sweeps all remaining residual income into default excess bucket (e.g. Offset/Emergency) or uncommitted goals.
  *
  * @param input - Paycheck amount, bucket list, paycheck date, and frequency
  * @returns Proposed line allocations, execution status, and residual amount
@@ -80,13 +81,24 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   let remaining = input.incomeAmount;
   const lines: AllocationLine[] = [];
 
-  // Group buckets
-  const regularBuckets = input.buckets.filter((b) => b.type === "REGULAR");
-  const goalCommitted = input.buckets.filter((b) => b.type === "GOAL" && b.isCommitted);
-  const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted);
-  const excessBucket = input.buckets.find((b) => b.isDefaultExcess) || input.buckets.find((b) => b.type === "EVERYDAY");
+  // Step 0: DEFICIT REPAIR — Priority First for any negative bucket balances
+  for (const bucket of input.buckets) {
+    if (bucket.currentBalance < 0) {
+      const deficit = Math.abs(bucket.currentBalance);
+      const allocated = Math.min(remaining, deficit);
+      remaining = Number((remaining - allocated).toFixed(2));
+
+      lines.push({
+        bucketId: bucket.id,
+        bucketName: bucket.name,
+        proposedAmount: allocated,
+        reasoning: `Deficit repair for negative balance (-$${deficit.toFixed(2)}): $${allocated.toFixed(2)} allocated to restore balance.`,
+      });
+    }
+  }
 
   // Step 1: REGULAR (Bills)
+  const regularBuckets = input.buckets.filter((b) => b.type === "REGULAR");
   for (const bucket of regularBuckets) {
     const monthlyAmt = bucket.monthlyAmount ?? 0;
     const prorated = monthlyAmt * (input.paycheckFrequencyDays / 30.4375);
@@ -94,19 +106,25 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     const allocated = Math.min(remaining, needed);
     remaining = Number((remaining - allocated).toFixed(2));
 
-    lines.push({
-      bucketId: bucket.id,
-      bucketName: bucket.name,
-      proposedAmount: allocated,
-      reasoning: `Prorated monthly bill target of $${monthlyAmt.toFixed(2)}: $${allocated.toFixed(2)} allocated.`,
-    });
+    const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
+    if (existingIndex >= 0) {
+      lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
+      lines[existingIndex]!.reasoning += ` Plus prorated bill target of $${allocated.toFixed(2)}.`;
+    } else {
+      lines.push({
+        bucketId: bucket.id,
+        bucketName: bucket.name,
+        proposedAmount: allocated,
+        reasoning: `Prorated monthly bill target of $${monthlyAmt.toFixed(2)}: $${allocated.toFixed(2)} allocated.`,
+      });
+    }
   }
 
   // Helper for GOAL monthly target calculation
   const fundGoals = (bucketsList: EngineBucket[]) => {
     for (const bucket of bucketsList) {
       const target = bucket.targetAmount ?? 0;
-      const current = bucket.currentBalance;
+      const current = Math.max(0, bucket.currentBalance);
       const gap = Math.max(0, target - current);
       
       let monthsRemaining = 12;
@@ -122,37 +140,67 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
       const allocated = Math.min(remaining, needed);
       remaining = Number((remaining - allocated).toFixed(2));
 
-      lines.push({
-        bucketId: bucket.id,
-        bucketName: bucket.name,
-        proposedAmount: allocated,
-        reasoning: `Target $${target.toFixed(2)} by ${bucket.targetDate ?? "unspecified"}: $${allocated.toFixed(2)} allocated.`,
-      });
+      const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
+      if (existingIndex >= 0) {
+        lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
+        lines[existingIndex]!.reasoning += ` Plus goal target allocation of $${allocated.toFixed(2)}.`;
+      } else {
+        lines.push({
+          bucketId: bucket.id,
+          bucketName: bucket.name,
+          proposedAmount: allocated,
+          reasoning: `Target $${target.toFixed(2)} by ${bucket.targetDate ?? "unspecified"}: $${allocated.toFixed(2)} allocated.`,
+        });
+      }
     }
   };
 
   // Step 2: GOAL (Committed)
+  const goalCommitted = input.buckets.filter((b) => b.type === "GOAL" && b.isCommitted);
   fundGoals(goalCommitted);
 
-  // Step 3: GOAL (Uncommitted)
+  // Step 3: EVERYDAY Top-Up Cap
+  const everydayBuckets = input.buckets.filter((b) => b.type === "EVERYDAY");
+  for (const bucket of everydayBuckets) {
+    const targetCap = bucket.targetAmount ?? bucket.monthlyAmount ?? 0;
+    const currentPositiveBal = Math.max(0, bucket.currentBalance);
+    const topUpNeeded = Math.max(0, targetCap - currentPositiveBal);
+    const allocated = Math.min(remaining, topUpNeeded);
+    remaining = Number((remaining - allocated).toFixed(2));
+
+    const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
+    if (existingIndex >= 0) {
+      lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
+      lines[existingIndex]!.reasoning += ` Plus Everyday top-up allocation of $${allocated.toFixed(2)} (target cap $${targetCap.toFixed(2)}).`;
+    } else {
+      lines.push({
+        bucketId: bucket.id,
+        bucketName: bucket.name,
+        proposedAmount: allocated,
+        reasoning: `Everyday top-up allocation of $${allocated.toFixed(2)} (target cap $${targetCap.toFixed(2)}).`,
+      });
+    }
+  }
+
+  // Step 4: GOAL (Uncommitted) & Surplus Sweep to Default Excess Bucket
+  const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted);
   fundGoals(goalUncommitted);
 
-  // Step 4: EVERYDAY / Default Excess Sweep
-  if (excessBucket) {
-    const allocated = Math.max(0, remaining);
+  const excessBucket = input.buckets.find((b) => b.isDefaultExcess) || input.buckets.find((b) => b.type === "GOAL") || everydayBuckets[0];
+  if (excessBucket && remaining > 0) {
+    const allocated = remaining;
     remaining = 0;
     
-    // Add or update existing line for excess
     const existingIndex = lines.findIndex((l) => l.bucketId === excessBucket.id);
     if (existingIndex >= 0) {
       lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
-      lines[existingIndex]!.reasoning += ` Swept residual excess of $${allocated.toFixed(2)}.`;
+      lines[existingIndex]!.reasoning += ` Swept residual excess surplus of $${allocated.toFixed(2)}.`;
     } else {
       lines.push({
         bucketId: excessBucket.id,
         bucketName: excessBucket.name,
         proposedAmount: allocated,
-        reasoning: `Swept residual excess of $${allocated.toFixed(2)} to default bucket.`,
+        reasoning: `Swept residual excess surplus of $${allocated.toFixed(2)} to default bucket.`,
       });
     }
   }

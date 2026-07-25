@@ -73,8 +73,52 @@ describe("paycheck cascade allocation engine", () => {
     const holidayLine = result.lines.find((l) => l.bucketId === "uncommitted-id");
     expect(holidayLine?.proposedAmount).toBe(38.33);
 
-    // Everyday Excess: 3000 - (551.95 + 91.99 + 38.33) = 2317.73
+    // Everyday Excess (Uncommitted goal / default excess sweep): 3000 - (551.95 + 91.99 + 38.33) = 2317.73
     const everydayLine = result.lines.find((l) => l.bucketId === "everyday-id");
     expect(everydayLine?.proposedAmount).toBe(2317.73);
+  });
+
+  it("prioritises deficit repair (Step 0) for negative balances before funding bills or goals", () => {
+    const buckets: EngineBucket[] = [
+      {
+        id: "overspent-everyday",
+        name: "Everyday Cash",
+        type: "EVERYDAY",
+        isCommitted: false,
+        isDefaultExcess: true,
+        monthlyAmount: null,
+        targetAmount: 500,
+        targetDate: null,
+        currentBalance: -150, // Negative balance of -$150
+      },
+      {
+        id: "rent-id",
+        name: "Rent / Mortgage",
+        type: "REGULAR",
+        isCommitted: false,
+        isDefaultExcess: false,
+        monthlyAmount: 1000,
+        targetAmount: null,
+        targetDate: null,
+        currentBalance: 0,
+      },
+    ];
+
+    const result = runAllocationEngine({
+      incomeAmount: 1000,
+      buckets,
+      paycheckDate: new Date(),
+      paycheckFrequencyDays: 14,
+    });
+
+    expect(result.status).toBe("OK");
+
+    // Deficit repair ($150) + Everyday Top-Up ($390.04 remaining after Rent) = $540.04 total allocated to Everyday
+    const everydayLine = result.lines.find((l) => l.bucketId === "overspent-everyday");
+    expect(everydayLine?.proposedAmount).toBe(540.04);
+
+    // Prorated Rent: 1000 * (14 / 30.4375) ~ 459.96 (funded fully in Step 1 after Step 0 repair)
+    const rentLine = result.lines.find((l) => l.bucketId === "rent-id");
+    expect(rentLine?.proposedAmount).toBe(459.96);
   });
 });

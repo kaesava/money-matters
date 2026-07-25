@@ -23,13 +23,20 @@ Setup is triggered on new household or can be triggered/updated at any time thro
 Household Admin navigates to Settings → Household → Invite Partner → enters partner's email → partner receives invite link → partner signs up or logs in → partner joins household → both users now share full access to all data. I'm ok not to have this in version 1.
 
 ## INCOME EVENT + ALLOCATION REVIEW
-App lists income events (based on income source schedule) or user manually triggers an upcoming income event → system creates a draft AllocationPlan for each → smart allocation engine calculates required contribution per non-EVERYDAY category (gap ÷ paychecks remaining before due date), waterfalls contributions down priority-ranked list, fills categories until income is exhausted, remainder assigned to EVERYDAY bucket → user opens 'Paycheck Review' screen → sees recommended splits per category with reasoning ('needs $X by [date], Y paychecks left') → user can accept all, adjust individual amounts (system auto-rebalances remainder), or override entirely → user confirms plan → category balances updated → app shows how much to transfer to savings account (sum of all non-EVERYDAY allocations).
+App lists income events (based on income source schedule) or user manually triggers an upcoming income event → system creates a draft AllocationPlan for each → smart allocation engine executes a 5-step waterfall calculation:
+1. **Deficit Repair Step:** Mandatory first priority. Any category (Everyday, Regular, or Goal) with a negative current balance is allocated funds to restore it to $0.
+2. **REGULAR (Bills) Step:** Prorates monthly bill targets based on paycheck frequency and allocates required bill funds.
+3. **GOAL (Committed) Step:** Funds high-priority savings targets based on gap ÷ paychecks remaining before target due date.
+4. **EVERYDAY Top-Up Step:** Everyday spending is managed as a **single pooled balance** (derived from sub-category estimations like Groceries, Fuel, Coffee during setup). Engine calculates required top-up: `TopUp = max(0, TargetEverydayCap - CurrentEverydayBalance)`.
+5. **Surplus Sweep / Uncommitted Goals Step:** Any remaining residual income beyond the Everyday Top-Up is swept to secondary uncommitted goals or the designated Default Excess category (e.g., Mortgage Offset / Emergency Fund).
+
+User opens 'Paycheck Review' screen → sees recommended splits per category with reasoning → user can accept all, adjust individual amounts, or override → user confirms plan → category balances updated → app shows transfer instructions to move non-EVERYDAY funds to savings/offset accounts.
 
 ## DAILY DRAWDOWN (EXPENSE ENTRY)
-Wuick-entry of expense: amount, category (recently used shown first) → optionally adds note → confirms → transaction recorded → category balance reduced → if balance goes negative, shortfall alert is shown with suggested donor categories to borrow from (ordered by priority).
+Quick-entry of expense: amount, category (Everyday pool by default, or specific bill/goal if intended) → confirms → transaction recorded → category balance reduced. Note: Sub-categories under Everyday serve as setup estimation tools and transaction tags, but deduct from the single unified Everyday balance pool so users don't have to micro-manage line-item category budgets day-to-day.
 
 ## SHORTFALL RESOLUTION:
-Category balance goes negative after a drawdown → app shows ShortfallAlert → recommends borrowing from lowest-priority category with sufficient surplus → user approves or picks donor manually → transfer recorded → both category balances updated → future allocation plans automatically include repayment to donor category until restored.
+When expense entry pushes a category negative: app triggers an immediate Strict Warning (Red Card) with a 1-tap "Borrow Money" prompt → auto-suggests borrowing from lowest-priority positive goal category. If unaddressed, the next Paycheck Allocation automatically enforces Step 1 (Deficit Repair) to restore the negative bucket back to $0 before funding any new savings goals.
 
 ## SAVINGS RECONCILIATION:
 User periodically (monthly or on demand) opens Reconciliation screen → app shows expected savings balance (sum of all non-EVERYDAY category balances) → user enters their actual savings account balance → if difference exists, user applies adjustment → free tier: manual spread (user adjusts categories one by one) → premium tier: AI auto-spreads adjustment across categories protecting highest-priority ones first → reconciliation record saved. For release 1, we are only focussed on free tier.

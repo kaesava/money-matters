@@ -44,7 +44,6 @@ export default function SettingsIncomeScreen() {
   // Queries & Mutations
   const { data: incomeSources, isLoading, refetch } = trpc.listIncomeSources.useQuery();
   const createSource = trpc.createIncomeSource.useMutation();
-  const createSchedule = trpc.createIncomeSourceSchedule.useMutation();
   const archiveSource = trpc.archiveIncomeSource.useMutation();
 
   const handleAdd = async () => {
@@ -56,21 +55,12 @@ export default function SettingsIncomeScreen() {
     }
     setAdding(true);
     try {
-      const rrule = frequency === 'WEEKLY'
-        ? 'FREQ=WEEKLY'
-        : frequency === 'FORTNIGHTLY'
-        ? 'FREQ=WEEKLY;INTERVAL=2'
-        : 'FREQ=MONTHLY';
-
-      const source = await createSource.mutateAsync({
+      await createSource.mutateAsync({
         name: name.trim(),
         amount: numericAmount.toFixed(2),
-      });
-
-      await createSchedule.mutateAsync({
-        incomeSourceId: source.id,
-        rrule,
+        isRecurring: true,
         startDate: new Date().toISOString().split('T')[0]!,
+        frequency,
       });
 
       setName('');

@@ -42,7 +42,6 @@ export default function SetupIncomeScreen() {
   const [adding, setAdding] = useState(false);
 
   const createSource = trpc.createIncomeSource.useMutation();
-  const createSchedule = trpc.createIncomeSourceSchedule.useMutation();
 
   const handleAdd = async () => {
     if (!name.trim() || !amount.trim()) return;
@@ -50,22 +49,12 @@ export default function SetupIncomeScreen() {
     if (isNaN(numericAmount) || numericAmount < 0) return;
     setAdding(true);
     try {
-      // Phase 4: fire real API calls so data exists in DB for later screens
-      const rrule = frequency === 'WEEKLY'
-        ? 'FREQ=WEEKLY'
-        : frequency === 'FORTNIGHTLY'
-        ? 'FREQ=WEEKLY;INTERVAL=2'
-        : 'FREQ=MONTHLY';
-
-      const source = await createSource.mutateAsync({
+      await createSource.mutateAsync({
         name: name.trim(),
         amount: numericAmount.toFixed(2),
-      });
-
-      await createSchedule.mutateAsync({
-        incomeSourceId: source.id,
-        rrule,
+        isRecurring: true,
         startDate: new Date().toISOString().split('T')[0]!,
+        frequency,
       });
 
       setAdded((prev) => [...prev, name.trim()]);

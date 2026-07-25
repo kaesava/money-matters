@@ -6,7 +6,6 @@ export * from "./bank_account.js";
 export * from "./category.js";
 export * from "./category_schedule.js";
 export * from "./income.js";
-export * from "./income_source_schedule.js";
 export * from "./income_event.js";
 export * from "./allocation_plan.js";
 export * from "./allocation_plan_line.js";
@@ -17,6 +16,3 @@ export * from "./user_preference.js";
 export * from "./expense_source.js";
 export * from "./expense_event.js";
 export * from "./app.js";
-
-
-

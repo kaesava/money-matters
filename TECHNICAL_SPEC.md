@@ -75,9 +75,9 @@ money-matters/
 households (tenant)
 ├── bank_accounts (lastKnownBalance, purpose: INCOME_LANDING|SAVINGS|EVERYDAY, isOffset)
 ├── user_preferences (quickActionsCollapsed)
-├── income_sources (name, type, amount, receivingAccountId)
+├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
 │   └── income_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
-├── expense_sources (name, type, amount, categoryId)
+├── expense_sources (name, amount, categoryId, rrule, startDate, endDate)
 │   └── expense_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
 ├── categories (name, type: REGULAR|GOAL|EVERYDAY, bankAccountId, rolloverRule: ROLLOVER|SWEEP|RESET, isDefaultSavings, everydayTargetKeepAmount, everydaySweepFrequency)
 │   ├── category_schedules (targetAmount, targetDate, dueDate) [GOAL only]
@@ -89,11 +89,12 @@ households (tenant)
 
 ## 5. Allocation, Burst & Reconciliation Engines
 
-### 5.1 3-Tier Waterfall Cascade
-1. **`REGULAR` categories**: Prorate monthly bill amount by paycheck frequency (`monthlyAmount * paycheckFrequencyDays / 30.4375`).
-2. **`GOAL` committed categories (`isCommitted = true`)**: Allocate needed monthly contribution to keep on track for `targetDate`.
-3. **`GOAL` uncommitted categories (`isCommitted = false`)**: Allocate remaining target contribution if funds permit.
-4. **`EVERYDAY` excess category**: Sweeps all residual income into the single everyday spending pool.
+### 5.1 5-Step Waterfall Cascade Engine
+1. **`DEFICIT REPAIR` (Step 0)**: Mandatory first priority. Any category (`EVERYDAY`, `REGULAR`, or `GOAL`) with a negative ledger balance (`currentBalance < 0`) is allocated funds to restore balance to $0.
+2. **`REGULAR` (Bills)**: Prorates monthly bill targets by paycheck frequency (`monthlyAmount * paycheckFrequencyDays / 30.4375`).
+3. **`GOAL` committed (`isCommitted = true`)**: Allocates target monthly contribution to keep on track for `targetDate`.
+4. **`EVERYDAY` top-up cap**: Everyday spending is managed as a pooled balance. Calculates required top-up: `TopUp = max(0, TargetEverydayCap - CurrentEverydayBalance)`.
+5. **`GOAL` uncommitted / Surplus sweep**: Sweeps remaining residual income beyond the Everyday top-up to uncommitted goals or default excess category (e.g. Mortgage Offset).
 
 ### 5.2 12-Month Rolling Burst Engine
 - Evaluates `rrule` patterns (`WEEKLY`, `FORTNIGHTLY`, `MONTHLY`, `ANNUALLY`) on creation/update of recurring income or expense sources to auto-generate individual upcoming events up to 12 months in advance.
