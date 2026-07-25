@@ -103,6 +103,7 @@ export function UpcomingEventsList({
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Bulk Delete Button */}
           {selectedEventKeys.length > 0 && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -111,32 +112,6 @@ export function UpcomingEventsList({
             >
               <span>🗑️</span> Bulk Delete ({selectedEventKeys.length})
             </button>
-          )}
-
-          {/* Series Quick-Select Dropdown */}
-          {seriesList.length > 0 && (
-            <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleToggleSeries(e.target.value);
-                  e.target.value = "";
-                }
-              }}
-              className="px-3 py-2 text-xs font-semibold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Select Series...
-              </option>
-              {seriesList.map((s) => {
-                const isSelected = s.eventKeys.every((k) => selectedEventKeys.includes(k));
-                return (
-                  <option key={s.key} value={s.key}>
-                    {isSelected ? "✓ " : ""}[{s.type}] {s.name} ({s.eventKeys.length})
-                  </option>
-                );
-              })}
-            </select>
           )}
 
           <input
@@ -163,21 +138,50 @@ export function UpcomingEventsList({
         </div>
       </div>
 
-      {/* Select All Toggle Bar */}
+      {/* Select All & Select Series Bar */}
       {events.length > 0 && (
-        <div className="flex items-center justify-between px-2 text-xs font-semibold text-zinc-500">
-          <button
-            onClick={handleSelectAllVisible}
-            className="hover:text-[#00B4A6] transition-all flex items-center gap-1.5"
-          >
-            <input
-              type="checkbox"
-              checked={isAllVisibleSelected}
-              onChange={() => {}}
-              className="w-3.5 h-3.5 rounded border-zinc-300 text-[#00B4A6] focus:ring-[#00B4A6]"
-            />
-            {isAllVisibleSelected ? "Deselect All" : "Select All"}
-          </button>
+        <div className="flex items-center justify-between px-2 text-xs font-semibold text-zinc-500 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSelectAllVisible}
+              className="hover:text-[#00B4A6] transition-all flex items-center gap-1.5"
+            >
+              <input
+                type="checkbox"
+                checked={isAllVisibleSelected}
+                onChange={() => {}}
+                className="w-3.5 h-3.5 rounded border-zinc-300 text-[#00B4A6] focus:ring-[#00B4A6]"
+              />
+              {isAllVisibleSelected ? "Deselect All" : "Select All"}
+            </button>
+
+            {/* Select Series Dropdown right next to Select All */}
+            {seriesList.length > 0 && (
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleToggleSeries(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-700"
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  Select Series...
+                </option>
+                {seriesList.map((s) => {
+                  const isSelected = s.eventKeys.every((k) => selectedEventKeys.includes(k));
+                  return (
+                    <option key={s.key} value={s.key}>
+                      {isSelected ? "✓ " : ""}[{s.type}] {s.name} ({s.eventKeys.length})
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+          </div>
+
           <span>
             {events.filter((evt) => selectedEventKeys.includes(`${evt.type}-${evt.id}`)).length} of {events.length} events selected
           </span>
