@@ -242,7 +242,7 @@ export default function CategoriesScreen() {
           />
 
           {/* Sort Selector Chips */}
-          <View style={styles.sortRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
             <Text style={styles.sortLabel}>Sort By:</Text>
             {(['name', 'type', 'balance', 'health'] as const).map((f) => (
               <TouchableOpacity
@@ -255,7 +255,7 @@ export default function CategoriesScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
 
           {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 40 }} />}
 
@@ -287,8 +287,8 @@ export default function CategoriesScreen() {
                       activeOpacity={0.8}
                     >
                       <View style={styles.cardHeader}>
-                        <Text style={styles.catName}>{cat.name}</Text>
-                        <Text style={[styles.catBalance, { color }]}>{formatAUD(cat.currentBalance)}</Text>
+                        <Text style={styles.catName} numberOfLines={1} ellipsizeMode="tail">{cat.name}</Text>
+                        <Text style={[styles.catBalance, { color }]} numberOfLines={1}>{formatAUD(cat.currentBalance)}</Text>
                       </View>
                       {cat.targetAmount && (
                         <Text style={styles.target}>{t('categories.target')} {formatAUD(cat.targetAmount)}</Text>

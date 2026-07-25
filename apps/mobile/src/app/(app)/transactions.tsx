@@ -173,7 +173,7 @@ export default function TransactionsScreen() {
         />
 
         {/* Sort Chips */}
-        <View style={styles.sortRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
           <Text style={styles.sortLabel}>Sort By:</Text>
           {(['recordedAt', 'amount', 'categoryName'] as const).map((f) => (
             <TouchableOpacity
@@ -187,7 +187,7 @@ export default function TransactionsScreen() {
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
         {transactionsQuery.isLoading ? (
           <ActivityIndicator color={D.colors.accent} style={{ marginTop: 40 }} />
@@ -207,12 +207,14 @@ export default function TransactionsScreen() {
                 return (
                   <View style={styles.card}>
                     <View style={styles.cardRow}>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, marginRight: 8 }}>
                         <TouchableOpacity
                           onPress={() => router.push({ pathname: '/(app)/categories', params: { search: item.categoryName || '' } } as any)}
                           activeOpacity={0.8}
                         >
-                          <Text style={styles.catName}>{item.categoryName || 'Uncategorized'} 🔗</Text>
+                          <Text style={styles.catName} numberOfLines={1} ellipsizeMode="tail">
+                            {item.categoryName || 'Uncategorized'} 🔗
+                          </Text>
                         </TouchableOpacity>
                         <Text style={styles.dateText}>
                           {new Date(item.recordedAt).toLocaleString('en-AU', {

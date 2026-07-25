@@ -68,7 +68,9 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
               activeOpacity={0.7}
             >
               <View style={[styles.statusDot, { backgroundColor: '#E11D48' }]} />
-              <Text style={[styles.statusText, { color: '#9F1239' }]}>Behind</Text>
+              <Text style={[styles.statusText, { color: '#9F1239' }]} numberOfLines={1}>
+                Behind
+              </Text>
               <View style={[styles.countPill, { backgroundColor: '#FECDD3' }]}>
                 <Text style={[styles.countText, { color: '#881337' }]}>{behindCount}</Text>
               </View>
@@ -81,7 +83,9 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
               activeOpacity={0.7}
             >
               <View style={[styles.statusDot, { backgroundColor: '#D97706' }]} />
-              <Text style={[styles.statusText, { color: '#92400E' }]}>Needs Attention</Text>
+              <Text style={[styles.statusText, { color: '#92400E' }]} numberOfLines={1}>
+                Attention
+              </Text>
               <View style={[styles.countPill, { backgroundColor: '#FDE68A' }]}>
                 <Text style={[styles.countText, { color: '#78350F' }]}>{needsAttentionCount}</Text>
               </View>
@@ -94,7 +98,9 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
               activeOpacity={0.7}
             >
               <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
-              <Text style={[styles.statusText, { color: '#065F46' }]}>On Track</Text>
+              <Text style={[styles.statusText, { color: '#065F46' }]} numberOfLines={1}>
+                On Track
+              </Text>
               <View style={[styles.countPill, { backgroundColor: '#A7F3D0' }]}>
                 <Text style={[styles.countText, { color: '#064E3B' }]}>{onTrackCount}</Text>
               </View>
@@ -133,6 +139,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
                     ? styles.impactText
                     : styles.noText,
                 ]}
+                numberOfLines={2}
               >
                 {canAffordData.verdict === 'YES' && `YES! Available (${formatAUD(canAffordData.everydayRemaining)} left)`}
                 {canAffordData.verdict === 'YES_WITH_IMPACT' && `YES WITH IMPACT: ${canAffordData.affectedBucketName}`}
@@ -156,15 +163,15 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
             <View style={styles.payIconBg}>
               <Feather name="dollar-sign" size={16} color={DESIGN_TOKENS.colors.primary} />
             </View>
-            <View>
-              <Text style={styles.payTitle}>Next Pay: {nextPayday.name}</Text>
-              <Text style={styles.paySub}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.payTitle} numberOfLines={1}>Next Pay: {nextPayday.name}</Text>
+              <Text style={styles.paySub} numberOfLines={1}>
                 {formatAUD(nextPayday.amount)} • {daysAwayText} ({nextPayday.expectedDate})
               </Text>
             </View>
           </View>
           <View style={styles.payActionBtn}>
-            <Text style={styles.payActionText}>Process Pay</Text>
+            <Text style={styles.payActionText}>Process</Text>
             <Feather name="chevron-right" size={16} color={DESIGN_TOKENS.colors.primary} />
           </View>
         </TouchableOpacity>
@@ -208,19 +215,20 @@ const styles = StyleSheet.create({
   },
   badgesRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 6,
     marginTop: 10,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 10,
-    paddingRight: 6,
-    paddingVertical: 5,
+    paddingLeft: 8,
+    paddingRight: 4,
+    paddingVertical: 4,
     borderRadius: DESIGN_TOKENS.radius.full,
-    gap: 6,
+    gap: 4,
     borderWidth: 1,
+    flexShrink: 1,
   },
   redBadge: {
     backgroundColor: '#FFF1F2',
@@ -235,19 +243,18 @@ const styles = StyleSheet.create({
     borderColor: '#A7F3D0',
   },
   statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   countPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 8,
   },
   countText: {
     fontSize: 10,
@@ -319,6 +326,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flex: 1,
+    marginRight: 8,
   },
   payIconBg: {
     width: 32,
@@ -341,7 +350,7 @@ const styles = StyleSheet.create({
   payActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
   },
   payActionText: {
     fontSize: 12,

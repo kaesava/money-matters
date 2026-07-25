@@ -219,9 +219,13 @@ export default function HomeScreen() {
           ) : (
             combinedEvents.slice(0, 10).map((evt) => (
               <View key={`${evt.type}-${evt.id}`} style={styles.eventRow}>
-                <View>
-                  <Text style={styles.eventName}>{evt.name}</Text>
-                  <Text style={styles.eventSub}>{evt.categoryName} • {evt.expectedDate}</Text>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.eventName} numberOfLines={1} ellipsizeMode="tail">
+                    {evt.name}
+                  </Text>
+                  <Text style={styles.eventSub} numberOfLines={1}>
+                    {evt.categoryName} • {evt.expectedDate}
+                  </Text>
                 </View>
                 <Text style={[styles.eventAmount, evt.type === 'INCOME' && styles.incomeText]}>
                   {evt.type === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}
