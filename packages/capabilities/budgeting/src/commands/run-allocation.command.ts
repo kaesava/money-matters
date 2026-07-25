@@ -10,7 +10,8 @@ export async function runAllocationCommand(
   incomeEventId: string,
   incomeAmount: number,
   dbClient: PgDatabase<any, any, any> = db,
-  customLines?: { bucketId: string; amount: string }[]
+  customLines?: { bucketId: string; amount: string }[],
+  markAsReceivedToday?: boolean
 ) {
   // 1. Fetch Categories
   const dbCats = await dbClient
@@ -84,6 +85,10 @@ export async function runAllocationCommand(
     }
   }
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const eventDateStr = event ? new Date(event.expectedDate).toISOString().slice(0, 10) : todayStr;
+  const isFuturePlanned = eventDateStr > todayStr && !markAsReceivedToday;
+
   // Map to engine models
   const engineBuckets: EngineBucket[] = dbCats.map((cat) => {
     const sched = schedulesMap.get(cat.id);
@@ -120,7 +125,7 @@ export async function runAllocationCommand(
         tenantId,
         appId,
         incomeEventId,
-        status: "CONFIRMED",
+        status: isFuturePlanned ? "DRAFT" : "CONFIRMED",
         totalIncomeAmount: incomeAmount.toFixed(2),
         confirmedAt: new Date(),
         createdBy: userId,
@@ -148,8 +153,8 @@ export async function runAllocationCommand(
         })
         .returning();
 
-      // Issue credit entry in ledger if confirmedVal > 0
-      if (confirmedVal > 0) {
+      // Issue credit entry in ledger ONLY if not future planned and confirmedVal > 0
+      if (!isFuturePlanned && confirmedVal > 0) {
         const isCustomized = customLinesMap?.has(line.bucketId) && Math.abs(customLinesMap.get(line.bucketId)! - line.proposedAmount) >= 0.01;
         await tx.insert(transactionLedger).values({
           tenantId,
@@ -167,18 +172,24 @@ export async function runAllocationCommand(
       }
     }
 
-    // Update income event status to CONFIRMED
-    await tx
-      .update(incomeEvents)
-      .set({
+    if (!isFuturePlanned) {
+      // Update income event status to CONFIRMED
+      const updateData: Record<string, any> = {
         status: "CONFIRMED",
         actualAmount: incomeAmount.toFixed(2),
         updatedBy: userId,
         updatedAt: new Date(),
-      })
-      .where(eq(incomeEvents.id, incomeEventId));
+      };
+      if (markAsReceivedToday && event) {
+        updateData.expectedDate = new Date();
+      }
+      await tx
+        .update(incomeEvents)
+        .set(updateData)
+        .where(eq(incomeEvents.id, incomeEventId));
+    }
 
-    return insertedPlan;
+    return { ...insertedPlan, isFuturePlanned };
   });
 
   return plan;

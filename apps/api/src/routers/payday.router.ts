@@ -34,7 +34,8 @@ export const paydayRouter = {
         input.incomeEventId,
         parseFloat(input.actualAmount),
         ctx.db,
-        input.lines
+        input.lines,
+        input.markAsReceivedToday
       );
     }),
 

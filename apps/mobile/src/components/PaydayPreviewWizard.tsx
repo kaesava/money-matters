@@ -16,6 +16,7 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [overrideAmount, setOverrideAmount] = useState<string>('');
   const [allocations, setAllocations] = useState<Record<string, string>>({});
+  const [isFuturePlannedResult, setIsFuturePlannedResult] = useState(false);
 
   const previewQuery = trpc.previewPayday.useQuery(
     { incomeEventId: incomeEventId ?? '' },
@@ -28,7 +29,10 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
   );
 
   const confirmMutation = trpc.confirmPayday.useMutation({
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      if (data && typeof data === 'object' && 'isFuturePlanned' in data) {
+        setIsFuturePlannedResult(Boolean(data.isFuturePlanned));
+      }
       onSuccess?.();
       setStep(3);
     },
@@ -61,7 +65,7 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
     setAllocations((prev) => ({ ...prev, [catId]: val }));
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (markAsReceivedToday = false) => {
     if (!incomeEventId) return;
     const linesPayload = Object.entries(allocations).map(([categoryId, amount]) => ({
       bucketId: categoryId,
@@ -71,11 +75,17 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
     confirmMutation.mutate({
       incomeEventId,
       actualAmount: parseFloat(overrideAmount || '0').toFixed(2),
+      markAsReceivedToday,
       lines: linesPayload,
     });
   };
 
   const incomeEvent = previewQuery.data?.incomeEvent;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const expectedDateStr = incomeEvent?.expectedDate
+    ? new Date(incomeEvent.expectedDate).toISOString().slice(0, 10)
+    : todayStr;
+  const isFutureDate = expectedDateStr > todayStr;
 
   interface AllocationLineItem {
     categoryId: string;
@@ -132,6 +142,15 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
             {/* STEP 1: SUMMARY & NET PAYCHECK */}
             {step === 1 && (
               <View style={styles.stepContainer}>
+                {isFutureDate && (
+                  <View style={styles.futureAlert}>
+                    <Text style={styles.futureAlertTitle}>📅 Future Paycheck Date ({expectedDateStr})</Text>
+                    <Text style={styles.futureAlertBody}>
+                      Category balances only update with actual cash. You can save your plan for payday or mark as received today if deposited early.
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.card}>
                   <Text style={styles.cardTitle}>Paycheck Details</Text>
                   <Text style={styles.sourceText}>Income Deposit</Text>
@@ -195,18 +214,47 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
                   </View>
                 ))}
 
-                <TouchableOpacity
-                  onPress={handleConfirm}
-                  disabled={confirmMutation.isPending}
-                  style={styles.nextBtn}
-                  activeOpacity={0.8}
-                >
-                  {confirmMutation.isPending ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={styles.nextBtnText}>Confirm & Allocate Paycheck ✓</Text>
-                  )}
-                </TouchableOpacity>
+                {isFutureDate ? (
+                  <View style={{ gap: 10, marginTop: 12 }}>
+                    <TouchableOpacity
+                      onPress={() => handleConfirm(false)}
+                      disabled={confirmMutation.isPending}
+                      style={[styles.nextBtn, { backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#00B4A6' }]}
+                      activeOpacity={0.8}
+                    >
+                      {confirmMutation.isPending ? (
+                        <ActivityIndicator color="#00B4A6" />
+                      ) : (
+                        <Text style={[styles.nextBtnText, { color: '#0F766E' }]}>📅 Save Plan for Payday</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleConfirm(true)}
+                      disabled={confirmMutation.isPending}
+                      style={styles.nextBtn}
+                      activeOpacity={0.8}
+                    >
+                      {confirmMutation.isPending ? (
+                        <ActivityIndicator color="#FFF" />
+                      ) : (
+                        <Text style={styles.nextBtnText}>⚡ Received Today</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => handleConfirm(false)}
+                    disabled={confirmMutation.isPending}
+                    style={styles.nextBtn}
+                    activeOpacity={0.8}
+                  >
+                    {confirmMutation.isPending ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <Text style={styles.nextBtnText}>Confirm & Allocate Paycheck ✓</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
@@ -214,17 +262,21 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
             {step === 3 && (
               <View style={styles.stepContainer}>
                 <View style={styles.successBanner}>
-                  <Text style={styles.successIcon}>🎉</Text>
-                  <Text style={styles.successTitle}>Paycheck Allocated!</Text>
+                  <Text style={styles.successIcon}>{isFuturePlannedResult ? '📅' : '🎉'}</Text>
+                  <Text style={styles.successTitle}>
+                    {isFuturePlannedResult ? 'Payday Plan Saved!' : 'Paycheck Allocated!'}
+                  </Text>
                   <Text style={styles.successSubtitle}>
-                    Category balances have been updated. Transfer the recommended amounts below to your savings account.
+                    {isFuturePlannedResult
+                      ? 'Your allocation plan has been saved for payday. Category balances remain untouched until payday arrives.'
+                      : 'Category balances have been updated. Transfer the recommended amounts below to your savings account.'}
                   </Text>
                 </View>
 
                 <View style={styles.card}>
-                  <Text style={styles.cardTitle}>Bank Transfer Instructions</Text>
+                  <Text style={styles.cardTitle}>Allocation Summary</Text>
                   <Text style={styles.hintText}>
-                    Transfer total savings allocation ({formatAUD(totalAllocated)}) into your Goal & Bills savings bank accounts.
+                    Total Allocation: {formatAUD(totalAllocated)} across your budget categories.
                   </Text>
                 </View>
 
@@ -257,13 +309,16 @@ const styles = StyleSheet.create({
   wizardStepIndicator: { fontSize: 11, color: D.colors.textMuted, fontWeight: '700' },
   scrollBody: { padding: 20, gap: 16 },
   stepContainer: { gap: 16 },
+  futureAlert: { backgroundColor: '#CCFBF1', padding: 12, borderRadius: D.radius.md, borderWidth: 1, borderColor: '#99F6E4', gap: 4 },
+  futureAlertTitle: { fontSize: 13, fontWeight: '800', color: '#0F766E' },
+  futureAlertBody: { fontSize: 11, color: '#115E59' },
   card: { backgroundColor: D.colors.surface, borderRadius: D.radius.md, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', gap: 6 },
   cardTitle: { fontSize: 13, fontWeight: '800', color: D.colors.primary, textTransform: 'uppercase', letterSpacing: 0.5 },
   sourceText: { fontSize: 18, fontWeight: '900', color: D.colors.primary },
   dateText: { fontSize: 12, color: D.colors.textMuted },
   amountInput: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: D.radius.md, padding: 12, fontSize: 18, fontWeight: '800', color: D.colors.primary, backgroundColor: '#FFF' },
   hintText: { fontSize: 12, color: D.colors.textMuted },
-  nextBtn: { backgroundColor: '#00B4A6', paddingVertical: 14, borderRadius: D.radius.md, alignItems: 'center', marginTop: 12 },
+  nextBtn: { backgroundColor: '#00B4A6', paddingVertical: 14, borderRadius: D.radius.md, alignItems: 'center', marginTop: 8 },
   nextBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   summaryLabel: { fontSize: 13, fontWeight: '600', color: D.colors.textMuted },

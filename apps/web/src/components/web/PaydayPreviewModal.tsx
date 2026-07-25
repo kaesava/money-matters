@@ -11,8 +11,6 @@ interface PaydayPreviewModalProps {
   onSuccess?: () => void;
 }
 
-// Strictly define the expected runtime data structure 
-// since the backend tRPC router lacks a defined .output() schema
 interface PaydayLine {
   bucketId: string;
   bucketName: string;
@@ -48,9 +46,7 @@ export default function PaydayPreviewModal({
     { enabled: !!incomeEventId && isOpen }
   );
 
-  // Apply the strict structural interface to the untyped tRPC response
   const previewData = previewQuery.data as PaydayPreviewData | undefined;
-
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
 
   useEffect(() => {
@@ -67,7 +63,6 @@ export default function PaydayPreviewModal({
   if (!isOpen || !incomeEventId) return null;
 
   const lines = previewData?.engineResult.lines || [];
-
   const totalAllocated = Object.values(linesMap).reduce(
     (acc, val) => acc + (parseFloat(val) || 0),
     0
@@ -75,7 +70,13 @@ export default function PaydayPreviewModal({
   const numericActual = parseFloat(actualAmount) || 0;
   const unallocated = numericActual - totalAllocated;
 
-  const handleConfirm = async (overrideMismatch = false) => {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const expectedDateStr = previewData?.incomeEvent.expectedDate
+    ? new Date(previewData.incomeEvent.expectedDate).toISOString().slice(0, 10)
+    : todayStr;
+  const isFutureDate = expectedDateStr > todayStr;
+
+  const handleConfirm = async (overrideMismatch = false, markAsReceivedToday = false) => {
     setErrorMsg("");
 
     if (!overrideMismatch && Math.abs(numericActual - totalAllocated) >= 0.01) {
@@ -94,6 +95,7 @@ export default function PaydayPreviewModal({
       await confirmPaydayMut.mutateAsync({
         incomeEventId,
         actualAmount: totalAllocated.toFixed(2),
+        markAsReceivedToday,
         lines: payloadLines,
       });
 
@@ -128,7 +130,7 @@ export default function PaydayPreviewModal({
       title="🎉 Process Payday Split"
       subtitle="Review and customize line-by-line distribution across your budget categories"
       isDirty={false}
-      onSave={handleConfirm}
+      onSave={() => handleConfirm(false, false)}
     >
       <div className="flex flex-col gap-5 text-zinc-900">
         {previewQuery.isLoading ? (
@@ -141,6 +143,17 @@ export default function PaydayPreviewModal({
           </div>
         ) : (
           <>
+            {isFutureDate && (
+              <div className="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs flex flex-col gap-1.5">
+                <span className="font-bold flex items-center gap-1.5">
+                  <span>📅</span> Future Paycheck Date Detected ({fmtDate(expectedDateStr)})
+                </span>
+                <p className="text-[11px] text-teal-800 font-medium">
+                  Category balances only update with actual cash. Saving this split will store your plan for payday, or you can mark it as received today if deposited early.
+                </p>
+              </div>
+            )}
+
             {showMismatchWarning && (
               <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -149,7 +162,6 @@ export default function PaydayPreviewModal({
                 </div>
                 <p className="font-normal text-zinc-700">
                   The sum of your category allocations (${totalAllocated.toFixed(2)} AUD) does not equal the entered paycheck total (${numericActual.toFixed(2)} AUD).
-                  The total paycheck amount will be adjusted to match allocated total (${totalAllocated.toFixed(2)} AUD).
                 </p>
                 <div className="flex items-center justify-end gap-2 mt-1">
                   <button
@@ -161,7 +173,7 @@ export default function PaydayPreviewModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleConfirm(true)}
+                    onClick={() => handleConfirm(true, false)}
                     className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold text-xs hover:bg-amber-700"
                   >
                     Proceed with ${totalAllocated.toFixed(2)} AUD
@@ -180,9 +192,9 @@ export default function PaydayPreviewModal({
             <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-                  Payday Date: {fmtDate(previewData?.incomeEvent.expectedDate || "")}
+                  Payday Date: {fmtDate(expectedDateStr)}
                 </span>
-                <h4 className="text-sm font-black text-[#1B2B4B]">Total Paycheck Received</h4>
+                <h4 className="text-sm font-black text-[#1B2B4B]">Total Paycheck Amount</h4>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-zinc-500">$</span>
@@ -198,43 +210,32 @@ export default function PaydayPreviewModal({
 
             {/* Line-by-Line Breakdown Table */}
             <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-                Budget Allocations Breakdown
-              </span>
-
-              {lines.map((line: PaydayLine) => {
-                const currentVal = linesMap[line.bucketId] ?? line.proposedAmount.toFixed(2);
-                return (
-                  <div
-                    key={line.bucketId}
-                    className="p-3 rounded-xl border border-zinc-100 bg-white flex items-center justify-between gap-3 shadow-xs"
-                  >
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[#1B2B4B] truncate">
-                          {line.bucketName}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-zinc-400 font-semibold truncate">
-                        {line.reasoning}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs font-bold text-zinc-400">$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={currentVal}
-                        onChange={(e) =>
-                          setLinesMap((prev) => ({ ...prev, [line.bucketId]: e.target.value }))
-                        }
-                        className="w-24 px-2 py-1 text-xs font-black rounded-lg border border-zinc-200 text-right focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                      />
-                    </div>
+              {lines.map((line) => (
+                <div
+                  key={line.bucketId}
+                  className="p-3 rounded-xl bg-white border border-zinc-100 flex items-center justify-between shadow-2xs hover:border-zinc-200 transition-colors"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="text-xs font-bold truncate text-[#1B2B4B]">{line.bucketName}</p>
+                    <p className="text-[10px] text-zinc-400 truncate">{line.reasoning}</p>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs font-bold text-zinc-400">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={linesMap[line.bucketId] ?? line.proposedAmount.toFixed(2)}
+                      onChange={(e) =>
+                        setLinesMap((prev) => ({
+                          ...prev,
+                          [line.bucketId]: e.target.value,
+                        }))
+                      }
+                      className="w-24 px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 text-right focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Summary Ticker Bar */}
@@ -252,22 +253,43 @@ export default function PaydayPreviewModal({
             </div>
 
             {/* Form Actions */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleConfirm()}
-                className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
-              >
-                {submitting ? "Processing..." : "Confirm & Distribute Payday"}
-              </button>
+              {isFutureDate ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleConfirm(false, false)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-teal-300 text-teal-800 bg-teal-50 hover:bg-teal-100 transition-all disabled:opacity-50"
+                  >
+                    {submitting ? "Saving..." : "📅 Save Plan for Payday"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleConfirm(false, true)}
+                    className="px-4 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
+                  >
+                    {submitting ? "Processing..." : "⚡ Received Today"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleConfirm(false, false)}
+                  className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
+                >
+                  {submitting ? "Processing..." : "Confirm & Distribute Payday"}
+                </button>
+              )}
             </div>
           </>
         )}

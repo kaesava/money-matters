@@ -128,6 +128,7 @@ export const SkipEventsCommand = z.object({
 export const ConfirmPaydayCommand = z.object({
   incomeEventId: z.string().uuid(),
   actualAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  markAsReceivedToday: z.boolean().optional(),
   lines: z.array(
     z.object({
       bucketId: z.string().uuid(),
