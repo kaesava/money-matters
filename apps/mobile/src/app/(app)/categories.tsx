@@ -23,13 +23,20 @@ function pct(balance: string, target: string | null) {
 
 export default function CategoriesScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ health?: string }>();
+  const params = useLocalSearchParams<{ health?: string; search?: string }>();
 
   const { data: session } = authClient.useSession();
   const { data: categories = [], isLoading, error, refetch } = trpc.listCategories.useQuery();
 
   // Filters & Sorting State
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(params.search ?? '');
+
+  React.useEffect(() => {
+    if (params.search !== undefined) {
+      setSearchQuery(params.search);
+    }
+  }, [params.search]);
+
   const [healthFilter, setHealthFilter] = useState<string>(params.health ?? 'ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [sortField, setSortField] = useState<SortField>('name');

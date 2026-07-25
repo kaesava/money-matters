@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { SlideOverDrawer } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
@@ -120,7 +121,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
             <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
               {t("categories.detail.history")}
             </p>
-            <TransactionHistory categoryId={categoryId} />
+          <TransactionHistory categoryId={categoryId} categoryName={cat.name} onClose={onClose} />
             <FileNotesSection entityType="CATEGORY" entityId={categoryId} />
           </div>
         </div>
@@ -130,7 +131,15 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 }
 
 /** Inner component to load and display transaction history for a category */
-function TransactionHistory({ categoryId }: { categoryId: string }) {
+function TransactionHistory({
+  categoryId,
+  categoryName,
+  onClose,
+}: {
+  categoryId: string;
+  categoryName?: string;
+  onClose?: () => void;
+}) {
   const transactionsQuery = trpc.listCategoryTransactions.useQuery({ categoryId, limit: 5 });
   const txs = transactionsQuery.data ?? [];
 
@@ -178,13 +187,14 @@ function TransactionHistory({ categoryId }: { categoryId: string }) {
       ))}
 
       <div className="pt-2 text-right">
-        <a
-          href={`/dashboard/transactions?categoryId=${categoryId}`}
-          className="text-xs font-bold text-[#00B4A6] hover:underline inline-flex items-center gap-1"
+        <Link
+          href={`/dashboard/transactions?search=${encodeURIComponent(categoryName || "")}`}
+          onClick={() => onClose?.()}
+          className="text-xs font-bold text-[#00B4A6] hover:underline inline-flex items-center gap-1 cursor-pointer"
         >
           <span>View All Transactions</span>
           <span>→</span>
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
 import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
@@ -16,11 +18,20 @@ function fmt(val: string | number) {
 
 export default function CategoriesPage() {
   const utils = trpc.useUtils();
+  const searchParams = useSearchParams();
+  const paramSearch = searchParams.get("search") || searchParams.get("name") || "";
+
   const categoriesQuery = trpc.listCategories.useQuery();
   const categories = categoriesQuery.data ?? [];
 
   // Filter States
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(paramSearch);
+
+  useEffect(() => {
+    if (paramSearch) {
+      setSearchQuery(paramSearch);
+    }
+  }, [paramSearch]);
   const [healthFilter, setHealthFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
 

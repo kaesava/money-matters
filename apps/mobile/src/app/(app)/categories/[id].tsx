@@ -183,7 +183,7 @@ export default function CategoryDetailScreen() {
       </View>
 
       <Text style={styles.sectionTitle}>{t('categories.detail.history')}</Text>
-      <CategoryTransactionsList categoryId={id!} />
+      <CategoryTransactionsList categoryId={id!} categoryName={cat.name} />
       <FileNotesSection entityType="CATEGORY" entityId={id!} />
 
       {/* Edit Sheet Modal */}
@@ -306,7 +306,8 @@ export default function CategoryDetailScreen() {
   );
 }
 
-function CategoryTransactionsList({ categoryId }: { categoryId: string }) {
+function CategoryTransactionsList({ categoryId, categoryName }: { categoryId: string; categoryName?: string }) {
+  const router = useRouter();
   const { data: transactions = [], isLoading } = trpc.listCategoryTransactions.useQuery({ categoryId });
 
   if (isLoading) {
@@ -333,6 +334,12 @@ function CategoryTransactionsList({ categoryId }: { categoryId: string }) {
           recordedAt={tx.recordedAt}
         />
       ))}
+      <TouchableOpacity
+        onPress={() => router.push({ pathname: '/(app)/transactions', params: { search: categoryName } } as any)}
+        style={{ alignSelf: 'flex-end', marginTop: 4, paddingVertical: 4 }}
+      >
+        <Text style={{ fontSize: 12, fontWeight: '800', color: '#00B4A6' }}>View All Transactions →</Text>
+      </TouchableOpacity>
     </View>
   );
 }

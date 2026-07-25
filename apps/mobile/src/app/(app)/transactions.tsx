@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Share, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
@@ -13,6 +13,7 @@ type SortDir = 'asc' | 'desc';
 
 export default function TransactionsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ search?: string }>();
   const { data: session } = authClient.useSession();
 
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
@@ -22,7 +23,13 @@ export default function TransactionsScreen() {
   const categories = categoriesQuery.data ?? [];
 
   // Filter & Sort State
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(params.search ?? '');
+
+  React.useEffect(() => {
+    if (params.search !== undefined) {
+      setSearchQuery(params.search);
+    }
+  }, [params.search]);
   const [flowFilter, setFlowFilter] = useState('ALL');
   const [categoryTypeFilter, setCategoryTypeFilter] = useState('ALL');
   const [sortField, setSortField] = useState<SortField>('recordedAt');
@@ -193,7 +200,7 @@ export default function TransactionsScreen() {
                   <View style={styles.cardRow}>
                     <View style={{ flex: 1 }}>
                       <TouchableOpacity
-                        onPress={() => router.push('/(app)/categories' as any)}
+                        onPress={() => router.push({ pathname: '/(app)/categories', params: { search: item.categoryName || '' } } as any)}
                         activeOpacity={0.8}
                       >
                         <Text style={styles.catName}>{item.categoryName || 'Uncategorized'} 🔗</Text>

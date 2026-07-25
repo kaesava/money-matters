@@ -1,5 +1,8 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { FilterBar } from "../../../components/web/FilterBar";
 
@@ -12,6 +15,9 @@ function fmt(val: string | number) {
 }
 
 export default function TransactionsPage() {
+  const searchParams = useSearchParams();
+  const paramSearch = searchParams.get("search") || searchParams.get("categoryId") || "";
+
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
   const categoriesQuery = trpc.listCategories.useQuery();
 
@@ -30,7 +36,13 @@ export default function TransactionsPage() {
   const categories = categoriesQuery.data ?? [];
 
   // Filter States
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(paramSearch);
+
+  useEffect(() => {
+    if (paramSearch) {
+      setSearchQuery(paramSearch);
+    }
+  }, [paramSearch]);
   const [flowFilter, setFlowFilter] = useState("ALL");
   const [categoryTypeFilter, setCategoryTypeFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
@@ -214,12 +226,12 @@ export default function TransactionsPage() {
                       })}
                     </td>
                     <td className="px-6 py-4">
-                      <a
+                      <Link
                         href={`/dashboard/categories?search=${encodeURIComponent(tx.categoryName || "")}`}
                         className="font-bold text-[#00B4A6] hover:underline cursor-pointer"
                       >
                         {tx.categoryName || "Uncategorized"}
-                      </a>
+                      </Link>
                     </td>
                     <td className="px-6 py-4">
                       <span
