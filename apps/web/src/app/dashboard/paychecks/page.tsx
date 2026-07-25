@@ -1,7 +1,10 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import { FilterBar } from "../../../components/web/FilterBar";
+import { PaginationBar } from "@money-matters/ui/web";
 import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
 import { SourceBurstDetailModal } from "../../../components/web/SourceBurstDetailModal";
 
@@ -50,25 +53,56 @@ function formatScheduleDetail(rrule?: string | null, startDate?: string | null) 
   };
 }
 
+export interface UnifiedSourceItem {
+  id: string;
+  type: "INCOME" | "EXPENSE";
+  name: string;
+  amount: string;
+  rrule?: string | null;
+  startDate?: string | null;
+  categoryId?: string | null;
+  receivingAccountId?: string | null;
+  categoryName?: string;
+  accountName?: string;
+  isUpcoming: boolean;
+}
+
 export default function IncomeAndExpensesPage() {
   const utils = trpc.useUtils();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
   const categoriesQuery = trpc.listCategories.useQuery();
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
 
   const incomeSources = incomeSourcesQuery.data ?? [];
   const expenseSources = expenseSourcesQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+  const bankAccounts = bankAccountsQuery.data ?? [];
+  const incomeEvents = incomeEventsQuery.data ?? [];
+  const expenseEvents = expenseEventsQuery.data ?? [];
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
+  const [sourceTypeFilter, setSourceTypeFilter] = useState("ALL");
+  const [timelineFilter, setTimelineFilter] = useState("ALL");
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, sourceTypeFilter, timelineFilter, pageSize]);
 
   // Modals State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [sourceToEdit, setSourceToEdit] = useState<React.ComponentProps<typeof IncomeExpenseFormModal>["sourceToEdit"]>(undefined);
 
-  // Burst Detail Hyperlink Modal State
+  // Burst Detail Modal State
   const [burstModalOpen, setBurstModalOpen] = useState(false);
   const [burstModalMode, setBurstModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [burstSourceId, setBurstSourceId] = useState<string | null>(null);
@@ -91,52 +125,119 @@ export default function IncomeAndExpensesPage() {
     },
   });
 
-  type IncomeItem = typeof incomeSources[number];
-  type ExpenseItem = typeof expenseSources[number];
+  const todayStr = new Date().toISOString().split("T")[0];
 
-  const handleArchiveIncome = async (inc: IncomeItem) => {
-    if (confirm(`Archiving this income stream will cancel all future upcoming payday splits that haven't been processed yet. Processed paydays will stay in your history. Do you want to proceed with archiving "${inc.name}"?`)) {
-      try {
-        await archiveIncomeMut.mutateAsync({ id: inc.id });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to archive income source.";
-        alert(message);
-      }
-    }
-  };
+  // Combine Income Sources & Expense Bills into Unified List
+  const unifiedList: UnifiedSourceItem[] = React.useMemo(() => {
+    const list: UnifiedSourceItem[] = [];
 
-  const handleArchiveExpense = async (exp: ExpenseItem) => {
-    if (confirm(`Archiving this bill will cancel all future upcoming bill reminders that haven't been paid yet. Paid bills will stay in your history. Do you want to proceed with archiving "${exp.name}"?`)) {
-      try {
-        await archiveExpenseMut.mutateAsync({ id: exp.id });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to archive expense source.";
-        alert(message);
-      }
-    }
-  };
+    // Map Income Sources
+    incomeSources.forEach((inc) => {
+      const acc = bankAccounts.find((a) => a.id === inc.receivingAccountId);
+      const hasUpcomingEvent = incomeEvents.some(
+        (e) => e.incomeSourceId === inc.id && e.expectedDate >= todayStr
+      );
+      const isUpcoming = (inc.startDate ? inc.startDate >= todayStr : false) || hasUpcomingEvent || Boolean(inc.rrule);
+
+      list.push({
+        id: inc.id,
+        type: "INCOME",
+        name: inc.name,
+        amount: inc.amount,
+        rrule: inc.rrule,
+        startDate: inc.startDate,
+        receivingAccountId: inc.receivingAccountId,
+        accountName: acc?.name || "Main Account",
+        isUpcoming,
+      });
+    });
+
+    // Map Expense Sources
+    expenseSources.forEach((exp) => {
+      const cat = categories.find((c) => c.id === exp.categoryId);
+      const hasUpcomingEvent = expenseEvents.some(
+        (e) => e.expenseSourceId === exp.id && e.expectedDate >= todayStr
+      );
+      const isUpcoming = (exp.startDate ? exp.startDate >= todayStr : false) || hasUpcomingEvent || Boolean(exp.rrule);
+
+      list.push({
+        id: exp.id,
+        type: "EXPENSE",
+        name: exp.name,
+        amount: exp.amount,
+        rrule: exp.rrule,
+        startDate: exp.startDate,
+        categoryId: exp.categoryId,
+        categoryName: cat?.name || "Uncategorized",
+        isUpcoming,
+      });
+    });
+
+    return list;
+  }, [incomeSources, expenseSources, categories, bankAccounts, incomeEvents, expenseEvents, todayStr]);
 
   // Filter Logic
-  const filteredIncome = incomeSources.filter((i) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (q && !i.name.toLowerCase().includes(q)) return false;
-    return true;
-  });
+  const filtered = React.useMemo(() => {
+    return unifiedList.filter((item) => {
+      // Type Filter
+      if (sourceTypeFilter !== "ALL" && item.type !== sourceTypeFilter) return false;
 
-  const filteredExpense = expenseSources.filter((e) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (q && !e.name.toLowerCase().includes(q)) return false;
-    return true;
-  });
+      // Timeline Filter
+      if (timelineFilter === "UPCOMING" && !item.isUpcoming) return false;
+
+      // Search Query
+      const q = searchQuery.toLowerCase().trim();
+      if (q) {
+        const matchesName = item.name.toLowerCase().includes(q);
+        const matchesCategory = item.categoryName?.toLowerCase().includes(q);
+        const matchesAccount = item.accountName?.toLowerCase().includes(q);
+        const matchesAmount = item.amount.includes(q);
+        if (!matchesName && !matchesCategory && !matchesAccount && !matchesAmount) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [unifiedList, sourceTypeFilter, timelineFilter, searchQuery]);
+
+  // Paginated Subset
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedItems = React.useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
+  const handleArchive = async (item: UnifiedSourceItem) => {
+    if (item.type === "INCOME") {
+      if (confirm(`Archiving this income stream will cancel all future upcoming paydays. Proceed with archiving "${item.name}"?`)) {
+        try {
+          await archiveIncomeMut.mutateAsync({ id: item.id });
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "Failed to archive income source.");
+        }
+      }
+    } else {
+      if (confirm(`Archiving this bill will cancel all future upcoming bill reminders. Proceed with archiving "${item.name}"?`)) {
+        try {
+          await archiveExpenseMut.mutateAsync({ id: item.id });
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "Failed to archive expense bill.");
+        }
+      }
+    }
+  };
+
+  const isLoading = incomeSourcesQuery.isLoading || expenseSourcesQuery.isLoading;
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       {/* Header & Main Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Income & Expenses</h1>
+          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("common.incomeAndExpenses")}</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-            Configure recurring paychecks, bonuses, utility bills, and fixed obligations.
+            Configure recurring paychecks, bonuses, utility bills, and fixed obligations in one place.
           </p>
         </div>
 
@@ -169,221 +270,184 @@ export default function IncomeAndExpensesPage() {
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar with Type & Timeline Groups */}
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search income deposit or bill name..."
-        onClearAll={() => setSearchQuery("")}
+        searchPlaceholder="Search name, category, or account..."
+        filterGroups={[
+          {
+            label: "Type",
+            value: sourceTypeFilter,
+            onChange: setSourceTypeFilter,
+            defaultValue: "ALL",
+            options: [
+              { id: "ALL", label: t("common.allSources") },
+              { id: "INCOME", label: t("common.incomeSources") },
+              { id: "EXPENSE", label: t("common.expenseBills") },
+            ],
+          },
+          {
+            label: "Timeline",
+            value: timelineFilter,
+            onChange: setTimelineFilter,
+            defaultValue: "ALL",
+            options: [
+              { id: "ALL", label: "All" },
+              { id: "UPCOMING", label: t("common.upcomingOnly") },
+            ],
+          },
+        ]}
+        onClearAll={() => {
+          setSearchQuery("");
+          setSourceTypeFilter("ALL");
+          setTimelineFilter("ALL");
+        }}
       />
 
-      {/* Split Side-by-Side Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Income Sources Table */}
-        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-6 py-4 bg-emerald-50/50 border-b border-zinc-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">💵</span>
-              <h3 className="text-sm font-black text-[#1B2B4B]">Income Sources ({filteredIncome.length})</h3>
-            </div>
-            <span className="text-[10px] font-extrabold uppercase text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
-              Inflows
-            </span>
-          </div>
+      {/* Combined Table */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
+        <table className="w-full text-left border-collapse text-xs font-semibold">
+          <thead>
+            <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
+              <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">Type</th>
+              <th className="px-6 py-4">Schedule</th>
+              <th className="px-6 py-4">{t("common.categoryOrAccount")}</th>
+              <th className="px-6 py-4">Amount</th>
+              <th className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
+                  Loading income & expense sources...
+                </td>
+              </tr>
+            ) : paginatedItems.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
+                  No matching income or expense sources found.
+                </td>
+              </tr>
+            ) : (
+              paginatedItems.map((item) => {
+                const sched = formatScheduleDetail(item.rrule, item.startDate);
+                const isIncome = item.type === "INCOME";
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                  <th className="px-5 py-3.5">Deposit Name</th>
-                  <th className="px-5 py-3.5">Schedule</th>
-                  <th className="px-5 py-3.5">Expected Amount</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {filteredIncome.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
-                      No income sources configured.
+                return (
+                  <tr key={`${item.type}-${item.id}`} className="hover:bg-zinc-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBurstModalMode(item.type);
+                          setBurstSourceId(item.id);
+                          setBurstSourceName(item.name);
+                          setBurstSourceAmount(item.amount);
+                          setBurstCategoryName(item.categoryName || "");
+                          setBurstModalOpen(true);
+                        }}
+                        className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>{item.name}</span>
+                        <span className="text-zinc-400 text-[10px]">🔗</span>
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          isIncome
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                        }`}
+                      >
+                        {isIncome ? "Income (+)" : "Expense (-)"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span
+                          className={`self-start px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                            sched.isRecurring
+                              ? isIncome
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-teal-50 text-[#00B4A6] border-teal-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}
+                        >
+                          {sched.badgeText}
+                        </span>
+                        <span className="text-[11px] text-zinc-500 font-medium">{sched.detailText}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-600">
+                      {isIncome ? (
+                        <span className="flex items-center gap-1">
+                          <span className="text-zinc-400">🏦</span>
+                          <span>{item.accountName || "Main Bank Account"}</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <span className="text-zinc-400">🏷️</span>
+                          <span>{item.categoryName || "Uncategorized"}</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className={`px-6 py-4 font-mono font-extrabold ${isIncome ? "text-emerald-600" : "text-rose-600"}`}>
+                      {isIncome ? "+" : "-"}{fmt(item.amount)}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalMode(item.type);
+                            setSourceToEdit({
+                              id: item.id,
+                              name: item.name,
+                              amount: item.amount,
+                              categoryId: item.categoryId,
+                              receivingAccountId: item.receivingAccountId,
+                              rrule: item.rrule,
+                              startDate: item.startDate,
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleArchive(item)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors"
+                        >
+                          Archive
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  filteredIncome.map((inc) => {
-                    const sched = formatScheduleDetail(inc.rrule, inc.startDate);
-                    return (
-                      <tr key={inc.id} className="hover:bg-zinc-50/50 transition-colors font-semibold">
-                        <td className="px-5 py-3.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBurstModalMode("INCOME");
-                              setBurstSourceId(inc.id);
-                              setBurstSourceName(inc.name);
-                              setBurstSourceAmount(inc.amount);
-                              setBurstCategoryName("");
-                              setBurstModalOpen(true);
-                            }}
-                            className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
-                          >
-                            {inc.name} 🔗
-                          </button>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                              sched.isRecurring
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}>
-                              {sched.badgeText}
-                            </span>
-                            <span className="text-[11px] text-zinc-500 font-medium">
-                              {sched.detailText}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 font-mono font-extrabold text-emerald-600">
-                          {fmt(inc.amount)}
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setModalMode("INCOME");
-                                setSourceToEdit(inc);
-                                setIsModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleArchiveIncome(inc)}
-                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
-                            >
-                              Archive
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Expense Sources Table */}
-        <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-6 py-4 bg-teal-50/50 border-b border-zinc-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">💳</span>
-              <h3 className="text-sm font-black text-[#1B2B4B]">Expense Bills ({filteredExpense.length})</h3>
-            </div>
-            <span className="text-[10px] font-extrabold uppercase text-[#00B4A6] bg-teal-100 px-2 py-0.5 rounded-full">
-              Mandatory Category Outflows
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                  <th className="px-5 py-3.5">Bill Name</th>
-                  <th className="px-5 py-3.5">Category</th>
-                  <th className="px-5 py-3.5">Schedule</th>
-                  <th className="px-5 py-3.5">Amount</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {filteredExpense.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
-                      No expense bills configured.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredExpense.map((exp) => {
-                    const cat = categories.find((c) => c.id === exp.categoryId);
-                    const sched = formatScheduleDetail(exp.rrule, exp.startDate);
-                    return (
-                      <tr key={exp.id} className="hover:bg-zinc-50/50 transition-colors font-semibold">
-                        <td className="px-5 py-3.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBurstModalMode("EXPENSE");
-                              setBurstSourceId(exp.id);
-                              setBurstSourceName(exp.name);
-                              setBurstSourceAmount(exp.amount);
-                              setBurstCategoryName(cat?.name || "Category");
-                              setBurstModalOpen(true);
-                            }}
-                            className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
-                          >
-                            {exp.name} 🔗
-                          </button>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700">
-                            {cat?.name || "Unassigned"}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                              sched.isRecurring
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}>
-                              {sched.badgeText}
-                            </span>
-                            <span className="text-[11px] text-zinc-500 font-medium">
-                              {sched.detailText}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 font-mono font-extrabold text-[#1B2B4B]">
-                          {fmt(exp.amount)}
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setModalMode("EXPENSE");
-                                setSourceToEdit(exp);
-                                setIsModalOpen(true);
-                              }}
-                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleArchiveExpense(exp)}
-                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
-                            >
-                              Archive
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Shared Add/Edit Income and Expense Modal */}
+      {/* Pagination Footer */}
+      <PaginationBar
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={filtered.length}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
+
+      {/* Income/Expense Modal */}
       <IncomeExpenseFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -397,7 +461,7 @@ export default function IncomeAndExpensesPage() {
         }}
       />
 
-      {/* Burst Detail Hyperlink Modal */}
+      {/* Burst Occurrences Modal */}
       <SourceBurstDetailModal
         isOpen={burstModalOpen}
         onClose={() => setBurstModalOpen(false)}

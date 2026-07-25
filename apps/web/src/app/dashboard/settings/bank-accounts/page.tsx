@@ -3,12 +3,18 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 
+import { PaginationBar } from "@money-matters/ui/web";
+
 export default function BankAccountsPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const accounts = bankAccountsQuery.data ?? [];
   type BankAccountItem = typeof accounts[number];
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [showModal, setShowModal] = useState(false);
   const [accountToEdit, setAccountToEdit] = useState<BankAccountItem | null>(null);
@@ -75,6 +81,9 @@ export default function BankAccountsPage() {
     }
   };
 
+  const totalPages = Math.ceil(accounts.length / pageSize) || 1;
+  const paginatedAccounts = accounts.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
       {/* Header */}
@@ -110,7 +119,7 @@ export default function BankAccountsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {accounts.map((acc: BankAccountItem) => {
+          {paginatedAccounts.map((acc: BankAccountItem) => {
             const actualNum = parseFloat(acc.lastKnownBalance || "0");
             const expectedNum = parseFloat(acc.expectedBalance || "0");
             const bufferNum = parseFloat(acc.unbudgetedBuffer || "0");
@@ -152,6 +161,17 @@ export default function BankAccountsPage() {
           })}
         </div>
       )}
+
+      {/* Pagination Footer */}
+      <PaginationBar
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={accounts.length}
+        pageSizeOptions={[10, 25, 50]}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* Shared Add/Edit Bank Account Modal */}
       {showModal && (

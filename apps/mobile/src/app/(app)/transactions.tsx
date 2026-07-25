@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Share, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ export default function TransactionsScreen() {
   const params = useLocalSearchParams<{ search?: string }>();
   const { data: session } = authClient.useSession();
 
-  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
+  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
   const categoriesQuery = trpc.listCategories.useQuery();
 
   const transactions = (transactionsQuery.data as any[]) ?? [];
@@ -34,6 +34,14 @@ export default function TransactionsScreen() {
   const [categoryTypeFilter, setCategoryTypeFilter] = useState('ALL');
   const [sortField, setSortField] = useState<SortField>('recordedAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchQuery, flowFilter, categoryTypeFilter, sortField, sortDir, pageSize]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -190,53 +198,65 @@ export default function TransactionsScreen() {
             <Text style={styles.emptySubtitle}>Adjust your search or filter settings.</Text>
           </View>
         ) : (
-          <FlatList
-            data={sorted}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => {
-              const isDebit = item.flowType === 'DEBIT';
-              return (
-                <View style={styles.card}>
-                  <View style={styles.cardRow}>
-                    <View style={{ flex: 1 }}>
-                      <TouchableOpacity
-                        onPress={() => router.push({ pathname: '/(app)/categories', params: { search: item.categoryName || '' } } as any)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.catName}>{item.categoryName || 'Uncategorized'} 🔗</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.dateText}>
-                        {new Date(item.recordedAt).toLocaleString('en-AU', {
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })}
-                      </Text>
-                    </View>
+          <>
+            <FlatList
+              data={sorted.slice((page - 1) * pageSize, page * pageSize)}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const isDebit = item.flowType === 'DEBIT';
+                return (
+                  <View style={styles.card}>
+                    <View style={styles.cardRow}>
+                      <View style={{ flex: 1 }}>
+                        <TouchableOpacity
+                          onPress={() => router.push({ pathname: '/(app)/categories', params: { search: item.categoryName || '' } } as any)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.catName}>{item.categoryName || 'Uncategorized'} 🔗</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.dateText}>
+                          {new Date(item.recordedAt).toLocaleString('en-AU', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        </Text>
+                      </View>
 
-                    <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                      <Text style={[styles.amountText, { color: isDebit ? '#EF4444' : '#10B981' }]}>
-                        {isDebit ? '-' : '+'}{formatAUD(item.amount)}
-                      </Text>
+                      <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                        <Text style={[styles.amountText, { color: isDebit ? '#EF4444' : '#10B981' }]}>
+                          {isDebit ? '-' : '+'}{formatAUD(item.amount)}
+                        </Text>
 
-                      <View style={styles.badgeRow}>
-                        <View style={[styles.flowBadge, { backgroundColor: isDebit ? '#FEE2E2' : '#D1FAE5' }]}>
-                          <Text style={[styles.flowBadgeText, { color: isDebit ? '#991B1B' : '#065F46' }]}>
-                            {isDebit ? 'DEBIT' : 'CREDIT'}
-                          </Text>
-                        </View>
-                        <View style={styles.sourceBadge}>
-                          <Text style={styles.sourceBadgeText}>{item.source || 'MANUAL'}</Text>
+                        <View style={styles.badgeRow}>
+                          <View style={[styles.flowBadge, { backgroundColor: isDebit ? '#FEE2E2' : '#D1FAE5' }]}>
+                            <Text style={[styles.flowBadgeText, { color: isDebit ? '#991B1B' : '#065F46' }]}>
+                              {isDebit ? 'DEBIT' : 'CREDIT'}
+                            </Text>
+                          </View>
+                          <View style={styles.sourceBadge}>
+                            <Text style={styles.sourceBadgeText}>{item.source || 'MANUAL'}</Text>
+                          </View>
                         </View>
                       </View>
                     </View>
-                  </View>
 
-                  {item.note ? <Text style={styles.noteText}>Note: {item.note}</Text> : null}
-                </View>
-              );
-            }}
-            contentContainerStyle={styles.list}
-          />
+                    {item.note ? <Text style={styles.noteText}>Note: {item.note}</Text> : null}
+                  </View>
+                );
+              }}
+              contentContainerStyle={styles.list}
+            />
+
+            <MobilePaginationBar
+              page={page}
+              totalPages={Math.ceil(sorted.length / pageSize) || 1}
+              pageSize={pageSize}
+              totalItems={sorted.length}
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </View>
     </MobileScreenWrapper>

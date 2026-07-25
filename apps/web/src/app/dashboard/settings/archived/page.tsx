@@ -3,10 +3,16 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 
+import { PaginationBar } from "@money-matters/ui/web";
+
 export default function ArchivedItemsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT">("ALL");
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const restoreMutation = trpc.restoreItem.useMutation({
@@ -22,6 +28,9 @@ export default function ArchivedItemsPage() {
     const matchesType = filterType === "ALL" || item.itemType === filterType;
     return matchesSearch && matchesType;
   });
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
@@ -91,7 +100,7 @@ export default function ArchivedItemsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map((item) => (
+          {paginated.map((item) => (
             <div
               key={`${item.itemType}-${item.id}`}
               className="flex items-center justify-between p-4 rounded-xl bg-white border border-zinc-100 shadow-sm"
@@ -124,6 +133,17 @@ export default function ArchivedItemsPage() {
           ))}
         </div>
       )}
+
+      {/* Pagination Footer */}
+      <PaginationBar
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={filtered.length}
+        pageSizeOptions={[10, 25, 50]}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

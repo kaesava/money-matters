@@ -10,13 +10,17 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { DESIGN_TOKENS } from "@money-matters/ui";
+import { DESIGN_TOKENS, MobilePaginationBar } from "@money-matters/ui";
 import { trpc } from "../../../lib/trpc";
 
 export default function MobileArchivedItemsScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT">("ALL");
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const restoreMutation = trpc.restoreItem.useMutation({
@@ -35,6 +39,9 @@ export default function MobileArchivedItemsScreen() {
     const matchesType = filterType === "ALL" || item.itemType === filterType;
     return matchesSearch && matchesType;
   });
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <View style={styles.container}>
@@ -82,37 +89,49 @@ export default function MobileArchivedItemsScreen() {
           <Text style={styles.emptyText}>No archived items found</Text>
         </View>
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => `${item.itemType}-${item.id}`}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={{ flex: 1 }}>
-                <View style={styles.row}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{item.itemType.replace("_", " ")}</Text>
+        <>
+          <FlatList
+            data={paginated}
+            keyExtractor={(item) => `${item.itemType}-${item.id}`}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.row}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{item.itemType.replace("_", " ")}</Text>
+                    </View>
                   </View>
+                  {item.subtitle ? <Text style={styles.subtext}>{item.subtitle}</Text> : null}
                 </View>
-                {item.subtitle ? <Text style={styles.subtext}>{item.subtitle}</Text> : null}
-              </View>
 
-              <TouchableOpacity
-                onPress={() =>
-                  restoreMutation.mutate({
-                    itemId: item.id,
-                    itemType: item.itemType as any,
-                  })
-                }
-                disabled={restoreMutation.isPending}
-                style={styles.restoreButton}
-              >
-                <Text style={styles.restoreText}>Restore</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          contentContainerStyle={{ gap: 10, paddingBottom: 32 }}
-        />
+                <TouchableOpacity
+                  onPress={() =>
+                    restoreMutation.mutate({
+                      itemId: item.id,
+                      itemType: item.itemType as any,
+                    })
+                  }
+                  disabled={restoreMutation.isPending}
+                  style={styles.restoreButton}
+                >
+                  <Text style={styles.restoreText}>Restore</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            contentContainerStyle={{ gap: 10, paddingBottom: 16 }}
+          />
+
+          <MobilePaginationBar
+            page={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={filtered.length}
+            pageSizeOptions={[10, 20, 50]}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        </>
       )}
     </View>
   );

@@ -22,6 +22,8 @@ export * from './GenericEditForm';
 export * from './CardActions';
 export * from './RowActions';
 export * from './LineItemDetailDrawer';
+export * from './PaginationBar';
+
 
 
 

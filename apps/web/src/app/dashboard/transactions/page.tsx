@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { FilterBar } from "../../../components/web/FilterBar";
+import { PaginationBar } from "@money-matters/ui/web";
 
 type SortField = "recordedAt" | "amount" | "categoryName";
 type SortDir = "asc" | "desc";
@@ -18,7 +19,7 @@ export default function TransactionsPage() {
   const searchParams = useSearchParams();
   const paramSearch = searchParams.get("search") || searchParams.get("categoryId") || "";
 
-  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
+  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
   const categoriesQuery = trpc.listCategories.useQuery();
 
   interface TransactionItem {
@@ -50,6 +51,14 @@ export default function TransactionsPage() {
   // Sort State
   const [sortField, setSortField] = useState<SortField>("recordedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, flowFilter, categoryTypeFilter, categoryFilter, sortField, sortDir, pageSize]);
 
   // Toggle Sort
   const toggleSort = (field: SortField) => {
@@ -97,6 +106,9 @@ export default function TransactionsPage() {
     }
     return sortDir === "asc" ? comparison : -comparison;
   });
+
+  const totalPages = Math.ceil(sorted.length / pageSize) || 1;
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   // CSV Export
   const handleExportCsv = () => {
@@ -215,7 +227,7 @@ export default function TransactionsPage() {
                 </td>
               </tr>
             ) : (
-              sorted.map((tx: TransactionItem) => {
+              paginated.map((tx: TransactionItem) => {
                 const isDebit = tx.flowType === "DEBIT";
                 return (
                   <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
@@ -264,6 +276,17 @@ export default function TransactionsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Footer */}
+      <PaginationBar
+        page={page}
+        totalPages={Math.ceil(sorted.length / pageSize) || 1}
+        pageSize={pageSize}
+        totalItems={sorted.length}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

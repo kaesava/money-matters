@@ -7,6 +7,7 @@ import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDraw
 import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
 import { FilterBar } from "../../../components/web/FilterBar";
 import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
+import { PaginationBar } from "@money-matters/ui/web";
 
 type SortField = "name" | "type" | "balance" | "health";
 type SortDir = "asc" | "desc";
@@ -38,6 +39,14 @@ export default function CategoriesPage() {
   // Sort State
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, healthFilter, typeFilter, sortField, sortDir, pageSize]);
 
   // Selection & Modals
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -101,6 +110,9 @@ export default function CategoriesPage() {
     }
     return sortDir === "asc" ? comparison : -comparison;
   });
+
+  const totalPages = Math.ceil(sorted.length / pageSize) || 1;
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   // Summary Metrics
   const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
@@ -256,7 +268,7 @@ export default function CategoriesPage() {
                 </td>
               </tr>
             ) : (
-              sorted.map((cat) => {
+              paginated.map((cat) => {
                 const balanceVal = parseFloat(cat.currentBalance);
                 const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
                 const pct = targetVal > 0 ? Math.min(100, Math.round((balanceVal / targetVal) * 100)) : 100;
@@ -340,6 +352,17 @@ export default function CategoriesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Footer */}
+      <PaginationBar
+        page={page}
+        totalPages={Math.ceil(sorted.length / pageSize) || 1}
+        pageSize={pageSize}
+        totalItems={sorted.length}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
       {/* Shared Move Money Modal */}
       <MoveMoneyModal

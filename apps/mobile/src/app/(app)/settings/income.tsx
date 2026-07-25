@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
 
 const INCOME_TYPES = ['SALARY', 'FREELANCE', 'OTHER'] as const;
@@ -40,6 +40,10 @@ export default function SettingsIncomeScreen() {
   const [amount, setAmount] = useState('');
   const [frequency, setFrequency] = useState<Frequency>('FORTNIGHTLY');
   const [adding, setAdding] = useState(false);
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Queries & Mutations
   const { data: incomeSources, isLoading, refetch } = trpc.listIncomeSources.useQuery();
@@ -97,6 +101,10 @@ export default function SettingsIncomeScreen() {
     );
   };
 
+  const totalItems = incomeSources?.length ?? 0;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const paginatedSources = (incomeSources ?? []).slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
@@ -117,27 +125,39 @@ export default function SettingsIncomeScreen() {
             <Text style={styles.emptyText}>No active income streams registered.</Text>
           </View>
         ) : (
-          <View style={styles.listCard}>
-            {incomeSources.map((item, idx) => (
-              <View key={item.id}>
-                {idx > 0 && <View style={styles.divider} />}
-                <View style={styles.row}>
-                  <View style={styles.rowInfo}>
-                    <Text style={styles.rowName}>{item.name}</Text>
-                    <Text style={styles.rowMeta}>
-                      ${parseFloat(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </Text>
+          <>
+            <View style={styles.listCard}>
+              {paginatedSources.map((item, idx) => (
+                <View key={item.id}>
+                  {idx > 0 && <View style={styles.divider} />}
+                  <View style={styles.row}>
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowName}>{item.name}</Text>
+                      <Text style={styles.rowMeta}>
+                        ${parseFloat(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleArchive(item.id, item.name)}
+                      style={styles.archiveBtn}
+                    >
+                      <Text style={styles.archiveText}>Delete</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => handleArchive(item.id, item.name)}
-                    style={styles.archiveBtn}
-                  >
-                    <Text style={styles.archiveText}>Delete</Text>
-                  </TouchableOpacity>
                 </View>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+
+            <MobilePaginationBar
+              page={page}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </View>
 

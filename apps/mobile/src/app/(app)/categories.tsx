@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
@@ -41,6 +41,14 @@ export default function CategoriesScreen() {
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchQuery, healthFilter, typeFilter, sortField, sortDir, pageSize]);
 
   // Modals
   const [categoryFormVisible, setCategoryFormVisible] = useState(false);
@@ -227,58 +235,70 @@ export default function CategoriesScreen() {
           {sorted.length === 0 ? (
             <Text style={styles.emptyText}>No matching categories found.</Text>
           ) : (
-            sorted.map((cat: any) => {
-              const p = pct(cat.currentBalance, cat.targetAmount);
-              const color =
-                cat.healthStatus === 'GREEN' ? D.colors.success :
-                cat.healthStatus === 'AMBER' ? D.colors.warning :
-                cat.healthStatus === 'RED' ? D.colors.critical :
-                D.colors.accent;
+            <>
+              {sorted.slice((page - 1) * pageSize, page * pageSize).map((cat: any) => {
+                const p = pct(cat.currentBalance, cat.targetAmount);
+                const color =
+                  cat.healthStatus === 'GREEN' ? D.colors.success :
+                  cat.healthStatus === 'AMBER' ? D.colors.warning :
+                  cat.healthStatus === 'RED' ? D.colors.critical :
+                  D.colors.accent;
 
-              return (
-                <View key={cat.id} style={styles.card}>
-                  <TouchableOpacity
-                    onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.catName}>{cat.name}</Text>
-                      <Text style={[styles.catBalance, { color }]}>{formatAUD(cat.currentBalance)}</Text>
-                    </View>
-                    {cat.targetAmount && (
-                      <Text style={styles.target}>{t('categories.target')} {formatAUD(cat.targetAmount)}</Text>
-                    )}
-                    {p !== null && (
-                      <>
-                        <View style={styles.barBg}>
-                          <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
-                        </View>
-                        <Text style={[styles.pctLabel, { color }]}>{t('categories.progressPct', { pct: p })}</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-
-                  {/* Actions Row */}
-                  <View style={styles.actionRow}>
+                return (
+                  <View key={cat.id} style={styles.card}>
                     <TouchableOpacity
-                      onPress={() => {
-                        setCategoryToEdit(cat);
-                        setCategoryFormVisible(true);
-                      }}
-                      style={styles.actionBtn}
+                      onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
+                      activeOpacity={0.8}
                     >
-                      <Text style={styles.actionBtnText}>Edit</Text>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.catName}>{cat.name}</Text>
+                        <Text style={[styles.catBalance, { color }]}>{formatAUD(cat.currentBalance)}</Text>
+                      </View>
+                      {cat.targetAmount && (
+                        <Text style={styles.target}>{t('categories.target')} {formatAUD(cat.targetAmount)}</Text>
+                      )}
+                      {p !== null && (
+                        <>
+                          <View style={styles.barBg}>
+                            <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
+                          </View>
+                          <Text style={[styles.pctLabel, { color }]}>{t('categories.progressPct', { pct: p })}</Text>
+                        </>
+                      )}
                     </TouchableOpacity>
 
-                    {cat.type !== 'EVERYDAY' && (
-                      <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
-                        <Text style={styles.archiveBtnText}>Archive</Text>
+                    {/* Actions Row */}
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCategoryToEdit(cat);
+                          setCategoryFormVisible(true);
+                        }}
+                        style={styles.actionBtn}
+                      >
+                        <Text style={styles.actionBtnText}>Edit</Text>
                       </TouchableOpacity>
-                    )}
+
+                      {cat.type !== 'EVERYDAY' && (
+                        <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
+                          <Text style={styles.archiveBtnText}>Archive</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
-                </View>
-              );
-            })
+                );
+              })}
+
+              <MobilePaginationBar
+                page={page}
+                totalPages={Math.ceil(sorted.length / pageSize) || 1}
+                pageSize={pageSize}
+                totalItems={sorted.length}
+                pageSizeOptions={[10, 20, 50]}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
           )}
         </ScrollView>
       </MobileScreenWrapper>

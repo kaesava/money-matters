@@ -17,15 +17,16 @@ export function generateBurstDates(
   rruleStr: string,
   startDateStr: string,
   endDateStr?: string | null,
-  monthsAhead = 12
+  monthsAhead = 6,
+  maxOccurrences = 25
 ): Date[] {
   const dates: Date[] = [];
   const start = new Date(startDateStr);
+  if (isNaN(start.getTime())) return dates;
   const now = new Date();
 
   const cutOff = new Date(now.getFullYear(), now.getMonth() + monthsAhead, now.getDate());
   const endDate = endDateStr ? new Date(endDateStr) : null;
-  const maxEnd = endDate && endDate < cutOff ? endDate : cutOff;
 
   let current = new Date(start.getTime());
 
@@ -39,10 +40,19 @@ export function generateBurstDates(
   if (isFortnightly) stepDays = 14;
 
   let iterations = 0;
-  while (current <= maxEnd && iterations < 365) {
+  while (iterations < 365) {
     iterations++;
-    if (current >= now) {
+
+    if (endDate && current > endDate) break;
+
+    // Add occurrence if it's today or in future
+    if (current >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
       dates.push(new Date(current.getTime()));
+    }
+
+    // Stop condition: reached max occurrences AND passed cutoff date (or reached end date)
+    if (dates.length >= maxOccurrences && current > cutOff) {
+      break;
     }
 
     if (isMonthly) {

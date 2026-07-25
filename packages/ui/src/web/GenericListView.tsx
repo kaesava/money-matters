@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { t } from '@money-matters/i18n';
 import { ListViewToolbar } from './ListViewToolbar';
+import { PaginationBar } from './PaginationBar';
 
 export interface ColumnDefinition<T> {
   key: string;
@@ -30,7 +31,11 @@ export interface GenericListViewProps<T> {
   searchPlaceholder?: string;
   page?: number;
   totalPages?: number;
+  pageSize?: number;
+  totalItems?: number;
+  pageSizeOptions?: number[];
   onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   viewModeKey: string;
   sortBy: string;
   onSortByChange: (sort: string) => void;
@@ -66,7 +71,11 @@ export function GenericListView<T extends { id: string }>({
   searchPlaceholder = t('common.searchPlaceholder'),
   page = 1,
   totalPages = 1,
+  pageSize = 10,
+  totalItems = items.length,
+  pageSizeOptions = [10, 25, 50, 100],
   onPageChange,
+  onPageSizeChange,
   viewModeKey,
   sortBy,
   onSortByChange,
@@ -172,26 +181,16 @@ export function GenericListView<T extends { id: string }>({
       )}
 
       {/* Pagination Footer */}
-      {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-zinc-200/80 shadow-sm text-xs font-bold">
-          <button
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-            className="px-3 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50"
-          >
-            {t('common.previous')}
-          </button>
-          <span className="text-zinc-500">
-            {t('common.pageOf', { page, totalPages })}
-          </span>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-            className="px-3 py-1.5 rounded-xl border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50"
-          >
-            {t('common.nextPage')}
-          </button>
-        </div>
+      {onPageChange && (
+        <PaginationBar
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          pageSizeOptions={pageSizeOptions}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange || (() => {})}
+        />
       )}
     </div>
   );

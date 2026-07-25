@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
 import { BankAccountFormModal } from '../../../components/BankAccountFormModal';
 import { formatAUD } from '../../../lib/format';
@@ -11,6 +11,10 @@ export default function SettingsBankAccountsScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [accountToEdit, setAccountToEdit] = useState<any>(null);
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Queries & Mutations
   const { data: tenant, isLoading, refetch } = trpc.getTenant.useQuery();
@@ -35,6 +39,8 @@ export default function SettingsBankAccountsScreen() {
   };
 
   const accounts = tenant?.bankAccounts || [];
+  const totalPages = Math.ceil(accounts.length / pageSize) || 1;
+  const paginatedAccounts = accounts.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -69,35 +75,47 @@ export default function SettingsBankAccountsScreen() {
             <Text style={styles.emptyText}>No bank accounts registered.</Text>
           </View>
         ) : (
-          <View style={styles.listCard}>
-            {accounts.map((acc, idx) => (
-              <View key={acc.id}>
-                {idx > 0 && <View style={styles.divider} />}
-                <View style={styles.row}>
-                  <View style={styles.rowInfo}>
-                    <Text style={styles.rowName}>{acc.name}</Text>
-                    <Text style={styles.rowMeta}>Statement Balance: {formatAUD(acc.lastKnownBalance || '0')}</Text>
-                  </View>
+          <>
+            <View style={styles.listCard}>
+              {paginatedAccounts.map((acc, idx) => (
+                <View key={acc.id}>
+                  {idx > 0 && <View style={styles.divider} />}
+                  <View style={styles.row}>
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowName}>{acc.name}</Text>
+                      <Text style={styles.rowMeta}>Statement Balance: {formatAUD(acc.lastKnownBalance || '0')}</Text>
+                    </View>
 
-                  <View style={styles.btnRow}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setAccountToEdit(acc);
-                        setModalVisible(true);
-                      }}
-                      style={styles.editBtn}
-                    >
-                      <Text style={styles.editText}>Edit</Text>
-                    </TouchableOpacity>
+                    <View style={styles.btnRow}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setAccountToEdit(acc);
+                          setModalVisible(true);
+                        }}
+                        style={styles.editBtn}
+                      >
+                        <Text style={styles.editText}>Edit</Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => handleArchive(acc.id, acc.name)} style={styles.archiveBtn}>
-                      <Text style={styles.archiveText}>Archive</Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleArchive(acc.id, acc.name)} style={styles.archiveBtn}>
+                        <Text style={styles.archiveText}>Archive</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+
+            <MobilePaginationBar
+              page={page}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={accounts.length}
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
         )}
       </View>
 

@@ -16,4 +16,5 @@ export { default as MobileFilterBar } from './MobileFilterBar';
 export type { MobileFilterBarProps, MobileFilterGroup, MobileFilterOption } from './MobileFilterBar';
 export { default as MobileModalDialog } from './MobileModalDialog';
 export type { MobileModalDialogProps } from './MobileModalDialog';
-
+export { MobilePaginationBar } from './MobilePaginationBar';
+export type { MobilePaginationBarProps } from './MobilePaginationBar';
