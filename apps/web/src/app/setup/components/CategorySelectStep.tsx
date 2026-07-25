@@ -1,83 +1,145 @@
 import React from "react";
-
-export interface PresetCategory {
-  id: string;
-  name: string;
-  type: "GOAL" | "REGULAR" | "EVERYDAY";
-  icon: string;
-}
+import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from "@money-matters/types";
+import { t } from "@money-matters/i18n";
 
 interface CategorySelectStepProps {
-  presets: PresetCategory[];
   selectedPresets: Set<string>;
   togglePreset: (id: string) => void;
   customCategoryName: string;
   setCustomCategoryName: (name: string) => void;
-  customCategories: PresetCategory[];
+  customCategories: SetupPreset[];
   onAddCustomCategory: () => void;
+  targets: Record<string, string>;
+  setTarget: (id: string, val: string) => void;
+  defaultExcessId: string;
+  setDefaultExcessId: (id: string) => void;
   onBack: () => void;
-  onNext: () => void;
+  onComplete: () => void;
+  isSubmitting: boolean;
 }
 
 export function CategorySelectStep({
-  presets,
   selectedPresets,
   togglePreset,
   customCategoryName,
   setCustomCategoryName,
   customCategories,
   onAddCustomCategory,
+  targets,
+  setTarget,
+  defaultExcessId,
+  setDefaultExcessId,
   onBack,
-  onNext,
+  onComplete,
+  isSubmitting,
 }: CategorySelectStepProps) {
-  const allAvailable = [...presets, ...customCategories];
+  const allAvailable = [...AUSTRALIAN_FAMILY_PRESETS, ...customCategories];
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
       <div>
-        <h2 className="text-xl font-bold text-[#1B2B4B]">Step 2: Choose Your Budget Categories</h2>
+        <h2 className="text-2xl font-black text-[#1B2B4B]">📋 Which bills do you have?</h2>
         <p className="text-xs text-zinc-500 font-semibold mt-1">
-          Select standard savings goals and regular obligations or add your own custom categories.
+          Tick the ones that apply and adjust the monthly amounts. We'll handle the rest.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {allAvailable.map((preset) => {
-          const isSelected = selectedPresets.has(preset.id);
-          return (
-            <div
-              key={preset.id}
-              onClick={() => togglePreset(preset.id)}
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                isSelected
-                  ? "bg-teal-50/50 border-[#00B4A6] shadow-sm"
-                  : "bg-white border-zinc-200/80 hover:border-zinc-300"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{preset.icon}</span>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-[#1B2B4B]">{preset.name}</span>
-                  <span className="text-[10px] text-zinc-400 font-medium">{preset.type}</span>
-                </div>
-              </div>
+      <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto pr-2">
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Regular Bills & Obligations</span>
+          <div className="grid grid-cols-1 gap-2">
+            {allAvailable.filter(p => p.type === 'REGULAR').map((preset) => {
+              const isSelected = selectedPresets.has(preset.id);
+              return (
+                <div
+                  key={preset.id}
+                  className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+                    isSelected ? "bg-teal-50/40 border-[#00B4A6] shadow-xs" : "bg-white border-zinc-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => togglePreset(preset.id)}>
+                    <span className="text-xl">{preset.emoji}</span>
+                    <span className="text-xs font-bold text-[#1B2B4B]">{preset.name}</span>
+                  </div>
 
-              <div
-                className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs font-bold ${
-                  isSelected ? "bg-[#00B4A6] text-white" : "border border-zinc-300 bg-white"
-                }`}
-              >
-                {isSelected && "✓"}
-              </div>
-            </div>
-          );
-        })}
+                  {isSelected && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-400">Monthly ($)</span>
+                      <input
+                        type="number"
+                        step="1"
+                        value={targets[preset.id] ?? ""}
+                        onChange={(e) => setTarget(preset.id, e.target.value)}
+                        placeholder={preset.suggestedMonthlyAud.toString()}
+                        className="w-20 px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-right"
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => togglePreset(preset.id)}
+                    className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs font-bold ${
+                      isSelected ? "bg-[#00B4A6] text-white" : "border border-zinc-300 bg-white"
+                    }`}
+                  >
+                    {isSelected && "✓"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 mt-4">
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Savings Goals</span>
+          <div className="grid grid-cols-1 gap-2">
+            {allAvailable.filter(p => p.type === 'GOAL').map((preset) => {
+              const isSelected = selectedPresets.has(preset.id);
+              return (
+                <div
+                  key={preset.id}
+                  className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+                    isSelected ? "bg-teal-50/40 border-[#00B4A6] shadow-xs" : "bg-white border-zinc-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => togglePreset(preset.id)}>
+                    <span className="text-xl">{preset.emoji}</span>
+                    <span className="text-xs font-bold text-[#1B2B4B]">{preset.name}</span>
+                  </div>
+
+                  {isSelected && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-zinc-400">Target ($)</span>
+                      <input
+                        type="number"
+                        step="1"
+                        value={targets[preset.id] ?? ""}
+                        onChange={(e) => setTarget(preset.id, e.target.value)}
+                        placeholder={preset.suggestedMonthlyAud.toString()}
+                        className="w-20 px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-right"
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => togglePreset(preset.id)}
+                    className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs font-bold ${
+                      isSelected ? "bg-[#00B4A6] text-white" : "border border-zinc-300 bg-white"
+                    }`}
+                  >
+                    {isSelected && "✓"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 p-3 bg-zinc-50 rounded-2xl border border-zinc-200/80">
         <input
           type="text"
-          placeholder="Add custom category name..."
+          placeholder="Add custom bill or goal name..."
           value={customCategoryName}
           onChange={(e) => setCustomCategoryName(e.target.value)}
           className="flex-1 px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
@@ -85,11 +147,26 @@ export function CategorySelectStep({
         <button
           onClick={onAddCustomCategory}
           disabled={!customCategoryName.trim()}
-          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 transition-all shadow-sm"
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 transition-all shadow-sm animate-pulse"
         >
           + Add
         </button>
       </div>
+
+      {selectedPresets.size > 0 && (
+        <div className="flex flex-col gap-1 p-3 bg-teal-50/30 rounded-2xl border border-teal-200/50">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-[#00B4A6]">{t('setup.configure.excessLabel', { defaultValue: 'Where should leftover money go?' })}</label>
+          <select
+            value={defaultExcessId}
+            onChange={(e) => setDefaultExcessId(e.target.value)}
+            className="mt-1 w-full px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+          >
+            {allAvailable.filter(p => selectedPresets.has(p.id)).map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex justify-between items-center pt-4 border-t border-zinc-100">
         <button
@@ -100,11 +177,11 @@ export function CategorySelectStep({
         </button>
 
         <button
-          onClick={onNext}
-          disabled={selectedPresets.size === 0}
-          className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#1B2B4B] hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
+          onClick={onComplete}
+          disabled={isSubmitting || selectedPresets.size === 0}
+          className="px-6 py-3 rounded-xl text-xs font-black text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md"
         >
-          Next: Set Targets & Frequencies →
+          {isSubmitting ? "Completing Setup..." : "Complete Setup 🎉"}
         </button>
       </div>
     </div>

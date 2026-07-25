@@ -22,10 +22,8 @@ export default defineConfig({
   // Force tsup to inline internal workspace modules so the output is self-contained
   noExternal: [
     "@money-matters/capability-tenant",
-    "@money-matters/capability-money",
     "@money-matters/capability-notifications",
     "@money-matters/capability-file-notes",
-    "@money-matters/capability-geo",
     "@money-matters/capability-budgeting",
     "@money-matters/capability-transactions",
     "@money-matters/config",

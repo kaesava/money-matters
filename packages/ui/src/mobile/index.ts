@@ -17,4 +17,5 @@ export type { MobileFilterBarProps, MobileFilterGroup, MobileFilterOption } from
 export { default as MobileModalDialog } from './MobileModalDialog';
 export type { MobileModalDialogProps } from './MobileModalDialog';
 export { MobilePaginationBar } from './MobilePaginationBar';
-export type { MobilePaginationBarProps } from './MobilePaginationBar';
+export type { MobilePaginationBarProps } from './MobilePaginationBar';export { default as MobileCollapsibleSection } from './CollapsibleSection';
+export type { CollapsibleSectionProps as MobileCollapsibleSectionProps } from './CollapsibleSection';

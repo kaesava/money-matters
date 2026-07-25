@@ -84,3 +84,4 @@ export function removeDeviceTokenHandler(db: PgDatabase<any, any, any>) {
 
 export * from "./email.js";
 export * from "./inngest.js";
+export * from "./scheduled-notifications.js";

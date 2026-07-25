@@ -61,6 +61,81 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
 }
 
 /**
+ * Invites a partner to join the household tenant.
+ */
+export function invitePartnerHandler(db: PgDatabase<any, any, any>) {
+  return async (
+    input: { email: string },
+    tenantId: string,
+    appId: string,
+    userId: string
+  ) => {
+    const inviteToken = crypto.randomUUID();
+    const now = new Date();
+
+    const [created] = await db
+      .insert(tenantUsers)
+      .values({
+        tenantId,
+        appId,
+        inviteEmail: input.email,
+        inviteToken,
+        inviteStatus: "PENDING" as const,
+        role: "MEMBER" as const,
+        invitedAt: now,
+        createdBy: userId,
+        updatedBy: userId,
+      })
+      .returning();
+
+    return {
+      success: true,
+      inviteToken: created.inviteToken,
+      inviteEmail: created.inviteEmail,
+    };
+  };
+}
+
+/**
+ * Accepts a household partner invitation.
+ */
+export function acceptInviteHandler(db: PgDatabase<any, any, any>) {
+  return async (input: { inviteToken: string }, userId: string) => {
+    const [invite] = await db
+      .select()
+      .from(tenantUsers)
+      .where(
+        and(
+          eq(tenantUsers.inviteToken, input.inviteToken),
+          eq(tenantUsers.inviteStatus, "PENDING")
+        )
+      )
+      .limit(1);
+
+    if (!invite) {
+      throw new Error("Invalid or expired invitation token.");
+    }
+
+    const [updated] = await db
+      .update(tenantUsers)
+      .set({
+        userId,
+        inviteStatus: "ACCEPTED" as const,
+        updatedAt: new Date(),
+        updatedBy: userId,
+      })
+      .where(eq(tenantUsers.id, invite.id))
+      .returning();
+
+    return {
+      success: true,
+      tenantId: updated.tenantId,
+      role: updated.role,
+    };
+  };
+}
+
+/**
  * Creates a new bank account within the tenant scope.
  *
  * @param db - Drizzle PostgreSQL database client

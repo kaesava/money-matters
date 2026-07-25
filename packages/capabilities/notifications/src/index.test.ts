@@ -54,4 +54,11 @@ describe("notifications capability handlers", () => {
     expect(mockDb.select).toHaveBeenCalled();
     expect(result).toHaveProperty("id");
   });
+
+  it("exports createScheduledNotificationFunctions", async () => {
+    const { createScheduledNotificationFunctions } = await import("./index.js");
+    const mockInngest = { createFunction: vi.fn().mockReturnValue({}) } as any;
+    const functions = createScheduledNotificationFunctions(mockInngest);
+    expect(functions).toHaveLength(6);
+  });
 });

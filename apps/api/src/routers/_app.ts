@@ -7,7 +7,6 @@ import { paydayRouter } from './payday.router.js';
 import { transactionsRouter } from './transactions.router.js';
 import { notificationsRouter } from './notifications.router.js';
 import { fileNotesRouter } from './file-notes.router.js';
-import { geoRouter } from './geo.router.js';
 
 export const appRouter = router({
   ...tenantRouter,
@@ -18,7 +17,6 @@ export const appRouter = router({
   ...transactionsRouter,
   ...notificationsRouter,
   ...fileNotesRouter,
-  ...geoRouter,
 });
 
 export type AppRouter = typeof appRouter;

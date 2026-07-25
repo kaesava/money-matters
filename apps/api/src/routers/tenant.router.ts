@@ -7,6 +7,8 @@ import {
   updateBankAccountHandler,
   archiveBankAccountHandler,
   getTenantHandler,
+  invitePartnerHandler,
+  acceptInviteHandler,
 } from "@money-matters/capability-tenant";
 import {
   listCategoriesQuery,
@@ -22,6 +24,20 @@ import {
 import { z } from 'zod';
 
 export const tenantRouter = {
+  invitePartner: tenantProcedure
+    .input(z.object({ email: z.string().email() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const handler = invitePartnerHandler(ctx.db);
+      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+    }),
+
+  acceptInvite: authenticatedProcedure
+    .input(z.object({ inviteToken: z.string().min(1) }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const handler = acceptInviteHandler(ctx.db);
+      return await handler(input, ctx.userId!);
+    }),
+
   createTenant: authenticatedProcedure
     .input(CreateTenantCommand)
     .mutation(async ({ input, ctx }) => {

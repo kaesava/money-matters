@@ -269,6 +269,7 @@ export const en = {
   setup: {
     title: "Setup Your Household",
     stepOf: "Step {step} of {total}",
+    stepOfTwo: "Step {step} of 2",
     income: {
       title: "Income Sources",
       subtitle: "Add the income sources your household receives.",
@@ -289,6 +290,10 @@ export const en = {
       scheduleMonthly: "Monthly",
       scheduleCustom: "Custom (RRULE)",
       startDateLabel: "First Expected Payment",
+      titleSimple: "How much do you get paid?",
+      subtitleSimple: "Let's set up your main income source. You can add more later in Settings.",
+      defaultName: "My Salary",
+      progressiveHint: "You can add more income sources and bank accounts later in Settings.",
     },
     categories: {
       title: "Categories",
@@ -300,6 +305,19 @@ export const en = {
       targetDateLabel: "Target Date",
       selectedCount: "{count} categories selected",
       customNamePlaceholder: "Custom Category Name",
+      goalSection: "Savings Goals",
+      regularSection: "Regular Bills",
+      everydaySection: "Everyday Spending",
+    },
+    bills: {
+      title: "Which bills do you have?",
+      subtitle: "Tick the ones that apply and adjust the monthly amounts. We'll handle the rest.",
+      regularSection: "Regular Bills",
+      savingsSection: "Savings Goals",
+      customAddCta: "Add a custom bill or goal",
+      excessLabel: "Where should leftover money go?",
+      completeCta: "Complete Setup",
+      amountHint: "Monthly amount",
     },
     configure: {
       title: "Configure Categories",
@@ -372,6 +390,22 @@ export const en = {
       filterAll: "All",
       filterIncome: "Income",
       filterExpense: "Expense",
+    },
+    hero: {
+      everydayBalance: 'Everyday Balance',
+      onTrack: 'On Track',
+      atRisk: 'Needs Attention',
+      nextPay: 'Next pay',
+      daysAway: '{days} days away',
+      dueToday: 'Due today!',
+    },
+    attention: {
+      title: 'Needs Attention',
+      dueSoon: 'Due {date}',
+      overdue: 'Overdue',
+      categoryFunded: 'Category funded',
+      categoryShort: 'Category short by {amount}',
+      noItems: '',
     },
   },
   settings: {

@@ -15,10 +15,8 @@
   "dependencies": {
     "@fastify/cors": "^9.0.1",
     "@money-matters/capability-tenant": "workspace:*",
-    "@money-matters/capability-money": "workspace:*",
     "@money-matters/capability-notifications": "workspace:*",
     "@money-matters/capability-file-notes": "workspace:*",
-    "@money-matters/capability-geo": "workspace:*",
     "@money-matters/capability-budgeting": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",
     "@money-matters/db": "workspace:*",

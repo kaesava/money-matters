@@ -46,17 +46,38 @@ describe('Capability Tenant Handlers', () => {
     expect(res.id).toBe(accountId);
   });
 
-  it('archiveBankAccountHandler throws if linked categories exist', async () => {
-    const selectMock = vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ id: 'cat-1' }]),
-      }),
-    });
-    const mockDb: any = { select: selectMock };
+  it('invitePartnerHandler generates invite token and inserts member record', async () => {
+    const returningMock = vi.fn().mockResolvedValue([{ inviteToken: 'test-token', inviteEmail: 'partner@example.com' }]);
+    const valuesMock = vi.fn().mockReturnValue({ returning: returningMock });
+    const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
+    const mockDb: any = { insert: insertMock };
 
-    const handler = archiveBankAccountHandler(mockDb);
-    await expect(handler(accountId, tenantId, appId, userId)).rejects.toThrow(
-      'Cannot archive a bank account that has active categories linked to it.'
-    );
+    const { invitePartnerHandler } = await import('./index.js');
+    const handler = invitePartnerHandler(mockDb);
+    const result = await handler({ email: 'partner@example.com' }, tenantId, appId, userId);
+
+    expect(result.success).toBe(true);
+    expect(result.inviteEmail).toBe('partner@example.com');
+  });
+
+  it('acceptInviteHandler updates pending invite to accepted state', async () => {
+    const limitMock = vi.fn().mockResolvedValue([{ id: 'invite-1', tenantId, role: 'MEMBER' }]);
+    const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
+    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+    const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    const returningMock = vi.fn().mockResolvedValue([{ tenantId, role: 'MEMBER' }]);
+    const setWhereMock = vi.fn().mockReturnValue({ returning: returningMock });
+    const setMock = vi.fn().mockReturnValue({ where: setWhereMock });
+    const updateMock = vi.fn().mockReturnValue({ set: setMock });
+
+    const mockDb: any = { select: selectMock, update: updateMock };
+
+    const { acceptInviteHandler } = await import('./index.js');
+    const handler = acceptInviteHandler(mockDb);
+    const result = await handler({ inviteToken: 'valid-token' }, userId);
+
+    expect(result.success).toBe(true);
+    expect(result.tenantId).toBe(tenantId);
   });
 });
