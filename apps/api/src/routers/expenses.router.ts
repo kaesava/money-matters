@@ -114,19 +114,16 @@ export const expensesRouter = {
           name: z.string().min(1).optional(),
           amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
           categoryId: z.string().uuid().optional(),
+          isRecurring: z.boolean().optional(),
+          startDate: z.string().optional(),
+          frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
         }).strict(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
-      const [updated] = await ctx.db
-        .update(expenseSources)
-        .set({
-          name: input.data.name,
-          amount: input.data.amount,
-          categoryId: input.data.categoryId,
-          updatedBy: ctx.userId!,
-          updatedAt: new Date(),
-        })
+      const [source] = await ctx.db
+        .select()
+        .from(expenseSources)
         .where(
           and(
             eq(expenseSources.id, input.id),
@@ -134,31 +131,166 @@ export const expensesRouter = {
             eq(expenseSources.appId, ctx.appId!),
             sql`${expenseSources.archivedAt} IS NULL`
           )
-        )
+        );
+
+      if (!source) throw new Error("Expense source not found.");
+
+      const [existingSchedule] = await ctx.db
+        .select()
+        .from(expenseSourceSchedules)
+        .where(eq(expenseSourceSchedules.expenseSourceId, source.id));
+
+      const events = await ctx.db
+        .select()
+        .from(expenseEvents)
+        .where(eq(expenseEvents.expenseSourceId, source.id));
+
+      const paidEvents = events.filter((e) => e.status !== "UPCOMING");
+      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+
+      const newName = input.data.name ?? source.name;
+      const newAmount = input.data.amount ?? source.amount;
+      const newCategoryId = input.data.categoryId ?? source.categoryId;
+
+      const wasRecurring = !!existingSchedule;
+      const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
+
+      let newStartDate = input.data.startDate;
+      if (!newStartDate) {
+        if (existingSchedule?.startDate) newStartDate = existingSchedule.startDate;
+        else if (unperformedEvents.length > 0 && unperformedEvents[0].expectedDate) newStartDate = unperformedEvents[0].expectedDate;
+        else newStartDate = new Date().toISOString().split("T")[0];
+      }
+
+      const newFreq = input.data.frequency;
+      let rrule = existingSchedule?.rrule || "FREQ=MONTHLY";
+      if (newFreq === "WEEKLY") rrule = "FREQ=WEEKLY";
+      else if (newFreq === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
+      else if (newFreq === "MONTHLY") rrule = "FREQ=MONTHLY";
+      else if (newFreq === "ANNUALLY") rrule = "FREQ=YEARLY";
+
+      const typeChanged = wasRecurring !== isRecurring;
+      const scheduleOrFreqChanged = isRecurring && (
+        typeChanged ||
+        (input.data.startDate && input.data.startDate !== existingSchedule?.startDate) ||
+        (newFreq && rrule !== existingSchedule?.rrule)
+      );
+
+      if (typeChanged || scheduleOrFreqChanged) {
+        // Delete all unperformed future events
+        for (const evt of unperformedEvents) {
+          await ctx.db.delete(expenseEvents).where(eq(expenseEvents.id, evt.id));
+        }
+
+        if (isRecurring) {
+          if (existingSchedule) {
+            await ctx.db
+              .update(expenseSourceSchedules)
+              .set({
+                rrule,
+                startDate: newStartDate,
+                updatedAt: new Date(),
+                updatedBy: ctx.userId!,
+              })
+              .where(eq(expenseSourceSchedules.id, existingSchedule.id));
+          } else {
+            await ctx.db.insert(expenseSourceSchedules).values({
+              expenseSourceId: source.id,
+              rrule,
+              startDate: newStartDate,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            });
+          }
+
+          const dates = generateBurstDates(rrule, newStartDate, null, 12);
+          for (const d of dates) {
+            await ctx.db.insert(expenseEvents).values({
+              expenseSourceId: source.id,
+              categoryId: newCategoryId,
+              name: newName,
+              expectedDate: d.toISOString().split("T")[0],
+              expectedAmount: newAmount,
+              status: "UPCOMING",
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            });
+          }
+        } else {
+          if (existingSchedule) {
+            await ctx.db.delete(expenseSourceSchedules).where(eq(expenseSourceSchedules.id, existingSchedule.id));
+          }
+
+          await ctx.db.insert(expenseEvents).values({
+            expenseSourceId: source.id,
+            categoryId: newCategoryId,
+            name: newName,
+            expectedDate: newStartDate,
+            expectedAmount: newAmount,
+            status: "UPCOMING",
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          });
+        }
+      } else {
+        // Schedule structure didn't change: update unperformed events
+        for (const evt of unperformedEvents) {
+          await ctx.db
+            .update(expenseEvents)
+            .set({
+              name: newName,
+              categoryId: newCategoryId,
+              expectedAmount: newAmount,
+              expectedDate: (!isRecurring && input.data.startDate) ? input.data.startDate : evt.expectedDate,
+              updatedAt: new Date(),
+              updatedBy: ctx.userId!,
+            })
+            .where(eq(expenseEvents.id, evt.id));
+        }
+      }
+
+      const [updated] = await ctx.db
+        .update(expenseSources)
+        .set({
+          name: newName,
+          amount: newAmount,
+          categoryId: newCategoryId,
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(eq(expenseSources.id, source.id))
         .returning();
-      if (!updated) throw new Error("Expense source not found.");
-      return updated;
+
+      return {
+        updated,
+        hasPaidHistory: paidEvents.length > 0,
+        unperformedUpdatedCount: unperformedEvents.length,
+      };
     }),
 
   archiveExpenseSource: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
-      const pendingEvents = await ctx.db
+      const events = await ctx.db
         .select()
         .from(expenseEvents)
-        .where(
-          and(
-            eq(expenseEvents.expenseSourceId, input.id),
-            eq(expenseEvents.status, "UPCOMING"),
-            sql`${expenseEvents.archivedAt} IS NULL`
-          )
-        );
+        .where(eq(expenseEvents.expenseSourceId, input.id));
 
-      if (pendingEvents.length > 0) {
-        throw new Error("Cannot archive an expense source that has upcoming expense events scheduled.");
+      const paidEvents = events.filter((e) => e.status !== "UPCOMING");
+      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+
+      // Delete unperformed future events
+      for (const evt of unperformedEvents) {
+        await ctx.db.delete(expenseEvents).where(eq(expenseEvents.id, evt.id));
       }
 
-      await ctx.db
+      const [archived] = await ctx.db
         .update(expenseSources)
         .set({
           archivedAt: new Date(),
@@ -172,8 +304,16 @@ export const expensesRouter = {
             eq(expenseSources.appId, ctx.appId!),
             sql`${expenseSources.archivedAt} IS NULL`
           )
-        );
-      return { success: true };
+        )
+        .returning();
+
+      if (!archived) throw new Error("Expense source not found.");
+
+      return {
+        success: true,
+        deletedUnperformedCount: unperformedEvents.length,
+        hasPaidHistory: paidEvents.length > 0,
+      };
     }),
 
   listExpenseEvents: tenantProcedure

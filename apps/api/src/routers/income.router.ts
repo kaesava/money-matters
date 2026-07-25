@@ -80,24 +80,23 @@ export const incomeRouter = {
     }),
 
   updateIncomeSource: tenantProcedure
-    .input(z.object({
-      id: z.string().uuid(),
-      data: z.object({
-        name: z.string().min(1).optional(),
-        amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-        receivingAccountId: z.string().uuid().optional(),
-      }).strict(),
-    }).strict())
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        data: z.object({
+          name: z.string().min(1).optional(),
+          amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+          receivingAccountId: z.string().uuid().optional(),
+          isRecurring: z.boolean().optional(),
+          startDate: z.string().optional(),
+          frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+        }).strict(),
+      }).strict()
+    )
     .mutation(async ({ input, ctx }) => {
-      const [updated] = await ctx.db
-        .update(incomeSources)
-        .set({
-          name: input.data.name,
-          amount: input.data.amount,
-          receivingAccountId: input.data.receivingAccountId,
-          updatedBy: ctx.userId!,
-          updatedAt: new Date(),
-        })
+      const [source] = await ctx.db
+        .select()
+        .from(incomeSources)
         .where(
           and(
             eq(incomeSources.id, input.id),
@@ -105,12 +104,144 @@ export const incomeRouter = {
             eq(incomeSources.appId, ctx.appId!),
             sql`${incomeSources.archivedAt} IS NULL`
           )
-        )
-        .returning();
-      if (!updated) {
+        );
+
+      if (!source) {
         throw new Error("Income source not found or unauthorized.");
       }
-      return updated;
+
+      const [existingSchedule] = await ctx.db
+        .select()
+        .from(incomeSourceSchedules)
+        .where(eq(incomeSourceSchedules.incomeSourceId, source.id));
+
+      const events = await ctx.db
+        .select()
+        .from(incomeEvents)
+        .where(eq(incomeEvents.incomeSourceId, source.id));
+
+      const confirmedEvents = events.filter((e) => e.status !== "UPCOMING");
+      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+
+      const newName = input.data.name ?? source.name;
+      const newAmount = input.data.amount ?? source.amount;
+      const newReceivingAccountId =
+        input.data.receivingAccountId !== undefined ? input.data.receivingAccountId : source.receivingAccountId;
+
+      const wasRecurring = !!existingSchedule;
+      const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
+
+      let newStartDate = input.data.startDate;
+      if (!newStartDate) {
+        if (existingSchedule?.startDate) newStartDate = existingSchedule.startDate;
+        else if (unperformedEvents.length > 0 && unperformedEvents[0].expectedDate) newStartDate = unperformedEvents[0].expectedDate;
+        else newStartDate = new Date().toISOString().split("T")[0];
+      }
+
+      const newFreq = input.data.frequency;
+      let rrule = existingSchedule?.rrule || "FREQ=MONTHLY";
+      if (newFreq === "WEEKLY") rrule = "FREQ=WEEKLY";
+      else if (newFreq === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
+      else if (newFreq === "MONTHLY") rrule = "FREQ=MONTHLY";
+      else if (newFreq === "ANNUALLY") rrule = "FREQ=YEARLY";
+
+      const typeChanged = wasRecurring !== isRecurring;
+      const scheduleOrFreqChanged = isRecurring && (
+        typeChanged ||
+        (input.data.startDate && input.data.startDate !== existingSchedule?.startDate) ||
+        (newFreq && rrule !== existingSchedule?.rrule)
+      );
+
+      if (typeChanged || scheduleOrFreqChanged) {
+        // Delete all unperformed future events
+        for (const evt of unperformedEvents) {
+          await ctx.db.delete(incomeEvents).where(eq(incomeEvents.id, evt.id));
+        }
+
+        if (isRecurring) {
+          if (existingSchedule) {
+            await ctx.db
+              .update(incomeSourceSchedules)
+              .set({
+                rrule,
+                startDate: newStartDate,
+                updatedAt: new Date(),
+                updatedBy: ctx.userId!,
+              })
+              .where(eq(incomeSourceSchedules.id, existingSchedule.id));
+          } else {
+            await ctx.db.insert(incomeSourceSchedules).values({
+              incomeSourceId: source.id,
+              rrule,
+              startDate: newStartDate,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            });
+          }
+
+          const dates = generateBurstDates(rrule, newStartDate, null, 12);
+          for (const d of dates) {
+            await ctx.db.insert(incomeEvents).values({
+              incomeSourceId: source.id,
+              expectedDate: d.toISOString().split("T")[0],
+              expectedAmount: newAmount,
+              status: "UPCOMING",
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            });
+          }
+        } else {
+          if (existingSchedule) {
+            await ctx.db.delete(incomeSourceSchedules).where(eq(incomeSourceSchedules.id, existingSchedule.id));
+          }
+
+          await ctx.db.insert(incomeEvents).values({
+            incomeSourceId: source.id,
+            expectedDate: newStartDate,
+            expectedAmount: newAmount,
+            status: "UPCOMING",
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          });
+        }
+      } else {
+        // Schedule structure didn't change: update unperformed events
+        for (const evt of unperformedEvents) {
+          await ctx.db
+            .update(incomeEvents)
+            .set({
+              expectedAmount: newAmount,
+              expectedDate: (!isRecurring && input.data.startDate) ? input.data.startDate : evt.expectedDate,
+              updatedAt: new Date(),
+              updatedBy: ctx.userId!,
+            })
+            .where(eq(incomeEvents.id, evt.id));
+        }
+      }
+
+      const [updated] = await ctx.db
+        .update(incomeSources)
+        .set({
+          name: newName,
+          amount: newAmount,
+          receivingAccountId: newReceivingAccountId,
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(eq(incomeSources.id, source.id))
+        .returning();
+
+      return {
+        updated,
+        hasConfirmedHistory: confirmedEvents.length > 0,
+        unperformedUpdatedCount: unperformedEvents.length,
+      };
     }),
 
   createIncomeSourceSchedule: tenantProcedure
@@ -222,21 +353,20 @@ export const incomeRouter = {
   archiveIncomeSource: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
-      const pendingEvents = await ctx.db
+      const events = await ctx.db
         .select()
         .from(incomeEvents)
-        .where(
-          and(
-            eq(incomeEvents.incomeSourceId, input.id),
-            eq(incomeEvents.status, "UPCOMING"),
-            sql`${incomeEvents.archivedAt} IS NULL`
-          )
-        );
+        .where(eq(incomeEvents.incomeSourceId, input.id));
 
-      if (pendingEvents.length > 0) {
-        throw new Error("Cannot archive an income source that has upcoming income events scheduled.");
+      const confirmedEvents = events.filter((e) => e.status !== "UPCOMING");
+      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+
+      // Delete unperformed future events
+      for (const evt of unperformedEvents) {
+        await ctx.db.delete(incomeEvents).where(eq(incomeEvents.id, evt.id));
       }
 
+      // Soft delete incomeSource
       const [archived] = await ctx.db
         .update(incomeSources)
         .set({
@@ -253,10 +383,16 @@ export const incomeRouter = {
           )
         )
         .returning();
+
       if (!archived) {
         throw new Error("Income source not found or access unauthorized.");
       }
-      return { success: true };
+
+      return {
+        success: true,
+        deletedUnperformedCount: unperformedEvents.length,
+        hasConfirmedHistory: confirmedEvents.length > 0,
+      };
     }),
 
   listIncomeEvents: tenantProcedure

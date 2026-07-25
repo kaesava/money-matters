@@ -69,37 +69,45 @@ export default function IncomeAndExpensesScreen() {
   });
 
   const handleArchiveIncome = (inc: any) => {
-    Alert.alert('Archive Income Source', `Are you sure you want to archive "${inc.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Archive',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await archiveIncomeMut.mutateAsync({ id: inc.id });
-          } catch (err) {
-            Alert.alert('Error', err instanceof Error ? err.message : String(err));
-          }
+    Alert.alert(
+      'Archive Income Stream',
+      `Archiving this income stream will cancel all future upcoming payday splits that haven't been processed yet. Processed paydays will stay in your history. Do you want to proceed with archiving "${inc.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await archiveIncomeMut.mutateAsync({ id: inc.id });
+            } catch (err) {
+              Alert.alert('Error', err instanceof Error ? err.message : String(err));
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleArchiveExpense = (exp: any) => {
-    Alert.alert('Archive Expense Bill', `Are you sure you want to archive "${exp.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Archive',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await archiveExpenseMut.mutateAsync({ id: exp.id });
-          } catch (err) {
-            Alert.alert('Error', err instanceof Error ? err.message : String(err));
-          }
+    Alert.alert(
+      'Archive Expense Bill',
+      `Archiving this bill will cancel all future upcoming bill reminders that haven't been paid yet. Paid bills will stay in your history. Do you want to proceed with archiving "${exp.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await archiveExpenseMut.mutateAsync({ id: exp.id });
+            } catch (err) {
+              Alert.alert('Error', err instanceof Error ? err.message : String(err));
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   // Filter Events

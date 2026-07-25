@@ -55,7 +55,7 @@ export default function IncomeAndExpensesPage() {
   type ExpenseItem = typeof expenseSources[number];
 
   const handleArchiveIncome = async (inc: IncomeItem) => {
-    if (confirm(`Are you sure you want to archive income source "${inc.name}"?`)) {
+    if (confirm(`Archiving this income stream will cancel all future upcoming payday splits that haven't been processed yet. Processed paydays will stay in your history. Do you want to proceed with archiving "${inc.name}"?`)) {
       try {
         await archiveIncomeMut.mutateAsync({ id: inc.id });
       } catch (err: unknown) {
@@ -66,7 +66,7 @@ export default function IncomeAndExpensesPage() {
   };
 
   const handleArchiveExpense = async (exp: ExpenseItem) => {
-    if (confirm(`Are you sure you want to archive expense source "${exp.name}"?`)) {
+    if (confirm(`Archiving this bill will cancel all future upcoming bill reminders that haven't been paid yet. Paid bills will stay in your history. Do you want to proceed with archiving "${exp.name}"?`)) {
       try {
         await archiveExpenseMut.mutateAsync({ id: exp.id });
       } catch (err: unknown) {

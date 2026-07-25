@@ -36,11 +36,17 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
     if (sourceToEdit) {
       setName(sourceToEdit.name);
       setAmount(sourceToEdit.amount);
-      setIsRecurring(Boolean(sourceToEdit.rrule));
-      if (sourceToEdit.rrule?.includes('WEEKLY')) setFrequency('WEEKLY');
-      else if (sourceToEdit.rrule?.includes('FORTNIGHTLY')) setFrequency('FORTNIGHTLY');
-      else if (sourceToEdit.rrule?.includes('YEARLY')) setFrequency('ANNUALLY');
-      else setFrequency('MONTHLY');
+      const hasRrule = Boolean(sourceToEdit.rrule);
+      setIsRecurring(hasRrule);
+
+      if (sourceToEdit.rrule) {
+        if (sourceToEdit.rrule.includes('FREQ=WEEKLY;INTERVAL=2')) setFrequency('FORTNIGHTLY');
+        else if (sourceToEdit.rrule.includes('FREQ=WEEKLY')) setFrequency('WEEKLY');
+        else if (sourceToEdit.rrule.includes('FREQ=YEARLY')) setFrequency('ANNUALLY');
+        else setFrequency('MONTHLY');
+      } else {
+        setFrequency('MONTHLY');
+      }
 
       if (sourceToEdit.startDate) {
         const dStr = typeof sourceToEdit.startDate === 'string' ? sourceToEdit.startDate : sourceToEdit.startDate.toISOString();
@@ -65,7 +71,10 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   });
 
   const updateIncomeMut = trpc.updateIncomeSource.useMutation({
-    onSuccess: () => {
+    onSuccess: (res: any) => {
+      if (res?.hasConfirmedHistory) {
+        Alert.alert('Notice', "Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.");
+      }
       onSuccess?.();
       onClose();
     },
@@ -79,7 +88,10 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   });
 
   const updateExpenseMut = trpc.updateExpenseSource.useMutation({
-    onSuccess: () => {
+    onSuccess: (res: any) => {
+      if (res?.hasPaidHistory) {
+        Alert.alert('Notice', "Note: Bills that have already been marked as paid won't be changed. Only unperformed future occurrences have been updated.");
+      }
       onSuccess?.();
       onClose();
     },
@@ -103,6 +115,9 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
           data: {
             name: name.trim(),
             amount: parseFloat(amount).toFixed(2),
+            isRecurring,
+            startDate: startDate ? startDate : undefined,
+            frequency: isRecurring ? frequency : undefined,
           },
         });
       } else {
@@ -122,6 +137,9 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
             name: name.trim(),
             amount: parseFloat(amount).toFixed(2),
             categoryId,
+            isRecurring,
+            startDate: startDate ? startDate : undefined,
+            frequency: isRecurring ? frequency : undefined,
           },
         });
       } else {
@@ -189,55 +207,51 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
         </View>
       )}
 
-      {!sourceToEdit && (
-        <>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Schedule Type</Text>
-            <View style={styles.row}>
-              <TouchableOpacity
-                onPress={() => setIsRecurring(true)}
-                style={[styles.typeBtn, isRecurring && styles.typeBtnActive]}
-              >
-                <Text style={[styles.typeBtnText, isRecurring && styles.typeBtnTextActive]}>Recurring</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setIsRecurring(false)}
-                style={[styles.typeBtn, !isRecurring && styles.typeBtnActive]}
-              >
-                <Text style={[styles.typeBtnText, !isRecurring && styles.typeBtnTextActive]}>One-off</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Schedule Type</Text>
+        <View style={styles.row}>
+          <TouchableOpacity
+            onPress={() => setIsRecurring(true)}
+            style={[styles.typeBtn, isRecurring && styles.typeBtnActive]}
+          >
+            <Text style={[styles.typeBtnText, isRecurring && styles.typeBtnTextActive]}>Recurring</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setIsRecurring(false)}
+            style={[styles.typeBtn, !isRecurring && styles.typeBtnActive]}
+          >
+            <Text style={[styles.typeBtnText, !isRecurring && styles.typeBtnTextActive]}>One-off</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-          {isRecurring && (
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Frequency</Text>
-              <View style={styles.row}>
-                {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((freq) => (
-                  <TouchableOpacity
-                    key={freq}
-                    onPress={() => setFrequency(freq)}
-                    style={[styles.typeBtn, frequency === freq && styles.typeBtnActive]}
-                  >
-                    <Text style={[styles.typeBtnText, frequency === freq && styles.typeBtnTextActive]}>{freq}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>First Payment / Due Date (YYYY-MM-DD)</Text>
-            <TextInput
-              value={startDate}
-              onChangeText={setStartDate}
-              placeholder="2026-08-01"
-              placeholderTextColor={D.colors.textMuted}
-              style={styles.input}
-            />
+      {isRecurring && (
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Frequency</Text>
+          <View style={styles.row}>
+            {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((freq) => (
+              <TouchableOpacity
+                key={freq}
+                onPress={() => setFrequency(freq)}
+                style={[styles.typeBtn, frequency === freq && styles.typeBtnActive]}
+              >
+                <Text style={[styles.typeBtnText, frequency === freq && styles.typeBtnTextActive]}>{freq}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        </>
+        </View>
       )}
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>First Payment / Due Date (YYYY-MM-DD)</Text>
+        <TextInput
+          value={startDate}
+          onChangeText={setStartDate}
+          placeholder="2026-08-01"
+          placeholderTextColor={D.colors.textMuted}
+          style={styles.input}
+        />
+      </View>
 
       <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
         {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Save</Text>}

@@ -4,7 +4,6 @@ import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
 import { RecurrenceFields } from "./forms/RecurrenceFields";
 
-
 export interface IncomeExpenseFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,6 +14,8 @@ export interface IncomeExpenseFormModalProps {
     amount: string;
     categoryId?: string | null;
     receivingAccountId?: string | null;
+    rrule?: string | null;
+    startDate?: string | null;
   } | null;
   onSuccess?: () => void;
 }
@@ -60,6 +61,20 @@ export function IncomeExpenseFormModal({
       setAmount(sourceToEdit.amount || "");
       setCategoryId(sourceToEdit.categoryId || "");
       setReceivingAccountId(sourceToEdit.receivingAccountId || "");
+
+      const hasSchedule = !!sourceToEdit.rrule || !!sourceToEdit.startDate;
+      setIsRecurring(hasSchedule);
+
+      if (sourceToEdit.rrule) {
+        if (sourceToEdit.rrule.includes("FREQ=WEEKLY;INTERVAL=2")) setFrequency("FORTNIGHTLY");
+        else if (sourceToEdit.rrule.includes("FREQ=WEEKLY")) setFrequency("WEEKLY");
+        else if (sourceToEdit.rrule.includes("FREQ=YEARLY")) setFrequency("ANNUALLY");
+        else setFrequency("MONTHLY");
+      } else {
+        setFrequency("MONTHLY");
+      }
+
+      setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : new Date().toISOString().split("T")[0]);
     } else {
       setName("");
       setAmount("");
@@ -100,14 +115,21 @@ export function IncomeExpenseFormModal({
     try {
       if (mode === "INCOME") {
         if (isEdit && sourceToEdit) {
-          await updateIncomeMut.mutateAsync({
+          const res = await updateIncomeMut.mutateAsync({
             id: sourceToEdit.id,
             data: {
               name,
               amount,
               receivingAccountId: receivingAccountId || undefined,
+              isRecurring,
+              frequency: isRecurring ? frequency : undefined,
+              startDate: startDate || undefined,
             },
           });
+
+          if (res?.hasConfirmedHistory) {
+            alert("Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.");
+          }
         } else {
           await createIncomeMut.mutateAsync({
             name,
@@ -122,14 +144,21 @@ export function IncomeExpenseFormModal({
         await utils.listIncomeEvents.invalidate();
       } else {
         if (isEdit && sourceToEdit) {
-          await updateExpenseMut.mutateAsync({
+          const res = await updateExpenseMut.mutateAsync({
             id: sourceToEdit.id,
             data: {
               name,
               amount,
               categoryId: categoryId || undefined,
+              isRecurring,
+              frequency: isRecurring ? frequency : undefined,
+              startDate: startDate || undefined,
             },
           });
+
+          if (res?.hasPaidHistory) {
+            alert("Note: Bills that have already been marked as paid won't be changed. Only unperformed future occurrences have been updated.");
+          }
         } else {
           await createExpenseMut.mutateAsync({
             name,

@@ -15,7 +15,7 @@
 
 ---
 
-## 2. Archival Rules & Data Integrity
+## 2. Archival & Editing Rules Lifecycle
 
 1. **Category Archival**:
    - Blocked if there are active upcoming expenses or pending income allocations against the category.
@@ -25,8 +25,16 @@
 2. **Bank Account Archival**:
    - Blocked if non-archived categories are linked to the account.
 
-3. **Income / Expense Source Archival**:
-   - Blocked if active upcoming events are scheduled for that source.
+3. **Income / Expense Source Archival & Editing**:
+   - **Editing Income/Expenses**:
+     - *Amount Changes*: Cascades to all unperformed/unconfirmed upcoming occurrences (`status === 'UPCOMING'`).
+     - *Date Changes (One-off)*: Updates expected date on unperformed occurrences.
+     - *Frequency / Start Date Changes*: Deletes unperformed future occurrences and regenerates future occurrences from new start date.
+     - *Switch Recurring $\leftrightarrow$ Single*: Deletes unperformed future occurrences and creates single/recurring future occurrences.
+     - *Historical Protection*: Any paycheck split or bill payment already confirmed/paid (`status !== 'UPCOMING'`) is **never** mutated or deleted.
+   - **Archival**:
+     - Relaxed rule: When an income stream or expense bill is archived, all **unperformed future occurrences are permanently deleted**, while the source record is soft-archived (`archivedAt`). Paid/confirmed historical occurrences remain intact in history.
+     - Displays customer-focused warning prior to confirming archival.
 
 ---
 
