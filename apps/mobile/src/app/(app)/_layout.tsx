@@ -88,6 +88,12 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="settings/notifications"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="settings/income"
         options={{
           href: null,

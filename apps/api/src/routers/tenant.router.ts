@@ -55,7 +55,14 @@ export const tenantRouter = {
             eq(userPreferences.tenantId, ctx.tenantId!)
           )
         );
-      return pref || { quickActionsCollapsed: false, timezone: "Australia/Sydney" };
+      return pref || {
+        quickActionsCollapsed: false,
+        timezone: "Australia/Sydney",
+        paydayAlertsEnabled: true,
+        shortfallAlertsEnabled: true,
+        billRemindersEnabled: true,
+        weeklyDigestEnabled: false,
+      };
     }),
 
   updateUserPreferences: tenantProcedure
@@ -63,6 +70,10 @@ export const tenantRouter = {
       z.object({
         quickActionsCollapsed: z.boolean().optional(),
         timezone: z.string().optional(),
+        paydayAlertsEnabled: z.boolean().optional(),
+        shortfallAlertsEnabled: z.boolean().optional(),
+        billRemindersEnabled: z.boolean().optional(),
+        weeklyDigestEnabled: z.boolean().optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
@@ -82,6 +93,10 @@ export const tenantRouter = {
           .set({
             quickActionsCollapsed: input.quickActionsCollapsed ?? existing.quickActionsCollapsed,
             timezone: input.timezone ?? existing.timezone,
+            paydayAlertsEnabled: input.paydayAlertsEnabled ?? existing.paydayAlertsEnabled,
+            shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? existing.shortfallAlertsEnabled,
+            billRemindersEnabled: input.billRemindersEnabled ?? existing.billRemindersEnabled,
+            weeklyDigestEnabled: input.weeklyDigestEnabled ?? existing.weeklyDigestEnabled,
             updatedAt: new Date(),
           })
           .where(eq(userPreferences.id, existing.id))
@@ -95,6 +110,10 @@ export const tenantRouter = {
             tenantId: ctx.tenantId!,
             quickActionsCollapsed: input.quickActionsCollapsed ?? false,
             timezone: input.timezone ?? "Australia/Sydney",
+            paydayAlertsEnabled: input.paydayAlertsEnabled ?? true,
+            shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? true,
+            billRemindersEnabled: input.billRemindersEnabled ?? true,
+            weeklyDigestEnabled: input.weeklyDigestEnabled ?? false,
           })
           .returning();
         return inserted;

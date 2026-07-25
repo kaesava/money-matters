@@ -107,6 +107,7 @@ export default function SettingsPage() {
           style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
         >
           {[
+            { label: `🔔 Notification Preferences`, id: "settings-notifications-link", onClick: () => router.push("/dashboard/settings/notifications") },
             { label: `📦 Archived Items`, id: "settings-archived-link", onClick: () => router.push("/dashboard/settings/archived") },
             { label: `🏦 ${t("settings.bankAccounts.title")}`, id: "settings-bank-link", onClick: () => router.push("/dashboard/settings/bank-accounts") },
           ].map((item, i, arr) => (

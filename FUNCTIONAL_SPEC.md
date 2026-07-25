@@ -78,7 +78,13 @@
 
 ---
 
-## 7. Internationalization (i18n) & Localization Governance
+## 8. Release 2 Deferred Scope
+
+1. **Bank CSV Statement Import & Open Banking Hub**:
+   - Deferred to Release 2.
+   - Will support drag-and-drop CSV imports for major Australian banks (CBA, Westpac, ANZ, NAB, Macquarie, ING) and Open Banking CDR integration via Basiq.
+
+## 9. Internationalization (i18n) & Localization Governance
 
 - **Zero Hardcoded User-Facing Text**: 100% of user-facing UI labels, error messages, headings, modal prompts, placeholders, and tooltips are externalized into `@money-matters/i18n`.
 - **Dynamic Parameter Interpolation**: Support multi-language rendering and dynamic parameters (e.g. `{page}`, `{totalPages}`, `{rate}`, `{appName}`).

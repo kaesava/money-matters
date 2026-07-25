@@ -85,6 +85,15 @@ export default function SettingsScreen() {
         <View style={styles.cardList}>
           <TouchableOpacity
             style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/notifications' as any)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>🔔 Notification Preferences</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
             onPress={() => router.push('/(app)/settings/income')}
             activeOpacity={0.7}
           >
