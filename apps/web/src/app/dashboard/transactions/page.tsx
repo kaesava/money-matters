@@ -17,7 +17,8 @@ function fmt(val: string | number) {
 
 export default function TransactionsPage() {
   const searchParams = useSearchParams();
-  const paramSearch = searchParams.get("search") || searchParams.get("categoryId") || "";
+  const paramSearch = searchParams.get("search") || searchParams.get("q") || "";
+  const paramCategory = searchParams.get("categoryId") || "ALL";
 
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
   const categoriesQuery = trpc.listCategories.useQuery();
@@ -38,15 +39,18 @@ export default function TransactionsPage() {
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState(paramSearch);
+  const [flowFilter, setFlowFilter] = useState("ALL");
+  const [categoryTypeFilter, setCategoryTypeFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState(paramCategory);
 
   useEffect(() => {
     if (paramSearch) {
       setSearchQuery(paramSearch);
     }
-  }, [paramSearch]);
-  const [flowFilter, setFlowFilter] = useState("ALL");
-  const [categoryTypeFilter, setCategoryTypeFilter] = useState("ALL");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
+    if (paramCategory) {
+      setCategoryFilter(paramCategory);
+    }
+  }, [paramSearch, paramCategory]);
 
   // Sort State
   const [sortField, setSortField] = useState<SortField>("recordedAt");
