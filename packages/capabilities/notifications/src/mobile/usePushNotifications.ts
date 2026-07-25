@@ -1,19 +1,34 @@
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useNotificationService } from './context';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Check if running in Expo Go client (SDK 53+ removed remote push notifications from Expo Go)
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+  (Constants as any).appOwnership === 'expo';
+
+let Notifications: typeof import('expo-notifications') | null = null;
+let Device: typeof import('expo-device') | null = null;
+
+if (!isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+    Device = require('expo-device');
+
+    Notifications?.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (err) {
+    console.warn('[PushNotifications] expo-notifications initialization skipped:', err);
+  }
+}
 
 export function usePushNotifications() {
   const { useRegisterToken } = useNotificationService();
@@ -21,22 +36,27 @@ export function usePushNotifications() {
   const hasRegistered = useRef(false);
 
   useEffect(() => {
+    if (isExpoGo || !Notifications || !Device) {
+      console.info('[PushNotifications] Running in Expo Go mode — push notifications active in standalone/dev builds.');
+      return;
+    }
+
     if (hasRegistered.current) return;
     hasRegistered.current = true;
 
     (async () => {
       try {
-        if (!Device.isDevice) {
+        if (!Device!.isDevice) {
           console.info('[PushNotifications] Skipping registration — not a physical device.');
           return;
         }
 
-        const settings = (await Notifications.getPermissionsAsync()) as any;
-        let isGranted = settings.granted;
+        const settings = (await Notifications!.getPermissionsAsync()) as any;
+        let isGranted = settings?.granted;
 
         if (!isGranted) {
-          const permission = (await Notifications.requestPermissionsAsync()) as any;
-          isGranted = permission.granted;
+          const permission = (await Notifications!.requestPermissionsAsync()) as any;
+          isGranted = permission?.granted;
         }
 
         if (!isGranted) {
@@ -45,7 +65,7 @@ export function usePushNotifications() {
         }
 
         const projectId = (Constants as any).expoConfig?.extra?.eas?.projectId;
-        const tokenData = await Notifications.getExpoPushTokenAsync({
+        const tokenData = await Notifications!.getExpoPushTokenAsync({
           projectId,
         });
 
@@ -67,6 +87,7 @@ export function usePushNotifications() {
   }, []);
 
   useEffect(() => {
+    if (isExpoGo || !Notifications) return;
     const subscription = Notifications.addNotificationReceivedListener((notification: any) => {
       console.info('[PushNotifications] Foreground notification received:', notification.request.content);
     });
