@@ -348,7 +348,7 @@ export function PaydayPreviewWizard({
               style={styles.saveNoPayBtn}
               disabled={submitting}
             >
-              <Text style={styles.saveNoPayText}>Save w/o Paid</Text>
+              <Text style={styles.saveNoPayText}>Save Details Only</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

@@ -192,23 +192,20 @@ export default function DashboardPage() {
         });
       }
     } else {
-      if (isFutureDate) {
-        createUpcomingIncomeMut.mutate({
+      createUpcomingIncomeMut.mutate(
+        {
           name: quickName,
           amount: amtNum.toFixed(2),
           expectedDate: quickDate,
           receivingAccountId: quickReceivingAccountId || undefined,
           note: quickNote,
-        });
-      } else {
-        setUpcomingIncomeToEdit({
-          sourceName: quickName,
-          expectedAmount: amtNum.toFixed(2),
-          expectedDate: quickDate,
-          receivingAccountId: quickReceivingAccountId || undefined,
-          note: quickNote,
-        });
-      }
+        },
+        {
+          onSuccess: (createdEvt) => {
+            setPaydayPreviewEventId(createdEvt.id);
+          },
+        }
+      );
     }
   };
 
@@ -225,8 +222,9 @@ export default function DashboardPage() {
       categoryId: null,
       note: "Income Deposit",
       isNextPayday: "isNextPayday" in e ? Boolean(e.isNextPayday) : false,
+      isRecurring: Boolean(e.incomeSourceId),
       seriesId: e.incomeSourceId || undefined,
-      seriesName: e.sourceName || "Paycheck Deposit",
+      seriesName: e.incomeSourceId ? (e.sourceName || "Paycheck Deposit") : undefined,
     }));
 
   const expenseEventsMapped: UpcomingEvent[] = (expenseEventsQuery.data ?? [])
@@ -241,8 +239,9 @@ export default function DashboardPage() {
       categoryId: e.categoryId,
       note: e.note || "Bill/Expense",
       isNextPayday: false,
-      seriesId: e.expenseSourceId || e.categoryId || e.name,
-      seriesName: e.categoryName || e.name,
+      isRecurring: Boolean(e.expenseSourceId),
+      seriesId: e.expenseSourceId || undefined,
+      seriesName: e.expenseSourceId ? (e.categoryName || e.name) : undefined,
     }));
 
   let combinedUpcoming = [...incomeEventsMapped, ...expenseEventsMapped];

@@ -20,9 +20,10 @@ interface QuickExpenseModalProps {
   visible: boolean;
   initialType?: "DEBIT" | "CREDIT";
   onClose: () => void;
+  onIncomeSuccess?: (incomeEventId: string) => void;
 }
 
-export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose }: QuickExpenseModalProps) {
+export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onIncomeSuccess }: QuickExpenseModalProps) {
   const [type, setType] = useState<"DEBIT" | "CREDIT">(initialType);
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -42,38 +43,55 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose }: Q
   // Fetch categories to populate dropdown
   const { data: categories, isLoading: categoriesLoading } = trpc.listCategories.useQuery();
   const recordExpenseMutation = trpc.recordExpense.useMutation();
+  const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
 
   const handleRecord = async () => {
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       Alert.alert(t("common.error"), "Please enter a valid amount.");
       return;
     }
-    if (!selectedCategoryId) {
+    if (!isIncome && !selectedCategoryId) {
       Alert.alert(t("common.error"), "Please select a category.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await recordExpenseMutation.mutateAsync({
-        categoryId: selectedCategoryId,
-        amount: parseFloat(amount).toFixed(2),
-        flowType: type,
-        note: note.trim() || undefined,
-        date: date ? new Date(date).toISOString() : undefined,
-        idempotencyKey: (typeof crypto !== 'undefined' && crypto.randomUUID) 
-          ? crypto.randomUUID() 
-          : Math.random().toString(36).substring(2) + Date.now().toString(36),
-      });
+      if (isIncome) {
+        const created = await createUpcomingIncomeMutation.mutateAsync({
+          name: note.trim() || "Quick Income Deposit",
+          amount: parseFloat(amount).toFixed(2),
+          expectedDate: date || new Date().toISOString().slice(0, 10),
+          note: note.trim() || undefined,
+        });
 
-      // Clear input fields
-      setAmount("");
-      setSelectedCategoryId("");
-      setNote("");
+        setAmount("");
+        setSelectedCategoryId("");
+        setNote("");
+        onClose();
 
-      onClose();
+        if (onIncomeSuccess) {
+          onIncomeSuccess(created.id);
+        }
+      } else {
+        await recordExpenseMutation.mutateAsync({
+          categoryId: selectedCategoryId,
+          amount: parseFloat(amount).toFixed(2),
+          flowType: type,
+          note: note.trim() || undefined,
+          date: date ? new Date(date).toISOString() : undefined,
+          idempotencyKey: (typeof crypto !== 'undefined' && crypto.randomUUID) 
+            ? crypto.randomUUID() 
+            : Math.random().toString(36).substring(2) + Date.now().toString(36),
+        });
 
-      Alert.alert("Success", isIncome ? "Income recorded successfully!" : "Expense recorded successfully!");
+        setAmount("");
+        setSelectedCategoryId("");
+        setNote("");
+        onClose();
+
+        Alert.alert("Success", "Expense recorded successfully!");
+      }
     } catch (err) {
       Alert.alert(
         t("common.error"),

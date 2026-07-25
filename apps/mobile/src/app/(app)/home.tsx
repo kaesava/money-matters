@@ -193,7 +193,7 @@ export default function HomeScreen() {
       categoryId: null,
       note: 'Income Deposit',
       seriesId: e.incomeSourceId || undefined,
-      seriesName: e.sourceName || 'Paycheck Deposit',
+      seriesName: e.incomeSourceId ? (e.sourceName || 'Paycheck Deposit') : undefined,
       isRecurring: Boolean(e.incomeSourceId),
     }));
 
@@ -208,9 +208,9 @@ export default function HomeScreen() {
       categoryName: e.categoryName || 'Uncategorized',
       categoryId: e.categoryId,
       note: e.note || 'Bill/Expense',
-      seriesId: e.expenseSourceId || e.categoryId || e.name,
-      seriesName: e.categoryName || e.name,
-      isRecurring: Boolean(e.expenseSourceId || e.categoryId),
+      seriesId: e.expenseSourceId || undefined,
+      seriesName: e.expenseSourceId ? (e.categoryName || e.name) : undefined,
+      isRecurring: Boolean(e.expenseSourceId),
     }));
 
   let combinedEvents = [...incomeEventsList, ...expenseEventsList];
@@ -634,6 +634,9 @@ export default function HomeScreen() {
           setQuickModalVisible(false);
           categoriesQuery.refetch();
           summaryQuery.refetch();
+        }}
+        onIncomeSuccess={(incomeEventId) => {
+          setPaydayWizardEventId(incomeEventId);
         }}
       />
 

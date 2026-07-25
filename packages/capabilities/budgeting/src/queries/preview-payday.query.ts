@@ -9,39 +9,33 @@ export async function previewPaydayQuery(
   appId: string,
   dbClient: PgDatabase<any, any, any> = db
 ) {
-  // 1. Get all active upcoming income events sorted by date
-  const upcomingEvents = await dbClient
+  // Fetch target event by id regardless of status
+  const [targetEvent] = await dbClient
     .select()
     .from(incomeEvents)
     .where(
       and(
+        eq(incomeEvents.id, incomeEventId),
         eq(incomeEvents.tenantId, tenantId),
         eq(incomeEvents.appId, appId),
-        eq(incomeEvents.status, "UPCOMING"),
         sql`${incomeEvents.archivedAt} IS NULL`
       )
-    )
-    .orderBy(asc(incomeEvents.expectedDate));
-
-  if (upcomingEvents.length === 0) {
-    throw new Error("No upcoming income events found.");
-  }
-
-  const nextImmediateEvent = upcomingEvents[0];
-  const targetEvent = upcomingEvents.find((e) => e.id === incomeEventId);
+    );
 
   if (!targetEvent) {
-    throw new Error("Target income event not found or not in UPCOMING status.");
+    throw new Error("Target income event not found.");
   }
 
-  // Enforce Payday Scope: Target event MUST be the next immediate upcoming income event
-  if (targetEvent.id !== nextImmediateEvent.id) {
-    throw new Error(
-      `Payday allocation is restricted to the next immediate upcoming paycheck (${nextImmediateEvent.expectedDate}). Future paychecks beyond the next one cannot be processed out of order.`
-    );
-  }
+  return await previewPaydayForEvent(targetEvent, tenantId, appId, dbClient);
+}
 
-  // 2. Fetch categories and schedules to run allocation engine
+export async function previewPaydayForEvent(
+  targetEvent: { id: string; expectedDate: string; expectedAmount: string; actualAmount?: string | null; name?: string | null },
+  tenantId: string,
+  appId: string,
+  dbClient: PgDatabase<any, any, any> = db
+) {
+  // Fetch categories and schedules to run allocation engine
   const allCategories = await dbClient
     .select()
     .from(categories)
@@ -113,6 +107,7 @@ export async function previewPaydayQuery(
   return {
     incomeEvent: {
       id: targetEvent.id,
+      name: targetEvent.name || "Paycheck",
       expectedDate: targetEvent.expectedDate,
       expectedAmount: targetEvent.expectedAmount,
       actualAmount: targetEvent.actualAmount || targetEvent.expectedAmount,
