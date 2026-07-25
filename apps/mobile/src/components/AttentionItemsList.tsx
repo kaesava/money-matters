@@ -9,7 +9,7 @@ export interface AttentionItem {
   readonly name: string;
   readonly expectedAmount: number;
   readonly expectedDate: string;
-  readonly categoryId: string;
+  readonly categoryId: string | null;
   readonly isOverdue: boolean;
   readonly categoryBalance: number;
 }

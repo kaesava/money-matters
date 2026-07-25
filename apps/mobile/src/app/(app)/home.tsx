@@ -197,7 +197,7 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => { setQuickModalType('CREDIT'); setQuickModalVisible(true); }}
             >
-              <Feather name="plus-circle" size={20} color={DESIGN_TOKENS.colors.semantic.success} />
+              <Feather name="plus-circle" size={20} color={DESIGN_TOKENS.colors.success} />
               <Text style={styles.actionCardText}>Record Income</Text>
             </TouchableOpacity>
 
@@ -205,7 +205,7 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => setMoveMoneyVisible(true)}
             >
-              <Feather name="repeat" size={20} color={DESIGN_TOKENS.colors.brand.primary} />
+              <Feather name="repeat" size={20} color={DESIGN_TOKENS.colors.primary} />
               <Text style={styles.actionCardText}>Move Money</Text>
             </TouchableOpacity>
 
@@ -213,7 +213,7 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => router.push('/(app)/categories')}
             >
-              <Feather name="grid" size={20} color={DESIGN_TOKENS.colors.neutral[700]} />
+              <Feather name="grid" size={20} color={DESIGN_TOKENS.colors.textPrimary} />
               <Text style={styles.actionCardText}>Categories</Text>
             </TouchableOpacity>
           </View>
@@ -256,9 +256,8 @@ export default function HomeScreen() {
       {/* Modals */}
       <QuickExpenseModal
         visible={quickModalVisible}
-        type={quickModalType}
+        initialType={quickModalType}
         onClose={() => setQuickModalVisible(false)}
-        onSuccess={() => { summaryQuery.refetch(); categoriesQuery.refetch(); }}
       />
 
       <MoveMoneyModal
