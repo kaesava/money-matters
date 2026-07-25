@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useFileNotesService } from '../context.js';
-import { logger } from '@money-matters/core';
 
 export function useFileNotes(entityType: string, entityId?: string) {
   const service = useFileNotesService();
@@ -132,7 +131,7 @@ export function useFileNotes(entityType: string, entityId?: string) {
       const { downloadUrl } = await service.getDownloadUrl(noteId);
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      logger.error('Failed to download file note', err as any);
+      console.error('Failed to download file note', err as any);
     }
   };
 

@@ -163,7 +163,7 @@ export const TransactionLedgerSchema = BaseSchema.extend({
  * Query schema for listing transaction ledger entries with pagination.
  */
 export const ListTransactionsQuery = z.object({
-  limit: z.number().int().max(100).default(50),
+  limit: z.number().int().min(1).max(1000).default(50),
   offset: z.number().int().default(0),
   categoryId: z.string().uuid().optional(),
 }).strict();

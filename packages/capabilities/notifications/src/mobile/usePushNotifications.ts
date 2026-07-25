@@ -4,7 +4,6 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { useNotificationService } from './context';
-import { logger } from '@money-matters/core';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -28,7 +27,7 @@ export function usePushNotifications() {
     (async () => {
       try {
         if (!Device.isDevice) {
-          logger.info('[PushNotifications] Skipping registration — not a physical device.');
+          console.info('[PushNotifications] Skipping registration — not a physical device.');
           return;
         }
 
@@ -41,7 +40,7 @@ export function usePushNotifications() {
         }
 
         if (!isGranted) {
-          logger.warn('[PushNotifications] User denied push notification permissions.');
+          console.warn('[PushNotifications] User denied push notification permissions.');
           return;
         }
 
@@ -51,7 +50,7 @@ export function usePushNotifications() {
         });
 
         const expoPushToken = tokenData.data;
-        logger.info('[PushNotifications] Expo push token:', expoPushToken as any);
+        console.info('[PushNotifications] Expo push token:', expoPushToken);
 
         const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
@@ -60,16 +59,16 @@ export function usePushNotifications() {
           token: expoPushToken,
         });
 
-        logger.info('[PushNotifications] Token registered with backend successfully.');
+        console.info('[PushNotifications] Token registered with backend successfully.');
       } catch (error) {
-        logger.error('[PushNotifications] Registration error (non-fatal):', error as any);
+        console.error('[PushNotifications] Registration error (non-fatal):', error);
       }
     })();
   }, []);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationReceivedListener((notification: any) => {
-      logger.info('[PushNotifications] Foreground notification received:', notification.request.content);
+      console.info('[PushNotifications] Foreground notification received:', notification.request.content);
     });
 
     return () => subscription.remove();
