@@ -1,4 +1,4 @@
-import { tenantProcedure, authenticatedProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, authenticatedProcedure, ownerProcedure } from '../trpc/trpc.js';
 import { db, userPreferences, bankAccounts } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { 
@@ -24,7 +24,7 @@ import {
 import { z } from 'zod';
 
 export const tenantRouter = {
-  invitePartner: tenantProcedure
+  invitePartner: ownerProcedure
     .input(z.object({ email: z.string().email() }).strict())
     .mutation(async ({ input, ctx }) => {
       const handler = invitePartnerHandler(ctx.db);
@@ -42,7 +42,7 @@ export const tenantRouter = {
     .input(CreateTenantCommand)
     .mutation(async ({ input, ctx }) => {
       const appId = ctx.appId || ctx.session?.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
-      const handler = createTenantHandler(db);
+      const handler = createTenantHandler(ctx.db || db);
       return await handler(input, appId, ctx.userId);
     }),
 
@@ -153,7 +153,7 @@ export const tenantRouter = {
       return await handler(input.accountId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  archiveBankAccount: tenantProcedure
+  archiveBankAccount: ownerProcedure
     .input(z.object({ accountId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
       const handler = archiveBankAccountHandler(ctx.db);
