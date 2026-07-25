@@ -43,7 +43,7 @@
 - **Collapsible Quick Actions Panel**:
   - Persists open/collapsed state per user across logins.
   - 4 Stat Chips: Total Income, Spent this Month, Saved this Month, Everyday Balance.
-  - Quick Add Expense drawer/form + recurring category shortcuts.
+  - Dual-mode Quick Record transaction card/modal (Expense & Income) + segmented mode toggle (`DEBIT` vs `CREDIT`).
   - Bank Account Balances & Reconciliation card with link to Bank Settings.
   - Interactive "Can We Afford This?" calculator widget.
   - Shared "Move Money" button & modal.

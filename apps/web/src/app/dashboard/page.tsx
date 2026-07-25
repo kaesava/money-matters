@@ -42,7 +42,8 @@ export default function DashboardPage() {
   const [eventToOverride, setEventToOverride] = useState<React.ComponentProps<typeof EventOverrideModal>["eventToEdit"]>(null);
   const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([]);
 
-  // Quick Expense Form
+  // Quick Expense / Income Form State
+  const [quickType, setQuickType] = useState<"DEBIT" | "CREDIT">("DEBIT");
   const [quickCategoryId, setQuickCategoryId] = useState("");
   const [quickAmount, setQuickAmount] = useState("");
   const [quickDate, setQuickDate] = useState(() => todayStr);
@@ -80,13 +81,13 @@ export default function DashboardPage() {
 
   // Mutations
   const recordExpenseMutation = trpc.recordExpense.useMutation({
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       utils.listTransactions.invalidate();
       categoriesQuery.refetch();
       summaryQuery.refetch();
       setQuickAmount("");
       setQuickNote("");
-      setQuickMsg("Expense recorded successfully!");
+      setQuickMsg(variables.flowType === "CREDIT" ? "Income recorded successfully!" : "Expense recorded successfully!");
       setTimeout(() => setQuickMsg(null), 3000);
     },
   });
@@ -142,7 +143,7 @@ export default function DashboardPage() {
     if (!quickCategoryId || !quickAmount || parseFloat(quickAmount) <= 0) return;
 
     const targetCat = categories.find((c) => c.id === quickCategoryId);
-    if (targetCat) {
+    if (quickType === "DEBIT" && targetCat) {
       const currentBal = parseFloat(targetCat.currentBalance || "0");
       const expenseAmt = parseFloat(quickAmount);
       if (expenseAmt > currentBal) {
@@ -155,8 +156,8 @@ export default function DashboardPage() {
     recordExpenseMutation.mutate({
       categoryId: quickCategoryId,
       amount: parseFloat(quickAmount).toFixed(2),
-      flowType: "DEBIT",
-      note: quickNote || "Quick Expense",
+      flowType: quickType,
+      note: quickNote || (quickType === "CREDIT" ? "Quick Income" : "Quick Expense"),
       recordedAt: new Date(quickDate).toISOString(),
     });
   };
@@ -306,6 +307,8 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <QuickExpenseCard
                 categories={categories}
+                quickType={quickType}
+                setQuickType={setQuickType}
                 quickCategoryId={quickCategoryId}
                 setQuickCategoryId={setQuickCategoryId}
                 quickAmount={quickAmount}

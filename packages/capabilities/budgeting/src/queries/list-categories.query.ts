@@ -134,6 +134,7 @@ export async function listCategoriesQuery(
       isDefaultSavings: (cat as any).isDefaultSavings || false,
       everydayTargetKeepAmount: (cat as any).everydayTargetKeepAmount || null,
       everydaySweepFrequency: (cat as any).everydaySweepFrequency || null,
+      everydayAllowanceAmount: (cat as any).everydayAllowanceAmount || null,
       monthlyAmount: cat.monthlyAmount || null,
       icon: cat.icon || null,
       colour: cat.colour || null,

@@ -157,6 +157,16 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
         />
       </View>
 
+      {/* Payday Safety Guard */}
+      {everydayCat && fromCategoryId === everydayCat.id && parseFloat(amount || '0') > 0 && (
+        <View style={styles.guardBanner}>
+          <Text style={styles.guardBannerTitle}>🛡️ Payday Safety Guard</Text>
+          <Text style={styles.guardBannerText}>
+            Moving {formatAUD(parseFloat(amount))} leaves {formatAUD(Math.max(0, parseFloat(everydayCat.currentBalance || '0') - parseFloat(amount)))} in Everyday spending cash.
+          </Text>
+        </View>
+      )}
+
       <TouchableOpacity
         onPress={handleSubmit}
         disabled={moveMoneyMut.isPending}
@@ -180,6 +190,9 @@ const styles = StyleSheet.create({
   presetRow: { flexDirection: 'row', gap: 6 },
   presetChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, backgroundColor: '#E0F2FE', borderWidth: 1, borderColor: '#BAE6FD' },
   presetText: { fontSize: 11, fontWeight: '700', color: '#0369A1' },
+  guardBanner: { backgroundColor: '#FEF3C7', borderColor: '#F59E0B', borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 4, gap: 2 },
+  guardBannerTitle: { fontSize: 11, fontWeight: '800', color: '#92400E' },
+  guardBannerText: { fontSize: 11, color: '#B45309', fontWeight: '600' },
   input: {
     borderWidth: 1,
     borderColor: '#E5E7EB',

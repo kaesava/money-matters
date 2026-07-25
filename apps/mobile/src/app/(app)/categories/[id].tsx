@@ -22,8 +22,7 @@ export default function CategoryDetailScreen() {
   const [targetDate, setTargetDate] = useState('');
   const [rolloverRule, setRolloverRule] = useState<'ROLLOVER' | 'SWEEP' | 'RESET'>('ROLLOVER');
   const [isDefaultSavings, setIsDefaultSavings] = useState(false);
-  const [everydayTargetKeepAmount, setEverydayTargetKeepAmount] = useState('');
-  const [everydaySweepFrequency, setEverydaySweepFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY'>('MONTHLY');
+  const [everydayAllowanceAmount, setEverydayAllowanceAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
   const updateMutation = trpc.updateCategory.useMutation({
@@ -77,11 +76,9 @@ export default function CategoryDetailScreen() {
     setTarget(cat.targetAmount ? parseFloat(cat.targetAmount).toFixed(2) : '');
     setTargetDate(cat.targetDate ? cat.targetDate.split('T')[0] : '');
     
-    // Strategic Fix: Removed `(cat as any)` escapes. Let the native tRPC properties flow.
     setRolloverRule(cat.rolloverRule || 'ROLLOVER');
     setIsDefaultSavings(cat.isDefaultSavings || false);
-    setEverydayTargetKeepAmount(cat.everydayTargetKeepAmount ? parseFloat(cat.everydayTargetKeepAmount).toFixed(2) : '');
-    setEverydaySweepFrequency(cat.everydaySweepFrequency || 'MONTHLY');
+    setEverydayAllowanceAmount(cat.everydayAllowanceAmount ? parseFloat(cat.everydayAllowanceAmount).toFixed(2) : '');
     setEditVisible(true);
   };
 
@@ -95,8 +92,7 @@ export default function CategoryDetailScreen() {
           name: name.trim(),
           rolloverRule,
           isDefaultSavings: cat.type === 'GOAL' ? isDefaultSavings : undefined,
-          everydayTargetKeepAmount: cat.type === 'EVERYDAY' && everydayTargetKeepAmount ? parseFloat(everydayTargetKeepAmount).toFixed(2) : undefined,
-          everydaySweepFrequency: cat.type === 'EVERYDAY' ? everydaySweepFrequency : undefined,
+          everydayAllowanceAmount: cat.type === 'EVERYDAY' && everydayAllowanceAmount ? parseFloat(everydayAllowanceAmount).toFixed(2) : undefined,
         },
       });
     } catch (err) {
@@ -158,12 +154,11 @@ export default function CategoryDetailScreen() {
           </>
         )}
 
-        {/* Strategic Fix: Removed `(cat as any)` escapes */}
-        {cat.everydayTargetKeepAmount && (
+        {cat.everydayAllowanceAmount && (
           <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
-            <Text style={styles.metaLabel}>Everyday Limit Sweep</Text>
+            <Text style={styles.metaLabel}>Paycheck Allowance Target</Text>
             <Text style={{ fontSize: 13, color: '#1B2B4B', fontWeight: 'bold', marginTop: 2 }}>
-              Keep floor of {formatAUD(cat.everydayTargetKeepAmount)} • Sweeping {cat.everydaySweepFrequency}
+              {formatAUD(cat.everydayAllowanceAmount)} added per paycheck
             </Text>
           </View>
         )}
@@ -208,42 +203,16 @@ export default function CategoryDetailScreen() {
               </View>
 
               {cat.type === 'EVERYDAY' ? (
-                <>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Everyday Target Keep Amount ($)</Text>
-                    <TextInput
-                      value={everydayTargetKeepAmount}
-                      onChangeText={setEverydayTargetKeepAmount}
-                      keyboardType="numeric"
-                      placeholder="e.g. 200.00"
-                      style={styles.input}
-                    />
-                  </View>
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Sweep Frequency</Text>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const).map((freq) => (
-                        <TouchableOpacity
-                          key={freq}
-                          onPress={() => setEverydaySweepFrequency(freq)}
-                          style={[
-                            styles.freqBtn,
-                            everydaySweepFrequency === freq && styles.freqBtnActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.freqBtnText,
-                              everydaySweepFrequency === freq && styles.freqBtnTextActive,
-                            ]}
-                          >
-                            {freq}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                </>
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Paycheck Target Allowance ($)</Text>
+                  <TextInput
+                    value={everydayAllowanceAmount}
+                    onChangeText={setEverydayAllowanceAmount}
+                    keyboardType="numeric"
+                    placeholder="e.g. 500.00"
+                    style={styles.input}
+                  />
+                </View>
               ) : (
                 <>
                   <View style={styles.formGroup}>

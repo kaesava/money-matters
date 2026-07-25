@@ -8,6 +8,8 @@ interface Category {
 
 interface QuickExpenseCardProps {
   categories: Category[];
+  quickType: "DEBIT" | "CREDIT";
+  setQuickType: (type: "DEBIT" | "CREDIT") => void;
   quickCategoryId: string;
   setQuickCategoryId: (id: string) => void;
   quickAmount: string;
@@ -23,6 +25,8 @@ interface QuickExpenseCardProps {
 
 export function QuickExpenseCard({
   categories,
+  quickType,
+  setQuickType,
   quickCategoryId,
   setQuickCategoryId,
   quickAmount,
@@ -35,14 +39,56 @@ export function QuickExpenseCard({
   isPending,
   onSubmit,
 }: QuickExpenseCardProps) {
+  const isIncome = quickType === "CREDIT";
+
   return (
     <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-[#1B2B4B]">Quick Add Expense</h3>
-        <span className="text-xs text-zinc-400">Draw down</span>
+        <h3 className="text-sm font-bold text-[#1B2B4B]">
+          {isIncome ? "Quick Record Income" : "Quick Record Expense"}
+        </h3>
+        <span className="text-xs text-zinc-400">
+          {isIncome ? "Deposit / Credit" : "Draw down"}
+        </span>
       </div>
 
-      {quickMsg && <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold">{quickMsg}</div>}
+      {/* Segmented Mode Toggle */}
+      <div className="flex rounded-xl bg-zinc-100 p-1">
+        <button
+          type="button"
+          onClick={() => setQuickType("DEBIT")}
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            !isIncome
+              ? "bg-white text-rose-700 shadow-sm"
+              : "text-zinc-500 hover:text-zinc-800"
+          }`}
+        >
+          <span>💸</span>
+          <span>Expense</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickType("CREDIT")}
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            isIncome
+              ? "bg-emerald-600 text-white shadow-sm"
+              : "text-zinc-500 hover:text-zinc-800"
+          }`}
+        >
+          <span>💰</span>
+          <span>Income</span>
+        </button>
+      </div>
+
+      {quickMsg && (
+        <div
+          className={`p-2.5 rounded-xl text-xs font-bold ${
+            isIncome ? "bg-emerald-50 text-emerald-700" : "bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {quickMsg}
+        </div>
+      )}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <select
@@ -51,7 +97,7 @@ export function QuickExpenseCard({
           required
           className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
         >
-          <option value="">Select Category...</option>
+          <option value="">{isIncome ? "Select Target Category..." : "Select Category..."}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name} (${parseFloat(c.currentBalance).toFixed(2)})
@@ -80,7 +126,7 @@ export function QuickExpenseCard({
 
         <input
           type="text"
-          placeholder="Note (optional)"
+          placeholder={isIncome ? "Note e.g. Side Hustle, Bonus (optional)" : "Note (optional)"}
           value={quickNote}
           onChange={(e) => setQuickNote(e.target.value)}
           className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
@@ -89,9 +135,11 @@ export function QuickExpenseCard({
         <button
           type="submit"
           disabled={isPending}
-          className="py-2.5 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 transition-all shadow-sm"
+          className={`py-2.5 rounded-xl text-xs font-bold text-white hover:opacity-90 active:scale-95 transition-all shadow-sm ${
+            isIncome ? "bg-emerald-600" : "bg-[#00B4A6]"
+          }`}
         >
-          {isPending ? "Recording..." : "Record Expense"}
+          {isPending ? "Recording..." : isIncome ? "Record Income" : "Record Expense"}
         </button>
       </form>
     </div>

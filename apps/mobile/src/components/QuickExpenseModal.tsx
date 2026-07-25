@@ -18,16 +18,25 @@ import { trpc } from "../lib/trpc";
 
 interface QuickExpenseModalProps {
   visible: boolean;
+  initialType?: "DEBIT" | "CREDIT";
   onClose: () => void;
 }
 
-export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) {
+export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose }: QuickExpenseModalProps) {
+  const [type, setType] = useState<"DEBIT" | "CREDIT">(initialType);
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  React.useEffect(() => {
+    if (visible) {
+      setType(initialType);
+    }
+  }, [visible, initialType]);
+
+  const isIncome = type === "CREDIT";
   const D = DESIGN_TOKENS;
 
   // Fetch categories to populate dropdown
@@ -46,9 +55,10 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
 
     setIsSubmitting(true);
     try {
-      const response = await recordExpenseMutation.mutateAsync({
+      await recordExpenseMutation.mutateAsync({
         categoryId: selectedCategoryId,
         amount: parseFloat(amount).toFixed(2),
+        flowType: type,
         note: note.trim() || undefined,
         date: date ? new Date(date).toISOString() : undefined,
         idempotencyKey: (typeof crypto !== 'undefined' && crypto.randomUUID) 
@@ -63,14 +73,11 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
 
       onClose();
 
-      // Check if the transaction led to a shortfall
-      // In the database model, recordExpense returns the ledger entry. We can check the category balance.
-      // Refetch categories to update the dashboard balances
-      Alert.alert("Success", "Expense recorded successfully!");
+      Alert.alert("Success", isIncome ? "Income recorded successfully!" : "Expense recorded successfully!");
     } catch (err) {
       Alert.alert(
         t("common.error"),
-        err instanceof Error ? err.message : "Failed to record expense"
+        err instanceof Error ? err.message : "Failed to record transaction"
       );
     } finally {
       setIsSubmitting(false);
@@ -90,14 +97,43 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
         <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>{t("transactions.newExpense.title")}</Text>
+            <Text style={styles.headerTitle}>
+              {isIncome ? "Quick Record Income" : t("transactions.newExpense.title")}
+            </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Feather name="x" size={20} color={D.colors.textMuted} />
             </TouchableOpacity>
           </View>
 
+          {/* Segmented Mode Control */}
+          <View style={styles.segmentContainer}>
+            <TouchableOpacity
+              style={[
+                styles.segmentBtn,
+                !isIncome && styles.segmentBtnActiveDebit,
+              ]}
+              onPress={() => setType("DEBIT")}
+            >
+              <Text style={[styles.segmentText, !isIncome && styles.segmentTextActiveDebit]}>
+                💸 Expense
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.segmentBtn,
+                isIncome && styles.segmentBtnActiveCredit,
+              ]}
+              onPress={() => setType("CREDIT")}
+            >
+              <Text style={[styles.segmentText, isIncome && styles.segmentTextActiveCredit]}>
+                💰 Income
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {categoriesLoading ? (
-            <ActivityIndicator color={D.colors.accent} style={{ marginVertical: 40 }} />
+            <ActivityIndicator color={isIncome ? "#10B981" : D.colors.accent} style={{ marginVertical: 40 }} />
           ) : (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
               {/* Amount Input */}
@@ -118,7 +154,9 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
 
               {/* Category Picker */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t("transactions.newExpense.categoryLabel")}</Text>
+                <Text style={styles.label}>
+                  {isIncome ? "Target Category" : t("transactions.newExpense.categoryLabel")}
+                </Text>
                 <Text style={styles.subLabel}>Tap to select a category</Text>
                 <View style={styles.categoriesGrid}>
                   {categories?.map((cat) => {
@@ -128,7 +166,10 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
                         key={cat.id}
                         style={[
                           styles.categoryCard,
-                          isSelected && { borderColor: D.colors.accent, backgroundColor: "rgba(0,180,166,0.06)" },
+                          isSelected && {
+                            borderColor: isIncome ? "#10B981" : D.colors.accent,
+                            backgroundColor: isIncome ? "rgba(16,185,129,0.08)" : "rgba(0,180,166,0.06)",
+                          },
                         ]}
                         onPress={() => setSelectedCategoryId(cat.id)}
                       >
@@ -161,7 +202,11 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
                 <Text style={styles.label}>{t("transactions.newExpense.noteLabel")}</Text>
                 <TextInput
                   style={styles.noteInput}
-                  placeholder={t("transactions.newExpense.notePlaceholder")}
+                  placeholder={
+                    isIncome
+                      ? t("transactions.newExpense.incomeNotePlaceholder")
+                      : t("transactions.newExpense.notePlaceholder")
+                  }
                   value={note}
                   onChangeText={setNote}
                   placeholderTextColor={D.colors.textMuted}
@@ -170,14 +215,19 @@ export function QuickExpenseModal({ visible, onClose }: QuickExpenseModalProps) 
 
               {/* Submit Button */}
               <TouchableOpacity
-                style={[styles.submitBtn, { backgroundColor: D.colors.accent }]}
+                style={[
+                  styles.submitBtn,
+                  { backgroundColor: isIncome ? "#10B981" : D.colors.accent },
+                ]}
                 onPress={handleRecord}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.submitBtnText}>{t("transactions.newExpense.submitCta")}</Text>
+                  <Text style={styles.submitBtnText}>
+                    {isIncome ? "Record Income" : t("transactions.newExpense.submitCta")}
+                  </Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -216,6 +266,49 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     padding: 4,
+  },
+  segmentContainer: {
+    flexDirection: "row",
+    backgroundColor: "#F3F4F6",
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+  },
+  segmentBtnActiveDebit: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentBtnActiveCredit: {
+    backgroundColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#6B7280",
+  },
+  segmentTextActiveDebit: {
+    color: "#BE123C",
+  },
+  segmentTextActiveCredit: {
+    color: "#FFFFFF",
   },
   form: {
     padding: 20,

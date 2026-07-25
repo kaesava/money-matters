@@ -169,6 +169,16 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
             />
           </div>
 
+          {/* Payday Safety Guard */}
+          {everydayCat && sourceCategoryId === everydayCat.id && parseFloat(amount || "0") > 0 && (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs gap-1 flex flex-col">
+              <span className="font-bold text-amber-900">🛡️ Payday Safety Guard</span>
+              <span>
+                Moving ${(parseFloat(amount)).toFixed(2)} leaves ${Math.max(0, parseFloat(everydayCat.currentBalance || "0") - parseFloat(amount)).toFixed(2)} in Everyday spending cash.
+              </span>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={moveMoneyMutation.isPending}

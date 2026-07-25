@@ -91,12 +91,13 @@ export function CategoryFormModal({
         await updateCategoryMut.mutateAsync({
           categoryId: categoryToEdit.id,
           data: {
-            name: type === "EVERYDAY" ? "Everyday" : name,
+            name,
+            type,
             bankAccountId: bankAccountId || undefined,
             monthlyAmount: type === "REGULAR" ? monthlyAmount : undefined,
             targetAmount: type === "GOAL" ? targetAmount : undefined,
             targetDate: type === "GOAL" ? targetDate : undefined,
-            everydayTargetKeepAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
+            everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
           },
         });
       } else {
@@ -107,6 +108,7 @@ export function CategoryFormModal({
           monthlyAmount: type === "REGULAR" ? monthlyAmount : undefined,
           targetAmount: type === "GOAL" ? targetAmount : undefined,
           targetDate: type === "GOAL" ? targetDate : undefined,
+          everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
         });
       }
 
@@ -165,13 +167,12 @@ export function CategoryFormModal({
           </label>
           <select
             value={type}
-            disabled={isEdit || type === "EVERYDAY"}
             onChange={(e) => setType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 text-zinc-900"
+            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
           >
             <option value="REGULAR">{t("categories.typeRegular")}</option>
             <option value="GOAL">{t("categories.typeGoal")}</option>
-            {type === "EVERYDAY" && <option value="EVERYDAY">{t("categories.typeEveryday")}</option>}
+            <option value="EVERYDAY">{t("categories.typeEveryday")}</option>
           </select>
         </div>
 

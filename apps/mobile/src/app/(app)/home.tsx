@@ -11,6 +11,7 @@ import { formatAUD } from '../../lib/format';
 import { MoveMoneyModal } from '../../components/MoveMoneyModal';
 import { EventOverrideModal, EventToOverride } from '../../components/EventOverrideModal';
 import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
+import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -27,6 +28,8 @@ export default function HomeScreen() {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
 
   // Modals state
+  const [quickModalVisible, setQuickModalVisible] = useState(false);
+  const [quickModalType, setQuickModalType] = useState<"DEBIT" | "CREDIT">("DEBIT");
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
   const [eventToOverride, setEventToOverride] = useState<EventToOverride | null>(null);
@@ -382,15 +385,37 @@ export default function HomeScreen() {
                 )}
               </View>
 
-              {/* Action Buttons Row */}
+              {/* Action Buttons Rows */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setQuickModalType("DEBIT");
+                    setQuickModalVisible(true);
+                  }}
+                  style={[styles.actionBtn, { backgroundColor: '#BE123C' }]}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>💸 Expense</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setQuickModalType("CREDIT");
+                    setQuickModalVisible(true);
+                  }}
+                  style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>💰 Income</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   onPress={() => setMoveMoneyVisible(true)}
                   style={[styles.actionBtn, { backgroundColor: '#00B4A6' }]}
                 >
                   <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>🔄 Move Money</Text>
                 </TouchableOpacity>
+              </View>
 
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity
                   onPress={() => router.push('/(app)/categories?health=AMBER')}
                   style={[styles.actionBtn, { backgroundColor: '#FEF3C7' }]}
@@ -445,6 +470,17 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Quick Record Modal */}
+      <QuickExpenseModal
+        visible={quickModalVisible}
+        initialType={quickModalType}
+        onClose={() => {
+          setQuickModalVisible(false);
+          categoriesQuery.refetch();
+          summaryQuery.refetch();
+        }}
+      />
 
       {/* Move Money Modal */}
       <MoveMoneyModal

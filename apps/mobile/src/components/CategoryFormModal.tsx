@@ -78,10 +78,11 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         categoryId: categoryToEdit.id,
         data: {
           name: name.trim(),
+          type,
           targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
           monthlyAmount: type === 'REGULAR' && monthlyAmount ? parseFloat(monthlyAmount).toFixed(2) : undefined,
           targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
-          everydayTargetKeepAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
+          everydayAllowanceAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
           bankAccountId: bankAccountId || undefined,
         },
       });
@@ -92,7 +93,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
         monthlyAmount: type === 'REGULAR' && monthlyAmount ? parseFloat(monthlyAmount).toFixed(2) : undefined,
         targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
-        everydayTargetKeepAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
+        everydayAllowanceAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
         bankAccountId: bankAccountId || undefined,
       });
     }
@@ -119,24 +120,22 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         />
       </View>
 
-      {!categoryToEdit && (
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Category Type</Text>
-          <View style={styles.typeRow}>
-            {(['GOAL', 'REGULAR', 'EVERYDAY'] as const).map((tVal) => (
-              <TouchableOpacity
-                key={tVal}
-                onPress={() => setType(tVal)}
-                style={[styles.typeBtn, type === tVal && styles.typeBtnActive]}
-              >
-                <Text style={[styles.typeBtnText, type === tVal && styles.typeBtnTextActive]}>
-                  {tVal === 'GOAL' ? 'Save Toward' : tVal === 'REGULAR' ? 'Regular Bill' : 'Everyday'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Category Type</Text>
+        <View style={styles.typeRow}>
+          {(['GOAL', 'REGULAR', 'EVERYDAY'] as const).map((tVal) => (
+            <TouchableOpacity
+              key={tVal}
+              onPress={() => setType(tVal)}
+              style={[styles.typeBtn, type === tVal && styles.typeBtnActive]}
+            >
+              <Text style={[styles.typeBtnText, type === tVal && styles.typeBtnTextActive]}>
+                {tVal === 'GOAL' ? 'Save Toward' : tVal === 'REGULAR' ? 'Regular Bill' : 'Everyday'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      )}
+      </View>
 
       {type === 'GOAL' && (
         <>
@@ -180,11 +179,11 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
 
       {type === 'EVERYDAY' && (
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Target Keep Limit ($)</Text>
+          <Text style={styles.label}>Paycheck Allowance Target ($)</Text>
           <TextInput
             value={keepAmount}
             onChangeText={setKeepAmount}
-            placeholder="0.00"
+            placeholder="e.g. 500.00"
             keyboardType="numeric"
             placeholderTextColor={D.colors.textMuted}
             style={styles.input}

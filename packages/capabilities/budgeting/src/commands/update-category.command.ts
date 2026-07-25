@@ -30,13 +30,13 @@ export async function updateCategoryCommand(
       .update(categories)
       .set({
         name: input.name,
+        type: input.type as any,
         isCommitted: input.isCommitted,
         monthlyAmount: input.monthlyAmount,
+        everydayAllowanceAmount: input.everydayAllowanceAmount,
         isDefaultExcess: input.isDefaultExcess,
         rolloverRule: input.rolloverRule,
         isDefaultSavings: input.isDefaultSavings,
-        everydayTargetKeepAmount: input.everydayTargetKeepAmount,
-        everydaySweepFrequency: input.everydaySweepFrequency,
         icon: input.icon,
         colour: input.colour,
         bankAccountId: input.bankAccountId,

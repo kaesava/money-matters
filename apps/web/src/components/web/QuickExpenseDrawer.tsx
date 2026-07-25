@@ -10,12 +10,15 @@ interface QuickExpenseDrawerProps {
 
 /** Quick expense entry in a SlideOverDrawer. Port of mobile QuickExpenseModal. */
 export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
+  const [type, setType] = useState<"DEBIT" | "CREDIT">("DEBIT");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const isIncome = type === "CREDIT";
 
   const categoriesQuery = trpc.listCategories.useQuery();
   const recordExpenseMutation = trpc.recordExpense.useMutation({
@@ -49,6 +52,7 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
     recordExpenseMutation.mutate({
       categoryId,
       amount: amountNum.toFixed(2),
+      flowType: type,
       note: note || undefined,
       date: date ? new Date(date).toISOString() : undefined,
       idempotencyKey: `expense-web-${Date.now()}-${Math.random()}`,
@@ -70,10 +74,40 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-base font-bold">{t("transactions.newExpense.successMessage")}</p>
+            <p className="text-base font-bold">
+              {isIncome ? t("transactions.newExpense.incomeSuccessMessage") : t("transactions.newExpense.successMessage")}
+            </p>
           </div>
         ) : (
           <>
+            {/* Segmented Mode Toggle */}
+            <div className="flex rounded-xl bg-zinc-100 p-1">
+              <button
+                type="button"
+                onClick={() => setType("DEBIT")}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  !isIncome
+                    ? "bg-white text-rose-700 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                <span>💸</span>
+                <span>{t("transactions.typeExpense")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setType("CREDIT")}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  isIncome
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                <span>💰</span>
+                <span>{t("transactions.typeIncome")}</span>
+              </button>
+            </div>
+
             {error && (
               <div
                 className="text-sm font-semibold px-3 py-2 rounded-lg"
@@ -174,7 +208,7 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
               <input
                 id="expense-note-input"
                 type="text"
-                placeholder={t("transactions.newExpense.notePlaceholder")}
+                placeholder={isIncome ? t("transactions.newExpense.incomeNotePlaceholder") : t("transactions.newExpense.notePlaceholder")}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all"
@@ -192,11 +226,14 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
               id="record-expense-submit-btn"
               type="submit"
               disabled={recordExpenseMutation.isPending}
-              className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
-              style={{ backgroundColor: "var(--dash-teal)" }}
+              className={`w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 ${
+                isIncome ? "bg-emerald-600" : "bg-[#00B4A6]"
+              }`}
             >
               {recordExpenseMutation.isPending
                 ? t("transactions.newExpense.submitting")
+                : isIncome
+                ? t("transactions.newExpense.submitIncomeCta")
                 : t("transactions.newExpense.submitCta")}
             </button>
           </>

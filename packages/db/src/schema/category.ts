@@ -12,11 +12,10 @@ export const categories = pgTable("categories", {
   type: categoryTypeEnum("type").notNull(),
   isCommitted: boolean("is_committed").notNull().default(false), // GOAL committed targets
   monthlyAmount: numeric("monthly_amount", { precision: 12, scale: 2 }), // REGULAR target amount per month
+  everydayAllowanceAmount: numeric("everyday_allowance_amount", { precision: 12, scale: 2 }), // EVERYDAY target allowance per paycheck
   isDefaultExcess: boolean("is_default_excess").notNull().default(false),
   rolloverRule: rolloverRuleEnum("rollover_rule").notNull().default('ROLLOVER'),
   isDefaultSavings: boolean("is_default_savings").notNull().default(false),
-  everydayTargetKeepAmount: numeric("everyday_target_keep_amount", { precision: 12, scale: 2 }),
-  everydaySweepFrequency: varchar("everyday_sweep_frequency", { length: 20 }),
   icon: varchar("icon", { length: 50 }),
   colour: varchar("colour", { length: 7 }), // Hex color code e.g. '#00B4A6'
   budgetFrequency: varchar("budget_frequency", { length: 20 }).default("MONTHLY"), // FORTNIGHTLY, MONTHLY, ANNUALLY
