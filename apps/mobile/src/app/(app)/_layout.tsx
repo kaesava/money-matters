@@ -1,9 +1,9 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 import { t } from '@money-matters/i18n';
-
+import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
 import { Feather } from '@expo/vector-icons';
 
 function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
@@ -15,6 +15,9 @@ function TabIcon({ name, color, size }: { name: string; color: string; size: num
 }
 
 export default function AppLayout() {
+  // Automatically register device push token upon authenticated layout mount
+  usePushNotifications();
+
   return (
     <Tabs
       screenOptions={{

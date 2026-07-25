@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { trpc, buildTrpcClient } from '../lib/trpc';
+import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -20,9 +21,8 @@ export function AppProviders({ children }: AppProvidersProps) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Retry once on network failures — avoids hammering dev server
             retry: 1,
-            staleTime: 1000 * 30, // 30s — suitable for budget data
+            staleTime: 1000 * 30, // 30s
           },
           mutations: {
             retry: 0,
@@ -33,10 +33,16 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   const [trpcClient] = useState(() => buildTrpcClient());
 
+  const notificationServiceValue = {
+    useRegisterToken: () => trpc.registerToken.useMutation,
+  };
+
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <NotificationServiceProvider value={notificationServiceValue}>
+          {children}
+        </NotificationServiceProvider>
       </QueryClientProvider>
     </trpc.Provider>
   );
