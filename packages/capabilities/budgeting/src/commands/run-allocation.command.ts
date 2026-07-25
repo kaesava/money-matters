@@ -125,7 +125,7 @@ export async function runAllocationCommand(
         tenantId,
         appId,
         incomeEventId,
-        status: isFuturePlanned ? "DRAFT" : "CONFIRMED",
+        status: isFuturePlanned ? "PENDING" : "CONFIRMED",
         totalIncomeAmount: incomeAmount.toFixed(2),
         confirmedAt: new Date(),
         createdBy: userId,
