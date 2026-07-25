@@ -27,7 +27,7 @@ function formatScheduleDetail(rrule?: string | null, startDate?: string | null) 
   if (!isRecurring) {
     return {
       isRecurring: false,
-      badgeText: "⚡ One-off",
+      badgeText: "One-off",
       detailText: formattedDate ? `Expected ${formattedDate}` : "One-off schedule",
     };
   }
@@ -45,7 +45,7 @@ function formatScheduleDetail(rrule?: string | null, startDate?: string | null) 
 
   return {
     isRecurring: true,
-    badgeText: `🔄 ${frequencyLabel}`,
+    badgeText: frequencyLabel,
     detailText: formattedDate ? `Kicks off ${formattedDate}` : frequencyLabel,
   };
 }

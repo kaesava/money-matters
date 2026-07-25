@@ -72,7 +72,7 @@ export function PaydayLineRow({
                 : "bg-rose-100 text-rose-800"
             }`}
           >
-            {healthStatus}
+            {healthStatus === "GREEN" ? "On Track" : healthStatus === "AMBER" ? "Needs Attention" : "Behind"}
           </span>
         )}
       </div>

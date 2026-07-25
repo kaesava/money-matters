@@ -15,7 +15,7 @@ import {
   MoveMoneyCommand,
   OverrideEventCommand,
   DeleteUpcomingEventCommand,
-  SkipEventsCommand,
+  BulkDeleteEventsCommand,
   ConfirmPaydayCommand,
 } from './commands.types.js';
 
@@ -131,11 +131,12 @@ describe('Command Schemas Validation', () => {
     });
     expect(delEvt.eventType).toBe('EXPENSE');
 
-    const skip = SkipEventsCommand.parse({
-      eventIds: ['11111111-1111-4111-8111-111111111111'],
-      eventType: 'EXPENSE',
+    const bulkDel = BulkDeleteEventsCommand.parse({
+      incomeEventIds: ['11111111-1111-4111-8111-111111111111'],
+      expenseEventIds: ['22222222-2222-4222-8222-222222222222'],
     });
-    expect(skip.eventIds).toHaveLength(1);
+    expect(bulkDel.incomeEventIds).toHaveLength(1);
+    expect(bulkDel.expenseEventIds).toHaveLength(1);
 
     const payday = ConfirmPaydayCommand.parse({
       incomeEventId: '11111111-1111-4111-8111-111111111111',

@@ -33,12 +33,12 @@ describe('Mobile Format Utilities', () => {
   it('formats schedule details for recurring and one-off entries', () => {
     const recurring = formatScheduleDetail('FREQ=WEEKLY;INTERVAL=2', '2026-07-01');
     expect(recurring.isRecurring).toBe(true);
-    expect(recurring.badgeText).toBe('🔄 Fortnightly');
+    expect(recurring.badgeText).toBe('Fortnightly');
     expect(recurring.detailText).toBe('Kicks off 01/07/2026');
 
     const oneOff = formatScheduleDetail(null, '2026-08-15');
     expect(oneOff.isRecurring).toBe(false);
-    expect(oneOff.badgeText).toBe('⚡ One-off');
+    expect(oneOff.badgeText).toBe('One-off');
     expect(oneOff.detailText).toBe('Expected 15/08/2026');
   });
 });

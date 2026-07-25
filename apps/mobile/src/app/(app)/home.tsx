@@ -45,9 +45,10 @@ export default function HomeScreen() {
   const [reconcileTargetCategoryId, setReconcileTargetCategoryId] = useState('');
   const [reconciling, setReconciling] = useState(false);
 
-  // Upcoming Filters
+  // Upcoming Filters & Selection
   const [upcomingFilter, setUpcomingFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [upcomingSearch, setUpcomingSearch] = useState('');
+  const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([]);
 
   const { data: session } = authClient.useSession();
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
@@ -55,6 +56,37 @@ export default function HomeScreen() {
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+
+  const bulkDeleteEventsMutation = trpc.bulkDeleteEvents.useMutation({
+    onSuccess: () => {
+      incomeEventsQuery.refetch();
+      expenseEventsQuery.refetch();
+      setSelectedEventKeys([]);
+    },
+  });
+
+  const handleBulkDelete = () => {
+    if (selectedEventKeys.length === 0) return;
+    Alert.alert(
+      "Permanently Delete Events",
+      `Are you sure you want to permanently delete the ${selectedEventKeys.length} selected event(s)? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Permanently",
+          style: "destructive",
+          onPress: () => {
+            const incomeIds = selectedEventKeys.filter((k) => k.startsWith("INCOME-")).map((k) => k.replace("INCOME-", ""));
+            const expenseIds = selectedEventKeys.filter((k) => k.startsWith("EXPENSE-")).map((k) => k.replace("EXPENSE-", ""));
+            bulkDeleteEventsMutation.mutate({
+              incomeEventIds: incomeIds,
+              expenseEventIds: expenseIds,
+            });
+          },
+        },
+      ]
+    );
+  };
 
   const canAffordQuery = trpc.canAfford.useQuery(
     { amount: canAffordAmount },
@@ -160,6 +192,9 @@ export default function HomeScreen() {
       categoryName: 'Income Allocation',
       categoryId: null,
       note: 'Income Deposit',
+      seriesId: e.incomeSourceId || undefined,
+      seriesName: e.sourceName || 'Paycheck Deposit',
+      isRecurring: Boolean(e.incomeSourceId),
     }));
 
   const expenseEventsList = (expenseEventsQuery.data ?? [])
@@ -173,6 +208,9 @@ export default function HomeScreen() {
       categoryName: e.categoryName || 'Uncategorized',
       categoryId: e.categoryId,
       note: e.note || 'Bill/Expense',
+      seriesId: e.expenseSourceId || e.categoryId || e.name,
+      seriesName: e.categoryName || e.name,
+      isRecurring: Boolean(e.expenseSourceId || e.categoryId),
     }));
 
   let combinedEvents = [...incomeEventsList, ...expenseEventsList];
@@ -279,6 +317,29 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {selectedEventKeys.length > 0 && (
+            <TouchableOpacity
+              onPress={handleBulkDelete}
+              disabled={bulkDeleteEventsMutation.isPending}
+              style={{
+                backgroundColor: '#DC2626',
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                marginBottom: 10,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Feather name="trash-2" size={14} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold' }}>
+                Bulk Delete ({selectedEventKeys.length})
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TextInput
             value={upcomingSearch}
             onChangeText={setUpcomingSearch}
@@ -287,63 +348,147 @@ export default function HomeScreen() {
             style={styles.searchInput}
           />
 
+          {combinedEvents.length > 0 && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 4 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  const allVisibleKeys = combinedEvents.map((e) => `${e.type}-${e.id}`);
+                  const allSelected = allVisibleKeys.every((k) => selectedEventKeys.includes(k));
+                  if (allSelected) {
+                    setSelectedEventKeys((prev) => prev.filter((k) => !allVisibleKeys.includes(k)));
+                  } else {
+                    setSelectedEventKeys((prev) => Array.from(new Set([...prev, ...allVisibleKeys])));
+                  }
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <Feather
+                  name={combinedEvents.every((e) => selectedEventKeys.includes(`${e.type}-${e.id}`)) ? "check-square" : "square"}
+                  size={14}
+                  color="#9CA3AF"
+                />
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#4B5563' }}>
+                  {combinedEvents.every((e) => selectedEventKeys.includes(`${e.type}-${e.id}`)) ? "Deselect All" : "Select All"}
+                </Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280' }}>
+                {combinedEvents.filter((e) => selectedEventKeys.includes(`${e.type}-${e.id}`)).length} of {combinedEvents.length} events selected
+              </Text>
+            </View>
+          )}
+
           {combinedEvents.length === 0 ? (
             <Text style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginVertical: 16 }}>
               No upcoming events found.
             </Text>
           ) : (
             <View style={{ gap: 8, marginTop: 8 }}>
-              {combinedEvents.map((evt) => (
-                <View key={`${evt.type}-${evt.id}`} style={styles.eventRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{evt.name}</Text>
-                    <Text style={{ fontSize: 10, color: '#9CA3AF' }}>
-                      {new Date(evt.expectedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} • {evt.categoryName}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: evt.type === 'INCOME' ? '#10B981' : '#1B2B4B' }}>
-                      {evt.type === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}
-                    </Text>
+              {combinedEvents.map((evt) => {
+                const eventKey = `${evt.type}-${evt.id}`;
+                const isSelected = selectedEventKeys.includes(eventKey);
+                const sId = evt.seriesId || evt.name;
 
-                    <View style={{ flexDirection: 'row', gap: 4 }}>
-                      {evt.type === 'INCOME' ? (
-                        <TouchableOpacity
-                          onPress={() =>
-                            setUpcomingIncomeToEdit({
-                              id: evt.id,
-                              sourceName: evt.name,
-                              expectedDate: evt.expectedDate,
-                              expectedAmount: evt.expectedAmount,
-                              note: evt.note,
-                            })
-                          }
-                          style={styles.processBtn}
-                        >
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Process Payday / Edit</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() =>
-                            setUpcomingExpenseToEdit({
-                              id: evt.id,
-                              name: evt.name,
-                              expectedDate: evt.expectedDate,
-                              expectedAmount: evt.expectedAmount,
-                              categoryId: evt.categoryId,
-                              categoryName: evt.categoryName,
-                              note: evt.note,
-                            })
-                          }
-                          style={styles.markPaidBtn}
-                        >
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Edit / Mark Paid</Text>
-                        </TouchableOpacity>
-                      )}
+                // All event keys in this same series
+                const seriesEventKeys = combinedEvents
+                  .filter((e) => (e.seriesId || e.name) === sId && e.type === evt.type)
+                  .map((e) => `${e.type}-${e.id}`);
+
+                const isSeriesAllSelected = seriesEventKeys.every((k) => selectedEventKeys.includes(k));
+
+                return (
+                  <View key={eventKey} style={[styles.eventRow, isSelected && { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }]}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (isSelected) {
+                          setSelectedEventKeys((prev) => prev.filter((k) => k !== eventKey));
+                        } else {
+                          setSelectedEventKeys((prev) => [...prev, eventKey]);
+                        }
+                      }}
+                      style={{ paddingRight: 6 }}
+                    >
+                      <Feather
+                        name={isSelected ? "check-square" : "square"}
+                        size={18}
+                        color={isSelected ? "#DC2626" : "#9CA3AF"}
+                      />
+                    </TouchableOpacity>
+
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1B2B4B' }}>{evt.name}</Text>
+                        {evt.isRecurring !== false && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              if (isSeriesAllSelected) {
+                                setSelectedEventKeys((prev) => prev.filter((k) => !seriesEventKeys.includes(k)));
+                              } else {
+                                setSelectedEventKeys((prev) => Array.from(new Set([...prev, ...seriesEventKeys])));
+                              }
+                            }}
+                            style={{
+                              backgroundColor: isSeriesAllSelected ? '#FEE2E2' : '#F3F4F6',
+                              paddingHorizontal: 6,
+                              paddingVertical: 2,
+                              borderRadius: 6,
+                            }}
+                          >
+                            <Text style={{ fontSize: 8, fontWeight: 'bold', color: isSeriesAllSelected ? '#991B1B' : '#4B5563' }}>
+                              Series: {evt.seriesName || evt.name}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      <Text style={{ fontSize: 10, color: '#9CA3AF' }}>
+                        {new Date(evt.expectedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} • {evt.categoryName}
+                      </Text>
+                    </View>
+
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                      <Text style={{ fontSize: 13, fontWeight: 'bold', color: evt.type === 'INCOME' ? '#10B981' : '#1B2B4B' }}>
+                        {evt.type === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                        {evt.type === 'INCOME' ? (
+                          <TouchableOpacity
+                            onPress={() =>
+                              setUpcomingIncomeToEdit({
+                                id: evt.id,
+                                sourceName: evt.name,
+                                expectedDate: evt.expectedDate,
+                                expectedAmount: evt.expectedAmount,
+                                note: evt.note,
+                              })
+                            }
+                            style={styles.processBtn}
+                          >
+                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Process Payday / Edit</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() =>
+                              setUpcomingExpenseToEdit({
+                                id: evt.id,
+                                name: evt.name,
+                                expectedDate: evt.expectedDate,
+                                expectedAmount: evt.expectedAmount,
+                                categoryId: evt.categoryId,
+                                categoryName: evt.categoryName,
+                                note: evt.note,
+                              })
+                            }
+                            style={styles.markPaidBtn}
+                          >
+                            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Edit / Mark Paid</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>

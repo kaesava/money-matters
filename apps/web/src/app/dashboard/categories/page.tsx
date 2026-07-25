@@ -203,8 +203,8 @@ export default function CategoriesPage() {
             options: [
               { id: "ALL", label: "All" },
               { id: "GREEN", label: "On Track" },
-              { id: "AMBER", label: "At Risk" },
-              { id: "RED", label: "Missed" },
+              { id: "AMBER", label: "Needs Attention" },
+              { id: "RED", label: "Behind" },
             ],
           },
           {
@@ -303,7 +303,9 @@ export default function CategoriesPage() {
                         <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: healthColor }} />
                         </div>
-                        <span className="text-[10px] font-extrabold text-zinc-500">{pct}% ({cat.healthStatus})</span>
+                        <span className="text-[10px] font-extrabold text-zinc-500">
+                          {pct}% ({cat.healthStatus === "GREEN" ? "On Track" : cat.healthStatus === "AMBER" ? "Needs Attention" : "Behind"})
+                        </span>
                       </div>
                     </td>
 

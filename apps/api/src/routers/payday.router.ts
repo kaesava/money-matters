@@ -7,14 +7,14 @@ import {
   previewAllocationQuery,
   previewPaydayQuery,
   overrideEventCommand,
-  skipEventsCommand,
+  bulkDeleteEventsCommand,
   deleteUpcomingEventCommand,
   ConfirmAllocationInput,
 } from "@money-matters/capability-budgeting";
 import {
   OverrideEventCommand,
   DeleteUpcomingEventCommand,
-  SkipEventsCommand,
+  BulkDeleteEventsCommand,
   ConfirmPaydayCommand,
 } from "@money-matters/types";
 import { z } from 'zod';
@@ -53,10 +53,10 @@ export const paydayRouter = {
       return await deleteUpcomingEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  skipEvents: tenantProcedure
-    .input(SkipEventsCommand)
+  bulkDeleteEvents: tenantProcedure
+    .input(BulkDeleteEventsCommand)
     .mutation(async ({ input, ctx }) => {
-      return await skipEventsCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return await bulkDeleteEventsCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   listAllocationPlan: tenantProcedure

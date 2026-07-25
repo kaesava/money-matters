@@ -126,9 +126,9 @@ export const DeleteUpcomingEventCommand = z.object({
   eventType: z.enum(["INCOME", "EXPENSE"]),
 }).strict();
 
-export const SkipEventsCommand = z.object({
-  eventIds: z.array(z.string().uuid()).min(1),
-  eventType: z.enum(["INCOME", "EXPENSE"]),
+export const BulkDeleteEventsCommand = z.object({
+  incomeEventIds: z.array(z.string().uuid()).default([]),
+  expenseEventIds: z.array(z.string().uuid()).default([]),
 }).strict();
 
 export const ConfirmPaydayCommand = z.object({

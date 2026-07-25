@@ -11,6 +11,20 @@
  * @param value - Amount value to format
  * @returns Formatted currency string
  */
+export function formatHealthStatus(status?: string | null): string {
+  if (!status) return 'On Track';
+  switch (status.toUpperCase()) {
+    case 'GREEN':
+      return 'On Track';
+    case 'AMBER':
+      return 'Needs Attention';
+    case 'RED':
+      return 'Behind';
+    default:
+      return status;
+  }
+}
+
 export function formatAUD(value: number | string): string {
   const num = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(num)) return '$0.00';
@@ -94,7 +108,7 @@ export function formatScheduleDetail(rrule?: string | null, startDate?: string |
   if (!isRecurring) {
     return {
       isRecurring: false,
-      badgeText: '⚡ One-off',
+      badgeText: 'One-off',
       detailText: formattedDate ? `Expected ${formattedDate}` : 'One-off schedule',
       frequencyLabel: 'One-off',
     };
@@ -113,7 +127,7 @@ export function formatScheduleDetail(rrule?: string | null, startDate?: string |
 
   return {
     isRecurring: true,
-    badgeText: `🔄 ${frequencyLabel}`,
+    badgeText: frequencyLabel,
     detailText: formattedDate ? `Kicks off ${formattedDate}` : frequencyLabel,
     frequencyLabel,
   };

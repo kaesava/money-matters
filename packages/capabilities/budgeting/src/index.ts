@@ -14,6 +14,6 @@ export * from "./commands/confirm-allocation.command.js";
 export * from "./engine/allocation-engine.js";
 export * from "./engine/burst-engine.js";
 export * from "./commands/override-event.command.js";
-export * from "./commands/skip-event.command.js";
+export * from "./commands/bulk-delete-events.command.js";
 export * from "./commands/delete-upcoming-event.command.js";
 export * from "./queries/preview-payday.query.js";

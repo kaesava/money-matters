@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { trpc } from '../lib/trpc';
+import { formatHealthStatus } from '../lib/format';
 
 interface UpcomingExpenseModalProps {
   visible: boolean;
@@ -280,7 +281,7 @@ export function UpcomingExpenseModal({
                   Projected After: <Text style={styles.bold}>{fmt(projectedBal)}</Text>
                 </Text>
                 {isFutureDate && selectedCat.healthStatus ? (
-                  <Text style={styles.healthBadge}>Health: {selectedCat.healthStatus}</Text>
+                  <Text style={styles.healthBadge}>Health: {formatHealthStatus(selectedCat.healthStatus)}</Text>
                 ) : null}
               </View>
             ) : null}

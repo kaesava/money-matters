@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 export interface UpcomingEvent {
   id: string;
@@ -11,6 +11,8 @@ export interface UpcomingEvent {
   note: string;
   isNextPayday: boolean;
   isRecurring?: boolean;
+  seriesId?: string;
+  seriesName?: string;
 }
 
 interface UpcomingEventsListProps {
@@ -21,8 +23,8 @@ interface UpcomingEventsListProps {
   setUpcomingFilter: (filter: "ALL" | "INCOME" | "EXPENSE") => void;
   upcomingSearch: string;
   setUpcomingSearch: (search: string) => void;
-  isPendingSkip: boolean;
-  onBulkSkip: () => void;
+  isPendingDelete: boolean;
+  onBulkDelete: () => void;
   onProcessPayday: (evt: UpcomingEvent) => void;
   onMarkPaid: (evt: UpcomingEvent) => void;
   fmt: (val: string | number) => string;
@@ -38,16 +40,62 @@ export function UpcomingEventsList({
   setUpcomingFilter,
   upcomingSearch,
   setUpcomingSearch,
-  isPendingSkip,
-  onBulkSkip,
+  isPendingDelete,
+  onBulkDelete,
   onProcessPayday,
   onMarkPaid,
   fmt,
   fmtAUDate,
   todayStr,
 }: UpcomingEventsListProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Group unique recurring series across events
+  const seriesMap = new Map<string, { key: string; name: string; type: "INCOME" | "EXPENSE"; eventKeys: string[] }>();
+  events.forEach((evt) => {
+    if (evt.isRecurring === false) return;
+    const sId = evt.seriesId || evt.name;
+    const seriesKey = `${evt.type}-${sId}`;
+    const eventKey = `${evt.type}-${evt.id}`;
+    if (!seriesMap.has(seriesKey)) {
+      seriesMap.set(seriesKey, {
+        key: seriesKey,
+        name: evt.seriesName || evt.name,
+        type: evt.type,
+        eventKeys: [],
+      });
+    }
+    seriesMap.get(seriesKey)!.eventKeys.push(eventKey);
+  });
+
+  const seriesList = Array.from(seriesMap.values());
+
+  const handleToggleSeries = (seriesKey: string) => {
+    const s = seriesMap.get(seriesKey);
+    if (!s) return;
+    const allSelected = s.eventKeys.every((k) => selectedEventKeys.includes(k));
+    if (allSelected) {
+      setSelectedEventKeys((prev) => prev.filter((k) => !s.eventKeys.includes(k)));
+    } else {
+      setSelectedEventKeys((prev) => Array.from(new Set([...prev, ...s.eventKeys])));
+    }
+  };
+
+  const handleSelectAllVisible = () => {
+    const allVisibleKeys = events.map((evt) => `${evt.type}-${evt.id}`);
+    const allSelected = allVisibleKeys.every((k) => selectedEventKeys.includes(k));
+    if (allSelected) {
+      setSelectedEventKeys((prev) => prev.filter((k) => !allVisibleKeys.includes(k)));
+    } else {
+      setSelectedEventKeys((prev) => Array.from(new Set([...prev, ...allVisibleKeys])));
+    }
+  };
+
+  const isAllVisibleSelected = events.length > 0 && events.every((evt) => selectedEventKeys.includes(`${evt.type}-${evt.id}`));
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-[#1B2B4B]">Upcoming Events</h2>
@@ -57,12 +105,38 @@ export function UpcomingEventsList({
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {selectedEventKeys.length > 0 && (
             <button
-              onClick={onBulkSkip}
-              disabled={isPendingSkip}
-              className="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold text-xs shadow-sm hover:bg-amber-600 transition-all"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isPendingDelete}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs shadow-sm hover:bg-rose-700 transition-all flex items-center justify-center gap-1"
             >
-              Bulk Skip ({selectedEventKeys.length})
+              <span>🗑️</span> Bulk Delete ({selectedEventKeys.length})
             </button>
+          )}
+
+          {/* Series Quick-Select Dropdown */}
+          {seriesList.length > 0 && (
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleToggleSeries(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              className="px-3 py-2 text-xs font-semibold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select Series...
+              </option>
+              {seriesList.map((s) => {
+                const isSelected = s.eventKeys.every((k) => selectedEventKeys.includes(k));
+                return (
+                  <option key={s.key} value={s.key}>
+                    {isSelected ? "✓ " : ""}[{s.type}] {s.name} ({s.eventKeys.length})
+                  </option>
+                );
+              })}
+            </select>
           )}
 
           <input
@@ -89,6 +163,27 @@ export function UpcomingEventsList({
         </div>
       </div>
 
+      {/* Select All Toggle Bar */}
+      {events.length > 0 && (
+        <div className="flex items-center justify-between px-2 text-xs font-semibold text-zinc-500">
+          <button
+            onClick={handleSelectAllVisible}
+            className="hover:text-[#00B4A6] transition-all flex items-center gap-1.5"
+          >
+            <input
+              type="checkbox"
+              checked={isAllVisibleSelected}
+              onChange={() => {}}
+              className="w-3.5 h-3.5 rounded border-zinc-300 text-[#00B4A6] focus:ring-[#00B4A6]"
+            />
+            {isAllVisibleSelected ? "Deselect All" : "Select All"}
+          </button>
+          <span>
+            {events.filter((evt) => selectedEventKeys.includes(`${evt.type}-${evt.id}`)).length} of {events.length} events selected
+          </span>
+        </div>
+      )}
+
       {events.length === 0 ? (
         <div className="p-8 rounded-2xl bg-white border border-zinc-100 text-center text-xs text-zinc-400">
           No upcoming events found.
@@ -100,6 +195,8 @@ export function UpcomingEventsList({
             const eventKey = `${evt.type}-${evt.id}`;
             const isSelected = selectedEventKeys.includes(eventKey);
             const isNextPayday = evt.isNextPayday;
+            const sId = evt.seriesId || evt.name;
+            const seriesKey = `${evt.type}-${sId}`;
 
             return (
               <div
@@ -142,6 +239,16 @@ export function UpcomingEventsList({
                       >
                         {evt.type}
                       </span>
+                      {/* Select All In Series Button (Recurring only) */}
+                      {evt.isRecurring !== false && (
+                        <button
+                          onClick={() => handleToggleSeries(seriesKey)}
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 transition-all"
+                          title="Click to toggle selection for all events in this series"
+                        >
+                          Series: {evt.seriesName || evt.name}
+                        </button>
+                      )}
                     </div>
                     <span className="text-xs text-zinc-400">
                       Date: {fmtAUDate(evt.expectedDate)} • Category: {evt.categoryName} • {evt.note}
@@ -173,6 +280,46 @@ export function UpcomingEventsList({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Confirmation Modal for Permanent Bulk Delete */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 border border-zinc-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl font-bold">
+                ⚠️
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-[#1B2B4B]">Permanently Delete Events</h3>
+                <p className="text-xs text-zinc-500 font-semibold">Action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-600 leading-relaxed">
+              Are you sure you want to permanently delete the <strong className="text-rose-600">{selectedEventKeys.length}</strong> selected event(s)? These records will be permanently removed from your database.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  onBulkDelete();
+                }}
+                disabled={isPendingDelete}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-sm disabled:opacity-50"
+              >
+                {isPendingDelete ? "Deleting..." : "Permanently Delete"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

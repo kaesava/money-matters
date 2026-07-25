@@ -37,7 +37,7 @@ export function ExpenseCategoryInfo({
                 : "bg-rose-100 text-rose-800"
             }`}
           >
-            Health: {healthStatus}
+            Health: {healthStatus === "GREEN" ? "On Track" : healthStatus === "AMBER" ? "Needs Attention" : "Behind"}
           </span>
         )}
       </div>

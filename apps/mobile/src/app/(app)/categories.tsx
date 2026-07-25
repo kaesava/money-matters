@@ -174,8 +174,8 @@ export default function CategoriesScreen() {
                 options: [
                   { id: 'ALL', label: 'All' },
                   { id: 'GREEN', label: 'On Track' },
-                  { id: 'AMBER', label: 'At Risk' },
-                  { id: 'RED', label: 'Missed' },
+                  { id: 'AMBER', label: 'Needs Attention' },
+                  { id: 'RED', label: 'Behind' },
                 ],
               },
               {

@@ -73,8 +73,8 @@ export default function DashboardPage() {
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const canAffordQuery = trpc.canAfford.useQuery({ amount: canAffordAmount }, { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 });
 
-  // Skip Mutation
-  const skipEventsMutation = trpc.skipEvents.useMutation({
+  // Bulk Delete Mutation
+  const bulkDeleteEventsMutation = trpc.bulkDeleteEvents.useMutation({
     onSuccess: () => {
       incomeEventsQuery.refetch();
       expenseEventsQuery.refetch();
@@ -225,6 +225,8 @@ export default function DashboardPage() {
       categoryId: null,
       note: "Income Deposit",
       isNextPayday: "isNextPayday" in e ? Boolean(e.isNextPayday) : false,
+      seriesId: e.incomeSourceId || undefined,
+      seriesName: e.sourceName || "Paycheck Deposit",
     }));
 
   const expenseEventsMapped: UpcomingEvent[] = (expenseEventsQuery.data ?? [])
@@ -239,6 +241,8 @@ export default function DashboardPage() {
       categoryId: e.categoryId,
       note: e.note || "Bill/Expense",
       isNextPayday: false,
+      seriesId: e.expenseSourceId || e.categoryId || e.name,
+      seriesName: e.categoryName || e.name,
     }));
 
   let combinedUpcoming = [...incomeEventsMapped, ...expenseEventsMapped];
@@ -275,16 +279,14 @@ export default function DashboardPage() {
     return dStr;
   };
 
-  const handleBulkSkip = () => {
+  const handleBulkDelete = () => {
     const incomeIds = selectedEventKeys.filter((k) => k.startsWith("INCOME-")).map((k) => k.replace("INCOME-", ""));
     const expenseIds = selectedEventKeys.filter((k) => k.startsWith("EXPENSE-")).map((k) => k.replace("EXPENSE-", ""));
 
-    if (incomeIds.length > 0) {
-      skipEventsMutation.mutate({ eventIds: incomeIds, eventType: "INCOME" });
-    }
-    if (expenseIds.length > 0) {
-      skipEventsMutation.mutate({ eventIds: expenseIds, eventType: "EXPENSE" });
-    }
+    bulkDeleteEventsMutation.mutate({
+      incomeEventIds: incomeIds,
+      expenseEventIds: expenseIds,
+    });
   };
 
   const confirmPaydayMutation = trpc.confirmPayday.useMutation({
@@ -418,8 +420,8 @@ export default function DashboardPage() {
         setUpcomingFilter={setUpcomingFilter}
         upcomingSearch={upcomingSearch}
         setUpcomingSearch={setUpcomingSearch}
-        isPendingSkip={skipEventsMutation.isPending}
-        onBulkSkip={handleBulkSkip}
+        isPendingDelete={bulkDeleteEventsMutation.isPending}
+        onBulkDelete={handleBulkDelete}
         onProcessPayday={(evt) => setUpcomingIncomeToEdit({
           id: evt.id,
           sourceName: evt.name,
