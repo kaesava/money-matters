@@ -198,42 +198,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* All Upcoming Section */}
-        <MobileCollapsibleSection title={`All Upcoming (${combinedEvents.length})`} defaultOpen={true}>
-          <View style={styles.upcomingHeader}>
-            <TextInput
-              value={upcomingSearch}
-              onChangeText={setUpcomingSearch}
-              placeholder="Search events..."
-              style={styles.searchInput}
-            />
-            {selectedEventKeys.length > 0 ? (
-              <TouchableOpacity style={styles.bulkDeleteBtn} onPress={handleBulkDelete}>
-                <Text style={styles.bulkDeleteText}>Delete ({selectedEventKeys.length})</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {combinedEvents.length === 0 ? (
-            <Text style={styles.emptyText}>No upcoming events found.</Text>
-          ) : (
-            combinedEvents.slice(0, 10).map((evt) => (
-              <View key={`${evt.type}-${evt.id}`} style={styles.eventRow}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.eventName} numberOfLines={1} ellipsizeMode="tail">
-                    {evt.name}
-                  </Text>
-                  <Text style={styles.eventSub} numberOfLines={1}>
-                    {evt.categoryName} • {evt.expectedDate}
-                  </Text>
-                </View>
-                <Text style={[styles.eventAmount, evt.type === 'INCOME' && styles.incomeText]}>
-                  {evt.type === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}
-                </Text>
-              </View>
-            ))
-          )}
-        </MobileCollapsibleSection>
       </ScrollView>
 
       {/* Modals */}

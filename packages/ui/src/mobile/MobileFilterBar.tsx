@@ -52,13 +52,17 @@ export default function MobileFilterBar({
         )}
       </View>
 
-      {/* Filter Groups & Horizontal Chips */}
+      {/* Filter Groups - Each on a NEW LINE */}
       {filterGroups.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+        <View style={styles.filterGroupsStack}>
           {filterGroups.map((group) => (
-            <View key={group.label} style={styles.groupContainer}>
+            <View key={group.label} style={styles.groupLineContainer}>
               <Text style={styles.groupLabel}>{group.label}:</Text>
-              <View style={styles.chipsRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsScroll}
+              >
                 {group.options.map((opt) => {
                   const isActive = group.value === opt.id;
                   return (
@@ -77,16 +81,16 @@ export default function MobileFilterBar({
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScrollView>
             </View>
           ))}
 
           {hasActiveFilters && onClearAll && (
             <TouchableOpacity onPress={onClearAll} style={styles.clearAllBtn} activeOpacity={0.7}>
-              <Text style={styles.clearAllText}>Clear All</Text>
+              <Text style={styles.clearAllText}>Clear All Filters</Text>
             </TouchableOpacity>
           )}
-        </ScrollView>
+        </View>
       )}
     </View>
   );
@@ -95,8 +99,8 @@ export default function MobileFilterBar({
 const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   container: {
-    gap: 10,
-    marginVertical: 8,
+    gap: 12,
+    marginVertical: 10,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -106,7 +110,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     paddingHorizontal: 12,
-    height: 42,
+    height: 44,
   },
   searchIcon: {
     marginRight: 8,
@@ -119,16 +123,14 @@ const styles = StyleSheet.create({
   clearSearchBtn: {
     padding: 4,
   },
-  chipsScroll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 2,
+  filterGroupsStack: {
+    flexDirection: 'column',
+    gap: 10,
   },
-  groupContainer: {
+  groupLineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   groupLabel: {
     fontSize: 11,
@@ -136,15 +138,17 @@ const styles = StyleSheet.create({
     color: D.colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    minWidth: 50,
   },
-  chipsRow: {
+  chipsScroll: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    paddingVertical: 2,
   },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
     backgroundColor: '#F3F4F6',
   },
@@ -160,10 +164,12 @@ const styles = StyleSheet.create({
     color: D.colors.onAccent,
   },
   clearAllBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 16,
     backgroundColor: '#FEE2E2',
+    marginTop: 2,
   },
   clearAllText: {
     fontSize: 11,

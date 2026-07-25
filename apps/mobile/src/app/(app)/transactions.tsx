@@ -199,13 +199,11 @@ export default function TransactionsScreen() {
           </View>
         ) : (
           <>
-            <FlatList
-              data={sorted.slice((page - 1) * pageSize, page * pageSize)}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => {
+            <View style={styles.list}>
+              {sorted.slice((page - 1) * pageSize, page * pageSize).map((item: any) => {
                 const isDebit = item.flowType === 'DEBIT';
                 return (
-                  <View style={styles.card}>
+                  <View key={item.id} style={styles.card}>
                     <View style={styles.cardRow}>
                       <View style={{ flex: 1, marginRight: 8 }}>
                         <TouchableOpacity
@@ -245,9 +243,8 @@ export default function TransactionsScreen() {
                     {item.note ? <Text style={styles.noteText}>Note: {item.note}</Text> : null}
                   </View>
                 );
-              }}
-              contentContainerStyle={styles.list}
-            />
+              })}
+            </View>
 
             <MobilePaginationBar
               page={page}

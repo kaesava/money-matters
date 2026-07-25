@@ -46,8 +46,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: t('nav.transactions'),
-          tabBarIcon: ({ color, size }) => <TabIcon name="list" color={color} size={size} />,
+          href: null,
         }}
       />
       <Tabs.Screen

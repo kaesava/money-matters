@@ -1,11 +1,14 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { t } from "@money-matters/i18n";
+import { DESIGN_TOKENS } from "../tokens";
 
 interface ScreenHeaderProps {
   title?: string;
   showBack?: boolean;
   onBackPress?: () => void;
+  onNavigateHome?: () => void;
   showProfile?: boolean;
   user?: { name?: string | null; email?: string | null } | null;
   getInitials: () => string;
@@ -17,7 +20,8 @@ export function ScreenHeader({
   title,
   showBack,
   onBackPress,
-  showProfile,
+  onNavigateHome,
+  showProfile = true,
   user,
   getInitials,
   onOpenMenu,
@@ -25,7 +29,7 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   return (
     <View style={styles.header}>
-      {/* Left Area: Back Button or Branding */}
+      {/* Left Area: Back Button or Clickable Money Matters Home Link */}
       <View style={styles.leftContainer}>
         {showBack ? (
           <TouchableOpacity
@@ -37,10 +41,15 @@ export function ScreenHeader({
             <Text style={styles.backText}>{t("common.back")}</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.brandContainer}>
+          <TouchableOpacity
+            onPress={onNavigateHome}
+            disabled={!onNavigateHome}
+            style={styles.brandContainer}
+            activeOpacity={0.7}
+          >
             <Text style={styles.brandLogo}>🪙</Text>
             <Text style={styles.brandText}>{t("app.title")}</Text>
-          </View>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -53,16 +62,16 @@ export function ScreenHeader({
         ) : null}
       </View>
 
-      {/* Right Area: Profile Bubble */}
+      {/* Right Area: Person / Profile Icon */}
       <View style={styles.rightContainer}>
-        {showProfile && user ? (
+        {showProfile ? (
           <TouchableOpacity
             onPress={onOpenMenu}
             style={styles.avatarButton}
             activeOpacity={0.8}
           >
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials()}</Text>
+              <Feather name="user" size={18} color={DESIGN_TOKENS.colors.onAccent} />
             </View>
           </TouchableOpacity>
         ) : (
