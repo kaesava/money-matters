@@ -15,6 +15,7 @@ interface PaydayPreviewWizardProps {
 export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess }: PaydayPreviewWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [overrideAmount, setOverrideAmount] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [allocations, setAllocations] = useState<Record<string, string>>({});
   const [isFuturePlannedResult, setIsFuturePlannedResult] = useState(false);
 
@@ -42,6 +43,9 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
     if (previewQuery.data?.incomeEvent) {
       const initialAmt = previewQuery.data.incomeEvent.expectedAmount || '0.00';
       setOverrideAmount(initialAmt);
+      const rawDate = previewQuery.data.incomeEvent.expectedDate;
+      const parsedDate = rawDate ? new Date(rawDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+      setSelectedDate(parsedDate);
     }
   }, [previewQuery.data]);
 
@@ -65,12 +69,18 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
     setAllocations((prev) => ({ ...prev, [catId]: val }));
   };
 
-  const handleConfirm = (markAsReceivedToday = false) => {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isFutureDate = selectedDate > todayStr;
+
+  const handleConfirm = () => {
     if (!incomeEventId) return;
     const linesPayload = Object.entries(allocations).map(([categoryId, amount]) => ({
       bucketId: categoryId,
       amount: parseFloat(amount || '0').toFixed(2),
     }));
+
+    // If selected date is today/past, mark as received today
+    const markAsReceivedToday = !isFutureDate;
 
     confirmMutation.mutate({
       incomeEventId,
@@ -79,13 +89,6 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
       lines: linesPayload,
     });
   };
-
-  const incomeEvent = previewQuery.data?.incomeEvent;
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const expectedDateStr = incomeEvent?.expectedDate
-    ? new Date(incomeEvent.expectedDate).toISOString().slice(0, 10)
-    : todayStr;
-  const isFutureDate = expectedDateStr > todayStr;
 
   interface AllocationLineItem {
     categoryId: string;
@@ -111,6 +114,16 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
   const totalAllocated = Object.values(allocations).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
   const netNum = parseFloat(overrideAmount || '0');
   const residualEveryday = netNum - totalAllocated;
+
+  const fmtDate = (dStr: string) => {
+    try {
+      const parts = dStr.split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } catch {
+      // ignore
+    }
+    return dStr;
+  };
 
   const D = DESIGN_TOKENS;
 
@@ -144,9 +157,9 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
               <View style={styles.stepContainer}>
                 {isFutureDate && (
                   <View style={styles.futureAlert}>
-                    <Text style={styles.futureAlertTitle}>📅 Future Paycheck Date ({expectedDateStr})</Text>
+                    <Text style={styles.futureAlertTitle}>📅 Upcoming Payday ({fmtDate(selectedDate)})</Text>
                     <Text style={styles.futureAlertBody}>
-                      Category balances only update with actual cash. You can save your plan for payday or mark as received today if deposited early.
+                      Your category balances will only update when money actually lands in your bank. Saving this will store your split plan so it&apos;s ready to go on payday (or change the date below if your pay arrived early!).
                     </Text>
                   </View>
                 )}
@@ -154,9 +167,15 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
                 <View style={styles.card}>
                   <Text style={styles.cardTitle}>Paycheck Details</Text>
                   <Text style={styles.sourceText}>Income Deposit</Text>
-                  <Text style={styles.dateText}>
-                    Date: {incomeEvent?.expectedDate ? new Date(incomeEvent.expectedDate).toLocaleDateString('en-AU') : ''}
-                  </Text>
+                  <View style={{ marginTop: 6, gap: 4 }}>
+                    <Text style={styles.dateLabel}>Payday Date (YYYY-MM-DD):</Text>
+                    <TextInput
+                      value={selectedDate}
+                      onChangeText={setSelectedDate}
+                      placeholder="YYYY-MM-DD"
+                      style={styles.dateInput}
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.card}>
@@ -168,7 +187,7 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
                     style={styles.amountInput}
                   />
                   <Text style={styles.hintText}>
-                    Original Expected: {formatAUD(incomeEvent?.expectedAmount || '0')}
+                    Original Expected: {formatAUD(previewQuery.data?.incomeEvent?.expectedAmount || '0')}
                   </Text>
                 </View>
 
@@ -181,6 +200,15 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
             {/* STEP 2: CATEGORY ALLOCATIONS */}
             {step === 2 && (
               <View style={styles.stepContainer}>
+                {isFutureDate && (
+                  <View style={styles.futureAlert}>
+                    <Text style={styles.futureAlertTitle}>📅 Upcoming Payday ({fmtDate(selectedDate)})</Text>
+                    <Text style={styles.futureAlertBody}>
+                      Your category balances will only update when money actually lands in your bank. Saving this will store your split plan so it&apos;s ready to go on payday (or change the date in Step 1 if your pay arrived early!).
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.card}>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Total Net Paycheck:</Text>
@@ -214,47 +242,20 @@ export function PaydayPreviewWizard({ visible, incomeEventId, onClose, onSuccess
                   </View>
                 ))}
 
-                {isFutureDate ? (
-                  <View style={{ gap: 10, marginTop: 12 }}>
-                    <TouchableOpacity
-                      onPress={() => handleConfirm(false)}
-                      disabled={confirmMutation.isPending}
-                      style={[styles.nextBtn, { backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#00B4A6' }]}
-                      activeOpacity={0.8}
-                    >
-                      {confirmMutation.isPending ? (
-                        <ActivityIndicator color="#00B4A6" />
-                      ) : (
-                        <Text style={[styles.nextBtnText, { color: '#0F766E' }]}>📅 Save Plan for Payday</Text>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleConfirm(true)}
-                      disabled={confirmMutation.isPending}
-                      style={styles.nextBtn}
-                      activeOpacity={0.8}
-                    >
-                      {confirmMutation.isPending ? (
-                        <ActivityIndicator color="#FFF" />
-                      ) : (
-                        <Text style={styles.nextBtnText}>⚡ Received Today</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => handleConfirm(false)}
-                    disabled={confirmMutation.isPending}
-                    style={styles.nextBtn}
-                    activeOpacity={0.8}
-                  >
-                    {confirmMutation.isPending ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={styles.nextBtnText}>Confirm & Allocate Paycheck ✓</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  onPress={handleConfirm}
+                  disabled={confirmMutation.isPending}
+                  style={[styles.nextBtn, isFutureDate ? { backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#00B4A6' } : {}]}
+                  activeOpacity={0.8}
+                >
+                  {confirmMutation.isPending ? (
+                    <ActivityIndicator color={isFutureDate ? '#00B4A6' : '#FFF'} />
+                  ) : (
+                    <Text style={[styles.nextBtnText, isFutureDate ? { color: '#0F766E' } : {}]}>
+                      {isFutureDate ? '📅 Save Plan for Payday' : 'Confirm & Distribute Payday ✓'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
 
@@ -309,13 +310,14 @@ const styles = StyleSheet.create({
   wizardStepIndicator: { fontSize: 11, color: D.colors.textMuted, fontWeight: '700' },
   scrollBody: { padding: 20, gap: 16 },
   stepContainer: { gap: 16 },
-  futureAlert: { backgroundColor: '#CCFBF1', padding: 12, borderRadius: D.radius.md, borderWidth: 1, borderColor: '#99F6E4', gap: 4 },
+  futureAlert: { backgroundColor: '#F0FDFA', padding: 14, borderRadius: D.radius.md, borderWidth: 1, borderColor: '#99F6E4', gap: 6 },
   futureAlertTitle: { fontSize: 13, fontWeight: '800', color: '#0F766E' },
-  futureAlertBody: { fontSize: 11, color: '#115E59' },
+  futureAlertBody: { fontSize: 11, color: '#115E59', lineHeight: 16 },
   card: { backgroundColor: D.colors.surface, borderRadius: D.radius.md, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', gap: 6 },
   cardTitle: { fontSize: 13, fontWeight: '800', color: D.colors.primary, textTransform: 'uppercase', letterSpacing: 0.5 },
   sourceText: { fontSize: 18, fontWeight: '900', color: D.colors.primary },
-  dateText: { fontSize: 12, color: D.colors.textMuted },
+  dateLabel: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted },
+  dateInput: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, fontSize: 14, fontWeight: '700', color: D.colors.primary, backgroundColor: '#FFF' },
   amountInput: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: D.radius.md, padding: 12, fontSize: 18, fontWeight: '800', color: D.colors.primary, backgroundColor: '#FFF' },
   hintText: { fontSize: 12, color: D.colors.textMuted },
   nextBtn: { backgroundColor: '#00B4A6', paddingVertical: 14, borderRadius: D.radius.md, alignItems: 'center', marginTop: 8 },

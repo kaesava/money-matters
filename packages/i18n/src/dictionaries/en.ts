@@ -238,9 +238,12 @@ export const en = {
       title: "Payday Split Review",
       noPlanYet: "No allocation plan calculated yet.",
       allocationBreakdown: "Category Allocation Breakdown",
-      confirmCta: "Confirm & Allocate Paycheck",
+      confirmCta: "Confirm & Distribute Payday",
+      savePlanCta: "📅 Save Plan for Payday",
       confirmed: "Payday Split Allocated!",
       transferInstructions: "Bank Transfer Instructions",
+      futureNoticeTitle: "📅 Upcoming Payday ({date})",
+      futureNoticeBody: "Your category balances will only update when money actually lands in your bank. Saving this will store your split plan so it's ready to go on payday (or change the date above if your pay arrived early!).",
     },
     transfer: {
       allDone: "All Transfers Completed!",

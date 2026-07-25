@@ -36,6 +36,7 @@ export default function PaydayPreviewModal({
 }: PaydayPreviewModalProps) {
   const utils = trpc.useUtils();
   const [actualAmount, setActualAmount] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -52,6 +53,10 @@ export default function PaydayPreviewModal({
   useEffect(() => {
     if (previewData) {
       setActualAmount(previewData.incomeEvent.actualAmount);
+      const rawDate = previewData.incomeEvent.expectedDate;
+      const parsedDate = rawDate ? new Date(rawDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+      setSelectedDate(parsedDate);
+
       const initial: Record<string, string> = {};
       for (const line of previewData.engineResult.lines) {
         initial[line.bucketId] = line.proposedAmount.toFixed(2);
@@ -71,12 +76,9 @@ export default function PaydayPreviewModal({
   const unallocated = numericActual - totalAllocated;
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const expectedDateStr = previewData?.incomeEvent.expectedDate
-    ? new Date(previewData.incomeEvent.expectedDate).toISOString().slice(0, 10)
-    : todayStr;
-  const isFutureDate = expectedDateStr > todayStr;
+  const isFutureDate = selectedDate > todayStr;
 
-  const handleConfirm = async (overrideMismatch = false, markAsReceivedToday = false) => {
+  const handleConfirm = async (overrideMismatch = false) => {
     setErrorMsg("");
 
     if (!overrideMismatch && Math.abs(numericActual - totalAllocated) >= 0.01) {
@@ -91,6 +93,9 @@ export default function PaydayPreviewModal({
         bucketId,
         amount: (parseFloat(amount) || 0).toFixed(2),
       }));
+
+      // If user selected today or a past date, mark as received today/posted
+      const markAsReceivedToday = !isFutureDate;
 
       await confirmPaydayMut.mutateAsync({
         incomeEventId,
@@ -130,7 +135,7 @@ export default function PaydayPreviewModal({
       title="🎉 Process Payday Split"
       subtitle="Review and customize line-by-line distribution across your budget categories"
       isDirty={false}
-      onSave={() => handleConfirm(false, false)}
+      onSave={() => handleConfirm(false)}
     >
       <div className="flex flex-col gap-5 text-zinc-900">
         {previewQuery.isLoading ? (
@@ -144,12 +149,12 @@ export default function PaydayPreviewModal({
         ) : (
           <>
             {isFutureDate && (
-              <div className="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs flex flex-col gap-1.5">
-                <span className="font-bold flex items-center gap-1.5">
-                  <span>📅</span> Future Paycheck Date Detected ({fmtDate(expectedDateStr)})
+              <div className="p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs flex flex-col gap-1.5 shadow-2xs">
+                <span className="font-extrabold text-teal-950 flex items-center gap-1.5 text-sm">
+                  <span>📅</span> Upcoming Payday ({fmtDate(selectedDate)})
                 </span>
-                <p className="text-[11px] text-teal-800 font-medium">
-                  Category balances only update with actual cash. Saving this split will store your plan for payday, or you can mark it as received today if deposited early.
+                <p className="text-xs text-teal-800 font-medium leading-relaxed">
+                  Your category balances will only update when money actually lands in your bank. Saving this will store your split plan so it&apos;s ready to go on payday (or change the date above if your pay arrived early!).
                 </p>
               </div>
             )}
@@ -173,7 +178,7 @@ export default function PaydayPreviewModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleConfirm(true, false)}
+                    onClick={() => handleConfirm(true)}
                     className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold text-xs hover:bg-amber-700"
                   >
                     Proceed with ${totalAllocated.toFixed(2)} AUD
@@ -189,22 +194,33 @@ export default function PaydayPreviewModal({
             )}
 
             {/* Paycheck Summary Header */}
-            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-                  Payday Date: {fmtDate(expectedDateStr)}
-                </span>
-                <h4 className="text-sm font-black text-[#1B2B4B]">Total Paycheck Amount</h4>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-500">$</span>
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
+                  Payday Date
+                </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={actualAmount}
-                  onChange={(e) => setActualAmount(e.target.value)}
-                  className="w-28 px-3 py-1.5 text-sm font-black rounded-xl border border-zinc-200 text-right focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="px-2.5 py-1 text-xs font-bold rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 bg-white"
                 />
+              </div>
+
+              <div className="flex flex-col items-end gap-1">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
+                  Total Paycheck Amount
+                </label>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-bold text-zinc-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={actualAmount}
+                    onChange={(e) => setActualAmount(e.target.value)}
+                    className="w-28 px-3 py-1 text-sm font-black rounded-xl border border-zinc-200 text-right focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                  />
+                </div>
               </div>
             </div>
 
@@ -261,35 +277,18 @@ export default function PaydayPreviewModal({
               >
                 Cancel
               </button>
-              {isFutureDate ? (
-                <>
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleConfirm(false, false)}
-                    className="px-4 py-2 text-xs font-bold rounded-xl border border-teal-300 text-teal-800 bg-teal-50 hover:bg-teal-100 transition-all disabled:opacity-50"
-                  >
-                    {submitting ? "Saving..." : "📅 Save Plan for Payday"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => handleConfirm(false, true)}
-                    className="px-4 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
-                  >
-                    {submitting ? "Processing..." : "⚡ Received Today"}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => handleConfirm(false, false)}
-                  className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
-                >
-                  {submitting ? "Processing..." : "Confirm & Distribute Payday"}
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => handleConfirm(false)}
+                className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
+              >
+                {submitting
+                  ? "Processing..."
+                  : isFutureDate
+                  ? "📅 Save Plan for Payday"
+                  : "Confirm & Distribute Payday"}
+              </button>
             </div>
           </>
         )}
