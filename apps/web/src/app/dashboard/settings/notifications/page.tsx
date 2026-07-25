@@ -111,7 +111,7 @@ export default function NotificationSettingsPage() {
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-bold text-[#1B2B4B]">📊 Weekly Balance Digest</span>
               <span className="text-xs text-zinc-500">
-                Receive a Sunday evening digest of your total saved vs spent and upcoming week's forecast.
+                Receive a Sunday evening digest of your total saved vs spent and upcoming week&apos;s forecast.
               </span>
             </div>
             <button
