@@ -10,6 +10,46 @@ function fmt(val: string | number) {
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatScheduleDetail(rrule?: string | null, startDate?: string | null) {
+  const isRecurring = Boolean(rrule && rrule.trim().length > 0);
+
+  const fmtDate = (dStr?: string | null) => {
+    if (!dStr) return null;
+    try {
+      const parts = dStr.split("T")[0].split("-");
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } catch {}
+    return dStr;
+  };
+
+  const formattedDate = fmtDate(startDate);
+
+  if (!isRecurring) {
+    return {
+      isRecurring: false,
+      badgeText: "⚡ One-off",
+      detailText: formattedDate ? `Expected ${formattedDate}` : "One-off schedule",
+    };
+  }
+
+  let frequencyLabel = "Recurring";
+  if (rrule?.includes("INTERVAL=2") && rrule?.includes("WEEKLY")) {
+    frequencyLabel = "Fortnightly";
+  } else if (rrule?.includes("FREQ=WEEKLY")) {
+    frequencyLabel = "Weekly";
+  } else if (rrule?.includes("FREQ=MONTHLY")) {
+    frequencyLabel = "Monthly";
+  } else if (rrule?.includes("FREQ=YEARLY") || rrule?.includes("ANNUALLY")) {
+    frequencyLabel = "Annually";
+  }
+
+  return {
+    isRecurring: true,
+    badgeText: `🔄 ${frequencyLabel}`,
+    detailText: formattedDate ? `Kicks off ${formattedDate}` : frequencyLabel,
+  };
+}
+
 export default function IncomeAndExpensesPage() {
   const utils = trpc.useUtils();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
@@ -156,6 +196,7 @@ export default function IncomeAndExpensesPage() {
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
                   <th className="px-5 py-3.5">Deposit Name</th>
+                  <th className="px-5 py-3.5">Schedule</th>
                   <th className="px-5 py-3.5">Expected Amount</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
@@ -163,56 +204,73 @@ export default function IncomeAndExpensesPage() {
               <tbody className="divide-y divide-zinc-100">
                 {filteredIncome.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
+                    <td colSpan={4} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
                       No income sources configured.
                     </td>
                   </tr>
                 ) : (
-                  filteredIncome.map((inc) => (
-                    <tr key={inc.id} className="hover:bg-zinc-50/50 transition-colors font-semibold">
-                      <td className="px-5 py-3.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBurstModalMode("INCOME");
-                            setBurstSourceId(inc.id);
-                            setBurstSourceName(inc.name);
-                            setBurstSourceAmount(inc.amount);
-                            setBurstCategoryName("");
-                            setBurstModalOpen(true);
-                          }}
-                          className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
-                        >
-                          {inc.name}
-                        </button>
-                      </td>
-                      <td className="px-5 py-3.5 font-mono font-extrabold text-emerald-600">
-                        {fmt(inc.amount)}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                  filteredIncome.map((inc) => {
+                    const sched = formatScheduleDetail(inc.rrule, inc.startDate);
+                    return (
+                      <tr key={inc.id} className="hover:bg-zinc-50/50 transition-colors font-semibold">
+                        <td className="px-5 py-3.5">
                           <button
                             type="button"
                             onClick={() => {
-                              setModalMode("INCOME");
-                              setSourceToEdit(inc);
-                              setIsModalOpen(true);
+                              setBurstModalMode("INCOME");
+                              setBurstSourceId(inc.id);
+                              setBurstSourceName(inc.name);
+                              setBurstSourceAmount(inc.amount);
+                              setBurstCategoryName("");
+                              setBurstModalOpen(true);
                             }}
-                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                            className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
                           >
-                            Edit
+                            {inc.name} 🔗
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleArchiveIncome(inc)}
-                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
-                          >
-                            Archive
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                              sched.isRecurring
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}>
+                              {sched.badgeText}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 font-medium">
+                              {sched.detailText}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 font-mono font-extrabold text-emerald-600">
+                          {fmt(inc.amount)}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModalMode("INCOME");
+                                setSourceToEdit(inc);
+                                setIsModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleArchiveIncome(inc)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
+                            >
+                              Archive
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -237,6 +295,7 @@ export default function IncomeAndExpensesPage() {
                 <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
                   <th className="px-5 py-3.5">Bill Name</th>
                   <th className="px-5 py-3.5">Category</th>
+                  <th className="px-5 py-3.5">Schedule</th>
                   <th className="px-5 py-3.5">Amount</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
@@ -244,13 +303,14 @@ export default function IncomeAndExpensesPage() {
               <tbody className="divide-y divide-zinc-100">
                 {filteredExpense.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
+                    <td colSpan={5} className="px-5 py-8 text-center text-xs text-zinc-400 font-medium">
                       No expense bills configured.
                     </td>
                   </tr>
                 ) : (
                   filteredExpense.map((exp) => {
                     const cat = categories.find((c) => c.id === exp.categoryId);
+                    const sched = formatScheduleDetail(exp.rrule, exp.startDate);
                     return (
                       <tr key={exp.id} className="hover:bg-zinc-50/50 transition-colors font-semibold">
                         <td className="px-5 py-3.5">
@@ -266,13 +326,27 @@ export default function IncomeAndExpensesPage() {
                             }}
                             className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
                           >
-                            {exp.name}
+                            {exp.name} 🔗
                           </button>
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700">
                             {cat?.name || "Unassigned"}
                           </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                              sched.isRecurring
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}>
+                              {sched.badgeText}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 font-medium">
+                              {sched.detailText}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-5 py-3.5 font-mono font-extrabold text-[#1B2B4B]">
                           {fmt(exp.amount)}

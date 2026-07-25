@@ -347,6 +347,7 @@ export const incomeRouter = {
           isOverridden: incomeEvents.isOverridden,
           paymentMethod: incomeEvents.paymentMethod,
           status: incomeEvents.status,
+          note: incomeEvents.note,
           incomeSourceId: incomeEvents.incomeSourceId,
           sourceName: incomeSources.name,
         })
@@ -368,5 +369,49 @@ export const incomeRouter = {
         ...e,
         isNextPayday: e.id === nextId,
       }));
+    }),
+
+  createUpcomingIncome: tenantProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+        expectedDate: z.string(),
+        receivingAccountId: z.string().uuid().optional(),
+        note: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const [source] = await ctx.db
+        .insert(incomeSources)
+        .values({
+          name: input.name,
+          amount: input.amount,
+          receivingAccountId: input.receivingAccountId || null,
+          rrule: null,
+          startDate: input.expectedDate,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        })
+        .returning();
+
+      const [evt] = await ctx.db
+        .insert(incomeEvents)
+        .values({
+          incomeSourceId: source.id,
+          expectedDate: input.expectedDate,
+          expectedAmount: input.amount,
+          note: input.note || null,
+          status: "UPCOMING",
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        })
+        .returning();
+
+      return evt;
     }),
 };

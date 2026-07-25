@@ -13,15 +13,18 @@ export async function overrideEventCommand(
 ) {
   return await dbClient.transaction(async (tx) => {
     if (input.eventType === "INCOME") {
+      const setPayload: Record<string, any> = {
+        expectedAmount: input.amount,
+        expectedDate: input.expectedDate,
+        isOverridden: true,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      };
+      if (input.note !== undefined) setPayload.note = input.note;
+
       const [updatedEvent] = await tx
         .update(incomeEvents)
-        .set({
-          expectedAmount: input.amount,
-          expectedDate: input.expectedDate,
-          isOverridden: true,
-          updatedBy: userId,
-          updatedAt: new Date(),
-        })
+        .set(setPayload)
         .where(
           and(
             eq(incomeEvents.id, input.eventId),
@@ -34,13 +37,16 @@ export async function overrideEventCommand(
       if (!updatedEvent) throw new Error("Income event not found.");
 
       if (input.updateSeries && updatedEvent.incomeSourceId) {
+        const sourcePayload: Record<string, any> = {
+          amount: input.amount,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        };
+        if (input.name) sourcePayload.name = input.name;
+
         await tx
           .update(incomeSources)
-          .set({
-            amount: input.amount,
-            updatedBy: userId,
-            updatedAt: new Date(),
-          })
+          .set(sourcePayload)
           .where(
             and(
               eq(incomeSources.id, updatedEvent.incomeSourceId),
@@ -52,15 +58,20 @@ export async function overrideEventCommand(
 
       return updatedEvent;
     } else {
+      const setPayload: Record<string, any> = {
+        expectedAmount: input.amount,
+        expectedDate: input.expectedDate,
+        isOverridden: true,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      };
+      if (input.name) setPayload.name = input.name;
+      if (input.categoryId) setPayload.categoryId = input.categoryId;
+      if (input.note !== undefined) setPayload.note = input.note;
+
       const [updatedEvent] = await tx
         .update(expenseEvents)
-        .set({
-          expectedAmount: input.amount,
-          expectedDate: input.expectedDate,
-          isOverridden: true,
-          updatedBy: userId,
-          updatedAt: new Date(),
-        })
+        .set(setPayload)
         .where(
           and(
             eq(expenseEvents.id, input.eventId),
@@ -73,13 +84,17 @@ export async function overrideEventCommand(
       if (!updatedEvent) throw new Error("Expense event not found.");
 
       if (input.updateSeries && updatedEvent.expenseSourceId) {
+        const sourcePayload: Record<string, any> = {
+          amount: input.amount,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        };
+        if (input.name) sourcePayload.name = input.name;
+        if (input.categoryId) sourcePayload.categoryId = input.categoryId;
+
         await tx
           .update(expenseSources)
-          .set({
-            amount: input.amount,
-            updatedBy: userId,
-            updatedAt: new Date(),
-          })
+          .set(sourcePayload)
           .where(
             and(
               eq(expenseSources.id, updatedEvent.expenseSourceId),

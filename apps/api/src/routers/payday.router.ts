@@ -8,10 +8,12 @@ import {
   previewPaydayQuery,
   overrideEventCommand,
   skipEventsCommand,
+  deleteUpcomingEventCommand,
   ConfirmAllocationInput,
 } from "@money-matters/capability-budgeting";
 import {
   OverrideEventCommand,
+  DeleteUpcomingEventCommand,
   SkipEventsCommand,
   ConfirmPaydayCommand,
 } from "@money-matters/types";
@@ -43,6 +45,12 @@ export const paydayRouter = {
     .input(OverrideEventCommand)
     .mutation(async ({ input, ctx }) => {
       return await overrideEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  deleteUpcomingEvent: tenantProcedure
+    .input(DeleteUpcomingEventCommand)
+    .mutation(async ({ input, ctx }) => {
+      return await deleteUpcomingEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   skipEvents: tenantProcedure

@@ -14,6 +14,7 @@ import {
   RecordExpenseCommand,
   MoveMoneyCommand,
   OverrideEventCommand,
+  DeleteUpcomingEventCommand,
   SkipEventsCommand,
   ConfirmPaydayCommand,
 } from './commands.types.js';
@@ -111,14 +112,24 @@ describe('Command Schemas Validation', () => {
     expect(move.amount).toBe('100.00');
   });
 
-  it('validates OverrideEventCommand, SkipEventsCommand, and ConfirmPaydayCommand', () => {
+  it('validates OverrideEventCommand, SkipEventsCommand, DeleteUpcomingEventCommand, and ConfirmPaydayCommand', () => {
     const override = OverrideEventCommand.parse({
       eventId: '11111111-1111-4111-8111-111111111111',
       eventType: 'INCOME',
       amount: '2200.00',
       expectedDate: '2026-08-02',
+      name: 'Salary Paycheck',
+      note: 'Bonus added',
     });
     expect(override.updateSeries).toBe(false);
+    expect(override.name).toBe('Salary Paycheck');
+    expect(override.note).toBe('Bonus added');
+
+    const delEvt = DeleteUpcomingEventCommand.parse({
+      eventId: '11111111-1111-4111-8111-111111111111',
+      eventType: 'EXPENSE',
+    });
+    expect(delEvt.eventType).toBe('EXPENSE');
 
     const skip = SkipEventsCommand.parse({
       eventIds: ['11111111-1111-4111-8111-111111111111'],

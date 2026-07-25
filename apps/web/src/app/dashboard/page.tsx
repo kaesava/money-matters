@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { MoveMoneyModal } from "../../components/web/MoveMoneyModal";
 import PaydayPreviewModal from "@/components/web/PaydayPreviewModal";
-import EventOverrideModal from "@/components/web/EventOverrideModal";
+import UpcomingExpenseModal from "@/components/web/UpcomingExpenseModal";
 
 import { DashboardHeaderHero } from "@/components/web/dashboard/DashboardHeaderHero";
 import { DashboardMetricsCards } from "@/components/web/dashboard/DashboardMetricsCards";
@@ -37,14 +37,17 @@ export default function DashboardPage() {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(true);
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
 
-  // Payday & Override Modal States
+  // Payday & Upcoming Modal States
   const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
-  const [eventToOverride, setEventToOverride] = useState<React.ComponentProps<typeof EventOverrideModal>["eventToEdit"]>(null);
+  const [upcomingExpenseToEdit, setUpcomingExpenseToEdit] = useState<any | null>(null);
+  const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<any | null>(null);
   const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([]);
 
   // Quick Expense / Income Form State
   const [quickType, setQuickType] = useState<"DEBIT" | "CREDIT">("DEBIT");
+  const [quickName, setQuickName] = useState("");
   const [quickCategoryId, setQuickCategoryId] = useState("");
+  const [quickReceivingAccountId, setQuickReceivingAccountId] = useState("");
   const [quickAmount, setQuickAmount] = useState("");
   const [quickDate, setQuickDate] = useState(() => todayStr);
   const [quickNote, setQuickNote] = useState("");
@@ -85,9 +88,32 @@ export default function DashboardPage() {
       utils.listTransactions.invalidate();
       categoriesQuery.refetch();
       summaryQuery.refetch();
+      setQuickName("");
       setQuickAmount("");
       setQuickNote("");
       setQuickMsg(variables.flowType === "CREDIT" ? "Income recorded successfully!" : "Expense recorded successfully!");
+      setTimeout(() => setQuickMsg(null), 3000);
+    },
+  });
+
+  const createUpcomingExpenseMut = trpc.createUpcomingExpense.useMutation({
+    onSuccess: () => {
+      expenseEventsQuery.refetch();
+      setQuickName("");
+      setQuickAmount("");
+      setQuickNote("");
+      setQuickMsg("Future expense event scheduled successfully!");
+      setTimeout(() => setQuickMsg(null), 3000);
+    },
+  });
+
+  const createUpcomingIncomeMut = trpc.createUpcomingIncome.useMutation({
+    onSuccess: () => {
+      incomeEventsQuery.refetch();
+      setQuickName("");
+      setQuickAmount("");
+      setQuickNote("");
+      setQuickMsg("Future income event scheduled successfully!");
       setTimeout(() => setQuickMsg(null), 3000);
     },
   });
@@ -101,15 +127,6 @@ export default function DashboardPage() {
     },
   });
 
-  const markPaidMutation = trpc.markExpensePaid.useMutation({
-    onSuccess: () => {
-      utils.listTransactions.invalidate();
-      expenseEventsQuery.refetch();
-      categoriesQuery.refetch();
-      summaryQuery.refetch();
-    },
-  });
-
   useEffect(() => {
     if (userPrefQuery.data) {
       setIsQuickActionsOpen(!userPrefQuery.data.quickActionsCollapsed);
@@ -120,7 +137,8 @@ export default function DashboardPage() {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setMoveMoneyOpen(false);
-        setEventToOverride(null);
+        setUpcomingExpenseToEdit(null);
+        setUpcomingIncomeToEdit(null);
         setReconcilingAccountId(null);
       }
     }
@@ -140,45 +158,60 @@ export default function DashboardPage() {
 
   const handleQuickExpenseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickCategoryId || !quickAmount || parseFloat(quickAmount) <= 0) return;
+    const amtNum = parseFloat(quickAmount);
+    if (!quickName.trim() || isNaN(amtNum) || amtNum < 0) return;
 
-    const targetCat = categories.find((c) => c.id === quickCategoryId);
-    if (quickType === "DEBIT" && targetCat) {
-      const currentBal = parseFloat(targetCat.currentBalance || "0");
-      const expenseAmt = parseFloat(quickAmount);
-      if (expenseAmt > currentBal) {
-        if (!confirm(`Warning: Recording this expense of ${fmt(expenseAmt)} exceeds "${targetCat.name}" balance (${fmt(currentBal)}). Category balance will become negative (${fmt(currentBal - expenseAmt)}). Do you wish to proceed?`)) {
-          return;
+    const isFutureDate = quickDate > todayStr;
+
+    if (quickType === "DEBIT") {
+      if (!quickCategoryId) return;
+      if (isFutureDate) {
+        createUpcomingExpenseMut.mutate({
+          name: quickName,
+          amount: amtNum.toFixed(2),
+          categoryId: quickCategoryId,
+          expectedDate: quickDate,
+          note: quickNote,
+        });
+      } else {
+        const targetCat = categories.find((c) => c.id === quickCategoryId);
+        if (targetCat) {
+          const currentBal = parseFloat(targetCat.currentBalance || "0");
+          if (amtNum > currentBal) {
+            if (!confirm(`Warning: Recording this expense of ${fmt(amtNum)} exceeds "${targetCat.name}" balance (${fmt(currentBal)}). Category balance will become negative (${fmt(currentBal - amtNum)}). Do you wish to proceed?`)) {
+              return;
+            }
+          }
         }
+        recordExpenseMutation.mutate({
+          categoryId: quickCategoryId,
+          amount: amtNum.toFixed(2),
+          flowType: "DEBIT",
+          note: quickNote || `Quick Expense: ${quickName}`,
+          recordedAt: new Date(quickDate).toISOString(),
+        });
+      }
+    } else {
+      if (isFutureDate) {
+        createUpcomingIncomeMut.mutate({
+          name: quickName,
+          amount: amtNum.toFixed(2),
+          expectedDate: quickDate,
+          receivingAccountId: quickReceivingAccountId || undefined,
+          note: quickNote,
+        });
+      } else {
+        setUpcomingIncomeToEdit({
+          sourceName: quickName,
+          expectedAmount: amtNum.toFixed(2),
+          expectedDate: quickDate,
+          receivingAccountId: quickReceivingAccountId || undefined,
+          note: quickNote,
+        });
       }
     }
-
-    recordExpenseMutation.mutate({
-      categoryId: quickCategoryId,
-      amount: parseFloat(quickAmount).toFixed(2),
-      flowType: quickType,
-      note: quickNote || (quickType === "CREDIT" ? "Quick Income" : "Quick Expense"),
-      recordedAt: new Date(quickDate).toISOString(),
-    });
   };
 
-  const handleMarkExpensePaid = (evt: UpcomingEvent) => {
-    const cat = categoriesQuery.data?.find((c) => c.id === evt.categoryId);
-    const balance = cat ? parseFloat(cat.currentBalance) : 0;
-    const amount = parseFloat(evt.expectedAmount);
-
-    if (cat && balance < amount) {
-      if (!confirm(`Warning: Payment of ${fmt(amount)} exceeds "${cat.name}" balance (${fmt(balance)}). Category balance will become negative (${fmt(balance - amount)}). Proceed?`)) {
-        return;
-      }
-    }
-
-    markPaidMutation.mutate({
-      eventId: evt.id,
-      actualAmount: evt.expectedAmount,
-      note: `Paid ${evt.name}`,
-    });
-  };
 
   const incomeEventsMapped: UpcomingEvent[] = (incomeEventsQuery.data ?? [])
     .filter((e) => e.status === "UPCOMING")
@@ -307,10 +340,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <QuickExpenseCard
                 categories={categories}
+                bankAccounts={bankAccountsQuery.data ?? []}
                 quickType={quickType}
                 setQuickType={setQuickType}
+                quickName={quickName}
+                setQuickName={setQuickName}
                 quickCategoryId={quickCategoryId}
                 setQuickCategoryId={setQuickCategoryId}
+                quickReceivingAccountId={quickReceivingAccountId}
+                setQuickReceivingAccountId={setQuickReceivingAccountId}
                 quickAmount={quickAmount}
                 setQuickAmount={setQuickAmount}
                 quickDate={quickDate}
@@ -318,7 +356,7 @@ export default function DashboardPage() {
                 quickNote={quickNote}
                 setQuickNote={setQuickNote}
                 quickMsg={quickMsg}
-                isPending={recordExpenseMutation.isPending}
+                isPending={recordExpenseMutation.isPending || createUpcomingExpenseMut.isPending || createUpcomingIncomeMut.isPending}
                 onSubmit={handleQuickExpenseSubmit}
               />
 
@@ -382,24 +420,37 @@ export default function DashboardPage() {
         setUpcomingSearch={setUpcomingSearch}
         isPendingSkip={skipEventsMutation.isPending}
         onBulkSkip={handleBulkSkip}
-        onOverride={(evt) => setEventToOverride({
+        onProcessPayday={(evt) => setUpcomingIncomeToEdit({
           id: evt.id,
-          eventType: evt.type,
+          sourceName: evt.name,
+          expectedDate: evt.expectedDate,
+          expectedAmount: evt.expectedAmount,
+          note: evt.note,
+          isRecurring: evt.isRecurring,
+        })}
+        onMarkPaid={(evt) => setUpcomingExpenseToEdit({
+          id: evt.id,
           name: evt.name,
           expectedDate: evt.expectedDate,
           expectedAmount: evt.expectedAmount,
+          categoryId: evt.categoryId,
+          categoryName: evt.categoryName,
+          note: evt.note,
+          isRecurring: evt.isRecurring,
         })}
-        onProcessPayday={(id) => setPaydayPreviewEventId(id)}
-        onMarkPaid={handleMarkExpensePaid}
         fmt={fmt}
         fmtAUDate={fmtAUDate}
         todayStr={todayStr}
       />
 
       <PaydayPreviewModal
-        isOpen={!!paydayPreviewEventId}
+        isOpen={!!paydayPreviewEventId || !!upcomingIncomeToEdit}
         incomeEventId={paydayPreviewEventId}
-        onClose={() => setPaydayPreviewEventId(null)}
+        eventToEdit={upcomingIncomeToEdit}
+        onClose={() => {
+          setPaydayPreviewEventId(null);
+          setUpcomingIncomeToEdit(null);
+        }}
         onSuccess={() => {
           incomeEventsQuery.refetch();
           categoriesQuery.refetch();
@@ -407,13 +458,14 @@ export default function DashboardPage() {
         }}
       />
 
-      <EventOverrideModal
-        isOpen={!!eventToOverride}
-        eventToEdit={eventToOverride}
-        onClose={() => setEventToOverride(null)}
+      <UpcomingExpenseModal
+        isOpen={!!upcomingExpenseToEdit}
+        eventToEdit={upcomingExpenseToEdit}
+        onClose={() => setUpcomingExpenseToEdit(null)}
         onSuccess={() => {
-          incomeEventsQuery.refetch();
           expenseEventsQuery.refetch();
+          categoriesQuery.refetch();
+          summaryQuery.refetch();
         }}
       />
 

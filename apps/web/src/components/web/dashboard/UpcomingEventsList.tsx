@@ -10,6 +10,7 @@ export interface UpcomingEvent {
   categoryId: string | null;
   note: string;
   isNextPayday: boolean;
+  isRecurring?: boolean;
 }
 
 interface UpcomingEventsListProps {
@@ -22,8 +23,7 @@ interface UpcomingEventsListProps {
   setUpcomingSearch: (search: string) => void;
   isPendingSkip: boolean;
   onBulkSkip: () => void;
-  onOverride: (evt: UpcomingEvent) => void;
-  onProcessPayday: (eventId: string) => void;
+  onProcessPayday: (evt: UpcomingEvent) => void;
   onMarkPaid: (evt: UpcomingEvent) => void;
   fmt: (val: string | number) => string;
   fmtAUDate: (dStr: string) => string;
@@ -40,7 +40,6 @@ export function UpcomingEventsList({
   setUpcomingSearch,
   isPendingSkip,
   onBulkSkip,
-  onOverride,
   onProcessPayday,
   onMarkPaid,
   fmt,
@@ -155,33 +154,19 @@ export function UpcomingEventsList({
                     {evt.type === "INCOME" ? "+" : "-"}{fmt(evt.expectedAmount)}
                   </span>
 
-                  <button
-                    onClick={() => onOverride(evt)}
-                    className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                    title="Edit occurrence or series"
-                  >
-                    ✏️ Edit
-                  </button>
-
                   {evt.type === "INCOME" ? (
-                    isNextPayday ? (
-                      <button
-                        onClick={() => onProcessPayday(evt.id)}
-                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
-                      >
-                        Process Payday
-                      </button>
-                    ) : (
-                      <span className="px-3.5 py-2 rounded-xl text-xs font-bold text-zinc-400 bg-zinc-100 cursor-not-allowed">
-                        Projected
-                      </span>
-                    )
+                    <button
+                      onClick={() => onProcessPayday(evt)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
+                    >
+                      Process Payday / Edit
+                    </button>
                   ) : (
                     <button
                       onClick={() => onMarkPaid(evt)}
                       className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#1B2B4B] hover:opacity-90 transition-all shadow-sm"
                     >
-                      Pay Bill
+                      Edit / Mark Paid
                     </button>
                   )}
                 </div>

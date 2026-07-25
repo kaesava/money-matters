@@ -8,233 +8,268 @@ interface QuickExpenseDrawerProps {
   onClose: () => void;
 }
 
-/** Quick expense entry in a SlideOverDrawer. Port of mobile QuickExpenseModal. */
 export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const [type, setType] = useState<"DEBIT" | "CREDIT">("DEBIT");
+  const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [receivingAccountId, setReceivingAccountId] = useState("");
   const [note, setNote] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(todayStr);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const isIncome = type === "CREDIT";
+  const isFutureDate = date > todayStr;
 
   const categoriesQuery = trpc.listCategories.useQuery();
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
+
   const recordExpenseMutation = trpc.recordExpense.useMutation({
-    onSuccess: () => {
-      setSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 1200);
-    },
-    onError: (err) => {
-      setError(err.message);
-    },
+    onSuccess: () => handleDone(),
+    onError: (err) => setError(err.message),
+  });
+
+  const createUpcomingExpenseMut = trpc.createUpcomingExpense.useMutation({
+    onSuccess: () => handleDone(),
+    onError: (err) => setError(err.message),
+  });
+
+  const createUpcomingIncomeMut = trpc.createUpcomingIncome.useMutation({
+    onSuccess: () => handleDone(),
+    onError: (err) => setError(err.message),
   });
 
   const categories = categoriesQuery.data ?? [];
+  const bankAccounts = bankAccountsQuery.data ?? [];
+
+  function handleDone() {
+    setSuccess(true);
+    setTimeout(() => onClose(), 1200);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     const amountNum = parseFloat(amount);
-    if (!amount || isNaN(amountNum) || amountNum <= 0) {
-      setError(t("transactions.newExpense.amountLabel") + " is required and must be positive.");
+    if (!name.trim()) {
+      setError(isIncome ? "Income source name is required." : "Expense bill name is required.");
       return;
     }
-    if (!categoryId) {
-      setError(t("transactions.newExpense.categoryLabel") + " is required.");
+    if (!amount || isNaN(amountNum) || amountNum < 0) {
+      setError("Amount cannot be negative.");
       return;
     }
 
-    recordExpenseMutation.mutate({
-      categoryId,
-      amount: amountNum.toFixed(2),
-      flowType: type,
-      note: note || undefined,
-      date: date ? new Date(date).toISOString() : undefined,
-      idempotencyKey: `expense-web-${Date.now()}-${Math.random()}`,
-    });
+    if (!isIncome) {
+      if (!categoryId) {
+        setError(t("transactions.newExpense.categoryLabel") + " is required.");
+        return;
+      }
+      if (isFutureDate) {
+        createUpcomingExpenseMut.mutate({
+          name,
+          amount: amountNum.toFixed(2),
+          categoryId,
+          expectedDate: date,
+          note,
+        });
+      } else {
+        recordExpenseMutation.mutate({
+          categoryId,
+          amount: amountNum.toFixed(2),
+          flowType: "DEBIT",
+          note: note || `Expense: ${name}`,
+          recordedAt: new Date(date).toISOString(),
+        });
+      }
+    } else {
+      if (isFutureDate) {
+        createUpcomingIncomeMut.mutate({
+          name,
+          amount: amountNum.toFixed(2),
+          expectedDate: date,
+          receivingAccountId: receivingAccountId || undefined,
+          note,
+        });
+      } else {
+        recordExpenseMutation.mutate({
+          categoryId: categories[0]?.id || "",
+          amount: amountNum.toFixed(2),
+          flowType: "CREDIT",
+          note: note || `Income: ${name}`,
+          recordedAt: new Date(date).toISOString(),
+        });
+      }
+    }
   }
+
+  const isPending =
+    recordExpenseMutation.isPending ||
+    createUpcomingExpenseMut.isPending ||
+    createUpcomingIncomeMut.isPending;
 
   return (
     <SlideOverDrawer
-      title={t("transactions.newExpense.title")}
+      title={isIncome ? "Quick Record Income" : "Quick Record Expense"}
       onClose={onClose}
       widthClass="max-w-sm"
     >
-      <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
         {success ? (
-          <div
-            className="flex flex-col items-center gap-3 py-12 text-center"
-            style={{ color: "var(--dash-success)" }}
-          >
-            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className="flex flex-col items-center gap-3 py-12 text-center text-emerald-600">
+            <span className="text-4xl">✅</span>
             <p className="text-base font-bold">
-              {isIncome ? t("transactions.newExpense.incomeSuccessMessage") : t("transactions.newExpense.successMessage")}
+              {isIncome ? "Income recorded successfully!" : "Expense recorded successfully!"}
             </p>
           </div>
         ) : (
           <>
-            {/* Segmented Mode Toggle */}
             <div className="flex rounded-xl bg-zinc-100 p-1">
               <button
                 type="button"
                 onClick={() => setType("DEBIT")}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  !isIncome
-                    ? "bg-white text-rose-700 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
+                  !isIncome ? "bg-white text-rose-700 shadow-sm" : "text-zinc-500 hover:text-zinc-800"
                 }`}
               >
                 <span>💸</span>
-                <span>{t("transactions.typeExpense")}</span>
+                <span>Expense</span>
               </button>
               <button
                 type="button"
                 onClick={() => setType("CREDIT")}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  isIncome
-                    ? "bg-emerald-600 text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
+                  isIncome ? "bg-emerald-600 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-800"
                 }`}
               >
                 <span>💰</span>
-                <span>{t("transactions.typeIncome")}</span>
+                <span>Income</span>
               </button>
             </div>
 
             {error && (
-              <div
-                className="text-sm font-semibold px-3 py-2 rounded-lg"
-                style={{ backgroundColor: "rgba(239,68,68,0.08)", color: "var(--dash-critical)" }}
-              >
+              <div className="text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
                 {error}
               </div>
             )}
 
-            {/* Amount */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-                {t("transactions.newExpense.amountLabel")}
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                {isIncome ? "Income Source Name" : "Expense Bill Name"}
               </label>
-              <div className="relative">
-                <span
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold"
-                  style={{ color: "var(--dash-muted)" }}
+              <input
+                type="text"
+                placeholder={isIncome ? "e.g. Salary, Client Pay" : "e.g. Electric Bill, Rent"}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+              />
+            </div>
+
+            {!isIncome ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                  Category
+                </label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white"
                 >
-                  $
-                </span>
+                  <option value="">Select Category...</option>
+                  {categories.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} (${parseFloat(c.currentBalance).toFixed(2)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                  Receiving Bank Account
+                </label>
+                <select
+                  value={receivingAccountId}
+                  onChange={(e) => setReceivingAccountId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white"
+                >
+                  <option value="">Default Account</option>
+                  {bankAccounts.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                  Amount ($)
+                </label>
                 <input
-                  id="expense-amount-input"
                   type="number"
-                  inputMode="decimal"
                   step="0.01"
-                  min="0.01"
-                  placeholder={t("transactions.newExpense.amountPlaceholder")}
+                  min="0"
+                  placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full pl-7 pr-4 py-2.5 rounded-xl border text-sm font-semibold focus:outline-none focus:ring-2 transition-all"
-                  style={{
-                    border: "1px solid var(--dash-border)",
-                    backgroundColor: "var(--dash-surface)",
-                    color: "var(--dash-text)",
-                  }}
-                  disabled={recordExpenseMutation.isPending}
-                  autoFocus
+                  required
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
                 />
               </div>
             </div>
 
-            {/* Category */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-                {t("transactions.newExpense.categoryLabel")}
-              </label>
-              {categoriesQuery.isLoading ? (
-                <div className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: "var(--dash-border)" }} />
-              ) : (
-                <select
-                  id="expense-category-select"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 transition-all"
-                  style={{
-                    border: "1px solid var(--dash-border)",
-                    backgroundColor: "var(--dash-surface)",
-                    color: categoryId ? "var(--dash-text)" : "var(--dash-muted)",
-                  }}
-                  disabled={recordExpenseMutation.isPending}
-                >
-                  <option value="">{t("transactions.newExpense.categoryPlaceholder")}</option>
-                  {categories.map((cat: { id: string; name: string }) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Date */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-                Date
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                Notes / Description (optional)
               </label>
               <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border text-sm font-semibold focus:outline-none focus:ring-2 transition-all"
-                style={{
-                  border: "1px solid var(--dash-border)",
-                  backgroundColor: "var(--dash-surface)",
-                  color: "var(--dash-text)",
-                }}
-                disabled={recordExpenseMutation.isPending}
-              />
-            </div>
-
-            {/* Note */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-                {t("transactions.newExpense.noteLabel")}{" "}
-                <span className="normal-case font-normal">{t("common.optional")}</span>
-              </label>
-              <input
-                id="expense-note-input"
                 type="text"
-                placeholder={isIncome ? t("transactions.newExpense.incomeNotePlaceholder") : t("transactions.newExpense.notePlaceholder")}
+                placeholder="Add notes..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all"
-                style={{
-                  border: "1px solid var(--dash-border)",
-                  backgroundColor: "var(--dash-surface)",
-                  color: "var(--dash-text)",
-                }}
-                disabled={recordExpenseMutation.isPending}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
               />
             </div>
 
-            {/* Submit */}
             <button
-              id="record-expense-submit-btn"
               type="submit"
-              disabled={recordExpenseMutation.isPending}
-              className={`w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 ${
-                isIncome ? "bg-emerald-600" : "bg-[#00B4A6]"
+              disabled={isPending}
+              className={`w-full py-3 rounded-xl text-xs font-extrabold text-white transition-all shadow-sm ${
+                isIncome ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#00B4A6] hover:bg-[#009b8f]"
               }`}
             >
-              {recordExpenseMutation.isPending
-                ? t("transactions.newExpense.submitting")
+              {isPending
+                ? "Processing..."
+                : isFutureDate
+                ? isIncome
+                  ? "📅 Schedule Future Income"
+                  : "📅 Schedule Future Expense"
                 : isIncome
-                ? t("transactions.newExpense.submitIncomeCta")
-                : t("transactions.newExpense.submitCta")}
+                ? "Record Income"
+                : "Record Expense"}
             </button>
           </>
         )}

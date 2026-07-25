@@ -3,11 +3,26 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
+import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
+import { PaydayReasonModal } from "./upcoming/PaydayReasonModal";
+import { PaydayLineRow } from "./upcoming/PaydayLineRow";
+
+export interface UpcomingIncomeItem {
+  id?: string;
+  sourceName?: string;
+  expectedDate?: string;
+  expectedAmount?: string;
+  receivingAccountId?: string | null;
+  note?: string | null;
+  isRecurring?: boolean;
+}
 
 interface PaydayPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  incomeEventId: string | null;
+  incomeEventId?: string | null;
+  eventToEdit?: UpcomingIncomeItem | null;
+  isQuickAdd?: boolean;
   onSuccess?: () => void;
 }
 
@@ -18,258 +33,333 @@ interface PaydayLine {
   proposedAmount: number;
 }
 
-interface PaydayPreviewData {
-  incomeEvent: {
-    actualAmount: string;
-    expectedDate: string;
-  };
-  engineResult: {
-    lines: PaydayLine[];
-  };
-}
-
 export default function PaydayPreviewModal({
   isOpen,
   onClose,
   incomeEventId,
+  eventToEdit,
+  isQuickAdd = false,
   onSuccess,
 }: PaydayPreviewModalProps) {
   const utils = trpc.useUtils();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const activeEventId = incomeEventId || eventToEdit?.id || null;
+
+  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: isOpen });
+
+  const categories = categoriesQuery.data ?? [];
+  const bankAccounts = bankAccountsQuery.data ?? [];
+
+  const [sourceName, setSourceName] = useState("");
   const [actualAmount, setActualAmount] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [receivingAccountId, setReceivingAccountId] = useState("");
+  const [note, setNote] = useState("");
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showMismatchWarning, setShowMismatchWarning] = useState(false);
+
+  const [reasonModal, setReasonModal] = useState<{ open: boolean; cat: string; reason: string }>({
+    open: false,
+    cat: "",
+    reason: "",
+  });
 
   const previewQuery = trpc.previewPayday.useQuery(
-    { incomeEventId: incomeEventId! },
-    { enabled: !!incomeEventId && isOpen }
+    { incomeEventId: activeEventId! },
+    { enabled: !!activeEventId && isOpen }
   );
 
-  const previewData = previewQuery.data as PaydayPreviewData | undefined;
+  const previewData = previewQuery.data as { incomeEvent: any; engineResult: { lines: PaydayLine[] } } | undefined;
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
+  const overrideMut = trpc.overrideEvent.useMutation();
+  const deleteMut = trpc.deleteUpcomingEvent.useMutation();
+  const createUpcomingMut = trpc.createUpcomingIncome.useMutation();
 
   useEffect(() => {
     if (previewData) {
-      setActualAmount(previewData.incomeEvent.actualAmount);
-      const rawDate = previewData.incomeEvent.expectedDate;
-      const parsedDate = rawDate ? new Date(rawDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
-      setSelectedDate(parsedDate);
+      setSourceName(previewData.incomeEvent?.name || eventToEdit?.sourceName || "Paycheck");
+      setActualAmount(previewData.incomeEvent.actualAmount || eventToEdit?.expectedAmount || "0.00");
+      const rawDate = previewData.incomeEvent.expectedDate || eventToEdit?.expectedDate;
+      setSelectedDate(rawDate ? new Date(rawDate).toISOString().slice(0, 10) : todayStr);
+      setNote(eventToEdit?.note || "");
+      setReceivingAccountId(eventToEdit?.receivingAccountId || bankAccounts[0]?.id || "");
 
       const initial: Record<string, string> = {};
       for (const line of previewData.engineResult.lines) {
         initial[line.bucketId] = line.proposedAmount.toFixed(2);
       }
       setLinesMap(initial);
+    } else {
+      setSourceName(eventToEdit?.sourceName || "");
+      setActualAmount(eventToEdit?.expectedAmount || "");
+      setSelectedDate(eventToEdit?.expectedDate || todayStr);
+      setNote(eventToEdit?.note || "");
+      setReceivingAccountId(eventToEdit?.receivingAccountId || bankAccounts[0]?.id || "");
     }
-  }, [previewData]);
+  }, [previewData, eventToEdit, isOpen, bankAccounts]);
 
-  if (!isOpen || !incomeEventId) return null;
+  if (!isOpen) return null;
 
   const lines = previewData?.engineResult.lines || [];
-  const totalAllocated = Object.values(linesMap).reduce(
-    (acc, val) => acc + (parseFloat(val) || 0),
-    0
-  );
+  const totalAllocated = Object.values(linesMap).reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
   const numericActual = parseFloat(actualAmount) || 0;
-  const unallocated = numericActual - totalAllocated;
-
-  const todayStr = new Date().toISOString().slice(0, 10);
   const isFutureDate = selectedDate > todayStr;
 
-  const handleConfirm = async (overrideMismatch = false) => {
-    setErrorMsg("");
-
-    if (!overrideMismatch && Math.abs(numericActual - totalAllocated) >= 0.01) {
-      setShowMismatchWarning(true);
-      return;
+  const validateInput = (): boolean => {
+    if (!sourceName.trim()) {
+      setErrorMsg("Please enter an income source name.");
+      return false;
     }
+    if (isNaN(numericActual) || numericActual < 0) {
+      setErrorMsg("Income amount cannot be less than 0.");
+      return false;
+    }
+    return true;
+  };
 
+  const handleSaveWithoutMarkingPaid = async () => {
+    setErrorMsg("");
+    if (!validateInput()) return;
     setSubmitting(true);
-    setShowMismatchWarning(false);
     try {
-      const payloadLines = Object.entries(linesMap).map(([bucketId, amount]) => ({
-        bucketId,
-        amount: (parseFloat(amount) || 0).toFixed(2),
-      }));
-
-      // If user selected today or a past date, mark as received today/posted
-      const markAsReceivedToday = !isFutureDate;
-
-      await confirmPaydayMut.mutateAsync({
-        incomeEventId,
-        actualAmount: totalAllocated.toFixed(2),
-        markAsReceivedToday,
-        lines: payloadLines,
-      });
-
+      if (activeEventId) {
+        await overrideMut.mutateAsync({
+          eventId: activeEventId,
+          eventType: "INCOME",
+          name: sourceName,
+          amount: numericActual.toFixed(2),
+          expectedDate: selectedDate,
+          note,
+        });
+      } else {
+        await createUpcomingMut.mutateAsync({
+          name: sourceName,
+          amount: numericActual.toFixed(2),
+          expectedDate: selectedDate,
+          receivingAccountId: receivingAccountId || undefined,
+          note,
+        });
+      }
       await utils.listIncomeEvents.invalidate();
-      await utils.listCategories.invalidate();
-      await utils.listTransactions.invalidate();
-      await utils.getMonthlySummary.invalidate();
-
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to confirm payday allocation.");
+      setErrorMsg(err instanceof Error ? err.message : "Failed to save upcoming income event.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const fmtDate = (dStr: string) => {
+  const handleConfirmPayday = async () => {
+    setErrorMsg("");
+    if (!validateInput()) return;
+    setSubmitting(true);
     try {
-      const parts = dStr.split("-");
-      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } catch {
-      // ignore
+      if (activeEventId) {
+        const payloadLines = Object.entries(linesMap).map(([bucketId, amount]) => ({
+          bucketId,
+          amount: (parseFloat(amount) || 0).toFixed(2),
+        }));
+
+        await confirmPaydayMut.mutateAsync({
+          incomeEventId: activeEventId,
+          actualAmount: totalAllocated.toFixed(2),
+          markAsReceivedToday: !isFutureDate,
+          lines: payloadLines,
+        });
+      } else {
+        const createdEvt = await createUpcomingMut.mutateAsync({
+          name: sourceName,
+          amount: numericActual.toFixed(2),
+          expectedDate: selectedDate,
+          receivingAccountId: receivingAccountId || undefined,
+          note,
+        });
+        const preview = await utils.previewPayday.fetch({ incomeEventId: createdEvt.id });
+        const payloadLines = preview.engineResult.lines.map((l: any) => ({
+          bucketId: l.bucketId,
+          amount: l.proposedAmount.toFixed(2),
+        }));
+        await confirmPaydayMut.mutateAsync({
+          incomeEventId: createdEvt.id,
+          actualAmount: numericActual.toFixed(2),
+          markAsReceivedToday: !isFutureDate,
+          lines: payloadLines,
+        });
+      }
+      await utils.listIncomeEvents.invalidate();
+      await utils.listCategories.invalidate();
+      await utils.listTransactions.invalidate();
+      await utils.getMonthlySummary.invalidate();
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to process payday.");
+    } finally {
+      setSubmitting(false);
     }
-    return dStr;
+  };
+
+  const handleDelete = async () => {
+    if (!activeEventId) return;
+    if (!window.confirm("Warning: This upcoming income record will be permanently deleted (not archived). Are you sure?")) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await deleteMut.mutateAsync({
+        eventId: activeEventId,
+        eventType: "INCOME",
+      });
+      await utils.listIncomeEvents.invalidate();
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to delete income record.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <ModalDialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title="🎉 Process Payday Split"
-      subtitle="Review and customize line-by-line distribution across your budget categories"
-      isDirty={false}
-      onSave={() => handleConfirm(false)}
-    >
-      <div className="flex flex-col gap-5 text-zinc-900">
-        {previewQuery.isLoading ? (
-          <div className="py-8 text-center text-xs font-bold text-zinc-500 animate-pulse">
-            Calculating payday allocation waterfall...
+    <>
+      <ModalDialog
+        isOpen={isOpen}
+        onClose={onClose}
+        title={isQuickAdd ? "Quick Record Income" : `Process Payday / Edit: ${sourceName || "Paycheck"}`}
+        subtitle="Review income deposit details, custom splits, or save for payday"
+        isDirty={false}
+        onSave={handleSaveWithoutMarkingPaid}
+      >
+        <div className="flex flex-col gap-4 text-zinc-900">
+          {errorMsg && (
+            <div className="p-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
+              {errorMsg}
+            </div>
+          )}
+
+          {!isQuickAdd && (eventToEdit?.isRecurring || previewData?.incomeEvent) && (
+            <SeriesNoticeBanner eventType="INCOME" eventName={sourceName} />
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                Income Source Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Salary, Client Payment"
+                value={sourceName}
+                onChange={(e) => setSourceName(e.target.value)}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                Receiving Bank Account
+              </label>
+              <select
+                value={receivingAccountId}
+                onChange={(e) => setReceivingAccountId(e.target.value)}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white"
+              >
+                <option value="">Default Account</option>
+                {bankAccounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        ) : previewQuery.isError ? (
-          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
-            {previewQuery.error.message}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                Payday Date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                Total Income Amount ($)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={actualAmount}
+                onChange={(e) => setActualAmount(e.target.value)}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+              />
+            </div>
           </div>
-        ) : (
-          <>
-            {isFutureDate && (
-              <div className="p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs flex flex-col gap-1.5 shadow-2xs">
-                <span className="font-extrabold text-teal-950 flex items-center gap-1.5 text-sm">
-                  <span>📅</span> Upcoming Payday ({fmtDate(selectedDate)})
-                </span>
-                <p className="text-xs text-teal-800 font-medium leading-relaxed">
-                  Your category balances will only update when money actually lands in your bank. Saving this will store your split plan so it&apos;s ready to go on payday (or change the date above if your pay arrived early!).
-                </p>
-              </div>
-            )}
 
-            {showMismatchWarning && (
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">⚠️</span>
-                  <span>Paycheck Total Allocation Mismatch</span>
-                </div>
-                <p className="font-normal text-zinc-700">
-                  The sum of your category allocations (${totalAllocated.toFixed(2)} AUD) does not equal the entered paycheck total (${numericActual.toFixed(2)} AUD).
-                </p>
-                <div className="flex items-center justify-end gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowMismatchWarning(false)}
-                    className="px-3 py-1.5 rounded-lg border border-amber-300 text-zinc-700 font-bold text-xs hover:bg-white"
-                  >
-                    Adjust Lines
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleConfirm(true)}
-                    className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold text-xs hover:bg-amber-700"
-                  >
-                    Proceed with ${totalAllocated.toFixed(2)} AUD
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+              Notes / Description
+            </label>
+            <textarea
+              rows={2}
+              placeholder="Add optional income notes..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="px-3.5 py-2 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+            />
+          </div>
 
-            {errorMsg && (
-              <div className="p-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
-                {errorMsg}
-              </div>
-            )}
-
-            {/* Paycheck Summary Header */}
-            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-                  Payday Date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-2.5 py-1 text-xs font-bold rounded-lg border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 bg-white"
-                />
-              </div>
-
-              <div className="flex flex-col items-end gap-1">
-                <label className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-                  Total Paycheck Amount
-                </label>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-zinc-500">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={actualAmount}
-                    onChange={(e) => setActualAmount(e.target.value)}
-                    className="w-28 px-3 py-1 text-sm font-black rounded-xl border border-zinc-200 text-right focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+          {lines.length > 0 && (
+            <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                Payday Category Distribution Split
+              </span>
+              {lines.map((line) => {
+                const cat = categories.find((c) => c.id === line.bucketId);
+                const curBal = cat ? parseFloat(cat.currentBalance || "0") : 0;
+                return (
+                  <PaydayLineRow
+                    key={line.bucketId}
+                    bucketId={line.bucketId}
+                    bucketName={line.bucketName}
+                    reasoning={line.reasoning}
+                    amountVal={linesMap[line.bucketId] ?? line.proposedAmount.toFixed(2)}
+                    onAmountChange={(val) => setLinesMap((prev) => ({ ...prev, [line.bucketId]: val }))}
+                    onShowReasoning={(name, reason) => setReasonModal({ open: true, cat: name, reason })}
+                    categoryBalance={curBal}
+                    healthStatus={cat?.healthStatus}
+                    isFutureDate={isFutureDate}
                   />
-                </div>
-              </div>
+                );
+              })}
             </div>
+          )}
 
-            {/* Line-by-Line Breakdown Table */}
-            <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
-              {lines.map((line) => (
-                <div
-                  key={line.bucketId}
-                  className="p-3 rounded-xl bg-white border border-zinc-100 flex items-center justify-between shadow-2xs hover:border-zinc-200 transition-colors"
-                >
-                  <div className="min-w-0 pr-2">
-                    <p className="text-xs font-bold truncate text-[#1B2B4B]">{line.bucketName}</p>
-                    <p className="text-[10px] text-zinc-400 truncate">{line.reasoning}</p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-xs font-bold text-zinc-400">$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={linesMap[line.bucketId] ?? line.proposedAmount.toFixed(2)}
-                      onChange={(e) =>
-                        setLinesMap((prev) => ({
-                          ...prev,
-                          [line.bucketId]: e.target.value,
-                        }))
-                      }
-                      className="w-24 px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 text-right focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="flex items-center justify-between gap-3 pt-3 border-t border-zinc-100">
+            {!isQuickAdd && activeEventId ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={submitting}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 transition-all disabled:opacity-50"
+              >
+                🗑️ Delete Record
+              </button>
+            ) : (
+              <div />
+            )}
 
-            {/* Summary Ticker Bar */}
-            <div className="p-3.5 rounded-xl bg-[#1B2B4B] text-white flex items-center justify-between text-xs font-bold">
-              <div>
-                <span className="text-zinc-400 text-[10px] uppercase font-bold block">Allocated Total</span>
-                <span>${totalAllocated.toFixed(2)} AUD</span>
-              </div>
-              <div className="text-right">
-                <span className="text-zinc-400 text-[10px] uppercase font-bold block">Remaining Unallocated</span>
-                <span className={unallocated < 0 ? "text-rose-400" : "text-[#00B4A6]"}>
-                  ${unallocated.toFixed(2)} AUD
-                </span>
-              </div>
-            </div>
-
-            {/* Form Actions */}
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
@@ -277,11 +367,21 @@ export default function PaydayPreviewModal({
               >
                 Cancel
               </button>
+
               <button
                 type="button"
                 disabled={submitting}
-                onClick={() => handleConfirm(false)}
-                className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
+                onClick={handleSaveWithoutMarkingPaid}
+                className="px-4 py-2 text-xs font-bold rounded-xl border border-[#00B4A6] text-[#00B4A6] hover:bg-teal-50 transition-all disabled:opacity-50"
+              >
+                {submitting ? "Saving..." : "Save without Marking Paid"}
+              </button>
+
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleConfirmPayday}
+                className="px-4 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white transition-all shadow-sm disabled:opacity-50"
               >
                 {submitting
                   ? "Processing..."
@@ -290,9 +390,16 @@ export default function PaydayPreviewModal({
                   : "Confirm & Distribute Payday"}
               </button>
             </div>
-          </>
-        )}
-      </div>
-    </ModalDialog>
+          </div>
+        </div>
+      </ModalDialog>
+
+      <PaydayReasonModal
+        isOpen={reasonModal.open}
+        onClose={() => setReasonModal({ open: false, cat: "", reason: "" })}
+        categoryName={reasonModal.cat}
+        reasoning={reasonModal.reason}
+      />
+    </>
   );
 }

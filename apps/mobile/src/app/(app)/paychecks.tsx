@@ -6,11 +6,11 @@ import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar } from '@money-matt
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
-import { formatAUD } from '../../lib/format';
+import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
 import { IncomeExpenseFormModal } from '../../components/IncomeExpenseFormModal';
 import { SourceBurstDetailModal } from '../../components/SourceBurstDetailModal';
-import { EventOverrideModal, EventToOverride } from '../../components/EventOverrideModal';
+import { UpcomingExpenseModal } from '../../components/UpcomingExpenseModal';
 import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
 
 export default function IncomeAndExpensesScreen() {
@@ -33,7 +33,8 @@ export default function IncomeAndExpensesScreen() {
   const [burstSourceAmount, setBurstSourceAmount] = useState('');
   const [burstCategoryName, setBurstCategoryName] = useState('');
 
-  const [eventToOverride, setEventToOverride] = useState<EventToOverride | null>(null);
+  const [upcomingExpenseToEdit, setUpcomingExpenseToEdit] = useState<any | null>(null);
+  const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<any | null>(null);
   const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
 
   // Queries
@@ -218,51 +219,57 @@ export default function IncomeAndExpensesScreen() {
               ) : combinedEvents.length === 0 ? (
                 <Text style={styles.emptyText}>No upcoming events found.</Text>
               ) : (
-                combinedEvents.map((evt) => (
-                  <View key={`${evt.type}-${evt.id}`} style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.cardTitle}>{evt.name}</Text>
-                        <Text style={styles.cardSubtitle}>
-                          {new Date(evt.expectedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} • {evt.categoryName}
+                combinedEvents.map((ev) => {
+                  const isIncome = ev.type === 'INCOME';
+                  return (
+                    <View key={`${ev.type}-${ev.id}`} style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.cardTitle}>{ev.name}</Text>
+                          <Text style={styles.cardSubtitle}>
+                            {new Date(ev.expectedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} • {ev.categoryName}
+                          </Text>
+                        </View>
+                        <Text style={[styles.amountText, isIncome && { color: '#10B981' }]}>
+                          {isIncome ? '+' : '-'}{formatAUD(ev.expectedAmount)}
                         </Text>
                       </View>
-                      <Text style={[styles.amountText, evt.type === 'INCOME' && { color: '#10B981' }]}>
-                        {evt.type === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}
-                      </Text>
-                    </View>
 
-                    <View style={styles.eventActionRow}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          setEventToOverride({
-                            id: evt.id,
-                            eventType: evt.type,
-                            name: evt.name,
-                            expectedDate: evt.expectedDate,
-                            expectedAmount: evt.expectedAmount,
-                          })
-                        }
-                        style={styles.editBtn}
-                      >
-                        <Text style={styles.editBtnText}>Edit Override</Text>
-                      </TouchableOpacity>
-
-                      {evt.type === 'INCOME' ? (
-                        <TouchableOpacity onPress={() => setPaydayWizardEventId(evt.id)} style={styles.processBtn}>
-                          <Text style={styles.processBtnText}>Process Waterfall ⚡</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => markPaidMutation.mutate({ eventId: evt.id, actualAmount: evt.expectedAmount, note: `Paid ${evt.name}` })}
-                          style={styles.markPaidBtn}
-                        >
-                          <Text style={styles.markPaidBtnText}>Mark Paid ✓</Text>
-                        </TouchableOpacity>
-                      )}
+                      <View style={styles.eventActionRow}>
+                        {isIncome ? (
+                          <TouchableOpacity
+                            onPress={() =>
+                              setUpcomingIncomeToEdit({
+                                id: ev.id,
+                                sourceName: ev.name,
+                                expectedDate: ev.expectedDate,
+                                expectedAmount: ev.expectedAmount,
+                              })
+                            }
+                            style={styles.processBtn}
+                          >
+                            <Text style={styles.processBtnText}>Process Payday / Edit</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() =>
+                              setUpcomingExpenseToEdit({
+                                id: ev.id,
+                                name: ev.name,
+                                expectedDate: ev.expectedDate,
+                                expectedAmount: ev.expectedAmount,
+                                categoryName: ev.categoryName,
+                              })
+                            }
+                            style={styles.markPaidBtn}
+                          >
+                            <Text style={styles.markPaidBtnText}>Edit / Mark Paid</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                ))
+                  );
+                })
               )}
             </View>
           )}
@@ -276,42 +283,45 @@ export default function IncomeAndExpensesScreen() {
                 {filteredIncomeSources.length === 0 ? (
                   <Text style={styles.emptyText}>No income sources configured.</Text>
                 ) : (
-                  filteredIncomeSources.map((inc) => (
-                    <View key={inc.id} style={styles.card}>
-                      <View style={styles.cardHeader}>
-                        <TouchableOpacity
-                          onPress={() => {
-                            setBurstMode('INCOME');
-                            setBurstSourceId(inc.id);
-                            setBurstSourceName(inc.name);
-                            setBurstSourceAmount(inc.amount);
-                            setBurstCategoryName('');
-                            setBurstModalVisible(true);
-                          }}
-                        >
-                          <Text style={[styles.cardTitle, { color: '#00B4A6' }]}>{inc.name} 🔗</Text>
-                          <Text style={styles.cardSubtitle}>{inc.rrule || 'One-off schedule'}</Text>
-                        </TouchableOpacity>
-                        <Text style={[styles.amountText, { color: '#10B981' }]}>{formatAUD(inc.amount)}</Text>
-                      </View>
+                  filteredIncomeSources.map((inc) => {
+                    const sched = formatScheduleDetail(inc.rrule, inc.startDate);
+                    return (
+                      <View key={inc.id} style={styles.card}>
+                        <View style={styles.cardHeader}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setBurstMode('INCOME');
+                              setBurstSourceId(inc.id);
+                              setBurstSourceName(inc.name);
+                              setBurstSourceAmount(inc.amount);
+                              setBurstCategoryName('');
+                              setBurstModalVisible(true);
+                            }}
+                          >
+                            <Text style={[styles.cardTitle, { color: '#00B4A6' }]}>{inc.name} 🔗</Text>
+                            <Text style={styles.cardSubtitle}>{sched.detailText}</Text>
+                          </TouchableOpacity>
+                          <Text style={[styles.amountText, { color: '#10B981' }]}>{formatAUD(inc.amount)}</Text>
+                        </View>
 
-                      <View style={styles.eventActionRow}>
-                        <TouchableOpacity
-                          onPress={() => {
-                            setFormMode('INCOME');
-                            setSourceToEdit(inc);
-                            setFormModalVisible(true);
-                          }}
-                          style={styles.editBtn}
-                        >
-                          <Text style={styles.editBtnText}>Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleArchiveIncome(inc)} style={styles.archiveBtn}>
-                          <Text style={styles.archiveBtnText}>Archive</Text>
-                        </TouchableOpacity>
+                        <View style={styles.eventActionRow}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setFormMode('INCOME');
+                              setSourceToEdit(inc);
+                              setFormModalVisible(true);
+                            }}
+                            style={styles.editBtn}
+                          >
+                            <Text style={styles.editBtnText}>Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => handleArchiveIncome(inc)} style={styles.archiveBtn}>
+                            <Text style={styles.archiveBtnText}>Archive</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
-                  ))
+                    );
+                  })
                 )}
               </View>
 
@@ -323,6 +333,7 @@ export default function IncomeAndExpensesScreen() {
                 ) : (
                   filteredExpenseSources.map((exp) => {
                     const cat = categories.find((c) => c.id === exp.categoryId);
+                    const sched = formatScheduleDetail(exp.rrule, exp.startDate);
                     return (
                       <View key={exp.id} style={styles.card}>
                         <View style={styles.cardHeader}>
@@ -338,7 +349,7 @@ export default function IncomeAndExpensesScreen() {
                           >
                             <Text style={[styles.cardTitle, { color: '#00B4A6' }]}>{exp.name} 🔗</Text>
                             <Text style={styles.cardSubtitle}>
-                              Category: {cat?.name || 'Unassigned'} • {exp.rrule || 'One-off'}
+                              Category: {cat?.name || 'Unassigned'} • {sched.detailText}
                             </Text>
                           </TouchableOpacity>
                           <Text style={styles.amountText}>{formatAUD(exp.amount)}</Text>
@@ -367,67 +378,71 @@ export default function IncomeAndExpensesScreen() {
             </View>
           )}
         </ScrollView>
+
+        {/* Floating Action Button */}
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => {
+            setFormMode('INCOME');
+            setSourceToEdit(null);
+            setFormModalVisible(true);
+          }}
+          activeOpacity={0.8}
+        >
+          <Feather name="plus" size={24} color="#FFF" />
+        </TouchableOpacity>
+
+        {/* Income & Expense Form Modal */}
+        <IncomeExpenseFormModal
+          visible={formModalVisible}
+          mode={formMode}
+          sourceToEdit={sourceToEdit}
+          onClose={() => setFormModalVisible(false)}
+          onSuccess={() => {
+            incomeSourcesQuery.refetch();
+            expenseSourcesQuery.refetch();
+            incomeEventsQuery.refetch();
+            expenseEventsQuery.refetch();
+          }}
+        />
+
+        {/* Source Burst Detail Modal */}
+        <SourceBurstDetailModal
+          visible={burstModalVisible}
+          mode={burstMode}
+          sourceId={burstSourceId}
+          sourceName={burstSourceName}
+          sourceAmount={burstSourceAmount}
+          categoryName={burstCategoryName}
+          onClose={() => setBurstModalVisible(false)}
+        />
+
+        {/* Upcoming Expense Modal */}
+        <UpcomingExpenseModal
+          visible={!!upcomingExpenseToEdit}
+          eventToEdit={upcomingExpenseToEdit}
+          onClose={() => setUpcomingExpenseToEdit(null)}
+          onSuccess={() => {
+            incomeEventsQuery.refetch();
+            expenseEventsQuery.refetch();
+          }}
+        />
+
+        {/* Payday Preview Wizard */}
+        <PaydayPreviewWizard
+          visible={!!paydayWizardEventId || !!upcomingIncomeToEdit}
+          incomeEventId={paydayWizardEventId}
+          eventToEdit={upcomingIncomeToEdit}
+          onClose={() => {
+            setPaydayWizardEventId(null);
+            setUpcomingIncomeToEdit(null);
+          }}
+          onSuccess={() => {
+            incomeEventsQuery.refetch();
+            categoriesQuery.refetch();
+          }}
+        />
       </MobileScreenWrapper>
-
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {
-          setFormMode('INCOME');
-          setSourceToEdit(null);
-          setFormModalVisible(true);
-        }}
-        activeOpacity={0.8}
-      >
-        <Feather name="plus" size={24} color="#FFF" />
-      </TouchableOpacity>
-
-      {/* Income & Expense Form Modal */}
-      <IncomeExpenseFormModal
-        visible={formModalVisible}
-        mode={formMode}
-        sourceToEdit={sourceToEdit}
-        onClose={() => setFormModalVisible(false)}
-        onSuccess={() => {
-          incomeSourcesQuery.refetch();
-          expenseSourcesQuery.refetch();
-          incomeEventsQuery.refetch();
-          expenseEventsQuery.refetch();
-        }}
-      />
-
-      {/* Source Burst Detail Modal */}
-      <SourceBurstDetailModal
-        visible={burstModalVisible}
-        mode={burstMode}
-        sourceId={burstSourceId}
-        sourceName={burstSourceName}
-        sourceAmount={burstSourceAmount}
-        categoryName={burstCategoryName}
-        onClose={() => setBurstModalVisible(false)}
-      />
-
-      {/* Event Override Modal */}
-      <EventOverrideModal
-        visible={!!eventToOverride}
-        eventToEdit={eventToOverride}
-        onClose={() => setEventToOverride(null)}
-        onSuccess={() => {
-          incomeEventsQuery.refetch();
-          expenseEventsQuery.refetch();
-        }}
-      />
-
-      {/* Payday Preview Wizard */}
-      <PaydayPreviewWizard
-        visible={!!paydayWizardEventId}
-        incomeEventId={paydayWizardEventId}
-        onClose={() => setPaydayWizardEventId(null)}
-        onSuccess={() => {
-          incomeEventsQuery.refetch();
-          categoriesQuery.refetch();
-        }}
-      />
     </View>
   );
 }
@@ -475,4 +490,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
   },
+  schedBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12, borderWidth: 1 },
+  recurringBadge: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+  oneOffBadge: { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
+  schedBadgeText: { fontSize: 9, fontWeight: '800' },
+  recurringBadgeText: { color: '#047857' },
+  oneOffBadgeText: { color: '#B45309' },
 });

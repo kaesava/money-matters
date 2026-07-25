@@ -115,7 +115,15 @@ export const OverrideEventCommand = z.object({
   eventType: z.enum(["INCOME", "EXPENSE"]),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   expectedDate: z.string(),
+  name: z.string().optional(),
+  categoryId: z.string().uuid().optional(),
+  note: z.string().optional(),
   updateSeries: z.boolean().default(false),
+}).strict();
+
+export const DeleteUpcomingEventCommand = z.object({
+  eventId: z.string().uuid(),
+  eventType: z.enum(["INCOME", "EXPENSE"]),
 }).strict();
 
 export const SkipEventsCommand = z.object({

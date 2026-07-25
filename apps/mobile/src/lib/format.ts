@@ -67,3 +67,55 @@ export function formatRelativeDate(date: string | Date): string {
   }
 }
 
+/**
+ * Schedule Recurrence & Aussie Lingo Formatting Utility
+ */
+export interface ScheduleDetail {
+  isRecurring: boolean;
+  badgeText: string;
+  detailText: string;
+  frequencyLabel: string;
+}
+
+export function formatScheduleDetail(rrule?: string | null, startDate?: string | null): ScheduleDetail {
+  const isRecurring = Boolean(rrule && rrule.trim().length > 0);
+
+  const fmtDate = (dStr?: string | null) => {
+    if (!dStr) return null;
+    try {
+      const parts = dStr.split('T')[0].split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } catch {}
+    return dStr;
+  };
+
+  const formattedDate = fmtDate(startDate);
+
+  if (!isRecurring) {
+    return {
+      isRecurring: false,
+      badgeText: '⚡ One-off',
+      detailText: formattedDate ? `Expected ${formattedDate}` : 'One-off schedule',
+      frequencyLabel: 'One-off',
+    };
+  }
+
+  let frequencyLabel = 'Recurring';
+  if (rrule?.includes('INTERVAL=2') && rrule?.includes('WEEKLY')) {
+    frequencyLabel = 'Fortnightly';
+  } else if (rrule?.includes('FREQ=WEEKLY')) {
+    frequencyLabel = 'Weekly';
+  } else if (rrule?.includes('FREQ=MONTHLY')) {
+    frequencyLabel = 'Monthly';
+  } else if (rrule?.includes('FREQ=YEARLY') || rrule?.includes('ANNUALLY')) {
+    frequencyLabel = 'Annually';
+  }
+
+  return {
+    isRecurring: true,
+    badgeText: `🔄 ${frequencyLabel}`,
+    detailText: formattedDate ? `Kicks off ${formattedDate}` : frequencyLabel,
+    frequencyLabel,
+  };
+}
+

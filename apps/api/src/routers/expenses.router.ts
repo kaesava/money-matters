@@ -391,4 +391,33 @@ export const expensesRouter = {
 
       return { success: true, message: "Expense marked paid and moved to Transactions." };
     }),
+
+  createUpcomingExpense: tenantProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+        categoryId: z.string().uuid(),
+        expectedDate: z.string(),
+        note: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const [evt] = await ctx.db
+        .insert(expenseEvents)
+        .values({
+          name: input.name,
+          expectedAmount: input.amount,
+          categoryId: input.categoryId,
+          expectedDate: input.expectedDate,
+          note: input.note || null,
+          status: "UPCOMING",
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        })
+        .returning();
+      return evt;
+    }),
 };

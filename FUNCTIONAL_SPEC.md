@@ -43,7 +43,7 @@
 - **Collapsible Quick Actions Panel**:
   - Persists open/collapsed state per user across logins.
   - 4 Stat Chips: Total Income, Spent this Month, Saved this Month, Everyday Balance.
-  - Dual-mode Quick Record transaction card/modal (Expense & Income) + segmented mode toggle (`DEBIT` vs `CREDIT`).
+  - Dual-mode Quick Record transaction card/modal (Expense & Income) + segmented mode toggle (`DEBIT` vs `CREDIT`), featuring Expense Bill Name, Income Source Name, and Receiving Bank Account selector.
   - Bank Account Balances & Reconciliation card with link to Bank Settings.
   - Interactive "Can We Afford This?" calculator widget.
   - Shared "Move Money" button & modal.
@@ -53,8 +53,8 @@
   - Filter tabs: All, Income & Paychecks, Bills & Expenses.
   - Responsive search across names, categories, and notes.
   - Distinct styling for past overdue events (Action Required).
-  - Inline modal editing for date, amount, name, and category.
-  - "Allocate Waterfall" button for Income and "Mark Paid" button for Expenses (converts event to a transaction and removes from upcoming list).
+  - Unified "Edit / Mark Paid" modal for Expense events featuring Master Series notice, category before/after balance, health status (future dates), amount validation (>= 0), notes, permanent deletion, and "Save without Marking Paid".
+  - Unified "Process Payday / Edit" modal for Income events featuring Master Series notice, receiving bank account selector, notes, amount validation (>= 0), category before/after balance, health status (future dates), expandable allocation reasoning dialog ("ⓘ Why this amount?"), permanent deletion, and "Save without Marking Paid".
 
 ---
 

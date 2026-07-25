@@ -9,7 +9,7 @@ import { Feather } from '@expo/vector-icons';
 import { formatAUD } from '../../lib/format';
 
 import { MoveMoneyModal } from '../../components/MoveMoneyModal';
-import { EventOverrideModal, EventToOverride } from '../../components/EventOverrideModal';
+import { UpcomingExpenseModal } from '../../components/UpcomingExpenseModal';
 import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
 import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
@@ -32,7 +32,8 @@ export default function HomeScreen() {
   const [quickModalType, setQuickModalType] = useState<"DEBIT" | "CREDIT">("DEBIT");
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
-  const [eventToOverride, setEventToOverride] = useState<EventToOverride | null>(null);
+  const [upcomingExpenseToEdit, setUpcomingExpenseToEdit] = useState<any | null>(null);
+  const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<any | null>(null);
 
   // Can Afford State
   const [canAffordAmount, setCanAffordAmount] = useState('');
@@ -306,28 +307,37 @@ export default function HomeScreen() {
                     </Text>
 
                     <View style={{ flexDirection: 'row', gap: 4 }}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          setEventToOverride({
-                            id: evt.id,
-                            eventType: evt.type,
-                            name: evt.name,
-                            expectedDate: evt.expectedDate,
-                            expectedAmount: evt.expectedAmount,
-                          })
-                        }
-                        style={styles.editEventBtn}
-                      >
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: '#4B5563' }}>Edit</Text>
-                      </TouchableOpacity>
-
                       {evt.type === 'INCOME' ? (
-                        <TouchableOpacity onPress={() => setPaydayWizardEventId(evt.id)} style={styles.processBtn}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Review Split</Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setUpcomingIncomeToEdit({
+                              id: evt.id,
+                              sourceName: evt.name,
+                              expectedDate: evt.expectedDate,
+                              expectedAmount: evt.expectedAmount,
+                              note: evt.note,
+                            })
+                          }
+                          style={styles.processBtn}
+                        >
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Process Payday / Edit</Text>
                         </TouchableOpacity>
                       ) : (
-                        <TouchableOpacity onPress={() => handleMarkPaid(evt)} style={styles.markPaidBtn}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Mark Paid</Text>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setUpcomingExpenseToEdit({
+                              id: evt.id,
+                              name: evt.name,
+                              expectedDate: evt.expectedDate,
+                              expectedAmount: evt.expectedAmount,
+                              categoryId: evt.categoryId,
+                              categoryName: evt.categoryName,
+                              note: evt.note,
+                            })
+                          }
+                          style={styles.markPaidBtn}
+                        >
+                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFF' }}>Edit / Mark Paid</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -492,24 +502,29 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* Event Override Modal */}
-      <EventOverrideModal
-        visible={!!eventToOverride}
-        eventToEdit={eventToOverride}
-        onClose={() => setEventToOverride(null)}
+      {/* Payday Preview Wizard / Income Edit Modal */}
+      <PaydayPreviewWizard
+        visible={!!paydayWizardEventId || !!upcomingIncomeToEdit}
+        incomeEventId={paydayWizardEventId}
+        eventToEdit={upcomingIncomeToEdit}
+        onClose={() => {
+          setPaydayWizardEventId(null);
+          setUpcomingIncomeToEdit(null);
+        }}
         onSuccess={() => {
           incomeEventsQuery.refetch();
-          expenseEventsQuery.refetch();
+          categoriesQuery.refetch();
+          summaryQuery.refetch();
         }}
       />
 
-      {/* Payday Preview Wizard */}
-      <PaydayPreviewWizard
-        visible={!!paydayWizardEventId}
-        incomeEventId={paydayWizardEventId}
-        onClose={() => setPaydayWizardEventId(null)}
+      {/* Upcoming Expense Modal */}
+      <UpcomingExpenseModal
+        visible={!!upcomingExpenseToEdit}
+        eventToEdit={upcomingExpenseToEdit}
+        onClose={() => setUpcomingExpenseToEdit(null)}
         onSuccess={() => {
-          incomeEventsQuery.refetch();
+          expenseEventsQuery.refetch();
           categoriesQuery.refetch();
           summaryQuery.refetch();
         }}
