@@ -11,7 +11,8 @@
   "routes": [
     {
       "pattern": "moneymatters.kaesava.au",
-      "custom_domain": true
+      "custom_domain": true,
+      "zone_name": "kaesava.au"
     }
   ],
   "vars": {
