@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "npx dotenv-cli -e ../../.env.development -e .env.development -- tsx watch src/index.ts",
     "build": "tsup",
-    "preview": "pnpm opennextjs-cloudflare build && wrangler dev",
-    "cf-deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
+    "preview": "pnpm wrangler build && pnpm wrangler dev",
+    "cf-deploy": "pnpm wrangler build && pnpm wrangler deploy",
     "lint": "eslint \"**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
