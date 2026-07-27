@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Automatically maps the worker to api.kaesava.au
 routes = [
-  { pattern = "api.kaesava.au", custom_domain = true }
+  { pattern = "api.moneymatters.kaesava.au", custom_domain = true }
 ]
 
 [vars]
