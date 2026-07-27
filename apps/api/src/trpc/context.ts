@@ -7,12 +7,25 @@ import type { createEdgeContext } from "./edge-context.js";
 export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.split(" ")[1] ?? "";
+  // Automatically extract token from incoming request cookies sent by tRPC credentials: 'include'
+  let token = "";
+  if (req.headers.cookie) {
+    const cookies = Object.fromEntries(
+      req.headers.cookie.split("; ").map((c) => {
+        const [k, ...v] = c.split("=");
+        return [k, v.join("=")];
+      })
+    );
+    token = cookies["better-auth.session_token"] || cookies["session_token"] || "";
+  }
+
+  // Fallback to Authorization header if explicitly provided
+  if (!token && req.headers.authorization) {
+    token = req.headers.authorization.split(" ")[1] ?? "";
+  }
   
   let claims = await verifyJwt(token);
 
-  // Fallback: If JWT verification fails, check if this is an opaque session token in the database
   if (!claims && token && token.length === 32) {
     try {
       const dbSessions = await db.execute<{ userId: string; email: string; name: string }>(
@@ -36,14 +49,11 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   }
 
   if (!claims) {
-    logger.warn("Authentication failed: verifyJwt returned null and no DB session matched");
     return { req, res, session: null, userId: null, tenantId: null, email: null, appId: null };
   }
 
-  // ── Eager user mirror upsert ──────────────────────────────────────────────
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
 
-  // ── Tenant resolution ─────────────────────────────────────────────────────
   const [membership] = await db
     .select({
       tenantId: tenantUsers.tenantId,

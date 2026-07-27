@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
@@ -14,11 +15,12 @@ export default function SignInPage() {
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // If already signed in, push to dashboard
-    const token = localStorage.getItem("session_token");
-    if (token) {
-      router.push("/dashboard");
-    }
+    // Optional client-side quick check via cookie or auth client state if needed
+    authClient.getSession().then(({ data }) => {
+      if (data?.session) {
+        router.push("/dashboard");
+      }
+    });
   }, [router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -40,10 +42,7 @@ export default function SignInPage() {
         return;
       }
 
-      const sessionToken = result.data?.token;
-      if (sessionToken) {
-        localStorage.setItem("session_token", sessionToken);
-      }
+      // Clean tRPC flow: Session cookie is set by Better Auth and sent automatically via credentials: 'include'
       router.push("/dashboard");
     } catch (_err) {
       setError("An unexpected error occurred. Please try again.");
@@ -58,7 +57,7 @@ export default function SignInPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: window.location.origin + "/dashboard",
+        callbackURL: "https://moneymatters.kaesava.au/dashboard",
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in with Google.");
@@ -77,7 +76,7 @@ export default function SignInPage() {
     try {
       const res = await authClient.requestPasswordReset({
         email: email.trim().toLowerCase(),
-        redirectTo: window.location.origin + "/reset-password",
+        redirectTo: "https://moneymatters.kaesava.au/reset-password",
       });
 
       if (res.error) {

@@ -20,7 +20,7 @@ account reconciliation - unbudgeted buffer
 information (i) buttons - more info 
 Category target frequency & sweep
 Android only
-
+env files everywhere
 Independent screen by screen testing - mobile + web
 
 
