@@ -76,12 +76,12 @@ export default function IncomeAndExpensesPage() {
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
 
-  const incomeSources = incomeSourcesQuery.data ?? [];
-  const expenseSources = expenseSourcesQuery.data ?? [];
-  const categories = categoriesQuery.data ?? [];
-  const bankAccounts = bankAccountsQuery.data ?? [];
-  const incomeEvents = incomeEventsQuery.data ?? [];
-  const expenseEvents = expenseEventsQuery.data ?? [];
+  const incomeSources = React.useMemo(() => incomeSourcesQuery.data ?? [], [incomeSourcesQuery.data]);
+  const expenseSources = React.useMemo(() => expenseSourcesQuery.data ?? [], [expenseSourcesQuery.data]);
+  const categories = React.useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const bankAccounts = React.useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
+  const incomeEvents = React.useMemo(() => incomeEventsQuery.data ?? [], [incomeEventsQuery.data]);
+  const expenseEvents = React.useMemo(() => expenseEventsQuery.data ?? [], [expenseEventsQuery.data]);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -251,7 +251,7 @@ export default function IncomeAndExpensesPage() {
             }}
             className="px-4 py-2.5 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all flex items-center gap-2 shadow-sm"
           >
-            <span>💰</span>
+            <span>➕</span>
             <span>Add Income Source</span>
           </button>
 
@@ -264,7 +264,7 @@ export default function IncomeAndExpensesPage() {
             }}
             className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
           >
-            <span>💸</span>
+            <span>➕</span>
             <span>Add Expense Bill</span>
           </button>
         </div>
@@ -352,7 +352,7 @@ export default function IncomeAndExpensesPage() {
                         className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer flex items-center gap-1.5"
                       >
                         <span>{item.name}</span>
-                        <span className="text-zinc-400 text-[10px]">🔗</span>
+                        <span className="text-zinc-400 text-[10px]">🔍</span>
                       </button>
                     </td>
                     <td className="px-6 py-4">
@@ -390,7 +390,7 @@ export default function IncomeAndExpensesPage() {
                         </span>
                       ) : (
                         <span className="flex items-center gap-1">
-                          <span className="text-zinc-400">🏷️</span>
+                          <span className="text-zinc-400">📁</span>
                           <span>{item.categoryName || "Uncategorized"}</span>
                         </span>
                       )}

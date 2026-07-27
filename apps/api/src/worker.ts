@@ -5,8 +5,23 @@ import { inngest } from './inngest/client.js';
 import { functions } from './inngest/index.js';
 import { serve } from 'inngest/cloudflare';
 
+export interface WorkerEnv {
+  MONEY_MATTERS_APP_ID: string;
+  STORAGE_BUCKET_NAME: string;
+  STORAGE_ENDPOINT: string;
+  STORAGE_REGION: string;
+  GLOBAL_MAX_FILE_SIZE_MB: string;
+  NEXT_PUBLIC_NEON_AUTH_URL: string;
+  NEON_AUTH_BASE_URL: string;
+  NEON_AUTH_JWKS_URL: string;
+  DATABASE_URL?: string;
+  INNGEST_SIGNING_KEY?: string;
+  INNGEST_EVENT_KEY?: string;
+  RESEND_API_KEY?: string;
+}
+
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
     const url = new URL(request.url);
 
     // 1. Handle CORS Preflight
@@ -24,8 +39,12 @@ export default {
 
     // 2. Handle Inngest Webhook Endpoint
     if (url.pathname.startsWith('/api/inngest')) {
-      const inngestHandler = serve({ client: inngest, functions });
-      return inngestHandler(request, env, ctx);
+      const inngestHandler = serve({ client: inngest, functions, servePath: '/api/inngest' }) as unknown as (
+        request: Request,
+        env: Record<string, string | undefined>,
+        ctx?: { waitUntil: (promise: Promise<unknown>) => void }
+      ) => Promise<Response>;
+      return inngestHandler(request, env as unknown as Record<string, string | undefined>, ctx);
     }
 
     // 3. Handle Password Reset HTML Endpoint

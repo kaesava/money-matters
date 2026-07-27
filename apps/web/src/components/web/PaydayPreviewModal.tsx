@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
 import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
@@ -49,7 +49,7 @@ export default function PaydayPreviewModal({
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: isOpen });
 
   const categories = categoriesQuery.data ?? [];
-  const bankAccounts = bankAccountsQuery.data ?? [];
+  const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
 
   const [sourceName, setSourceName] = useState("");
   const [actualAmount, setActualAmount] = useState("");
@@ -71,18 +71,19 @@ export default function PaydayPreviewModal({
     { enabled: !!activeEventId && isOpen }
   );
 
-  const previewData = previewQuery.data as { incomeEvent: any; engineResult: { lines: PaydayLine[] } } | undefined;
+  const previewData = previewQuery.data as { incomeEvent: { name?: string; actualAmount?: string; expectedDate?: string }; engineResult: { lines: PaydayLine[] } } | undefined;
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
   const overrideMut = trpc.overrideEvent.useMutation();
   const deleteMut = trpc.deleteUpcomingEvent.useMutation();
   const createUpcomingMut = trpc.createUpcomingIncome.useMutation();
 
   useEffect(() => {
+    const currentTodayStr = new Date().toISOString().slice(0, 10);
     if (previewData) {
       setSourceName(previewData.incomeEvent?.name || eventToEdit?.sourceName || "Paycheck");
       setActualAmount(previewData.incomeEvent.actualAmount || eventToEdit?.expectedAmount || "0.00");
       const rawDate = previewData.incomeEvent.expectedDate || eventToEdit?.expectedDate;
-      setSelectedDate(rawDate ? new Date(rawDate).toISOString().slice(0, 10) : todayStr);
+      setSelectedDate(rawDate ? new Date(rawDate).toISOString().slice(0, 10) : currentTodayStr);
       setNote(eventToEdit?.note || "");
       setReceivingAccountId(eventToEdit?.receivingAccountId || bankAccounts[0]?.id || "");
 
@@ -94,7 +95,7 @@ export default function PaydayPreviewModal({
     } else {
       setSourceName(eventToEdit?.sourceName || "");
       setActualAmount(eventToEdit?.expectedAmount || "");
-      setSelectedDate(eventToEdit?.expectedDate || todayStr);
+      setSelectedDate(eventToEdit?.expectedDate || currentTodayStr);
       setNote(eventToEdit?.note || "");
       setReceivingAccountId(eventToEdit?.receivingAccountId || bankAccounts[0]?.id || "");
     }
@@ -178,7 +179,7 @@ export default function PaydayPreviewModal({
           note,
         });
         const preview = await utils.previewPayday.fetch({ incomeEventId: createdEvt.id });
-        const payloadLines = preview.engineResult.lines.map((l: any) => ({
+        const payloadLines = preview.engineResult.lines.map((l: PaydayLine) => ({
           bucketId: l.bucketId,
           amount: l.proposedAmount.toFixed(2),
         }));

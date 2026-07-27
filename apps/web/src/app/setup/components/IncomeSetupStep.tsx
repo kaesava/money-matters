@@ -26,7 +26,7 @@ export function IncomeSetupStep({
       <div>
         <h2 className="text-2xl font-black text-[#1B2B4B]">💰 How much do you get paid?</h2>
         <p className="text-xs text-zinc-500 font-semibold mt-1">
-          Let's set up your main income source. You can add more later in Settings.
+          Let&apos;s set up your main income source. You can add more later in Settings.
         </p>
       </div>
 
@@ -71,7 +71,7 @@ export function IncomeSetupStep({
       </div>
 
       <p className="text-[11px] text-zinc-400 font-semibold text-center italic">
-        "You can add more income sources and bank accounts later in Settings."
+        &quot;You can add more income sources and bank accounts later in Settings.&quot;
       </p>
 
       <div className="flex justify-end pt-4 border-t border-zinc-100">

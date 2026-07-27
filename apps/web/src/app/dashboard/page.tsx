@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { MoveMoneyModal } from "../../components/web/MoveMoneyModal";
@@ -37,7 +37,7 @@ export default function DashboardPage() {
   const [quickMsg, setQuickMsg] = useState<string | null>(null);
 
   const [canAffordAmount, setCanAffordAmount] = useState("");
-  const [reconcilingAccountId, setReconcilingAccountId] = useState<string | null>(null);
+  const [_reconcilingAccountId, setReconcilingAccountId] = useState<string | null>(null);
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const categoriesQuery = trpc.listCategories.useQuery();

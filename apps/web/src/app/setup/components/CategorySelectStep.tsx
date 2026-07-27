@@ -40,7 +40,7 @@ export function CategorySelectStep({
       <div>
         <h2 className="text-2xl font-black text-[#1B2B4B]">📋 Which bills do you have?</h2>
         <p className="text-xs text-zinc-500 font-semibold mt-1">
-          Tick the ones that apply and adjust the monthly amounts. We'll handle the rest.
+          Tick the ones that apply and adjust the monthly amounts. We&apos;ll handle the rest.
         </p>
       </div>
 

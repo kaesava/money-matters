@@ -24,7 +24,15 @@ describe('Capability Tenant Handlers', () => {
   it('createTenantHandler creates tenant and owner member records', async () => {
     const valuesMock = vi.fn().mockResolvedValue([]);
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
-    const mockDb: any = { insert: insertMock };
+
+    const whereMock = vi.fn().mockResolvedValue([]);
+    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+    const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    const mockDb: any = {
+      insert: insertMock,
+      select: selectMock,
+    };
 
     const handler = createTenantHandler(mockDb);
     const result = await handler({ name: 'Acme Household' }, appId, userId);
@@ -32,6 +40,7 @@ describe('Capability Tenant Handlers', () => {
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
     expect(insertMock).toHaveBeenCalledTimes(2);
+    expect(selectMock).toHaveBeenCalledTimes(1);
   });
 
   it('createBankAccountHandler inserts bank account into database', async () => {

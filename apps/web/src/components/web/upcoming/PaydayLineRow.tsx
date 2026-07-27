@@ -17,7 +17,7 @@ function fmt(val: number) {
 }
 
 export function PaydayLineRow({
-  bucketId,
+  bucketId: _bucketId,
   bucketName,
   reasoning,
   amountVal,

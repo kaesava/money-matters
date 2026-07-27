@@ -115,7 +115,7 @@ export default function CategoriesPage() {
     return sortDir === "asc" ? comparison : -comparison;
   });
 
-  const totalPages = Math.ceil(sorted.length / pageSize) || 1;
+  const _totalPages = Math.ceil(sorted.length / pageSize) || 1;
   const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   // Summary Metrics
@@ -376,7 +376,7 @@ export default function CategoriesPage() {
       {/* Pagination Footer */}
       <PaginationBar
         page={page}
-        totalPages={Math.ceil(sorted.length / pageSize) || 1}
+        totalPages={_totalPages}
         pageSize={pageSize}
         totalItems={sorted.length}
         pageSizeOptions={[10, 25, 50, 100]}

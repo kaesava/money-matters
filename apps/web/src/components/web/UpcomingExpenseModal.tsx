@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
 import { ExpenseCategoryInfo } from "./upcoming/ExpenseCategoryInfo";
@@ -40,7 +40,7 @@ export default function UpcomingExpenseModal({
   const todayStr = new Date().toISOString().split("T")[0];
 
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
-  const categories = categoriesQuery.data ?? [];
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -58,18 +58,19 @@ export default function UpcomingExpenseModal({
   const recordExpenseMut = trpc.recordExpense.useMutation();
 
   useEffect(() => {
+    const currentTodayStr = new Date().toISOString().split("T")[0];
     if (eventToEdit) {
       setName(eventToEdit.name || "");
       setCategoryId(eventToEdit.categoryId || (categories[0]?.id ?? ""));
       setAmount(eventToEdit.expectedAmount || "");
-      setExpectedDate(eventToEdit.expectedDate || todayStr);
+      setExpectedDate(eventToEdit.expectedDate || currentTodayStr);
       setNote(eventToEdit.note || "");
       setUpdateSeries(false);
     } else {
       setName("");
       setCategoryId(categories[0]?.id || "");
       setAmount("");
-      setExpectedDate(todayStr);
+      setExpectedDate(currentTodayStr);
       setNote("");
     }
     setErrorMsg("");

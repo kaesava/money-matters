@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 
@@ -22,11 +22,14 @@ export default function AcceptInvitePage() {
     },
   });
 
+  const hasTriggeredRef = useRef(false);
+
   useEffect(() => {
-    if (token) {
+    if (token && !hasTriggeredRef.current) {
+      hasTriggeredRef.current = true;
       acceptInviteMutation.mutate({ inviteToken: token });
     }
-  }, [token]);
+  }, [token, acceptInviteMutation]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

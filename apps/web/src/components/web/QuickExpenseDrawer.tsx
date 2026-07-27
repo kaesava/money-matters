@@ -183,7 +183,7 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
                   className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white"
                 >
                   <option value="">Select Category...</option>
-                  {categories.map((c: any) => (
+                  {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} (${parseFloat(c.currentBalance).toFixed(2)})
                     </option>
@@ -201,7 +201,7 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
                   className="w-full px-3 py-2 rounded-xl border border-zinc-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white"
                 >
                   <option value="">Default Account</option>
-                  {bankAccounts.map((b: any) => (
+                  {bankAccounts.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name}
                     </option>

@@ -35,7 +35,15 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
   }
 
   if (!claims) {
-    return { req, resHeaders, session: null, userId: null, tenantId: null, email: null, appId: null };
+    return {
+      req,
+      resHeaders,
+      session: null,
+      userId: null,
+      tenantId: null,
+      email: null,
+      appId: null,
+    };
   }
 
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);

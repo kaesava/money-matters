@@ -2,6 +2,7 @@ import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { verifyJwt, upsertUserFromJwt, logger } from "@money-matters/core";
 import { db, tenantUsers } from "@money-matters/db";
 import { eq, sql } from "drizzle-orm";
+import type { createEdgeContext } from "./edge-context.js";
 
 export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
@@ -40,11 +41,9 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   }
 
   // ── Eager user mirror upsert ──────────────────────────────────────────────
-  // Keep public.users in sync with neon_auth.user on every authenticated request.
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
 
   // ── Tenant resolution ─────────────────────────────────────────────────────
-  // Resolve the user's tenant membership to determine tenantId for this request.
   const [membership] = await db
     .select({
       tenantId: tenantUsers.tenantId,
@@ -76,4 +75,6 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   };
 }
 
-export type Context = Awaited<ReturnType<typeof createContext>>;
+export type FastifyContext = Awaited<ReturnType<typeof createContext>>;
+export type EdgeContext = Awaited<ReturnType<typeof createEdgeContext>>;
+export type Context = FastifyContext | EdgeContext;

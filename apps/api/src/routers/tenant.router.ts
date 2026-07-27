@@ -1,5 +1,5 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure } from '../trpc/trpc.js';
-import { db, userPreferences, bankAccounts } from "@money-matters/db";
+import { db, userPreferences, bankAccounts, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { 
   createTenantHandler,
@@ -71,13 +71,18 @@ export const tenantRouter = {
             eq(userPreferences.tenantId, ctx.tenantId!)
           )
         );
-      return pref || {
-        quickActionsCollapsed: false,
-        timezone: "Australia/Sydney",
-        paydayAlertsEnabled: true,
-        shortfallAlertsEnabled: true,
-        billRemindersEnabled: true,
-        weeklyDigestEnabled: false,
+
+      const appId = ctx.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
+      const appBlob = pref?.appPreferences?.[appId];
+
+      return {
+        ...pref,
+        quickActionsCollapsed: appBlob?.quick_actions_collapsed ?? false,
+        timezone: pref?.timezone ?? "Australia/Sydney",
+        paydayAlertsEnabled: pref?.paydayAlertsEnabled ?? true,
+        shortfallAlertsEnabled: pref?.shortfallAlertsEnabled ?? true,
+        billRemindersEnabled: pref?.billRemindersEnabled ?? true,
+        weeklyDigestEnabled: pref?.weeklyDigestEnabled ?? false,
       };
     }),
 
@@ -103,11 +108,25 @@ export const tenantRouter = {
           )
         );
 
+      const appId = ctx.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
+      const existingAppPrefs: Record<string, AppPreferencesBlob> = existing?.appPreferences || {};
+      const currentAppBlob = existingAppPrefs[appId] || {};
+
+      const updatedAppBlob: AppPreferencesBlob = {
+        ...currentAppBlob,
+        ...(input.quickActionsCollapsed !== undefined ? { quick_actions_collapsed: input.quickActionsCollapsed } : {}),
+      };
+
+      const updatedAppPrefs: Record<string, AppPreferencesBlob> = {
+        ...existingAppPrefs,
+        [appId]: updatedAppBlob,
+      };
+
       if (existing) {
         const [updated] = await ctx.db
           .update(userPreferences)
           .set({
-            quickActionsCollapsed: input.quickActionsCollapsed ?? existing.quickActionsCollapsed,
+            appPreferences: updatedAppPrefs,
             timezone: input.timezone ?? existing.timezone,
             paydayAlertsEnabled: input.paydayAlertsEnabled ?? existing.paydayAlertsEnabled,
             shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? existing.shortfallAlertsEnabled,
@@ -117,14 +136,20 @@ export const tenantRouter = {
           })
           .where(eq(userPreferences.id, existing.id))
           .returning();
-        return updated;
+
+        const resAppBlob = updated.appPreferences?.[appId];
+
+        return {
+          ...updated,
+          quickActionsCollapsed: resAppBlob?.quick_actions_collapsed ?? false,
+        };
       } else {
         const [inserted] = await ctx.db
           .insert(userPreferences)
           .values({
             userId: ctx.userId!,
             tenantId: ctx.tenantId!,
-            quickActionsCollapsed: input.quickActionsCollapsed ?? false,
+            appPreferences: updatedAppPrefs,
             timezone: input.timezone ?? "Australia/Sydney",
             paydayAlertsEnabled: input.paydayAlertsEnabled ?? true,
             shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? true,
@@ -132,7 +157,13 @@ export const tenantRouter = {
             weeklyDigestEnabled: input.weeklyDigestEnabled ?? false,
           })
           .returning();
-        return inserted;
+
+        const resAppBlob = inserted.appPreferences?.[appId];
+
+        return {
+          ...inserted,
+          quickActionsCollapsed: resAppBlob?.quick_actions_collapsed ?? false,
+        };
       }
     }),
 

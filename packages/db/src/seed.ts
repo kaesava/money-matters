@@ -147,12 +147,16 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.insert(userPreferences).values({
     userId,
     tenantId,
-    quickActionsCollapsed: false,
     timezone: "Australia/Sydney",
     paydayAlertsEnabled: true,
     shortfallAlertsEnabled: true,
     billRemindersEnabled: true,
     weeklyDigestEnabled: true,
+    appPreferences: {
+      [appId]: {
+        quick_actions_collapsed: false,
+      },
+    },
   });
 
   // 4. Bank Accounts
