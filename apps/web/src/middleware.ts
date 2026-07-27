@@ -23,11 +23,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for Better Auth / Neon Auth session cookies
-  // Better Auth sets one of these cookie names depending on whether it's HTTPS
+  // Check for Neon Auth / Better Auth session cookies
   const sessionCookie =
+    request.cookies.get("__Secure-neon-auth.session_token") ??
+    request.cookies.get("neon-auth.session_token") ??
     request.cookies.get("better-auth.session_token") ??
     request.cookies.get("__Secure-better-auth.session_token") ??
+    request.cookies.get("session_token") ??
+    request.cookies.get("__Secure-session_token") ??
     request.cookies.get("neon_auth_session");
 
   if (!sessionCookie) {

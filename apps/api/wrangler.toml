@@ -17,3 +17,19 @@ GLOBAL_MAX_FILE_SIZE_MB = "10"
 NEXT_PUBLIC_NEON_AUTH_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
 NEON_AUTH_BASE_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
 NEON_AUTH_JWKS_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth/.well-known/jwks.json"
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1
+
