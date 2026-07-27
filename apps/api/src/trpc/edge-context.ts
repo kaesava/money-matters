@@ -38,6 +38,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
     return {
       req,
       resHeaders,
+      db,
       session: null,
       userId: null,
       tenantId: null,
@@ -64,7 +65,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
   return {
     req,
     resHeaders,
-    db: db as any,
+    db,
     session: {
       userId: claims.userId,
       email: claims.email,

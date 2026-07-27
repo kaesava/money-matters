@@ -7,25 +7,12 @@ import type { createEdgeContext } from "./edge-context.js";
 export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
-  // Automatically extract token from incoming request cookies sent by tRPC credentials: 'include'
-  let token = "";
-  if (req.headers.cookie) {
-    const cookies = Object.fromEntries(
-      req.headers.cookie.split("; ").map((c) => {
-        const [k, ...v] = c.split("=");
-        return [k, v.join("=")];
-      })
-    );
-    token = cookies["better-auth.session_token"] || cookies["session_token"] || "";
-  }
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(" ")[1] ?? "";
 
-  // Fallback to Authorization header if explicitly provided
-  if (!token && req.headers.authorization) {
-    token = req.headers.authorization.split(" ")[1] ?? "";
-  }
-  
   let claims = await verifyJwt(token);
 
+  // Fallback for 32-character opaque Neon DB session tokens
   if (!claims && token && token.length === 32) {
     try {
       const dbSessions = await db.execute<{ userId: string; email: string; name: string }>(
@@ -49,7 +36,16 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   }
 
   if (!claims) {
-    return { req, res, session: null, userId: null, tenantId: null, email: null, appId: null };
+    return {
+      req,
+      res,
+      db,
+      session: null,
+      userId: null,
+      tenantId: null,
+      email: null,
+      appId: null,
+    };
   }
 
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
@@ -70,7 +66,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   return {
     req,
     res,
-    db: db as any,
+    db,
     session: {
       userId: claims.userId,
       email: claims.email,
