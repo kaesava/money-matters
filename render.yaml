@@ -1,0 +1,57 @@
+# Render.com deployment configuration
+# Environment variables must be set in the Render dashboard — never hardcode secrets here.
+
+services:
+  - type: web
+    name: money-matters-api
+    runtime: node
+    region: singapore  # Closest to Australia
+    plan: free
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @money-matters/api build
+    startCommand: node apps/api/dist/index.js
+    healthCheckPath: /api/inngest
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: NEON_AUTH_BASE_URL
+        sync: false
+      - key: NEON_AUTH_JWKS_URL
+        sync: false
+      - key: INNGEST_SIGNING_KEY
+        sync: false
+      - key: INNGEST_EVENT_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: SENTRY_DSN_API
+        sync: false
+      - key: PORT
+        value: 10000
+
+  - type: web
+    name: money-matters-web
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @money-matters/web build
+    startCommand: pnpm --filter @money-matters/web start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_NEON_AUTH_URL
+        sync: false
+      - key: NEON_AUTH_JWKS_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false

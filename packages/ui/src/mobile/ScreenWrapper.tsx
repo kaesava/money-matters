@@ -70,6 +70,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         title={title}
         showBack={showBack}
         onBackPress={onBackPress}
+        onNavigateHome={onNavigateHome}
         showProfile={showProfile}
         user={user}
         getInitials={getInitials}

@@ -142,3 +142,35 @@ export const ConfirmPaydayCommand = z.object({
     }).strict()
   ),
 }).strict();
+
+export const InvitePartnerCommand = z.object({
+  email: z.string().email(),
+  role: z.enum(["MEMBER", "OWNER"]).default("MEMBER"),
+  ttlHours: z.number().int().min(1).max(168).default(72),
+}).strict();
+
+export const AcceptInviteCommand = z.object({
+  inviteToken: z.string().uuid(),
+  userEmail: z.string().email(),
+}).strict();
+
+export const SyncLedgerMutationCommand = z.object({
+  clientMutationId: z.string().uuid(),
+  idempotencyKey: z.string().min(1),
+  clientTimestamp: z.string().datetime(),
+  categoryId: z.string().uuid(),
+  bankAccountId: z.string().uuid().optional(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  flowType: z.enum(["DEBIT", "CREDIT"]),
+  note: z.string().optional(),
+  source: z.enum(["MANUAL", "AUTO", "IMPORT"]).default("MANUAL"),
+}).strict();
+
+export const WaterfallExecutionPayload = z.object({
+  tenantId: z.string().uuid(),
+  incomeEventId: z.string().uuid(),
+  paycheckAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  idempotencyKey: z.string().min(1),
+  executionLockId: z.string().uuid(),
+}).strict();
+

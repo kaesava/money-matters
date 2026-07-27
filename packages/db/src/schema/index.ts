@@ -16,3 +16,4 @@ export * from "./user_preference.js";
 export * from "./expense_source.js";
 export * from "./expense_event.js";
 export * from "./app.js";
+export * from "./app_category.js";

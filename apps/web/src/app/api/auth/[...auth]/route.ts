@@ -70,7 +70,13 @@ async function handleProxy(req: NextRequest) {
         lowerKey !== "content-encoding" && 
         lowerKey !== "content-length"
       ) {
-        responseHeaders.set(key, value);
+        // Use append for set-cookie to preserve ALL Set-Cookie headers
+        // (using set() collapses multiple cookies into one, breaking sessions)
+        if (lowerKey === "set-cookie") {
+          responseHeaders.append(key, value);
+        } else {
+          responseHeaders.set(key, value);
+        }
       }
     });
 

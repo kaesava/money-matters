@@ -17,6 +17,10 @@ import {
   DeleteUpcomingEventCommand,
   BulkDeleteEventsCommand,
   ConfirmPaydayCommand,
+  InvitePartnerCommand,
+  AcceptInviteCommand,
+  SyncLedgerMutationCommand,
+  WaterfallExecutionPayload,
 } from './commands.types.js';
 
 describe('Command Schemas Validation', () => {
@@ -150,4 +154,35 @@ describe('Command Schemas Validation', () => {
     });
     expect(payday.lines[0].amount).toBe('500.00');
   });
+
+  it('validates InvitePartnerCommand, AcceptInviteCommand, SyncLedgerMutationCommand, and WaterfallExecutionPayload', () => {
+    const invite = InvitePartnerCommand.parse({ email: 'partner@example.com' });
+    expect(invite.ttlHours).toBe(72);
+
+    const accept = AcceptInviteCommand.parse({
+      inviteToken: '11111111-1111-4111-8111-111111111111',
+      userEmail: 'partner@example.com',
+    });
+    expect(accept.userEmail).toBe('partner@example.com');
+
+    const sync = SyncLedgerMutationCommand.parse({
+      clientMutationId: '11111111-1111-4111-8111-111111111111',
+      idempotencyKey: 'mut-12345',
+      clientTimestamp: '2026-07-26T00:00:00.000Z',
+      categoryId: '22222222-2222-4222-8222-222222222222',
+      amount: '45.50',
+      flowType: 'DEBIT',
+    });
+    expect(sync.flowType).toBe('DEBIT');
+
+    const waterfall = WaterfallExecutionPayload.parse({
+      tenantId: '11111111-1111-4111-8111-111111111111',
+      incomeEventId: '22222222-2222-4222-8222-222222222222',
+      paycheckAmount: '3200.00',
+      idempotencyKey: 'wf-key-99',
+      executionLockId: '33333333-3333-4333-8333-333333333333',
+    });
+    expect(waterfall.paycheckAmount).toBe('3200.00');
+  });
 });
+

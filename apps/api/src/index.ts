@@ -1,5 +1,6 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import { appRouter } from './routers/_app.js';
 import { createContext } from './trpc/context.js';
@@ -22,7 +23,30 @@ const server = fastify({
 server.addHook("onRequest", correlationIdHook);
 server.register(rateLimiter);
 
-server.register(cors, { origin: true, credentials: true });
+server.register(helmet, {
+  // Allow inline styles used by the password-reset HTML template
+  contentSecurityPolicy: false,
+});
+
+const ALLOWED_ORIGINS = [
+  "https://kaesava.au",
+  "https://www.kaesava.au",
+  ...(process.env["NODE_ENV"] !== "production"
+    ? ["http://localhost:3000", "http://localhost:3001", "http://localhost:8081"]
+    : []),
+];
+
+server.register(cors, {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, Inngest, server-to-server)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`), false);
+    }
+  },
+  credentials: true,
+});
 
 server.register(fastifyTRPCPlugin, {
   prefix: '/trpc',

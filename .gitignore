@@ -6,6 +6,9 @@ build/
 .turbo/
 .expo/
 coverage/
+# Environment secrets — never commit
 .env
+.env.local
 .env.development
+.env.production
 .aider*

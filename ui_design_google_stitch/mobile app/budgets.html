@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Serene Finance - Budgets</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-surface": "#2e3039",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "on-error": "#ffffff",
+                    "tertiary-container": "#bc4800",
+                    "on-secondary-fixed": "#0b1c30",
+                    "surface-container-highest": "#e1e2ed",
+                    "tertiary": "#943700",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "error-container": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed": "#ffdbcd",
+                    "on-secondary-container": "#54647a",
+                    "on-primary-fixed": "#00174b",
+                    "on-secondary-fixed-variant": "#38485d",
+                    "surface": "#faf8ff",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-low": "#f3f3fe",
+                    "on-surface": "#191b23",
+                    "primary": "#004ac6",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "secondary-container": "#d0e1fb",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "error": "#ba1a1a",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#e7e7f3",
+                    "secondary-fixed": "#d3e4fe",
+                    "background": "#faf8ff",
+                    "outline-variant": "#c3c6d7",
+                    "outline": "#737686",
+                    "surface-tint": "#0053db",
+                    "inverse-primary": "#b4c5ff",
+                    "inverse-on-surface": "#f0f0fb",
+                    "surface-bright": "#faf8ff",
+                    "primary-container": "#2563eb",
+                    "on-surface-variant": "#434655",
+                    "surface-variant": "#e1e2ed",
+                    "on-background": "#191b23",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-container": "#ffede6",
+                    "on-secondary": "#ffffff",
+                    "on-primary-container": "#eeefff",
+                    "on-tertiary-fixed": "#360f00",
+                    "surface-dim": "#d9d9e5",
+                    "surface-container": "#ededf9",
+                    "primary-fixed": "#dbe1ff",
+                    "secondary": "#505f76"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "container-max-width": "1280px",
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-md": ["Inter"],
+                    "data-lg": ["JetBrains Mono"],
+                    "display-lg": ["Inter"],
+                    "data-md": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "data-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "data-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #faf8ff;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .circular-progress {
+            background: conic-gradient(#004ac6 75%, #e1e2ed 0);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .circular-progress::before {
+            content: "";
+            position: absolute;
+            height: 160px;
+            width: 160px;
+            border-radius: 50%;
+            background-color: white;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-background antialiased overflow-x-hidden pb-24">
+<!-- TopAppBar -->
+<header class="w-full sticky top-0 z-50 bg-surface dark:bg-surface-dim shadow-sm">
+<div class="flex items-center justify-between px-margin-mobile h-16 w-full max-w-container-max-width mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-secondary-container">
+<img class="w-full h-full object-cover" data-alt="A professional close-up portrait of a serene individual in a minimalist studio setting. The person has a calm expression, wearing a high-end cream-colored linen shirt. The lighting is soft and editorial, reflecting the financial tranquility brand with a palette of soft whites and subtle blue undertones. High-fashion aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuClLSDGfGl4dygEwJeikcRlXJ6FDTYZj5uQ_gv7Oa3nYnWt3i-53NlbQDZwqrcazgtSiUapUlht9tEFekXtFqY95u2CKbEjal4bjKs6Gk0sRmCrTQGcy773fJWAqc14IPW8U2gvudgmJ295aH-MRDWbKeChqPh1EnxqU0NziULnZxiJ1xAe0eCZGMD_-KG5XSI7PHQWDj4QseQLwNSVwBF_3EdsdNh5HCpNPT0B-IViBzl4i5MJ9nD-C_q_kcVC_SR27_IgMEpLyp4"/>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary dark:text-primary-fixed-dim">Serene Finance</h1>
+</div>
+<button class="hover:opacity-80 transition-opacity active:scale-95 duration-150 text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<main class="max-w-container-max-width mx-auto px-margin-mobile py-6 space-y-8">
+<!-- Monthly Spending Overview (Bento Style Primary Card) -->
+<section class="bg-white rounded-3xl p-8 shadow-[0_4px_12px_rgba(37,99,235,0.04)] border border-[#E2E8F0] relative overflow-hidden">
+<div class="relative z-10 flex flex-col items-center">
+<div class="w-full mb-6 flex justify-between items-start">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Monthly Spending</p>
+<p class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mt-1">October 2023</p>
+</div>
+<div class="bg-secondary-container px-3 py-1 rounded-full">
+<span class="text-[12px] font-bold text-on-secondary-container">ON TRACK</span>
+</div>
+</div>
+<!-- Circular Progress -->
+<div class="relative w-48 h-48 flex items-center justify-center my-4">
+<div class="circular-progress w-48 h-48 transition-all duration-1000 ease-out"></div>
+<div class="absolute flex flex-col items-center justify-center">
+<span class="font-data-lg text-data-lg text-on-surface">$2,450.00</span>
+<span class="font-label-sm text-label-sm text-outline">of $3,200.00</span>
+</div>
+</div>
+<div class="w-full grid grid-cols-2 gap-4 mt-8 border-t border-outline-variant pt-6">
+<div>
+<p class="font-label-sm text-label-sm text-outline">Remaining</p>
+<p class="font-data-md text-data-md text-primary">$750.00</p>
+</div>
+<div class="text-right">
+<p class="font-label-sm text-label-sm text-outline">Days Left</p>
+<p class="font-data-md text-data-md text-on-surface">12 Days</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Budget Categories List -->
+<section class="space-y-4">
+<div class="flex justify-between items-center px-1">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Categories</h2>
+<button class="text-primary font-label-sm text-label-sm hover:underline">Edit Budgets</button>
+</div>
+<!-- Category Cards -->
+<div class="grid gap-4">
+<!-- Housing -->
+<div class="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-primary-container/10 rounded-xl text-primary">
+<span class="material-symbols-outlined">home</span>
+</div>
+<span class="font-semibold text-on-surface">Housing</span>
+</div>
+<div class="flex items-center gap-1 text-[#059669]">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span class="font-label-sm text-label-sm">On Track</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-3">
+<div class="bg-primary h-full w-[80%] rounded-full transition-all duration-1000"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-data-md text-data-md text-on-surface-variant">$1,200.00</span>
+<span class="font-data-md text-data-md text-outline">/ $1,500.00</span>
+</div>
+</div>
+<!-- Food -->
+<div class="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-tertiary-fixed/30 rounded-xl text-tertiary">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<span class="font-semibold text-on-surface">Food</span>
+</div>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+<span class="font-label-sm text-label-sm">Warning</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-3">
+<div class="bg-tertiary h-full w-[92%] rounded-full transition-all duration-1000"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-data-md text-data-md text-on-surface-variant">$552.40</span>
+<span class="font-data-md text-data-md text-outline">/ $600.00</span>
+</div>
+</div>
+<!-- Transport -->
+<div class="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-secondary-container/50 rounded-xl text-secondary">
+<span class="material-symbols-outlined">commute</span>
+</div>
+<span class="font-semibold text-on-surface">Transport</span>
+</div>
+<div class="flex items-center gap-1 text-[#059669]">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span class="font-label-sm text-label-sm">On Track</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-3">
+<div class="bg-secondary h-full w-[45%] rounded-full transition-all duration-1000"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-data-md text-data-md text-on-surface-variant">$135.00</span>
+<span class="font-data-md text-data-md text-outline">/ $300.00</span>
+</div>
+</div>
+<!-- Entertainment -->
+<div class="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow">
+<div class="flex justify-between items-center mb-3">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-surface-variant rounded-xl text-on-surface-variant">
+<span class="material-symbols-outlined">movie</span>
+</div>
+<span class="font-semibold text-on-surface">Entertainment</span>
+</div>
+<div class="flex items-center gap-1 text-[#059669]">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span class="font-label-sm text-label-sm">On Track</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden mb-3">
+<div class="bg-on-surface-variant h-full w-[60%] rounded-full transition-all duration-1000"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-data-md text-data-md text-on-surface-variant">$150.00</span>
+<span class="font-data-md text-data-md text-outline">/ $250.00</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Insights Banner -->
+<div class="bg-primary-container text-on-primary-container p-6 rounded-3xl relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+<div class="relative z-10 space-y-2">
+<h3 class="font-semibold text-white">Smart Insight</h3>
+<p class="text-sm text-on-primary-container/90">You've spent 12% less on <span class="font-bold">Dining Out</span> this month compared to your 3-month average. Great job!</p>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-surface dark:bg-surface-container-low border-t border-outline-variant dark:border-outline shadow-[0_-4px_12px_rgba(37,99,235,0.04)] rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm">Ledger</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-tertiary-container text-on-secondary-container dark:text-on-tertiary-container rounded-xl px-4 py-1 active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pie_chart</span>
+<span class="font-label-sm text-label-sm">Budgets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple interactive micro-effect for cards
+        document.querySelectorAll('.bg-white').forEach(card => {
+            card.addEventListener('mousedown', () => {
+                card.style.transform = 'scale(0.98)';
+            });
+            card.addEventListener('mouseup', () => {
+                card.style.transform = 'scale(1)';
+            });
+        });
+
+        // Simulating progressive fill on load
+        window.onload = () => {
+            const bars = document.querySelectorAll('.bg-surface-container-high > div');
+            bars.forEach(bar => {
+                const targetWidth = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = targetWidth;
+                }, 100);
+            });
+        };
+    </script>
+</body></html>

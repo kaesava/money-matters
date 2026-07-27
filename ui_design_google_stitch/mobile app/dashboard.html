@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Serene Finance - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-surface": "#2e3039",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "on-error": "#ffffff",
+                    "tertiary-container": "#bc4800",
+                    "on-secondary-fixed": "#0b1c30",
+                    "surface-container-highest": "#e1e2ed",
+                    "tertiary": "#943700",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "error-container": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed": "#ffdbcd",
+                    "on-secondary-container": "#54647a",
+                    "on-primary-fixed": "#00174b",
+                    "on-secondary-fixed-variant": "#38485d",
+                    "surface": "#faf8ff",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-low": "#f3f3fe",
+                    "on-surface": "#191b23",
+                    "primary": "#004ac6",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "secondary-container": "#d0e1fb",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "error": "#ba1a1a",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#e7e7f3",
+                    "secondary-fixed": "#d3e4fe",
+                    "background": "#faf8ff",
+                    "outline-variant": "#c3c6d7",
+                    "outline": "#737686",
+                    "surface-tint": "#0053db",
+                    "inverse-primary": "#b4c5ff",
+                    "inverse-on-surface": "#f0f0fb",
+                    "surface-bright": "#faf8ff",
+                    "primary-container": "#2563eb",
+                    "on-surface-variant": "#434655",
+                    "surface-variant": "#e1e2ed",
+                    "on-background": "#191b23",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-container": "#ffede6",
+                    "on-secondary": "#ffffff",
+                    "on-primary-container": "#eeefff",
+                    "on-tertiary-fixed": "#360f00",
+                    "surface-dim": "#d9d9e5",
+                    "surface-container": "#ededf9",
+                    "primary-fixed": "#dbe1ff",
+                    "secondary": "#505f76"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "container-max-width": "1280px",
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-md": ["Inter"],
+                    "data-lg": ["JetBrains Mono"],
+                    "display-lg": ["Inter"],
+                    "data-md": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "data-lg": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "data-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="bg-surface w-full sticky top-0 z-50 shadow-sm">
+<div class="flex items-center justify-between px-margin-mobile h-16 w-full max-w-container-max-width mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-secondary-container flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a serene young business executive in high-key lighting. The background is a soft, minimalist office with clean white surfaces and a touch of corporate blue. The image uses soft-focus and professional lighting to convey a sense of calm confidence and financial security." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6U9TkJQFYfyZFzCrVHF3RLjkQLGBvc26oi34sC5VodNfioTGEq9x_Vtt34rWHZk6l6SLbti7PPsDjA8jyho7AUiIYDMXlJMPr7dgDonVnG0F5xpf3yqJiuzx67Fr-xn2GZMARlJ9q_SC1U1pNThfv1K-3E1nl3BoFgaIunERb9O72bdedW-7M6y_9iC6HCvvJ_MovpRxmVElDL-8tAdSlO_imOzVGChE-MuQjmcMkewuwVGjsorZowgbU1bGHsa1rxO8cAtEqdvo"/>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">Serene Finance</h1>
+</div>
+<button class="text-primary hover:opacity-80 transition-opacity active:scale-95 duration-150">
+<span class="material-symbols-outlined text-2xl" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="max-w-container-max-width mx-auto px-margin-mobile pt-6 space-y-8">
+<!-- Total Balance Section -->
+<section class="space-y-2">
+<p class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Total Net Worth</p>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface">$</span>
+<h2 class="font-data-lg text-4xl text-on-surface tracking-tighter">124,592.40</h2>
+</div>
+<div class="flex items-center gap-2 text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+<span>+2.4% this month</span>
+</div>
+</section>
+<!-- Account Cards Horizontal Scroll -->
+<section class="relative">
+<div class="flex overflow-x-auto gap-4 hide-scrollbar snap-x snap-mandatory">
+<!-- Card 1: Checking -->
+<div class="min-w-[280px] bg-primary text-on-primary p-6 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.1)] snap-center relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3"></div>
+<div class="relative z-10 flex flex-col h-full justify-between gap-6">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label-sm text-label-sm opacity-80">Checking Account</p>
+<p class="font-data-md text-data-md">**** 4402</p>
+</div>
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+<div>
+<p class="font-data-lg text-data-lg text-white">$12,450.00</p>
+</div>
+</div>
+</div>
+<!-- Card 2: Savings -->
+<div class="min-w-[280px] bg-white border border-outline-variant p-6 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.02)] snap-center">
+<div class="flex flex-col h-full justify-between gap-6">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Savings Vault</p>
+<p class="font-data-md text-data-md text-secondary">**** 9918</p>
+</div>
+<span class="material-symbols-outlined text-primary" data-icon="savings">savings</span>
+</div>
+<div>
+<p class="font-data-lg text-data-lg text-on-surface">$85,200.40</p>
+</div>
+</div>
+</div>
+<!-- Card 3: Investment -->
+<div class="min-w-[280px] bg-secondary-container text-on-secondary-container p-6 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.02)] snap-center">
+<div class="flex flex-col h-full justify-between gap-6">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-label-sm text-label-sm opacity-80">Growth Fund</p>
+<p class="font-data-md text-data-md">Portfolio</p>
+</div>
+<span class="material-symbols-outlined" data-icon="show_chart">show_chart</span>
+</div>
+<div>
+<p class="font-data-lg text-data-lg">$26,942.00</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions Grid -->
+<section>
+<h3 class="font-headline-lg-mobile text-on-surface mb-4">Quick Actions</h3>
+<div class="grid grid-cols-4 gap-4">
+<button class="flex flex-col items-center gap-2 group">
+<div class="w-14 h-14 rounded-2xl bg-white border border-outline-variant flex items-center justify-center text-primary group-active:scale-95 transition-transform shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="send">send</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Send</span>
+</button>
+<button class="flex flex-col items-center gap-2 group">
+<div class="w-14 h-14 rounded-2xl bg-white border border-outline-variant flex items-center justify-center text-primary group-active:scale-95 transition-transform shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="request_quote">request_quote</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Request</span>
+</button>
+<button class="flex flex-col items-center gap-2 group">
+<div class="w-14 h-14 rounded-2xl bg-white border border-outline-variant flex items-center justify-center text-primary group-active:scale-95 transition-transform shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="payments">payments</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Pay</span>
+</button>
+<button class="flex flex-col items-center gap-2 group">
+<div class="w-14 h-14 rounded-2xl bg-white border border-outline-variant flex items-center justify-center text-primary group-active:scale-95 transition-transform shadow-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="qr_code_scanner">qr_code_scanner</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Scan</span>
+</button>
+</div>
+</section>
+<!-- Recent Transactions -->
+<section class="pb-8">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-lg-mobile text-on-surface">Recent Activity</h3>
+<button class="text-primary font-label-sm text-label-sm hover:underline">View All</button>
+</div>
+<div class="bg-white rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.02)] border border-outline-variant divide-y divide-outline-variant/30">
+<!-- Transaction Item 1 -->
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+</div>
+<div>
+<p class="font-body-md text-on-surface font-medium">Apple Store</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Technology • Today</p>
+</div>
+</div>
+<p class="font-data-md text-on-surface text-right">-$1,299.00</p>
+</div>
+<!-- Transaction Item 2 -->
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+</div>
+<div>
+<p class="font-body-md text-on-surface font-medium">Salary Deposit</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Income • Yesterday</p>
+</div>
+</div>
+<p class="font-data-md text-primary text-right">+$8,500.00</p>
+</div>
+<!-- Transaction Item 3 -->
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-low transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="local_cafe">local_cafe</span>
+</div>
+<div>
+<p class="font-body-md text-on-surface font-medium">Blue Bottle Coffee</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Dining • Oct 24</p>
+</div>
+</div>
+<p class="font-data-md text-on-surface text-right">-$12.50</p>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-surface shadow-[0_-4px_12px_rgba(37,99,235,0.04)] border-t border-outline-variant rounded-t-xl">
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-xl px-4 py-1 transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm">Ledger</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="pie_chart">pie_chart</span>
+<span class="font-label-sm text-label-sm">Budgets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+<!-- Micro-interaction script -->
+<script>
+        document.querySelectorAll('button, a').forEach(el => {
+            el.addEventListener('touchstart', () => {
+                el.classList.add('opacity-70');
+            });
+            el.addEventListener('touchend', () => {
+                el.classList.remove('opacity-70');
+            });
+        });
+    </script>
+</body></html>

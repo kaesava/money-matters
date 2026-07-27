@@ -58,45 +58,43 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="reconcile"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="settings"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="categories/[id]"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="settings/bank-accounts"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="settings/categories"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="settings/notifications"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="settings/income"
-        options={{
-          href: null,
-        }}
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="settings/archived"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="paychecks/[id]"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="paychecks/transfer-instructions"
+        options={{ href: null }}
       />
     </Tabs>
   );

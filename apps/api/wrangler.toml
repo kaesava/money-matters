@@ -1,0 +1,13 @@
+name = "money-matters-api"
+main = "src/worker.ts"
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa"
+STORAGE_BUCKET_NAME = "money-matters-production"
+STORAGE_ENDPOINT = "https://b0a640370b2b7ba2b84abfd03a9fda56.r2.cloudflarestorage.com"
+STORAGE_REGION = "auto"
+GLOBAL_MAX_FILE_SIZE_MB = "10"
+NEXT_PUBLIC_NEON_AUTH_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
+NEON_AUTH_JWKS_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth/.well-known/jwks.json"
