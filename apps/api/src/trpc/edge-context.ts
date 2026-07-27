@@ -11,7 +11,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
 
   let claims = await verifyJwt(token);
 
-  // Fallback: Check opaque session token in Neon DB
+  // Fallback for opaque database session tokens
   if (!claims && token && token.length === 32) {
     try {
       const dbSessions = await db.execute<{ userId: string; email: string; name: string }>(
@@ -38,10 +38,8 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
     return { req, resHeaders, session: null, userId: null, tenantId: null, email: null, appId: null };
   }
 
-  // Eager user mirror upsert
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
 
-  // Tenant resolution
   const [membership] = await db
     .select({
       tenantId: tenantUsers.tenantId,
