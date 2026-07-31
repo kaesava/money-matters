@@ -35,10 +35,10 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
             <Feather name="eye" size={16} color={DESIGN_TOKENS.colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onEdit(exp)} style={styles.iconBtn}>
-            <Feather name="edit-2" size={16} color={DESIGN_TOKENS.colors.textSecondary} />
+            <Feather name="edit-2" size={16} color={DESIGN_TOKENS.colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onArchive(exp)} style={styles.iconBtn}>
-            <Feather name="trash-2" size={16} color={DESIGN_TOKENS.colors.semanticError} />
+            <Feather name="trash-2" size={16} color={DESIGN_TOKENS.colors.critical} />
           </TouchableOpacity>
         </View>
       </View>
@@ -48,7 +48,7 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
           <Text style={styles.amount}>{formatAUD(exp.amount)}</Text>
           {categoryName ? <Text style={styles.categoryText}>Mapped to: {categoryName}</Text> : null}
         </View>
-        <Text style={styles.freqText}>{formatScheduleDetail(exp.rrule, exp.startDate)}</Text>
+        <Text style={styles.freqText}>{formatScheduleDetail(exp.rrule, exp.startDate).detailText}</Text>
       </View>
     </View>
   );

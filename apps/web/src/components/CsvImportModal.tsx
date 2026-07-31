@@ -21,8 +21,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     transactions: any[];
   } | null>(null);
 
-  const parseCsvMutation = trpc.transactions.parseCsv.useMutation({
-    onSuccess: (data) => {
+  const parseCsvMutation = trpc.parseCsv.useMutation({
+    onSuccess: (data: { bank: string; transactions: any[] }) => {
       setParsedResults(data);
     },
   });

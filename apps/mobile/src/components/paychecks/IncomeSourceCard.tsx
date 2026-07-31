@@ -33,17 +33,17 @@ export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
             <Feather name="eye" size={16} color={DESIGN_TOKENS.colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onEdit(inc)} style={styles.iconBtn}>
-            <Feather name="edit-2" size={16} color={DESIGN_TOKENS.colors.textSecondary} />
+            <Feather name="edit-2" size={16} color={DESIGN_TOKENS.colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onArchive(inc)} style={styles.iconBtn}>
-            <Feather name="trash-2" size={16} color={DESIGN_TOKENS.colors.semanticError} />
+            <Feather name="trash-2" size={16} color={DESIGN_TOKENS.colors.critical} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.detailRow}>
         <Text style={styles.amount}>{formatAUD(inc.amount)}</Text>
-        <Text style={styles.freqText}>{formatScheduleDetail(inc.rrule, inc.startDate)}</Text>
+        <Text style={styles.freqText}>{formatScheduleDetail(inc.rrule, inc.startDate).detailText}</Text>
       </View>
     </View>
   );
