@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
-import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
 import { IncomeExpenseFormModal } from '../../components/IncomeExpenseFormModal';
 import { SourceBurstDetailModal } from '../../components/SourceBurstDetailModal';
 import { UpcomingExpenseModal } from '../../components/UpcomingExpenseModal';
 import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
+import { PaycheckEventSection } from '../../components/paychecks/PaycheckEventSection';
+import { IncomeSourceCard } from '../../components/paychecks/IncomeSourceCard';
+import { ExpenseBillCard } from '../../components/paychecks/ExpenseBillCard';
 
 export default function IncomeAndExpensesScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
 
-  // Segment State: 'EVENTS' vs 'SOURCES'
   const [activeSegment, setActiveSegment] = useState<'EVENTS' | 'SOURCES'>('EVENTS');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Modals state
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [sourceToEdit, setSourceToEdit] = useState<any>(null);
@@ -37,7 +35,6 @@ export default function IncomeAndExpensesScreen() {
   const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<any | null>(null);
   const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
 
-  // Queries
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
@@ -70,82 +67,21 @@ export default function IncomeAndExpensesScreen() {
   });
 
   const handleArchiveIncome = (inc: any) => {
-    Alert.alert(
-      'Archive Income Stream',
-      `Archiving this income stream will cancel all future upcoming payday splits that haven't been processed yet. Processed paydays will stay in your history. Do you want to proceed with archiving "${inc.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await archiveIncomeMut.mutateAsync({ id: inc.id });
-            } catch (err) {
-              Alert.alert('Error', err instanceof Error ? err.message : String(err));
-            }
-          },
-        },
-      ]
-    );
+    Alert.alert('Archive Income Stream', `Archive "${inc.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Archive', style: 'destructive', onPress: () => archiveIncomeMut.mutate({ id: inc.id }) },
+    ]);
   };
 
   const handleArchiveExpense = (exp: any) => {
-    Alert.alert(
-      'Archive Expense Bill',
-      `Archiving this bill will cancel all future upcoming bill reminders that haven't been paid yet. Paid bills will stay in your history. Do you want to proceed with archiving "${exp.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await archiveExpenseMut.mutateAsync({ id: exp.id });
-            } catch (err) {
-              Alert.alert('Error', err instanceof Error ? err.message : String(err));
-            }
-          },
-        },
-      ]
-    );
+    Alert.alert('Archive Expense Bill', `Archive "${exp.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Archive', style: 'destructive', onPress: () => archiveExpenseMut.mutate({ id: exp.id }) },
+    ]);
   };
 
-  // Filter Events
-  const incomeEventsList = (incomeEventsQuery.data ?? [])
-    .filter((e) => e.status === 'UPCOMING')
-    .map((e) => ({
-      id: e.id,
-      type: 'INCOME' as const,
-      name: e.sourceName || 'Paycheck Deposit',
-      expectedDate: e.expectedDate,
-      expectedAmount: e.expectedAmount,
-      categoryName: 'Income Allocation',
-    }));
-
-  const expenseEventsList = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === 'UPCOMING')
-    .map((e) => ({
-      id: e.id,
-      type: 'EXPENSE' as const,
-      name: e.name,
-      expectedDate: e.expectedDate,
-      expectedAmount: e.expectedAmount,
-      categoryName: e.categoryName || 'Uncategorized',
-    }));
-
-  let combinedEvents = [...incomeEventsList, ...expenseEventsList];
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase();
-    combinedEvents = combinedEvents.filter((e) => e.name.toLowerCase().includes(q) || e.categoryName.toLowerCase().includes(q));
-  }
-  combinedEvents.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
-
-  // Filter Sources
-  const filteredIncomeSources = incomeSources.filter((i) => !searchQuery || i.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredExpenseSources = expenseSources.filter((e) => !searchQuery || e.name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  const D = DESIGN_TOKENS;
+  const incomeEventsList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
+  const expenseEventsList = (expenseEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
 
   return (
     <View style={styles.container}>
@@ -157,14 +93,13 @@ export default function IncomeAndExpensesScreen() {
         onNavigateSettings={() => router.push('/(app)/settings')}
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 100, gap: 14 }}>
-          {/* Top Segmented Controls */}
           <View style={styles.segmentContainer}>
             <TouchableOpacity
               onPress={() => setActiveSegment('EVENTS')}
               style={[styles.segmentBtn, activeSegment === 'EVENTS' && styles.segmentBtnActive]}
             >
               <Text style={[styles.segmentBtnText, activeSegment === 'EVENTS' && styles.segmentBtnTextActive]}>
-                Upcoming Events ({combinedEvents.length})
+                Upcoming Events ({incomeEventsList.length + expenseEventsList.length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -177,236 +112,61 @@ export default function IncomeAndExpensesScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Action Row for Creating Sources */}
-          {activeSegment === 'SOURCES' && (
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                onPress={() => {
-                  setFormMode('INCOME');
-                  setSourceToEdit(null);
-                  setFormModalVisible(true);
-                }}
-                style={[styles.createBtn, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
-              >
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#047857' }}>💰 Add Income Source</Text>
-              </TouchableOpacity>
+          {activeSegment === 'EVENTS' ? (
+            <PaycheckEventSection
+              incomeEvents={incomeEventsList}
+              expenseEvents={expenseEventsList}
+              onOpenPaydayWizard={(eventId) => setPaydayWizardEventId(eventId)}
+              onEditUpcomingExpense={(evt) => setUpcomingExpenseToEdit(evt)}
+              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ id: eventId, actualAmount: amt })}
+            />
+          ) : (
+            <View style={{ gap: 12 }}>
+              <Text style={styles.sectionHeader}>INCOME STREAMS</Text>
+              {incomeSources.map((inc) => (
+                <IncomeSourceCard
+                  key={inc.id}
+                  inc={inc}
+                  onEdit={() => { setFormMode('INCOME'); setSourceToEdit(inc); setFormModalVisible(true); }}
+                  onArchive={() => handleArchiveIncome(inc)}
+                  onOpenBurst={() => { setBurstMode('INCOME'); setBurstSourceId(inc.id); setBurstSourceName(inc.name); setBurstSourceAmount(inc.amount); setBurstCategoryName('Income'); setBurstModalVisible(true); }}
+                />
+              ))}
 
-              <TouchableOpacity
-                onPress={() => {
-                  setFormMode('EXPENSE');
-                  setSourceToEdit(null);
-                  setFormModalVisible(true);
-                }}
-                style={[styles.createBtn, { backgroundColor: '#CCFBF1', borderColor: '#99F6E4' }]}
-              >
-                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F766E' }}>💸 Add Expense Bill</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Search Filter Bar */}
-          <MobileFilterBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            searchPlaceholder="Search deposit, bill, or category..."
-          />
-
-          {/* SEGMENT 1: UPCOMING EVENTS */}
-          {activeSegment === 'EVENTS' && (
-            <View style={styles.section}>
-              {incomeEventsQuery.isLoading || expenseEventsQuery.isLoading ? (
-                <ActivityIndicator color={D.colors.accent} style={{ marginTop: 20 }} />
-              ) : combinedEvents.length === 0 ? (
-                <Text style={styles.emptyText}>No upcoming events found.</Text>
-              ) : (
-                combinedEvents.map((ev) => {
-                  const isIncome = ev.type === 'INCOME';
-                  return (
-                    <View key={`${ev.type}-${ev.id}`} style={styles.card}>
-                      <View style={styles.cardHeader}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.cardTitle}>{ev.name}</Text>
-                          <Text style={styles.cardSubtitle}>
-                            {new Date(ev.expectedDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })} • {ev.categoryName}
-                          </Text>
-                        </View>
-                        <Text style={[styles.amountText, isIncome && { color: '#10B981' }]}>
-                          {isIncome ? '+' : '-'}{formatAUD(ev.expectedAmount)}
-                        </Text>
-                      </View>
-
-                      <View style={styles.eventActionRow}>
-                        {isIncome ? (
-                          <TouchableOpacity
-                            onPress={() =>
-                              setUpcomingIncomeToEdit({
-                                id: ev.id,
-                                sourceName: ev.name,
-                                expectedDate: ev.expectedDate,
-                                expectedAmount: ev.expectedAmount,
-                              })
-                            }
-                            style={styles.processBtn}
-                          >
-                            <Text style={styles.processBtnText}>Process Payday / Edit</Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <TouchableOpacity
-                            onPress={() =>
-                              setUpcomingExpenseToEdit({
-                                id: ev.id,
-                                name: ev.name,
-                                expectedDate: ev.expectedDate,
-                                expectedAmount: ev.expectedAmount,
-                                categoryName: ev.categoryName,
-                              })
-                            }
-                            style={styles.markPaidBtn}
-                          >
-                            <Text style={styles.markPaidBtnText}>Edit / Mark Paid</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          )}
-
-          {/* SEGMENT 2: SOURCES & BILLS */}
-          {activeSegment === 'SOURCES' && (
-            <View style={{ gap: 16 }}>
-              {/* Income Sources Section */}
-              <View style={styles.section}>
-                <Text style={styles.sectionHeader}>💵 Income Sources ({filteredIncomeSources.length})</Text>
-                {filteredIncomeSources.length === 0 ? (
-                  <Text style={styles.emptyText}>No income sources configured.</Text>
-                ) : (
-                  filteredIncomeSources.map((inc) => {
-                    const sched = formatScheduleDetail(inc.rrule, inc.startDate);
-                    return (
-                      <View key={inc.id} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setBurstMode('INCOME');
-                              setBurstSourceId(inc.id);
-                              setBurstSourceName(inc.name);
-                              setBurstSourceAmount(inc.amount);
-                              setBurstCategoryName('');
-                              setBurstModalVisible(true);
-                            }}
-                          >
-                            <Text style={[styles.cardTitle, { color: '#00B4A6' }]}>{inc.name} 🔗</Text>
-                            <Text style={styles.cardSubtitle}>{sched.detailText}</Text>
-                          </TouchableOpacity>
-                          <Text style={[styles.amountText, { color: '#10B981' }]}>{formatAUD(inc.amount)}</Text>
-                        </View>
-
-                        <View style={styles.eventActionRow}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setFormMode('INCOME');
-                              setSourceToEdit(inc);
-                              setFormModalVisible(true);
-                            }}
-                            style={styles.editBtn}
-                          >
-                            <Text style={styles.editBtnText}>Edit</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => handleArchiveIncome(inc)} style={styles.archiveBtn}>
-                            <Text style={styles.archiveBtnText}>Archive</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    );
-                  })
-                )}
-              </View>
-
-              {/* Expense Bills Section */}
-              <View style={styles.section}>
-                <Text style={styles.sectionHeader}>💳 Expense Bills ({filteredExpenseSources.length})</Text>
-                {filteredExpenseSources.length === 0 ? (
-                  <Text style={styles.emptyText}>No expense bills configured.</Text>
-                ) : (
-                  filteredExpenseSources.map((exp) => {
-                    const cat = categories.find((c) => c.id === exp.categoryId);
-                    const sched = formatScheduleDetail(exp.rrule, exp.startDate);
-                    return (
-                      <View key={exp.id} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setBurstMode('EXPENSE');
-                              setBurstSourceId(exp.id);
-                              setBurstSourceName(exp.name);
-                              setBurstSourceAmount(exp.amount);
-                              setBurstCategoryName(cat?.name || 'Unassigned');
-                              setBurstModalVisible(true);
-                            }}
-                          >
-                            <Text style={[styles.cardTitle, { color: '#00B4A6' }]}>{exp.name} 🔗</Text>
-                            <Text style={styles.cardSubtitle}>
-                              Category: {cat?.name || 'Unassigned'} • {sched.detailText}
-                            </Text>
-                          </TouchableOpacity>
-                          <Text style={styles.amountText}>{formatAUD(exp.amount)}</Text>
-                        </View>
-
-                        <View style={styles.eventActionRow}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setFormMode('EXPENSE');
-                              setSourceToEdit(exp);
-                              setFormModalVisible(true);
-                            }}
-                            style={styles.editBtn}
-                          >
-                            <Text style={styles.editBtnText}>Edit</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => handleArchiveExpense(exp)} style={styles.archiveBtn}>
-                            <Text style={styles.archiveBtnText}>Archive</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    );
-                  })
-                )}
-              </View>
+              <Text style={[styles.sectionHeader, { marginTop: 16 }]}>EXPENSE BILLS</Text>
+              {expenseSources.map((exp) => {
+                const cat = categories.find((c) => c.id === exp.categoryId);
+                return (
+                  <ExpenseBillCard
+                    key={exp.id}
+                    exp={exp}
+                    categoryName={cat?.name || 'Unassigned'}
+                    onEdit={() => { setFormMode('EXPENSE'); setSourceToEdit(exp); setFormModalVisible(true); }}
+                    onArchive={() => handleArchiveExpense(exp)}
+                    onOpenBurst={() => { setBurstMode('EXPENSE'); setBurstSourceId(exp.id); setBurstSourceName(exp.name); setBurstSourceAmount(exp.amount); setBurstCategoryName(cat?.name || 'Unassigned'); setBurstModalVisible(true); }}
+                  />
+                );
+              })}
             </View>
           )}
         </ScrollView>
 
-        {/* Floating Action Button */}
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => {
-            setFormMode('INCOME');
-            setSourceToEdit(null);
-            setFormModalVisible(true);
-          }}
+          onPress={() => { setFormMode('INCOME'); setSourceToEdit(null); setFormModalVisible(true); }}
           activeOpacity={0.8}
         >
           <Feather name="plus" size={24} color="#FFF" />
         </TouchableOpacity>
 
-        {/* Income & Expense Form Modal */}
         <IncomeExpenseFormModal
           visible={formModalVisible}
           mode={formMode}
           sourceToEdit={sourceToEdit}
           onClose={() => setFormModalVisible(false)}
-          onSuccess={() => {
-            incomeSourcesQuery.refetch();
-            expenseSourcesQuery.refetch();
-            incomeEventsQuery.refetch();
-            expenseEventsQuery.refetch();
-          }}
+          onSuccess={() => { incomeSourcesQuery.refetch(); expenseSourcesQuery.refetch(); incomeEventsQuery.refetch(); expenseEventsQuery.refetch(); }}
         />
 
-        {/* Source Burst Detail Modal */}
         <SourceBurstDetailModal
           visible={burstModalVisible}
           mode={burstMode}
@@ -417,30 +177,19 @@ export default function IncomeAndExpensesScreen() {
           onClose={() => setBurstModalVisible(false)}
         />
 
-        {/* Upcoming Expense Modal */}
         <UpcomingExpenseModal
           visible={!!upcomingExpenseToEdit}
           eventToEdit={upcomingExpenseToEdit}
           onClose={() => setUpcomingExpenseToEdit(null)}
-          onSuccess={() => {
-            incomeEventsQuery.refetch();
-            expenseEventsQuery.refetch();
-          }}
+          onSuccess={() => { incomeEventsQuery.refetch(); expenseEventsQuery.refetch(); }}
         />
 
-        {/* Payday Preview Wizard */}
         <PaydayPreviewWizard
           visible={!!paydayWizardEventId || !!upcomingIncomeToEdit}
           incomeEventId={paydayWizardEventId}
           eventToEdit={upcomingIncomeToEdit}
-          onClose={() => {
-            setPaydayWizardEventId(null);
-            setUpcomingIncomeToEdit(null);
-          }}
-          onSuccess={() => {
-            incomeEventsQuery.refetch();
-            categoriesQuery.refetch();
-          }}
+          onClose={() => { setPaydayWizardEventId(null); setUpcomingIncomeToEdit(null); }}
+          onSuccess={() => { incomeEventsQuery.refetch(); categoriesQuery.refetch(); }}
         />
       </MobileScreenWrapper>
     </View>
@@ -455,45 +204,6 @@ const styles = StyleSheet.create({
   segmentBtnActive: { backgroundColor: '#1B2B4B' },
   segmentBtnText: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted },
   segmentBtnTextActive: { color: '#FFF' },
-  actionRow: { flexDirection: 'row', gap: 8, marginVertical: 4 },
-  createBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
-  section: { gap: 8 },
-  sectionHeader: { fontSize: 12, fontWeight: '800', color: D.colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  emptyText: { textAlign: 'center', fontSize: 12, color: D.colors.textMuted, marginVertical: 20 },
-  card: { backgroundColor: D.colors.surface, borderRadius: D.radius.md, padding: 14, borderWidth: 1, borderColor: '#E5E7EB', gap: 8 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: D.colors.primary },
-  cardSubtitle: { fontSize: 10, color: D.colors.textMuted, marginTop: 2 },
-  amountText: { fontSize: 14, fontWeight: '800', color: D.colors.primary },
-  eventActionRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  editBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
-  editBtnText: { fontSize: 10, fontWeight: '700', color: D.colors.textPrimary },
-  processBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#00B4A6' },
-  processBtnText: { fontSize: 10, fontWeight: '800', color: '#FFF' },
-  markPaidBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#1B2B4B' },
-  markPaidBtnText: { fontSize: 10, fontWeight: '800', color: '#FFF' },
-  archiveBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#FEE2E2' },
-  archiveBtnText: { fontSize: 10, fontWeight: '700', color: '#991B1B' },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 90,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: D.colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  schedBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12, borderWidth: 1 },
-  recurringBadge: { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
-  oneOffBadge: { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
-  schedBadgeText: { fontSize: 9, fontWeight: '800' },
-  recurringBadgeText: { color: '#047857' },
-  oneOffBadgeText: { color: '#B45309' },
+  sectionHeader: { fontSize: 12, fontWeight: '800', color: D.colors.textMuted, letterSpacing: 0.5 },
+  fab: { position: 'absolute', right: 20, bottom: 90, width: 56, height: 56, borderRadius: 28, backgroundColor: D.colors.accent, justifyContent: 'center', alignItems: 'center', elevation: 6 },
 });
