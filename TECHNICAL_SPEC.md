@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-07-31  
-> **Status:** Synchronized with Cloudflare Workers production migration, full interactive onboarding engine, Bank CSV import capability, user preferences JSONB schema, and Serene Finance UI system.
+> **Last updated:** 2026-08-01  
+> **Status:** Synchronized with Cloudflare Workers production migration, full interactive onboarding engine, Bank CSV import capability, Serene Finance UI system, Universal Logger, Android-only mobile config, Privacy Policy, and Wave 2 security runbooks.
 
 ---
 

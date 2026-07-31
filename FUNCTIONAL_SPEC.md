@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-07-31  
-> **Status:** Synchronized with Full Interactive Quiz Onboarding, Bank CSV Import (Big 4 AU), Partner Access MVP, Smart Notifications, and Serene Finance Design System.
+> **Last updated:** 2026-08-01  
+> **Status:** Synchronized with Full Interactive Quiz Onboarding, Bank CSV Import (Big 4 AU), Partner Access MVP, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, and Support Contact.
 
 ---
 
