@@ -1,55 +1,81 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-07-25  
-> **Status:** V2 Product Overhaul & Feature Parity Specification.
+> **Last updated:** 2026-07-31  
+> **Status:** Synchronized with Full Interactive Quiz Onboarding, Bank CSV Import (Big 4 AU), Partner Access MVP, Smart Notifications, and Serene Finance Design System.
 
 ---
 
-## 1. Overview & Terminology
+## 1. Overview & Core Philosophy
 
-- **Everyday Pool**: Single discretionary spending category per household. Seeded automatically on setup.
-- **Regular Bills**: Recurring fixed obligations (e.g. Rent/Mortgage, Electricity, Council Rates, Car Insurance).
-- **Save Toward (Goals)**: Target savings categories with target amounts and target dates (e.g. Emergency Fund, Holiday Fund).
-- **Income & Expenses**: Management of recurring and one-off income sources and expense bills.
-- **Bank Reconciliation**: Adjusting actual bank account balances against expected balance calculated from linked categories.
-- **Household / Partner Collaboration**: Shared multi-user tenant scope enabling partners to manage finances together with full read/write access.
-
----
-
-## 2. Onboarding Experience (2-Step Instant Value Flow)
-
-1. **Step 1: Income Setup ("How much do you earn?")**:
-   - Single income source setup (Name default `"My Salary"`, Net Pay Amount, Frequency default `FORTNIGHTLY`).
-   - Sensible Aussie defaults to minimize setup friction under 60 seconds.
-2. **Step 2: Bill & Goal Checklist ("Which bills do you have?")**:
-   - Checkbox checklist of Australian Family presets (`AUSTRALIAN_FAMILY_PRESETS` in `@money-matters/types`).
-   - Includes Mortgage/Rent, Electricity, Gas, Water, Council Rates, Home & Car Insurance, Car Rego, Health Insurance, Internet, School Fees, Childcare, Emergency Fund, Holiday Fund.
-   - Pre-filled editable Australian suggested monthly amounts.
-   - Immediate dashboard unlock on completion. Bank accounts and fine-tuning moved to Settings (progressive disclosure).
+Money Matters is a forward-looking allocation budget app designed for Australian households and families.
+- **Everyday Pool**: Single aggregated discretionary spending pool per household (groceries, dining, transport, personal).
+- **Regular Bills**: Recurring fixed and semi-fixed obligations (mortgage/rent, utilities, insurance, phone/internet, subscriptions).
+- **Save Toward (Goals)**: Target sinking funds with target amounts and dates (emergency fund, vehicle maintenance, holidays, celebrations).
+- **5-Step Waterfall Allocation**: Automatic self-healing waterfall allocation engine on every income event.
+- **Partner Collaboration**: Shared household context (`tenantId`) giving partners full read/write visibility.
 
 ---
 
-## 3. Dashboard Experience (Web & Mobile)
+## 2. Onboarding Experience (Full Interactive Quiz & Estimation Engine)
 
-- **Hero Card (`DashboardHeroCard`)**:
-  - Prominently displays Everyday Pool balance as the #1 central metric.
-  - Overall system traffic-light health indicator (On Track / At Risk / Needs Attention).
-  - Next payday summary (Source name, expected amount, date, and days away countdown).
-- **Needs Attention Items (`AttentionItemsList`)**:
-  - Automatically filters upcoming bills for overdue events or items due within 3 days.
-  - Displays inline category funding status (`Funded ✓` vs `Short by $X ⚠️`).
-  - Hidden when zero items require attention.
-- **Collapsible Sections (`CollapsibleSection`)**:
-  - Quick Actions & Tools (default collapsed to reduce cognitive friction).
-  - All Upcoming Events & Payments (scrollable, searchable, bulk-deletable).
-  - Category Health.
+The onboarding flow delivers an engaging interactive quiz (`interactive_onboarding_prompt.md`) completing in under 60 seconds with 2025/2026 ABS benchmark estimates:
+
+1. **Step 1: The Income Engine**:
+   - Primary take-home pay (Amount, Frequency: Weekly/Fortnightly/Monthly, Type: Salary/Business/Benefit).
+   - Optional partner income / side-hustle addition.
+2. **Step 2: The Life-Builder (Interactive Questionnaire)**:
+   - **Housing**: Own (Mortgage) | Own (Outright) | Rent (Solo/Family) | Rent (Share).
+   - **Transport**: Vehicle selection (count, vehicle class: Small/Mid-SUV/Luxury), Public Transport, Rideshare.
+   - **Family**: Children count, school stage (Childcare/Primary/Secondary) & school type (Public/Catholic/Private).
+   - **Health & Wellbeing**: Private Health Insurance, Gym/Fitness memberships, out-of-pocket medical.
+   - **Debt & Pets**: Active debt minimum repayment ($), pet count.
+   - **Obligations & Giving**: Charity donations, family support amount ($).
+   - **Everyday Spend Sliders**: Weekly spend sliders for Groceries ($270 default), Dining & Fun ($240 default), Personal ($100 default) + dynamic incidental buffer `M`.
+3. **Step 3: Background Estimation & Confirmation**:
+   - Converts all inputs into normalized **Monthly** targets using Australian Bureau of Statistics (ABS) & RACQ 2025/2026 benchmark algorithms.
+   - User reviews and confirms the monthly breakdown before categories and schedules are generated.
 
 ---
 
-## 4. Smart Notification System
+## 3. Bank Statement CSV Import (V1 Launch Feature)
+
+- **Supported Banks**: Commonwealth Bank (CBA), Westpac, ANZ, National Australia Bank (NAB), ING, and Macquarie.
+- **Import Flow**:
+  - Web: Drag-and-drop CSV file upload in Bank Accounts / Transactions screen.
+  - Mobile: Native file picker selection.
+  - Automatic parsing of bank-specific CSV headers (Date, Description, Amount, Balance).
+  - Rule-based category matching based on merchant description keywords.
+  - Transaction deduplication based on transaction hash (`date + amount + description`).
+  - User bulk confirmation & manual category re-assignment.
+
+---
+
+## 4. Household & Partner Collaboration MVP
+
+- **Partner Invitation**: Household owner generates a secure invite token (`invitePartner`) and sends an email via Resend.
+- **Acceptance Flow**: Partner receives email, clicks deep link (`/invite/[token]`), signs in/up, and joins the household tenant (`tenant_users`).
+- **Shared Access**: Partner enjoys complete read/write access to categories, transactions, upcoming events, and allocation rules.
+
+---
+
+## 5. Dashboard & UI Experience (Serene Finance Design System)
+
+- **Design System ("Serene Finance")**:
+  - Color Tokens: Serene Blue (`#2563eb`), Surface Bright (`#ffffff`), Surface Dim (`#d9d9e5`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
+  - Typography: Inter for general UI text; **JetBrains Mono** (`financial-metric`, `tabular-nums`) for all monetary amounts.
+  - Web Shell: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views.
+  - Mobile Shell: Header (`TopAppBar`) + bottom tab bar (`BottomNavBar`).
+- **Dashboard Hierarchy**:
+  - **Hero Card (`DashboardHeroCard`)**: Dominates top of screen. Shows Everyday Pool balance, system status (Green/Amber/Red), and next payday countdown.
+  - **Attention Items (`AttentionItemsList`)**: Overdue bills and bills due within 3 days (with inline funding status).
+  - **Collapsible Sections**: Quick Actions, All Upcoming Payments, Category Health.
+
+---
+
+## 6. Smart Notification System (Habit Loop)
 
 1. **Payday Reminders (`notify-payday-incoming`)**: Daily alert at 6pm AEST for upcoming payday tomorrow.
-2. **Bill Due Soon Alerts (`notify-bill-due-soon`)**: Daily alert at 9am AEST for bills due within 3 days with category funding status.
+2. **Bill Due Soon Alerts (`notify-bill-due-soon`)**: Daily alert at 9am AEST for bills due in 3 days with category funding status (`Funded ✓` vs `Short by $X ⚠️`).
 3. **Overdue Bill Warnings (`notify-bill-overdue`)**: Daily alert at 10am AEST for overdue bills.
 4. **Weekly Financial Summary (`notify-weekly-digest`)**: Sunday 7pm AEST digest of weekly spend and category status.
 5. **Goal Milestones (`notify-goal-milestone`)**: Real-time push alert when a goal category reaches 25%, 50%, 75%, or 100% target funding.
@@ -57,27 +83,14 @@
 
 ---
 
-## 5. Partner Invite & Household Management (MVP)
-
-- **Send Invitation (`invitePartner`)**: Household owners send secure invite tokens to a partner's email address.
-- **Accept Invitation (`acceptInvite`)**: Partner clicks deep link (`/invite/[token]`) or accepts in app to join the household tenant.
-- **Shared Access**: Partner gains full read/write access to categories, transactions, upcoming events, and payday processing.
-
----
-
-## 6. Archival & Editing Rules Lifecycle
+## 7. Lifecycle & Governance Rules
 
 1. **Category Archival**:
    - Blocked if there are active upcoming expenses or pending income allocations against the category.
    - Default Everyday category cannot be deleted or archived.
-2. **Income / Expense Source Archival & Editing**:
-   - *Amount Changes*: Cascades to unperformed upcoming occurrences (`status === 'UPCOMING'`).
-   - *Archival*: Deletes unperformed future occurrences; soft-archives source record. Paid/confirmed historical occurrences remain intact in ledger.
-
----
-
-## 7. Internationalization (i18n) & Governance
-
-- **Zero Hardcoded User-Facing Text**: 100% of user-facing UI labels, error messages, headings, modal prompts, placeholders, and tooltips are externalized into `@money-matters/i18n`.
-- **Dynamic Parameter Interpolation**: Support multi-language rendering and dynamic parameters (`{step}`, `{amount}`, `{billName}`, `{date}`, `{shortfall}`).
-- **Automated Verification**: Build & lint pipeline executes `check-i18n` verification script to validate key presence.
+2. **Income & Expense Source Management**:
+   - Amount changes cascade to unperformed upcoming occurrences (`status === 'UPCOMING'`).
+   - Archival deletes unperformed future occurrences while retaining historical paid ledger entries.
+3. **i18n Externalization**:
+   - 100% of user-facing UI labels, error messages, headings, modal prompts, placeholders, and tooltips are externalized in `@money-matters/i18n`.
+   - Verified via `pnpm lint` (`check-i18n`).

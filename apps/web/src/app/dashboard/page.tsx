@@ -181,7 +181,7 @@ export default function DashboardPage() {
           <BankReconcileCard
             accounts={bankAccountsMapped}
             onOpenSettings={() => router.push('/dashboard/settings')}
-            onReconcile={(id) => setReconcilingAccountId(id)}
+            onReconcile={(id: string) => setReconcilingAccountId(id)}
             fmt={fmt}
           />
         </div>

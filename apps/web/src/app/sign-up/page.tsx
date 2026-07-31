@@ -111,7 +111,7 @@ export default function SignUpPage() {
             label={t("auth.nameLabel")}
             placeholder={t("auth.namePlaceholder")}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             type="text"
             required
             disabled={loading}
@@ -121,7 +121,7 @@ export default function SignUpPage() {
             label={t("auth.emailLabel")}
             placeholder={t("auth.emailPlaceholder")}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             type="email"
             required
             disabled={loading}
@@ -131,7 +131,7 @@ export default function SignUpPage() {
             label={t("auth.passwordLabel")}
             placeholder={t("auth.passwordPlaceholder")}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             type="password"
             required
             disabled={loading}
@@ -141,7 +141,7 @@ export default function SignUpPage() {
             label="Confirm Password"
             placeholder="Re-enter your password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
             type="password"
             required
             disabled={loading}

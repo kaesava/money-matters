@@ -11,7 +11,7 @@ const getBaseURL = () => {
   return process.env["NEXT_PUBLIC_NEON_AUTH_URL"] || "http://localhost:3000";
 };
 
-export const authClient = createAuthClient({
+export const authClient: ReturnType<typeof createAuthClient> = createAuthClient({
   baseURL: getBaseURL(),
   plugins: [jwtClient()],
 });

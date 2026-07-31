@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { trpc } from '@/lib/trpc';
+import { trpc } from '../../../lib/trpc';
 
 export default function AcceptInvitePage() {
   const params = useParams();
@@ -16,7 +16,7 @@ export default function AcceptInvitePage() {
       setStatus('success');
       setTimeout(() => router.push('/dashboard'), 2000);
     },
-    onError: (err) => {
+    onError: (err: { message: string }) => {
       setStatus('error');
       setErrorMsg(err.message);
     },

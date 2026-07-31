@@ -8,7 +8,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "../../../api/src/routers/_app";
 
-export const trpc = createTRPCReact<AppRouter>();
+export const trpc: ReturnType<typeof createTRPCReact<AppRouter>> = createTRPCReact<AppRouter>();
 
 function getBaseUrl() {
   const apiUrl = process.env["NEXT_PUBLIC_API_URL"];
@@ -19,7 +19,7 @@ function getBaseUrl() {
   return apiUrl;
 }
 
-export function buildTrpcClient() {
+export function buildTrpcClient(): ReturnType<typeof trpc.createClient> {
   return trpc.createClient({
     links: [
       httpBatchLink({

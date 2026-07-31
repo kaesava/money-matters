@@ -120,7 +120,7 @@ export default function SignInPage() {
             label={t("auth.emailLabel")}
             placeholder={t("auth.emailPlaceholder")}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             type="email"
             required
             disabled={loading}
@@ -131,7 +131,7 @@ export default function SignInPage() {
               label={t("auth.passwordLabel")}
               placeholder={t("auth.passwordPlaceholder")}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               type="password"
               required
               disabled={loading}

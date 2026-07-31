@@ -1,0 +1,43 @@
+import { PgDatabase } from "drizzle-orm/pg-core";
+import { z } from "zod";
+import { OverrideEventCommand } from "@money-matters/types";
+export declare function overrideEventCommand(input: z.infer<typeof OverrideEventCommand>, tenantId: string, appId: string, userId: string, dbClient?: PgDatabase<any, any, any>): Promise<{
+    createdAt: Date;
+    createdBy: string;
+    updatedAt: Date;
+    updatedBy: string;
+    archivedAt: Date | null;
+    archivedBy: string | null;
+    tenantId: string;
+    appId: string;
+    id: string;
+    incomeSourceId: string;
+    expectedDate: string;
+    expectedAmount: string;
+    actualAmount: string | null;
+    note: string | null;
+    isOverridden: boolean;
+    paymentMethod: string | null;
+    status: "UPCOMING" | "SKIPPED" | "DRAFT" | "REVIEWED" | "CONFIRMED";
+} | {
+    createdAt: Date;
+    createdBy: string;
+    updatedAt: Date;
+    updatedBy: string;
+    archivedAt: Date | null;
+    archivedBy: string | null;
+    tenantId: string;
+    appId: string;
+    id: string;
+    expenseSourceId: string | null;
+    categoryId: string | null;
+    name: string;
+    expectedDate: string;
+    expectedAmount: string;
+    actualAmount: string | null;
+    note: string | null;
+    isOverridden: boolean;
+    paymentMethod: string | null;
+    status: "UPCOMING" | "SKIPPED" | "PAID" | "CANCELLED";
+}>;
+//# sourceMappingURL=override-event.command.d.ts.map
