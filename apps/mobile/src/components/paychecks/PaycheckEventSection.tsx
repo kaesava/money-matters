@@ -115,12 +115,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: DESIGN_TOKENS.colors.text,
+    color: DESIGN_TOKENS.colors.textPrimary,
   },
   cardAmount: {
     fontSize: 15,
     fontWeight: '800',
-    color: DESIGN_TOKENS.colors.text,
+    color: DESIGN_TOKENS.colors.textPrimary,
   },
   cardDate: {
     fontSize: 12,

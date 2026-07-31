@@ -118,7 +118,7 @@ export default function IncomeAndExpensesScreen() {
               expenseEvents={expenseEventsList}
               onOpenPaydayWizard={(eventId) => setPaydayWizardEventId(eventId)}
               onEditUpcomingExpense={(evt) => setUpcomingExpenseToEdit(evt)}
-              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ id: eventId, actualAmount: amt })}
+              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ id: eventId, actualAmount: amt.toString() })}
             />
           ) : (
             <View style={{ gap: 12 }}>
@@ -129,7 +129,7 @@ export default function IncomeAndExpensesScreen() {
                   inc={inc}
                   onEdit={() => { setFormMode('INCOME'); setSourceToEdit(inc); setFormModalVisible(true); }}
                   onArchive={() => handleArchiveIncome(inc)}
-                  onOpenBurst={() => { setBurstMode('INCOME'); setBurstSourceId(inc.id); setBurstSourceName(inc.name); setBurstSourceAmount(inc.amount); setBurstCategoryName('Income'); setBurstModalVisible(true); }}
+                  onViewBurst={() => { setBurstMode('INCOME'); setBurstSourceId(inc.id); setBurstSourceName(inc.name); setBurstSourceAmount(inc.amount); setBurstCategoryName('Income'); setBurstModalVisible(true); }}
                 />
               ))}
 
@@ -143,7 +143,7 @@ export default function IncomeAndExpensesScreen() {
                     categoryName={cat?.name || 'Unassigned'}
                     onEdit={() => { setFormMode('EXPENSE'); setSourceToEdit(exp); setFormModalVisible(true); }}
                     onArchive={() => handleArchiveExpense(exp)}
-                    onOpenBurst={() => { setBurstMode('EXPENSE'); setBurstSourceId(exp.id); setBurstSourceName(exp.name); setBurstSourceAmount(exp.amount); setBurstCategoryName(cat?.name || 'Unassigned'); setBurstModalVisible(true); }}
+                    onViewBurst={() => { setBurstMode('EXPENSE'); setBurstSourceId(exp.id); setBurstSourceName(exp.name); setBurstSourceAmount(exp.amount); setBurstCategoryName(cat?.name || 'Unassigned'); setBurstModalVisible(true); }}
                   />
                 );
               })}
