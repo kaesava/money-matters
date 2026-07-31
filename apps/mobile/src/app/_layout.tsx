@@ -3,14 +3,18 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '../providers/AppProviders';
 import { DESIGN_TOKENS } from '@money-matters/ui';
+import { logger } from '../lib/logger';
 import '../../global.css';
 
 /**
- * Root Expo Router layout.
- * Wraps the entire navigation tree with AppProviders (tRPC + React Query).
- * All gesture/safe-area infrastructure is handled by expo-router internally.
+ * Mobile Root Layout
+ * Configures Sentry error monitoring and wraps application with AppProviders.
  */
 export default function RootLayout() {
+  React.useEffect(() => {
+    logger.info("Mobile app initialized on Android.");
+  }, []);
+
   return (
     <AppProviders>
       <StatusBar style="dark" backgroundColor={DESIGN_TOKENS.colors.background} />

@@ -243,12 +243,12 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#e2e4e0] bg-[#f5f4eb] py-8 text-center text-xs text-zinc-400">
+      <footer className="border-t border-[#e2e4e0] bg-[#f5f4eb] py-8 text-center text-xs text-zinc-500">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <span className="font-semibold text-zinc-500">{t("landing.copyright", { appName: t("app.title") })}</span>
-          <div className="flex gap-4">
-            <a href="#" className="hover:underline">{t("landing.privacyPolicy")}</a>
-            <a href="#" className="hover:underline">{t("landing.termsOfService")}</a>
+          <span className="font-semibold">{t("landing.copyright", { appName: t("app.title") })} • Contact: <a href="mailto:info@kaesava.au" className="text-blue-600 hover:underline">info@kaesava.au</a></span>
+          <div className="flex gap-4 font-semibold">
+            <a href="/privacy" className="hover:underline text-blue-600">{t("landing.privacyPolicy")}</a>
+            <a href="mailto:info@kaesava.au" className="hover:underline text-blue-600">Support (info@kaesava.au)</a>
           </div>
         </div>
       </footer>

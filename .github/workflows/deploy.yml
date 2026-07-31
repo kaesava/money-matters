@@ -26,6 +26,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Run Drizzle DB Migrations
+        run: pnpm --filter @money-matters/db db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Deploy API to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

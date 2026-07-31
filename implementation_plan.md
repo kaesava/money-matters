@@ -1,176 +1,121 @@
-# Money Matters — Master Implementation Plan
+# Master Implementation Plan — Wave 2 (Production Hardening & Feature Polish)
 
 > **Generated:** 2026-08-01  
-> **Status:** Active & Canonical Implementation Plan.  
-> **Supersedes and replaces:** `mvp_readiness_report.md`, `market_analysis_and_recommendations_results.md`, and `implementation_plan_v2.md`.  
-> **Synchronized with:** `TECHNICAL_SPEC.md`, `FUNCTIONAL_SPEC.md`, `V2_SCOPE.md`, `interactive_onboarding_prompt.md`, and `ui_design_google_stitch`.
+> **Status:** Proposed Implementation Plan (Pending User Approval).  
+> **Scope:** Universal Logging, UI Widget System (Serene Finance), Env File Best Practice Audit, Multi-Tenant/App Switcher, Redesigned Landing Page, Android-Only Mobile Config, Info Tooltips, CSV Onboarding Integration, Play Store Readiness, R2 Stripe Scope Alignment, Viral Partner Referral, Security Runbook, Cloudflare WAF, CI Migration Hook, and Sentry Mobile Integration.
 
 ---
 
-## Executive Overview
+## User Review & Decision Points
 
-This document provides a single, 100% complete implementation plan for Money Matters. All architectural decisions, security requirements, database schema migrations, capability additions, onboarding workflows, UI design updates, and post-launch roadmap items are consolidated here.
-
----
-
-## Phase 1: Infrastructure, Security & Database Baseline
-
-### 1.1 Credential Rotation & Repository Sanitization
-- **Risk**: Live production secrets (Neon DB, Inngest, Resend, Cloudflare R2) were previously committed to `.env`. `.env` is now in `.gitignore`.
-- **Tasks**:
-  1. Rotate production credentials in Neon, Inngest, Resend, and Cloudflare R2 dashboards.
-  2. Run `git filter-repo --path .env --invert-paths` to purge `.env` from all git history.
-  3. Force push cleaned history (`git push origin --force --all`).
-  4. Confirm `.env.example` contains placeholders only.
-
-### 1.2 `tenant_users` Database Migration (`0008_add_tenant_users_invite_columns.sql`)
-- **Issue**: Missing `invite_email`, `invite_token`, `invite_status`, and `invited_at` columns in production database for partner invitation capability.
-- **Tasks**:
-  1. Resolve migration journal discrepancies in `packages/db/drizzle/meta/_journal.json`.
-  2. Create migration file `packages/db/drizzle/0008_add_tenant_users_invite_columns.sql`:
-     ```sql
-     ALTER TABLE "tenant_users" ADD COLUMN IF NOT EXISTS "invite_email" varchar(255);
-     ALTER TABLE "tenant_users" ADD COLUMN IF NOT EXISTS "invite_token" uuid;
-     ALTER TABLE "tenant_users" ADD COLUMN IF NOT EXISTS "invite_status" "invite_status_enum" NOT NULL DEFAULT 'ACCEPTED';
-     ALTER TABLE "tenant_users" ADD COLUMN IF NOT EXISTS "invited_at" timestamptz;
-     ```
-  3. Execute migration: `pnpm --filter @money-matters/db db:migrate`.
-
-### 1.3 Deployment Configuration & CI/CD Pipeline
-- **Production Target**: Cloudflare Workers (`apps/web` on `moneymatters.kaesava.au` via `@opennextjs/cloudflare`, `apps/api` Fastify Worker on `api.moneymatters.kaesava.au`).
-- **Tasks**:
-  1. Delete legacy `render.yaml` file from root repository.
-  2. Create `.github/workflows/deploy.yml`:
-     - Triggers on push to `main` branch (after `ci.yml` passes).
-     - Deploys Fastify API: `pnpm --filter @money-matters/api exec wrangler deploy`.
-     - Deploys Next.js Web: `pnpm --filter @money-matters/web exec wrangler deploy`.
-  3. Verify `apps/web/src/middleware.ts` session cookie detection (`__Secure-better-auth.session_token`, `better-auth.session_token`, `session_token`) and route matching (`/dashboard/*`, `/setup/*`).
+> [!NOTE]
+> All requested items have been analyzed against `AGENTS.md` monorepo guidelines. The plan below covers 100% of requested items without breaking existing architecture or type safety.
 
 ---
 
-## Phase 2: Schema & Capability Additions
+## Proposed Changes
 
-### 2.1 `user_preferences` App Preferences JSONB Migration (`0009_user_preferences_app_jsonb.sql`)
-- **Objective**: Store app-specific UI state (e.g. `quick_actions_collapsed`) inside an `app_preferences` JSONB blob keyed by `appId`.
-- **Tasks**:
-  1. Create schema file `packages/db/src/schema/user_preference.ts` with `appPreferences: jsonb("app_preferences").notNull().default({})`.
-  2. Create migration `packages/db/drizzle/0009_user_preferences_app_jsonb.sql`:
-     ```sql
-     ALTER TABLE "user_preferences" ADD COLUMN IF NOT EXISTS "app_preferences" jsonb NOT NULL DEFAULT '{}';
-     UPDATE "user_preferences" SET "app_preferences" = jsonb_build_object('01908bde-34bb-7b19-a178-574211bc93aa', jsonb_build_object('quick_actions_collapsed', quick_actions_collapsed)) WHERE quick_actions_collapsed = true;
-     ALTER TABLE "user_preferences" DROP COLUMN IF EXISTS "quick_actions_collapsed";
-     ```
-  3. Define `AppPreferencesBlobSchema` in `packages/types/src/app-preferences.ts`.
-  4. Update tRPC procedures in API routers to read/write `appPreferences[appId]`.
-
-### 2.2 App Category Templates & Tenant Seeding (`app_categories`)
-- **Objective**: Support centralized template categories (`app_categories`) copied to `categories` when new tenants sign up.
-- **Tasks**:
-  1. Create schema `packages/db/src/schema/app_category.ts` (app-level template table with `annualisedAmount`).
-  2. Create migration `packages/db/drizzle/0010_add_app_categories.sql`.
-  3. Seed `app_categories` with Australian family presets + default Everyday category (`packages/db/src/seed/app-categories.seed.ts`).
-  4. Update `createTenantHandler` in `packages/capabilities/tenant/src/index.ts` to clone `app_categories` rows into `categories` for the new `tenantId`.
-
-### 2.3 Bank Statement CSV Import Capability (`@money-matters/capability-import`)
-- **Objective**: Enable monthly statement import for major Australian banks to eliminate manual entry fatigue.
-- **Tasks**:
-  1. Create capability package `packages/capabilities/import/` (or slice in `packages/capabilities/transactions/`).
-  2. Implement CSV parsers for **CBA**, **Westpac**, **ANZ**, **NAB**, **ING**, and **Macquarie**.
-  3. Implement rule-based description pattern matching for category auto-assignment.
-  4. Implement transaction deduplication via hash (`date + amount + description`).
-  5. Web UI: Drag-and-drop upload modal on Bank Accounts / Transactions page with preview and bulk confirm.
-  6. Mobile UI: Native file picker + transaction confirmation list.
+### Component 1: Universal Logger Architecture (`@money-matters/core`)
+#### [NEW] [logger.ts](file:///home/kaesava/projects/money-matters/packages/core/src/logger.ts)
+#### [MODIFY] [apps/web/src/lib/logger.ts](file:///home/kaesava/projects/money-matters/apps/web/src/lib/logger.ts)
+#### [MODIFY] [apps/mobile/src/lib/logger.ts](file:///home/kaesava/projects/money-matters/apps/mobile/src/lib/logger.ts)
+- Implement a universal, cross-platform logger in `@money-matters/core` with PII redaction (emails, tokens, passwords), log levels (`DEBUG`, `INFO`, `WARN`, `ERROR`), and environment detection.
+- Replace ad-hoc `console.log` and `console.error` calls across `apps/web` and `apps/mobile` with the structured logger.
 
 ---
 
-## Phase 3: Interactive Onboarding Engine (`interactive_onboarding_prompt.md`)
-
-- **Objective**: Build a 60-second interactive quiz onboarding experience leveraging 2025/2026 ABS and RACQ cost-of-living benchmarks.
-
-### 3.1 Step 1: The Income Engine
-- Inputs: Take-home pay amount ($), pay frequency (Weekly / Fortnightly / Monthly), income type (Salary, Business, Benefit).
-- Feature: Optional `+ Add partner income or side-hustle` secondary income stream.
-
-### 3.2 Step 2: The Life-Builder Questionnaire
-- **Housing**: Own (Mortgage) | Own (Outright) | Rent (Solo/Family) | Rent (Share).
-- **Transport**: Vehicle selection (Count: 1, 2, 3+; Size: Small/Hatch, Mid/SUV, Luxury), Public transport, Rideshare.
-- **Family**: Children count, stage (Childcare, Primary, Secondary), school type (Public, Catholic, Private).
-- **Health**: Private Health Insurance toggle, Gym/Fitness toggle, medical out-of-pocket.
-- **Debt & Pets**: Minimum active debt repayment ($), Pet count.
-- **Obligations**: Charity donations, family support amount ($).
-- **Everyday Spend Sliders**: Weekly spend sliders for Groceries ($270 default), Dining ($240 default), Personal ($100 default) + dynamic incidental calculation `M`.
-
-### 3.3 Step 3: Estimation Engine & Confirmation
-- Converts all user inputs into normalized **Monthly** targets using ABS/RACQ formulas.
-- Groups calculated targets into `REGULAR` bills, `GOAL` sinking funds, and single `EVERYDAY` pool.
-- Displays editable confirmation screen before generating tenant categories and schedules.
+### Component 2: UI Widget System (Serene Finance)
+#### [NEW] [StatCard.tsx](file:///home/kaesava/projects/money-matters/packages/ui/src/web/StatCard.tsx)
+#### [NEW] [BudgetProgressCard.tsx](file:///home/kaesava/projects/money-matters/packages/ui/src/web/BudgetProgressCard.tsx)
+#### [NEW] [MobileStatCard.tsx](file:///home/kaesava/projects/money-matters/packages/ui/src/mobile/MobileStatCard.tsx)
+#### [NEW] [MobileBudgetProgress.tsx](file:///home/kaesava/projects/money-matters/packages/ui/src/mobile/MobileBudgetProgress.tsx)
+- Extract widget designs from `ui_design_google_stitch/` (`StatCard`, `BudgetProgress`, `BentoStats`, `QuickAction`) into `@money-matters/ui` for both Web and Mobile.
+- Upgrade Web and Mobile dashboards to use these rich widget components.
 
 ---
 
-## Phase 4: UI System Overhaul & Refactoring (Serene Finance)
-
-### 4.1 Serene Finance Tokens & Design System
-- Integrate design system tokens from `ui_design_google_stitch/`:
-  - Colors: Serene Blue (`#2563eb`), Surface Bright (`#ffffff`), Surface Dim (`#d9d9e5`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
-  - Typography: Inter for UI body text; `JetBrains Mono` (`financial-metric`, `tabular-nums`) for all monetary values.
-  - Web Layout: Fixed `SideNavBar` + frosted `TopNavBar` + spacious table rows.
-  - Mobile Layout: Top header `TopAppBar` + bottom tab bar `BottomNavBar`.
-
-### 4.2 Component Refactoring & Code Quality
-- **`paychecks.tsx` Refactor**: Split `apps/mobile/src/app/(app)/paychecks.tsx` (~500 lines) into `src/components/paychecks/`:
-  - `UpcomingEventsList.tsx`
-  - `SourcesBillsList.tsx`
-  - `IncomeSourceCard.tsx`
-  - `ExpenseBillCard.tsx`
-- **Type Safety**: Replace `item: any` in `apps/mobile/src/app/(app)/transactions.tsx` with inferred `TransactionRow` type.
-- **i18n Check**: Run `pnpm lint` (`check-i18n`) to verify 100% of user-facing strings are externalized in `@money-matters/i18n`.
-
-### 4.3 Quick Wins & Micro-UX Polish
-1. Default Quick Actions section to collapsed.
-2. Auto-select "Everyday" category in Quick Expense modal.
-3. Display "days until next payday" on Hero Card.
-4. Pre-fill current date in date pickers.
-5. Prefix currency input fields with `$`.
-6. Category color dots alongside transaction entries.
-7. Undo toast notification after transaction entry.
+### Component 3: Environment Variables Audit & Best Practices
+#### [MODIFY] [env.ts](file:///home/kaesava/projects/money-matters/packages/config/src/env.ts)
+#### [MODIFY] [.env.example](file:///home/kaesava/projects/money-matters/.env.example)
+#### [MODIFY] [apps/api/.env.example](file:///home/kaesava/projects/money-matters/apps/api/.env.example)
+#### [MODIFY] [apps/web/.env.example](file:///home/kaesava/projects/money-matters/apps/web/.env.example)
+- Establish `@money-matters/config` as the single source of truth for Zod-validated env schemas.
+- Clean up root and sub-app `.env` files to prevent cascading leakage. Document development vs production env inheritance.
 
 ---
 
-## Phase 5: Post-Launch Roadmap (Release 1.1 / Release 2)
-
-- **5.1 Spending Velocity & Trend Insights**: Month-over-month category trend charts + pace warnings if Everyday spend rate exhausts funds early.
-- **5.2 First-Paycheck Guided Walkthrough**: Contextual step-by-step onboarding overlay on first payday event.
-- **5.3 One-Tap Bank Reconciliation**: Simplified balance confirmation ("Bank says $12,450 — confirm?") with auto-adjustment to Everyday pool.
-- **5.4 Milestone Celebrations**: Toast notifications when goal categories cross 25%, 50%, 75%, and 100% funding targets.
+### Component 4: Multi-Tenant & Multi-App Switcher
+#### [NEW] [TenantSwitcher.tsx](file:///home/kaesava/projects/money-matters/apps/web/src/components/TenantSwitcher.tsx)
+#### [NEW] [MobileTenantSwitcher.tsx](file:///home/kaesava/projects/money-matters/apps/mobile/src/components/MobileTenantSwitcher.tsx)
+- Create a tenant switcher component in user profile / header menus (Web & Mobile).
+- Fetches all households the user belongs to (`tenant_users`).
+- On tenant switch, updates active `tenantId` session cookie and dynamically re-binds target `appId`.
 
 ---
 
-## Execution Phasing Summary
+### Component 5: Redesigned Landing Page, Privacy Policy & Contact
+#### [MODIFY] [apps/web/src/app/page.tsx](file:///home/kaesava/projects/money-matters/apps/web/src/app/page.tsx)
+#### [NEW] [apps/web/src/app/privacy/page.tsx](file:///home/kaesava/projects/money-matters/apps/web/src/app/privacy/page.tsx)
+- Redesign landing page using Serene Finance color palette (`#2563eb`, `#1B2B4B`, `#F7F8FA`).
+- Add Australian Privacy Act compliant Privacy Policy page (`/privacy`).
+- Add contact support link (`info@kaesava.au`).
 
-```
-Phase 1 (Immediate Security & Infra):
-  1.1 Rotate credentials & scrub git history
-  1.2 Run tenant_users migration (0008)
-  1.3 Remove render.yaml & add Cloudflare deploy.yml workflow
+---
 
-Phase 2 (Schema & Capabilities):
-  2.1 Run user_preferences JSONB migration (0009)
-  2.2 Run app_categories migration (0010) & seed templates
-  2.3 Build Bank CSV Import capability (CBA, Westpac, ANZ, NAB, ING, Macquarie)
+### Component 6: Android-Only Mobile Configuration & Play Store Readiness
+#### [MODIFY] [apps/mobile/app.json](file:///home/kaesava/projects/money-matters/apps/mobile/app.json)
+- Lock Expo platform target to `["android"]`. Remove iOS bundle configs for Release 1 & 2.
+- Configure Android adaptive icons, splash screen, and package identifier (`com.kaesava.moneymatters`).
 
-Phase 3 (Interactive Onboarding):
-  3.1 Build Income Engine (Step 1)
-  3.2 Build Life-Builder Quiz (Step 2)
-  3.3 Build ABS Estimation Engine & Monthly Confirmation (Step 3)
+---
 
-Phase 4 (UI Redesign & Refactoring):
-  4.1 Apply Serene Finance design system & JetBrains Mono metrics
-  4.2 Refactor paychecks.tsx & fix transactions.tsx type warnings
-  4.3 Apply Micro-UX quick wins & run i18n audit
+### Component 7: Information Tooltips (`InfoButton` / `InfoTooltip`)
+#### [NEW] [InfoTooltip.tsx](file:///home/kaesava/projects/money-matters/packages/ui/src/web/InfoTooltip.tsx)
+#### [NEW] [MobileInfoModal.tsx](file:///home/kaesava/projects/money-matters/packages/ui/src/mobile/MobileInfoModal.tsx)
+- Create subtle, non-intrusive info icon components (`ⓘ`).
+- Place info tooltips on key complex features: 5-step Waterfall Allocation, Everyday Pool, Incidental M Buffer, and Can We Afford calculator.
 
-Phase 5 (Post-Launch - Release 1.1):
-  5.1 Spending velocity & monthly insights
-  5.2 First-paycheck walkthrough
-  5.3 One-tap reconciliation
-  5.4 Milestone celebrations
-```
+---
+
+### Component 8: Onboarding Wizard CSV Import Integration
+#### [MODIFY] [apps/web/src/app/setup/page.tsx](file:///home/kaesava/projects/money-matters/apps/web/src/app/setup/page.tsx)
+- Embed `CsvImportModal` directly into Step 2/3 of the onboarding wizard for 30-second instant value.
+
+---
+
+### Component 9: Viral Household Partner Referral Card
+#### [NEW] [PartnerReferralCard.tsx](file:///home/kaesava/projects/money-matters/apps/web/src/components/PartnerReferralCard.tsx)
+#### [NEW] [MobilePartnerReferralCard.tsx](file:///home/kaesava/projects/money-matters/apps/mobile/src/components/MobilePartnerReferralCard.tsx)
+- Prominent "Invite Household Partner" banner/card on the main Dashboard (Web & Mobile) to spur viral household adoption.
+
+---
+
+### Component 10: Release 2 Stripe Scope Alignment & Runbooks
+#### [MODIFY] [TECHNICAL_SPEC.md](file:///home/kaesava/projects/money-matters/TECHNICAL_SPEC.md)
+#### [MODIFY] [FUNCTIONAL_SPEC.md](file:///home/kaesava/projects/money-matters/FUNCTIONAL_SPEC.md)
+#### [NEW] [docs/SECURITY_RUNBOOK.md](file:///home/kaesava/projects/money-matters/docs/SECURITY_RUNBOOK.md)
+- Document Stripe paid plans and free trial limits as Release 2 scope.
+- Add step-by-step production credential rotation runbook for Neon, Inngest, and Resend.
+- Add Cloudflare WAF rate limiting configuration guide for `api.moneymatters.kaesava.au`.
+
+---
+
+### Component 11: CI/CD Migration Hook & Mobile Sentry
+#### [MODIFY] [.github/workflows/deploy.yml](file:///home/kaesava/projects/money-matters/.github/workflows/deploy.yml)
+#### [MODIFY] [apps/mobile/src/app/_layout.tsx](file:///home/kaesava/projects/money-matters/apps/mobile/src/app/_layout.tsx)
+- Add `pnpm --filter @money-matters/db db:migrate` execution to GitHub Actions deploy workflow.
+- Configure `@sentry/react-native` initialization in Expo mobile app layout.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Run `pnpm typecheck` across all 14 monorepo packages.
+- Run `pnpm test` across all 11 test suites.
+- Verify `pnpm lint` (`check-i18n`).
+
+### Manual Verification
+- Test tenant switcher on Web and Mobile.
+- Test CSV upload inside the onboarding wizard flow.
+- Verify landing page rendering and `/privacy` route.

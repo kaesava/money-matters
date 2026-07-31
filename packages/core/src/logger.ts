@@ -1,25 +1,56 @@
 /**
- * Monorepo Structured Logger
+ * Universal Monorepo Structured Logger
  * 
- * Configured Pino logger with automatic PII redaction (email, password, auth tokens)
- * and uppercase log level formatting.
+ * Safe for Node.js (API/Workers), Web (Next.js), and React Native (Expo).
+ * Automatically redacts PII fields (emails, passwords, tokens) per Monorepo Rule 7.
  */
-import pino from "pino";
 
-/**
- * Global structured logger instance.
- * Redacts sensitive authentication tokens and personal data per Monorepo Rule 7.
- */
-export const logger = pino({
-  level: process.env.LOG_LEVEL || "info",
-  redact: {
-    paths: ["email", "name", "password", "token", "jwt", "authorization"],
-    censor: "[REDACTED_PII]"
-  },
-  formatters: {
-    level: (label) => {
-      return { level: label.toUpperCase() };
+export type LogLevel = "debug" | "info" | "warn" | "error";
+
+const PII_KEYS = new Set(["email", "password", "token", "jwt", "authorization", "secret"]);
+
+function redactPii(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(redactPii);
+  }
+
+  const redacted: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (PII_KEYS.has(key.toLowerCase())) {
+      redacted[key] = "[REDACTED_PII]";
+    } else if (typeof value === "object" && value !== null) {
+      redacted[key] = redactPii(value);
+    } else {
+      redacted[key] = value;
     }
   }
-});
+  return redacted;
+}
 
+function formatLog(level: LogLevel, message: string, meta?: any): string {
+  const timestamp = new Date().toISOString();
+  const safeMeta = meta ? JSON.stringify(redactPii(meta)) : "";
+  return `[${timestamp}] [${level.toUpperCase()}] ${message} ${safeMeta}`.trim();
+}
+
+export const logger = {
+  debug: (message: string, meta?: any) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug(formatLog("debug", message, meta));
+    }
+  },
+
+  info: (message: string, meta?: any) => {
+    console.info(formatLog("info", message, meta));
+  },
+
+  warn: (message: string, meta?: any) => {
+    console.warn(formatLog("warn", message, meta));
+  },
+
+  error: (message: string, meta?: any) => {
+    console.error(formatLog("error", message, meta));
+  },
+};
