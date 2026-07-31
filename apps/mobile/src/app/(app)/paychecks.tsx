@@ -118,7 +118,7 @@ export default function IncomeAndExpensesScreen() {
               expenseEvents={expenseEventsList}
               onOpenPaydayWizard={(eventId) => setPaydayWizardEventId(eventId)}
               onEditUpcomingExpense={(evt) => setUpcomingExpenseToEdit(evt)}
-              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ id: eventId, actualAmount: amt.toString() })}
+              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ eventId, actualAmount: amt.toString() })}
             />
           ) : (
             <View style={{ gap: 12 }}>
