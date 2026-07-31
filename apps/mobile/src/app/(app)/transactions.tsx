@@ -200,7 +200,7 @@ export default function TransactionsScreen() {
         ) : (
           <>
             <View style={styles.list}>
-              {sorted.slice((page - 1) * pageSize, page * pageSize).map((item) => {
+              {sorted.slice((page - 1) * pageSize, page * pageSize).map((item: NonNullable<typeof transactionsQuery.data>[number]) => {
                 const isDebit = item.flowType === 'DEBIT';
                 return (
                   <View key={item.id} style={styles.card}>

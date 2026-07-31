@@ -4,6 +4,9 @@ import {
   listTransactionsQuery,
   listCategoryTransactionsQuery,
   canAffordQuery,
+  parseBankCsv,
+  BankCsvImportInputSchema,
+  getSpendingVelocityQuery,
 } from "@money-matters/capability-transactions";
 import {
   RecordExpenseCommand,
@@ -37,4 +40,14 @@ export const transactionsRouter = {
       const amt = parseFloat(input.amount);
       return await canAffordQuery(amt, ctx.tenantId!, ctx.appId!, ctx.db);
     }),
+
+  parseCsv: tenantProcedure
+    .input(BankCsvImportInputSchema)
+    .mutation(async ({ input }) => {
+      return parseBankCsv(input.csvText);
+    }),
+
+  spendingVelocity: tenantProcedure.query(async ({ ctx }) => {
+    return await getSpendingVelocityQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+  }),
 };
