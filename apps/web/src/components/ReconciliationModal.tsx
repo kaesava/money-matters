@@ -2,130 +2,161 @@
 
 import React, { useState } from "react";
 
-interface ReconciliationModalProps {
+export interface ReconciliationModalProps {
   isOpen: boolean;
-  expectedBalance: string;
-  accountName: string;
   onClose: () => void;
-  onReconcile: (actualBalance: string, discrepancy: number) => void;
+  expectedBalance: number;
+  accountName: string;
+  onConfirmReconcile: (actualBalance: number, absorptionMethod: "EVERYDAY" | "INCIDENTAL_BUFFER" | "UNBUDGETED_EXPENSE") => Promise<void>;
 }
 
 export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   isOpen,
+  onClose,
   expectedBalance,
   accountName,
-  onClose,
-  onReconcile,
+  onConfirmReconcile,
 }) => {
-  const [actualBalanceInput, setActualBalanceInput] = useState(expectedBalance);
-  const [step, setStep] = useState<"INPUT" | "MATCH" | "DISCREPANCY">("INPUT");
+  const [actualBalanceInput, setActualBalanceInput] = useState(expectedBalance.toString());
+  const [step, setStep] = useState<1 | 2>(1);
+  const [absorptionMethod, setAbsorptionMethod] = useState<"EVERYDAY" | "INCIDENTAL_BUFFER" | "UNBUDGETED_EXPENSE">("EVERYDAY");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const expectedNum = parseFloat(expectedBalance) || 0;
   const actualNum = parseFloat(actualBalanceInput) || 0;
-  const discrepancy = actualNum - expectedNum;
-  const isExactMatch = Math.abs(discrepancy) < 0.01;
+  const delta = Number((actualNum - expectedBalance).toFixed(2));
+  const isDiscrepancy = Math.abs(delta) > 0.01;
 
-  const handleVerify = () => {
-    if (isExactMatch) {
-      setStep("MATCH");
-    } else {
-      setStep("DISCREPANCY");
+  const handleNextOrSubmit = async () => {
+    if (step === 1 && isDiscrepancy) {
+      setStep(2);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onConfirmReconcile(actualNum, absorptionMethod);
+      onClose();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleConfirmDiscrepancyAdjustment = () => {
-    onReconcile(actualBalanceInput, discrepancy);
-    onClose();
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-          <h3 className="font-bold text-slate-900">One-Tap Bank Reconciliation</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-6">
+        <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+          <div>
+            <h3 className="font-extrabold text-lg text-[#1B2B4B]">3-Tap Account Reconciliation</h3>
+            <p className="text-xs text-slate-500">{accountName}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
         </div>
 
-        <div className="p-6 space-y-4">
-          <p className="text-xs text-slate-500">
-            Account: <strong className="text-slate-700">{accountName}</strong>
-          </p>
+        {step === 1 ? (
+          <div className="space-y-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+              <span className="font-medium text-slate-600">App Expected Balance:</span>
+              <span className="font-mono font-bold text-slate-900 text-sm">
+                ${expectedBalance.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
 
-          {step === "INPUT" && (
-            <div className="space-y-4">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <span className="text-xs text-slate-500 block">Expected System Balance</span>
-                <span className="text-2xl font-bold font-mono text-slate-900">${expectedBalance}</span>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Actual Bank Balance
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-slate-400 font-bold">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={actualBalanceInput}
+                  onChange={(e) => setActualBalanceInput(e.target.value)}
+                  className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-300 font-mono font-bold text-lg text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="0.00"
+                />
               </div>
+            </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  What does your actual bank app show right now?
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={actualBalanceInput}
-                    onChange={(e) => setActualBalanceInput(e.target.value)}
-                    className="w-full pl-8 pr-4 py-2 border rounded-lg font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
+            {isDiscrepancy && (
+              <div className={`p-3 rounded-xl text-xs font-semibold flex justify-between ${delta < 0 ? "bg-amber-50 text-amber-900 border border-amber-200" : "bg-emerald-50 text-emerald-900 border border-emerald-200"}`}>
+                <span>Discrepancy Delta:</span>
+                <span className="font-mono font-bold">{delta > 0 ? `+$${delta}` : `-$${Math.abs(delta)}`}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 font-medium">
+              Discrepancy of <strong className="font-mono">{delta > 0 ? `+$${delta}` : `-$${Math.abs(delta)}`}</strong> detected. Select how to absorb this difference:
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setAbsorptionMethod("EVERYDAY")}
+                className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex justify-between items-center transition-all ${
+                  absorptionMethod === "EVERYDAY" ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                }`}
+              >
+                <div>
+                  <p className="font-bold">Absorb from Everyday Pool</p>
+                  <p className="text-[10px] text-slate-500">Adjusts discretionary balance to match bank.</p>
                 </div>
-              </div>
+                {absorptionMethod === "EVERYDAY" && <span className="text-blue-600 font-bold">✓</span>}
+              </button>
 
               <button
-                onClick={handleVerify}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm transition-colors"
+                type="button"
+                onClick={() => setAbsorptionMethod("INCIDENTAL_BUFFER")}
+                className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex justify-between items-center transition-all ${
+                  absorptionMethod === "INCIDENTAL_BUFFER" ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                }`}
               >
-                Verify Balance
+                <div>
+                  <p className="font-bold">Absorb from Incidental Buffer ($M)</p>
+                  <p className="text-[10px] text-slate-500">Drains from unbudgeted float buffer.</p>
+                </div>
+                {absorptionMethod === "INCIDENTAL_BUFFER" && <span className="text-blue-600 font-bold">✓</span>}
               </button>
-            </div>
-          )}
 
-          {step === "MATCH" && (
-            <div className="text-center py-4 space-y-3">
-              <span className="text-4xl">🎉</span>
-              <h4 className="text-lg font-bold text-emerald-600">Perfect Match!</h4>
-              <p className="text-xs text-slate-600">
-                Your bank balance perfectly matches your budget system (${actualBalanceInput}).
-              </p>
               <button
-                onClick={onClose}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-sm"
+                type="button"
+                onClick={() => setAbsorptionMethod("UNBUDGETED_EXPENSE")}
+                className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex justify-between items-center transition-all ${
+                  absorptionMethod === "UNBUDGETED_EXPENSE" ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                }`}
               >
-                Done
+                <div>
+                  <p className="font-bold">Log as Unbudgeted Expense</p>
+                  <p className="text-[10px] text-slate-500">Creates an explicit unbudgeted ledger transaction.</p>
+                </div>
+                {absorptionMethod === "UNBUDGETED_EXPENSE" && <span className="text-blue-600 font-bold">✓</span>}
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {step === "DISCREPANCY" && (
-            <div className="space-y-4">
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-900 text-xs">
-                <p className="font-bold text-sm mb-1">Discrepancy of {discrepancy > 0 ? `+$${discrepancy.toFixed(2)}` : `-$${Math.abs(discrepancy).toFixed(2)}`}</p>
-                <p>
-                  Would you like us to automatically adjust your Everyday Pool to align with your actual bank balance?
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setStep("INPUT")}
-                  className="flex-1 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-600"
-                >
-                  Re-enter
-                </button>
-                <button
-                  onClick={handleConfirmDiscrepancyAdjustment}
-                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold"
-                >
-                  Auto-Adjust Everyday
-                </button>
-              </div>
-            </div>
+        <div className="flex gap-3 pt-2">
+          {step === 2 && (
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
+            >
+              ← Back
+            </button>
           )}
+          <button
+            onClick={handleNextOrSubmit}
+            disabled={isSubmitting}
+            className="flex-1 py-3 bg-[#1B2B4B] hover:bg-blue-900 text-white font-bold text-xs rounded-xl transition-all shadow-md"
+          >
+            {isSubmitting ? "Processing..." : step === 1 && isDiscrepancy ? "Continue to Choice →" : "Confirm & Reconcile"}
+          </button>
         </div>
       </div>
     </div>

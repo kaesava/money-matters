@@ -54,28 +54,26 @@ describe("paycheck cascade allocation engine", () => {
       incomeAmount: 3000,
       buckets,
       paycheckDate: new Date(),
-      paycheckFrequencyDays: 14, // Fortnightly paycheck proration factor ~0.4599
+      paycheckFrequencyDays: 14,
     });
 
     expect(result.status).toBe("OK");
     
-    // Prorated Rent (REGULAR): 1200 * (14 / 30.4375) ~ 551.95
+    // Prorated Rent (REGULAR): 1200 * 12 / 26 = 553.85
     const rentLine = result.lines.find((l) => l.bucketId === "rent-id");
-    expect(rentLine?.proposedAmount).toBe(551.95);
+    expect(rentLine?.proposedAmount).toBe(553.85);
 
-    // Prorated Savings Committed: (500 - 100) / 2 months = 200 monthly target.
-    // Prorated fortnightly: 200 * (14 / 30.4375) ~ 91.99
+    // Prorated Savings Committed: (500 - 100) / 2 months = 200 monthly target -> 200 * 12 / 26 = 92.31
     const carLine = result.lines.find((l) => l.bucketId === "holiday-committed-id");
-    expect(carLine?.proposedAmount).toBe(91.99);
+    expect(carLine?.proposedAmount).toBe(92.31);
 
-    // Prorated Savings Uncommitted: (1000 - 0) / 12 months = 83.33 monthly target.
-    // Prorated fortnightly: 83.33 * (14 / 30.4375) ~ 38.33
+    // Prorated Savings Uncommitted: (1000 - 0) / 12 months = 83.33 monthly target -> 83.33 * 12 / 26 = 38.46
     const holidayLine = result.lines.find((l) => l.bucketId === "uncommitted-id");
-    expect(holidayLine?.proposedAmount).toBe(38.33);
+    expect(holidayLine?.proposedAmount).toBe(38.46);
 
-    // Everyday Excess (Uncommitted goal / default excess sweep): 3000 - (551.95 + 91.99 + 38.33) = 2317.73
+    // Everyday Excess: 3000 - (553.85 + 92.31 + 38.46) = 2315.38
     const everydayLine = result.lines.find((l) => l.bucketId === "everyday-id");
-    expect(everydayLine?.proposedAmount).toBe(2317.73);
+    expect(everydayLine?.proposedAmount).toBe(2315.38);
   });
 
   it("prioritises deficit repair (Step 0) for negative balances before funding bills or goals", () => {
@@ -113,12 +111,12 @@ describe("paycheck cascade allocation engine", () => {
 
     expect(result.status).toBe("OK");
 
-    // Deficit repair ($150) + Everyday Top-Up ($390.04 remaining after Rent) = $540.04 total allocated to Everyday
+    // Deficit repair ($150) + Everyday Top-Up ($388.46 remaining after Rent) = $538.46 total allocated to Everyday
     const everydayLine = result.lines.find((l) => l.bucketId === "overspent-everyday");
-    expect(everydayLine?.proposedAmount).toBe(540.04);
+    expect(everydayLine?.proposedAmount).toBe(538.46);
 
-    // Prorated Rent: 1000 * (14 / 30.4375) ~ 459.96 (funded fully in Step 1 after Step 0 repair)
+    // Prorated Rent: 1000 * 12 / 26 = 461.54
     const rentLine = result.lines.find((l) => l.bucketId === "rent-id");
-    expect(rentLine?.proposedAmount).toBe(459.96);
+    expect(rentLine?.proposedAmount).toBe(461.54);
   });
 });

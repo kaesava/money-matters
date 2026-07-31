@@ -1,43 +1,31 @@
 /**
- * Paycheck Cascade Waterfall Allocation Engine
+ * Paycheck Cascade Waterfall Allocation Engine (V2 - Smart Due Date & Essential Hierarchy)
  * 
- * Implements deterministic 4-step waterfall logic distributing incoming paychecks across:
- * 1. REGULAR (Bills): Prorated monthly bill targets based on pay frequency.
- * 2. GOAL (Committed): Priority savings targets funded before discretionary spending.
- * 3. GOAL (Uncommitted): Secondary goal targets funded if excess funds remain.
- * 4. EVERYDAY / Default Excess: Sweeps all remaining residual funds into cash balance.
+ * Implements deterministic 5-step waterfall logic distributing incoming paychecks:
+ * 0. DEFICIT REPAIR: Restores any overdrawn/negative buckets to $0.
+ * 1. ESSENTIAL REGULAR (Bills): Priority 1 bills (Rent/Mortgage, Utilities) ordered by due date.
+ * 2. STANDARD REGULAR (Bills): Other bills prorated with exact annualization (12 * monthly / paychecksPerYear).
+ * 3. GOAL (Committed): Priority savings targets funded before discretionary spending.
+ * 4. EVERYDAY Top-Up: Top up Everyday bucket to target allowance cap.
+ * 5. GOAL (Uncommitted) & Default Excess: Sweeps all remaining residual funds to Offset/Default bucket.
  */
 
-/** Category bucket classification within the 3-bucket model. */
 export type BucketType = "REGULAR" | "GOAL" | "EVERYDAY";
 
-/**
- * Data structure representing a category bucket input to the allocation waterfall.
- */
 export interface EngineBucket {
-  /** Unique UUID identifier for the category bucket. */
   id: string;
-  /** Category display name. */
   name: string;
-  /** Bucket architecture classification (REGULAR, GOAL, EVERYDAY). */
   type: BucketType;
-  /** Flag indicating high-priority committed savings goal. */
-  isCommitted: boolean;
-  /** Default excess sweep target flag. */
-  isDefaultExcess: boolean;
-  /** Target monthly obligation amount for REGULAR bill buckets. */
-  monthlyAmount: number | null;
-  /** Total target amount for GOAL savings buckets. */
-  targetAmount: number | null;
-  /** ISO date string for goal completion deadline. */
-  targetDate: string | null;
-  /** Current ledger balance of the category bucket. */
+  isEssential?: boolean;
+  isCommitted?: boolean;
+  isDefaultExcess?: boolean;
+  monthlyAmount?: number | null;
+  targetAmount?: number | null;
+  targetDate?: string | null;
+  dueDate?: string | null;
   currentBalance: number;
 }
 
-/**
- * Proposed allocation line item outcome for a single category bucket.
- */
 export interface AllocationLine {
   bucketId: string;
   bucketName: string;
@@ -45,9 +33,6 @@ export interface AllocationLine {
   reasoning: string;
 }
 
-/**
- * Input context passed to the allocation waterfall calculation.
- */
 export interface AllocationEngineInput {
   incomeAmount: number;
   buckets: EngineBucket[];
@@ -55,31 +40,17 @@ export interface AllocationEngineInput {
   paycheckFrequencyDays: number; // 7 = weekly, 14 = fortnightly, 30 = monthly
 }
 
-/**
- * Result structure produced by the allocation waterfall engine.
- */
 export interface AllocationEngineOutput {
   status: "OK" | "INSUFFICIENT";
   lines: AllocationLine[];
   unallocatedAmount: number;
 }
 
-/**
- * Pure allocation waterfall calculation engine.
- * 
- * Steps:
- * 0. DEFICIT REPAIR: Priority 1 - Any bucket with currentBalance < 0 is restored to $0.
- * 1. REGULAR (Bills): Monthly amount prorated by pay frequency: monthlyAmount * (frequencyDays / 30.4375)
- * 2. GOAL (Committed): monthlyContribution = (targetAmount - balance) / monthsRemaining
- * 3. EVERYDAY Top-Up: Top up Everyday bucket to target allowance cap: max(0, targetAmount - balance)
- * 4. GOAL (Uncommitted) & Default Excess: Sweeps all remaining residual income into default excess bucket (e.g. Offset/Emergency) or uncommitted goals.
- *
- * @param input - Paycheck amount, bucket list, paycheck date, and frequency
- * @returns Proposed line allocations, execution status, and residual amount
- */
 export function runAllocationEngine(input: AllocationEngineInput): AllocationEngineOutput {
   let remaining = input.incomeAmount;
   const lines: AllocationLine[] = [];
+
+  const paychecksPerYear = Math.max(1, Math.round(365 / input.paycheckFrequencyDays));
 
   // Step 0: DEFICIT REPAIR — Priority First for any negative bucket balances
   for (const bucket of input.buckets) {
@@ -92,35 +63,51 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         bucketId: bucket.id,
         bucketName: bucket.name,
         proposedAmount: allocated,
-        reasoning: `Deficit repair for negative balance (-$${deficit.toFixed(2)}): $${allocated.toFixed(2)} allocated to restore balance.`,
+        reasoning: `Deficit repair for negative balance (-$${deficit.toFixed(2)}): $${allocated.toFixed(2)} allocated.`,
       });
     }
   }
 
-  // Step 1: REGULAR (Bills)
-  const regularBuckets = input.buckets.filter((b) => b.type === "REGULAR");
-  for (const bucket of regularBuckets) {
-    const monthlyAmt = bucket.monthlyAmount ?? 0;
-    const prorated = monthlyAmt * (input.paycheckFrequencyDays / 30.4375);
-    const needed = Math.max(0, Number(prorated.toFixed(2)));
-    const allocated = Math.min(remaining, needed);
-    remaining = Number((remaining - allocated).toFixed(2));
+  // Helper to allocate REGULAR bills
+  const fundRegularBills = (bucketsList: EngineBucket[]) => {
+    // Sort by due date urgency
+    const sorted = [...bucketsList].sort((a, b) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
 
-    const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
-    if (existingIndex >= 0) {
-      lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
-      lines[existingIndex]!.reasoning += ` Plus prorated bill target of $${allocated.toFixed(2)}.`;
-    } else {
-      lines.push({
-        bucketId: bucket.id,
-        bucketName: bucket.name,
-        proposedAmount: allocated,
-        reasoning: `Prorated monthly bill target of $${monthlyAmt.toFixed(2)}: $${allocated.toFixed(2)} allocated.`,
-      });
+    for (const bucket of sorted) {
+      const monthlyAmt = bucket.monthlyAmount ?? 0;
+      const prorated = (monthlyAmt * 12) / paychecksPerYear;
+      const needed = Math.max(0, Number(prorated.toFixed(2)));
+      const allocated = Math.min(remaining, needed);
+      remaining = Number((remaining - allocated).toFixed(2));
+
+      const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
+      if (existingIndex >= 0) {
+        lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
+        lines[existingIndex]!.reasoning += ` Plus prorated bill target of $${allocated.toFixed(2)}.`;
+      } else {
+        lines.push({
+          bucketId: bucket.id,
+          bucketName: bucket.name,
+          proposedAmount: allocated,
+          reasoning: `Prorated bill target ($${monthlyAmt.toFixed(2)}/mo): $${allocated.toFixed(2)} allocated (due ${bucket.dueDate ?? "recurring"}).`,
+        });
+      }
     }
-  }
+  };
 
-  // Helper for GOAL monthly target calculation
+  // Step 1: ESSENTIAL REGULAR (Bills)
+  const essentialBills = input.buckets.filter((b) => b.type === "REGULAR" && b.isEssential);
+  fundRegularBills(essentialBills);
+
+  // Step 2: STANDARD REGULAR (Bills)
+  const standardBills = input.buckets.filter((b) => b.type === "REGULAR" && !b.isEssential);
+  fundRegularBills(standardBills);
+
+  // Helper for GOAL targets
   const fundGoals = (bucketsList: EngineBucket[]) => {
     for (const bucket of bucketsList) {
       const target = bucket.targetAmount ?? 0;
@@ -136,7 +123,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
       }
 
       const monthlyTarget = gap / monthsRemaining;
-      const needed = Math.max(0, Number((monthlyTarget * (input.paycheckFrequencyDays / 30.4375)).toFixed(2)));
+      const needed = Math.max(0, Number(((monthlyTarget * 12) / paychecksPerYear).toFixed(2)));
       const allocated = Math.min(remaining, needed);
       remaining = Number((remaining - allocated).toFixed(2));
 
@@ -155,11 +142,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   };
 
-  // Step 2: GOAL (Committed)
+  // Step 3: GOAL (Committed)
   const goalCommitted = input.buckets.filter((b) => b.type === "GOAL" && b.isCommitted);
   fundGoals(goalCommitted);
 
-  // Step 3: EVERYDAY Top-Up Cap
+  // Step 4: EVERYDAY Top-Up Cap
   const everydayBuckets = input.buckets.filter((b) => b.type === "EVERYDAY");
   for (const bucket of everydayBuckets) {
     const targetCap = bucket.targetAmount ?? bucket.monthlyAmount ?? 0;
@@ -171,7 +158,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
     if (existingIndex >= 0) {
       lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
-      lines[existingIndex]!.reasoning += ` Plus Everyday top-up allocation of $${allocated.toFixed(2)} (target cap $${targetCap.toFixed(2)}).`;
+      lines[existingIndex]!.reasoning += ` Plus Everyday top-up of $${allocated.toFixed(2)}.`;
     } else {
       lines.push({
         bucketId: bucket.id,
@@ -182,7 +169,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   }
 
-  // Step 4: GOAL (Uncommitted) & Surplus Sweep to Default Excess Bucket
+  // Step 5: GOAL (Uncommitted) & Residual Sweep to Default Excess Bucket
   const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted);
   fundGoals(goalUncommitted);
 
@@ -205,7 +192,6 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   }
 
-  // If we couldn't allocate needed targets, status is INSUFFICIENT
   const isInsufficient = input.incomeAmount > 0 && lines.some((l) => l.proposedAmount === 0 && l.bucketId !== excessBucket?.id);
 
   return {
@@ -214,4 +200,3 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     unallocatedAmount: remaining,
   };
 }
-
