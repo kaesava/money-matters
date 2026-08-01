@@ -37,9 +37,25 @@ export default {
       });
     }
 
-    // 2. Handle Inngest Webhook Endpoint
+    // 2. Handle Health Check Endpoint
+    if (url.pathname === '/health') {
+      return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    // 3. Handle Inngest Webhook Endpoint
     if (url.pathname.startsWith('/api/inngest')) {
-      const inngestHandler = serve({ client: inngest, functions, servePath: '/api/inngest' }) as unknown as (
+      const inngestHandler = serve({
+        client: inngest,
+        functions,
+        servePath: '/api/inngest',
+        signingKey: env.INNGEST_SIGNING_KEY,
+      }) as unknown as (
         request: Request,
         env: Record<string, string | undefined>,
         ctx?: { waitUntil: (promise: Promise<unknown>) => void }

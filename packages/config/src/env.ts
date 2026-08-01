@@ -22,6 +22,7 @@ const envSchema = z.object({
   STORAGE_REGION: z.string().optional().default("auto"),
   STORAGE_BUCKET_NAME: z.string().optional(),
   EXPO_PUBLIC_NEON_AUTH_URL: z.string().optional(),
+  SENTRY_DSN: z.string().optional(),
 });
 
 let envCache: z.infer<typeof envSchema> | null = null;

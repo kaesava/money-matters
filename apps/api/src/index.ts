@@ -9,6 +9,7 @@ import { functions } from "./inngest/index.js";
 import { serve } from "inngest/fastify";
 import { validateEnv } from '@money-matters/config';
 import { correlationIdHook, rateLimiter } from '@money-matters/core';
+import * as Sentry from "@sentry/node";
 
 const env = validateEnv();
 
@@ -37,8 +38,16 @@ const ALLOWED_ORIGINS = [
     : []),
 ];
 
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "production",
+    tracesSampleRate: 0.1,
+  });
+}
+
 server.register(cors, {
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
@@ -48,6 +57,10 @@ server.register(cors, {
   credentials: true,
 });
 
+server.get('/health', async () => {
+  return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
 server.register(fastifyTRPCPlugin, {
   prefix: '/trpc',
   trpcOptions: { router: appRouter, createContext },
@@ -55,7 +68,11 @@ server.register(fastifyTRPCPlugin, {
 
 server.route({
   method: ["GET", "POST", "PUT"],
-  handler: serve({ client: inngest, functions }) as any,
+  handler: serve({
+    client: inngest,
+    functions,
+    signingKey: process.env.INNGEST_SIGNING_KEY,
+  }) as any,
   url: "/api/inngest",
 });
 

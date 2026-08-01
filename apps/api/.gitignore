@@ -1,0 +1,14 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.turbo/
+.expo/
+coverage/
+# Environment secrets — never commit
+.env
+.env.local
+.env.development
+.env.production
+.aider*

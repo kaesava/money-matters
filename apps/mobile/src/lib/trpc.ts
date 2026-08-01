@@ -33,6 +33,11 @@ export function buildTrpcClient() {
               signal: controller.signal,
             });
             clearTimeout(timeoutId);
+            const contentType = res.headers.get("content-type");
+            if (contentType && !contentType.includes("application/json") && !res.ok) {
+              const text = await res.text();
+              console.error(`[tRPC fetch error] Server returned HTTP ${res.status} non-JSON response from ${url}:`, text.slice(0, 300));
+            }
             return res;
           } catch (error) {
             clearTimeout(timeoutId);

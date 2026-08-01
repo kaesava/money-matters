@@ -14,12 +14,12 @@ export async function registerPushNotificationsAsync(): Promise<string | null> {
 
   try {
     const Notifications = await import('expo-notifications');
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+    const permRes = await Notifications.getPermissionsAsync();
+    let finalStatus = (permRes as any).status;
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    if (finalStatus !== 'granted') {
+      const reqRes = await Notifications.requestPermissionsAsync();
+      finalStatus = (reqRes as any).status;
     }
 
     if (finalStatus !== 'granted') {

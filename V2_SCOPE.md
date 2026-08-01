@@ -16,6 +16,8 @@
 | **Offline-first sync logic** | Simplifies initial scope; SQLite queue schema scaffolded | All mutations accept `idempotencyKey`; SQLite schema built |
 | **Savings reconciliation — AI auto-spread** | Premium tier | Reconciliation service abstracted behind interface |
 | **Stripe / subscription payments** | No premium tier initially | Feature flag `premiumEnabled` on Household |
+| **Uptime Monitoring (Better Stack / UptimeRobot)** | Deferred to Release 2 | Automated ping checks on `/health` and Web frontend |
+| **Product Analytics (PostHog)** | Deferred to Release 2 | Privacy-friendly event tracking for onboarding & allocations |
 
 ---
 

@@ -24,7 +24,8 @@
       "pnpmVersion": "9.0.0",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.moneymatters.kaesava.au",
-        "EXPO_PUBLIC_NEON_AUTH_URL": "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
+        "EXPO_PUBLIC_NEON_AUTH_URL": "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://27ea5775ad9c84eab2681df6094d2b6c@o4511408239738880.ingest.us.sentry.io/4511834230685696"
       }
     }
   },
