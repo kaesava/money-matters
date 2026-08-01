@@ -23,6 +23,7 @@
     "@types/node": "20.14.9",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
+    "connect": "^3.7.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-plugin-react": "^7.37.5",

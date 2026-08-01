@@ -22,54 +22,55 @@ export interface WorkerEnv {
 
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    // 1. Handle CORS Preflight
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, trpc-accept, x-correlation-id',
-          'Access-Control-Max-Age': '86400',
-        },
-      });
-    }
+      // 1. Handle CORS Preflight
+      if (request.method === 'OPTIONS') {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, trpc-accept, x-correlation-id',
+            'Access-Control-Max-Age': '86400',
+          },
+        });
+      }
 
-    // 2. Handle Health Check Endpoint
-    if (url.pathname === '/health') {
-      return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
-    }
+      // 2. Handle Health Check Endpoint
+      if (url.pathname === '/health') {
+        return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
 
-    // 3. Handle Inngest Webhook Endpoint
-    if (url.pathname.startsWith('/api/inngest')) {
-      const inngestHandler = serve({
-        client: inngest,
-        functions,
-        servePath: '/api/inngest',
-        signingKey: env.INNGEST_SIGNING_KEY,
-      }) as unknown as (
-        request: Request,
-        env: Record<string, string | undefined>,
-        ctx?: { waitUntil: (promise: Promise<unknown>) => void }
-      ) => Promise<Response>;
-      return inngestHandler(request, env as unknown as Record<string, string | undefined>, ctx);
-    }
+      // 3. Handle Inngest Webhook Endpoint
+      if (url.pathname.startsWith('/api/inngest')) {
+        const inngestHandler = serve({
+          client: inngest,
+          functions,
+          servePath: '/api/inngest',
+          signingKey: env.INNGEST_SIGNING_KEY,
+        }) as unknown as (
+          request: Request,
+          env: Record<string, string | undefined>,
+          ctx?: { waitUntil: (promise: Promise<unknown>) => void }
+        ) => Promise<Response>;
+        return inngestHandler(request, env as unknown as Record<string, string | undefined>, ctx);
+      }
 
-    // 3. Handle Password Reset HTML Endpoint
-    if (url.pathname === '/reset-password') {
-      const token = url.searchParams.get('token') || '';
-      const error = url.searchParams.get('error') || '';
-      const redirectTo = url.searchParams.get('redirect_to') || 'moneymatters://reset-password';
+      // 4. Handle Password Reset HTML Endpoint
+      if (url.pathname === '/reset-password') {
+        const token = url.searchParams.get('token') || '';
+        const error = url.searchParams.get('error') || '';
+        const redirectTo = url.searchParams.get('redirect_to') || 'moneymatters://reset-password';
 
-      const html = `<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -105,29 +106,53 @@ export default {
 </body>
 </html>`;
 
-      return new Response(html, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        return new Response(html, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      }
+
+      // 5. Handle tRPC Requests
+      if (url.pathname.startsWith('/trpc')) {
+        const response = await fetchRequestHandler({
+          endpoint: '/trpc',
+          req: request,
+          router: appRouter,
+          createContext: createEdgeContext,
+          onError: ({ error, path }) => {
+            console.error(`[tRPC Error] path '${path}':`, error);
+          },
+        });
+
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set('Access-Control-Allow-Origin', '*');
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: newHeaders,
+        });
+      }
+
+      return new Response(JSON.stringify({ error: 'Route not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
+    } catch (err: any) {
+      console.error('[WORKER UNCAUGHT ERROR]', err);
+      return new Response(
+        JSON.stringify({
+          error: {
+            message: err?.message || 'Internal Server Error',
+            code: 'INTERNAL_SERVER_ERROR',
+          },
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
     }
-
-    // 4. Handle tRPC Requests
-    if (url.pathname.startsWith('/trpc')) {
-      const response = await fetchRequestHandler({
-        endpoint: '/trpc',
-        req: request,
-        router: appRouter,
-        createContext: createEdgeContext,
-      });
-
-      const newHeaders = new Headers(response.headers);
-      newHeaders.set('Access-Control-Allow-Origin', '*');
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders,
-      });
-    }
-
-    return new Response('Not Found', { status: 404 });
   },
 };
