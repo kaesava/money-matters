@@ -12,15 +12,42 @@ export async function PUT(req: NextRequest) {
   return handleProxy(req);
 }
 
+let cachedActiveBase: string | null = null;
+let lastProbeTime = 0;
+
+async function resolveApiBase(): Promise<string> {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.trim().replace(/\/+$/, "").replace(/\/trpc$/, "");
+  }
+
+  const now = Date.now();
+  if (cachedActiveBase && now - lastProbeTime < 10000) {
+    return cachedActiveBase;
+  }
+
+  const candidatePorts = [4000, 4001, 4002, 4003];
+  for (const port of candidatePorts) {
+    try {
+      const res = await fetch(`http://localhost:${port}/health`, { signal: AbortSignal.timeout(500) });
+      if (res.ok) {
+        cachedActiveBase = `http://localhost:${port}`;
+        lastProbeTime = now;
+        return cachedActiveBase;
+      }
+    } catch {
+      // Continue probing next port
+    }
+  }
+
+  return "http://localhost:4000";
+}
+
 async function handleProxy(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/api\/trpc/, "");
-    const rawBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-    let apiBase = rawBase.trim().replace(/\/+$/, "");
-    if (apiBase.endsWith("/trpc")) {
-      apiBase = apiBase.slice(0, -5);
-    }
+    const apiBase = await resolveApiBase();
     const targetUrl = `${apiBase}/trpc${path}${url.search}`;
 
     const headers = new Headers();
