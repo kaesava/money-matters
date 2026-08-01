@@ -1,4 +1,4 @@
-import { tenantProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, requiresWriteAccess, requiresPaidTier } from '../trpc/trpc.js';
 import {
   recordExpenseCommand,
   listTransactionsQuery,
@@ -19,6 +19,7 @@ export const transactionsRouter = {
   recordExpense: tenantProcedure
     .input(RecordExpenseCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
@@ -43,7 +44,9 @@ export const transactionsRouter = {
 
   parseCsv: tenantProcedure
     .input(BankCsvImportInputSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'csv_import');
       return parseBankCsv(input.csvText);
     }),
 

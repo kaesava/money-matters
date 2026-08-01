@@ -125,6 +125,84 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="bg-zinc-100/70 border-t border-[#e2e4e0] py-20">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col items-center gap-12">
+          <div className="text-center max-w-xl">
+            <h2 className="text-3xl font-bold tracking-tight text-[#1B2B4B] mb-3">
+              Simple, transparent pricing
+            </h2>
+            <p className="text-zinc-600 text-sm leading-relaxed">
+              Start with a 30-day full Household trial — no credit card required. Continue on the Free plan or upgrade anytime.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 w-full max-w-3xl">
+            {/* Free Tier */}
+            <div className="bg-white rounded-2xl p-8 border border-[#e2e4e0] shadow-sm flex flex-col justify-between">
+              <div className="flex flex-col gap-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Free Plan</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-[#1B2B4B]">$0</span>
+                  <span className="text-sm text-zinc-500">/ forever</span>
+                </div>
+                <ul className="flex flex-col gap-3 text-sm text-zinc-600 mt-4">
+                  <li className="flex items-center gap-2">✓ Full 5-step waterfall engine</li>
+                  <li className="flex items-center gap-2">✓ 90 days transaction history</li>
+                  <li className="flex items-center gap-2">✓ Up to 3 savings goals</li>
+                  <li className="flex items-center gap-2">✓ Smart notifications & due alerts</li>
+                  <li className="flex items-center gap-2 text-zinc-400 line-through">
+                    ✗ CSV bank import (CBA, Westpac, ANZ, NAB, ING, Macq)
+                  </li>
+                  <li className="flex items-center gap-2 text-zinc-400 line-through">
+                    ✗ File notes & attachments
+                  </li>
+                </ul>
+              </div>
+              <button
+                onClick={() => router.push("/sign-up")}
+                className="w-full mt-8 py-3 rounded-xl border border-zinc-300 font-bold text-zinc-700 hover:bg-zinc-50 text-sm transition-colors"
+              >
+                Get Started Free
+              </button>
+            </div>
+
+            {/* Household Tier */}
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#2563eb] shadow-lg flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                POPULAR
+              </div>
+              <div className="flex flex-col gap-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2563eb]">Household Plan</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-extrabold text-[#1B2B4B]">$9.99</span>
+                  <span className="text-sm text-zinc-500">AUD / mo  or  $89 / yr</span>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 font-semibold">
+                  🏷️ Founding member: $69/year locked for life (first 100 users)
+                </div>
+
+                <ul className="flex flex-col gap-3 text-sm text-zinc-700 font-medium mt-2">
+                  <li className="flex items-center gap-2 text-[#2563eb]">✓ Full transaction history</li>
+                  <li className="flex items-center gap-2 text-[#2563eb]">✓ Unlimited savings goals</li>
+                  <li className="flex items-center gap-2 text-[#2563eb]">✓ CSV bank statement import</li>
+                  <li className="flex items-center gap-2 text-[#2563eb]">✓ File notes & receipt attachments</li>
+                  <li className="flex items-center gap-2">✓ Full 5-step waterfall engine</li>
+                  <li className="flex items-center gap-2">✓ Smart notifications & due alerts</li>
+                </ul>
+              </div>
+              <button
+                onClick={() => router.push("/sign-up")}
+                className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md text-sm transition-colors"
+              >
+                Start 30-Day Free Trial
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Security & Privacy Assurance Banner */}
       <section className="bg-white border-y border-[#e2e4e0] py-16">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">

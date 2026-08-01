@@ -14,6 +14,7 @@ money-matters/
 │   └── web/           # Next.js App Router on Cloudflare Workers (`moneymatters.kaesava.au`)
 ├── packages/
 │   ├── capabilities/  # Decoupled vertical slice business logic
+│   │   ├── billing/         # Subscription state machine, Stripe checkout & portal, webhook processor
 │   │   ├── budgeting/       # 5-step waterfall cascade calculation & allocation engine
 │   │   ├── file-notes/      # Notes & attachments via Cloudflare R2
 │   │   ├── notifications/   # Expo push & 6 scheduled Inngest background jobs

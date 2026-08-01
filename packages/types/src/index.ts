@@ -48,14 +48,14 @@ export const TenantSchema = BaseSchema.extend({
   fyEndMonthDay: z.string().regex(/^\d{2}-\d{2}$/).default("06-30"),
   premiumEnabled: z.boolean().default(false),
   subscriptionStatus: SubscriptionStatus.default("TRIAL_ACTIVE"),
-  trialStartedAt: z.date().nullable(),
-  trialEndsAt: z.date().nullable(),
-  trialGraceEndsAt: z.date().nullable(),
-  stripeCustomerId: z.string().nullable(),
-  stripeSubscriptionId: z.string().nullable(),
-  stripePriceId: z.string().nullable(),
-  subscribedAt: z.date().nullable(),
-  subscriptionEndsAt: z.date().nullable(),
+  trialStartedAt: z.date().nullable().default(null),
+  trialEndsAt: z.date().nullable().default(null),
+  trialGraceEndsAt: z.date().nullable().default(null),
+  stripeCustomerId: z.string().nullable().default(null),
+  stripeSubscriptionId: z.string().nullable().default(null),
+  stripePriceId: z.string().nullable().default(null),
+  subscribedAt: z.date().nullable().default(null),
+  subscriptionEndsAt: z.date().nullable().default(null),
 }).strict();
 
 /**

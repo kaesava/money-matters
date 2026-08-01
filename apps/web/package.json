@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@money-matters/capability-billing": "workspace:*",
     "@money-matters/capability-budgeting": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",
     "@money-matters/i18n": "workspace:^",

@@ -18,6 +18,11 @@ export interface WorkerEnv {
   INNGEST_SIGNING_KEY?: string;
   INNGEST_EVENT_KEY?: string;
   RESEND_API_KEY?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_PRICE_MONTHLY?: string;
+  STRIPE_PRICE_ANNUAL?: string;
+  STRIPE_PRICE_FOUNDING_ANNUAL?: string;
 }
 
 export default {
@@ -62,6 +67,28 @@ export default {
           ctx?: { waitUntil: (promise: Promise<unknown>) => void }
         ) => Promise<Response>;
         return inngestHandler(request, env as unknown as Record<string, string | undefined>, ctx);
+      }
+
+      // 3.5 Handle Stripe Webhook Endpoint
+      if (url.pathname === '/webhooks/stripe' && request.method === 'POST') {
+        const signature = request.headers.get('stripe-signature');
+        if (!signature || !env.STRIPE_WEBHOOK_SECRET) {
+          return new Response(JSON.stringify({ error: 'Missing stripe-signature or webhook secret' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+
+        const rawBody = await request.text();
+        const { db: dbClient } = await import('@money-matters/db');
+        const { handleStripeWebhook } = await import('@money-matters/capability-billing');
+
+        const result = await handleStripeWebhook(rawBody, signature, env.STRIPE_WEBHOOK_SECRET, dbClient);
+
+        return new Response(JSON.stringify({ received: true, ...result }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
       }
 
       // 4. Handle Password Reset HTML Endpoint

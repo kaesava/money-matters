@@ -6,6 +6,10 @@ import { t } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
 import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
+import { TrialBanner } from "../../components/TrialBanner";
+import { TrialStatusBadge } from "../../components/TrialStatusBadge";
+import { TrialEndedModal } from "../../components/TrialEndedModal";
+
 const NAV_ITEMS = [
   {
     key: "home",
@@ -158,9 +162,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ⬡
         </span>
         {!sidebarCollapsed && (
-          <span className="text-lg font-extrabold tracking-tight text-white select-none">
-            {t("app.title")}
-          </span>
+          <div className="flex items-center justify-between flex-1">
+            <span className="text-lg font-extrabold tracking-tight text-white select-none">
+              {t("app.title")}
+            </span>
+            <TrialStatusBadge />
+          </div>
         )}
       </div>
 
@@ -281,6 +288,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Main Layout Wrapper ── */}
       <div className="flex-1 flex flex-col min-w-0">
+        <TrialBanner />
+        <TrialEndedModal />
+
         {/* Sticky top headers - Mobile only */}
         <header
           style={{ backgroundColor: "var(--dash-navy)" }}

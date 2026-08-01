@@ -118,6 +118,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   });
 
   // 1. Tenant
+  const now = new Date();
   const [household] = await db
     .insert(tenants)
     .values({
@@ -125,6 +126,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       name: "Kaesava Household",
       fyEndMonthDay: "06-30",
       premiumEnabled: true,
+      subscriptionStatus: "TRIAL_ACTIVE",
+      trialStartedAt: now,
+      trialEndsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+      trialGraceEndsAt: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
       tenantId,
       appId,
       createdBy: userId,

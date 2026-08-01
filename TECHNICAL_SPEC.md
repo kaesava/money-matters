@@ -40,6 +40,7 @@ money-matters/
 │   └── web/           # Next.js web app on Cloudflare Workers via OpenNext (`wrangler.jsonc`)
 ├── packages/
 │   ├── capabilities/
+│   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD
 │   │   ├── budgeting/       # 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus)
 │   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator & spending velocity
@@ -130,3 +131,10 @@ households (tenant)
 - **Automated Workflows (`.github/workflows/`)**:
   - `ci.yml`: Runs on PR and push to `main` (Lint, Typecheck, Vitest unit tests).
   - `deploy.yml`: Runs on merge to `main` (Executes `wrangler deploy` for `apps/web` and `apps/api`).
+
+---
+
+## 7. Future Architecture & Performance Roadmap (Release 2 / R2)
+
+- **`tenantProcedure` Performance Caching**: Adding `getSubscriptionStatus` database queries to every tRPC `tenantProcedure` invocation adds ~1–2ms overhead per request on Neon serverless PostgreSQL. While completely acceptable at V1 launch scale, if database query latency becomes a bottleneck under high concurrent request volume, subscription status resolution can be cached in Upstash Redis using a tenant-scoped cache key (e.g., `tenant:sub_status:<tenantId>`) with a 5-minute TTL, invalidating immediately on Stripe webhooks (`checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted`).
+

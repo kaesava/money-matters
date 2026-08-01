@@ -1,4 +1,4 @@
-import { tenantProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, requiresWriteAccess, requiresPaidTier } from '../trpc/trpc.js';
 import {
   listFileNotesHandler,
   getFileNoteDownloadUrlHandler,
@@ -43,6 +43,8 @@ export const fileNotesRouter = {
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'file_notes');
       const handler = createPreSignedUploadUrlHandler();
       return await handler(input, ctx.tenantId!);
     }),
@@ -64,6 +66,8 @@ export const fileNotesRouter = {
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'file_notes');
       const handler = createFileNoteHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),

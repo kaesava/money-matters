@@ -27,7 +27,12 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
     // so we can set tenantId = id (the tenant is its own tenant scope).
     const tenantId = crypto.randomUUID();
 
-    // 1. Insert the tenant with tenantId = its own id
+    const now = new Date();
+    const trialStartedAt = now;
+    const trialEndsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const trialGraceEndsAt = new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000);
+
+    // 1. Insert the tenant with tenantId = its own id and initial trial state
     await db
       .insert(tenants)
       .values({
@@ -35,6 +40,10 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
         tenantId: tenantId, // tenantId = tenantId ✓ (not userId)
         appId,
         name: input.name,
+        subscriptionStatus: "TRIAL_ACTIVE",
+        trialStartedAt,
+        trialEndsAt,
+        trialGraceEndsAt,
         createdBy: userId,
         updatedBy: userId,
       });

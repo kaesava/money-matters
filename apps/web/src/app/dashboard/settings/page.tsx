@@ -63,6 +63,32 @@ export default function SettingsPage() {
         </section>
       )}
 
+      {/* Subscription Card */}
+      <section className="flex flex-col gap-2">
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+          Subscription & Plan
+        </p>
+        <div
+          className="p-4 rounded-xl flex flex-col gap-3"
+          style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-zinc-500">Current Plan</p>
+              <p className="text-base font-extrabold text-[#1B2B4B] mt-0.5">
+                {userPrefQuery.data ? "Household Plan (Trial / Active)" : "Free Plan"}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/subscription/upgrade")}
+              className="px-3 py-1.5 bg-[#2563eb] text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              Upgrade / Manage
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* User Preferences & Timezone Card */}
       <section className="flex flex-col gap-2">
         <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>

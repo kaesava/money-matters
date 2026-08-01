@@ -8,6 +8,7 @@ const PUBLIC_PREFIXES = [
   "/reset-password",
   "/invite/",
   "/api/",
+  "/subscription/",
 ];
 
 export function middleware(request: NextRequest) {
@@ -44,5 +45,5 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Only run on protected paths — do NOT apply to _next static assets
-  matcher: ["/dashboard/:path*", "/setup/:path*"],
+  matcher: ["/dashboard/:path*", "/setup/:path*", "/subscription/:path*"],
 };

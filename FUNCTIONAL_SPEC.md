@@ -1,13 +1,15 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-01  
-> **Status:** Fully synchronized with Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Partner Access MVP, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, and Support Contact.
+> **Last updated:** 2026-08-02  
+> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, and Support Contact.
 
 ---
 
 ## 1. Overview & Core Philosophy
 
 Money Matters is a forward-looking allocation budget app designed for Australian households and families.
+- **Freemium Commercial Model**: 30-day full Household trial on sign-up (no credit card required). Expired trials enter a 7-day read-only grace period before dropping to the permanent Free plan. Users can upgrade anytime to the Household plan ($9.99/mo or $89/yr, with a $69/yr founding member launch price).
+- **Free Tier vs Household Plan**: Free plan retains core waterfall allocation, 90 days transaction history, and up to 3 Goal categories. Household plan unlocks full transaction history, unlimited Goal categories, Big 4 AU Bank CSV statement import, and file notes/attachments.
 - **Everyday Pool**: Single aggregated discretionary spending pool per tenant (groceries, dining, transport, personal).
 - **Unified Bills Pool**: Single aggregated pool for all recurring fixed and semi-fixed obligations (mortgage/rent, utilities, insurance, phone/internet, subscriptions). Sub-categories serve as setup estimation sliders and transaction tags without maintaining separate envelope buckets. Automatic roll-over leaves leftover bills money in the pool, reducing the required top-up on the next paycheck.
 - **Due-Date Guardrail Engine**: Background check evaluating whether upcoming bills in the next 14 days exceed the current Bills Pool balance. Displays a calm amber card on the Dashboard if a shortfall is detected.
