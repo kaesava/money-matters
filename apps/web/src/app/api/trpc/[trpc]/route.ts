@@ -16,8 +16,11 @@ async function handleProxy(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/api\/trpc/, "");
-    // Resolve API target base dynamically from environment variable
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const rawBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    let apiBase = rawBase.trim().replace(/\/+$/, "");
+    if (apiBase.endsWith("/trpc")) {
+      apiBase = apiBase.slice(0, -5);
+    }
     const targetUrl = `${apiBase}/trpc${path}${url.search}`;
 
     const headers = new Headers();
