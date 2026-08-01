@@ -18,7 +18,7 @@ import { DESIGN_TOKENS } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
-import * as Notifications from "expo-notifications";
+import { registerPushNotificationsAsync } from "../../lib/push";
 
 const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://kesh-imac.tail09ef18.ts.net";
 
@@ -55,13 +55,11 @@ export default function SignInScreen() {
       
       // Request and register push notifications token asynchronously
       try {
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status === 'granted') {
-          const expoToken = await Notifications.getExpoPushTokenAsync();
-          // We can call registerToken tRPC mutator (fire-and-forget)
+        const tokenData = await registerPushNotificationsAsync();
+        if (tokenData) {
           registerToken.mutate({
             platform: Platform.OS === 'ios' ? 'ios' : 'android',
-            token: expoToken.data,
+            token: tokenData,
           });
         }
       } catch (pushErr) {
