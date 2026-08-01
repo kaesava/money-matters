@@ -57,10 +57,6 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="reconcile"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{ href: null }}
       />
@@ -70,10 +66,6 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="settings/bank-accounts"
-        options={{ href: null }}
-      />
-      <Tabs.Screen
-        name="settings/categories"
         options={{ href: null }}
       />
       <Tabs.Screen

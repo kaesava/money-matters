@@ -23,10 +23,12 @@ export default function TransactionsScreen() {
   const categories = categoriesQuery.data ?? [];
 
   // Filter & Sort State
-  const [searchQuery, setSearchQuery] = useState(params.search ?? '');
+  const [searchQuery, setSearchQuery] = useState(
+    params.search && params.search !== 'undefined' ? params.search : ''
+  );
 
   React.useEffect(() => {
-    if (params.search !== undefined) {
+    if (params.search !== undefined && params.search !== 'undefined') {
       setSearchQuery(params.search);
     }
   }, [params.search]);
@@ -54,12 +56,12 @@ export default function TransactionsScreen() {
 
   // Filter Logic
   const filtered = transactions.filter((tx) => {
-    const q = searchQuery.toLowerCase().trim();
+    const q = searchQuery && searchQuery !== 'undefined' ? searchQuery.toLowerCase().trim() : '';
     if (
       q &&
       !tx.note?.toLowerCase().includes(q) &&
       !tx.categoryName?.toLowerCase().includes(q) &&
-      !tx.amount.includes(q)
+      !String(tx.amount || '').includes(q)
     ) {
       return false;
     }
