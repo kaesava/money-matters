@@ -31,7 +31,7 @@ export const PartnerReferralCard: React.FC = () => {
           <h3 className="text-base font-extrabold tracking-tight">Invite Household Partner</h3>
         </div>
         <p className="text-xs text-blue-200 max-w-md leading-relaxed">
-          Manage your household's 3-bucket waterfall budget together. Give your partner full read/write visibility.
+          Manage your household&apos;s 3-bucket waterfall budget together. Give your partner full read/write visibility.
         </p>
       </div>
 

@@ -31,7 +31,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
         };
       }
     } catch (err) {
-      logger.error({ err }, "Database session lookup failed");
+      logger.error("Database session lookup failed", { err });
     }
   }
 

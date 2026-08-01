@@ -8,15 +8,15 @@ import { inngest } from "./inngest/client.js";
 import { functions } from "./inngest/index.js";
 import { serve } from "inngest/fastify";
 import { validateEnv } from '@money-matters/config';
-import { logger, correlationIdHook, rateLimiter } from '@money-matters/core';
+import { correlationIdHook, rateLimiter } from '@money-matters/core';
 
 const env = validateEnv();
 
 const server = fastify({ 
   maxParamLength: 5000,
-  logger: logger,
+  logger: true,
   disableRequestLogging: true,
-  trustProxy: true, // Required for Cloudflare proxy terminating SSL
+  trustProxy: true,
 });
 
 server.addHook("onRequest", correlationIdHook);
@@ -26,12 +26,10 @@ server.register(helmet, {
   contentSecurityPolicy: false,
 });
 
-// Explicitly allow your custom domains
 const ALLOWED_ORIGINS = [
   "https://moneymatters.kaesava.au",
   "https://www.moneymatters.kaesava.au",
   "https://api.moneymatters.kaesava.au",
-  // Legacy domains maintained for safety during migration
   "https://kaesava.au",
   "https://www.kaesava.au",
   ...(process.env["NODE_ENV"] !== "production"
@@ -57,7 +55,7 @@ server.register(fastifyTRPCPlugin, {
 
 server.route({
   method: ["GET", "POST", "PUT"],
-  handler: serve({ client: inngest, functions }),
+  handler: serve({ client: inngest, functions }) as any,
   url: "/api/inngest",
 });
 

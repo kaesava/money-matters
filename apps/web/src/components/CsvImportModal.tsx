@@ -3,6 +3,14 @@
 import React, { useState } from "react";
 import { trpc } from "../lib/trpc";
 
+interface ParsedTx {
+  date: string;
+  description: string;
+  suggestedCategoryName?: string | null;
+  flowType: "CREDIT" | "DEBIT";
+  amount: string;
+}
+
 interface CsvImportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,15 +22,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const [fileContent, setFileContent] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [parsedResults, setParsedResults] = useState<{
     bank: string;
-    transactions: any[];
+    transactions: ParsedTx[];
   } | null>(null);
 
   const parseCsvMutation = trpc.parseCsv.useMutation({
-    onSuccess: (data: { bank: string; transactions: any[] }) => {
+    onSuccess: (data: { bank: string; transactions: ParsedTx[] }) => {
       setParsedResults(data);
     },
   });
@@ -37,14 +44,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     const reader = new FileReader();
     reader.onload = (evt) => {
       const text = evt.target?.result as string;
-      setFileContent(text);
       parseCsvMutation.mutate({ csvText: text });
     };
     reader.readAsText(file);
   };
 
   const handleConfirmImport = () => {
-    // Perform bulk insertion or confirmation callback
     if (onSuccess) onSuccess();
     onClose();
   };

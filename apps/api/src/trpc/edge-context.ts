@@ -30,7 +30,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
         };
       }
     } catch (err) {
-      logger.error({ err }, 'Database session lookup failed');
+      logger.error('Database session lookup failed', { err });
     }
   }
 

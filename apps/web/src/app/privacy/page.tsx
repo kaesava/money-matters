@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
         <section className="space-y-4 text-sm leading-relaxed text-slate-700">
           <h2 className="text-lg font-bold text-slate-900">1. Overview</h2>
           <p>
-            Money Matters ("we", "our", "us") respects your privacy and is committed to protecting your personal and financial information. This Privacy Policy explains how we collect, use, store, and disclose your personal information in accordance with the Australian Privacy Principles (APPs) under the Privacy Act 1988 (Cth).
+            Money Matters (&quot;we&quot;, &quot;our&quot;, &quot;us&quot;) respects your privacy and is committed to protecting your personal and financial information. This Privacy Policy explains how we collect, use, store, and disclose your personal information in accordance with the Australian Privacy Principles (APPs) under the Privacy Act 1988 (Cth).
           </p>
 
           <h2 className="text-lg font-bold text-slate-900">2. Collection of Personal Data</h2>

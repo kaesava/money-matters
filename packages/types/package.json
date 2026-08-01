@@ -7,9 +7,9 @@
   "types": "./dist/index.js",
   "exports": {
     ".": {
+      "types": "./dist/index.js",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.js"
+      "require": "./dist/index.js"
     }
   },
   "dependencies": {

@@ -9,7 +9,6 @@ export const TenantSwitcher: React.FC = () => {
   const tenantData = tenantQuery.data;
 
   const currentTenantName = tenantData?.name || "Primary Household";
-  const userHouseholds = tenantData?.users || [];
 
   const handleSwitchTenant = (tenantId: string) => {
     localStorage.setItem("active_tenant_id", tenantId);
