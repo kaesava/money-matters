@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-08-01  
-> **Status:** Synchronized with Full Interactive Quiz Onboarding, Bank CSV Import (Big 4 AU), Partner Access MVP, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, and Support Contact.
+> **Status:** Fully synchronized with Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Partner Access MVP, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, and Support Contact.
 
 ---
 
@@ -11,14 +11,19 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 - **Everyday Pool**: Single aggregated discretionary spending pool per household (groceries, dining, transport, personal).
 - **Regular Bills**: Recurring fixed and semi-fixed obligations (mortgage/rent, utilities, insurance, phone/internet, subscriptions).
 - **Save Toward (Goals)**: Target sinking funds with target amounts and dates (emergency fund, vehicle maintenance, holidays, celebrations).
-- **5-Step Waterfall Allocation**: Automatic self-healing waterfall allocation engine on every income event.
+- **5-Step Waterfall Allocation Engine**: Automatic self-healing waterfall allocation engine on every income event:
+  1. *Deficit Repair*: Priority 1 restoring any negative bucket (`< $0`) to $0.
+  2. *Regular Bills*: Prorates monthly bill targets by paycheck frequency.
+  3. *Committed Goals*: Allocates target monthly savings contribution.
+  4. *Everyday Top-Up*: Tops up pooled Everyday discretionary balance to target cap.
+  5. *Surplus Sweep*: Sweeps residual unallocated income to the default excess category (Emergency Fund / Offset).
 - **Partner Collaboration**: Shared household context (`tenantId`) giving partners full read/write visibility.
 
 ---
 
 ## 2. Onboarding Experience (Full Interactive Quiz & Estimation Engine)
 
-The onboarding flow delivers an engaging interactive quiz (`interactive_onboarding_prompt.md`) completing in under 60 seconds with 2025/2026 ABS benchmark estimates:
+The onboarding flow delivers an engaging interactive quiz completing in under 60 seconds with 2025/2026 ABS benchmark estimates:
 
 1. **Step 1: The Income Engine**:
    - Primary take-home pay (Amount, Frequency: Weekly/Fortnightly/Monthly, Type: Salary/Business/Benefit).
@@ -61,7 +66,7 @@ The onboarding flow delivers an engaging interactive quiz (`interactive_onboardi
 ## 5. Dashboard & UI Experience (Serene Finance Design System)
 
 - **Design System ("Serene Finance")**:
-  - Color Tokens: Serene Blue (`#2563eb`), Surface Bright (`#ffffff`), Surface Dim (`#d9d9e5`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
+  - Color Tokens: Serene Blue (`#2563eb`), Primary Navy (`#1B2B4B`), Surface Bright (`#ffffff`), Surface Dim (`#F7F8FA`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
   - Typography: Inter for general UI text; **JetBrains Mono** (`financial-metric`, `tabular-nums`) for all monetary amounts.
   - Web Shell: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views.
   - Mobile Shell: Header (`TopAppBar`) + bottom tab bar (`BottomNavBar`).

@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-08-01  
-> **Status:** Synchronized with Cloudflare Workers production migration, full interactive onboarding engine, Bank CSV import capability, Serene Finance UI system, Universal Logger, Android-only mobile config, Privacy Policy, and Wave 2 security runbooks.
+> **Status:** Fully synchronized with production Cloudflare Workers architecture (`nodejs_compat`), Fastify API, Neon serverless PostgreSQL with RLS, Expo React Native Android target, OpenNext Web target, Upstash Redis rate limiting, Serene Finance UI design tokens, Universal Logger, and Vitest suite.
 
 ---
 
@@ -12,7 +12,7 @@
 | Runtime | Node.js (≥20) / Cloudflare Workers | Cloudflare Workers (`nodejs_compat`) | Edge runtime for Web & API |
 | Package Manager | pnpm | 9.0.0 | Workspace monorepo |
 | Build Orchestration | Turborepo | 2.0.14 | Turbo pipeline |
-| Language | Strict TypeScript | ^6.0.3 | Zero `any` |
+| Language | Strict TypeScript | ^6.0.3 | Zero `any`, mandatory Zod `.strict()` |
 | Web Framework | Next.js (App Router) | Cloudflare Workers via `@opennextjs/cloudflare` | Custom domain `moneymatters.kaesava.au` |
 | API Server | Fastify | Cloudflare Workers (`src/worker.ts`) | Custom domain `api.moneymatters.kaesava.au` |
 | API Layer | tRPC | ^11.18.0 | Type-safe RPC contracts |
@@ -24,8 +24,8 @@
 | File Storage | Cloudflare R2 | Cloudflare R2 | Attachments & file notes (`money-matters-production`) |
 | Async Workflows | Inngest | Inngest Cloud | 6 scheduled notification functions & background jobs |
 | Email Service | Resend | Resend API | Transactional emails & partner invites |
-| Mobile Framework | React Native / Expo | Expo SDK 54 / RN 0.81.5 | iOS / Android native apps |
-| Styling & UI | NativeWind / Vanilla CSS | Serene Finance Tokens | Standardized design tokens & JetBrains Mono for metrics |
+| Mobile Framework | React Native / Expo | Expo SDK 54 / RN 0.81.5 | Android native app |
+| Styling & UI | Serene Finance Tokens | `packages/ui` | Standardized tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`) & JetBrains Mono |
 | CI/CD Pipeline | GitHub Actions | GitHub & Cloudflare | Lint, typecheck, test, and `wrangler deploy` on push to `main` |
 
 ---
@@ -36,21 +36,20 @@
 money-matters/
 ├── apps/
 │   ├── api/           # Fastify server on Cloudflare Workers (`wrangler.toml`)
-│   ├── mobile/        # Expo React Native app (iOS/Android)
+│   ├── mobile/        # Expo React Native app (Android target)
 │   └── web/           # Next.js web app on Cloudflare Workers via OpenNext (`wrangler.jsonc`)
 ├── packages/
 │   ├── capabilities/
-│   │   ├── tenant/          # Household creation, partner invite (invitePartner/acceptInvite), bank account CRUD
-│   │   ├── budgeting/       # 3-bucket waterfall & allocation engine (Deficit Repair, Regular, Goal, Everyday)
-│   │   ├── transactions/    # Daily ledger, canAfford calculator & spending velocity
-│   │   ├── import/          # Bank CSV parser (CBA, Westpac, ANZ, NAB, ING, Macquarie) & auto-categorization
+│   │   ├── tenant/          # Household creation, partner invite, bank account CRUD
+│   │   ├── budgeting/       # 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus)
+│   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator & spending velocity
 │   │   ├── notifications/   # Expo push + 6 scheduled Inngest functions (payday, bill, overdue, digest, goal, velocity)
 │   │   └── file-notes/      # Notes, comments, attachments via Cloudflare R2
-│   ├── core/          # DB client, logger, auth session resolver, rate limiter, correlation ID hook
+│   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags
 │   ├── db/            # Drizzle schemas (`app_categories`, `user_preferences` JSONB), migrations & seeds
 │   ├── i18n/          # Centralized dictionary & type-safe t() helper
-│   ├── types/         # Zod domain contracts, setup presets, status state machines, CSV import types
+│   ├── types/         # Zod domain contracts, setup presets, status state machines, CSV import DTOs
 │   └── ui/            # Serene Finance UI components & design tokens
 ```
 
@@ -64,16 +63,17 @@ money-matters/
   - Neon Auth (Better Auth) JWT & cookie session verification in Fastify (`apps/api/src/index.ts`) & Next.js middleware (`apps/web/src/middleware.ts`).
   - Strict CORS limited to `*.kaesava.au` and `localhost` (dev).
   - Fastify Helmet enabled for security headers.
+  - Upstash Redis sliding-window rate limiting on public endpoints.
+  - Zero PII logging automatically enforced in `@money-matters/core` logger.
   - Credential security: All secrets managed via environment variables (Cloudflare Secrets & GitHub Secrets); `.env` ignored.
 - **Partner Invitation MVP**: Owner creates invite token -> sends email via Resend -> partner accepts at `/invite/[token]` -> linked to `tenantId` with full read/write permissions.
-- **App Preferences Storage**: `user_preferences.app_preferences` JSONB blob keyed by `appId` (e.g. `{ "01908bde-...": { "quick_actions_collapsed": true } }`).
-- **Template Category Seeding**: `app_categories` table stores master templates. On new tenant creation, `createTenantHandler` copies `app_categories` rows into `categories` for the new `tenantId`.
+- **App Preferences Storage**: `user_preferences.app_preferences` JSONB blob keyed by `appId`.
 
 ---
 
 ## 4. Canonical Data Model
 
-### 4.1 Entity Relationship Diagram
+All persistent tables include: `id`, `tenantId`, `appId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`, `archivedBy`.
 
 ```
 households (tenant)
@@ -107,7 +107,7 @@ households (tenant)
 4. **`EVERYDAY` top-up cap**: Tops up pooled Everyday balance to target cap.
 5. **`GOAL` uncommitted / Surplus sweep**: Sweeps residual income to default excess category.
 
-### 5.3 Bank CSV Import Engine (`@money-matters/capability-import`)
+### 5.3 Bank CSV Import Engine (`@money-matters/capability-transactions`)
 - Parses CSV exports from CBA, Westpac, ANZ, NAB, ING, and Macquarie.
 - Rule-based merchant/description matching to automatically map transactions to existing tenant categories.
 - Deduplication via transaction date, amount, and description hash.
@@ -130,4 +130,3 @@ households (tenant)
 - **Automated Workflows (`.github/workflows/`)**:
   - `ci.yml`: Runs on PR and push to `main` (Lint, Typecheck, Vitest unit tests).
   - `deploy.yml`: Runs on merge to `main` (Executes `wrangler deploy` for `apps/web` and `apps/api`).
-

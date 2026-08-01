@@ -153,7 +153,7 @@ export function parseBankCsv(csvContent: string): { bank: string; transactions: 
         }
       } 
       // ING / ANZ 2-column amounts: Date, Description, Credit, Debit
-      else if (tokens.length >= 4 && (tokens[2].includes(".") || tokens[3].includes("."))) {
+      else if (bankName === "ING / ANZ" || (tokens.length >= 4 && !isNaN(parseFloat(tokens[2])) && !isNaN(parseFloat(tokens[3])))) {
         rawDesc = tokens[1];
         const credit = tokens[2].replace(/[$,]/g, "");
         const debit = tokens[3].replace(/[$,]/g, "");
@@ -171,7 +171,7 @@ export function parseBankCsv(csvContent: string): { bank: string; transactions: 
         const secondIsNum = !isNaN(parseFloat(tokens[1].replace(/[$,-]/g, "")));
         if (secondIsNum) {
           rawAmount = tokens[1];
-          rawDesc = tokens.slice(2).join(" ");
+          rawDesc = tokens.length === 4 && !isNaN(parseFloat(tokens[3].replace(/[$,-]/g, ""))) ? tokens[2] : tokens.slice(2).join(" ");
         } else {
           rawDesc = tokens[1];
           rawAmount = tokens[2];

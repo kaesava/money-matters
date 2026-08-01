@@ -1,7 +1,7 @@
 /**
  * Monorepo UI Design System Tokens
  * 
- * Centralized design tokens governing palette colors (brand navy, teal accent, traffic light status),
+ * Centralized design tokens governing palette colors (brand navy, serene blue, teal accent, traffic light status),
  * border radii, and spatial layouts across Web and React Native Mobile applications.
  */
 export const DESIGN_TOKENS = {
@@ -9,6 +9,7 @@ export const DESIGN_TOKENS = {
     // Brand Colors
     primary: "#1B2B4B",     // Deep Navy
     onPrimary: "#FFFFFF",
+    sereneBlue: "#2563eb",  // Serene Blue
     accent: "#00B4A6",      // Warm Teal
     onAccent: "#FFFFFF",
     
@@ -24,6 +25,7 @@ export const DESIGN_TOKENS = {
     success: "#22C55E",     // Green (On Track / Income)
     warning: "#F59E0B",     // Amber (At Risk)
     critical: "#EF4444",    // Red (Underfunded / Expense)
+    burnRed: "#ba1a1a",     // Deep Burn Red
 
     // Neutral Text Colors
     textPrimary: "#1B2B4B",
@@ -44,4 +46,3 @@ export const DESIGN_TOKENS = {
     sectionGap: 24
   }
 } as const;
-
