@@ -32,7 +32,7 @@ function getBaseUrl() {
     return cleanUrl;
   }
 
-  return "http://localhost:4000";
+  return "http://localhost:3001";
 }
 
 export function buildTrpcClient(): ReturnType<typeof trpc.createClient> {

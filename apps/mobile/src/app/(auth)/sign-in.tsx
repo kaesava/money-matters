@@ -80,7 +80,7 @@ export default function SignInScreen() {
     setLoading(true);
     try {
       const webOrigin = API_URL.includes("localhost") || API_URL.includes("127.0.0.1") || API_URL.includes("10.0.2.2")
-        ? API_URL.replace(":4000", ":3000")
+        ? API_URL.replace(":3001", ":3000")
         : API_URL;
       const result = await authClient.signIn.social({
         provider: "google",

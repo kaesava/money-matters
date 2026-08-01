@@ -33,7 +33,7 @@ async function resolveApiBase(): Promise<string> {
     return cachedActiveBase;
   }
 
-  const candidatePorts = [4000, 4001, 4002, 4003];
+  const candidatePorts = [3001, 3002, 3003, 3004];
   for (const port of candidatePorts) {
     try {
       const res = await fetch(`http://localhost:${port}/health`, { signal: AbortSignal.timeout(500) });
@@ -47,7 +47,7 @@ async function resolveApiBase(): Promise<string> {
     }
   }
 
-  return "http://localhost:4000";
+  return "http://localhost:3001";
 }
 
 async function handleProxy(req: NextRequest) {
