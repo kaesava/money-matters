@@ -174,3 +174,14 @@ export const WaterfallExecutionPayload = z.object({
   executionLockId: z.string().uuid(),
 }).strict();
 
+export const CreateCheckoutSessionCommand = z.object({
+  priceId: z.string().min(1),
+  successUrl: z.string().url(),
+  cancelUrl: z.string().url(),
+}).strict();
+
+export const CreateCustomerPortalCommand = z.object({
+  returnUrl: z.string().url(),
+}).strict();
+
+

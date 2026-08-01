@@ -28,13 +28,54 @@ export * from "./app-preferences.js";
 export * from "./onboarding-quiz.js";
 
 /**
- * Schema validating Tenant organisation details including fiscal year parameters and premium feature flags.
+ * Subscription status lifecycle state machine.
+ */
+export const SubscriptionStatus = z.enum([
+  "TRIAL_ACTIVE",
+  "TRIAL_GRACE",
+  "FREE_TIER",
+  "SUBSCRIBED",
+  "PAST_DUE",
+  "DEACTIVATED",
+]);
+export type SubscriptionStatus = z.infer<typeof SubscriptionStatus>;
+
+/**
+ * Schema validating Tenant organisation details including fiscal year parameters and subscription lifecycle.
  */
 export const TenantSchema = BaseSchema.extend({
   name: z.string().min(1),
   fyEndMonthDay: z.string().regex(/^\d{2}-\d{2}$/).default("06-30"),
   premiumEnabled: z.boolean().default(false),
+  subscriptionStatus: SubscriptionStatus.default("TRIAL_ACTIVE"),
+  trialStartedAt: z.date().nullable(),
+  trialEndsAt: z.date().nullable(),
+  trialGraceEndsAt: z.date().nullable(),
+  stripeCustomerId: z.string().nullable(),
+  stripeSubscriptionId: z.string().nullable(),
+  stripePriceId: z.string().nullable(),
+  subscribedAt: z.date().nullable(),
+  subscriptionEndsAt: z.date().nullable(),
 }).strict();
+
+/**
+ * DTO summarizing tenant subscription status and trial lifecycle flags.
+ */
+export const SubscriptionStatusDto = z.object({
+  status: SubscriptionStatus,
+  trialEndsAt: z.date().nullable(),
+  trialGraceEndsAt: z.date().nullable(),
+  subscriptionEndsAt: z.date().nullable(),
+  isTrialActive: z.boolean(),
+  isTrialGrace: z.boolean(),
+  isFreeTier: z.boolean(),
+  isSubscribed: z.boolean(),
+  isPastDue: z.boolean(),
+  isDeactivated: z.boolean(),
+  daysRemainingInTrial: z.number().nullable(),
+}).strict();
+export type SubscriptionStatusDto = z.infer<typeof SubscriptionStatusDto>;
+
 
 /**
  * Schema validating tenant membership access control, role levels, and pending invite tokens.

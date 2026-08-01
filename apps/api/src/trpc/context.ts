@@ -8,7 +8,16 @@ export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
   const authHeader = req.headers.authorization;
-  const token = authHeader?.split(" ")[1] ?? "";
+  let token = authHeader?.split(" ")[1] ?? "";
+
+  // Fallback to cookie if no Authorization bearer token is provided
+  if (!token && req.headers.cookie) {
+    const cookieHeader = req.headers.cookie;
+    const match = cookieHeader.match(/(?:better-auth\.session_token|session_token)=([^;]+)/);
+    if (match) {
+      token = match[1];
+    }
+  }
 
   let claims = await verifyJwt(token);
 

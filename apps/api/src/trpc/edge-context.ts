@@ -7,7 +7,17 @@ export const MONEY_MATTERS_APP_ID = '01908bde-34bb-7b19-a178-574211bc93aa';
 
 export async function createEdgeContext({ req, resHeaders }: FetchCreateContextFnOptions) {
   const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1] ?? '';
+  let token = authHeader?.split(' ')[1] ?? '';
+
+  if (!token) {
+    const cookieHeader = req.headers.get('cookie');
+    if (cookieHeader) {
+      const match = cookieHeader.match(/(?:better-auth\.session_token|session_token)=([^;]+)/);
+      if (match) {
+        token = match[1];
+      }
+    }
+  }
 
   let claims = await verifyJwt(token);
 

@@ -23,6 +23,15 @@ const envSchema = z.object({
   STORAGE_BUCKET_NAME: z.string().optional(),
   EXPO_PUBLIC_NEON_AUTH_URL: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
+  // Stripe payments
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_ANNUAL: z.string().optional(),
+  STRIPE_PRICE_FOUNDING_ANNUAL: z.string().optional(),
+  // PostHog product analytics
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 });
 
 let envCache: z.infer<typeof envSchema> | null = null;
