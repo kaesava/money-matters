@@ -16,4 +16,6 @@ export * from "./engine/burst-engine.js";
 export * from "./commands/override-event.command.js";
 export * from "./commands/bulk-delete-events.command.js";
 export * from "./commands/delete-upcoming-event.command.js";
+export * from "./engine/due-date-guardrail.js";
+export * from "./commands/re-setup-budget.command.js";
 export * from "./queries/preview-payday.query.js";

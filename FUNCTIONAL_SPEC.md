@@ -8,15 +8,18 @@
 ## 1. Overview & Core Philosophy
 
 Money Matters is a forward-looking allocation budget app designed for Australian households and families.
-- **Everyday Pool**: Single aggregated discretionary spending pool per household (groceries, dining, transport, personal).
-- **Regular Bills**: Recurring fixed and semi-fixed obligations (mortgage/rent, utilities, insurance, phone/internet, subscriptions).
-- **Save Toward (Goals)**: Target sinking funds with target amounts and dates (emergency fund, vehicle maintenance, holidays, celebrations).
+- **Everyday Pool**: Single aggregated discretionary spending pool per tenant (groceries, dining, transport, personal).
+- **Unified Bills Pool**: Single aggregated pool for all recurring fixed and semi-fixed obligations (mortgage/rent, utilities, insurance, phone/internet, subscriptions). Sub-categories serve as setup estimation sliders and transaction tags without maintaining separate envelope buckets. Automatic roll-over leaves leftover bills money in the pool, reducing the required top-up on the next paycheck.
+- **Due-Date Guardrail Engine**: Background check evaluating whether upcoming bills in the next 14 days exceed the current Bills Pool balance. Displays a calm amber card on the Dashboard if a shortfall is detected.
+- **Save Toward (Goals & Emergency Buffer)**: Target sinking funds with target amounts and dates (Emergency Expenses buffer, vehicle maintenance, holidays). Unscheduled or emergency expenses draw down directly from the Emergency Buffer Goal category.
 - **5-Step Waterfall Allocation Engine**: Automatic self-healing waterfall allocation engine on every income event:
-  1. *Deficit Repair*: Priority 1 restoring any negative bucket (`< $0`) to $0.
-  2. *Regular Bills*: Prorates monthly bill targets by paycheck frequency.
-  3. *Committed Goals*: Allocates target monthly savings contribution.
+  1. *Deficit Repair*: Priority 1 restoring any negative pool or category (`< $0`) to $0.
+  2. *Bills Pool Allocation*: Tops up the unified Bills Pool: `BillsTopUp = max(0, TargetBillsCap - CurrentBillsPoolBalance)`.
+  3. *Committed Goals & Emergency Buffer*: Allocates target monthly savings contribution.
   4. *Everyday Top-Up*: Tops up pooled Everyday discretionary balance to target cap.
   5. *Surplus Sweep*: Sweeps residual unallocated income to the default excess category (Emergency Fund / Offset).
+- **Settings Re-Run Budget Setup Workflow**: Preservative budget adjustment accessible via `Settings → Re-run Budget Setup`. Pre-fills current config into the wizard and presents a final **Budget Impact Review Panel** showing net monthly cap diffs (+/- $), sub-category changes, next-payday effective date notice, and Apply/Cancel controls (0 DB changes on cancel).
+- **Actionable Bank Transfer Guidance**: Actionable bank transfer prompt cards with 1-tap `[Copy Amount]` buttons when changing pool bank account links in Settings, plus a 1-tap **Payday Transfer Plan Card** post-allocation for Osko/PayID mobile banking transfers.
 - **Partner Collaboration**: Shared household context (`tenantId`) giving partners full read/write visibility.
 
 ---

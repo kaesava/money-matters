@@ -9,6 +9,8 @@ import {
   listArchivedItemsQuery,
   upsertCategoryScheduleCommand,
   moveMoneyCommand,
+  reSetupBudget,
+  evaluateBillsPoolHealth,
 } from "@money-matters/capability-budgeting";
 import {
   CreateCategoryCommand,
@@ -92,5 +94,68 @@ export const categoriesRouter = {
     .input(z.object({ year: z.number().int(), month: z.number().int().min(1).max(12) }).strict())
     .query(async ({ input, ctx }) => {
       return await getMonthlySummaryQuery(input.year, input.month, ctx.tenantId!, ctx.appId!, ctx.db);
+    }),
+
+  reSetupBudget: tenantProcedure
+    .input(z.object({
+      everydayTargetCap: z.number().nonnegative(),
+      billsTargetCap: z.number().nonnegative(),
+      categoriesList: z.array(z.object({
+        id: z.string().optional(),
+        name: z.string().min(1),
+        type: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
+        monthlyAmount: z.number().nullable().optional(),
+        targetAmount: z.number().nullable().optional(),
+        targetDate: z.string().nullable().optional(),
+        dueDate: z.string().nullable().optional(),
+        isEssential: z.boolean().optional(),
+      }).strict()),
+    }).strict())
+    .mutation(async ({ input, ctx }) => {
+      return await reSetupBudget(ctx.db, {
+        tenantId: ctx.tenantId!,
+        userId: ctx.userId!,
+        ...input,
+      });
+    }),
+
+  evaluateDueGuardrail: tenantProcedure
+    .input(z.object({
+      currentBillsPoolBalance: z.number().optional(),
+      upcomingBills: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        amount: z.number(),
+        dueDate: z.string(),
+      }).strict()).optional(),
+      lookaheadDays: z.number().optional(),
+    }).optional())
+    .query(async ({ input, ctx }) => {
+      let balance = input?.currentBillsPoolBalance;
+      let bills = input?.upcomingBills;
+
+      if (balance === undefined || bills === undefined) {
+        const categoriesList = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+        const billsCat = categoriesList.find((c: any) => c.type === 'REGULAR' || c.name.toLowerCase().includes('bill'));
+        balance = balance ?? (billsCat ? parseFloat(billsCat.currentBalance) : 0);
+
+        if (bills === undefined) {
+          const upcomingEvents = await ctx.db.query?.expenseEvents?.findMany?.({
+            where: (e: any, { eq, and }: any) => and(eq(e.tenantId, ctx.tenantId!), eq(e.status, 'UPCOMING')),
+          }) ?? [];
+          bills = upcomingEvents.map((e: any) => ({
+            id: e.id,
+            name: e.name,
+            amount: parseFloat(e.expectedAmount),
+            dueDate: e.expectedDate,
+          }));
+        }
+      }
+
+      return evaluateBillsPoolHealth({
+        currentBillsPoolBalance: balance,
+        upcomingBills: bills,
+        lookaheadDays: input?.lookaheadDays ?? 14,
+      });
     }),
 };

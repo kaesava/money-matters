@@ -44,7 +44,7 @@ MUST use stable versions. MUST document version constraints.
 
 ## 5. Multi-Tenancy & Data Isolation
 - Tenant isolation is CRITICAL.
-- All data MUST be scoped by `tenantId` (`householdId`).
+- All data MUST be scoped by `tenantId`.
 - NEVER trust client-provided tenant/user IDs.
 - Use `tenantProcedure` for all tenant logic.
 - Enforce PostgreSQL RLS (integrating with Neon DB Auth) at the database layer.

@@ -65,6 +65,19 @@ export default function SettingsBankAccountsScreen() {
         </View>
       </View>
 
+      {/* Bank Account Transfer Guidance Prompt Card */}
+      <View style={styles.promptCard}>
+        <View style={styles.promptHeader}>
+          <Text style={styles.promptIcon}>🏦</Text>
+          <View style={styles.promptTextContent}>
+            <Text style={styles.promptTitle}>Bank Account Switch Guidance</Text>
+            <Text style={styles.promptSub}>
+              When re-assigning pool bank accounts, use Osko/PayID to transfer your existing balance to align physical bank accounts with pool allocations.
+            </Text>
+          </View>
+        </View>
+      </View>
+
       {/* Accounts List */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Registered Bank Accounts ({accounts.length})</Text>
@@ -186,4 +199,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: { color: DESIGN_TOKENS.colors.textMuted, fontSize: 13 },
+  promptCard: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: DESIGN_TOKENS.radius.md,
+    padding: 14,
+    marginBottom: 20,
+  },
+  promptHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  promptIcon: {
+    fontSize: 18,
+  },
+  promptTextContent: {
+    flex: 1,
+  },
+  promptTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#78350F',
+    marginBottom: 3,
+  },
+  promptSub: {
+    fontSize: 11,
+    color: '#92400E',
+    lineHeight: 16,
+  },
 });

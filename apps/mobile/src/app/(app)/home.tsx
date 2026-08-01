@@ -130,6 +130,9 @@ export default function HomeScreen() {
   }
   combinedEvents.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
 
+  const dueGuardrailQuery = trpc.evaluateDueGuardrail.useQuery({ lookaheadDays: 14 });
+  const dueGuardrail = dueGuardrailQuery.data;
+
   return (
     <MobileScreenWrapper
       user={session?.user}
@@ -156,6 +159,21 @@ export default function HomeScreen() {
           onPressNextPay={(id) => setPaydayWizardEventId(id)}
           onSelectFilter={(health) => router.push({ pathname: '/(app)/categories', params: { health } })}
         />
+
+        {/* Due-Date Guardrail Shortfall Alert Card */}
+        {dueGuardrail && dueGuardrail.status === 'SHORTFALL_ALERT' && (
+          <View style={styles.guardrailCard}>
+            <View style={styles.guardrailHeader}>
+              <Text style={styles.guardrailIcon}>⚠️</Text>
+              <View style={styles.guardrailTextContent}>
+                <Text style={styles.guardrailTitle}>Bills Pool Payday Auto-Adjustment</Text>
+                <Text style={styles.guardrailMsg}>
+                  Upcoming bills (${dueGuardrail.requiredAmount.toFixed(2)}) due in 14 days exceed current Bills Pool balance (${dueGuardrail.currentBalance.toFixed(2)}). ${dueGuardrail.shortfallAmount.toFixed(2)} will be automatically added to your Bills top-up on next payday.
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Attention Items */}
         <AttentionItemsList items={attentionItems} onMarkPaid={handleMarkPaidItem} />
@@ -333,5 +351,35 @@ const styles = StyleSheet.create({
   },
   incomeText: {
     color: DESIGN_TOKENS.colors.success,
+  },
+  guardrailCard: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: DESIGN_TOKENS.radius.lg,
+    padding: DESIGN_TOKENS.spacing.cardPadding,
+    marginBottom: DESIGN_TOKENS.spacing.stackGap,
+  },
+  guardrailHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  guardrailIcon: {
+    fontSize: 18,
+  },
+  guardrailTextContent: {
+    flex: 1,
+  },
+  guardrailTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#78350F',
+    marginBottom: 3,
+  },
+  guardrailMsg: {
+    fontSize: 11,
+    color: '#92400E',
+    lineHeight: 16,
   },
 });

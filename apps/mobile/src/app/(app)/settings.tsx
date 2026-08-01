@@ -6,12 +6,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS, MobileScreenWrapper } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
-import { setActiveSessionToken } from "../../lib/trpc";
+import { trpc, setActiveSessionToken } from "../../lib/trpc";
 
 import * as SecureStore from "expo-secure-store";
 
@@ -52,6 +53,30 @@ export default function SettingsScreen() {
     );
   };
 
+  const [partnerEmail, setPartnerEmail] = useState("");
+  const [partnerInviting, setPartnerInviting] = useState(false);
+  const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
+
+  const inviteMutation = trpc.invitePartner.useMutation();
+
+  const handleInvitePartner = async () => {
+    if (!partnerEmail.trim() || !partnerEmail.includes("@")) {
+      Alert.alert("Invalid Email", "Please enter a valid partner email address.");
+      return;
+    }
+    setPartnerInviting(true);
+    setInviteSuccessMsg(null);
+    try {
+      const res = await inviteMutation.mutateAsync({ email: partnerEmail.trim() });
+      setInviteSuccessMsg(`Invite link created! Share token: ${res.inviteToken}`);
+      setPartnerEmail("");
+    } catch (err) {
+      Alert.alert("Invite Error", err instanceof Error ? err.message : "Failed to generate partner invite.");
+    } finally {
+      setPartnerInviting(false);
+    }
+  };
+
   return (
     <MobileScreenWrapper
       title={t("settings.title")}
@@ -80,9 +105,46 @@ export default function SettingsScreen() {
         </View>
       )}
 
+      {/* Partner Collaboration MVP Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Partner Collaboration</Text>
+        <View style={styles.card}>
+          <Text style={styles.partnerTitle}>Invite Partner to Household</Text>
+          <Text style={styles.partnerSub}>Give your partner full shared read/write access to your household budgets and allocation waterfall.</Text>
+          <TextInput
+            style={styles.partnerInput}
+            placeholder="partner@example.com"
+            placeholderTextColor="#9CA3AF"
+            value={partnerEmail}
+            onChangeText={setPartnerEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            style={[styles.partnerBtn, partnerInviting && styles.disabledButton]}
+            onPress={handleInvitePartner}
+            disabled={partnerInviting}
+          >
+            <Text style={styles.partnerBtnText}>{partnerInviting ? "Inviting..." : "✉️ Send Partner Invite"}</Text>
+          </TouchableOpacity>
+          {inviteSuccessMsg && (
+            <Text style={styles.inviteSuccessText}>{inviteSuccessMsg}</Text>
+          )}
+        </View>
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t("settings.manage", { defaultValue: "Manage" })}</Text>
         <View style={styles.cardList}>
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/setup' as any)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>⚙️ Re-run Budget Setup</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
             onPress={() => router.push('/(app)/settings/notifications' as any)}
@@ -264,5 +326,45 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#E5E7EB",
     marginHorizontal: 16,
+  },
+  partnerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: DESIGN_TOKENS.colors.textPrimary,
+  },
+  partnerSub: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.textMuted,
+    marginTop: 4,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  partnerInput: {
+    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: DESIGN_TOKENS.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: DESIGN_TOKENS.colors.textPrimary,
+    marginBottom: 10,
+  },
+  partnerBtn: {
+    backgroundColor: DESIGN_TOKENS.colors.primary,
+    borderRadius: DESIGN_TOKENS.radius.md,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  partnerBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  inviteSuccessText: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: "600",
+    color: DESIGN_TOKENS.colors.success,
   },
 });

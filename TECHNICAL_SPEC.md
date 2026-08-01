@@ -57,7 +57,7 @@ money-matters/
 
 ## 3. Multi-Tenancy, Auth & Platform Architecture
 
-- **`tenantId` = `householdId`**: Root isolation boundary for all data. PostgreSQL RLS policies enforce `tenantId` + `appId` at DB layer.
+- **`tenantId`**: Root multi-tenant isolation boundary for all data. PostgreSQL RLS policies enforce `tenantId` + `appId` at DB layer.
 - **`appId`**: Product shell identifier (`01908bde-34bb-7b19-a178-574211bc93aa` for Money Matters).
 - **Authentication & Security**:
   - Neon Auth (Better Auth) JWT & cookie session verification in Fastify (`apps/api/src/index.ts`) & Next.js middleware (`apps/web/src/middleware.ts`).

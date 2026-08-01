@@ -123,18 +123,35 @@ export default function TransactionsScreen() {
       onNavigateSettings={() => router.push('/(app)/settings')}
     >
       <View style={styles.container}>
-        {/* Header Export Bar */}
+        {/* Header Export & Import Bar */}
         <View style={styles.headerRow}>
           <Text style={styles.subtext}>Audit ledger debits & credits ({sorted.length})</Text>
-          <TouchableOpacity
-            onPress={handleExportCsv}
-            disabled={sorted.length === 0}
-            style={[styles.exportBtn, sorted.length === 0 && styles.disabledBtn]}
-            activeOpacity={0.8}
-          >
-            <Feather name="download" size={14} color="#FFF" />
-            <Text style={styles.exportBtnText}>Export CSV</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  'Bank Statement CSV Import',
+                  'Select a CSV export from CBA, Westpac, ANZ, NAB, ING, or Macquarie to import transactions.',
+                  [{ text: 'OK' }]
+                );
+              }}
+              style={styles.importBtn}
+              activeOpacity={0.8}
+            >
+              <Feather name="upload" size={14} color="#FFF" />
+              <Text style={styles.exportBtnText}>Import CSV</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleExportCsv}
+              disabled={sorted.length === 0}
+              style={[styles.exportBtn, sorted.length === 0 && styles.disabledBtn]}
+              activeOpacity={0.8}
+            >
+              <Feather name="download" size={14} color="#FFF" />
+              <Text style={styles.exportBtnText}>Export CSV</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Filter Bar */}
@@ -268,6 +285,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   subtext: { fontSize: 11, color: D.colors.textMuted, fontWeight: '600' },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: D.colors.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  importBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#00B4A6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   exportBtnText: { fontSize: 11, fontWeight: '800', color: '#FFF' },
   disabledBtn: { opacity: 0.5 },
   sortRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
