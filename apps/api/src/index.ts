@@ -78,10 +78,12 @@ server.route({
 
 const start = async () => {
   try {
-    const port = env.PORT;
+    const port = env.PORT || 4000;
     await server.listen({ port, host: '0.0.0.0' });
+    console.log(`\n🚀 Money Matters API listening on http://localhost:${port} (Health check: http://localhost:${port}/health)\n`);
     server.log.info(`🚀 Server listening on port ${port}`);
   } catch (err) {
+    console.error("Failed to start API server:", err);
     process.exit(1);
   }
 };
