@@ -127,7 +127,10 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     { cron: '0 9 * * 0' }, // Sunday 7pm AEST
     async ({ step }) => {
       const allPrefs = await step.run('fetch-users-digest-enabled', async () => {
-        return await db.select().from(userPreferences);
+        return await db
+          .select()
+          .from(userPreferences)
+          .where(eq(userPreferences.weeklyDigestEnabled, true));
       });
 
       for (const pref of allPrefs) {

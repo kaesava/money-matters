@@ -19,7 +19,7 @@ describe('Config Package Utilities', () => {
       process.env.DATABASE_URL = 'postgres://user:pass@localhost:5432/testdb';
       const config = validateEnv();
       expect(config.DATABASE_URL).toBe('postgres://user:pass@localhost:5432/testdb');
-      expect(config.PORT).toBe(3001);
+      expect(config.PORT).toBe(4000);
       expect(config.APP_MONEY_MATTERS_ID).toBe('01908bde-34bb-7b19-a178-574211bc93aa');
     });
   });

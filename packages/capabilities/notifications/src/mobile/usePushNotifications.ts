@@ -70,8 +70,6 @@ export function usePushNotifications() {
         });
 
         const expoPushToken = tokenData.data;
-        console.info('[PushNotifications] Expo push token:', expoPushToken);
-
         const platform = Platform.OS === 'ios' ? 'ios' : 'android';
 
         await registerMutation().mutateAsync({

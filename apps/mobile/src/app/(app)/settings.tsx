@@ -180,6 +180,15 @@ export default function SettingsScreen() {
             <Text style={styles.listItemText}>🏦 {t("settings.bankAccounts.title")}</Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/privacy' as any)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>🔒 Privacy & Data Security</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
         </View>
       </View>
 

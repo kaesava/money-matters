@@ -8,7 +8,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
-  PORT: z.string().transform(val => Number(val)).default("3001"),
+  PORT: z.string().transform(val => Number(val)).default("4000"),
   // Placeholder keys required for Stack Auth / Inngest V1
   STACK_AUTH_SECRET: z.string().optional().default("mock-secret-for-v1"),
   INNGEST_SIGNING_KEY: z.string().optional().default("mock-inngest-key"),

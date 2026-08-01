@@ -125,6 +125,47 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Security & Privacy Assurance Banner */}
+      <section className="bg-white border-y border-[#e2e4e0] py-16">
+        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-[#2563eb] flex items-center justify-center text-xl shrink-0">
+              🔒
+            </div>
+            <div>
+              <h4 className="font-bold text-[#1B2B4B] mb-1">PostgreSQL Row Level Security</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Database-kernel RLS enforces absolute multi-tenant household isolation. Your ledger data is strictly restricted to your authenticated household.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-[#22c55e] flex items-center justify-center text-xl shrink-0">
+              🛡️
+            </div>
+            <div>
+              <h4 className="font-bold text-[#1B2B4B] mb-1">Australian Privacy Act (Cth)</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Compliant with the Australian Privacy Principles (APPs). We never sell your data or deploy third-party advertising pixels.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl shrink-0">
+              📜
+            </div>
+            <div>
+              <h4 className="font-bold text-[#1B2B4B] mb-1">Full Data Sovereignty</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Complete data portability and erasure upon request. You own your household financial history — export or purge anytime.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Conversion Banner */}
       <section className="bg-[#1B2B4B] text-white py-16 text-center">
         <div className="max-w-3xl mx-auto px-6 flex flex-col items-center gap-6">

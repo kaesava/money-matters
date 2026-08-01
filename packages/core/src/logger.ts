@@ -7,7 +7,22 @@
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
-const PII_KEYS = new Set(["email", "password", "token", "jwt", "authorization", "secret"]);
+const PII_KEYS = new Set([
+  "email",
+  "password",
+  "token",
+  "jwt",
+  "authorization",
+  "secret",
+  "inviteemail",
+  "invite_email",
+  "displayname",
+  "display_name",
+  "avatarurl",
+  "avatar_url",
+  "note",
+  "expopushtoken",
+]);
 
 function redactPii(obj: any): any {
   if (!obj || typeof obj !== "object") return obj;
