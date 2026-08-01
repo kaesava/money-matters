@@ -47,7 +47,7 @@ if (process.env.SENTRY_DSN) {
 }
 
 server.register(cors, {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
