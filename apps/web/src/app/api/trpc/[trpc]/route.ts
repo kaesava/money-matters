@@ -16,11 +16,18 @@ let cachedActiveBase: string | null = null;
 let lastProbeTime = 0;
 
 async function resolveApiBase(): Promise<string> {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
-    return envUrl.trim().replace(/\/+$/, "").replace(/\/trpc$/, "");
+  const isDev = process.env.NODE_ENV === "development";
+
+  if (!isDev) {
+    let envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl) {
+      envUrl = envUrl.replace("api.kaesava.au", "api.moneymatters.kaesava.au");
+      return envUrl.trim().replace(/\/+$/, "").replace(/\/trpc$/, "");
+    }
+    return "https://api.moneymatters.kaesava.au";
   }
 
+  // In local development, probe active Fastify API server on localhost ports
   const now = Date.now();
   if (cachedActiveBase && now - lastProbeTime < 10000) {
     return cachedActiveBase;
