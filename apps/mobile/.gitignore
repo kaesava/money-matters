@@ -41,5 +41,9 @@ yarn-error.*
 /ios
 /android
 
+# eas secrets
+money-matters*.json
+google-services.json
+
 # eas
 .eas/
