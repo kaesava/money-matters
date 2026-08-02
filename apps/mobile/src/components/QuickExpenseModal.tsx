@@ -12,6 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { usePostHog } from "posthog-react-native";
 import { DESIGN_TOKENS } from "@money-matters/ui";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
@@ -41,6 +42,7 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
   const D = DESIGN_TOKENS;
 
   // Fetch categories to populate dropdown
+  const posthog = usePostHog();
   const { data: categories, isLoading: categoriesLoading } = trpc.listCategories.useQuery();
   const recordExpenseMutation = trpc.recordExpense.useMutation();
   const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
@@ -65,6 +67,10 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
           note: note.trim() || undefined,
         });
 
+        posthog.capture('income_recorded', {
+          amount: parseFloat(amount),
+        });
+
         setAmount("");
         setSelectedCategoryId("");
         setNote("");
@@ -83,6 +89,11 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
           idempotencyKey: (typeof crypto !== 'undefined' && crypto.randomUUID) 
             ? crypto.randomUUID() 
             : Math.random().toString(36).substring(2) + Date.now().toString(36),
+        });
+
+        posthog.capture('expense_recorded', {
+          amount: parseFloat(amount),
+          category_id: selectedCategoryId,
         });
 
         setAmount("");

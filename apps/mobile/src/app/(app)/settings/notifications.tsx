@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { usePostHog } from 'posthog-react-native';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
@@ -8,6 +9,7 @@ import { Feather } from '@expo/vector-icons';
 
 export default function MobileNotificationSettingsScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const { data: session } = authClient.useSession();
 
   const userPrefQuery = trpc.getUserPreferences.useQuery();
@@ -21,8 +23,13 @@ export default function MobileNotificationSettingsScreen() {
     key: 'paydayAlertsEnabled' | 'shortfallAlertsEnabled' | 'billRemindersEnabled' | 'weeklyDigestEnabled',
     currentValue: boolean
   ) => {
+    const newValue = !currentValue;
+    posthog.capture('notification_preference_updated', {
+      preference: key,
+      enabled: newValue,
+    });
     updateUserPrefMut.mutate({
-      [key]: !currentValue,
+      [key]: newValue,
     });
   };
 

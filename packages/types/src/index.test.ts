@@ -70,7 +70,7 @@ describe('Domain Schemas Validation', () => {
       TenantMemberSchema.parse({
         ...mockBase,
         userId: '55555555-5555-4555-8555-555555555555',
-        role: 'SUPERADMIN' as any,
+        role: 'SUPERADMIN' as unknown,
         inviteToken: null,
         inviteStatus: 'ACCEPTED',
       })

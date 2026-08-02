@@ -8,7 +8,7 @@
     "dev": "npx dotenv-cli -e ../../.env.development -e .env.development -- tsx watch src/index.ts",
     "build": "tsup",
     "preview": "pnpm wrangler build && pnpm wrangler dev",
-    "cf-deploy": "pnpm wrangler build && pnpm wrangler deploy",
+    "deploy": "pnpm wrangler build && pnpm wrangler deploy",
     "lint": "eslint \"**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
@@ -35,6 +35,7 @@
     "inngest": "^3.19.14",
     "jose": "^5.9.6",
     "pino": "^9.0.0",
+    "posthog-node": "^5.47.3",
     "uuid": "^9.0.1",
     "zod": "^3.23.8"
   },

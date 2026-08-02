@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
+import posthog from "../../lib/posthog-client";
 import { MoveMoneyModal } from "../../components/web/MoveMoneyModal";
 import PaydayPreviewModal from "@/components/web/PaydayPreviewModal";
 
@@ -111,18 +112,35 @@ export default function DashboardPage() {
     });
 
   const handleMarkPaidItem = (item: WebAttentionItem) => {
-    markPaidMutation.mutate({ eventId: item.id, actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` });
+    markPaidMutation.mutate(
+      { eventId: item.id, actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` },
+      {
+        onSuccess: () => {
+          posthog.capture("expense_marked_paid", { source: "attention_item" });
+        },
+      }
+    );
   };
 
   const handleQuickSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    recordExpenseMutation.mutate({
-      amount: quickAmount,
-      categoryId: quickCategoryId || categories.find((c) => c.type === "EVERYDAY")?.id || categories[0]?.id || "",
-      flowType: quickType,
-      note: quickName ? `${quickName}${quickNote ? `: ${quickNote}` : ''}` : (quickNote || undefined),
-      recordedAt: quickDate,
-    });
+    recordExpenseMutation.mutate(
+      {
+        amount: quickAmount,
+        categoryId: quickCategoryId || categories.find((c) => c.type === "EVERYDAY")?.id || categories[0]?.id || "",
+        flowType: quickType,
+        note: quickName ? `${quickName}${quickNote ? `: ${quickNote}` : ''}` : (quickNote || undefined),
+        recordedAt: quickDate,
+      },
+      {
+        onSuccess: () => {
+          posthog.capture("transaction_recorded", {
+            flow_type: quickType,
+            entry_method: "quick_action",
+          });
+        },
+      }
+    );
   };
 
   const bankAccountsMapped = (bankAccountsQuery.data ?? []).map((acc) => ({

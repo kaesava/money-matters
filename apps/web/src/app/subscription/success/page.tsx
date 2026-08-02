@@ -22,7 +22,7 @@ export default function SubscriptionSuccessPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold text-[#1B2B4B]">You're on Household!</h1>
+          <h1 className="text-2xl font-bold text-[#1B2B4B]">You&apos;re on Household!</h1>
           <p className="text-sm text-zinc-600">
             Thank you for subscribing. Your account has been upgraded with full access to CSV imports, unlimited goals, and file notes.
           </p>

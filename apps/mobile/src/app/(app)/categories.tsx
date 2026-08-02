@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
@@ -23,6 +24,7 @@ function pct(balance: string, target: string | null) {
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const params = useLocalSearchParams<{ health?: string; search?: string }>();
 
   const { data: session } = authClient.useSession();
@@ -78,6 +80,7 @@ export default function CategoriesScreen() {
         onPress: async () => {
           try {
             await archiveMut.mutateAsync({ categoryId: cat.id });
+            posthog.capture('category_archived', { category_type: cat.type });
           } catch (err) {
             Alert.alert('Error', err instanceof Error ? err.message : String(err));
           }

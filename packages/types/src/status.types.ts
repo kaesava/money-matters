@@ -99,18 +99,18 @@ export function getStatusColor(
   platform: 'web',
   config?: StatusWorkflowConfig
 ): StatusStep['color']['web'];
-// eslint-disable-next-line no-redeclare
+
 export function getStatusColor(
   status: string,
   platform: 'mobile',
   config?: StatusWorkflowConfig
 ): StatusStep['color']['mobile'];
-// eslint-disable-next-line no-redeclare
+
 export function getStatusColor(
   status: string,
   platform: 'web' | 'mobile',
   config: StatusWorkflowConfig = DEFAULT_STATUS_WORKFLOW
-): any {
+): StatusStep['color']['web'] | StatusStep['color']['mobile'] {
   const step = config.statuses.find((s) => s.code.toLowerCase() === status.toLowerCase());
   const fallback = config.statuses[0];
   if (platform === 'web') {

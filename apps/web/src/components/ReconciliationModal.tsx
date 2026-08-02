@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import posthog from "../lib/posthog-client";
 
 export interface ReconciliationModalProps {
   isOpen: boolean;
@@ -37,6 +38,10 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
     setIsSubmitting(true);
     try {
       await onConfirmReconcile(actualNum, absorptionMethod);
+      posthog.capture("bank_account_reconciled", {
+        has_discrepancy: isDiscrepancy,
+        absorption_method: isDiscrepancy ? absorptionMethod : "none",
+      });
       onClose();
     } catch (err) {
       console.error(err);

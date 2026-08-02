@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
+import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { ExpenseCategoryInfo } from "./upcoming/ExpenseCategoryInfo";
 import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
@@ -168,6 +169,10 @@ export default function UpcomingExpenseModal({
       await utils.listCategories.invalidate();
       await utils.listTransactions.invalidate();
       await utils.getMonthlySummary.invalidate();
+      posthog.capture("expense_marked_paid", {
+        source: eventToEdit?.id ? "upcoming_expense" : "quick_record",
+        had_negative_balance_warning: Boolean(isNegativeWarning),
+      });
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {

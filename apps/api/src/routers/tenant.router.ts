@@ -22,20 +22,41 @@ import {
   UpdateBankAccountCommand,
 } from "@money-matters/types";
 import { z } from 'zod';
+import { posthog } from '../lib/posthog.js';
 
 export const tenantRouter = {
   invitePartner: ownerProcedure
     .input(z.object({ email: z.string().email() }).strict())
     .mutation(async ({ input, ctx }) => {
       const handler = invitePartnerHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      const result = await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'partner_invited',
+          properties: {
+            tenant_id: ctx.tenantId,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   acceptInvite: authenticatedProcedure
     .input(z.object({ inviteToken: z.string().min(1) }).strict())
     .mutation(async ({ input, ctx }) => {
       const handler = acceptInviteHandler(ctx.db);
-      return await handler(input, ctx.userId!);
+      const result = await handler(input, ctx.userId!);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'partner_invite_accepted',
+          properties: {},
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   createTenant: authenticatedProcedure
@@ -43,7 +64,26 @@ export const tenantRouter = {
     .mutation(async ({ input, ctx }) => {
       const appId = ctx.appId || ctx.session?.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
       const handler = createTenantHandler(ctx.db || db);
-      return await handler(input, appId, ctx.userId);
+      const result = await handler(input, appId, ctx.userId);
+      if (posthog && ctx.userId) {
+        posthog.identify({
+          distinctId: ctx.userId,
+          properties: {
+            app_id: appId,
+            has_tenant: true,
+          },
+        });
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'tenant_created',
+          properties: {
+            app_id: appId,
+            household_name: (result as any)?.name ?? undefined,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   getTenantStatus: authenticatedProcedure
@@ -171,7 +211,19 @@ export const tenantRouter = {
     .input(CreateBankAccountCommand)
     .mutation(async ({ input, ctx }) => {
       const handler = createBankAccountHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      const result = await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'bank_account_created',
+          properties: {
+            tenant_id: ctx.tenantId,
+            account_type: (input as any)?.type ?? undefined,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   updateBankAccount: tenantProcedure

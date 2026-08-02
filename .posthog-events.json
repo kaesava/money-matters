@@ -1,0 +1,62 @@
+[
+  {
+    "event_name": "tenant_created",
+    "event_description": "A user creates a new household/tenant for the first time.",
+    "file": "apps/api/src/routers/tenant.router.ts"
+  },
+  {
+    "event_name": "partner_invited",
+    "event_description": "An owner invites a partner to join their household.",
+    "file": "apps/api/src/routers/tenant.router.ts"
+  },
+  {
+    "event_name": "partner_invite_accepted",
+    "event_description": "A user accepts a partner invitation to join a household.",
+    "file": "apps/api/src/routers/tenant.router.ts"
+  },
+  {
+    "event_name": "bank_account_created",
+    "event_description": "A user adds a new bank account to their household.",
+    "file": "apps/api/src/routers/tenant.router.ts"
+  },
+  {
+    "event_name": "income_source_created",
+    "event_description": "A user adds a new income source to their budget.",
+    "file": "apps/api/src/routers/income.router.ts"
+  },
+  {
+    "event_name": "expense_source_created",
+    "event_description": "A user adds a new expense source (bill) to their budget.",
+    "file": "apps/api/src/routers/expenses.router.ts"
+  },
+  {
+    "event_name": "expense_marked_paid",
+    "event_description": "A user marks an upcoming expense as paid.",
+    "file": "apps/api/src/routers/expenses.router.ts"
+  },
+  {
+    "event_name": "payday_confirmed",
+    "event_description": "A user confirms a payday income allocation across budget categories.",
+    "file": "apps/api/src/routers/payday.router.ts"
+  },
+  {
+    "event_name": "transaction_recorded",
+    "event_description": "A user records a manual financial transaction.",
+    "file": "apps/api/src/routers/transactions.router.ts"
+  },
+  {
+    "event_name": "csv_imported",
+    "event_description": "A user parses a bank CSV statement for import.",
+    "file": "apps/api/src/routers/transactions.router.ts"
+  },
+  {
+    "event_name": "checkout_session_created",
+    "event_description": "A user initiates a billing checkout session to subscribe.",
+    "file": "apps/api/src/routers/billing.router.ts"
+  },
+  {
+    "event_name": "money_moved",
+    "event_description": "A user moves money between budget categories.",
+    "file": "apps/api/src/routers/categories.router.ts"
+  }
+]

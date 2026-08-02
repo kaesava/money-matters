@@ -2,6 +2,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
+import posthog from "../../../../lib/posthog-client";
 
 export default function NotificationSettingsPage() {
   const router = useRouter();
@@ -13,9 +14,17 @@ export default function NotificationSettingsPage() {
   const pref = userPrefQuery.data;
 
   const handleToggle = (key: "paydayAlertsEnabled" | "shortfallAlertsEnabled" | "billRemindersEnabled" | "weeklyDigestEnabled", currentValue: boolean) => {
-    updateUserPrefMut.mutate({
-      [key]: !currentValue,
-    });
+    updateUserPrefMut.mutate(
+      { [key]: !currentValue },
+      {
+        onSuccess: () => {
+          posthog.capture("notification_preference_updated", {
+            preference: key,
+            enabled: !currentValue,
+          });
+        },
+      }
+    );
   };
 
   return (

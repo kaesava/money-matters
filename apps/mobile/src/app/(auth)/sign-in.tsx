@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
+import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
@@ -24,6 +25,7 @@ const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://kesh-imac.tail09e
 
 export default function SignInScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,6 +54,15 @@ export default function SignInScreen() {
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
+
+      // Identify the user and capture sign-in event
+      const userId = result.data?.user?.id;
+      if (userId) {
+        posthog.identify(userId, {
+          $set: { name: result.data?.user?.name },
+        });
+      }
+      posthog.capture('user_signed_in', { method: 'email' });
       
       // Request and register push notifications token asynchronously
       try {
@@ -96,6 +107,7 @@ export default function SignInScreen() {
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
+      posthog.capture('user_signed_in', { method: 'google' });
       router.replace("/(app)/home");
     } catch (err) {
       console.error("[DEBUG client] Google sign-in failed:", err);

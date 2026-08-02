@@ -1,6 +1,7 @@
 import { tenantProcedure } from '../trpc/trpc.js';
 import { allocationPlans, allocationPlanLines, categories } from "@money-matters/db";
 import { and, eq, sql, desc } from "drizzle-orm";
+import { posthog } from '../lib/posthog.js';
 import {
   runAllocationCommand,
   confirmAllocationCommand,
@@ -29,7 +30,7 @@ export const paydayRouter = {
   confirmPayday: tenantProcedure
     .input(ConfirmPaydayCommand)
     .mutation(async ({ input, ctx }) => {
-      return await runAllocationCommand(
+      const result = await runAllocationCommand(
         ctx.tenantId!,
         ctx.appId!,
         ctx.userId!,
@@ -39,6 +40,20 @@ export const paydayRouter = {
         input.lines,
         input.markAsReceivedToday
       );
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'payday_confirmed',
+          properties: {
+            tenant_id: ctx.tenantId,
+            income_event_id: input.incomeEventId,
+            actual_amount: input.actualAmount,
+            allocation_line_count: input.lines?.length ?? 0,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   overrideEvent: tenantProcedure

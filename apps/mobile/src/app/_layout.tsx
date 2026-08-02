@@ -1,9 +1,10 @@
-import React from 'react';
-import { Stack } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Stack, usePathname, useGlobalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '../providers/AppProviders';
 import { DESIGN_TOKENS } from '@money-matters/ui';
 import { logger } from '../lib/logger';
+import { posthog } from '../config/posthog';
 import '../../global.css';
 import * as Sentry from "@sentry/react-native";
 
@@ -20,9 +21,24 @@ export default Sentry.wrap(RootLayout);
  * Configures Sentry error monitoring and wraps application with AppProviders.
  */
 function RootLayout() {
-  React.useEffect(() => {
+  const pathname = usePathname();
+  const params = useGlobalSearchParams();
+  const previousPathname = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
     logger.info("Mobile app initialized on Android.");
   }, []);
+
+  // Manual screen tracking for expo-router
+  // @see https://posthog.com/docs/libraries/react-native#screen-tracking
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      posthog.screen(pathname, {
+        previous_screen: previousPathname.current ?? null,
+      });
+      previousPathname.current = pathname;
+    }
+  }, [pathname, params]);
 
   return (
     <AppProviders>

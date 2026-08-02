@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
+import posthog from "../../lib/posthog-client";
 import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from "@money-matters/types";
 import { CategorySelectStep } from "./components/CategorySelectStep";
 import { IncomeSetupStep } from "./components/IncomeSetupStep";
@@ -106,6 +107,11 @@ export default function SetupWizardPage() {
       // 3. Auto-generate upcoming transaction events
       await generateEvents.mutateAsync();
 
+      posthog.capture("setup_completed", {
+        category_count: selectedList.length,
+        custom_category_count: customCategories.length,
+        income_frequency: incomeFreq,
+      });
       router.push("/dashboard");
     } catch (err) {
       console.error("Failed to finish setup:", err);

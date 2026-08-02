@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
+import posthog from "../../../../lib/posthog-client";
 
 import { PaginationBar } from "@money-matters/ui/web";
 
@@ -45,6 +46,7 @@ export default function BankAccountsPage() {
       try {
         await archiveBankAccountMut.mutateAsync({ accountId: acc.id });
         await utils.listBankAccountsWithExpected.invalidate();
+        posthog.capture("bank_account_archived");
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to archive bank account.";
         alert(message);
@@ -72,6 +74,9 @@ export default function BankAccountsPage() {
         });
       }
       await utils.listBankAccountsWithExpected.invalidate();
+      posthog.capture(accountToEdit ? "bank_account_updated" : "bank_account_created", {
+        has_unbudgeted_buffer: (parseFloat(unbudgetedBuffer) || 0) > 0,
+      });
       setShowModal(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save bank account.";

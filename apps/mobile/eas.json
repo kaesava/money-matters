@@ -8,7 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "node": "20.14.0",
-      "pnpmVersion": "9.0.0"
+      "pnpm": "9.0.0"
     },
     "preview": {
       "distribution": "internal",
@@ -16,12 +16,12 @@
         "buildType": "apk"
       },
       "node": "20.14.0",
-      "pnpmVersion": "9.0.0"
+      "pnpm": "9.0.0"
     },
     "production": {
       "autoIncrement": true,
       "node": "20.14.0",
-      "pnpmVersion": "9.0.0",
+      "pnpm": "9.0.0",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.moneymatters.kaesava.au",
         "EXPO_PUBLIC_NEON_AUTH_URL": "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth",

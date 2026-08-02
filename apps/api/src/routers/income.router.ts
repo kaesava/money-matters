@@ -2,6 +2,7 @@ import { tenantProcedure } from '../trpc/trpc.js';
 import { incomeSources, incomeEvents } from "@money-matters/db";
 import { and, eq, sql, asc } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
+import { posthog } from '../lib/posthog.js';
 import {
   CreateIncomeEventCommand,
 } from "@money-matters/types";
@@ -70,6 +71,19 @@ export const incomeRouter = {
         });
       }
 
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'income_source_created',
+          properties: {
+            tenant_id: ctx.tenantId,
+            is_recurring: input.isRecurring,
+            frequency: input.frequency ?? (input.isRecurring ? 'MONTHLY' : null),
+            amount: input.amount,
+          },
+        });
+        await posthog.flush();
+      }
       return source;
     }),
 

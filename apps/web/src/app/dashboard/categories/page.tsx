@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
+import posthog from "../../../lib/posthog-client";
 import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
 import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
 import { FilterBar } from "../../../components/web/FilterBar";
@@ -75,6 +76,7 @@ export default function CategoriesPage() {
     if (confirm(`Are you sure you want to archive "${cat.name}"?`)) {
       try {
         await archiveCategoryMut.mutateAsync({ categoryId: cat.id });
+        posthog.capture("category_archived", { category_type: cat.type });
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to archive category.";
         alert(message);

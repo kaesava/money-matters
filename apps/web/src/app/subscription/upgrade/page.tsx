@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Button } from "@money-matters/ui/web";
 import { trpc } from "../../../lib/trpc";
+import posthog from "../../../lib/posthog-client";
 
 export default function UpgradePage() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function UpgradePage() {
       });
 
       if (result.url) {
+        posthog.capture("subscription_checkout_started", { billing_cycle: priceType });
         window.location.href = result.url;
       }
     } catch (err) {

@@ -4,6 +4,7 @@ import {
   createCheckoutSessionCommand,
   createCustomerPortalSessionCommand,
 } from '@money-matters/capability-billing';
+import { posthog } from '../lib/posthog.js';
 
 export const billingRouter = {
   getSubscriptionStatus: tenantProcedure.query(async ({ ctx }) => {
@@ -14,7 +15,19 @@ export const billingRouter = {
     .input(CreateCheckoutSessionCommand)
     .mutation(async ({ ctx, input }) => {
       const userEmail = ctx.session?.email || 'billing@moneymatters.au';
-      return createCheckoutSessionCommand(ctx.db, ctx.tenantId, userEmail, input);
+      const result = await createCheckoutSessionCommand(ctx.db, ctx.tenantId, userEmail, input);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'checkout_session_created',
+          properties: {
+            tenant_id: ctx.tenantId,
+            plan: (input as any)?.plan ?? undefined,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   createCustomerPortalSession: ownerProcedure

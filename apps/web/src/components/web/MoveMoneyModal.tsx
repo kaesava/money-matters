@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../lib/trpc";
+import posthog from "../../lib/posthog-client";
 
 interface MoveMoneyModalProps {
   isOpen: boolean;
@@ -69,6 +70,11 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
         sourceCategoryId,
         destinationCategoryId,
         amount: parseFloat(amount).toFixed(2),
+      });
+      posthog.capture("money_moved_between_categories", {
+        amount: parseFloat(amount),
+        source_category_type: sourceCat?.type,
+        destination_category_type: categories.find((category) => category.id === destinationCategoryId)?.type,
       });
       setSourceCategoryId("");
       setDestinationCategoryId("");

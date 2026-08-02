@@ -24,6 +24,7 @@ export default function SubscriptionManagePage() {
     }
 
     redirect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot mount effect; adding createPortalSession would re-trigger on every mutation state change
   }, []);
 
   return (

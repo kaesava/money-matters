@@ -99,7 +99,7 @@ export function formatScheduleDetail(rrule?: string | null, startDate?: string |
     try {
       const parts = dStr.split('T')[0].split('-');
       if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } catch {}
+    } catch { /* invalid date string — fall through and return raw dStr */ }
     return dStr;
   };
 

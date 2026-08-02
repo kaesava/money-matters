@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
+import posthog from "../../lib/posthog-client";
 import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
@@ -75,6 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleSignOut = useCallback(async () => {
     await authClient.signOut();
+    posthog.reset();
     if (typeof window !== "undefined") {
       localStorage.removeItem("session_token");
     }

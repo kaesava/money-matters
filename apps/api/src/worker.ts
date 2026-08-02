@@ -27,6 +27,23 @@ export interface WorkerEnv {
 
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
+    const ALLOWED_ORIGINS = [
+      "https://moneymatters.kaesava.au",
+      "https://www.moneymatters.kaesava.au",
+      "https://api.moneymatters.kaesava.au",
+      "https://kaesava.au",
+      "https://www.kaesava.au",
+    ];
+    const requestOrigin = request.headers.get('Origin');
+    const isAllowedOrigin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': isAllowedOrigin ? requestOrigin : ALLOWED_ORIGINS[0],
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, trpc-accept, x-correlation-id',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400',
+    };
+
     try {
       const url = new URL(request.url);
 
@@ -34,12 +51,7 @@ export default {
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           status: 204,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, trpc-accept, x-correlation-id',
-            'Access-Control-Max-Age': '86400',
-          },
+          headers: corsHeaders,
         });
       }
 
@@ -49,7 +61,7 @@ export default {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...corsHeaders,
           },
         });
       }
@@ -151,7 +163,9 @@ export default {
         });
 
         const newHeaders = new Headers(response.headers);
-        newHeaders.set('Access-Control-Allow-Origin', '*');
+        Object.entries(corsHeaders).forEach(([key, val]) => {
+          newHeaders.set(key, val);
+        });
         return new Response(response.body, {
           status: response.status,
           statusText: response.statusText,
@@ -161,7 +175,10 @@ export default {
 
       return new Response(JSON.stringify({ error: 'Route not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders,
+        },
       });
     } catch (err: any) {
       console.error('[WORKER UNCAUGHT ERROR]', err);
@@ -176,7 +193,7 @@ export default {
           status: 500,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...corsHeaders,
           },
         }
       );

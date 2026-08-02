@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { usePostHog } from 'posthog-react-native';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -16,6 +17,7 @@ import { MobileCollapsibleSection } from '@money-matters/ui/mobile';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const utils = trpc.useUtils();
   const todayYear = new Date().getFullYear();
   const todayMonth = new Date().getMonth() + 1;
@@ -91,6 +93,10 @@ export default function HomeScreen() {
     });
 
   const handleMarkPaidItem = (item: AttentionItem) => {
+    posthog.capture('expense_paid', {
+      amount: item.expectedAmount,
+      is_overdue: item.isOverdue,
+    });
     markPaidMutation.mutate({ eventId: item.id, actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` });
   };
 
@@ -156,7 +162,10 @@ export default function HomeScreen() {
           setCanAffordAmount={setCanAffordAmount}
           canAffordData={canAffordQuery.data}
           nextPayday={nextPaydayData}
-          onPressNextPay={(id) => setPaydayWizardEventId(id)}
+          onPressNextPay={(id) => {
+            posthog.capture('payday_wizard_opened');
+            setPaydayWizardEventId(id);
+          }}
           onSelectFilter={(health) => router.push({ pathname: '/(app)/categories', params: { health } })}
         />
 

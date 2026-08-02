@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { trpc } from "../../lib/trpc";
+import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { RecurrenceFields } from "./forms/RecurrenceFields";
 
@@ -173,6 +174,20 @@ export function IncomeExpenseFormModal({
         await utils.listExpenseEvents.invalidate();
       }
 
+      posthog.capture(
+        mode === "INCOME"
+          ? isEdit
+            ? "income_source_updated"
+            : "income_source_created"
+          : isEdit
+            ? "expense_source_updated"
+            : "expense_source_created",
+        {
+          is_recurring: isRecurring,
+          frequency: isRecurring ? frequency : "one_off",
+          has_linked_destination: Boolean(mode === "INCOME" ? receivingAccountId : categoryId),
+        }
+      );
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {

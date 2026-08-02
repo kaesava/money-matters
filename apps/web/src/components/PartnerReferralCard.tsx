@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "../lib/trpc";
+import posthog from "../lib/posthog-client";
 
 export const PartnerReferralCard: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ export const PartnerReferralCard: React.FC = () => {
     setStatus("SENDING");
     try {
       await invitePartnerMut.mutateAsync({ email: email.trim() });
+      posthog.capture("partner_invited");
       setStatus("SENT");
       setEmail("");
     } catch (err) {

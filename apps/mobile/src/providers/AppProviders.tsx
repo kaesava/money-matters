@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PostHogProvider } from 'posthog-react-native';
 import { trpc, buildTrpcClient } from '../lib/trpc';
 import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
+import { posthog } from '../config/posthog';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -38,12 +40,22 @@ export function AppProviders({ children }: AppProvidersProps) {
   };
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <NotificationServiceProvider value={notificationServiceValue}>
-          {children}
-        </NotificationServiceProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <PostHogProvider
+      client={posthog}
+      autocapture={{
+        captureScreens: false, // Manual screen tracking via expo-router in _layout.tsx
+        captureTouches: true,
+        propsToCapture: ['testID'],
+        maxElementsCaptured: 20,
+      }}
+    >
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <NotificationServiceProvider value={notificationServiceValue}>
+            {children}
+          </NotificationServiceProvider>
+        </QueryClientProvider>
+      </trpc.Provider>
+    </PostHogProvider>
   );
 }

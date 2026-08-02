@@ -12,6 +12,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
@@ -21,6 +22,7 @@ import { registerPushNotificationsAsync } from "../../lib/push";
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,6 +82,16 @@ export default function SignUpScreen() {
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
+
+      // Identify the new user and capture sign-up event
+      const userId = signUpResult.data?.user?.id;
+      if (userId) {
+        posthog.identify(userId, {
+          $set: { name: name.trim() },
+          $set_once: { signup_date: new Date().toISOString() },
+        });
+      }
+      posthog.capture('user_signed_up', { method: 'email' });
 
       // 2. Create the tenant/household — the server derives userId from the JWT.
       await createTenant.mutateAsync({

@@ -57,6 +57,10 @@ async function handleProxy(req: NextRequest) {
     const apiBase = await resolveApiBase();
     const targetUrl = `${apiBase}/trpc${path}${url.search}`;
 
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[DEBUG tRPC Proxy] Forwarding ${req.method} to ${targetUrl}`);
+    }
+
     const headers = new Headers();
     // Copy incoming headers
     req.headers.forEach((value, key) => {
@@ -88,7 +92,11 @@ async function handleProxy(req: NextRequest) {
         lowerKey !== "content-encoding" && 
         lowerKey !== "content-length"
       ) {
-        responseHeaders.set(key, value);
+        if (lowerKey === "set-cookie") {
+          responseHeaders.append(key, value);
+        } else {
+          responseHeaders.set(key, value);
+        }
       }
     });
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Share, Alert, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui';
 import { trpc } from '../../lib/trpc';
@@ -13,6 +14,7 @@ type SortDir = 'asc' | 'desc';
 
 export default function TransactionsScreen() {
   const router = useRouter();
+  const posthog = usePostHog();
   const params = useLocalSearchParams<{ search?: string }>();
   const { data: session } = authClient.useSession();
 
@@ -109,6 +111,7 @@ export default function TransactionsScreen() {
         message: csvContent,
         title: `transactions_export_${new Date().toISOString().split('T')[0]}.csv`,
       });
+      posthog.capture('transactions_exported', { row_count: sorted.length });
     } catch (err) {
       Alert.alert('Export Error', err instanceof Error ? err.message : String(err));
     }

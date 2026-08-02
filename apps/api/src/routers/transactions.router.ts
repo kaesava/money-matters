@@ -1,4 +1,5 @@
 import { tenantProcedure, requiresWriteAccess, requiresPaidTier } from '../trpc/trpc.js';
+import { posthog } from '../lib/posthog.js';
 import {
   recordExpenseCommand,
   listTransactionsQuery,
@@ -20,7 +21,21 @@ export const transactionsRouter = {
     .input(RecordExpenseCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      return await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      const result = await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'transaction_recorded',
+          properties: {
+            tenant_id: ctx.tenantId,
+            flow_type: input.flowType,
+            source: input.source,
+            amount: input.amount,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   listTransactions: tenantProcedure
@@ -47,7 +62,19 @@ export const transactionsRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       requiresPaidTier(ctx, 'csv_import');
-      return parseBankCsv(input.csvText);
+      const result = parseBankCsv(input.csvText);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'csv_imported',
+          properties: {
+            tenant_id: ctx.tenantId,
+            row_count: result?.transactions?.length ?? 0,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   spendingVelocity: tenantProcedure.query(async ({ ctx }) => {

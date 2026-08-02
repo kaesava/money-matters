@@ -10,13 +10,16 @@ import { serve } from "inngest/fastify";
 import { validateEnv } from '@money-matters/config';
 import { correlationIdHook, rateLimiter } from '@money-matters/core';
 import * as Sentry from "@sentry/node";
+import { posthog } from './lib/posthog.js';
 
 const env = validateEnv();
+
+const isDev = process.env.NODE_ENV !== "production";
 
 const server = fastify({ 
   maxParamLength: 5000,
   logger: true,
-  disableRequestLogging: true,
+  disableRequestLogging: !isDev,
   trustProxy: true,
 });
 
@@ -76,6 +79,13 @@ server.route({
   url: "/api/inngest",
 });
 
+server.setErrorHandler(async (err, _req, reply) => {
+  if (posthog) {
+    posthog.captureException(err);
+  }
+  reply.send(err);
+});
+
 const start = async () => {
   try {
     const port = env.PORT || 3001;
@@ -87,5 +97,15 @@ const start = async () => {
     process.exit(1);
   }
 };
+
+const shutdown = async () => {
+  if (posthog) {
+    await posthog.shutdown();
+  }
+  await server.close();
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 start();

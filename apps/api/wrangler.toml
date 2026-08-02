@@ -17,6 +17,7 @@ GLOBAL_MAX_FILE_SIZE_MB = "10"
 NEXT_PUBLIC_NEON_AUTH_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
 NEON_AUTH_BASE_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth"
 NEON_AUTH_JWKS_URL = "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth/.well-known/jwks.json"
+POSTHOG_HOST = "https://us.i.posthog.com"
 
 [observability]
 enabled = false

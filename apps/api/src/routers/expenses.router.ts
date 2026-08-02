@@ -4,6 +4,7 @@ import { and, eq, sql, asc } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
 import { z } from 'zod';
+import { posthog } from '../lib/posthog.js';
 
 export const expensesRouter = {
   listExpenseSources: tenantProcedure
@@ -96,6 +97,19 @@ export const expensesRouter = {
         });
       }
 
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'expense_source_created',
+          properties: {
+            tenant_id: ctx.tenantId,
+            is_recurring: input.isRecurring,
+            frequency: input.frequency ?? (input.isRecurring ? 'MONTHLY' : null),
+            amount: input.amount,
+          },
+        });
+        await posthog.flush();
+      }
       return source;
     }),
 
@@ -389,6 +403,18 @@ export const expensesRouter = {
         })
         .where(eq(expenseEvents.id, input.eventId));
 
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'expense_marked_paid',
+          properties: {
+            tenant_id: ctx.tenantId,
+            amount: amountToPay,
+            has_category: !!evt.categoryId,
+          },
+        });
+        await posthog.flush();
+      }
       return { success: true, message: "Expense marked paid and moved to Transactions." };
     }),
 

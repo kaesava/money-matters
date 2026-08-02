@@ -3,6 +3,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { authClient } from "../../../lib/auth";
+import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
 
 /** Settings page — profile info, manage links, sign out */
@@ -12,6 +13,7 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     await authClient.signOut();
+    posthog.reset();
     if (typeof window !== "undefined") {
       localStorage.removeItem("session_token");
     }

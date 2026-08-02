@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
+import posthog from "../../../lib/posthog-client";
 import { FilterBar } from "../../../components/web/FilterBar";
 import { PaginationBar } from "@money-matters/ui/web";
 import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
@@ -213,6 +214,7 @@ export default function IncomeAndExpensesPage() {
       if (confirm(`Archiving this income stream will cancel all future upcoming paydays. Proceed with archiving "${item.name}"?`)) {
         try {
           await archiveIncomeMut.mutateAsync({ id: item.id });
+          posthog.capture("income_source_archived", { is_recurring: Boolean(item.rrule) });
         } catch (err: unknown) {
           alert(err instanceof Error ? err.message : "Failed to archive income source.");
         }
@@ -221,6 +223,7 @@ export default function IncomeAndExpensesPage() {
       if (confirm(`Archiving this bill will cancel all future upcoming bill reminders. Proceed with archiving "${item.name}"?`)) {
         try {
           await archiveExpenseMut.mutateAsync({ id: item.id });
+          posthog.capture("expense_source_archived", { is_recurring: Boolean(item.rrule) });
         } catch (err: unknown) {
           alert(err instanceof Error ? err.message : "Failed to archive expense bill.");
         }

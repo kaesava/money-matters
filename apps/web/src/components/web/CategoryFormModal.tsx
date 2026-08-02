@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 
 export interface CategoryFormModalProps {
@@ -113,6 +114,10 @@ export function CategoryFormModal({
       }
 
       await utils.listCategories.invalidate();
+      posthog.capture(isEdit ? "category_updated" : "category_created", {
+        category_type: type,
+        has_linked_bank_account: Boolean(bankAccountId),
+      });
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {

@@ -19,6 +19,7 @@ import {
   MoveMoneyCommand,
 } from "@money-matters/types";
 import { z } from 'zod';
+import { posthog } from '../lib/posthog.js';
 
 export const categoriesRouter = {
   createCategory: tenantProcedure
@@ -55,7 +56,19 @@ export const categoriesRouter = {
   moveMoney: tenantProcedure
     .input(MoveMoneyCommand)
     .mutation(async ({ input, ctx }) => {
-      return await moveMoneyCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      const result = await moveMoneyCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'money_moved',
+          properties: {
+            tenant_id: ctx.tenantId,
+            amount: (input as any).amount,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
     }),
 
   listArchivedItems: tenantProcedure

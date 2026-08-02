@@ -53,7 +53,7 @@ describe('Command Schemas Validation', () => {
     expect(() =>
       CreateCategoryCommand.parse({
         name: 'Invalid Type',
-        type: 'INVALID' as any,
+        type: 'INVALID' as unknown,
       })
     ).toThrow();
 

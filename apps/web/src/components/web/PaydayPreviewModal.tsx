@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
+import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
 import { PaydayReasonModal } from "./upcoming/PaydayReasonModal";
@@ -194,6 +195,11 @@ export default function PaydayPreviewModal({
       await utils.listCategories.invalidate();
       await utils.listTransactions.invalidate();
       await utils.getMonthlySummary.invalidate();
+      posthog.capture("payday_confirmed", {
+        is_future_payday: isFutureDate,
+        distribution_category_count: activeEventId ? lines.length : 0,
+        entry_method: activeEventId ? "scheduled_payday" : "quick_record",
+      });
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {
