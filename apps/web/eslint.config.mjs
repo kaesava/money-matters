@@ -9,6 +9,7 @@ const eslintConfig = [
   {
     ignores: [
       ".next/**",
+      ".open-next/**",
       "out/**",
       "build/**",
       "dist/**",

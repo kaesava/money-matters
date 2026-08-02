@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "preview": "pnpm opennextjs-cloudflare build && wrangler dev",
-    "deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
+    "cf-deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
   },

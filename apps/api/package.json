@@ -8,7 +8,7 @@
     "dev": "npx dotenv-cli -e ../../.env.development -e .env.development -- tsx watch src/index.ts",
     "build": "tsup",
     "preview": "pnpm wrangler build && pnpm wrangler dev",
-    "deploy": "pnpm wrangler build && pnpm wrangler deploy",
+    "cf-deploy": "pnpm wrangler build && pnpm wrangler deploy",
     "lint": "eslint \"**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"

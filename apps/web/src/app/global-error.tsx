@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import posthog from '../lib/posthog-client';
+import * as Sentry from "@sentry/nextjs";
 
 export default function GlobalError({
   error,
@@ -12,6 +13,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     posthog.captureException(error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (
