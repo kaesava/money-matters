@@ -1,11 +1,14 @@
 import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
-import { verifyJwt, upsertUserFromJwt, logger } from '@money-matters/core';
+import { verifyJwt, upsertUserFromJwt, logger, createDbClient } from '@money-matters/core';
 import { db, tenantUsers } from '@money-matters/db';
 import { eq, sql } from 'drizzle-orm';
 
 export const MONEY_MATTERS_APP_ID = '01908bde-34bb-7b19-a178-574211bc93aa';
 
-export async function createEdgeContext({ req, resHeaders }: FetchCreateContextFnOptions) {
+export async function createEdgeContext({ req, resHeaders }: FetchCreateContextFnOptions, env?: any) {
+  const connectionString = env?.DATABASE_URL || process.env.DATABASE_URL;
+  const requestDb = connectionString ? createDbClient(connectionString) : db;
+
   const authHeader = req.headers.get('authorization');
   let token = authHeader?.split(' ')[1] ?? '';
 
@@ -24,7 +27,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
   // Fallback for opaque database session tokens
   if (!claims && token && token.length === 32) {
     try {
-      const dbSessions = await db.execute<{ userId: string; email: string; name: string }>(
+      const dbSessions = await requestDb.execute<{ userId: string; email: string; name: string }>(
         sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"
             FROM neon_auth.session s
             JOIN neon_auth.user u ON s."userId" = u.id
@@ -48,7 +51,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
     return {
       req,
       resHeaders,
-      db,
+      db: requestDb,
       session: null,
       userId: null,
       tenantId: null,
@@ -59,7 +62,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
 
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
 
-  const [membership] = await db
+  const [membership] = await requestDb
     .select({
       tenantId: tenantUsers.tenantId,
       role: tenantUsers.role,
@@ -75,7 +78,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
   return {
     req,
     resHeaders,
-    db,
+    db: requestDb,
     session: {
       userId: claims.userId,
       email: claims.email,

@@ -156,7 +156,7 @@ export default {
           endpoint: '/trpc',
           req: request,
           router: appRouter,
-          createContext: createEdgeContext,
+          createContext: (opts) => createEdgeContext(opts, env),
           onError: ({ error, path }) => {
             console.error(`[tRPC Error] path '${path}':`, error);
           },
