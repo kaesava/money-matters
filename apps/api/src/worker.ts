@@ -4,7 +4,6 @@ import { createEdgeContext } from './trpc/edge-context.js';
 import { inngest } from './inngest/client.js';
 import { functions } from './inngest/index.js';
 import { serve } from 'inngest/cloudflare';
-import * as Sentry from '@sentry/node';
 
 export interface WorkerEnv {
   MONEY_MATTERS_APP_ID: string;
@@ -24,19 +23,10 @@ export interface WorkerEnv {
   STRIPE_PRICE_MONTHLY?: string;
   STRIPE_PRICE_ANNUAL?: string;
   STRIPE_PRICE_FOUNDING_ANNUAL?: string;
-  SENTRY_DSN?: string;
 }
 
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
-    if (env.SENTRY_DSN) {
-      Sentry.init({
-        dsn: env.SENTRY_DSN,
-        environment: 'production',
-        tracesSampleRate: 0.1,
-      });
-    }
-
     const ALLOWED_ORIGINS = [
       "https://moneymatters.kaesava.au",
       "https://www.moneymatters.kaesava.au",
@@ -169,9 +159,6 @@ export default {
           createContext: (opts) => createEdgeContext(opts, env),
           onError: ({ error, path }) => {
             console.error(`[tRPC Error] path '${path}':`, error);
-            if (env.SENTRY_DSN) {
-              Sentry.captureException(error);
-            }
           },
         });
 
@@ -195,9 +182,6 @@ export default {
       });
     } catch (err: any) {
       console.error('[WORKER UNCAUGHT ERROR]', err);
-      if (env.SENTRY_DSN) {
-        Sentry.captureException(err);
-      }
       return new Response(
         JSON.stringify({
           error: {
