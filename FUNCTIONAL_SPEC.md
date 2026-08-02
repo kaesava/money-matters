@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-08-02  
-> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, and Support Contact.
+> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 

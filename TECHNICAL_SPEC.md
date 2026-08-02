@@ -24,6 +24,8 @@
 | File Storage | Cloudflare R2 | Cloudflare R2 | Attachments & file notes (`money-matters-production`) |
 | Async Workflows | Inngest | Inngest Cloud | 6 scheduled notification functions & background jobs |
 | Email Service | Resend | Resend API | Transactional emails & partner invites |
+| Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking, feature flags, session replays |
+| Crash & APM | Sentry | Sentry SaaS | Production exception reporting & symbolicated stack traces |
 | Mobile Framework | React Native / Expo | Expo SDK 54 / RN 0.81.5 | Android native app |
 | Styling & UI | Serene Finance Tokens | `packages/ui` | Standardized tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`) & JetBrains Mono |
 | CI/CD Pipeline | GitHub Actions | GitHub & Cloudflare | Lint, typecheck, test, and `wrangler deploy` on push to `main` |
