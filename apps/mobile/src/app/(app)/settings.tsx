@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t } from "@money-matters/i18n";
@@ -187,6 +188,19 @@ export default function SettingsScreen() {
             activeOpacity={0.7}
           >
             <Text style={styles.listItemText}>🔒 Privacy & Data Security</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() =>
+              Linking.openURL("https://moneymatters.kaesava.au/privacy/delete-account")
+            }
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.listItemText, { color: "#ba1a1a" }]}>
+              🗑️ {t("settings.deleteAccount", { defaultValue: "Delete Account & Data" })}
+            </Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
         </View>

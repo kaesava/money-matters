@@ -12,3 +12,4 @@ coverage/
 .env.development
 .env.production
 .aider*
+test_credentials.txt

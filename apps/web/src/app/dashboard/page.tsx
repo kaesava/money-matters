@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
@@ -49,6 +49,13 @@ export default function DashboardPage() {
     { amount: canAffordAmount },
     { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
   );
+
+  // Redirect to setup wizard if user has no categories configured
+  useEffect(() => {
+    if (categoriesQuery.isSuccess && categoriesQuery.data && categoriesQuery.data.length === 0) {
+      router.push("/setup");
+    }
+  }, [categoriesQuery.isSuccess, categoriesQuery.data, router]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: (_, variables) => {

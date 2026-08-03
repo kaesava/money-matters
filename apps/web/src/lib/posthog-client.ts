@@ -12,7 +12,7 @@ if (isProduction) {
     );
   } else {
     posthog.init(projectToken, {
-      api_host: host || "https://us.i.posthog.com",
+      api_host: host || "/ingest",
       defaults: "2026-01-30",
       capture_exceptions: true,
     });

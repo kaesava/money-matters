@@ -431,6 +431,7 @@ export const en = {
       title: "Bank Accounts",
     },
     version: "Version {version}",
+    deleteAccount: "Delete Account & Data",
   },
   shortfall: {
     alertTitle: "Shortfall Alert",
