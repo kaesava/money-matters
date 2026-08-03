@@ -4,6 +4,7 @@ import { createEdgeContext } from './trpc/edge-context.js';
 import { inngest } from './inngest/client.js';
 import { functions } from './inngest/index.js';
 import { serve } from 'inngest/cloudflare';
+import type { Pool } from '@neondatabase/serverless';
 
 export interface WorkerEnv {
   MONEY_MATTERS_APP_ID: string;
@@ -92,8 +93,19 @@ export default {
         }
 
         const rawBody = await request.text();
-        const { db: dbClient } = await import('@money-matters/db');
+        const connectionString = env.DATABASE_URL || process.env.DATABASE_URL;
+        if (!connectionString) {
+          return new Response(JSON.stringify({ error: 'Database is not configured' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+        // Use a socket-less HTTP client here instead of the module-scope pool
+        // from @money-matters/db — the billing commands are non-transactional,
+        // so there is nothing to leak.
+        const { createHttpDbClient } = await import('@money-matters/core');
         const { handleStripeWebhook } = await import('@money-matters/capability-billing');
+        const dbClient = createHttpDbClient(connectionString);
 
         const result = await handleStripeWebhook(rawBody, signature, env.STRIPE_WEBHOOK_SECRET, dbClient);
 
@@ -152,15 +164,28 @@ export default {
 
       // 5. Handle tRPC Requests
       if (url.pathname.startsWith('/trpc')) {
+        // Each request opens its own WebSocket pool for interactive transactions.
+        // Capture it so we can close it once the response is built — otherwise
+        // Cloudflare tears the socket down and the orphaned pool surfaces as an
+        // "Uncaught Error: Network connection lost." unhandled rejection.
+        let requestPool: Pool | null = null;
         const response = await fetchRequestHandler({
           endpoint: '/trpc',
           req: request,
           router: appRouter,
-          createContext: (opts) => createEdgeContext(opts, env),
+          createContext: async (opts) => {
+            const context = await createEdgeContext(opts, env);
+            requestPool = context.pool;
+            return context;
+          },
           onError: ({ error, path }) => {
             console.error(`[tRPC Error] path '${path}':`, error);
           },
         });
+
+        if (requestPool) {
+          ctx.waitUntil((requestPool as Pool).end().catch(() => {}));
+        }
 
         const newHeaders = new Headers(response.headers);
         Object.entries(corsHeaders).forEach(([key, val]) => {

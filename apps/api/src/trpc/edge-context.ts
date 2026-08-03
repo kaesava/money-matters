@@ -2,12 +2,22 @@ import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 import { verifyJwt, upsertUserFromJwt, logger, createDbClient } from '@money-matters/core';
 import { db, tenantUsers } from '@money-matters/db';
 import { eq, sql } from 'drizzle-orm';
+import type { Pool } from '@neondatabase/serverless';
 
 export const MONEY_MATTERS_APP_ID = '01908bde-34bb-7b19-a178-574211bc93aa';
 
 export async function createEdgeContext({ req, resHeaders }: FetchCreateContextFnOptions, env?: any) {
   const connectionString = env?.DATABASE_URL || process.env.DATABASE_URL;
-  const requestDb = connectionString ? createDbClient(connectionString) : db;
+  // A request-scoped pool is opened per invocation for interactive transactions
+  // (tenantProcedure's RLS). The worker MUST close `pool` via ctx.waitUntil once
+  // the response is built, otherwise the Neon connection leaks.
+  let requestDb = db;
+  let pool: Pool | null = null;
+  if (connectionString) {
+    const client = createDbClient(connectionString);
+    requestDb = client.db;
+    pool = client.pool;
+  }
 
   const authHeader = req.headers.get('authorization');
   let token = authHeader?.split(' ')[1] ?? '';
@@ -52,6 +62,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
       req,
       resHeaders,
       db: requestDb,
+      pool,
       session: null,
       userId: null,
       tenantId: null,
@@ -79,6 +90,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
     req,
     resHeaders,
     db: requestDb,
+    pool,
     session: {
       userId: claims.userId,
       email: claims.email,
