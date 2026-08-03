@@ -3,6 +3,10 @@ main = "src/worker.ts"
 compatibility_date = "2026-07-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Upload source maps so Sentry/PostHog can symbolicate worker.js stack traces
+# instead of reporting bundled line numbers.
+upload_source_maps = true
+
 # Automatically maps the worker to api.kaesava.au
 routes = [
   { pattern = "api.moneymatters.kaesava.au", custom_domain = true }
