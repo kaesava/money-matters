@@ -1,13 +1,19 @@
 # AGENT - In progress...
-* Download my Data option
-* Account deletion
-* Migrate web session token from localStorage → httpOnly cookies; automate deletion via Inngest; verify POST_NOTIFICATIONS declaration for Android 13+
+
+### General
+### Sign-In page
+* Use the right app's logo
 
 
 # AGENT - To do...
+## Web
+### General
+### Sign-In page
 
 
 # ME - To do...
+
+
 
 ## App Shakeout & QA Task List (Web & Mobile)
 

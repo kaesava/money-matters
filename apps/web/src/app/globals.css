@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite !important;
+}
+
 :root {
   /* Colors - Serene Elegance Palette (marketing / landing) */
   --color-primary: #8a9a5b;        /* Muted Sage Accent */
