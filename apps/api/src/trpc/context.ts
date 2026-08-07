@@ -14,7 +14,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   // Fallback to cookie if no Authorization bearer token is provided
   if (!token && req.headers.cookie) {
     const cookieHeader = req.headers.cookie;
-    const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session)=([^;]+)/);
+    const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
     if (match) {
       token = match[1];
     }
@@ -22,8 +22,8 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
 
   let claims = await verifyJwt(token);
 
-  // Fallback for 32-character opaque Neon DB session tokens
-  if (!claims && token && token.length === 32) {
+  // Fallback for opaque Neon DB database session tokens
+  if (!claims && token) {
     try {
       const dbSessions = await db.execute<{ userId: string; email: string; name: string }>(
         sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"

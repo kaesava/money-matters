@@ -15,7 +15,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
   if (!token) {
     const cookieHeader = req.headers.get('cookie');
     if (cookieHeader) {
-      const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session)=([^;]+)/);
+      const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
       if (match) {
         token = match[1];
       }
@@ -25,7 +25,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
   let claims = await verifyJwt(token);
 
   // Fallback for opaque database session tokens
-  if (!claims && token && token.length === 32) {
+  if (!claims && token) {
     try {
       const dbSessions = await requestDb.execute<{ userId: string; email: string; name: string }>(
         sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"
