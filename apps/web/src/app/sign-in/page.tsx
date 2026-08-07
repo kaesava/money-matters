@@ -14,14 +14,6 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Optional client-side quick check via cookie or auth client state if needed
-    authClient.getSession().then(({ data }) => {
-      if (data?.session) {
-        router.push("/dashboard");
-      }
-    });
-  }, [router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +49,7 @@ export default function SignInPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "https://moneymatters.kaesava.au/dashboard",
+        callbackURL: window.location.origin + "/dashboard",
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in with Google.");
@@ -76,7 +68,7 @@ export default function SignInPage() {
     try {
       const res = await authClient.requestPasswordReset({
         email: email.trim().toLowerCase(),
-        redirectTo: "https://moneymatters.kaesava.au/reset-password",
+        redirectTo: window.location.origin + "/reset-password",
       });
 
       if (res.error) {

@@ -82,13 +82,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .then((res) => {
           console.log("[Auth Exchange] Verifier exchange response status:", res.status);
           
-          // Clear verifier from query string to prevent multiple exchanges
+          // Clear verifier from query string and reload to /dashboard with cookie in place
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete("neon_auth_session_verifier");
-          window.history.replaceState({}, "", newUrl.toString());
-
-          // Refresh the React SDK session state
-          return authClient.getSession();
+          window.location.href = newUrl.pathname;
         })
         .catch((err) => {
           console.error("[Auth Exchange] Error exchanging verifier:", err);
