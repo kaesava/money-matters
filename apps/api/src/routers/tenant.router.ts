@@ -9,6 +9,8 @@ import {
   getTenantHandler,
   invitePartnerHandler,
   acceptInviteHandler,
+  exportMyDataHandler,
+  deleteMyAccountHandler,
 } from "@money-matters/capability-tenant";
 import {
   listCategoriesQuery,
@@ -417,4 +419,17 @@ export const tenantRouter = {
 
       return { success: true, diff };
     }),
+
+  exportMyData: tenantProcedure
+    .query(async ({ ctx }) => {
+      const handler = exportMyDataHandler(ctx.db);
+      return await handler(ctx.tenantId!, ctx.userId!, ctx.appId!);
+    }),
+
+  deleteMyAccount: authenticatedProcedure
+    .mutation(async ({ ctx }) => {
+      const handler = deleteMyAccountHandler(ctx.db);
+      return await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);
+    }),
 };
+

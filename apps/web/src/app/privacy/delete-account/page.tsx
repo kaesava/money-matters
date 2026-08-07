@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { AccountDeletionSection } from "./AccountDeletionSection";
 
 export const metadata: Metadata = {
   title: "Delete Your Account & Data | Money Matters",
@@ -37,6 +38,9 @@ export default function DeleteAccountPage() {
             Money Matters by Kaesava · Effective under the Australian Privacy Act 1988 (Cth)
           </p>
         </div>
+
+        {/* Self-service authenticated deletion section */}
+        <AccountDeletionSection />
 
         {/* Who is this for */}
         <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
+import { authClient } from "../lib/auth";
 import { PaycheckSimulator } from "../components/PaycheckSimulator";
 
 export default function Home() {
@@ -11,10 +12,11 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    const token = localStorage.getItem("session_token");
-    if (token) {
-      router.push("/dashboard");
-    }
+    authClient.getSession().then(({ data }) => {
+      if (data?.session) {
+        router.push("/dashboard");
+      }
+    });
   }, [router]);
 
   if (!isClient) return null;

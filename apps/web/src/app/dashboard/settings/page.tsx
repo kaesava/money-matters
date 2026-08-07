@@ -14,9 +14,6 @@ export default function SettingsPage() {
   const handleSignOut = async () => {
     await authClient.signOut();
     posthog.reset();
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("session_token");
-    }
     router.push("/sign-in");
   };
 
@@ -30,6 +27,24 @@ export default function SettingsPage() {
   });
 
   const currentTimezone = userPrefQuery.data?.timezone || "Australia/Sydney";
+
+  const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
+
+  const handleDownloadData = async () => {
+    const { data } = await exportQuery.refetch();
+    if (data) {
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `money-matters-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 max-w-lg">
@@ -139,6 +154,8 @@ export default function SettingsPage() {
             { label: `🔔 Notification Preferences`, id: "settings-notifications-link", onClick: () => router.push("/dashboard/settings/notifications") },
             { label: `📦 Archived Items`, id: "settings-archived-link", onClick: () => router.push("/dashboard/settings/archived") },
             { label: `🏦 ${t("settings.bankAccounts.title")}`, id: "settings-bank-link", onClick: () => router.push("/dashboard/settings/bank-accounts") },
+            { label: `📥 Download My Data`, id: "settings-download-data-link", onClick: handleDownloadData },
+            { label: `🔒 Privacy & Account Deletion`, id: "settings-deletion-link", onClick: () => router.push("/privacy/delete-account") },
           ].map((item, i, arr) => (
             <div key={item.id}>
               <button

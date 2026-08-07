@@ -77,9 +77,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSignOut = useCallback(async () => {
     await authClient.signOut();
     posthog.reset();
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("session_token");
-    }
     router.push("/sign-in");
   }, [router]);
 

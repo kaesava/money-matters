@@ -40,10 +40,7 @@ export function buildTrpcClient(): ReturnType<typeof trpc.createClient> {
     links: [
       httpBatchLink({
         url: `${getBaseUrl()}/trpc`,
-        async headers() {
-          const token = typeof window !== "undefined" ? localStorage.getItem("session_token") : null;
-          return token ? { Authorization: `Bearer ${token}` } : {};
-        },
+        fetch: (url, options) => fetch(url, { ...options, credentials: "include" }),
       }),
     ],
   });

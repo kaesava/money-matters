@@ -1,11 +1,46 @@
-npx -y @posthog/wizard@latest self-driving
+# AGENT - In progress...
+* Download my Data option
+* Account deletion
+* Migrate web session token from localStorage → httpOnly cookies; automate deletion via Inngest; verify POST_NOTIFICATIONS declaration for Android 13+
 
+
+# AGENT - To do...
+
+
+# ME - To do...
+
+## App Shakeout & QA Task List (Web & Mobile)
+
+### Phase 1: Authentication & Onboarding
+ Sign Up / Sign In: Register new account on Web (/sign-up) and Mobile. Verify redirect to /setup. Test invalid password & duplicate email edge cases.
+ Session Persistence: Refresh Web browser / restart Mobile app -> verify user stays logged in via session cookie/SecureStore.
+ Onboarding Quiz (/setup): Complete 4-step wizard (Household, Income, Categories, Bank Accounts) -> verify 5-step waterfall allocation initializes category balances.
+
+### Phase 2: Core Budgeting & Waterfall
+ Dashboard Metrics: Confirm monetary amounts render in JetBrains Mono font. Verify Total Income, Committed Bills Pool, Free Everyday, and Savings totals.
+ Deficit Repair Edge Case: Set upcoming expense higher than available income -> verify 5-step waterfall deficit repair highlights deficit in red (#ba1a1a).
+ Category Management (/dashboard/categories): Create, edit, archive, and restore categories. Test "Move Money" modal between envelopes.
+
+### Phase 3: Payday & Transactions
+ Payday Cascade (/dashboard/paychecks): Preview & execute payday -> verify funds distribute across Bills, Everyday, and Buffer.
+ CSV Import (Web): Upload sample bank CSV -> map columns -> verify transactions populate and envelope balances update.
+ Reconciliation: Open Bank Account Reconciliation modal -> enter actual balance -> verify variance adjustment transaction created.
+
+### Phase 4: Multi-Tenancy & Billing
+ Partner Invites: Send invite from /dashboard/settings -> accept link /invite/[token] in incognito window -> verify second user sees shared tenant.
+ Tenant Isolation (RLS): Attempt cross-tenant query -> verify PostgreSQL RLS blocks unauthorized access.
+ Stripe Upgrade (/subscription/upgrade): Upgrade to Household plan using test card -> verify status updates to ACTIVE and /subscription/manage opens Customer Portal.
+
+### Phase 5: Mobile Offline & Native UX
+ Offline Mode: Enable Airplane mode -> view categories & transactions via local SQLite cache. Re-enable network -> verify sync.
+ Quick Expense Modal: Add transaction via native numeric keypad -> verify smooth modal dismissal and list update.
 
 
 ## Due date vs Pay date - past vs future, recurring vs. target
 
 
-# For me to do
+
+# ME - Non-App To Do...
 
 Register ABN as sole trader at business.gov.au (free, 10 min)
  Open dedicated business bank account (separate from personal)

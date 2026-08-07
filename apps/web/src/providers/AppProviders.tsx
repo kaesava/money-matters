@@ -13,13 +13,7 @@ function SessionSyncTracker({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = authClient.useSession();
   const identifiedDistinctId = useRef<string | null>(null);
 
-  useEffect(() => {
-    const sessionToken = (session?.session as { token?: string })?.token;
-    if (sessionToken) {
-      console.log("[DEBUG client] Syncing active Better Auth JWT to localStorage...");
-      localStorage.setItem("session_token", sessionToken);
-    }
-  }, [session]);
+
 
   useEffect(() => {
     if (isPending) return;

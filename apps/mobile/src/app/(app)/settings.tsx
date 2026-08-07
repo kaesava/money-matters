@@ -78,6 +78,66 @@ export default function SettingsScreen() {
     }
   };
 
+  const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
+  const deleteAccountMutation = trpc.deleteMyAccount.useMutation();
+
+  const handleDownloadDataMobile = async () => {
+    try {
+      const { data } = await exportQuery.refetch();
+      if (data) {
+        Alert.alert(
+          "Data Export Ready",
+          `Export generated containing ${data.categories.length} categories, ${data.transactionLedger.length} ledger transactions, and ${data.incomeSources.length} income sources. You can also download it anytime on the web version.`
+        );
+      }
+    } catch (err) {
+      Alert.alert("Export Failed", err instanceof Error ? err.message : "Could not generate data export.");
+    }
+  };
+
+  const handleDeleteAccountMobile = () => {
+    Alert.alert(
+      "Download Copy First?",
+      "Before deleting your account, ensure you have downloaded a copy of your financial data if needed using 'Download My Data'.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Proceed to Delete",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              "Permanently Delete Account?",
+              "This action is IRREVERSIBLE. All your household budget categories, transactions, bank accounts, and credentials will be permanently erased.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "YES, DELETE EVERYTHING",
+                  style: "destructive",
+                  onPress: async () => {
+                    setLoading(true);
+                    try {
+                      await deleteAccountMutation.mutateAsync();
+                      await authClient.signOut();
+                      await SecureStore.deleteItemAsync("money-matters_session_token");
+                      await SecureStore.deleteItemAsync("money-matters-session-token");
+                      setActiveSessionToken(null);
+                      Alert.alert("Account Deleted", "Your account and data have been permanently deleted.");
+                      router.replace("/(auth)/sign-in");
+                    } catch (err) {
+                      Alert.alert("Deletion Failed", err instanceof Error ? err.message : "Failed to delete account.");
+                    } finally {
+                      setLoading(false);
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <MobileScreenWrapper
       title={t("settings.title")}
@@ -193,9 +253,16 @@ export default function SettingsScreen() {
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() =>
-              Linking.openURL("https://moneymatters.kaesava.au/privacy/delete-account")
-            }
+            onPress={handleDownloadDataMobile}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>📥 Download My Data</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={handleDeleteAccountMobile}
             activeOpacity={0.7}
           >
             <Text style={[styles.listItemText, { color: "#ba1a1a" }]}>

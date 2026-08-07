@@ -19,10 +19,11 @@ export default function SignUpPage() {
 
   useEffect(() => {
     // If already signed in, push to dashboard
-    const token = localStorage.getItem("session_token");
-    if (token) {
-      router.push("/dashboard");
-    }
+    authClient.getSession().then(({ data }) => {
+      if (data?.session) {
+        router.push("/dashboard");
+      }
+    });
   }, [router]);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -58,10 +59,7 @@ export default function SignUpPage() {
         return;
       }
 
-      const sessionToken = signUpResult.data?.token;
-      if (sessionToken) {
-        localStorage.setItem("session_token", sessionToken);
-      }
+
 
       // 2. Create the tenant/household (uses transactional token context)
       await createTenant.mutateAsync({
