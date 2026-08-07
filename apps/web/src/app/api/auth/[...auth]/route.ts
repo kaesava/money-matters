@@ -72,13 +72,11 @@ async function handleProxy(req: NextRequest) {
             // Extract the original origin of the request
             const reqHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || urlObj.host;
             const reqProto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
-            const originalOrigin = `${reqProto}://${reqHost}`;
             
-            urlObj.protocol = "http:";
-            urlObj.host = "localhost:3000";
-            urlObj.searchParams.set("original_origin", originalOrigin);
+            // Rewrite callbackURL to go through the dev-callback redirection route
+            const callbackUrlObj = new URL(`http://localhost:3000/dev-callback/${reqProto}/${reqHost}`);
             
-            bodyJson.callbackURL = urlObj.toString();
+            bodyJson.callbackURL = callbackUrlObj.toString();
             bodyText = JSON.stringify(bodyJson);
             console.log(`[DEBUG Auth Proxy] Rewrote callbackURL from ${originalUrl} to ${bodyJson.callbackURL}`);
           }

@@ -5,6 +5,7 @@ const PUBLIC_PREFIXES = [
   "/sign-in",
   "/sign-up",
   "/auth-callback",
+  "/dev-callback/",
   "/reset-password",
   "/invite/",
   "/api/",
@@ -13,21 +14,6 @@ const PUBLIC_PREFIXES = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  // Intercept development original_origin redirect from social login callback
-  const originalOrigin = request.nextUrl.searchParams.get("original_origin");
-  if (originalOrigin) {
-    try {
-      const targetUrl = new URL(request.url);
-      const originUrl = new URL(originalOrigin);
-      targetUrl.protocol = originUrl.protocol;
-      targetUrl.host = originUrl.host;
-      targetUrl.searchParams.delete("original_origin");
-      return NextResponse.redirect(targetUrl);
-    } catch (e) {
-      // Ignore invalid URLs
-    }
-  }
 
   // Bypass session cookie check if session verifier is present (let client SDK handle it)
   if (request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
