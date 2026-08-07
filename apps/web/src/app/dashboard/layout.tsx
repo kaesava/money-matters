@@ -86,6 +86,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Redirect unauthenticated users
   useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("neon_auth_session_verifier")) {
+      return; // Bypassing redirect, wait for SDK to sign us in
+    }
+
     if (!isPending && !session?.user) {
       router.replace("/sign-in");
     }
@@ -122,11 +126,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  if (!isPending && !session?.user) {
+  const isAuthenticating = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("neon_auth_session_verifier");
+
+  if (!isPending && !session?.user && !isAuthenticating) {
     return null;
   }
 
-  if (isPending) {
+  if (isPending || isAuthenticating) {
     return (
       <div
         className="flex items-center justify-center min-h-screen"
