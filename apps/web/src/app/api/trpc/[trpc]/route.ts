@@ -58,13 +58,20 @@ async function handleProxy(req: NextRequest) {
     const targetUrl = `${apiBase}/trpc${path}${url.search}`;
 
     if (process.env.NODE_ENV === "development") {
-      console.log(`[DEBUG tRPC Proxy] Forwarding ${req.method} to ${targetUrl}`);
+      console.log(`[DEBUG tRPC Proxy] Forwarding ${req.method} to ${targetUrl} (Cookie present: ${req.headers.has("cookie")})`);
     }
 
     const headers = new Headers();
-    // Copy incoming headers
+    // Copy incoming headers, filtering out forwarding headers that mess up origin matching
     req.headers.forEach((value, key) => {
-      headers.set(key, value);
+      const lowerKey = key.toLowerCase();
+      if (
+        !lowerKey.startsWith("x-forwarded-") && 
+        lowerKey !== "host" && 
+        lowerKey !== "forwarded"
+      ) {
+        headers.set(key, value);
+      }
     });
     
     // Explicitly set host to align with the target endpoint
