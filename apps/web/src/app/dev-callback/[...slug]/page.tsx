@@ -9,8 +9,8 @@ export default function DevCallbackPage() {
   useEffect(() => {
     const slug = params?.slug;
     if (Array.isArray(slug) && slug.length >= 2) {
-      const proto = slug[0];
-      const host = slug.slice(1).join("/");
+      const proto = decodeURIComponent(slug[0]);
+      const host = decodeURIComponent(slug.slice(1).join("/"));
       
       const targetUrl = new URL(`${proto}://${host}/dashboard`);
       searchParams.forEach((value, key) => {
