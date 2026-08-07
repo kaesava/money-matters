@@ -1,6 +1,6 @@
 export declare const en: {
     readonly app: {
-        readonly title: "money matters";
+        readonly title: "MoneyMatters";
         readonly description: "The forward-looking income allocation system engineered for absolute financial clarity without administrative friction.";
     };
     readonly nav: {
@@ -69,7 +69,7 @@ export declare const en: {
     };
     readonly auth: {
         readonly cta: "Sign In / Register";
-        readonly hint: "Start managing your money at the exact point of income arrival.";
+        readonly hint: "Take control of your money the second your paycheck lands.";
         readonly signIn: "Sign In";
         readonly signUp: "Create Account";
         readonly emailLabel: "Email";

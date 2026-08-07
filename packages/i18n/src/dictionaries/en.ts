@@ -1,6 +1,6 @@
 export const en = {
   app: {
-    title: "money matters",
+    title: "MoneyMatters",
     description: "The forward-looking income allocation system engineered for absolute financial clarity without administrative friction.",
   },
   nav: {
@@ -69,7 +69,7 @@ export const en = {
   },
   auth: {
     cta: "Sign In / Register",
-    hint: "Start managing your money at the exact point of income arrival.",
+    hint: "Take control of your money the second your paycheck lands.",
     signIn: "Sign In",
     signUp: "Create Account",
     emailLabel: "Email",

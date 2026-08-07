@@ -1,6 +1,7 @@
 import React from "react";
 import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from "@money-matters/types";
 import { t } from "@money-matters/i18n";
+import { Spinner } from "@money-matters/ui/web";
 
 interface CategorySelectStepProps {
   selectedPresets: Set<string>;
@@ -179,9 +180,10 @@ export function CategorySelectStep({
         <button
           onClick={onComplete}
           disabled={isSubmitting || selectedPresets.size === 0}
-          className="px-6 py-3 rounded-xl text-xs font-black text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md"
+          className="px-6 py-3 rounded-xl text-xs font-black text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md flex items-center justify-center gap-1.5"
         >
-          {isSubmitting ? "Completing Setup..." : "Complete Setup 🎉"}
+          {isSubmitting && <Spinner size="sm" />}
+          Complete Setup 🎉
         </button>
       </div>
     </div>

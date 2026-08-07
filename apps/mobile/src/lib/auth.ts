@@ -33,7 +33,7 @@ export const authClient = createAuthClient({
       scheme: "moneymatters",
       storage: SecureStore,
       storagePrefix: "money-matters",
-    }),
+    }) as any,
     jwtClient(),
   ],
 });

@@ -4,6 +4,7 @@ import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { RecurrenceFields } from "./forms/RecurrenceFields";
+import { Spinner } from "@money-matters/ui/web";
 
 export interface IncomeExpenseFormModalProps {
   isOpen: boolean;
@@ -321,9 +322,10 @@ export function IncomeExpenseFormModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
+            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2"
           >
-            {submitting ? "Saving..." : isEdit ? "Save Changes" : `Create ${mode === "INCOME" ? "Income" : "Expense"}`}
+            {submitting && <Spinner size="sm" />}
+            {isEdit ? "Save Changes" : `Create ${mode === "INCOME" ? "Income" : "Expense"}`}
           </button>
         </div>
       </form>

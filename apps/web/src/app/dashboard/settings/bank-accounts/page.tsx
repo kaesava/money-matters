@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import posthog from "../../../../lib/posthog-client";
 
-import { PaginationBar } from "@money-matters/ui/web";
+import { PaginationBar, Spinner } from "@money-matters/ui/web";
 
 export default function BankAccountsPage() {
   const router = useRouter();
@@ -234,9 +234,10 @@ export default function BankAccountsPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {submitting ? "Saving..." : accountToEdit ? "Save Changes" : "Add Account"}
+                  {submitting && <Spinner size="sm" />}
+                  {accountToEdit ? "Save Changes" : "Add Account"}
                 </button>
               </div>
             </form>

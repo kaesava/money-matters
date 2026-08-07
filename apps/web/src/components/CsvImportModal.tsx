@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "../lib/trpc";
+import { Spinner } from "@money-matters/ui/web";
 
 interface ParsedTx {
   date: string;
@@ -71,7 +72,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {!parsedResults ? (
+          {parseCsvMutation.isPending ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Spinner size="lg" className="text-[#00B4A6]" />
+              <span className="text-sm font-semibold text-slate-500">Parsing statement...</span>
+            </div>
+          ) : !parsedResults ? (
             <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 text-center transition-colors">
               <input
                 type="file"

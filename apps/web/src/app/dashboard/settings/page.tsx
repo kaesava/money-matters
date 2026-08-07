@@ -5,6 +5,7 @@ import { t } from "@money-matters/i18n";
 import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
+import { Spinner } from "@money-matters/ui/web";
 
 /** Settings page — profile info, manage links, sign out */
 export default function SettingsPage() {
@@ -165,9 +166,13 @@ export default function SettingsPage() {
                 style={{ color: "var(--dash-text)" }}
               >
                 {item.label}
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: "var(--dash-muted)" }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
+                {item.id === "settings-download-data-link" && exportQuery.isFetching ? (
+                  <Spinner size="sm" className="text-[#00B4A6]" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: "var(--dash-muted)" }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
               </button>
               {i < arr.length - 1 && <div style={{ height: "1px", backgroundColor: "var(--dash-border)", marginLeft: "1rem" }} />}
             </div>

@@ -175,7 +175,12 @@ export default function DashboardPage() {
       />
 
       {/* Attention Items */}
-      <AttentionItemsList items={attentionItems} onMarkPaid={handleMarkPaidItem} formatAUD={fmt} />
+      <AttentionItemsList
+        items={attentionItems}
+        onMarkPaid={handleMarkPaidItem}
+        formatAUD={fmt}
+        markingPaidId={markPaidMutation.isPending ? markPaidMutation.variables?.eventId : null}
+      />
 
       {/* Permanent (Non-Collapsible) Quick Actions & Financial Tools */}
       <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm space-y-4">

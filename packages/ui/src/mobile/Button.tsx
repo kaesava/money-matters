@@ -1,10 +1,11 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, StyleProp, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, StyleProp, TextStyle, ActivityIndicator } from 'react-native';
 
 export interface ButtonProps extends TouchableOpacityProps {
   variant?: 'primary' | 'secondary';
   textStyle?: StyleProp<TextStyle>;
   title: string;
+  loading?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -13,6 +14,7 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   disabled,
+  loading,
   ...props
 }) => {
   const isPrimary = variant === 'primary';
@@ -21,21 +23,25 @@ export const Button: React.FC<ButtonProps> = ({
       style={[
         styles.button,
         isPrimary ? styles.primaryButton : styles.secondaryButton,
-        disabled && styles.disabled,
+        (disabled || loading) && styles.disabled,
         style,
       ]}
-      disabled={disabled}
+      disabled={disabled || loading}
       activeOpacity={0.7}
       {...props}
     >
-      <Text
-        style={[
-          isPrimary ? styles.primaryText : styles.secondaryText,
-          textStyle,
-        ]}
-      >
-        {title}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color={isPrimary ? '#ffffff' : '#1e293b'} />
+      ) : (
+        <Text
+          style={[
+            isPrimary ? styles.primaryText : styles.secondaryText,
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 };

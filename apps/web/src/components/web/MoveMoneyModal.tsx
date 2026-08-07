@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
+import { Spinner } from "@money-matters/ui/web";
 
 interface MoveMoneyModalProps {
   isOpen: boolean;
@@ -188,9 +189,10 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
           <button
             type="submit"
             disabled={moveMoneyMutation.isPending}
-            className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md"
+            className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md flex items-center justify-center gap-1.5"
           >
-            {moveMoneyMutation.isPending ? "Transferring..." : "Confirm Move Money"}
+            {moveMoneyMutation.isPending && <Spinner size="sm" />}
+            Confirm Move Money
           </button>
         </form>
       </div>

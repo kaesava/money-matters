@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trpc } from "../../../lib/trpc";
+import { Spinner } from "@money-matters/ui/web";
 
 export default function SubscriptionManagePage() {
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export default function SubscriptionManagePage() {
           </>
         ) : (
           <>
-            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <Spinner size="lg" className="text-[#00B4A6]" />
             <p className="text-sm font-semibold text-zinc-700">Opening Stripe Billing Portal…</p>
           </>
         )}

@@ -17,7 +17,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
     if (cookieHeader) {
       const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
       if (match) {
-        token = match[1];
+        token = decodeURIComponent(match[1]);
       }
     }
   }

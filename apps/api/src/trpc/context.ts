@@ -8,16 +8,25 @@ import { posthog } from '../lib/posthog.js';
 export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
+  if (process.env.NODE_ENV === "development") {
+    console.log("[DEBUG createContext] Incoming Authorization header:", req.headers.authorization);
+    console.log("[DEBUG createContext] Incoming Cookie header:", req.headers.cookie);
+  }
+
   const authHeader = req.headers.authorization;
   let token = authHeader?.split(" ")[1] ?? "";
 
   // Fallback to cookie if no Authorization bearer token is provided
   if (!token && req.headers.cookie) {
     const cookieHeader = req.headers.cookie;
-    const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
+    const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;\s]+)/);
     if (match) {
-      token = match[1];
+      token = decodeURIComponent(match[1]);
     }
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[DEBUG createContext] Final token evaluated:", token ? `${token.substring(0, 15)}... (len: ${token.length})` : "NONE");
   }
 
   let claims = await verifyJwt(token);
@@ -45,7 +54,14 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
     }
   }
 
+  if (process.env.NODE_ENV === "development") {
+    console.log("[DEBUG createContext] Claims after verifyJwt & dbSession lookup:", claims);
+  }
+
   if (!claims) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[DEBUG createContext] FAILED: claims is null. Cookie header was:", req.headers.cookie, "Token:", token);
+    }
     return {
       req,
       res,
@@ -56,6 +72,10 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
       email: null,
       appId: null,
     };
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[DEBUG createContext] SUCCESS: Resolved claims for userId:", claims.userId);
   }
 
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
@@ -81,6 +101,10 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
 
   const tenantId = membership?.tenantId ?? null;
   const appId = membership?.appId ?? MONEY_MATTERS_APP_ID;
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[DEBUG createContext] Membership result:", membership, "Resolved tenantId:", tenantId);
+  }
 
   return {
     req,

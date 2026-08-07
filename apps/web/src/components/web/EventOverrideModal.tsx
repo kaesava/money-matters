@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
+import { Spinner } from "@money-matters/ui/web";
 
 interface EventOverrideModalProps {
   isOpen: boolean;
@@ -146,9 +147,10 @@ export default function EventOverrideModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50"
+            className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {submitting ? "Saving..." : "Save Occurrence"}
+            {submitting && <Spinner size="sm" />}
+            Save Occurrence
           </button>
         </div>
       </form>

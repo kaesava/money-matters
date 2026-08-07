@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '../../../lib/trpc';
+import { Spinner } from '@money-matters/ui/web';
 
 export default function AcceptInvitePage() {
   const params = useParams();
@@ -36,7 +37,7 @@ export default function AcceptInvitePage() {
       <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-sm border border-gray-200 text-center">
         {status === 'loading' && (
           <div className="space-y-4">
-            <div className="w-12 h-12 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin mx-auto" />
+            <Spinner size="lg" className="text-[#00B4A6] mx-auto" />
             <h1 className="text-xl font-bold text-gray-900">Joining Household...</h1>
             <p className="text-sm text-gray-500">Validating your invitation token.</p>
           </div>

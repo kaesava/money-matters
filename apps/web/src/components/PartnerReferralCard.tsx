@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { trpc } from "../lib/trpc";
 import posthog from "../lib/posthog-client";
+import { Spinner } from "@money-matters/ui/web";
 
 export const PartnerReferralCard: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -55,9 +56,10 @@ export const PartnerReferralCard: React.FC = () => {
             <button
               type="submit"
               disabled={status === "SENDING"}
-              className="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap"
+              className="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap flex items-center justify-center gap-1.5"
             >
-              {status === "SENDING" ? "Sending..." : "Send Invite"}
+              {status === "SENDING" && <Spinner size="sm" />}
+              Send Invite
             </button>
           </>
         )}

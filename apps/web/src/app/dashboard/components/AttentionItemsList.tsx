@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Spinner } from "@money-matters/ui/web";
 
 export interface WebAttentionItem {
   readonly id: string;
@@ -16,12 +17,14 @@ export interface WebAttentionItemsListProps {
   readonly items: readonly WebAttentionItem[];
   readonly onMarkPaid: (item: WebAttentionItem) => void;
   readonly formatAUD: (val: number | string) => string;
+  readonly markingPaidId?: string | null;
 }
 
 export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   items,
   onMarkPaid,
   formatAUD,
+  markingPaidId,
 }) => {
   if (!items || items.length === 0) return null;
 
@@ -64,8 +67,10 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                 <button
                   type="button"
                   onClick={() => onMarkPaid(item)}
-                  className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors"
+                  disabled={markingPaidId === item.id}
+                  className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5"
                 >
+                  {markingPaidId === item.id && <Spinner size="sm" />}
                   Mark Paid
                 </button>
               </div>

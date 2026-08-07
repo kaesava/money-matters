@@ -42,8 +42,8 @@ export default function SignInPage() {
         return;
       }
 
-      // Clean tRPC flow: Session cookie is set by Better Auth and sent automatically via credentials: 'include'
-      router.push("/dashboard");
+      // Full browser redirect ensures session cookie is sent to middleware and server components
+      window.location.href = "/dashboard";
     } catch (_err) {
       setError("An unexpected error occurred. Please try again.");
     } finally {
@@ -148,8 +148,8 @@ export default function SignInPage() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-2" disabled={loading}>
-            {loading ? "Signing in..." : t("auth.signInCta")}
+          <Button type="submit" className="w-full mt-2" loading={loading}>
+            {t("auth.signInCta")}
           </Button>
         </form>
 

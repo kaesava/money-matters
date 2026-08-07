@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer } from "@money-matters/ui/web";
+import { SlideOverDrawer, Spinner } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
 
 interface QuickExpenseDrawerProps {
@@ -257,13 +257,12 @@ export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
             <button
               type="submit"
               disabled={isPending}
-              className={`w-full py-3 rounded-xl text-xs font-extrabold text-white transition-all shadow-sm ${
+              className={`w-full py-3 rounded-xl text-xs font-extrabold text-white transition-all shadow-sm flex items-center justify-center gap-1.5 ${
                 isIncome ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#00B4A6] hover:bg-[#009b8f]"
               }`}
             >
-              {isPending
-                ? "Processing..."
-                : isFutureDate
+              {isPending && <Spinner size="sm" />}
+              {isFutureDate
                 ? isIncome
                   ? "📅 Schedule Future Income"
                   : "📅 Schedule Future Expense"

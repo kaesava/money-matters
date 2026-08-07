@@ -14,6 +14,26 @@ const PUBLIC_PREFIXES = [
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Intercept development original_origin redirect from social login callback
+  const originalOrigin = request.nextUrl.searchParams.get("original_origin");
+  if (originalOrigin) {
+    try {
+      const targetUrl = new URL(request.url);
+      const originUrl = new URL(originalOrigin);
+      targetUrl.protocol = originUrl.protocol;
+      targetUrl.host = originUrl.host;
+      targetUrl.searchParams.delete("original_origin");
+      return NextResponse.redirect(targetUrl);
+    } catch (e) {
+      // Ignore invalid URLs
+    }
+  }
+
+  // Bypass session cookie check if session verifier is present (let client SDK handle it)
+  if (request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
+    return NextResponse.next();
+  }
+
   // Allow root landing page
   if (pathname === "/") {
     return NextResponse.next();
@@ -32,7 +52,9 @@ export function middleware(request: NextRequest) {
     request.cookies.get("__Secure-better-auth.session_token") ??
     request.cookies.get("session_token") ??
     request.cookies.get("__Secure-session_token") ??
-    request.cookies.get("neon_auth_session");
+    request.cookies.get("neon_auth_session") ??
+    request.cookies.get("session") ??
+    request.cookies.get("__Secure-session");
 
   if (!sessionCookie) {
     const signInUrl = new URL("/sign-in", request.url);

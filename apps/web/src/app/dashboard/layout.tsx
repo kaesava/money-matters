@@ -68,7 +68,11 @@ const NAV_ITEMS = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, error: sessionError } = authClient.useSession();
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[DEBUG DashboardLayout] isPending:", isPending, "session:", session, "error:", sessionError);
+  }
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

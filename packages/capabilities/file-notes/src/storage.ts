@@ -42,7 +42,7 @@ export async function getPresignedDownloadUrl(
     Key: fileKey,
   });
 
-  return getSignedUrl(getS3Client(), command, { expiresIn });
+  return getSignedUrl(getS3Client() as any, command, { expiresIn });
 }
 
 export async function getPresignedUploadUrl(
@@ -65,7 +65,7 @@ export async function getPresignedUploadUrl(
     ContentType: contentType,
   });
 
-  return getSignedUrl(getS3Client(), command, { expiresIn });
+  return getSignedUrl(getS3Client() as any, command, { expiresIn });
 }
 
 export async function deleteFileFromBucket(fileKey: string): Promise<boolean> {

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import { DashboardError } from "../../../../components/web/DashboardError";
+import { Spinner } from "@money-matters/ui/web";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -207,9 +208,10 @@ export default function CascadePage() {
         <button
           onClick={handleConfirm}
           disabled={confirmMutation.isPending || previewQuery.isLoading}
-          className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 transition-all active:scale-95 shadow-md"
+          className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5"
         >
-          {confirmMutation.isPending ? "Confirming..." : "Confirm & Save Splits"}
+          {confirmMutation.isPending && <Spinner size="sm" />}
+          Confirm & Save Splits
         </button>
       </div>
     </div>

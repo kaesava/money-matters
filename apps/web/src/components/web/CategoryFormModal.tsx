@@ -4,6 +4,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
+import { Spinner } from "@money-matters/ui/web";
 
 export interface CategoryFormModalProps {
   isOpen: boolean;
@@ -274,9 +275,10 @@ export function CategoryFormModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md"
+            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2"
           >
-            {submitting ? t("common.loading") : isEdit ? t("common.saveChanges") : t("categories.createButton")}
+            {submitting && <Spinner size="sm" />}
+            {isEdit ? t("common.saveChanges") : t("categories.createButton")}
           </button>
         </div>
       </form>

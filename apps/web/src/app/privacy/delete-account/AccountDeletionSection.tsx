@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { trpc } from "../../../lib/trpc";
 import { authClient } from "../../../lib/auth";
+import { Spinner } from "@money-matters/ui/web";
 
 export function AccountDeletionSection() {
   const { data: session } = authClient.useSession();
@@ -56,7 +57,7 @@ export function AccountDeletionSection() {
     <section className="p-6 bg-white border border-red-200 rounded-2xl shadow-sm space-y-4">
       <h2 className="text-xl font-bold text-[#ba1a1a]">Instant Self-Service Deletion</h2>
       <p className="text-sm text-slate-600">
-        You are currently signed in as <strong>{session.user.email}</strong>. You can download a copy of your financial data and delete your account immediately below.
+         You are currently signed in as <strong>{session.user.email}</strong>. You can download a copy of your financial data and delete your account immediately below.
       </p>
 
       {/* Step 1: Download data */}
@@ -67,8 +68,10 @@ export function AccountDeletionSection() {
         </p>
         <button
           onClick={handleDownload}
-          className="px-4 py-2 bg-[#2563eb] text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+          disabled={exportQuery.isFetching}
+          className="px-4 py-2 bg-[#2563eb] text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-1.5"
         >
+          {exportQuery.isFetching && <Spinner size="sm" />}
           {downloaded ? "✓ Data Downloaded (Click to re-download)" : "📥 Download My Data"}
         </button>
       </div>
@@ -97,9 +100,10 @@ export function AccountDeletionSection() {
         <button
           onClick={handleDelete}
           disabled={!confirmed || isDeleting}
-          className="w-full py-2.5 bg-[#ba1a1a] text-white text-xs font-bold rounded-lg hover:bg-red-800 transition-colors disabled:opacity-50 shadow-sm"
+          className="w-full py-2.5 bg-[#ba1a1a] text-white text-xs font-bold rounded-lg hover:bg-red-800 transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center gap-1.5"
         >
-          {isDeleting ? "Deleting Account..." : "🗑️ Permanently Delete My Account Now"}
+          {isDeleting && <Spinner size="sm" />}
+          Permanently Delete My Account Now
         </button>
       </div>
     </section>

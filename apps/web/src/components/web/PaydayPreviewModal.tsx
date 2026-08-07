@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
+import { Spinner } from "@money-matters/ui/web";
 import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
 import { PaydayReasonModal } from "./upcoming/PaydayReasonModal";
 import { PaydayLineRow } from "./upcoming/PaydayLineRow";
@@ -379,20 +380,20 @@ export default function PaydayPreviewModal({
                 type="button"
                 disabled={submitting}
                 onClick={handleSaveWithoutMarkingPaid}
-                className="px-4 py-2 text-xs font-bold rounded-xl border border-[#00B4A6] text-[#00B4A6] hover:bg-teal-50 transition-all disabled:opacity-50"
+                className="px-4 py-2 text-xs font-bold rounded-xl border border-[#00B4A6] text-[#00B4A6] hover:bg-teal-50 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
-                {submitting ? "Saving..." : "Save Details Only (Without Distributing Pay)"}
+                {submitting && <Spinner size="sm" />}
+                Save Details Only (Without Distributing Pay)
               </button>
 
               <button
                 type="button"
                 disabled={submitting}
                 onClick={handleConfirmPayday}
-                className="px-4 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white transition-all shadow-sm disabled:opacity-50"
+                className="px-4 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
-                {submitting
-                  ? "Processing..."
-                  : isFutureDate
+                {submitting && <Spinner size="sm" />}
+                {isFutureDate
                   ? "📅 Save Plan for Payday"
                   : "Confirm & Distribute Payday"}
               </button>

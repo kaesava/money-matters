@@ -1,5 +1,4 @@
 import { createAuthClient } from "better-auth/react";
-import { jwtClient } from "better-auth/client/plugins";
 
 const getBaseURL = () => {
   // 1. In browser runtime: always route through first-party proxy
@@ -13,5 +12,4 @@ const getBaseURL = () => {
 
 export const authClient: ReturnType<typeof createAuthClient> = createAuthClient({
   baseURL: getBaseURL(),
-  plugins: [jwtClient()],
 });

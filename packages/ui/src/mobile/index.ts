@@ -19,3 +19,5 @@ export type { MobileModalDialogProps } from './MobileModalDialog';
 export { MobilePaginationBar } from './MobilePaginationBar';
 export type { MobilePaginationBarProps } from './MobilePaginationBar';export { default as MobileCollapsibleSection } from './CollapsibleSection';
 export type { CollapsibleSectionProps as MobileCollapsibleSectionProps } from './CollapsibleSection';
+export { default as MobileSpinner } from './Spinner';
+export type { SpinnerProps as MobileSpinnerProps } from './Spinner';

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 
-import { PaginationBar } from "@money-matters/ui/web";
+import { PaginationBar, Spinner } from "@money-matters/ui/web";
 
 export default function ArchivedItemsPage() {
   const router = useRouter();
@@ -125,8 +125,11 @@ export default function ArchivedItemsPage() {
                   })
                 }
                 disabled={restoreMutation.isPending}
-                className="px-3 py-1.5 rounded-lg border border-[--dash-teal] text-[--dash-teal] text-xs font-bold hover:bg-[#00B4A6]/10 active:scale-95 transition-all"
+                className="px-3 py-1.5 rounded-lg border border-[#00B4A6] text-[#00B4A6] text-xs font-bold hover:bg-[#00B4A6]/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
+                {restoreMutation.isPending && restoreMutation.variables?.itemId === item.id && (
+                  <Spinner size="sm" />
+                )}
                 Restore
               </button>
             </div>

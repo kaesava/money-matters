@@ -24,6 +24,7 @@ export * from './RowActions';
 export * from './LineItemDetailDrawer';
 export * from './PaginationBar';
 export * from './CollapsibleSection';
+export * from './Spinner';
 
 
 

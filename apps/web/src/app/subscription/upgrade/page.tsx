@@ -152,10 +152,10 @@ export default function UpgradePage() {
 
             <Button
               onClick={() => handleCheckout(billingCycle)}
-              disabled={loading}
+              loading={loading}
               className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-md text-sm transition-all"
             >
-              {loading ? "Redirecting to Stripe..." : t("subscription.startTrial")}
+              {t("subscription.startTrial")}
             </Button>
           </div>
         </div>

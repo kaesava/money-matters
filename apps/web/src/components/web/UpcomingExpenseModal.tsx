@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
+import { Spinner } from "@money-matters/ui/web";
 import { ExpenseCategoryInfo } from "./upcoming/ExpenseCategoryInfo";
 import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
 
@@ -353,22 +354,24 @@ export default function UpcomingExpenseModal({
               type="button"
               disabled={submitting}
               onClick={handleSaveWithoutMarkingPaid}
-              className="px-4 py-2 text-xs font-bold rounded-xl border border-[#00B4A6] text-[#00B4A6] hover:bg-teal-50 transition-all disabled:opacity-50"
+              className="px-4 py-2 text-xs font-bold rounded-xl border border-[#00B4A6] text-[#00B4A6] hover:bg-teal-50 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              {submitting ? "Saving..." : "Save without Marking Paid"}
+              {submitting && <Spinner size="sm" />}
+              Save without Marking Paid
             </button>
 
             <button
               type="button"
               disabled={submitting || isFutureDate}
               onClick={handleMarkPaid}
-              className={`px-4 py-2 text-xs font-black rounded-xl text-white transition-all shadow-sm ${
+              className={`px-4 py-2 text-xs font-black rounded-xl text-white transition-all shadow-sm flex items-center justify-center gap-1.5 ${
                 isFutureDate
                   ? "bg-zinc-300 cursor-not-allowed"
                   : "bg-[#1B2B4B] hover:bg-[#111c33]"
               }`}
               title={isFutureDate ? "Cannot mark future date as paid" : "Mark expense paid"}
             >
+              {submitting && <Spinner size="sm" />}
               Mark as Paid
             </button>
           </div>

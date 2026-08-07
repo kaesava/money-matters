@@ -93,6 +93,7 @@ export default function SignUpPage() {
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 min-h-screen p-8">
       <main className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg border border-zinc-100 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
+          <span className="text-4xl text-[#00B4A6]">⬡</span>
           <h1 className="text-3xl font-bold tracking-tight text-[#1B2B4B]">{t("auth.signUp")}</h1>
           <p className="text-sm text-zinc-500">{t("app.description")}</p>
         </div>
@@ -145,8 +146,8 @@ export default function SignUpPage() {
             disabled={loading}
           />
 
-          <Button type="submit" className="w-full mt-2" disabled={loading}>
-            {loading ? "Creating Account..." : t("auth.signUpCta")}
+          <Button type="submit" className="w-full mt-2" loading={loading}>
+            {t("auth.signUpCta")}
           </Button>
         </form>
 

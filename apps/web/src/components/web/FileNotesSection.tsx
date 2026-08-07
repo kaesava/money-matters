@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+import { Spinner } from "@money-matters/ui/web";
 
 interface FileNotesSectionProps {
   entityType: string;
@@ -54,9 +55,10 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
         <button
           type="submit"
           disabled={createFileNoteMutation.isPending || !comment.trim()}
-          className="px-3 py-2 text-xs font-bold text-white rounded-xl transition-opacity bg-[#00B4A6] hover:opacity-90 disabled:opacity-50"
+          className="px-3 py-2 text-xs font-bold text-white rounded-xl transition-opacity bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
         >
-          {createFileNoteMutation.isPending ? t("fileNotes.posting") : t("fileNotes.post")}
+          {createFileNoteMutation.isPending && <Spinner size="sm" />}
+          {t("fileNotes.post")}
         </button>
       </form>
 
