@@ -69,9 +69,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, isPending, error: sessionError } = authClient.useSession();
+  const [isExchanging, setIsExchanging] = useState(false);
+
+  // Exchange neon_auth_session_verifier for session token cookie
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifier = params.get("neon_auth_session_verifier");
+    if (verifier) {
+      setIsExchanging(true);
+      console.log("[Auth Exchange] Exchanging verifier:", verifier);
+      fetch(`/api/auth/get-session?neon_auth_session_verifier=${verifier}`)
+        .then((res) => {
+          console.log("[Auth Exchange] Verifier exchange response status:", res.status);
+          
+          // Clear verifier from query string to prevent multiple exchanges
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete("neon_auth_session_verifier");
+          window.history.replaceState({}, "", newUrl.toString());
+
+          // Refresh the React SDK session state
+          return authClient.getSession();
+        })
+        .catch((err) => {
+          console.error("[Auth Exchange] Error exchanging verifier:", err);
+        })
+        .finally(() => {
+          setIsExchanging(false);
+        });
+    }
+  }, []);
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG DashboardLayout] isPending:", isPending, "session:", session, "error:", sessionError);
+    console.log("[DEBUG DashboardLayout] isPending:", isPending, "isExchanging:", isExchanging, "session:", session, "error:", sessionError);
   }
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -87,13 +116,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Redirect unauthenticated users
   useEffect(() => {
     if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("neon_auth_session_verifier")) {
-      return; // Bypassing redirect, wait for SDK to sign us in
+      return; // Bypassing redirect, wait for exchange
+    }
+    if (isExchanging) {
+      return; // Bypassing redirect, wait for exchange
     }
 
     if (!isPending && !session?.user) {
       router.replace("/sign-in");
     }
-  }, [isPending, session, router]);
+  }, [isPending, session, router, isExchanging]);
 
   // Keyboard Shortcuts Hook
   useEffect(() => {
@@ -128,11 +160,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isAuthenticating = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("neon_auth_session_verifier");
 
-  if (!isPending && !session?.user && !isAuthenticating) {
+  if (!isPending && !session?.user && !isAuthenticating && !isExchanging) {
     return null;
   }
 
-  if (isPending || isAuthenticating) {
+  if (isPending || isAuthenticating || isExchanging) {
     return (
       <div
         className="flex items-center justify-center min-h-screen"

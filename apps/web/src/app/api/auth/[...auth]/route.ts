@@ -37,14 +37,25 @@ async function handleProxy(req: NextRequest) {
       }
     });
 
-    // In dev mode, map un-prefixed neon-auth cookie back to __Secure- for the target Neon auth server
+    // In dev mode, map un-prefixed neon-auth cookies back to __Secure- for the target Neon auth server
     let reqCookie = req.headers.get("cookie");
     if (process.env.NODE_ENV === "development") {
       console.log(`[DEBUG Auth Proxy] Incoming cookie header: ${reqCookie}`);
-      if (reqCookie && reqCookie.includes("neon-auth.session_token=") && !reqCookie.includes("__Secure-neon-auth.session_token=")) {
-        reqCookie = reqCookie.replace(/neon-auth\.session_token=/g, "__Secure-neon-auth.session_token=");
-        headers.set("cookie", reqCookie);
-        console.log(`[DEBUG Auth Proxy] Mapped cookie header for backend: ${reqCookie}`);
+      if (reqCookie) {
+        let mapped = reqCookie;
+        if (mapped.includes("neon-auth.session_token=") && !mapped.includes("__Secure-neon-auth.session_token=")) {
+          mapped = mapped.replace(/neon-auth\.session_token=/g, "__Secure-neon-auth.session_token=");
+        }
+        if (mapped.includes("neon-auth.session_challange=") && !mapped.includes("__Secure-neon-auth.session_challange=")) {
+          mapped = mapped.replace(/neon-auth\.session_challange=/g, "__Secure-neon-auth.session_challange=");
+        }
+        if (mapped.includes("neon-auth.session_challenge=") && !mapped.includes("__Secure-neon-auth.session_challenge=")) {
+          mapped = mapped.replace(/neon-auth\.session_challenge=/g, "__Secure-neon-auth.session_challenge=");
+        }
+        if (mapped !== reqCookie) {
+          headers.set("cookie", mapped);
+          console.log(`[DEBUG Auth Proxy] Mapped cookie header for backend: ${mapped}`);
+        }
       }
     }
 
