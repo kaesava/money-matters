@@ -76,6 +76,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: session, isPending, error: sessionError } = authClient.useSession();
   const [isExchanging, setIsExchanging] = useState(false);
 
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
+  const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
+
   // Exchange neon_auth_session_verifier for session token cookie
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -279,9 +282,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     </div>
   );
-
-  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
-  const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
 
   return (
     <IconVisibilityProvider initialShowIcons={initialShowIcons}>
