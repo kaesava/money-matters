@@ -18,5 +18,20 @@
   "vars": {
     "NEXT_PUBLIC_NEON_AUTH_URL": "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth",
     "NEXT_PUBLIC_API_URL": "https://api.moneymatters.kaesava.au"
+  },
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
   }
 }

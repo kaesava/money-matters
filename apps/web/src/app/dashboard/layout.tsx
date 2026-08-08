@@ -11,7 +11,7 @@ import { TrialBanner } from "../../components/TrialBanner";
 import { TrialStatusBadge } from "../../components/TrialStatusBadge";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
-import { Logo } from "@money-matters/ui/web";
+import { Logo, Spinner } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
 
 const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
@@ -175,15 +175,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex items-center justify-center min-h-screen"
         style={{ backgroundColor: "var(--dash-bg)" }}
       >
-        <div className="flex flex-col items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: "var(--dash-teal)" }}
-          />
-          <p className="text-sm font-medium" style={{ color: "var(--dash-muted)" }}>
-            {t("common.loading")}
-          </p>
-        </div>
+        <Spinner size="lg" label="Synchronizing household data..." />
       </div>
     );
   }

@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { monthProgress } from '@money-matters/ui';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar, MobileSpinner } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
@@ -215,7 +215,11 @@ export default function CategoriesScreen() {
             }}
           />
 
-          {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 20 }} />}
+          {isLoading && (
+            <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+              <MobileSpinner size="large" label="Loading categories & savings pools..." />
+            </View>
+          )}
 
           {error && (
             <View style={styles.errorContainer}>

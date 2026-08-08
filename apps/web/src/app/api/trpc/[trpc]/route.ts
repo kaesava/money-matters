@@ -73,6 +73,12 @@ async function handleProxy(req: NextRequest) {
         headers.set(key, value);
       }
     });
+
+    // Ensure authorization header is forwarded if available
+    const authHeader = req.headers.get("authorization");
+    if (authHeader) {
+      headers.set("authorization", authHeader);
+    }
     
     // Explicitly set host to align with the target endpoint
     const targetHost = new URL(apiBase).host;

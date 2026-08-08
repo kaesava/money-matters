@@ -95,7 +95,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
     };
   }
 
-  await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
+  await upsertUserFromJwt(claims.userId, claims.email, claims.displayName, requestDb);
 
   const [membership] = await requestDb
     .select({
