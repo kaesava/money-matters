@@ -132,7 +132,7 @@ export function FilterBar({
               onClick={handleClearAll}
               className="px-3 py-1.5 text-xs font-bold rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-1.5"
             >
-              <span>✕</span>
+              {showIcons && <span>✕</span>}
               <span>{t("searchSelect.clearSelection")}</span>
             </button>
           )}

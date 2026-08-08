@@ -149,34 +149,47 @@ export default function TransactionsPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExportCsv}
-          disabled={sorted.length === 0}
-          className="px-4 py-2.5 rounded-xl font-bold text-xs bg-zinc-100 text-[#1B2B4B] hover:bg-zinc-200 border border-zinc-200 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
-        >
-          <span>📥</span>
-          <span>Export CSV ({sorted.length})</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Permanent 3-Way Flow Segmented Control */}
+          <div className="flex bg-zinc-100 p-1 rounded-xl gap-0.5">
+            {(["ALL", "DEBIT", "CREDIT"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFlowFilter(f)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  flowFilter === f
+                    ? f === "DEBIT"
+                      ? "bg-rose-600 text-white shadow-sm"
+                      : f === "CREDIT"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "bg-white text-[#1B2B4B] shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                {f === "ALL" ? "All" : f === "DEBIT" ? "Debits (−)" : "Credits (+)"}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={sorted.length === 0}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-zinc-100 text-[#1B2B4B] hover:bg-zinc-200 border border-zinc-200 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+          >
+            <span>📥</span>
+            <span>Export CSV ({sorted.length})</span>
+          </button>
+        </div>
       </div>
 
-      {/* Consistent Filter Bar */}
+      {/* Consistent Filter Bar (Category Type & Search) */}
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder="Search note, category, amount..."
         filterGroups={[
-          {
-            label: "Flow",
-            value: flowFilter,
-            onChange: setFlowFilter,
-            defaultValue: "ALL",
-            options: [
-              { id: "ALL", label: "All" },
-              { id: "DEBIT", label: "Debits (-)" },
-              { id: "CREDIT", label: "Credits (+)" },
-            ],
-          },
           {
             label: "Category Type",
             value: categoryTypeFilter,
@@ -209,7 +222,6 @@ export default function TransactionsPage() {
               <th onClick={() => toggleSort("categoryName")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Category {sortField === "categoryName" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
-              <th className="px-6 py-4">Flow</th>
               <th onClick={() => toggleSort("amount")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Amount {sortField === "amount" && (sortDir === "asc" ? "▲" : "▼")}
               </th>
@@ -220,13 +232,13 @@ export default function TransactionsPage() {
           <tbody className="divide-y divide-zinc-100">
             {transactionsQuery.isLoading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
+                <td colSpan={5} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
                   Loading transactions...
                 </td>
               </tr>
             ) : sorted.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
+                <td colSpan={5} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">
                   No matching transactions found.
                 </td>
               </tr>
@@ -249,15 +261,6 @@ export default function TransactionsPage() {
                         {tx.categoryName || "Uncategorized"}
                       </Link>
                     </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                          isDebit ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        }`}
-                      >
-                        {isDebit ? "Debit (-)" : "Credit (+)"}
-                      </span>
-                    </td>
                     <td className={`px-6 py-4 font-mono font-extrabold ${isDebit ? "text-rose-600" : "text-emerald-600"}`}>
                       {isDebit ? "-" : "+"}{fmt(tx.amount)}
                     </td>
@@ -272,7 +275,12 @@ export default function TransactionsPage() {
                         {tx.source || "MANUAL"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-zinc-600 truncate max-w-xs">{tx.note || "—"}</td>
+                    <td
+                      className="px-6 py-4 text-zinc-600 max-w-[200px] truncate cursor-help"
+                      title={tx.note || undefined}
+                    >
+                      {tx.note || "—"}
+                    </td>
                   </tr>
                 );
               })

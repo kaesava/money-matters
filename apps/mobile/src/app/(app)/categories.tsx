@@ -242,6 +242,31 @@ export default function CategoriesScreen() {
               <Feather name={isEverydayCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#64748B" />
             </TouchableOpacity>
 
+            <View style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>Pacing Progress</Text>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>
+                  Spent: {everydayBudget > 0 ? Math.min(100, Math.max(0, Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100))) : 0}% | Month: {monthProgress().elapsedPct}%
+                </Text>
+              </View>
+              <View style={{ height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden', gap: 1 }}>
+                <View style={{ height: 2, width: `${monthProgress().elapsedPct}%`, backgroundColor: '#2563eb', borderRadius: 1 }} />
+                <View
+                  style={{
+                    height: 3,
+                    width: `${everydayBudget > 0 ? Math.min(100, Math.max(0, Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100))) : 0}%`,
+                    backgroundColor:
+                      (everydayBudget > 0 ? Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100) : 0) > monthProgress().elapsedPct + 15
+                        ? '#ba1a1a'
+                        : (everydayBudget > 0 ? Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100) : 0) > monthProgress().elapsedPct + 5
+                        ? '#f59e0b'
+                        : '#22c55e',
+                    borderRadius: 1.5,
+                  }}
+                />
+              </View>
+            </View>
+
             {!isEverydayCollapsed && (
               <View style={styles.sectionContent}>
                 {filteredEveryday.length === 0 ? (
@@ -292,6 +317,31 @@ export default function CategoriesScreen() {
               </View>
               <Feather name={isRegularCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#64748B" />
             </TouchableOpacity>
+
+            <View style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>Pacing Progress</Text>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>
+                  Spent: {regularBudget > 0 ? Math.min(100, Math.max(0, Math.round(((regularBudget - regularBalance) / regularBudget) * 100))) : 0}% | Month: {monthProgress().elapsedPct}%
+                </Text>
+              </View>
+              <View style={{ height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden', gap: 1 }}>
+                <View style={{ height: 2, width: `${monthProgress().elapsedPct}%`, backgroundColor: '#2563eb', borderRadius: 1 }} />
+                <View
+                  style={{
+                    height: 3,
+                    width: `${regularBudget > 0 ? Math.min(100, Math.max(0, Math.round(((regularBudget - regularBalance) / regularBudget) * 100))) : 0}%`,
+                    backgroundColor:
+                      (regularBudget > 0 ? Math.round(((regularBudget - regularBalance) / regularBudget) * 100) : 0) > monthProgress().elapsedPct + 15
+                        ? '#ba1a1a'
+                        : (regularBudget > 0 ? Math.round(((regularBudget - regularBalance) / regularBudget) * 100) : 0) > monthProgress().elapsedPct + 5
+                        ? '#f59e0b'
+                        : '#22c55e',
+                    borderRadius: 1.5,
+                  }}
+                />
+              </View>
+            </View>
 
             {!isRegularCollapsed && (
               <View style={styles.sectionContent}>
@@ -351,6 +401,23 @@ export default function CategoriesScreen() {
                       cat.healthStatus === 'RED' ? D.colors.critical :
                       D.colors.accent;
 
+                    let daysLeftText = null;
+                    let reqMonthlyText = null;
+                    if (cat.targetDate) {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const tDate = new Date(cat.targetDate);
+                      tDate.setHours(0, 0, 0, 0);
+                      const diffDays = Math.ceil((tDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                      daysLeftText = diffDays > 0 ? `${diffDays} days left` : diffDays === 0 ? 'Due today!' : `${Math.abs(diffDays)} days past due`;
+
+                      const monthsLeft = Math.max(1, Math.ceil(diffDays / 30.44));
+                      const balanceVal = parseFloat(cat.currentBalance || '0');
+                      const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
+                      const remainingToSave = Math.max(0, targetVal - balanceVal);
+                      reqMonthlyText = `${formatAUD(remainingToSave / monthsLeft)}/mo needed`;
+                    }
+
                     return (
                       <View key={cat.id} style={styles.goalCardItem}>
                         <TouchableOpacity
@@ -362,14 +429,24 @@ export default function CategoriesScreen() {
                             <Text style={[styles.catBalance, { color }]}>{formatAUD(cat.currentBalance)}</Text>
                           </View>
                           {cat.targetAmount && (
-                            <Text style={styles.target}>Target: {formatAUD(cat.targetAmount)}</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <Text style={styles.target}>Target: {formatAUD(cat.targetAmount)}</Text>
+                              {daysLeftText && <Text style={{ fontSize: 10, fontWeight: '700', color: '#9333EA' }}>{daysLeftText}</Text>}
+                            </View>
                           )}
                           {p !== null && (
                             <>
-                              <View style={styles.barBg}>
-                                <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
+                              <View style={[styles.barBg, { height: 8, borderRadius: 4 }]}>
+                                <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color, height: 8, borderRadius: 4 }]} />
                               </View>
-                              <Text style={[styles.pctLabel, { color }]}>{p}% saved</Text>
+                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                <Text style={[styles.pctLabel, { color }]}>{p}% saved</Text>
+                                {reqMonthlyText && (
+                                  <Text style={{ fontSize: 9, fontWeight: '700', color: '#475569', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                    {reqMonthlyText}
+                                  </Text>
+                                )}
+                              </View>
                             </>
                           )}
                         </TouchableOpacity>

@@ -24,9 +24,10 @@
   --color-text-muted: #6b7280;
   --color-border: #e2e4e0;
   
-  /* Typography */
+  /* Typography Tokens */
   --font-heading: 'Playfair Display', serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Courier New', monospace;
   
   /* Structural Tokens */
   --radius-sm: 4px;

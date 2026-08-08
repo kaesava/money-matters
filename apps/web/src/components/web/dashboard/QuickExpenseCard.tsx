@@ -54,6 +54,7 @@ export function QuickExpenseCard({
   isPending,
   onSubmit,
 }: QuickExpenseCardProps) {
+  const [showDateField, setShowDateField] = React.useState(false);
   const isIncome = quickType === "CREDIT";
   const todayStr = new Date().toISOString().split("T")[0];
   const isFutureDate = quickDate > todayStr;
@@ -75,7 +76,7 @@ export function QuickExpenseCard({
           onClick={() => setQuickType("DEBIT")}
           className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             !isIncome
-              ? "bg-white text-rose-700 shadow-sm"
+              ? "bg-rose-600 text-white shadow-sm"
               : "text-zinc-500 hover:text-zinc-800"
           }`}
         >
@@ -95,12 +96,6 @@ export function QuickExpenseCard({
           <span>Income</span>
         </button>
       </div>
-
-      {quickMsg && (
-        <div className="p-2.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700">
-          {quickMsg}
-        </div>
-      )}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <input
@@ -141,7 +136,7 @@ export function QuickExpenseCard({
           </select>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className={showDateField ? "grid grid-cols-2 gap-2" : "flex flex-col gap-1.5"}>
           <input
             type="number"
             step="0.01"
@@ -150,15 +145,25 @@ export function QuickExpenseCard({
             value={quickAmount}
             onChange={(e) => setQuickAmount(e.target.value)}
             required
-            className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+            className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] font-mono"
           />
-          <input
-            type="date"
-            value={quickDate}
-            onChange={(e) => setQuickDate(e.target.value)}
-            required
-            className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-          />
+          {showDateField ? (
+            <input
+              type="date"
+              value={quickDate}
+              onChange={(e) => setQuickDate(e.target.value)}
+              required
+              className="px-3 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowDateField(true)}
+              className="text-[11px] text-zinc-400 hover:text-[#00B4A6] text-left transition-colors font-medium px-1"
+            >
+              + Set custom date (default: today)
+            </button>
+          )}
         </div>
 
         <input
@@ -186,6 +191,12 @@ export function QuickExpenseCard({
             ? "Record Income & Payday Split"
             : "Record Expense Transaction"}
         </button>
+
+        {quickMsg && (
+          <div className="p-2.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 animate-in fade-in duration-200">
+            {quickMsg}
+          </div>
+        )}
       </form>
     </div>
   );

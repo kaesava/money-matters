@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, monthProgress } from '@money-matters/ui';
 import { CanAffordVerdictType } from '@money-matters/types';
 import { formatAUD } from '../lib/format';
+import { MobileDonutRing } from './MobileDonutRing';
 
 export interface DashboardHeroCardProps {
   readonly everydayBalance: number;
+  readonly everydayMonthlyBudget?: number;
   readonly needsAttentionCount: number;
   readonly behindCount: number;
   readonly onTrackCount: number;
@@ -25,6 +27,7 @@ export interface DashboardHeroCardProps {
 
 export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
   everydayBalance,
+  everydayMonthlyBudget = 0,
   needsAttentionCount,
   behindCount,
   onTrackCount,
@@ -51,60 +54,73 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
     }
   }
 
+  const { elapsedPct } = monthProgress();
+  const consumedPct =
+    everydayMonthlyBudget > 0
+      ? Math.min(100, Math.max(0, Math.round(((everydayMonthlyBudget - everydayBalance) / everydayMonthlyBudget) * 100)))
+      : 0;
+
   return (
     <View style={styles.card}>
       {/* Top Section: Everyday Balance + Integrated Can We Afford This Widget */}
       <View style={styles.topSection}>
-        <View style={styles.balanceContainer}>
-          <Text style={styles.label}>Everyday Balance</Text>
-          <Text style={styles.balance}>{formatAUD(everydayBalance)}</Text>
+        <View style={styles.heroRow}>
+          <MobileDonutRing
+            timeElapsedPct={elapsedPct}
+            consumedPct={consumedPct}
+            centerLabel={formatAUD(everydayBalance)}
+            subLabel="Everyday Balance"
+            size={120}
+            strokeWidth={9}
+          />
+          <View style={styles.balanceContainer}>
+            {/* 3 Premium Interactive Category Health Badges */}
+            <View style={styles.badgesColumn}>
+              {/* Behind Badge */}
+              <TouchableOpacity
+                style={[styles.statusBadge, styles.redBadge]}
+                onPress={() => onSelectFilter?.('RED')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.statusDot, { backgroundColor: '#E11D48' }]} />
+                <Text style={[styles.statusText, { color: '#9F1239' }]} numberOfLines={1}>
+                  Behind
+                </Text>
+                <View style={[styles.countPill, { backgroundColor: '#FECDD3' }]}>
+                  <Text style={[styles.countText, { color: '#881337' }]}>{behindCount}</Text>
+                </View>
+              </TouchableOpacity>
 
-          {/* 3 Premium Interactive Category Health Badges */}
-          <View style={styles.badgesRow}>
-            {/* Behind Badge */}
-            <TouchableOpacity
-              style={[styles.statusBadge, styles.redBadge]}
-              onPress={() => onSelectFilter?.('RED')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.statusDot, { backgroundColor: '#E11D48' }]} />
-              <Text style={[styles.statusText, { color: '#9F1239' }]} numberOfLines={1}>
-                Behind
-              </Text>
-              <View style={[styles.countPill, { backgroundColor: '#FECDD3' }]}>
-                <Text style={[styles.countText, { color: '#881337' }]}>{behindCount}</Text>
-              </View>
-            </TouchableOpacity>
+              {/* Needs Attention Badge */}
+              <TouchableOpacity
+                style={[styles.statusBadge, styles.amberBadge]}
+                onPress={() => onSelectFilter?.('AMBER')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.statusDot, { backgroundColor: '#D97706' }]} />
+                <Text style={[styles.statusText, { color: '#92400E' }]} numberOfLines={1}>
+                  Attention
+                </Text>
+                <View style={[styles.countPill, { backgroundColor: '#FDE68A' }]}>
+                  <Text style={[styles.countText, { color: '#78350F' }]}>{needsAttentionCount}</Text>
+                </View>
+              </TouchableOpacity>
 
-            {/* Needs Attention Badge */}
-            <TouchableOpacity
-              style={[styles.statusBadge, styles.amberBadge]}
-              onPress={() => onSelectFilter?.('AMBER')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.statusDot, { backgroundColor: '#D97706' }]} />
-              <Text style={[styles.statusText, { color: '#92400E' }]} numberOfLines={1}>
-                Attention
-              </Text>
-              <View style={[styles.countPill, { backgroundColor: '#FDE68A' }]}>
-                <Text style={[styles.countText, { color: '#78350F' }]}>{needsAttentionCount}</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* On Track Badge */}
-            <TouchableOpacity
-              style={[styles.statusBadge, styles.greenBadge]}
-              onPress={() => onSelectFilter?.('GREEN')}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
-              <Text style={[styles.statusText, { color: '#065F46' }]} numberOfLines={1}>
-                On Track
-              </Text>
-              <View style={[styles.countPill, { backgroundColor: '#A7F3D0' }]}>
-                <Text style={[styles.countText, { color: '#064E3B' }]}>{onTrackCount}</Text>
-              </View>
-            </TouchableOpacity>
+              {/* On Track Badge */}
+              <TouchableOpacity
+                style={[styles.statusBadge, styles.greenBadge]}
+                onPress={() => onSelectFilter?.('GREEN')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+                <Text style={[styles.statusText, { color: '#065F46' }]} numberOfLines={1}>
+                  On Track
+                </Text>
+                <View style={[styles.countPill, { backgroundColor: '#A7F3D0' }]}>
+                  <Text style={[styles.countText, { color: '#064E3B' }]}>{onTrackCount}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -197,8 +213,15 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 12,
   },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   balanceContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   label: {
     fontSize: 11,
@@ -218,6 +241,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 10,
+  },
+  badgesColumn: {
+    flexDirection: 'column',
+    gap: 6,
+    alignItems: 'flex-start',
   },
   statusBadge: {
     flexDirection: 'row',

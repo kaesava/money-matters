@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-02  
-> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
+> **Last updated:** 2026-08-08  
+> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System (Streamlined Zone Hero Card, Two-Tier Severity Attention List, Permanent 3-Way Flow Filter), Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 
@@ -75,14 +75,18 @@ The onboarding flow delivers an engaging interactive quiz completing in under 60
 
 - **Design System ("Serene Finance")**:
   - Color Tokens: Serene Blue (`#2563eb`), Primary Navy (`#1B2B4B`), Surface Bright (`#ffffff`), Surface Dim (`#F7F8FA`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
-  - Typography: Inter for general UI text; **JetBrains Mono** (`financial-metric`, `tabular-nums`) for all monetary amounts.
-  - Web Shell: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views.
+  - Typography: Inter for general UI text; **JetBrains Mono** (`font-mono`, `tabular-nums`) loaded via `next/font/google` for all monetary metrics across Web and Mobile.
+  - Web Shell: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views, responsive `width=device-width` viewport for standalone PWA / Android shortcut rendering.
   - Mobile Shell: Header (`TopAppBar`) + bottom tab bar (`BottomNavBar`).
-- **Dashboard Hierarchy & Clean Aesthetic**:
-  - **Hero Card (`DashboardHeroCard`)**: Dominates top of screen. Shows Everyday Pool balance, system status (Green/Amber/Red), and next payday countdown.
-  - **Attention Items (`AttentionItemsList`)**: Overdue bills and bills due within 3 days (with inline funding status).
+- **Dashboard Hierarchy & Visualizations**:
+  - **Hero Card (`DashboardHeroCard`)**: Dominates top of screen. Features an integrated dual-arc SVG Donut Ring visualization (`DonutRing` on Web, `MobileDonutRing` on Mobile via `react-native-svg`) displaying time elapsed vs Everyday pool spent percentage, wrapping the central Everyday Balance metric. Symmetric health status badges (Behind/Attention/On Track) sit adjacent to the ring.
+  - **Pool Pacing Bars (`DualPoolBar`)**: Dual-track stacked progress bars integrated into section headers on the Categories screen for Everyday Spending and Regular Bills, tracking month elapsed vs pool spent percentage with color-coded warning thresholds.
+  - **Goal Progress & Pace Cards**: Enhanced goal card progress tracking with 8px animated progress bars, target date countdowns ("X days left"), and dynamic required monthly contribution calculations ("$Y/mo needed").
+  - **Attention Items (`AttentionItemsList`)**: Two-tier severity presentation (Red for overdue items; Amber for upcoming-only items due within 3 days). Clean text labels with icon-visibility toggle support.
+  - **Quick Expense Card (`QuickExpenseCard`)**: Symmetric Expense/Income active state toggles, collapsed date selector (defaults to today), and inline feedback messaging.
+  - **Bank Reconciliation (`BankReconcileCard` & `BankReconcileModal`)**: Static status indicators with direct wiring to the `reconcileBankBalance` tRPC mutation.
+  - **Deduplicated & Streamlined Filter Surfaces**: Counter-card health filter integration on Categories screen; permanent 3-way (`All / Debits / Credits`) segmented control on Transaction History screen.
   - **Collapsible Sections & Minimalist View Mode**: Quick Actions, All Upcoming Payments, and Category Health can be collapsed. Users can toggle "Show Decorative Icons" in Settings to switch between iconified vs minimalist typographic UI layouts across Web and Mobile apps.
-  - **Collapsible Filter Bar**: Search input bar remains visible while detailed filter options (categories, health, flow types) collapse behind a single "Filter" toggle button with an active filter count pill.
 
 ---
 

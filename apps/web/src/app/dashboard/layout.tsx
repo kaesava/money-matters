@@ -207,7 +207,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="text-lg font-extrabold tracking-tight text-white select-none">
               {t("app.title")}
             </span>
-            <TrialStatusBadge />
           </div>
         )}
       </div>
@@ -259,25 +258,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           {!sidebarCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-extrabold text-white truncate">{session?.user?.name}</p>
+              <div className="flex items-center justify-between gap-1 mb-0.5">
+                <p className="text-xs font-extrabold text-white truncate">{session?.user?.name}</p>
+                <TrialStatusBadge />
+              </div>
               <p className="text-[10px] text-[#9EACC7] truncate">{session?.user?.email}</p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSignOut();
+                }}
+                className="text-[10px] font-semibold text-[#9EACC7] hover:text-rose-400 transition-colors mt-1 block text-left"
+              >
+                {t("settings.signOut")} →
+              </button>
             </div>
           )}
         </div>
-        
-        {/* Sign Out CTA button */}
-        <button
-          onClick={handleSignOut}
-          className={`w-full flex items-center gap-3.5 mt-3 px-3 py-3 rounded-xl text-sm font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 active:scale-[0.98] transition-all ${
-            sidebarCollapsed ? "justify-center" : ""
-          }`}
-          title={t("settings.signOut")}
-        >
-          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          {!sidebarCollapsed && <span>{t("settings.signOut")}</span>}
-        </button>
       </div>
     </div>
   );

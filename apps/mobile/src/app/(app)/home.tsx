@@ -57,6 +57,9 @@ export default function HomeScreen() {
   const behindCount = categories.filter((c) => c.healthStatus === 'RED').length;
   const onTrackCount = categories.filter((c) => c.healthStatus === 'GREEN').length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || '0');
+  const everydayMonthlyBudget = categories
+    .filter((c) => c.type === 'EVERYDAY')
+    .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || '0'), 0);
 
   const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
   const nextPaydayEvent = upcomingIncomeList[0] ?? null;
@@ -155,6 +158,7 @@ export default function HomeScreen() {
         {/* Top Hero Card with Everyday Balance & Can We Afford This Widget */}
         <DashboardHeroCard
           everydayBalance={everydayBalance}
+          everydayMonthlyBudget={everydayMonthlyBudget}
           needsAttentionCount={needsAttentionCount}
           behindCount={behindCount}
           onTrackCount={onTrackCount}

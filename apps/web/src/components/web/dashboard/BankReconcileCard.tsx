@@ -11,7 +11,7 @@ interface BankReconcileCardProps {
   accounts: BankAccount[];
   fmt: (val: string | number) => string;
   onOpenSettings: () => void;
-  onReconcile: (id: string, balance: string) => void;
+  onReconcile: (id: string, lastKnownBalance: string, expectedBalance: string) => void;
 }
 
 export function BankReconcileCard({
@@ -42,17 +42,20 @@ export function BankReconcileCard({
             <div key={acc.id} className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-between text-xs">
               <div className="flex flex-col gap-0.5">
                 <span className="font-bold text-[#1B2B4B]">{acc.name}</span>
-                <span className="text-[10px] text-zinc-400">Expected: {fmt(expectedNum)}</span>
+                <span className="text-[10px] text-zinc-400 font-mono">Expected: {fmt(expectedNum)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-black text-[#1B2B4B]">{fmt(actualNum)}</span>
+                <span className="font-black text-[#1B2B4B] font-mono">{fmt(actualNum)}</span>
                 <button
-                  onClick={() => onReconcile(acc.id, acc.lastKnownBalance || "0.00")}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                    isDiff ? "bg-amber-100 text-amber-800 animate-pulse" : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300"
+                  onClick={() => onReconcile(acc.id, acc.lastKnownBalance || "0.00", acc.expectedBalance || "0.00")}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 ${
+                    isDiff
+                      ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                      : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300"
                   }`}
                 >
-                  {isDiff ? "Reconcile!" : "Adjust"}
+                  {isDiff && <span className="inline-flex w-2 h-2 rounded-full bg-amber-400 shrink-0" />}
+                  {isDiff ? "Reconcile" : "Adjust"}
                 </button>
               </div>
             </div>

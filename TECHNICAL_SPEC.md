@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-01  
-> **Status:** Fully synchronized with production Cloudflare Workers architecture (`nodejs_compat`), Fastify API, Neon serverless PostgreSQL with RLS, Expo React Native Android target, OpenNext Web target, Upstash Redis rate limiting, Serene Finance UI design tokens, Universal Logger, and Vitest suite.
+> **Last updated:** 2026-08-08  
+> **Status:** Fully synchronized with production Cloudflare Workers architecture (`nodejs_compat`), Fastify API, Neon serverless PostgreSQL with RLS, Expo React Native Android target, OpenNext Web target, Upstash Redis rate limiting, Serene Finance UI design tokens (with JetBrains Mono metric typography & responsive viewport configuration), Universal Logger, and Vitest suite.
 
 ---
 
@@ -27,7 +27,7 @@
 | Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking, feature flags, session replays |
 | Crash & APM | Sentry | Sentry SaaS | Production exception reporting & symbolicated stack traces |
 | Mobile Framework | React Native / Expo | Expo SDK 54 / RN 0.81.5 | Android native app |
-| Styling & UI | Serene Finance Tokens | `packages/ui` | Standardized tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`) & JetBrains Mono |
+| Styling & UI | Serene Finance Tokens | `packages/ui` & `apps/web` | Standardized tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`), JetBrains Mono via `next/font/google`, and responsive viewport (`width=device-width`) |
 | CI/CD Pipeline | GitHub Actions | GitHub & Cloudflare | Lint, typecheck, test, and `wrangler deploy` on push to `main` |
 
 ---
@@ -140,7 +140,13 @@ households (tenant)
 5. **`notify-goal-milestone`**: Milestone alert when goal crosses 25%, 50%, 75%, 100%.
 6. **`notify-spending-velocity`**: Daily pace warning if Everyday pool runs out early.
 
-### 5.5 Database & Network Optimization Standards
+### 5.5 Visualizations & Pacing Engine
+- **Month Progress Helper (`monthProgress`)**: Centralized math utility in `@money-matters/ui` calculating days elapsed, total days in month, and elapsed month percentage.
+- **Dual-Arc Donut Ring (`DonutRing` Web / `MobileDonutRing` Mobile)**: Pure SVG arc visualizations wrapping Everyday balance on Hero Cards, tracking time elapsed vs pool consumed percentages with 3-tier color warning states (Green, Amber, Red). Mobile implementation powered by `react-native-svg` and `Animated.Value`.
+- **Pool Pacing Progress Bars (`DualPoolBar`)**: Stacked progress bars in Everyday and Bills pool headers on Categories screens tracking month elapsed vs pool spent percentage.
+- **Goal Target Countdown & Pace Math**: Dynamically computes target date countdowns (`daysLeftText`) and required monthly savings pace (`(target - balance) / monthsRemaining`) for Save Toward categories.
+
+### 5.6 Database & Network Optimization Standards
 - **Bulk Database Operations (Anti-N+1)**: All database writes and queries must be batched. Individual inserts or queries in loops are forbidden. Plan lines and ledger entries are prepared in-memory and written in bulk. Deletions and status transitions must use `inArray` operators (e.g. archiving category arrays or deleting account relations) to prevent query waterfalls.
 - **Parallelized Network Operations**: Onboarding configurations (e.g., category setup or schedule target insertions) must execute mutations in parallel using batch wrappers (`Promise.all`), preventing sequential async waterfalls.
 - **Strict Whitelisted CORS**: Cross-origin resource sharing (CORS) is restricted to whitelisted domains (`*.kaesava.au` and dev `localhost`). Global wildcards (`origin: true`) are explicitly banned.

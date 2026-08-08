@@ -12,6 +12,7 @@ import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItem
 
 import { QuickExpenseCard } from "@/components/web/dashboard/QuickExpenseCard";
 import { BankReconcileCard } from "@/components/web/dashboard/BankReconcileCard";
+import { BankReconcileModal } from "@/components/web/dashboard/BankReconcileModal";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -38,7 +39,9 @@ export default function DashboardPage() {
   const [quickMsg, setQuickMsg] = useState<string | null>(null);
 
   const [canAffordAmount, setCanAffordAmount] = useState("");
-  const [_reconcilingAccountId, setReconcilingAccountId] = useState<string | null>(null);
+  const [reconcilingAccountId, setReconcilingAccountId] = useState<string | null>(null);
+  const [reconcileActualAmount, setReconcileActualAmount] = useState("");
+  const [reconcileTargetCategoryId, setReconcileTargetCategoryId] = useState("");
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
   const categoriesQuery = trpc.listCategories.useQuery();
@@ -49,6 +52,18 @@ export default function DashboardPage() {
     { amount: canAffordAmount },
     { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
   );
+
+  const reconcileMutation = trpc.reconcileBankBalance.useMutation({
+    onSuccess: () => {
+      setReconcilingAccountId(null);
+      setReconcileActualAmount("");
+      setReconcileTargetCategoryId("");
+      bankAccountsQuery.refetch();
+      categoriesQuery.refetch();
+      summaryQuery.refetch();
+      posthog.capture("bank_account_reconciled");
+    },
+  });
 
   // Redirect to setup wizard if user has no categories configured
   useEffect(() => {
@@ -83,6 +98,9 @@ export default function DashboardPage() {
   const behindCount = categories.filter((c) => c.healthStatus === "RED").length;
   const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || "0");
+  const everydayMonthlyBudget = categories
+    .filter((c) => c.type === "EVERYDAY")
+    .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || "0"), 0);
 
   const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === "UPCOMING");
   const nextPaydayEvent = upcomingIncomeList[0] ?? null;
@@ -162,6 +180,7 @@ export default function DashboardPage() {
       {/* Top Hero Card with Everyday Balance & Can We Afford This Widget */}
       <DashboardHeroCard
         everydayBalance={everydayBalance}
+        everydayMonthlyBudget={everydayMonthlyBudget}
         needsAttentionCount={needsAttentionCount}
         behindCount={behindCount}
         onTrackCount={onTrackCount}
@@ -211,13 +230,42 @@ export default function DashboardPage() {
           <BankReconcileCard
             accounts={bankAccountsMapped}
             onOpenSettings={() => router.push('/dashboard/settings')}
-            onReconcile={(id: string) => setReconcilingAccountId(id)}
+            onReconcile={(id: string, lastKnownBalance: string) => {
+              setReconcilingAccountId(id);
+              setReconcileActualAmount(lastKnownBalance);
+            }}
             fmt={fmt}
           />
         </div>
       </div>
 
       {/* Modals */}
+      {reconcilingAccountId && (
+        <BankReconcileModal
+          reconcilingAccountId={reconcilingAccountId}
+          onClose={() => {
+            setReconcilingAccountId(null);
+            setReconcileActualAmount("");
+            setReconcileTargetCategoryId("");
+          }}
+          reconcileActualAmount={reconcileActualAmount}
+          setReconcileActualAmount={setReconcileActualAmount}
+          reconcileTargetCategoryId={reconcileTargetCategoryId}
+          setReconcileTargetCategoryId={setReconcileTargetCategoryId}
+          categories={categories}
+          isPending={reconcileMutation.isPending}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!reconcilingAccountId || !reconcileActualAmount) return;
+            reconcileMutation.mutate({
+              accountId: reconcilingAccountId,
+              actualBalance: parseFloat(reconcileActualAmount).toFixed(2),
+              targetCategoryId: reconcileTargetCategoryId || undefined,
+            });
+          }}
+        />
+      )}
+
       {moveMoneyOpen && (
         <MoveMoneyModal isOpen={moveMoneyOpen} onClose={() => setMoveMoneyOpen(false)} onSuccess={() => summaryQuery.refetch()} />
       )}

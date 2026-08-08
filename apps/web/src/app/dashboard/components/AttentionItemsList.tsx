@@ -28,14 +28,22 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
 }) => {
   if (!items || items.length === 0) return null;
 
+  const hasOverdue = items.some((i) => i.isOverdue);
+
   return (
-    <div className="bg-red-50 rounded-xl border border-red-200 p-4 mb-6">
+    <div
+      className={`rounded-xl border p-4 mb-6 ${
+        hasOverdue ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+      }`}
+    >
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-red-600 font-bold">⚠️</span>
-        <h2 className="text-sm font-bold text-red-900">Needs Attention ({items.length})</h2>
+        <span className={hasOverdue ? 'text-red-600 font-bold' : 'text-amber-600 font-bold'}>⚠️</span>
+        <h2 className={`text-sm font-bold ${hasOverdue ? 'text-red-900' : 'text-amber-900'}`}>
+          Needs Attention ({items.length})
+        </h2>
       </div>
 
-      <div className="divide-y divide-red-100">
+      <div className={`divide-y ${hasOverdue ? 'divide-red-100' : 'divide-amber-100'}`}>
         {items.map((item) => {
           const shortfall = item.expectedAmount - item.categoryBalance;
           const isFunded = shortfall <= 0;
@@ -56,14 +64,14 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                     <span className="text-xs font-medium text-emerald-600">Category funded ✓</span>
                   ) : (
                     <span className="text-xs font-semibold text-red-700">
-                      Short by {formatAUD(shortfall)} ⚠️
+                      Short by {formatAUD(shortfall)}
                     </span>
                   )}
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-gray-900">{formatAUD(item.expectedAmount)}</span>
+                <span className="text-sm font-bold text-gray-900 font-mono">{formatAUD(item.expectedAmount)}</span>
                 <button
                   type="button"
                   onClick={() => onMarkPaid(item)}
