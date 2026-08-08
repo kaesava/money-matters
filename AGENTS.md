@@ -55,7 +55,7 @@ All tables MUST include:
 - Soft deletes REQUIRED.
 - Migrations MUST be deterministic.
 - Queries MUST be indexed, scoped by `tenantId`, and optimized.
-- NO N+1 queries.
+- NO N+1 queries/inserts/deletions. All database inserts must be executed in bulk. All deletions or archival updates of related arrays must use `inArray` operators rather than sequential queries inside for-loops.
 
 ## 7. Privacy & Governance
 - MUST implement data minimization.
@@ -64,7 +64,8 @@ All tables MUST include:
 - MUST NOT log PII (emails, passwords, tokens, JWTs redacted automatically via universal logger).
 
 ## 8. Type Safety & Validation
-- `any` is FORBIDDEN. Replaced by `unknown`, strict generic DTOs, or Zod inference.
+- `any` is FORBIDDEN. Replaced by `unknown`, strict generic DTOs, or Zod inference. Unsafe type casts (`as any`) are strictly banned across all packages and components, including dynamic route pushes (use `as Href` cast from `expo-router`), Lucide icon components (render them directly), and mock clients in tests.
+- DO NOT bypass typescript validations for `react-native-svg` components (e.g. no `as any` or `@ts-ignore` to suppress type validation).
 - Zod `.strict()` REQUIRED on all input/output schemas.
 - DTOs MUST separate DB models and API responses.
 - Exhaustive typing REQUIRED.
@@ -81,6 +82,7 @@ All tables MUST include:
 - MUST use least privilege access.
 - MUST rotate and secure secrets via environment variables (zero hardcoded secrets).
 - MUST protect against SSRF, CSRF, clickjacking (Fastify Helmet, CORS `*.kaesava.au`).
+- MUST enforce strict CORS validation via whitelisted domains (`*.kaesava.au` and dev `localhost`). Wildcard origins (`origin: true`) are strictly forbidden.
 
 ## 11. Web App
 - Next.js App Router on Cloudflare Workers (`@opennextjs/cloudflare`).
@@ -113,7 +115,8 @@ All tables MUST include:
 ## 16. Performance
 - MUST paginate all list queries.
 - MUST cache safely (tenant-aware).
-- MUST prevent N+1 queries.
+- MUST prevent N+1 queries, N+1 inserts, and sequential async waterfalls.
+- MUST NOT execute sequential API mutations inside loops during setups or onboarding flows; batch mutations concurrently using `Promise.all` wrappers.
 - MUST use async processing for heavy tasks.
 
 ## 17. Feature Flags

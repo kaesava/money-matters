@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -16,7 +16,7 @@ export default function AcceptInviteMobileScreen() {
     onSuccess: () => {
       setStatus('success');
       setTimeout(() => {
-        router.replace('/(app)/home' as any);
+        router.replace('/(app)/home' as Href);
       }, 2000);
     },
     onError: (err) => {
@@ -68,7 +68,7 @@ export default function AcceptInviteMobileScreen() {
 
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => router.replace('/(auth)/sign-in' as any)}
+              onPress={() => router.replace('/(auth)/sign-in' as Href)}
               activeOpacity={0.8}
             >
               <Text style={styles.actionBtnText}>{t("partner.goToDashboard")}</Text>

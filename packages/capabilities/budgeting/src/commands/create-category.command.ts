@@ -31,7 +31,7 @@ export async function createCategoryCommand(
       .insert(categories)
       .values({
         name: input.name,
-        type: input.type as any,
+        type: input.type,
         isCommitted: input.isCommitted,
         monthlyAmount: input.monthlyAmount || null,
         everydayAllowanceAmount: input.everydayAllowanceAmount || null,

@@ -6,10 +6,10 @@ import { t } from '@money-matters/i18n';
 import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
 import { Feather } from '@expo/vector-icons';
 
-function TabIcon({ name, color, size }: { name: string; color: string; size: number }) {
+function TabIcon({ name, color, size }: { name: React.ComponentProps<typeof Feather>['name']; color: string; size: number }) {
   return (
     <View style={styles.iconWrap}>
-      <Feather name={name as any} size={size} color={color} />
+      <Feather name={name} size={size} color={color} />
     </View>
   );
 }

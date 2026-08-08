@@ -42,7 +42,7 @@ export async function getPresignedDownloadUrl(
     Key: fileKey,
   });
 
-  return getSignedUrl(getS3Client() as any, command, { expiresIn });
+  return getSignedUrl(getS3Client() as unknown as Parameters<typeof getSignedUrl>[0], command, { expiresIn });
 }
 
 export async function getPresignedUploadUrl(
@@ -65,7 +65,7 @@ export async function getPresignedUploadUrl(
     ContentType: contentType,
   });
 
-  return getSignedUrl(getS3Client() as any, command, { expiresIn });
+  return getSignedUrl(getS3Client() as unknown as Parameters<typeof getSignedUrl>[0], command, { expiresIn });
 }
 
 export async function deleteFileFromBucket(fileKey: string): Promise<boolean> {
@@ -86,7 +86,7 @@ export async function deleteFileFromBucket(fileKey: string): Promise<boolean> {
     await getS3Client().send(command);
     return true;
   } catch (error) {
-    logger.error(`[Storage] Failed to delete file with key: ${fileKey}`, error as any);
+    logger.error(`[Storage] Failed to delete file with key: ${fileKey}`, { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }

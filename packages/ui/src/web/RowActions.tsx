@@ -11,9 +11,6 @@ export interface RowActionsProps {
 }
 
 export function RowActions({ onEdit, editTitle, isArchived }: RowActionsProps) {
-  const EditIcon = Edit2 as any;
-  const ArrowIcon = ChevronRight as any;
-
   return (
     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
       {!isArchived && onEdit && (
@@ -26,10 +23,10 @@ export function RowActions({ onEdit, editTitle, isArchived }: RowActionsProps) {
           className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-650 hover:bg-slate-50 transition-colors"
           type="button"
         >
-          <EditIcon className="w-4.5 h-4.5" />
+          <Edit2 className="w-4.5 h-4.5" />
         </button>
       )}
-      <ArrowIcon className="w-5 h-5 text-slate-300" />
+      <ChevronRight className="w-5 h-5 text-slate-300" />
     </div>
   );
 }

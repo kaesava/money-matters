@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { PgDatabase } from "drizzle-orm/pg-core";
 import { deleteUpcomingEventCommand } from "./delete-upcoming-event.command.js";
 
 describe("deleteUpcomingEventCommand", () => {
@@ -17,7 +18,7 @@ describe("deleteUpcomingEventCommand", () => {
       "tenant-1",
       "app-1",
       "user-1",
-      mockDb as any
+      mockDb as unknown as PgDatabase<any, any, any>
     );
 
     expect(res).toEqual({ success: true, id: "event-1" });
@@ -39,7 +40,7 @@ describe("deleteUpcomingEventCommand", () => {
       "tenant-1",
       "app-1",
       "user-1",
-      mockDb as any
+      mockDb as unknown as PgDatabase<any, any, any>
     );
 
     expect(res).toEqual({ success: true, id: "event-2" });

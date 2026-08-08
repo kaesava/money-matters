@@ -80,29 +80,34 @@ export default function SetupWizardPage() {
         frequency: incomeFreq,
       });
 
-      // 2. Save categories and target schedules
+      // 2. Save categories and target schedules in parallel batches
       const allPresets = [...AUSTRALIAN_FAMILY_PRESETS, ...customCategories];
       const selectedList = allPresets.filter((p) => selectedPresets.has(p.id));
 
-      for (const cat of selectedList) {
-        // Fall back to suggested value if empty
-        const targetAmt = targets[cat.id] || cat.suggestedMonthlyAud.toString();
-        const isExcess = defaultExcessId === cat.id;
+      const createdCategories = await Promise.all(
+        selectedList.map(async (cat) => {
+          const isExcess = defaultExcessId === cat.id;
+          const created = await createCategory.mutateAsync({
+            name: cat.name,
+            type: cat.type,
+            budgetFrequency: "MONTHLY",
+            isDefaultExcess: isExcess,
+          });
+          return { presetId: cat.id, createdId: created.id };
+        })
+      );
 
-        const created = await createCategory.mutateAsync({
-          name: cat.name,
-          type: cat.type,
-          budgetFrequency: "MONTHLY",
-          isDefaultExcess: isExcess,
-        });
-
+      const schedulePromises = createdCategories.map(({ presetId, createdId }) => {
+        const targetAmt = targets[presetId] || allPresets.find((p) => p.id === presetId)!.suggestedMonthlyAud.toString();
         if (parseFloat(targetAmt) > 0) {
-          await createCategorySchedule.mutateAsync({
-            categoryId: created.id,
+          return createCategorySchedule.mutateAsync({
+            categoryId: createdId,
             targetAmount: parseFloat(targetAmt).toFixed(2),
           });
         }
-      }
+        return Promise.resolve();
+      });
+      await Promise.all(schedulePromises);
 
       // 3. Auto-generate upcoming transaction events
       await generateEvents.mutateAsync();

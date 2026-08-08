@@ -140,6 +140,11 @@ households (tenant)
 5. **`notify-goal-milestone`**: Milestone alert when goal crosses 25%, 50%, 75%, 100%.
 6. **`notify-spending-velocity`**: Daily pace warning if Everyday pool runs out early.
 
+### 5.5 Database & Network Optimization Standards
+- **Bulk Database Operations (Anti-N+1)**: All database writes and queries must be batched. Individual inserts or queries in loops are forbidden. Plan lines and ledger entries are prepared in-memory and written in bulk. Deletions and status transitions must use `inArray` operators (e.g. archiving category arrays or deleting account relations) to prevent query waterfalls.
+- **Parallelized Network Operations**: Onboarding configurations (e.g., category setup or schedule target insertions) must execute mutations in parallel using batch wrappers (`Promise.all`), preventing sequential async waterfalls.
+- **Strict Whitelisted CORS**: Cross-origin resource sharing (CORS) is restricted to whitelisted domains (`*.kaesava.au` and dev `localhost`). Global wildcards (`origin: true`) are explicitly banned.
+
 ---
 
 ## 6. CI/CD & Deployment Strategy

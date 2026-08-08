@@ -6,7 +6,7 @@ import { useNotificationService } from './context';
 // Check if running in Expo Go client (SDK 53+ removed remote push notifications from Expo Go)
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-  (Constants as any).appOwnership === 'expo';
+  (Constants as unknown as { appOwnership?: string }).appOwnership === 'expo';
 
 let Notifications: typeof import('expo-notifications') | null = null;
 let Device: typeof import('expo-device') | null = null;
@@ -51,11 +51,11 @@ export function usePushNotifications() {
           return;
         }
 
-        const settings = (await Notifications!.getPermissionsAsync()) as any;
+        const settings = (await Notifications!.getPermissionsAsync()) as unknown as { granted: boolean };
         let isGranted = settings?.granted;
 
         if (!isGranted) {
-          const permission = (await Notifications!.requestPermissionsAsync()) as any;
+          const permission = (await Notifications!.requestPermissionsAsync()) as unknown as { granted: boolean };
           isGranted = permission?.granted;
         }
 
@@ -64,7 +64,7 @@ export function usePushNotifications() {
           return;
         }
 
-        const projectId = (Constants as any).expoConfig?.extra?.eas?.projectId;
+        const projectId = (Constants as unknown as { expoConfig?: { extra?: { eas?: { projectId?: string } } } }).expoConfig?.extra?.eas?.projectId;
         const tokenData = await Notifications!.getExpoPushTokenAsync({
           projectId,
         });
@@ -86,7 +86,7 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (isExpoGo || !Notifications) return;
-    const subscription = Notifications.addNotificationReceivedListener((notification: any) => {
+    const subscription = Notifications.addNotificationReceivedListener((notification: import('expo-notifications').Notification) => {
       console.info('[PushNotifications] Foreground notification received:', notification.request.content);
     });
 

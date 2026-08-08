@@ -10,7 +10,7 @@ import {
   Linking,
   Switch,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, Href } from "expo-router";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS, MobileScreenWrapper, useIconVisibility } from "@money-matters/ui/mobile";
 import { authClient } from "../../lib/auth";
@@ -240,7 +240,7 @@ export default function SettingsScreen() {
         <View style={styles.cardList}>
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/setup' as any)}
+            onPress={() => router.push('/(app)/setup' as Href)}
             activeOpacity={0.7}
           >
             <Text style={styles.listItemText}>⚙️ Re-run Budget Setup</Text>
@@ -249,7 +249,7 @@ export default function SettingsScreen() {
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/notifications' as any)}
+            onPress={() => router.push('/(app)/settings/notifications' as Href)}
             activeOpacity={0.7}
           >
             <Text style={styles.listItemText}>🔔 Notification Preferences</Text>
@@ -267,7 +267,7 @@ export default function SettingsScreen() {
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/archived' as any)}
+            onPress={() => router.push('/(app)/settings/archived' as Href)}
             activeOpacity={0.7}
           >
             <Text style={styles.listItemText}>📦 Archived Items</Text>
@@ -276,7 +276,7 @@ export default function SettingsScreen() {
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/bank-accounts' as any)}
+            onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
             activeOpacity={0.7}
           >
             <Text style={styles.listItemText}>🏦 {t("settings.bankAccounts.title")}</Text>
@@ -285,7 +285,7 @@ export default function SettingsScreen() {
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/privacy' as any)}
+            onPress={() => router.push('/(app)/settings/privacy' as Href)}
             activeOpacity={0.7}
           >
             <Text style={styles.listItemText}>🔒 Privacy & Data Security</Text>

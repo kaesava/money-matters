@@ -83,7 +83,7 @@ export async function previewPaydayForEvent(
     return {
       id: c.id,
       name: c.name,
-      type: c.type as any,
+      type: c.type,
       isCommitted: c.isCommitted,
       isDefaultExcess: c.isDefaultExcess,
       monthlyAmount: c.monthlyAmount ? parseFloat(c.monthlyAmount) : null,

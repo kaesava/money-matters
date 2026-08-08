@@ -63,7 +63,7 @@ export const categoriesRouter = {
           event: 'money_moved',
           properties: {
             tenant_id: ctx.tenantId,
-            amount: (input as any).amount,
+            amount: input.amount,
           },
         });
         await posthog.flush();

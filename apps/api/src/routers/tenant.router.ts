@@ -93,7 +93,7 @@ export const tenantRouter = {
           event: 'tenant_created',
           properties: {
             app_id: appId,
-            household_name: (result as any)?.name ?? undefined,
+            household_name: input.name,
           },
         });
         await posthog.flush();
@@ -236,7 +236,7 @@ updateUserPreferences: tenantProcedure
           event: 'bank_account_created',
           properties: {
             tenant_id: ctx.tenantId,
-            account_type: (input as any)?.type ?? undefined,
+            account_name: input.name,
           },
         });
         await posthog.flush();

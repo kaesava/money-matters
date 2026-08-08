@@ -22,7 +22,7 @@ export const billingRouter = {
           event: 'checkout_session_created',
           properties: {
             tenant_id: ctx.tenantId,
-            plan: (input as any)?.plan ?? undefined,
+            priceId: input.priceId,
           },
         });
         await posthog.flush();

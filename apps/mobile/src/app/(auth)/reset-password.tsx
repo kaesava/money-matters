@@ -65,7 +65,7 @@ export default function ResetPasswordScreen() {
       return;
     }
 
-    if (!/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+    if (!/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword)) {
       Alert.alert(
         t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
         t("auth.passwordComplexityRequired", { defaultValue: "Password must contain at least one number or special character." })

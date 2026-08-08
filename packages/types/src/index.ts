@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 /**
  * Monorepo Domain Schemas & Validation Contracts
  * 

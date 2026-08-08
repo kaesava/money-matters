@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { PgDatabase } from "drizzle-orm/pg-core";
 import {
   registerDeviceTokenHandler,
   removeDeviceTokenHandler,
@@ -36,7 +37,7 @@ describe("notifications capability handlers", () => {
     then: vi.fn().mockImplementation((onFulfilled) => {
       return Promise.resolve([{ id: "mock-token-id" }]).then(onFulfilled);
     }),
-  } as any;
+  } as unknown as PgDatabase<any, any, any>;
 
   it("exports handlers correctly", () => {
     expect(registerDeviceTokenHandler).toBeDefined();
@@ -57,14 +58,14 @@ describe("notifications capability handlers", () => {
 
   it("exports createScheduledNotificationFunctions", async () => {
     const { createScheduledNotificationFunctions } = await import("./index.js");
-    const mockInngest = { createFunction: vi.fn().mockReturnValue({}) } as any;
+    const mockInngest = { createFunction: vi.fn().mockReturnValue({}) } as unknown as Parameters<typeof createScheduledNotificationFunctions>[0];
     const functions = createScheduledNotificationFunctions(mockInngest);
     expect(functions).toHaveLength(6);
   });
 
   it("exports createNotificationFunctions with welcome, partner invite, and deletion functions", async () => {
     const { createNotificationFunctions } = await import("./index.js");
-    const mockInngest = { createFunction: vi.fn().mockReturnValue({}) } as any;
+    const mockInngest = { createFunction: vi.fn().mockReturnValue({}) } as unknown as Parameters<typeof createNotificationFunctions>[0];
     const functions = createNotificationFunctions(mockInngest);
     expect(functions).toHaveLength(4);
     expect(mockInngest.createFunction).toHaveBeenCalledTimes(4);

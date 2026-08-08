@@ -45,7 +45,10 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
               AND s."expiresAt" > NOW()
             LIMIT 1`
       );
-      const dbSession = Array.isArray(dbSessions) ? dbSessions[0] : (dbSessions as any)?.rows?.[0];
+      const rows = Array.isArray(dbSessions)
+        ? dbSessions
+        : (dbSessions as { rows: { userId: string; email: string; name: string }[] }).rows;
+      const dbSession = rows?.[0];
       if (dbSession) {
         claims = {
           userId: dbSession.userId,

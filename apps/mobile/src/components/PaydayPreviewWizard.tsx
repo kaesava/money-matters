@@ -72,7 +72,7 @@ export function PaydayPreviewWizard({
 
   useEffect(() => {
     if (previewQuery.data?.incomeEvent) {
-      setSourceName((previewQuery.data.incomeEvent as any)?.name || eventToEdit?.sourceName || 'Paycheck');
+      setSourceName(previewQuery.data.incomeEvent.name || eventToEdit?.sourceName || 'Paycheck');
       setOverrideAmount(previewQuery.data.incomeEvent.actualAmount || eventToEdit?.expectedAmount || '0.00');
       const rawDate = previewQuery.data.incomeEvent.expectedDate || eventToEdit?.expectedDate;
       setSelectedDate(rawDate ? new Date(rawDate).toISOString().slice(0, 10) : todayStr);

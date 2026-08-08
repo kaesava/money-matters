@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { PgDatabase } from "drizzle-orm/pg-core";
 import {
   listFileNotesHandler,
   createFileNoteHandler,
@@ -45,7 +46,7 @@ describe("file-notes capability handlers", () => {
     then: vi.fn().mockImplementation((onFulfilled) => {
       return Promise.resolve([{ id: "mock-note-id", fileKey: "mock-file-key" }]).then(onFulfilled);
     }),
-  } as any;
+  };
 
   it("exports handler initializers correctly", () => {
     expect(listFileNotesHandler).toBeDefined();
@@ -56,7 +57,7 @@ describe("file-notes capability handlers", () => {
   });
 
   it("can list file notes", async () => {
-    const listHandler = listFileNotesHandler(mockDb);
+    const listHandler = listFileNotesHandler(mockDb as unknown as PgDatabase<any, any, any>);
     mockDb.returning.mockImplementationOnce(() => []);
     const result = await listHandler(
       { entityType: "EXPENSE", entityId: "some-uuid", status: "ACTIVE" },

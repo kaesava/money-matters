@@ -170,7 +170,7 @@ export function GenericListView<T extends { id: string }>({
                 >
                   {columns.map((col) => (
                     <td key={col.key} className={`px-6 py-4 ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
-                      {col.render ? col.render(item) : String((item as any)[col.key] ?? '')}
+                      {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '')}
                     </td>
                   ))}
                 </tr>

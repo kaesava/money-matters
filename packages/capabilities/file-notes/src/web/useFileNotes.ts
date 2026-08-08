@@ -131,7 +131,7 @@ export function useFileNotes(entityType: string, entityId?: string) {
       const { downloadUrl } = await service.getDownloadUrl(noteId);
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      console.error('Failed to download file note', err as any);
+      console.error('Failed to download file note', err);
     }
   };
 

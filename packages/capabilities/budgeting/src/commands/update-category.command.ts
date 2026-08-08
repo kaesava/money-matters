@@ -30,7 +30,7 @@ export async function updateCategoryCommand(
       .update(categories)
       .set({
         name: input.name,
-        type: input.type as any,
+        type: input.type,
         isCommitted: input.isCommitted,
         monthlyAmount: input.monthlyAmount,
         everydayAllowanceAmount: input.everydayAllowanceAmount,

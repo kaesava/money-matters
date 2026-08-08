@@ -109,7 +109,7 @@ export default function MobileArchivedItemsScreen() {
                   onPress={() =>
                     restoreMutation.mutate({
                       itemId: item.id,
-                      itemType: item.itemType as any,
+                      itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT",
                     })
                   }
                   disabled={restoreMutation.isPending}

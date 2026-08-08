@@ -96,7 +96,7 @@ export async function runAllocationCommand(
     return {
       id: cat.id,
       name: cat.name,
-      type: cat.type as any,
+      type: cat.type,
       isCommitted: cat.isCommitted,
       isDefaultExcess: cat.isDefaultExcess,
       monthlyAmount: cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : null,
@@ -133,43 +133,55 @@ export async function runAllocationCommand(
       })
       .returning();
 
-    for (const line of engineOutput.lines) {
+    const linesToInsert = engineOutput.lines.map((line) => {
       const confirmedVal = customLinesMap?.has(line.bucketId)
         ? customLinesMap.get(line.bucketId)!
         : line.proposedAmount;
 
-      const [insertedLine] = await tx
-        .insert(allocationPlanLines)
-        .values({
-          tenantId,
-          appId,
-          planId: insertedPlan.id,
-          categoryId: line.bucketId,
-          proposedAmount: line.proposedAmount.toFixed(2),
-          confirmedAmount: confirmedVal.toFixed(2),
-          reasoning: line.reasoning,
-          createdBy: userId,
-          updatedBy: userId,
-        })
-        .returning();
+      return {
+        tenantId,
+        appId,
+        planId: insertedPlan.id,
+        categoryId: line.bucketId,
+        proposedAmount: line.proposedAmount.toFixed(2),
+        confirmedAmount: confirmedVal.toFixed(2),
+        reasoning: line.reasoning,
+        createdBy: userId,
+        updatedBy: userId,
+      };
+    });
 
-      // Issue credit entry in ledger ONLY if not future planned and confirmedVal > 0
-      if (!isFuturePlanned && confirmedVal > 0) {
-        const isCustomized = customLinesMap?.has(line.bucketId) && Math.abs(customLinesMap.get(line.bucketId)! - line.proposedAmount) >= 0.01;
-        await tx.insert(transactionLedger).values({
+    const insertedLines = linesToInsert.length > 0
+      ? await tx.insert(allocationPlanLines).values(linesToInsert).returning()
+      : [];
+
+    const ledgerEntriesToInsert = [];
+    for (let i = 0; i < engineOutput.lines.length; i++) {
+      const line = engineOutput.lines[i];
+      const insertedLine = insertedLines[i];
+      const confirmedVal = customLinesMap?.has(line.bucketId)
+        ? customLinesMap.get(line.bucketId)!
+        : line.proposedAmount;
+
+      if (!isFuturePlanned && confirmedVal > 0 && insertedLine) {
+        ledgerEntriesToInsert.push({
           tenantId,
           appId,
           categoryId: line.bucketId,
           planLineId: insertedLine.id,
-          flowType: "CREDIT",
+          flowType: "CREDIT" as const,
           amount: confirmedVal.toFixed(2),
           idempotencyKey: `paydayalloc-${insertedLine.id}`,
           note: `Payday Allocation: ${line.reasoning}`,
-          source: "MANUAL",
+          source: "MANUAL" as const,
           createdBy: userId,
           updatedBy: userId,
         });
       }
+    }
+
+    if (ledgerEntriesToInsert.length > 0) {
+      await tx.insert(transactionLedger).values(ledgerEntriesToInsert);
     }
 
     if (!isFuturePlanned) {

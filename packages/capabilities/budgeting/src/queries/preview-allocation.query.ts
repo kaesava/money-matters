@@ -79,7 +79,7 @@ export async function previewAllocationQuery(
     return {
       id: cat.id,
       name: cat.name,
-      type: cat.type as any,
+      type: cat.type,
       isCommitted: cat.isCommitted,
       isDefaultExcess: cat.isDefaultExcess,
       monthlyAmount: cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : null,

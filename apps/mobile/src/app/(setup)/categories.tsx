@@ -75,26 +75,32 @@ export default function SetupCategoriesScreen() {
         frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
       });
 
-      // 2. Save categories & schedule targets
+      // 2. Save categories & schedule targets in parallel batches
       const selectedList = allPresets.filter((p) => selected.has(p.id));
-      for (const cat of selectedList) {
-        const targetAmt = targets[cat.id] || cat.suggestedMonthlyAud.toString();
-        const isExcess = excessBucketId === cat.id;
+      const createdCategories = await Promise.all(
+        selectedList.map(async (cat) => {
+          const isExcess = excessBucketId === cat.id;
+          const created = await createCategory.mutateAsync({
+            name: cat.name,
+            type: cat.type,
+            budgetFrequency: 'MONTHLY',
+            isDefaultExcess: isExcess,
+          });
+          return { presetId: cat.id, createdId: created.id };
+        })
+      );
 
-        const created = await createCategory.mutateAsync({
-          name: cat.name,
-          type: cat.type,
-          budgetFrequency: 'MONTHLY',
-          isDefaultExcess: isExcess,
-        });
-
+      const schedulePromises = createdCategories.map(({ presetId, createdId }) => {
+        const targetAmt = targets[presetId] || allPresets.find((p) => p.id === presetId)!.suggestedMonthlyAud.toString();
         if (parseFloat(targetAmt) > 0) {
-          await createCategorySchedule.mutateAsync({
-            categoryId: created.id,
+          return createCategorySchedule.mutateAsync({
+            categoryId: createdId,
             targetAmount: parseFloat(targetAmt).toFixed(2),
           });
         }
-      }
+        return Promise.resolve();
+      });
+      await Promise.all(schedulePromises);
 
       // 3. Trigger events burst generator
       await generateEvents.mutateAsync();

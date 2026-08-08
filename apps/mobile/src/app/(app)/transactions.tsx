@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Share, Alert, ScrollView } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui/mobile';
@@ -21,7 +21,7 @@ export default function TransactionsScreen() {
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
   const categoriesQuery = trpc.listCategories.useQuery();
 
-  const transactions = (transactionsQuery.data as any[]) ?? [];
+  const transactions = transactionsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
 
   // Filter & Sort State
@@ -229,7 +229,7 @@ export default function TransactionsScreen() {
                     <View style={styles.cardRow}>
                       <View style={{ flex: 1, marginRight: 8 }}>
                         <TouchableOpacity
-                          onPress={() => router.push({ pathname: '/(app)/categories', params: { search: item.categoryName || '' } } as any)}
+                          onPress={() => router.push({ pathname: '/(app)/categories', params: { search: item.categoryName || '' } } as Href)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.catName} numberOfLines={1} ellipsizeMode="tail">

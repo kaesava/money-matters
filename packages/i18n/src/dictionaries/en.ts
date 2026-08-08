@@ -15,11 +15,15 @@ export const en = {
   },
   common: {
     save: "Save",
+    saving: "Saving...",
     cancel: "Cancel",
     confirm: "Confirm",
     next: "Next",
     back: "Back",
     done: "Done",
+    sortOrder: "Sort Order",
+    ascending: "Ascending",
+    descending: "Descending",
     edit: "Edit",
     delete: "Delete",
     archive: "Archive",
@@ -104,6 +108,7 @@ export const en = {
     invalidToken: "Invalid or expired link. Please request a new password reset link.",
     passwordRequired: "Password is required.",
     passwordsMustMatch: "Passwords do not match.",
+    passwordComplexityRequired: "Password must contain uppercase, lowercase, number, and special character.",
     newPasswordLabel: "New Password",
     confirmPasswordLabel: "Confirm New Password",
     passwordTooShort: "Password must be at least 8 characters long.",
@@ -519,6 +524,24 @@ export const en = {
     settingsNextBillingDate: "Next billing",
     settingsFoundingMember: "Founding member ❤️",
     readOnlyNotice: "You're in read-only mode. Upgrade to make changes.",
+  },
+  bank: {
+    transferRequiredTitle: "Transfer Required",
+    transferPromptMsg: "Please transfer funds between your bank accounts as planned.",
+  },
+  payday: {
+    transferPlanTitle: "Payday Transfer Plan",
+    transferPlanSubtitle: "Review and process your payday transfer allocations.",
+  },
+  budget: {
+    reSetup: {
+      reviewTitle: "Review Budget Re-Setup",
+      reviewSubtitle: "This will update your budget setup and archive/delete removed categories.",
+      effectiveNotice: "The changes will take effect immediately.",
+      billsCap: "Total Bills Target Cap",
+      everydayCap: "Everyday Target Cap",
+      apply: "Apply Changes",
+    },
   },
   partner: {
     inviteTitle: "Invite Household Partner",

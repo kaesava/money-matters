@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, ScrollView, Switch, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
@@ -304,7 +304,7 @@ function CategoryTransactionsList({ categoryId, categoryName }: { categoryId: st
         />
       ))}
       <TouchableOpacity
-        onPress={() => router.push({ pathname: '/(app)/transactions', params: { search: categoryName } } as any)}
+        onPress={() => router.push({ pathname: '/(app)/transactions', params: { search: categoryName } } as Href)}
         style={{ alignSelf: 'flex-end', marginTop: 4, paddingVertical: 4 }}
       >
         <Text style={{ fontSize: 12, fontWeight: '800', color: '#00B4A6' }}>View All Transactions →</Text>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, isNull, count } from "drizzle-orm";
+import { eq, and, isNull, count, inArray } from "drizzle-orm";
 import { categories, transactionLedger } from "@money-matters/db";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
@@ -47,6 +47,7 @@ export async function reSetupBudget(db: PgDatabase<any, any, any>, input: ReSetu
   let archivedCount = 0;
 
   // Process incoming category updates & creations
+  const newCategoriesToInsert = [];
   for (const item of input.categoriesList) {
     if (item.id) {
       // Update existing category
@@ -62,8 +63,8 @@ export async function reSetupBudget(db: PgDatabase<any, any, any>, input: ReSetu
         .where(and(eq(categories.id, item.id), eq(categories.tenantId, input.tenantId)));
       updatedCount++;
     } else {
-      // Insert new sub-category
-      await db.insert(categories).values({
+      // Collect new sub-category for bulk insert
+      newCategoriesToInsert.push({
         tenantId: input.tenantId,
         appId: "01908bde-34bb-7b19-a178-574211bc93aa",
         name: item.name,
@@ -76,36 +77,75 @@ export async function reSetupBudget(db: PgDatabase<any, any, any>, input: ReSetu
     }
   }
 
+  if (newCategoriesToInsert.length > 0) {
+    await db.insert(categories).values(newCategoriesToInsert);
+  }
+
   // Handle removed categories (exist in DB but missing from incoming payload)
-  for (const existing of existingCategories) {
-    if (!incomingIds.has(existing.id)) {
-      // Check if category has linked historical transactions
-      const [txCountRes] = await db
-        .select({ value: count() })
-        .from(transactionLedger)
-        .where(and(eq(transactionLedger.categoryId, existing.id), eq(transactionLedger.tenantId, input.tenantId)));
+  const removedCategoryIds = existingCategories
+    .map((c) => c.id)
+    .filter((id) => !incomingIds.has(id));
 
-      const txCount = txCountRes?.value ?? 0;
+  if (removedCategoryIds.length > 0) {
+    // Bulk query transaction counts for all removed categories
+    const txCounts = await db
+      .select({
+        categoryId: transactionLedger.categoryId,
+        value: count(),
+      })
+      .from(transactionLedger)
+      .where(
+        and(
+          inArray(transactionLedger.categoryId, removedCategoryIds),
+          eq(transactionLedger.tenantId, input.tenantId)
+        )
+      )
+      .groupBy(transactionLedger.categoryId);
 
+    const txCountMap = new Map(
+      txCounts.map((row) => [row.categoryId, row.value ?? 0])
+    );
+
+    const idsToSoftArchive = [];
+    const idsToHardDelete = [];
+
+    for (const catId of removedCategoryIds) {
+      const txCount = txCountMap.get(catId) ?? 0;
       if (txCount > 0) {
-        // Soft-archive category to preserve transaction history
-        await db
-          .update(categories)
-          .set({
-            archivedAt: new Date(),
-            archivedBy: input.userId,
-            updatedAt: new Date(),
-            updatedBy: input.userId,
-          })
-          .where(and(eq(categories.id, existing.id), eq(categories.tenantId, input.tenantId)));
-        archivedCount++;
+        idsToSoftArchive.push(catId);
       } else {
-        // Hard-delete category if 0 transactions linked
-        await db
-          .delete(categories)
-          .where(and(eq(categories.id, existing.id), eq(categories.tenantId, input.tenantId)));
-        archivedCount++;
+        idsToHardDelete.push(catId);
       }
+    }
+
+    if (idsToSoftArchive.length > 0) {
+      await db
+        .update(categories)
+        .set({
+          archivedAt: new Date(),
+          archivedBy: input.userId,
+          updatedAt: new Date(),
+          updatedBy: input.userId,
+        })
+        .where(
+          and(
+            inArray(categories.id, idsToSoftArchive),
+            eq(categories.tenantId, input.tenantId)
+          )
+        );
+      archivedCount += idsToSoftArchive.length;
+    }
+
+    if (idsToHardDelete.length > 0) {
+      await db
+        .delete(categories)
+        .where(
+          and(
+            inArray(categories.id, idsToHardDelete),
+            eq(categories.tenantId, input.tenantId)
+          )
+        );
+      archivedCount += idsToHardDelete.length;
     }
   }
 

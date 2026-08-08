@@ -18,7 +18,7 @@ export function useZodForm<T extends ZodSchema>(
 ): UseFormReturn<z.infer<T>> {
   return useForm<z.infer<T>>({
     resolver: zodResolver(schema),
-    defaultValues: options?.defaultValues as any,
+    defaultValues: options?.defaultValues as import('react-hook-form').DefaultValues<z.infer<T>>,
     mode: 'onBlur',
   });
 }

@@ -119,4 +119,66 @@ describe("paycheck cascade allocation engine", () => {
     const rentLine = result.lines.find((l) => l.bucketId === "rent-id");
     expect(rentLine?.proposedAmount).toBe(461.54);
   });
+
+  it("falls back to the first available category if no explicit default excess bucket is defined", () => {
+    const buckets: EngineBucket[] = [
+      {
+        id: "savings-goal",
+        name: "Emergency Goal",
+        type: "GOAL",
+        currentBalance: 0,
+      },
+    ];
+
+    const result = runAllocationEngine({
+      incomeAmount: 500,
+      buckets,
+      paycheckDate: new Date(),
+      paycheckFrequencyDays: 14,
+    });
+
+    expect(result.status).toBe("OK");
+    const savingsLine = result.lines.find((l) => l.bucketId === "savings-goal");
+    expect(savingsLine?.proposedAmount).toBe(500);
+  });
+
+  it("returns INSUFFICIENT status when income does not cover non-sweep requirements at all", () => {
+    const buckets: EngineBucket[] = [
+      {
+        id: "rent-bill",
+        name: "Rent Bill",
+        type: "REGULAR",
+        monthlyAmount: 2600, // 2600 * 12 / 26 = 1200 needed per paycheck
+        currentBalance: 0,
+      },
+      {
+        id: "utility-bill",
+        name: "Utility Bill",
+        type: "REGULAR",
+        monthlyAmount: 260, // 120 needed per paycheck
+        currentBalance: 0,
+      },
+      {
+        id: "everyday-spending",
+        name: "Everyday Spending",
+        type: "EVERYDAY",
+        isDefaultExcess: true,
+        currentBalance: 0,
+      },
+    ];
+
+    // Income is only 500, which is consumed by rent-bill (500), leaving utility-bill with 0
+    const result = runAllocationEngine({
+      incomeAmount: 500,
+      buckets,
+      paycheckDate: new Date(),
+      paycheckFrequencyDays: 14,
+    });
+
+    expect(result.status).toBe("INSUFFICIENT");
+    const billLine = result.lines.find((l) => l.bucketId === "rent-bill");
+    expect(billLine?.proposedAmount).toBe(500);
+    const utilityLine = result.lines.find((l) => l.bucketId === "utility-bill");
+    expect(utilityLine?.proposedAmount).toBe(0);
+  });
 });

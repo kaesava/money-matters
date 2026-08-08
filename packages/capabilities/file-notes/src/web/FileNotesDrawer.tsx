@@ -11,8 +11,7 @@ interface FileNotesDrawerProps {
 }
 
 export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNotesDrawerProps) {
-  const PaperclipIcon = Paperclip as any;
-  const DownloadIcon = Download as any;
+
 
   const [noteComment, setNoteComment] = useState('');
   const [noteFile, setNoteFile] = useState<File | null>(null);
@@ -130,7 +129,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
           {note.fileKey ? (
             <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
               <div className="flex items-center gap-2 overflow-hidden mr-2">
-                <PaperclipIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
                 <div className="overflow-hidden">
                   <p className="text-xs font-semibold text-slate-800 truncate" title={note.fileName || ''}>
                     {note.fileName}
@@ -146,7 +145,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
                 className="p-1 rounded bg-white border hover:bg-slate-50 text-slate-600"
                 title="Download Attachment"
               >
-                <DownloadIcon className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : null}

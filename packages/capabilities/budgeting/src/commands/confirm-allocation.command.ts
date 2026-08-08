@@ -39,41 +39,48 @@ export async function confirmAllocationCommand(
       })
       .returning();
 
-    // 2. Insert lines and ledger credit entries
-    for (const line of input.lines) {
+    // 2. Insert lines and ledger credit entries in bulk
+    const linesToInsert = input.lines.map((line) => ({
+      tenantId,
+      appId,
+      planId: plan.id,
+      categoryId: line.categoryId,
+      proposedAmount: line.confirmedAmount, // For V2, proposed = confirmed on override
+      confirmedAmount: line.confirmedAmount,
+      reasoning: line.reasoning || "Manual Override",
+      createdBy: userId,
+      updatedBy: userId,
+    }));
+
+    const insertedLines = linesToInsert.length > 0
+      ? await tx.insert(allocationPlanLines).values(linesToInsert).returning()
+      : [];
+
+    const ledgerEntriesToInsert = [];
+    for (let i = 0; i < input.lines.length; i++) {
+      const line = input.lines[i];
+      const insertedLine = insertedLines[i];
       const amountVal = parseFloat(line.confirmedAmount);
 
-      const [insertedLine] = await tx
-        .insert(allocationPlanLines)
-        .values({
-          tenantId,
-          appId,
-          planId: plan.id,
-          categoryId: line.categoryId,
-          proposedAmount: line.confirmedAmount, // For V2, proposed = confirmed on override
-          confirmedAmount: line.confirmedAmount,
-          reasoning: line.reasoning || "Manual Override",
-          createdBy: userId,
-          updatedBy: userId,
-        })
-        .returning();
-
-      // If split amount is positive, insert credit ledger entry
-      if (amountVal > 0) {
-        await tx.insert(transactionLedger).values({
+      if (amountVal > 0 && insertedLine) {
+        ledgerEntriesToInsert.push({
           tenantId,
           appId,
           categoryId: line.categoryId,
           planLineId: insertedLine.id,
-          flowType: "CREDIT",
+          flowType: "CREDIT" as const,
           amount: line.confirmedAmount,
           idempotencyKey: `confirmalloc-${insertedLine.id}`,
           note: `Income Allocation: ${line.reasoning || "Confirmed Split"}`,
-          source: "MANUAL",
+          source: "MANUAL" as const,
           createdBy: userId,
           updatedBy: userId,
         });
       }
+    }
+
+    if (ledgerEntriesToInsert.length > 0) {
+      await tx.insert(transactionLedger).values(ledgerEntriesToInsert);
     }
 
     // 3. Mark income event as CONFIRMED

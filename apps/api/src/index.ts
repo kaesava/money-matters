@@ -75,7 +75,7 @@ server.route({
     client: inngest,
     functions,
     signingKey: process.env.INNGEST_SIGNING_KEY,
-  }) as any,
+  }) as unknown as Parameters<typeof server.route>[0]['handler'],
   url: "/api/inngest",
 });
 

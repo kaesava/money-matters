@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui/mobile';
@@ -250,7 +250,7 @@ export default function CategoriesScreen() {
                   filteredEveryday.map((cat: any) => (
                     <View key={cat.id} style={styles.itemRow}>
                       <TouchableOpacity
-                        onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
+                        onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
                         style={{ flex: 1 }}
                       >
                         <Text style={styles.itemName}>{cat.name}</Text>
@@ -301,7 +301,7 @@ export default function CategoriesScreen() {
                   filteredRegular.map((cat: any) => (
                     <View key={cat.id} style={styles.itemRow}>
                       <TouchableOpacity
-                        onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
+                        onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
                         style={{ flex: 1 }}
                       >
                         <Text style={styles.itemName}>{cat.name}</Text>
@@ -354,7 +354,7 @@ export default function CategoriesScreen() {
                     return (
                       <View key={cat.id} style={styles.goalCardItem}>
                         <TouchableOpacity
-                          onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
+                          onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
                           activeOpacity={0.8}
                         >
                           <View style={styles.cardHeader}>

@@ -17,7 +17,7 @@ import {
   tenants,
   users
 } from "@money-matters/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 
 export function deleteMyAccountHandler(db: PgDatabase<any, any, any>) {
   return async (tenantId: string, userId: string, email: string, appId: string) => {
@@ -33,8 +33,9 @@ export function deleteMyAccountHandler(db: PgDatabase<any, any, any>) {
 
     // allocation_plan_lines & allocation_plans
     const plans = await db.select({ id: allocationPlans.id }).from(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
-    for (const plan of plans) {
-      await db.delete(allocationPlanLines).where(eq(allocationPlanLines.planId, plan.id));
+    const planIds = plans.map((p) => p.id);
+    if (planIds.length > 0) {
+      await db.delete(allocationPlanLines).where(inArray(allocationPlanLines.planId, planIds));
     }
     await db.delete(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
 
@@ -48,8 +49,9 @@ export function deleteMyAccountHandler(db: PgDatabase<any, any, any>) {
 
     // category_schedules & categories
     const cats = await db.select({ id: categories.id }).from(categories).where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
-    for (const cat of cats) {
-      await db.delete(categorySchedules).where(eq(categorySchedules.categoryId, cat.id));
+    const catIds = cats.map((c) => c.id);
+    if (catIds.length > 0) {
+      await db.delete(categorySchedules).where(inArray(categorySchedules.categoryId, catIds));
     }
     await db.delete(categories).where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
 

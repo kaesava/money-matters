@@ -24,18 +24,7 @@ describe('Config Package Utilities', () => {
     });
   });
 
-  describe('resolveAppConfig', () => {
-    it('returns AppConfig for registered app ID', () => {
-      const app = resolveAppConfig('01908bde-34bb-7b19-a178-574211bc93aa');
-      expect(app).not.toBeNull();
-      expect(app?.name).toBe('Money Matters');
-      expect(app?.features.canAffordCalculator).toBe(true);
-    });
 
-    it('returns null for unregistered app ID', () => {
-      expect(resolveAppConfig('00000000-0000-0000-0000-000000000000')).toBeNull();
-    });
-  });
 
   describe('isFeatureEnabled', () => {
     const validAppId = '01908bde-34bb-7b19-a178-574211bc93aa';

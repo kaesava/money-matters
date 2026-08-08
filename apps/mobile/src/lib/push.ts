@@ -13,13 +13,13 @@ export async function registerPushNotificationsAsync(): Promise<string | null> {
   }
 
   try {
-    const Notifications = await import('expo-notifications');
+    const Notifications = (await import('expo-notifications')) as typeof import('expo-notifications');
     const permRes = await Notifications.getPermissionsAsync();
-    let finalStatus = (permRes as any).status;
+    let finalStatus = permRes.status;
 
     if (finalStatus !== 'granted') {
       const reqRes = await Notifications.requestPermissionsAsync();
-      finalStatus = (reqRes as any).status;
+      finalStatus = reqRes.status;
     }
 
     if (finalStatus !== 'granted') {
