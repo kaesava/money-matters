@@ -10,7 +10,7 @@ export interface SpinnerProps {
 
 export function Spinner({ 
   size = "small", 
-  color = DESIGN_TOKENS.colors.accent,
+  color = DESIGN_TOKENS.colors.primary,
   style 
 }: SpinnerProps) {
   return (
@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: "center",
     alignItems: "center",
+    padding: 4,
   },
 });
 

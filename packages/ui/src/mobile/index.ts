@@ -21,3 +21,5 @@ export type { MobilePaginationBarProps } from './MobilePaginationBar';export { d
 export type { CollapsibleSectionProps as MobileCollapsibleSectionProps } from './CollapsibleSection';
 export { default as MobileSpinner } from './Spinner';
 export type { SpinnerProps as MobileSpinnerProps } from './Spinner';
+export { default as MobileLogo } from './Logo';
+export type { MobileLogoProps } from './Logo';

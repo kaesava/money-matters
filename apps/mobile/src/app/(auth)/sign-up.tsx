@@ -14,7 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS } from "@money-matters/ui";
+import { DESIGN_TOKENS, MobileLogo } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -136,6 +136,7 @@ export default function SignUpScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← {t("common.back")}</Text>
           </TouchableOpacity>
+          <MobileLogo size={48} source={require("../../../assets/icon.png")} />
           <Text style={styles.title}>{t("auth.signUp")}</Text>
           <Text style={styles.subtitle}>{t("app.description")}</Text>
         </View>

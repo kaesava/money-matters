@@ -64,6 +64,11 @@ money-matters/
 - **`appId`**: Product shell identifier (`01908bde-34bb-7b19-a178-574211bc93aa` for Money Matters).
 - **Authentication & Security**:
   - Neon Auth (Better Auth) JWT & cookie session verification in Fastify (`apps/api/src/index.ts`) & Next.js middleware (`apps/web/src/middleware.ts`).
+  - **Google OAuth 2.0 Integration**:
+    - Registered Authorized Redirect URI: `https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth/callback/google`
+    - Registered Authorized Origins: `https://moneymatters.kaesava.au` and Neon Auth base URL.
+  - **Tenant Auto-Provisioning**:
+    - When authenticated users (e.g. Google OAuth sign-in) lack a `tenant_users` record, `createContext()` / `createEdgeContext()` automatically provisions a default `"My Household"` tenant and seeds default categories.
   - Strict CORS limited to `*.kaesava.au` and `localhost` (dev).
   - Fastify Helmet enabled for security headers.
   - Upstash Redis sliding-window rate limiting on public endpoints.

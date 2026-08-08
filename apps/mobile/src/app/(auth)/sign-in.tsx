@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS } from "@money-matters/ui";
+import { DESIGN_TOKENS, MobileLogo } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -169,7 +169,7 @@ export default function SignInScreen() {
       >
         {/* Logo / Brand */}
         <View style={styles.brandBlock}>
-          <Text style={styles.logoMark}>⬡</Text>
+          <MobileLogo size={64} source={require("../../../assets/icon.png")} />
           <Text style={styles.title}>{t("app.title")}</Text>
           <Text style={styles.subtitle}>{t("auth.hint")}</Text>
         </View>

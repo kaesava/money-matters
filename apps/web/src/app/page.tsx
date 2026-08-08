@@ -6,6 +6,8 @@ import { t } from "@money-matters/i18n";
 import { authClient } from "../lib/auth";
 import { PaycheckSimulator } from "../components/PaycheckSimulator";
 
+import { Logo } from "@money-matters/ui/web";
+
 export default function Home() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
@@ -27,7 +29,7 @@ export default function Home() {
       <header className="border-b border-[#e2e4e0] bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-2xl text-[#8a9a5b] font-bold">⬡</span>
+            <Logo size="sm" />
             <span className="text-xl font-bold tracking-tight text-[#1B2B4B]">{t("app.title")}</span>
           </div>
           <div className="flex items-center gap-4">

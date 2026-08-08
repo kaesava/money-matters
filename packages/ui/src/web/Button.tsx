@@ -12,11 +12,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`${baseClass} ${className} flex items-center justify-center gap-2`}
+        className={`${baseClass} ${className} flex items-center justify-center gap-2 font-bold transition-all disabled:opacity-75 disabled:cursor-not-allowed`}
         disabled={loading || props.disabled}
         {...props}
       >
-        {loading && <Spinner size="sm" />}
+        {loading && <Spinner size="sm" className="text-current" />}
         {children}
       </button>
     );

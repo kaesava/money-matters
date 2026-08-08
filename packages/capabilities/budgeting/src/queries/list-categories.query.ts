@@ -8,7 +8,7 @@ export async function listCategoriesQuery(
   dbClient: PgDatabase<any, any, any> = db
 ) {
   // 1. Fetch categories
-  const dbCats = await dbClient
+  let dbCats = await dbClient
     .select()
     .from(categories)
     .where(
@@ -18,6 +18,50 @@ export async function listCategoriesQuery(
         sql`${categories.archivedAt} IS NULL`
       )
     );
+
+  // Auto-seed default categories if user has 0 active categories
+  if (dbCats.length === 0) {
+    const defaultTemplates = [
+      { name: "Everyday Spending", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "800.00", isDefaultExcess: true },
+      { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", colour: "#EF4444", monthlyAmount: "2400.00", isDefaultExcess: false },
+      { name: "Groceries & Food", type: "REGULAR" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1000.00", isDefaultExcess: false },
+      { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", colour: "#F59E0B", monthlyAmount: "300.00", isDefaultExcess: false },
+      { name: "Emergency Reserve", type: "GOAL" as const, icon: "shield", colour: "#6366F1", monthlyAmount: null, isDefaultExcess: false },
+    ];
+
+    try {
+      await dbClient.insert(categories).values(
+        defaultTemplates.map((t) => ({
+          tenantId,
+          appId,
+          name: t.name,
+          type: t.type,
+          icon: t.icon,
+          colour: t.colour,
+          monthlyAmount: t.monthlyAmount,
+          rolloverRule: "ROLLOVER" as const,
+          isDefaultExcess: t.isDefaultExcess,
+          isDefaultSavings: false,
+          isCommitted: false,
+          createdBy: "SYSTEM",
+          updatedBy: "SYSTEM",
+        }))
+      );
+
+      dbCats = await dbClient
+        .select()
+        .from(categories)
+        .where(
+          and(
+            eq(categories.tenantId, tenantId),
+            eq(categories.appId, appId),
+            sql`${categories.archivedAt} IS NULL`
+          )
+        );
+    } catch (e) {
+      // Ignore conflict or insertion error
+    }
+  }
 
   // 2. Fetch category schedules
   const dbSchedules = await dbClient

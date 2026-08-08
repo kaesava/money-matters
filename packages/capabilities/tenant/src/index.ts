@@ -69,36 +69,46 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
       .from(appCategories)
       .where(eq(appCategories.appId, appId));
 
-    if (templates.length > 0) {
-      let hasSeededEveryday = false;
-      await db.insert(categories).values(
-        templates.map((template) => {
-          const isEveryday = template.type === "EVERYDAY";
-          // Mark the first EVERYDAY template as the default excess category
-          const isDefaultExcess = isEveryday && !hasSeededEveryday;
-          if (isEveryday) hasSeededEveryday = true;
+    const defaultTemplates = templates.length > 0
+      ? templates.map((t) => ({
+          name: t.name,
+          type: t.type,
+          icon: t.icon,
+          colour: t.colour,
+          monthlyAmount: t.annualisedAmount ? String((Number(t.annualisedAmount) / 12).toFixed(2)) : null,
+        }))
+      : [
+          { name: "Everyday Spending", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "800.00" },
+          { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", colour: "#EF4444", monthlyAmount: "2400.00" },
+          { name: "Groceries & Food", type: "REGULAR" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1000.00" },
+          { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", colour: "#F59E0B", monthlyAmount: "300.00" },
+          { name: "Emergency Reserve", type: "GOAL" as const, icon: "shield", colour: "#6366F1", monthlyAmount: null },
+        ];
 
-          return {
-            tenantId,
-            appId,
-            name: template.name,
-            type: template.type,
-            icon: template.icon,
-            colour: template.colour,
-            // Convert annualised amount to monthly (÷12) for categories.monthly_amount
-            monthlyAmount: template.annualisedAmount
-              ? String((Number(template.annualisedAmount) / 12).toFixed(2))
-              : null,
-            rolloverRule: "ROLLOVER" as const,
-            isDefaultExcess,
-            isDefaultSavings: false,
-            isCommitted: false,
-            createdBy: userId,
-            updatedBy: userId,
-          };
-        })
-      );
-    }
+    let hasSeededEveryday = false;
+    await db.insert(categories).values(
+      defaultTemplates.map((template) => {
+        const isEveryday = template.type === "EVERYDAY";
+        const isDefaultExcess = isEveryday && !hasSeededEveryday;
+        if (isEveryday) hasSeededEveryday = true;
+
+        return {
+          tenantId,
+          appId,
+          name: template.name,
+          type: template.type,
+          icon: template.icon,
+          colour: template.colour,
+          monthlyAmount: template.monthlyAmount,
+          rolloverRule: "ROLLOVER" as const,
+          isDefaultExcess,
+          isDefaultSavings: false,
+          isCommitted: false,
+          createdBy: userId,
+          updatedBy: userId,
+        };
+      })
+    );
 
     return {
       success: true,

@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 
+import { Logo } from "@money-matters/ui/web";
+
 interface User {
   name?: string | null;
   email?: string | null;
@@ -46,9 +48,7 @@ export function AppHeader({ user, onQuickExpense, onSignOut }: AppHeaderProps) {
         className="flex items-center gap-2 shrink-0 group"
         aria-label={t("app.title")}
       >
-        <span className="text-xl font-black tracking-tight text-white group-hover:opacity-90 transition-opacity">
-          ⬡
-        </span>
+        <Logo size="sm" />
         <span
           style={{ color: "var(--dash-teal)" }}
           className="text-sm font-bold tracking-tight hidden sm:block"

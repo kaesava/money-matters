@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { AccountDeletionSection } from "./AccountDeletionSection";
 
+import { Logo } from "@money-matters/ui/web";
+
 export const metadata: Metadata = {
   title: "Delete Your Account & Data | Money Matters",
   description:
@@ -16,7 +18,7 @@ export default function DeleteAccountPage() {
       <header className="border-b border-slate-200 bg-white sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 font-extrabold text-xl text-[#1B2B4B]">
-            <span className="text-[#2563eb]">⬡</span> Money Matters
+            <Logo size="sm" /> Money Matters
           </Link>
           <Link href="/privacy" className="text-sm font-semibold text-[#2563eb] hover:underline">
             ← Privacy Policy

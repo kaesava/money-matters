@@ -1,35 +1,43 @@
 import React from "react";
 
 export interface SpinnerProps {
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
+  color?: string;
 }
 
-export function Spinner({ size = "md", className = "" }: SpinnerProps) {
-  const sizeClass = size === "sm" ? "w-4 h-4" : size === "lg" ? "w-8 h-8" : "w-6 h-6";
+export function Spinner({ size = "md", className = "", color }: SpinnerProps) {
+  const sizeClasses = {
+    xs: "w-3 h-3 border-[2px]",
+    sm: "w-4 h-4 border-[2px]",
+    md: "w-6 h-6 border-[2.5px]",
+    lg: "w-8 h-8 border-[3px]",
+    xl: "w-12 h-12 border-[4px]",
+  };
+
+  const selectedSizeClass = sizeClasses[size] || sizeClasses.md;
+
   return (
-    <div className={`inline-flex justify-center items-center ${className}`} role="status">
-      <svg
-        className={`animate-spin ${sizeClass} text-current`}
-        fill="none"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="4"
-        />
-        <path
-          className="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        />
-      </svg>
+    <div
+      className={`inline-flex items-center justify-center relative shrink-0 ${className}`}
+      role="status"
+      aria-label="Loading"
+    >
+      <div
+        className={`${selectedSizeClass} rounded-full border-current opacity-20`}
+        style={{ color: color || "currentColor" }}
+      />
+      <div
+        className={`absolute inset-0 ${selectedSizeClass} rounded-full border-t-transparent border-r-transparent animate-spin`}
+        style={{
+          borderColor: color || "currentColor",
+          borderTopColor: "transparent",
+          borderRightColor: "transparent",
+        }}
+      />
       <span className="sr-only">Loading...</span>
     </div>
   );
 }
+
+export default Spinner;

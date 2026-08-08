@@ -10,6 +10,7 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 import { TrialBanner } from "../../components/TrialBanner";
 import { TrialStatusBadge } from "../../components/TrialStatusBadge";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
+import { Logo } from "@money-matters/ui/web";
 
 const NAV_ITEMS = [
   {
@@ -196,9 +197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex flex-col h-full">
       {/* Brand Logo header */}
       <div className={`h-16 flex items-center px-6 gap-3 border-b border-white/10 shrink-0 ${sidebarCollapsed ? "justify-center" : ""}`}>
-        <span className="text-2xl font-black text-[#00B4A6] select-none hover:rotate-12 transition-transform duration-300">
-          ⬡
-        </span>
+        <Logo size="md" />
         {!sidebarCollapsed && (
           <div className="flex items-center justify-between flex-1">
             <span className="text-lg font-extrabold tracking-tight text-white select-none">
