@@ -48,9 +48,11 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
           email: dbSession.email,
           displayName: dbSession.name,
         };
+      } else {
+        console.warn(`[createEdgeContext] DB session SQL query returned 0 rows for token: ${token.substring(0, 10)}... (cleanToken: ${cleanToken})`);
       }
     } catch (err) {
-      logger.error('Database session lookup failed', { err });
+      console.error('[createEdgeContext] Database session lookup failed:', err);
     }
   }
 
@@ -60,6 +62,7 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
       const authBase = env?.NEXT_PUBLIC_NEON_AUTH_URL || env?.NEON_AUTH_BASE_URL || process.env.NEXT_PUBLIC_NEON_AUTH_URL || process.env.NEON_AUTH_BASE_URL;
       const cookieHeader = req.headers.get('cookie');
       if (authBase) {
+        console.log(`[createEdgeContext] Attempting fetch to ${authBase}/get-session with cookie: ${cookieHeader ? 'present' : 'absent'}, authHeader: ${authHeader ? 'present' : 'absent'}`);
         const authRes = await fetch(`${authBase}/get-session`, {
           headers: {
             ...(cookieHeader ? { cookie: cookieHeader } : {}),
@@ -74,11 +77,17 @@ export async function createEdgeContext({ req, resHeaders }: FetchCreateContextF
               email: sessionData.user.email,
               displayName: sessionData.user.name ?? undefined,
             };
+          } else {
+            console.warn(`[createEdgeContext] Neon Auth /get-session returned status 200 but payload missing user id/email: ${JSON.stringify(sessionData)}`);
           }
+        } else {
+          console.warn(`[createEdgeContext] Neon Auth /get-session returned status ${authRes.status}: ${await authRes.text()}`);
         }
+      } else {
+        console.warn('[createEdgeContext] Neither NEXT_PUBLIC_NEON_AUTH_URL nor NEON_AUTH_BASE_URL is configured in env!');
       }
     } catch (err) {
-      logger.debug('[createEdgeContext] Neon Auth endpoint fallback lookup failed: ' + (err instanceof Error ? err.message : String(err)));
+      console.error('[createEdgeContext] Neon Auth endpoint fallback lookup failed:', err);
     }
   }
 
