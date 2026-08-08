@@ -4,7 +4,12 @@ import { db, users } from "@money-matters/db";
  * Upserts a user in the local mirror table when verified JWT claims are processed.
  * Ensures the public.users record is always kept in sync with the identity provider.
  */
-export async function upsertUserFromJwt(userId: string, email: string, displayName?: string, dbInstance = db) {
+export async function upsertUserFromJwt(
+  userId: string,
+  email: string,
+  displayName?: string,
+  dbInstance: typeof db = db
+) {
   await dbInstance
     .insert(users)
     .values({
