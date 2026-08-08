@@ -8,10 +8,11 @@ import {
   Alert,
   TextInput,
   Linking,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileScreenWrapper } from "@money-matters/ui";
+import { DESIGN_TOKENS, MobileScreenWrapper, useIconVisibility } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 
@@ -19,8 +20,14 @@ import * as SecureStore from "expo-secure-store";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { showIcons, setShowIcons } = useIconVisibility();
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
+
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
+  const updateUserPrefMut = trpc.updateUserPreferences.useMutation({
+    onSuccess: () => userPrefQuery.refetch(),
+  });
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -165,6 +172,40 @@ export default function SettingsScreen() {
           </View>
         </View>
       )}
+
+      {/* UI Aesthetic Preferences Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>UI Aesthetic & Preferences</Text>
+        <View style={styles.card}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary }}>
+                Show Decorative Icons
+              </Text>
+              <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 }}>
+                Toggle between iconified vs minimalist typographic UI views.
+              </Text>
+            </View>
+            <Switch
+              value={showIcons}
+              onValueChange={(nextVal) => {
+                setShowIcons(nextVal);
+                const currentBlob = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] || {};
+                updateUserPrefMut.mutate({
+                  appPreferences: {
+                    ["01908bde-34bb-7b19-a178-574211bc93aa"]: {
+                      ...currentBlob,
+                      show_icons: nextVal,
+                    },
+                  },
+                });
+              }}
+              trackColor={{ false: '#E5E7EB', true: DESIGN_TOKENS.colors.accent }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
+      </View>
 
       {/* Partner Collaboration MVP Section */}
       <View style={styles.section}>

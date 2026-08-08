@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '../../../lib/trpc';
 import { Spinner } from '@money-matters/ui/web';
+import { t } from '@money-matters/i18n';
 
 export default function AcceptInvitePage() {
   const params = useParams();
@@ -38,17 +39,17 @@ export default function AcceptInvitePage() {
         {status === 'loading' && (
           <div className="space-y-4">
             <Spinner size="lg" className="text-[#00B4A6] mx-auto" />
-            <h1 className="text-xl font-bold text-gray-900">Joining Household...</h1>
-            <p className="text-sm text-gray-500">Validating your invitation token.</p>
+            <h1 className="text-xl font-bold text-gray-900">{t("partner.acceptTitle")}</h1>
+            <p className="text-sm text-gray-500">{t("partner.acceptSubtitle")}</p>
           </div>
         )}
 
         {status === 'success' && (
           <div className="space-y-4">
             <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto">✓</div>
-            <h1 className="text-xl font-bold text-gray-900">Welcome to the Household! 🎉</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t("partner.acceptSuccessTitle")}</h1>
             <p className="text-sm text-gray-500">
-              Your account has been linked to the household budget. Redirecting to dashboard...
+              {t("partner.acceptSuccessMessage")}
             </p>
           </div>
         )}
@@ -56,14 +57,14 @@ export default function AcceptInvitePage() {
         {status === 'error' && (
           <div className="space-y-4">
             <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl mx-auto">⚠️</div>
-            <h1 className="text-xl font-bold text-gray-900">Invitation Invalid</h1>
-            <p className="text-sm text-gray-500">{errorMsg || 'This invite token is invalid or expired.'}</p>
+            <h1 className="text-xl font-bold text-gray-900">{t("partner.acceptErrorTitle")}</h1>
+            <p className="text-sm text-gray-500">{errorMsg || t("partner.invalidToken")}</p>
             <button
               type="button"
               onClick={() => router.push('/dashboard')}
               className="mt-2 bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
             >
-              Go to Dashboard
+              {t("partner.goToDashboard")}
             </button>
           </div>
         )}

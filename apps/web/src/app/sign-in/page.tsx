@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Button, Input, Logo } from "@money-matters/ui/web";

@@ -60,11 +60,14 @@ The onboarding flow delivers an engaging interactive quiz completing in under 60
 
 ---
 
-## 4. Household & Partner Collaboration MVP
+## 4. Household & Partner Collaboration & Security
 
-- **Partner Invitation**: Household owner generates a secure invite token (`invitePartner`) and sends an email via Resend.
-- **Acceptance Flow**: Partner receives email, clicks deep link (`/invite/[token]`), signs in/up, and joins the household tenant (`tenant_users`).
+- **Partner Invitation & Async Email Delivery**: Household owner generates a secure invite token (`invitePartner`) with a strict 48-hour expiration lifetime (`expiresAt`). The API worker dispatches a non-blocking `partner/invited` event to Inngest, which delivers the invitation email via Resend with 3 automatic retries.
+- **Acceptance & Identity Flow**: Partner receives email, clicks link (`/invite/[token]`), signs in/up, and joins the household tenant (`tenant_users`). The system enforces email identity matching (accepting user's email must match `inviteEmail`) and blocks expired tokens. Expired or mismatched invites are rejected and require re-invitation by the household owner.
+- **Welcome & Onboarding Email Workflow**: Upon new user registration/auto-provisioning (`auth/user.signup`), Inngest asynchronously triggers a welcome email via Resend introducing trial status and dashboard onboarding features.
 - **Shared Access**: Partner enjoys complete read/write access to categories, transactions, upcoming events, and allocation rules.
+- **Password Reset & Security Standard**: Password reset flow (`/reset-password`) validates redirect targets against allowed app schemes (`moneymatters://*`) and domain whitelists (`https://*.kaesava.au`), enforcing strong password complexity (min 8 chars with number/symbol) on mobile and web clients.
+- **Async Account Deletion & Confirmation**: Account deletion requests (`deleteMyAccount`) trigger background worker execution (`user/account.delete-requested`) for deep database wipes, storage cleanup, and email confirmation dispatch.
 
 ---
 
@@ -75,10 +78,11 @@ The onboarding flow delivers an engaging interactive quiz completing in under 60
   - Typography: Inter for general UI text; **JetBrains Mono** (`financial-metric`, `tabular-nums`) for all monetary amounts.
   - Web Shell: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views.
   - Mobile Shell: Header (`TopAppBar`) + bottom tab bar (`BottomNavBar`).
-- **Dashboard Hierarchy**:
+- **Dashboard Hierarchy & Clean Aesthetic**:
   - **Hero Card (`DashboardHeroCard`)**: Dominates top of screen. Shows Everyday Pool balance, system status (Green/Amber/Red), and next payday countdown.
   - **Attention Items (`AttentionItemsList`)**: Overdue bills and bills due within 3 days (with inline funding status).
-  - **Collapsible Sections**: Quick Actions, All Upcoming Payments, Category Health.
+  - **Collapsible Sections & Minimalist View Mode**: Quick Actions, All Upcoming Payments, and Category Health can be collapsed. Users can toggle "Show Decorative Icons" in Settings to switch between iconified vs minimalist typographic UI layouts across Web and Mobile apps.
+  - **Collapsible Filter Bar**: Search input bar remains visible while detailed filter options (categories, health, flow types) collapse behind a single "Filter" toggle button with an active filter count pill.
 
 ---
 

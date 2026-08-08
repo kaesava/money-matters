@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '../tokens';
+import { useIconVisibility } from '../hooks/IconVisibilityContext';
 
 export interface MobileFilterOption {
   id: string;
@@ -21,6 +22,7 @@ export interface MobileFilterBarProps {
   searchPlaceholder?: string;
   filterGroups?: MobileFilterGroup[];
   onClearAll?: () => void;
+  defaultExpanded?: boolean;
 }
 
 export default function MobileFilterBar({
@@ -29,31 +31,62 @@ export default function MobileFilterBar({
   searchPlaceholder = 'Search...',
   filterGroups = [],
   onClearAll,
+  defaultExpanded = false,
 }: MobileFilterBarProps) {
   const D = DESIGN_TOKENS;
-  const hasActiveFilters = searchQuery.trim().length > 0 || filterGroups.some((g) => g.value !== 'ALL' && g.value !== '');
+  const { showIcons } = useIconVisibility();
+  const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
+
+  const activeFilterCount = filterGroups.filter((g) => g.value !== 'ALL' && g.value !== '').length;
+  const hasActiveFilters = searchQuery.trim().length > 0 || activeFilterCount > 0;
 
   return (
     <View style={styles.container}>
-      {/* Search Bar Input */}
-      <View style={styles.searchContainer}>
-        <Feather name="search" size={16} color={D.colors.textMuted} style={styles.searchIcon} />
-        <TextInput
-          value={searchQuery}
-          onChangeText={onSearchChange}
-          placeholder={searchPlaceholder}
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.searchInput}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => onSearchChange('')} style={styles.clearSearchBtn}>
-            <Feather name="x" size={14} color={D.colors.textMuted} />
+      {/* Header Row: Search Input + Filter Toggle Button */}
+      <View style={styles.headerRow}>
+        <View style={styles.searchContainer}>
+          {showIcons && (
+            <Feather name="search" size={16} color={D.colors.textMuted} style={styles.searchIcon} />
+          )}
+          <TextInput
+            value={searchQuery}
+            onChangeText={onSearchChange}
+            placeholder={searchPlaceholder}
+            placeholderTextColor={D.colors.textMuted}
+            style={styles.searchInput}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => onSearchChange('')} style={styles.clearSearchBtn}>
+              {showIcons ? (
+                <Feather name="x" size={14} color={D.colors.textMuted} />
+              ) : (
+                <Text style={styles.clearText}>Clear</Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {filterGroups.length > 0 && (
+          <TouchableOpacity
+            style={[styles.filterToggleBtn, expanded && styles.filterToggleBtnActive]}
+            onPress={() => setExpanded(!expanded)}
+            activeOpacity={0.8}
+          >
+            {showIcons && <Feather name="sliders" size={14} color={expanded ? D.colors.onAccent : D.colors.textPrimary} />}
+            <Text style={[styles.filterToggleText, expanded && styles.filterToggleTextActive]}>
+              Filter
+            </Text>
+            {activeFilterCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{activeFilterCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Filter Groups - Each on a NEW LINE */}
-      {filterGroups.length > 0 && (
+      {/* Filter Groups Stack - Displayed only when expanded */}
+      {expanded && filterGroups.length > 0 && (
         <View style={styles.filterGroupsStack}>
           {filterGroups.map((group) => (
             <View key={group.label} style={styles.groupLineContainer}>
@@ -102,7 +135,13 @@ const styles = StyleSheet.create({
     gap: 12,
     marginVertical: 10,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: D.colors.surface,
@@ -123,9 +162,56 @@ const styles = StyleSheet.create({
   clearSearchBtn: {
     padding: 4,
   },
+  clearText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: D.colors.textMuted,
+  },
+  filterToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: D.colors.surface,
+    borderRadius: D.radius.md,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    height: 44,
+    gap: 6,
+  },
+  filterToggleBtnActive: {
+    backgroundColor: D.colors.accent,
+    borderColor: D.colors.accent,
+  },
+  filterToggleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: D.colors.textPrimary,
+  },
+  filterToggleTextActive: {
+    color: D.colors.onAccent,
+  },
+  badge: {
+    backgroundColor: D.colors.primary,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
   filterGroupsStack: {
     flexDirection: 'column',
     gap: 10,
+    backgroundColor: D.colors.surface,
+    borderRadius: D.radius.md,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
   },
   groupLineContainer: {
     flexDirection: 'row',

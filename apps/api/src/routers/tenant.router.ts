@@ -1,6 +1,7 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure } from '../trpc/trpc.js';
 import { db, userPreferences, bankAccounts, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
+import { inngest } from '../inngest/client.js';
 import { 
   createTenantHandler,
   createBankAccountHandler,
@@ -32,6 +33,18 @@ export const tenantRouter = {
     .mutation(async ({ input, ctx }) => {
       const handler = invitePartnerHandler(ctx.db);
       const result = await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+
+      // Dispatch non-blocking partner invite email trigger to Inngest
+      inngest.send({
+        name: 'partner/invited',
+        data: {
+          email: input.email,
+          inviteToken: result.inviteToken,
+          tenantId: ctx.tenantId!,
+          senderUserId: ctx.userId!,
+        },
+      }).catch(() => {});
+
       if (posthog && ctx.userId) {
         posthog.capture({
           distinctId: ctx.userId,
@@ -49,7 +62,7 @@ export const tenantRouter = {
     .input(z.object({ inviteToken: z.string().min(1) }).strict())
     .mutation(async ({ input, ctx }) => {
       const handler = acceptInviteHandler(ctx.db);
-      const result = await handler(input, ctx.userId!);
+      const result = await handler(input, ctx.userId!, ctx.email ?? undefined);
       if (posthog && ctx.userId) {
         posthog.capture({
           distinctId: ctx.userId,
@@ -429,7 +442,19 @@ export const tenantRouter = {
   deleteMyAccount: authenticatedProcedure
     .mutation(async ({ ctx }) => {
       const handler = deleteMyAccountHandler(ctx.db);
-      return await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);
+      const result = await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);
+
+      // Dispatch non-blocking background account deletion worker to Inngest
+      inngest.send({
+        name: 'user/account.delete-requested',
+        data: {
+          userId: ctx.userId!,
+          tenantId: ctx.tenantId ?? undefined,
+          email: ctx.email ?? undefined,
+        },
+      }).catch(() => {});
+
+      return result;
     }),
 };
 

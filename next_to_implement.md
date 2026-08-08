@@ -1,14 +1,17 @@
 # AGENT - In progress...
 
+# AGENT - To Do
 ### General
+* Stripe
 ### Sign-In page
-* Use the right app's logo
 
-
-# AGENT - To do...
 ## Web
 ### General
 ### Sign-In page
+
+## Mobile
+### General
+Add Firebase to your Android app - https://console.firebase.google.com/u/0/project/money-matters-504311/settings/general/android:au.kaesava.moneymatters
 
 
 # ME - To do...

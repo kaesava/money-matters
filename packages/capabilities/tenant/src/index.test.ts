@@ -39,7 +39,7 @@ describe('Capability Tenant Handlers', () => {
 
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
-    expect(insertMock).toHaveBeenCalledTimes(2);
+    expect(insertMock).toHaveBeenCalledTimes(3);
     expect(selectMock).toHaveBeenCalledTimes(1);
   });
 
@@ -55,9 +55,13 @@ describe('Capability Tenant Handlers', () => {
     expect(res.id).toBe(accountId);
   });
 
-  it('invitePartnerHandler generates invite token and inserts member record', async () => {
-    const returningMock = vi.fn().mockResolvedValue([{ inviteToken: 'test-token', inviteEmail: 'partner@example.com' }]);
-    const valuesMock = vi.fn().mockReturnValue({ returning: returningMock });
+  it('invitePartnerHandler generates invite token with 48h expiry and inserts member record', async () => {
+    let insertedValues: any = null;
+    const returningMock = vi.fn().mockImplementation(() => [{ inviteToken: 'test-token', inviteEmail: 'partner@example.com', expiresAt: insertedValues?.expiresAt }]);
+    const valuesMock = vi.fn().mockImplementation((val) => {
+      insertedValues = val;
+      return { returning: returningMock };
+    });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
     const mockDb: any = { insert: insertMock };
 
@@ -67,10 +71,13 @@ describe('Capability Tenant Handlers', () => {
 
     expect(result.success).toBe(true);
     expect(result.inviteEmail).toBe('partner@example.com');
+    expect(insertedValues.expiresAt).toBeInstanceOf(Date);
+    expect(insertedValues.expiresAt.getTime()).toBeGreaterThan(Date.now() + 47 * 60 * 60 * 1000);
   });
 
-  it('acceptInviteHandler updates pending invite to accepted state', async () => {
-    const limitMock = vi.fn().mockResolvedValue([{ id: 'invite-1', tenantId, role: 'MEMBER' }]);
+  it('acceptInviteHandler updates pending invite to accepted state when valid', async () => {
+    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const limitMock = vi.fn().mockResolvedValue([{ id: 'invite-1', tenantId, role: 'MEMBER', inviteEmail: 'partner@example.com', expiresAt: futureDate }]);
     const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
     const fromMock = vi.fn().mockReturnValue({ where: whereMock });
     const selectMock = vi.fn().mockReturnValue({ from: fromMock });
@@ -84,9 +91,39 @@ describe('Capability Tenant Handlers', () => {
 
     const { acceptInviteHandler } = await import('./index.js');
     const handler = acceptInviteHandler(mockDb);
-    const result = await handler({ inviteToken: 'valid-token' }, userId);
+    const result = await handler({ inviteToken: 'valid-token' }, userId, 'partner@example.com');
 
     expect(result.success).toBe(true);
     expect(result.tenantId).toBe(tenantId);
+  });
+
+  it('acceptInviteHandler rejects invite if expired', async () => {
+    const pastDate = new Date(Date.now() - 1000);
+    const limitMock = vi.fn().mockResolvedValue([{ id: 'invite-1', tenantId, role: 'MEMBER', inviteEmail: 'partner@example.com', expiresAt: pastDate }]);
+    const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
+    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+    const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    const mockDb: any = { select: selectMock };
+
+    const { acceptInviteHandler } = await import('./index.js');
+    const handler = acceptInviteHandler(mockDb);
+    
+    await expect(handler({ inviteToken: 'expired-token' }, userId, 'partner@example.com')).rejects.toThrow('Invitation token has expired');
+  });
+
+  it('acceptInviteHandler rejects invite if user email does not match invite email', async () => {
+    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const limitMock = vi.fn().mockResolvedValue([{ id: 'invite-1', tenantId, role: 'MEMBER', inviteEmail: 'partner@example.com', expiresAt: futureDate }]);
+    const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
+    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+    const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    const mockDb: any = { select: selectMock };
+
+    const { acceptInviteHandler } = await import('./index.js');
+    const handler = acceptInviteHandler(mockDb);
+
+    await expect(handler({ inviteToken: 'valid-token' }, userId, 'attacker@example.com')).rejects.toThrow('Invitation email does not match');
   });
 });

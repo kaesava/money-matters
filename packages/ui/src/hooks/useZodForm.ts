@@ -1,4 +1,5 @@
-import { useForm, UseFormReturn } from 'react-hook-form';
+"use client";
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ZodSchema, z } from 'zod';
 

@@ -5,6 +5,7 @@ import { createTenantHandler } from "@money-matters/capability-tenant";
 import { eq, sql } from "drizzle-orm";
 import type { createEdgeContext } from "./edge-context.js";
 import { posthog } from '../lib/posthog.js';
+import { inngest } from '../inngest/client.js';
 
 export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
@@ -139,6 +140,17 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
       const result = await handler({ name: "My Household" }, appId, claims.userId);
       tenantId = result.tenantId;
       role = "OWNER";
+
+      // Dispatch non-blocking signup & welcome email event to Inngest
+      inngest.send({
+        name: "auth/user.signup",
+        data: {
+          userId: claims.userId,
+          email: claims.email,
+          displayName: claims.displayName ?? undefined,
+        },
+      }).catch(() => {});
+
       if (process.env.NODE_ENV === "development") {
         console.log(`[DEBUG createContext] Auto-provisioned default tenant ${tenantId} for user ${claims.userId}`);
       }

@@ -78,9 +78,13 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
           monthlyAmount: t.annualisedAmount ? String((Number(t.annualisedAmount) / 12).toFixed(2)) : null,
         }))
       : [
-          { name: "Everyday Spending", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "800.00" },
+          { name: "Groceries & Food Supplies", type: "EVERYDAY" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1170.00" },
+          { name: "Dining Out & Coffee", type: "EVERYDAY" as const, icon: "coffee", colour: "#F59E0B", monthlyAmount: "1040.00" },
+          { name: "Petrol & Fuel", type: "EVERYDAY" as const, icon: "navigation", colour: "#3B82F6", monthlyAmount: "260.00" },
+          { name: "Public Transport & Rideshare", type: "EVERYDAY" as const, icon: "truck", colour: "#8B5CF6", monthlyAmount: "180.00" },
+          { name: "Personal Care & Fun", type: "EVERYDAY" as const, icon: "smile", colour: "#EC4899", monthlyAmount: "430.00" },
+          { name: "Everyday Incidental Buffer", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "300.00" },
           { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", colour: "#EF4444", monthlyAmount: "2400.00" },
-          { name: "Groceries & Food", type: "REGULAR" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1000.00" },
           { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", colour: "#F59E0B", monthlyAmount: "300.00" },
           { name: "Emergency Reserve", type: "GOAL" as const, icon: "shield", colour: "#6366F1", monthlyAmount: null },
         ];
@@ -129,6 +133,7 @@ export function invitePartnerHandler(db: PgDatabase<any, any, any>) {
   ) => {
     const inviteToken = crypto.randomUUID();
     const now = new Date();
+    const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours lifetime
 
     const [created] = await db
       .insert(tenantUsers)
@@ -140,6 +145,7 @@ export function invitePartnerHandler(db: PgDatabase<any, any, any>) {
         inviteStatus: "PENDING" as const,
         role: "MEMBER" as const,
         invitedAt: now,
+        expiresAt,
         createdBy: userId,
         updatedBy: userId,
       })
@@ -149,15 +155,16 @@ export function invitePartnerHandler(db: PgDatabase<any, any, any>) {
       success: true,
       inviteToken: created.inviteToken,
       inviteEmail: created.inviteEmail,
+      expiresAt: created.expiresAt,
     };
   };
 }
 
 /**
- * Accepts a household partner invitation.
+ * Accepts a household partner invitation after verifying token expiry and email identity.
  */
 export function acceptInviteHandler(db: PgDatabase<any, any, any>) {
-  return async (input: { inviteToken: string }, userId: string) => {
+  return async (input: { inviteToken: string }, userId: string, userEmail?: string) => {
     const [invite] = await db
       .select()
       .from(tenantUsers)
@@ -171,6 +178,14 @@ export function acceptInviteHandler(db: PgDatabase<any, any, any>) {
 
     if (!invite) {
       throw new Error("Invalid or expired invitation token.");
+    }
+
+    if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) {
+      throw new Error("Invitation token has expired. Please request a new invitation from the household owner.");
+    }
+
+    if (invite.inviteEmail && userEmail && invite.inviteEmail.trim().toLowerCase() !== userEmail.trim().toLowerCase()) {
+      throw new Error("Invitation email does not match authenticated user email.");
     }
 
     const [updated] = await db

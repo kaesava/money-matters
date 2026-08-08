@@ -12,11 +12,14 @@ interface FileNotesSectionProps {
 export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps) {
   const [comment, setComment] = useState("");
 
-  const notesQuery = trpc.listFileNotes.useQuery({
-    entityType,
-    entityId,
-    status: "ACTIVE",
-  });
+  const notesQuery = trpc.listFileNotes.useQuery(
+    {
+      entityType,
+      entityId,
+      status: "ACTIVE",
+    },
+    { enabled: Boolean(entityId) }
+  );
 
   const createFileNoteMutation = trpc.createFileNote.useMutation({
     onSuccess: () => {
@@ -38,7 +41,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
   const notes = notesQuery.data ?? [];
 
   return (
-    <div className="flex flex-col gap-3 pt-4 border-t" style={{ borderColor: "var(--dash-border)" }}>
+    <div className="flex flex-col gap-3 pt-4 border-t border-zinc-100">
       <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">
         {t("fileNotes.title")}
       </p>

@@ -10,7 +10,11 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 import { TrialBanner } from "../../components/TrialBanner";
 import { TrialStatusBadge } from "../../components/TrialStatusBadge";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
+import { IconVisibilityProvider } from "@money-matters/ui";
 import { Logo } from "@money-matters/ui/web";
+import { trpc } from "../../lib/trpc";
+
+const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
 const NAV_ITEMS = [
   {
@@ -278,8 +282,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   );
 
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
+  const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
+
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
+    <IconVisibilityProvider initialShowIcons={initialShowIcons}>
+      <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
       {/* ── Desktop Sidebar (Hidden on mobile) ── */}
       <aside
         style={{ backgroundColor: "var(--dash-navy)" }}
@@ -383,6 +391,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           />
         )}
       </div>
-    </div>
+    </IconVisibilityProvider>
   );
 }

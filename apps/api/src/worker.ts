@@ -18,11 +18,32 @@ export interface WorkerEnv {
   INNGEST_SIGNING_KEY?: string;
   INNGEST_EVENT_KEY?: string;
   RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
   STRIPE_PRICE_MONTHLY?: string;
   STRIPE_PRICE_ANNUAL?: string;
   STRIPE_PRICE_FOUNDING_ANNUAL?: string;
+}
+
+export function isValidRedirectUrl(target: string): boolean {
+  if (!target) return false;
+  if (target.startsWith("moneymatters://")) return true;
+  try {
+    const parsed = new URL(target);
+    const host = parsed.hostname;
+    if (
+      host === "kaesava.au" ||
+      host.endsWith(".kaesava.au") ||
+      host === "localhost" ||
+      host === "127.0.0.1"
+    ) {
+      return parsed.protocol === "https:" || parsed.protocol === "http:";
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export default {
@@ -43,6 +64,13 @@ export default {
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
     };
+    const securityHeaders = {
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    };
 
     try {
       const url = new URL(request.url);
@@ -51,7 +79,7 @@ export default {
       if (request.method === 'OPTIONS') {
         return new Response(null, {
           status: 204,
-          headers: corsHeaders,
+          headers: { ...corsHeaders, ...securityHeaders },
         });
       }
 
@@ -62,6 +90,7 @@ export default {
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders,
+            ...securityHeaders,
           },
         });
       }
@@ -87,7 +116,7 @@ export default {
         if (!signature || !env.STRIPE_WEBHOOK_SECRET) {
           return new Response(JSON.stringify({ error: 'Missing stripe-signature or webhook secret' }), {
             status: 400,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            headers: { 'Content-Type': 'application/json', ...corsHeaders, ...securityHeaders },
           });
         }
 
@@ -99,7 +128,7 @@ export default {
 
         return new Response(JSON.stringify({ received: true, ...result }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          headers: { 'Content-Type': 'application/json', ...corsHeaders, ...securityHeaders },
         });
       }
 
@@ -107,7 +136,18 @@ export default {
       if (url.pathname === '/reset-password') {
         const token = url.searchParams.get('token') || '';
         const error = url.searchParams.get('error') || '';
-        const redirectTo = url.searchParams.get('redirect_to') || 'moneymatters://reset-password';
+        const requestedRedirect = url.searchParams.get('redirect_to');
+
+        if (requestedRedirect && !isValidRedirectUrl(requestedRedirect)) {
+          return new Response(JSON.stringify({ error: 'Invalid or unwhitelisted redirect target domain' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders, ...securityHeaders },
+          });
+        }
+
+        const redirectTo = (requestedRedirect && isValidRedirectUrl(requestedRedirect))
+          ? requestedRedirect
+          : 'moneymatters://reset-password';
 
         const html = `<!DOCTYPE html>
 <html lang="en">
@@ -146,7 +186,7 @@ export default {
 </html>`;
 
         return new Response(html, {
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          headers: { 'Content-Type': 'text/html; charset=utf-8', ...securityHeaders },
         });
       }
 
@@ -166,6 +206,9 @@ export default {
         Object.entries(corsHeaders).forEach(([key, val]) => {
           newHeaders.set(key, val);
         });
+        Object.entries(securityHeaders).forEach(([key, val]) => {
+          newHeaders.set(key, val);
+        });
         return new Response(response.body, {
           status: response.status,
           statusText: response.statusText,
@@ -178,6 +221,7 @@ export default {
         headers: {
           'Content-Type': 'application/json',
           ...corsHeaders,
+          ...securityHeaders,
         },
       });
     } catch (err: any) {
@@ -194,6 +238,7 @@ export default {
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders,
+            ...securityHeaders,
           },
         }
       );

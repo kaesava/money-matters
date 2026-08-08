@@ -61,4 +61,12 @@ describe("notifications capability handlers", () => {
     const functions = createScheduledNotificationFunctions(mockInngest);
     expect(functions).toHaveLength(6);
   });
+
+  it("exports createNotificationFunctions with welcome, partner invite, and deletion functions", async () => {
+    const { createNotificationFunctions } = await import("./index.js");
+    const mockInngest = { createFunction: vi.fn().mockReturnValue({}) } as any;
+    const functions = createNotificationFunctions(mockInngest);
+    expect(functions).toHaveLength(4);
+    expect(mockInngest.createFunction).toHaveBeenCalledTimes(4);
+  });
 });

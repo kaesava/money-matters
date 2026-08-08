@@ -5,11 +5,12 @@ import { t } from "@money-matters/i18n";
 import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
-import { Spinner } from "@money-matters/ui/web";
+import { Spinner, useIconVisibility } from "@money-matters/ui";
 
 /** Settings page — profile info, manage links, sign out */
 export default function SettingsPage() {
   const router = useRouter();
+  const { showIcons, setShowIcons } = useIconVisibility();
   const { data: session } = authClient.useSession();
 
   const handleSignOut = async () => {
@@ -107,16 +108,51 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* User Preferences & Timezone Card */}
+      {/* User Preferences & Aesthetic Card */}
       <section className="flex flex-col gap-2">
         <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-          Preferences & Timezone
+          UI Aesthetic & Preferences
         </p>
         <div
-          className="p-4 rounded-xl flex flex-col gap-3"
+          className="p-4 rounded-xl flex flex-col gap-4"
           style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
         >
-          <div className="flex flex-col gap-1">
+          {/* Show Icons Toggle */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold text-zinc-800">Show Decorative Icons</p>
+              <p className="text-[11px] text-zinc-500 leading-normal">
+                Toggle between iconified vs ultra-clean minimalist typographic UI views.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const currentBlob = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] || {};
+                const nextShow = !(currentBlob.show_icons ?? true);
+                setShowIcons(nextShow);
+                updateUserPrefMut.mutate({
+                  appPreferences: {
+                    ["01908bde-34bb-7b19-a178-574211bc93aa"]: {
+                      ...currentBlob,
+                      show_icons: nextShow,
+                    },
+                  },
+                });
+              }}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                showIcons ? "bg-[#00B4A6]" : "bg-zinc-300"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  showIcons ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="border-t border-zinc-100 pt-3 flex flex-col gap-1">
             <label className="text-xs font-bold text-zinc-700">Display Timezone</label>
             <select
               value={currentTimezone}

@@ -47,8 +47,9 @@ export function AccountDeletionSection() {
         await authClient.signOut();
         window.location.href = "/";
       }, 2000);
-    } catch (err: any) {
-      setMessage(err?.message || "Failed to delete account. Please try again or contact privacy@kaesava.au.");
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to delete account. Please try again or contact privacy@kaesava.au.";
+      setMessage(errorMsg);
       setIsDeleting(false);
     }
   };

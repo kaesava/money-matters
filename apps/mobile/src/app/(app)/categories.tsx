@@ -30,7 +30,7 @@ export default function CategoriesScreen() {
   const { data: session } = authClient.useSession();
   const { data: categories = [], isLoading, error, refetch } = trpc.listCategories.useQuery();
 
-  // Filters & Sorting State
+  // Filters State
   const [searchQuery, setSearchQuery] = useState(params.search ?? '');
 
   React.useEffect(() => {
@@ -41,22 +41,10 @@ export default function CategoriesScreen() {
 
   const [healthFilter, setHealthFilter] = useState<string>(params.health ?? 'ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  React.useEffect(() => {
-    if (params.health !== undefined) {
-      setHealthFilter(params.health);
-    }
-  }, [params.health]);
-
-  // Pagination State
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  React.useEffect(() => {
-    setPage(1);
-  }, [searchQuery, healthFilter, typeFilter, sortField, sortDir, pageSize]);
+  // Section Collapse State
+  const [isEverydayCollapsed, setIsEverydayCollapsed] = useState(true);
+  const [isRegularCollapsed, setIsRegularCollapsed] = useState(true);
 
   // Modals
   const [categoryFormVisible, setCategoryFormVisible] = useState(false);
@@ -89,36 +77,30 @@ export default function CategoriesScreen() {
     ]);
   };
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDir('asc');
-    }
-  };
+  // Bucket Filtering & Aggregations
+  const everydayCats = categories.filter((c) => c?.type === 'EVERYDAY');
+  const regularCats = categories.filter((c) => c?.type === 'REGULAR');
+  const goalCats = categories.filter((c) => c?.type === 'GOAL');
 
-  // Filter & Sort Logic
-  const filtered = categories.filter((c) => {
-    if (!c) return false;
-    const q = searchQuery.toLowerCase().trim();
-    if (q && !c.name.toLowerCase().includes(q)) return false;
-    if (healthFilter !== 'ALL' && c.healthStatus !== healthFilter) return false;
-    if (typeFilter !== 'ALL' && c.type !== typeFilter) return false;
-    return true;
-  });
+  const everydayBalance = everydayCats.reduce((sum, c) => sum + parseFloat(c?.currentBalance || '0'), 0);
+  const everydayBudget = everydayCats.reduce((sum, c) => sum + parseFloat(c?.everydayAllowanceAmount || c?.monthlyAmount || '0'), 0);
 
-  const sorted = [...filtered].sort((a: any, b: any) => {
-    let comparison = 0;
-    if (sortField === 'name') comparison = a.name.localeCompare(b.name);
-    else if (sortField === 'type') comparison = a.type.localeCompare(b.type);
-    else if (sortField === 'balance') comparison = parseFloat(a.currentBalance) - parseFloat(b.currentBalance);
-    else if (sortField === 'health') {
-      const order = { RED: 0, AMBER: 1, GREEN: 2 };
-      comparison = (order[a.healthStatus as keyof typeof order] ?? 1) - (order[b.healthStatus as keyof typeof order] ?? 1);
-    }
-    return sortDir === 'asc' ? comparison : -comparison;
-  });
+  const regularBalance = regularCats.reduce((sum, c) => sum + parseFloat(c?.currentBalance || '0'), 0);
+  const regularBudget = regularCats.reduce((sum, c) => sum + parseFloat(c?.monthlyAmount || '0'), 0);
+
+  const filterFn = (list: any[]) =>
+    list.filter((c) => {
+      if (!c) return false;
+      const q = searchQuery.toLowerCase().trim();
+      if (q && !c.name.toLowerCase().includes(q)) return false;
+      if (healthFilter !== 'ALL' && c.healthStatus !== healthFilter) return false;
+      if (typeFilter !== 'ALL' && c.type !== typeFilter) return false;
+      return true;
+    });
+
+  const filteredEveryday = filterFn(everydayCats);
+  const filteredRegular = filterFn(regularCats);
+  const filteredGoal = filterFn(goalCats);
 
   const onTrackCount = categories.filter((c) => c?.healthStatus === 'GREEN').length;
   const needsAttentionCount = categories.filter((c) => c?.healthStatus === 'AMBER').length;
@@ -208,7 +190,7 @@ export default function CategoriesScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Search, Filter & Sort Bar */}
+          {/* Search & Filter Bar */}
           <MobileFilterBar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -225,42 +207,14 @@ export default function CategoriesScreen() {
                   { id: 'RED', label: 'Behind' },
                 ],
               },
-              {
-                label: 'Type',
-                value: typeFilter,
-                onChange: setTypeFilter,
-                options: [
-                  { id: 'ALL', label: 'All' },
-                  { id: 'GOAL', label: 'Save Toward' },
-                  { id: 'REGULAR', label: 'Regular Bills' },
-                  { id: 'EVERYDAY', label: 'Everyday' },
-                ],
-              },
             ]}
             onClearAll={() => {
               setSearchQuery('');
               setHealthFilter('ALL');
-              setTypeFilter('ALL');
             }}
           />
 
-          {/* Sort Selector Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
-            <Text style={styles.sortLabel}>Sort By:</Text>
-            {(['name', 'type', 'balance', 'health'] as const).map((f) => (
-              <TouchableOpacity
-                key={f}
-                onPress={() => toggleSort(f)}
-                style={[styles.sortChip, sortField === f && styles.sortChipActive]}
-              >
-                <Text style={[styles.sortChipText, sortField === f && styles.sortChipTextActive]}>
-                  {f.toUpperCase()} {sortField === f ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 40 }} />}
+          {isLoading && <ActivityIndicator color={D.colors.accent} style={{ marginTop: 20 }} />}
 
           {error && (
             <View style={styles.errorContainer}>
@@ -270,44 +224,92 @@ export default function CategoriesScreen() {
             </View>
           )}
 
-          {/* Categories List Cards */}
-          {sorted.length === 0 ? (
-            <Text style={styles.emptyText}>No matching categories found.</Text>
-          ) : (
-            <>
-              {sorted.slice((page - 1) * pageSize, page * pageSize).map((cat: any) => {
-                const p = pct(cat.currentBalance, cat.targetAmount);
-                const color =
-                  cat.healthStatus === 'GREEN' ? D.colors.success :
-                  cat.healthStatus === 'AMBER' ? D.colors.warning :
-                  cat.healthStatus === 'RED' ? D.colors.critical :
-                  D.colors.accent;
+          {/* SECTION 1: EVERYDAY SPENDING (COLLAPSABLE) */}
+          <View style={styles.sectionCard}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => setIsEverydayCollapsed(!isEverydayCollapsed)}
+              activeOpacity={0.8}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>💳 Everyday Spending</Text>
+                <Text style={styles.sectionSubtitle}>Overall Everyday Pool Balance</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
+                <Text style={styles.sectionBalance}>{formatAUD(everydayBalance)}</Text>
+                <Text style={styles.sectionBudget}>Target: {formatAUD(everydayBudget)}</Text>
+              </View>
+              <Feather name={isEverydayCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#64748B" />
+            </TouchableOpacity>
 
-                return (
-                  <View key={cat.id} style={styles.card}>
-                    <TouchableOpacity
-                      onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.cardHeader}>
-                        <Text style={styles.catName} numberOfLines={1} ellipsizeMode="tail">{cat.name}</Text>
-                        <Text style={[styles.catBalance, { color }]} numberOfLines={1}>{formatAUD(cat.currentBalance)}</Text>
-                      </View>
-                      {cat.targetAmount && (
-                        <Text style={styles.target}>{t('categories.target')} {formatAUD(cat.targetAmount)}</Text>
-                      )}
-                      {p !== null && (
-                        <>
-                          <View style={styles.barBg}>
-                            <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
-                          </View>
-                          <Text style={[styles.pctLabel, { color }]}>{t('categories.progressPct', { pct: p })}</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
+            {!isEverydayCollapsed && (
+              <View style={styles.sectionContent}>
+                {filteredEveryday.length === 0 ? (
+                  <Text style={styles.emptyText}>No Everyday categories found.</Text>
+                ) : (
+                  filteredEveryday.map((cat: any) => (
+                    <View key={cat.id} style={styles.itemRow}>
+                      <TouchableOpacity
+                        onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
+                        style={{ flex: 1 }}
+                      >
+                        <Text style={styles.itemName}>{cat.name}</Text>
+                        <Text style={styles.itemPoolBadge}>Managed at overall pool level</Text>
+                      </TouchableOpacity>
 
-                    {/* Actions Row */}
-                    <View style={styles.actionRow}>
+                      <Text style={styles.itemTarget}>{formatAUD(cat.everydayAllowanceAmount || cat.monthlyAmount || 0)}/mo</Text>
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCategoryToEdit(cat);
+                          setCategoryFormVisible(true);
+                        }}
+                        style={styles.actionBtn}
+                      >
+                        <Text style={styles.actionBtnText}>Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* SECTION 2: REGULAR BILLS (COLLAPSABLE) */}
+          <View style={styles.sectionCard}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => setIsRegularCollapsed(!isRegularCollapsed)}
+              activeOpacity={0.8}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>🧾 Regular Bills</Text>
+                <Text style={styles.sectionSubtitle}>Overall Bills Pool Balance</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
+                <Text style={styles.sectionBalance}>{formatAUD(regularBalance)}</Text>
+                <Text style={styles.sectionBudget}>Target: {formatAUD(regularBudget)}</Text>
+              </View>
+              <Feather name={isRegularCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#64748B" />
+            </TouchableOpacity>
+
+            {!isRegularCollapsed && (
+              <View style={styles.sectionContent}>
+                {filteredRegular.length === 0 ? (
+                  <Text style={styles.emptyText}>No Regular bill categories found.</Text>
+                ) : (
+                  filteredRegular.map((cat: any) => (
+                    <View key={cat.id} style={styles.itemRow}>
+                      <TouchableOpacity
+                        onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
+                        style={{ flex: 1 }}
+                      >
+                        <Text style={styles.itemName}>{cat.name}</Text>
+                        <Text style={styles.itemPoolBadge}>Managed at overall pool level</Text>
+                      </TouchableOpacity>
+
+                      <Text style={styles.itemTarget}>{formatAUD(cat.monthlyAmount || 0)}/mo</Text>
+
                       <TouchableOpacity
                         onPress={() => {
                           setCategoryToEdit(cat);
@@ -318,28 +320,82 @@ export default function CategoriesScreen() {
                         <Text style={styles.actionBtnText}>Edit</Text>
                       </TouchableOpacity>
 
-                      {cat.type !== 'EVERYDAY' && (
-                        <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
-                          <Text style={styles.archiveBtnText}>Archive</Text>
-                        </TouchableOpacity>
-                      )}
+                      <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
+                        <Text style={styles.archiveBtnText}>Archive</Text>
+                      </TouchableOpacity>
                     </View>
-                  </View>
-                );
-              })}
+                  ))
+                )}
+              </View>
+            )}
+          </View>
 
-              <MobilePaginationBar
-                page={page}
-                totalPages={Math.ceil(sorted.length / pageSize) || 1}
-                pageSize={pageSize}
-                totalItems={sorted.length}
-                pageSizeOptions={[10, 20, 50]}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-              />
-            </>
-          )}
-        </ScrollView>
+          {/* SECTION 3: SAVE TOWARD (GOALS) */}
+          <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderNoToggle}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sectionTitle}>🎯 Save Toward (Goals)</Text>
+                  <Text style={styles.sectionSubtitle}>Dedicated Target Pools ({goalCats.length})</Text>
+                </View>
+              </View>
+
+              <View style={styles.sectionContent}>
+                {filteredGoal.length === 0 ? (
+                  <Text style={styles.emptyText}>No savings goals found.</Text>
+                ) : (
+                  filteredGoal.map((cat: any) => {
+                    const p = pct(cat.currentBalance, cat.targetAmount);
+                    const color =
+                      cat.healthStatus === 'GREEN' ? D.colors.success :
+                      cat.healthStatus === 'AMBER' ? D.colors.warning :
+                      cat.healthStatus === 'RED' ? D.colors.critical :
+                      D.colors.accent;
+
+                    return (
+                      <View key={cat.id} style={styles.goalCardItem}>
+                        <TouchableOpacity
+                          onPress={() => router.push(`/(app)/categories/${cat.id}` as any)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.cardHeader}>
+                            <Text style={styles.catName}>{cat.name}</Text>
+                            <Text style={[styles.catBalance, { color }]}>{formatAUD(cat.currentBalance)}</Text>
+                          </View>
+                          {cat.targetAmount && (
+                            <Text style={styles.target}>Target: {formatAUD(cat.targetAmount)}</Text>
+                          )}
+                          {p !== null && (
+                            <>
+                              <View style={styles.barBg}>
+                                <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color }]} />
+                              </View>
+                              <Text style={[styles.pctLabel, { color }]}>{p}% saved</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+
+                        <View style={styles.actionRow}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setCategoryToEdit(cat);
+                              setCategoryFormVisible(true);
+                            }}
+                            style={styles.actionBtn}
+                          >
+                            <Text style={styles.actionBtnText}>Edit</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
+                            <Text style={styles.archiveBtnText}>Archive</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            </View>
+          </ScrollView>
       </MobileScreenWrapper>
 
       {/* Floating Action Button */}
@@ -354,7 +410,7 @@ export default function CategoriesScreen() {
         <Feather name="plus" size={24} color="#FFF" />
       </TouchableOpacity>
 
-      {/* Unified Category Form Modal */}
+      {/* Category Form Modal */}
       <CategoryFormModal
         visible={categoryFormVisible}
         categoryToEdit={categoryToEdit}
@@ -372,7 +428,6 @@ export default function CategoriesScreen() {
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginVertical: 4 },
   moveMoneyHeaderBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: '#E0F2FE', alignItems: 'center' },
@@ -383,34 +438,36 @@ const styles = StyleSheet.create({
   statChip: { flex: 1, minWidth: '45%', backgroundColor: '#FFF', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#E5E7EB' },
   statChipLabel: { fontSize: 9, fontWeight: '800', color: '#9CA3AF', letterSpacing: 0.5 },
   statChipVal: { fontSize: 18, fontWeight: '900', color: '#1B2B4B', marginTop: 2 },
-  sortRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sortLabel: { fontSize: 10, fontWeight: '700', color: D.colors.textMuted, textTransform: 'uppercase' },
-  sortChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
-  sortChipActive: { backgroundColor: '#1B2B4B' },
-  sortChipText: { fontSize: 10, fontWeight: '700', color: D.colors.textMuted },
-  sortChipTextActive: { color: '#FFF' },
-  emptyText: { textAlign: 'center', fontSize: 12, color: D.colors.textMuted, marginVertical: 20 },
-  card: {
-    backgroundColor: D.colors.surface, borderRadius: D.radius.lg,
-    padding: D.spacing.cardPadding, marginBottom: 8,
-    borderWidth: 1, borderColor: '#E5E7EB',
-  },
+  emptyText: { textAlign: 'center', fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginVertical: 12 },
+  sectionCard: { backgroundColor: '#FFF', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  sectionHeaderNoToggle: { padding: 14, backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1B2B4B' },
+  sectionSubtitle: { fontSize: 11, color: '#64748B', marginTop: 2 },
+  sectionBalance: { fontSize: 15, fontWeight: '900', color: '#1B2B4B' },
+  sectionBudget: { fontSize: 10, fontWeight: '700', color: '#64748B' },
+  sectionContent: { padding: 12, gap: 8 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  itemName: { fontSize: 13, fontWeight: '700', color: '#1B2B4B' },
+  itemPoolBadge: { fontSize: 9, fontWeight: '600', color: '#94A3B8' },
+  itemTarget: { fontSize: 12, fontWeight: '800', color: '#475569' },
+  goalCardItem: { backgroundColor: '#FFF', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 8 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  catName: { fontSize: 15, fontWeight: '700', color: D.colors.textPrimary, flex: 1 },
-  catBalance: { fontSize: 15, fontWeight: '800' },
-  target: { fontSize: 11, color: D.colors.textMuted, marginBottom: 8 },
+  catName: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary, flex: 1 },
+  catBalance: { fontSize: 14, fontWeight: '800' },
+  target: { fontSize: 11, color: DESIGN_TOKENS.colors.textMuted, marginBottom: 6 },
   barBg: { height: 5, borderRadius: 3, backgroundColor: '#F3F4F6', overflow: 'hidden', marginBottom: 4 },
   barFill: { height: 5, borderRadius: 3 },
-  pctLabel: { fontSize: 11, fontWeight: '600' },
-  actionRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  pctLabel: { fontSize: 10, fontWeight: '700' },
+  actionRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
   actionBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
-  actionBtnText: { fontSize: 11, fontWeight: '700', color: D.colors.textPrimary },
+  actionBtnText: { fontSize: 11, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary },
   archiveBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#FEE2E2' },
   archiveBtnText: { fontSize: 11, fontWeight: '700', color: '#991B1B' },
   errorContainer: { alignItems: 'center', paddingVertical: 40, gap: 8 },
   errorIcon: { fontSize: 40 },
-  errorTitle: { fontSize: 15, fontWeight: '600', color: D.colors.textPrimary },
-  errorSubtitle: { fontSize: 13, color: D.colors.textMuted, textAlign: 'center' },
+  errorTitle: { fontSize: 15, fontWeight: '600', color: DESIGN_TOKENS.colors.textPrimary },
+  errorSubtitle: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted, textAlign: 'center' },
   fab: {
     position: 'absolute',
     right: 20,

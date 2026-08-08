@@ -1,1 +1,0 @@
-{"version":3,"file":"DashboardError.d.ts","sourceRoot":"","sources":["DashboardError.tsx"],"names":[],"mappings":"AAKA,UAAU,mBAAmB;IAC3B,KAAK,EAAE,OAAO,CAAC;IACf,OAAO,CAAC,EAAE,MAAM,IAAI,CAAC;IACrB,qEAAqE;IACrE,OAAO,CAAC,EAAE,OAAO,CAAC;CACnB;AA6CD,qGAAqG;AACrG,wBAAgB,cAAc,CAAC,EAAE,KAAK,EAAE,OAAO,EAAE,OAAe,EAAE,EAAE,mBAAmB,2CA8CtF"}

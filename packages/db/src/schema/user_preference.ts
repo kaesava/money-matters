@@ -40,4 +40,8 @@ export const userPreferences = pgTable("user_preferences", {
 export interface AppPreferencesBlob {
   /** Whether the Quick Actions panel is collapsed. Default: false. */
   quick_actions_collapsed?: boolean;
+  /** Whether decorative UI icons are displayed across views. Default: true. */
+  show_icons?: boolean;
+  /** Whether filter groups are expanded in list toolbars. Default: false. */
+  filters_expanded?: boolean;
 }

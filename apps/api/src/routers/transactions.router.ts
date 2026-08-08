@@ -1,5 +1,6 @@
 import { tenantProcedure, requiresWriteAccess, requiresPaidTier } from '../trpc/trpc.js';
 import { posthog } from '../lib/posthog.js';
+import { inngest } from '../inngest/client.js';
 import {
   recordExpenseCommand,
   listTransactionsQuery,
@@ -22,6 +23,20 @@ export const transactionsRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const result = await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      
+      // Fire-and-forget async background event to Inngest for notifications & goal milestones
+      inngest.send({
+        name: 'transaction/recorded',
+        data: {
+          categoryId: input.categoryId,
+          tenantId: ctx.tenantId!,
+          userId: ctx.userId!,
+          amount: input.amount,
+        },
+      }).catch(() => {
+        // Non-blocking: background event dispatch fails gracefully if Inngest is offline in dev
+      });
+
       if (posthog && ctx.userId) {
         posthog.capture({
           distinctId: ctx.userId,

@@ -57,6 +57,22 @@ export default function ResetPasswordScreen() {
       return;
     }
 
+    if (newPassword.length < 8) {
+      Alert.alert(
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
+        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." })
+      );
+      return;
+    }
+
+    if (!/[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) {
+      Alert.alert(
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
+        t("auth.passwordComplexityRequired", { defaultValue: "Password must contain at least one number or special character." })
+      );
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       Alert.alert(
         t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),

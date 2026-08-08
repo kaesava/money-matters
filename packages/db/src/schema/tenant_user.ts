@@ -16,6 +16,7 @@ export const tenantUsers = pgTable("tenant_users", {
   inviteToken: uuid("invite_token"),
   inviteStatus: inviteStatusEnum("invite_status").notNull().default("ACCEPTED"),
   invitedAt: timestamp("invited_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   appId: uuid("app_id").notNull(),
   ...timestamps
 });

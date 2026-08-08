@@ -38,7 +38,7 @@ async function handleProxy(req: NextRequest) {
     });
 
     // In dev mode, map un-prefixed neon-auth cookies back to __Secure- for the target Neon auth server
-    let reqCookie = req.headers.get("cookie");
+    const reqCookie = req.headers.get("cookie");
     if (process.env.NODE_ENV === "development") {
       console.log(`[DEBUG Auth Proxy] Incoming cookie header: ${reqCookie}`);
       if (reqCookie) {
@@ -91,7 +91,7 @@ async function handleProxy(req: NextRequest) {
             bodyText = JSON.stringify(bodyJson);
             console.log(`[DEBUG Auth Proxy] Rewrote callbackURL from ${originalUrl} to ${bodyJson.callbackURL}`);
           }
-        } catch (e) {
+        } catch (_e) {
           // Ignore JSON parse errors
         }
       }
@@ -128,7 +128,7 @@ async function handleProxy(req: NextRequest) {
               value = locUrl.toString();
               console.log(`[DEBUG Auth Proxy] Rewrote redirect Location from localhost:3000 to ${value}`);
             }
-          } catch (e) {
+          } catch (_e) {
             // Relative URL or invalid URL, keep it
           }
         }
@@ -137,8 +137,9 @@ async function handleProxy(req: NextRequest) {
     });
 
     // Extract individual Set-Cookie headers using getSetCookie if available
-    const setCookies = typeof (response.headers as any).getSetCookie === "function"
-      ? (response.headers as any).getSetCookie()
+    const headersWithGetSetCookie = response.headers as Headers & { getSetCookie?: () => string[] };
+    const setCookies = typeof headersWithGetSetCookie.getSetCookie === "function"
+      ? headersWithGetSetCookie.getSetCookie()
       : response.headers.get("set-cookie")?.split(",") ?? [];
 
     for (let cookieVal of setCookies) {

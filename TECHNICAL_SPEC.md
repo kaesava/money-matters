@@ -22,7 +22,7 @@
 | Auth | Neon Auth (Better Auth) | Neon Auth Service | JWT & session cookie verification |
 | Rate Limiting | Upstash Redis | Serverless Redis (ap-southeast-1) | REST API sliding-window rate limiter |
 | File Storage | Cloudflare R2 | Cloudflare R2 | Attachments & file notes (`money-matters-production`) |
-| Async Workflows | Inngest | Inngest Cloud | 6 scheduled notification functions & background jobs |
+| Async Workflows | Inngest | Inngest Cloud | 6 scheduled notification crons & non-blocking background event dispatch (`transaction/recorded`) via `/api/inngest` webhook |
 | Email Service | Resend | Resend API | Transactional emails & partner invites |
 | Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking, feature flags, session replays |
 | Crash & APM | Sentry | Sentry SaaS | Production exception reporting & symbolicated stack traces |
@@ -70,12 +70,20 @@ money-matters/
   - **Tenant Auto-Provisioning**:
     - When authenticated users (e.g. Google OAuth sign-in) lack a `tenant_users` record, `createContext()` / `createEdgeContext()` automatically provisions a default `"My Household"` tenant and seeds default categories.
   - Strict CORS limited to `*.kaesava.au` and `localhost` (dev).
-  - Fastify Helmet enabled for security headers.
-  - Upstash Redis sliding-window rate limiting on public endpoints.
+  - HTTP Security Headers enforced across API worker and web app (`Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`).
+  - Upstash Redis sliding-window rate limiting on endpoints.
   - Zero PII logging automatically enforced in `@money-matters/core` logger.
   - Credential security: All secrets managed via environment variables (Cloudflare Secrets & GitHub Secrets); `.env` ignored.
-- **Partner Invitation MVP**: Owner creates invite token -> sends email via Resend -> partner accepts at `/invite/[token]` -> linked to `tenantId` with full read/write permissions.
-- **App Preferences Storage**: `user_preferences.app_preferences` JSONB blob keyed by `appId`.
+- **Partner Invitation Security**: Owner creates invite token with 48-hour lifetime (`expiresAt`) -> partner accepts at `/invite/[token]` -> system verifies recipient email identity matching `inviteEmail` -> linked to `tenantId` with full read/write permissions. Expired or mismatched invites are rejected and require re-invitation.
+- **Redirect Domain Whitelisting**: Password reset `/reset-password` endpoint strictly enforces URL validation against allowed app schemes (`moneymatters://*`) and domain whitelist (`https://*.kaesava.au`), blocking open redirect attacks.
+- **Async Inngest Workflows & Resend Email Integration**:
+  - `sendWelcomeEmail`: Listens to `auth/user.signup`, sending a welcome transactional email via Resend (`sendEmail` abstraction).
+  - `sendPartnerInviteEmail`: Listens to `partner/invited`, delivering partner invitation links (`https://moneymatters.kaesava.au/invite/[token]`) via Resend with 3 automatic retries.
+  - `processAccountDeletion`: Listens to `user/account.delete-requested`, executing background account wipe logging, storage cleanup, and email confirmation dispatch.
+- **Complete Database RLS**: Row-Level Security policies active across 100% of persistent schema tables (`tenants`, `tenant_users`, `bank_accounts`, `categories`, `category_schedules`, `income_sources`, `income_events`, `transaction_ledger`, `user_preferences`, `expense_events`, `expense_sources`, `file_notes`, `device_tokens`).
+- **App Preferences & UI Aesthetic Storage**: `user_preferences.app_preferences` JSONB blob keyed by `appId`, storing app-specific UI state (`quick_actions_collapsed`, `show_icons`, `filters_expanded`).
+- **Icon Visibility & Decluttered UI System**: `IconVisibilityProvider` and `useIconVisibility()` hook in `@money-matters/ui` dynamically control decorative icon rendering across Web and Mobile based on user preferences.
+- **Collapsible Filter System**: `FilterBar` (Web) and `MobileFilterBar` (Mobile) support collapsible filter groups with active filter count badges.
 
 ---
 
@@ -108,7 +116,11 @@ households (tenant)
 - Executes background estimation using 2025/2026 ABS & RACQ Australian benchmark algorithms.
 - Normalizes all costs to monthly amounts (`REGULAR`, `GOAL`, `EVERYDAY`) for user confirmation before seeding tenant categories and schedules.
 
-### 5.2 5-Step Waterfall Cascade Engine
+### 5.2 5-Step Waterfall Cascade Engine & Category Bucket Rules
+- **Category Bucket Rules**:
+  - **`EVERYDAY` & `REGULAR` (Bills)**: Managed at **overall pool level**. Categories specify monthly targets to compute total bucket target budget. Spending occurs against pooled balances (pooled discretionary cash or pooled bills balance).
+  - **`GOAL` (Save Toward)**: Managed **individually per category** with dedicated target balances, target dates, and progress metrics.
+- **Category UI Screen**: Organized into 3 distinct sections (Everyday Spending [collapsable], Regular Bills [collapsable], Save Toward Goals).
 1. **`DEFICIT REPAIR` (Step 0)**: Priority 1 restoring negative category balances (`currentBalance < 0`) to $0.
 2. **`REGULAR` (Bills)**: Prorates monthly bill targets by paycheck frequency.
 3. **`GOAL` committed**: Allocates target monthly contribution.

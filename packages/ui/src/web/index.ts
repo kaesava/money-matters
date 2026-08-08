@@ -26,6 +26,7 @@ export * from './PaginationBar';
 export * from './CollapsibleSection';
 export * from './Spinner';
 export * from './Logo';
+export * from '../hooks/IconVisibilityContext';
 
 
 

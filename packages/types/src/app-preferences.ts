@@ -5,6 +5,8 @@ import { z } from "zod";
  */
 export const AppPreferencesBlobSchema = z.object({
   quick_actions_collapsed: z.boolean().optional(),
+  show_icons: z.boolean().optional(),
+  filters_expanded: z.boolean().optional(),
 }).strict();
 
 export type AppPreferencesBlob = z.infer<typeof AppPreferencesBlobSchema>;

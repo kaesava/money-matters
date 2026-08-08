@@ -1,1 +1,0 @@
-{"version":3,"file":"PaydayReasonModal.d.ts","sourceRoot":"","sources":["PaydayReasonModal.tsx"],"names":[],"mappings":"AAGA,UAAU,sBAAsB;IAC9B,MAAM,EAAE,OAAO,CAAC;IAChB,OAAO,EAAE,MAAM,IAAI,CAAC;IACpB,YAAY,EAAE,MAAM,CAAC;IACrB,SAAS,EAAE,MAAM,CAAC;CACnB;AAED,wBAAgB,iBAAiB,CAAC,EAChC,MAAM,EACN,OAAO,EACP,YAAY,EACZ,SAAS,GACV,EAAE,sBAAsB,kDA4BxB"}

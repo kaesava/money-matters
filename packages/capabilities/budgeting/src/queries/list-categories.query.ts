@@ -22,9 +22,13 @@ export async function listCategoriesQuery(
   // Auto-seed default categories if user has 0 active categories
   if (dbCats.length === 0) {
     const defaultTemplates = [
-      { name: "Everyday Spending", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "800.00", isDefaultExcess: true },
+      { name: "Groceries & Food Supplies", type: "EVERYDAY" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1170.00", isDefaultExcess: false },
+      { name: "Dining Out & Coffee", type: "EVERYDAY" as const, icon: "coffee", colour: "#F59E0B", monthlyAmount: "1040.00", isDefaultExcess: false },
+      { name: "Petrol & Fuel", type: "EVERYDAY" as const, icon: "navigation", colour: "#3B82F6", monthlyAmount: "260.00", isDefaultExcess: false },
+      { name: "Public Transport & Rideshare", type: "EVERYDAY" as const, icon: "truck", colour: "#8B5CF6", monthlyAmount: "180.00", isDefaultExcess: false },
+      { name: "Personal Care & Fun", type: "EVERYDAY" as const, icon: "smile", colour: "#EC4899", monthlyAmount: "430.00", isDefaultExcess: false },
+      { name: "Everyday Incidental Buffer", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "300.00", isDefaultExcess: true },
       { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", colour: "#EF4444", monthlyAmount: "2400.00", isDefaultExcess: false },
-      { name: "Groceries & Food", type: "REGULAR" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1000.00", isDefaultExcess: false },
       { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", colour: "#F59E0B", monthlyAmount: "300.00", isDefaultExcess: false },
       { name: "Emergency Reserve", type: "GOAL" as const, icon: "shield", colour: "#6366F1", monthlyAmount: null, isDefaultExcess: false },
     ];

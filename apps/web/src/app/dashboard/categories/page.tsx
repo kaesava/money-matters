@@ -8,17 +8,15 @@ import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDraw
 import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
 import { FilterBar } from "../../../components/web/FilterBar";
 import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
-import { PaginationBar } from "@money-matters/ui/web";
 
-type SortField = "name" | "type" | "balance" | "health";
-type SortDir = "asc" | "desc";
-
-function fmt(val: string | number) {
+function fmt(val: string | number | null | undefined) {
+  if (val === null || val === undefined) return "—";
   const num = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(num)) return "—";
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function CategoriesPage() {
+function CategoriesPageContent() {
   const utils = trpc.useUtils();
   const searchParams = useSearchParams();
   const paramSearch = searchParams.get("search") || searchParams.get("name") || "";
@@ -30,28 +28,15 @@ export default function CategoriesPage() {
   // Filter States
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [healthFilter, setHealthFilter] = useState(paramHealth);
-  const [typeFilter, setTypeFilter] = useState("ALL");
 
   useEffect(() => {
-    if (paramSearch) {
-      setSearchQuery(paramSearch);
-    }
-    if (paramHealth) {
-      setHealthFilter(paramHealth);
-    }
+    if (paramSearch) setSearchQuery(paramSearch);
+    if (paramHealth) setHealthFilter(paramHealth);
   }, [paramSearch, paramHealth]);
 
-  // Sort State
-  const [sortField, setSortField] = useState<SortField>("name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-
-  // Pagination State
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, healthFilter, typeFilter, sortField, sortDir, pageSize]);
+  // Section Collapse States
+  const [isEverydayCollapsed, setIsEverydayCollapsed] = useState(true);
+  const [isRegularCollapsed, setIsRegularCollapsed] = useState(true);
 
   // Selection & Modals
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -63,7 +48,6 @@ export default function CategoriesPage() {
   // Mutations
   const archiveCategoryMut = trpc.archiveCategory.useMutation({
     onSuccess: () => {
-      utils.listCategories.invalidate();
       utils.listCategories.invalidate();
     },
   });
@@ -84,43 +68,36 @@ export default function CategoriesPage() {
     }
   };
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
-  };
+  // Group Categories by Bucket
+  const everydayCategories = categories.filter((c) => c.type === "EVERYDAY");
+  const regularCategories = categories.filter((c) => c.type === "REGULAR");
+  const goalCategories = categories.filter((c) => c.type === "GOAL");
 
-  // Filter & Sort Logic
-  const filtered = categories.filter((c) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (q && !c.name.toLowerCase().includes(q)) return false;
-    if (healthFilter !== "ALL" && c.healthStatus !== healthFilter) return false;
-    if (typeFilter !== "ALL" && c.type !== typeFilter) return false;
-    return true;
-  });
+  // Everyday Bucket Summary Math
+  const everydayBalance = everydayCategories.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
+  const everydayMonthlyBudget = everydayCategories.reduce(
+    (sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || "0"),
+    0
+  );
 
-  const sorted = [...filtered].sort((a, b) => {
-    let comparison = 0;
-    if (sortField === "name") {
-      comparison = a.name.localeCompare(b.name);
-    } else if (sortField === "type") {
-      comparison = a.type.localeCompare(b.type);
-    } else if (sortField === "balance") {
-      comparison = parseFloat(a.currentBalance) - parseFloat(b.currentBalance);
-    } else if (sortField === "health") {
-      const order = { RED: 0, AMBER: 1, GREEN: 2 };
-      comparison = (order[a.healthStatus as keyof typeof order] ?? 1) - (order[b.healthStatus as keyof typeof order] ?? 1);
-    }
-    return sortDir === "asc" ? comparison : -comparison;
-  });
+  // Regular Bills Bucket Summary Math
+  const regularBalance = regularCategories.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
+  const regularMonthlyBudget = regularCategories.reduce((sum, c) => sum + parseFloat(c.monthlyAmount || "0"), 0);
 
-  const _totalPages = Math.ceil(sorted.length / pageSize) || 1;
-  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
+  // Filter Helper
+  const filterFn = (catList: CategoryItem[]) =>
+    catList.filter((c) => {
+      const q = searchQuery.toLowerCase().trim();
+      if (q && !c.name.toLowerCase().includes(q)) return false;
+      if (healthFilter !== "ALL" && c.healthStatus !== healthFilter) return false;
+      return true;
+    });
 
-  // Summary Metrics
+  const filteredEveryday = filterFn(everydayCategories);
+  const filteredRegular = filterFn(regularCategories);
+  const filteredGoal = filterFn(goalCategories);
+
+  // Summary Metrics for Health Counters
   const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
   const needsAttentionCount = categories.filter((c) => c.healthStatus === "AMBER").length;
   const behindCount = categories.filter((c) => c.healthStatus === "RED").length;
@@ -132,7 +109,7 @@ export default function CategoriesPage() {
         <div>
           <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Categories & Savings Pools</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-            Manage your Everyday pool, Bills, and Save Toward target pools.
+            Everyday & Bills are managed as overall pools. Save Toward pools are tracked individually.
           </p>
         </div>
 
@@ -223,7 +200,7 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* Consistent Filter Bar */}
+      {/* Filter Bar */}
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -241,110 +218,184 @@ export default function CategoriesPage() {
               { id: "RED", label: "Behind" },
             ],
           },
-          {
-            label: "Type",
-            value: typeFilter,
-            onChange: setTypeFilter,
-            defaultValue: "ALL",
-            options: [
-              { id: "ALL", label: "All" },
-              { id: "GOAL", label: "Save Toward" },
-              { id: "REGULAR", label: "Regular Bills" },
-              { id: "EVERYDAY", label: "Everyday" },
-            ],
-          },
         ]}
         onClearAll={() => {
           setSearchQuery("");
           setHealthFilter("ALL");
-          setTypeFilter("ALL");
         }}
       />
 
-      {/* Categories Table */}
-      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
-              <th onClick={() => toggleSort("name")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
-                Category Name {sortField === "name" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => toggleSort("type")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
-                Type {sortField === "type" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => toggleSort("balance")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
-                Current Balance {sortField === "balance" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-              <th className="px-6 py-4">Target / Keep Limit</th>
-              <th onClick={() => toggleSort("health")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
-                Funding Health {sortField === "health" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {sorted.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-xs text-zinc-400 font-medium">
-                  No matching categories found.
-                </td>
-              </tr>
-            ) : (
-              paginated.map((cat) => {
-                const balanceVal = parseFloat(cat.currentBalance);
-                const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
-                const pct = targetVal > 0 ? Math.min(100, Math.round((balanceVal / targetVal) * 100)) : 100;
-                const healthColor =
-                  cat.healthStatus === "GREEN" ? "#22C55E" : cat.healthStatus === "AMBER" ? "#F59E0B" : "#EF4444";
+      {/* ========================================================================= */}
+      {/* SECTION 1: EVERYDAY SPENDING (COLLAPSABLE) */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
+        {/* Header Summary Banner */}
+        <div className="p-5 bg-gradient-to-r from-teal-50/60 to-white border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#00B4A6]/10 text-[#00B4A6] flex items-center justify-center text-xl font-bold">
+              💳
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-black text-[#1B2B4B]">Everyday Spending</h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#00B4A6]/10 text-[#00B4A6] uppercase tracking-wider">
+                  Overall Pool
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 font-medium">
+                Discretionary funds. Budgets set overall target; spent directly from overall Everyday pool.
+              </p>
+            </div>
+          </div>
 
-                return (
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Overall Pool Balance</p>
+              <p className="text-xl font-mono font-black text-[#1B2B4B]">{fmt(everydayBalance)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Monthly Budget Target</p>
+              <p className="text-sm font-mono font-bold text-zinc-600">{fmt(everydayMonthlyBudget)}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsEverydayCollapsed(!isEverydayCollapsed)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1.5"
+            >
+              <span>{isEverydayCollapsed ? "Show Categories" : "Hide Categories"}</span>
+              <span className="text-zinc-400">{isEverydayCollapsed ? "▼" : "▲"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Collapsable Table Content */}
+        {!isEverydayCollapsed && (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-3">Category Name</th>
+                <th className="px-6 py-3">Monthly Target Budget</th>
+                <th className="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {filteredEveryday.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-6 text-center text-xs text-zinc-400 font-medium">
+                    No everyday categories matched filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredEveryday.map((cat) => (
                   <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
-                    {/* Category Name (Clickable Hyperlink) */}
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3.5">
                       <button
                         type="button"
                         onClick={() => setSelectedCategoryId(cat.id)}
-                        className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
+                        className="text-[#00B4A6] hover:underline font-bold text-left"
                       >
                         {cat.name}
                       </button>
                     </td>
-
-                    {/* Type */}
-                    <td className="px-6 py-4 text-zinc-500">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-zinc-100 text-zinc-700 uppercase">
-                        {cat.type === "GOAL" ? "Save Toward" : cat.type === "REGULAR" ? "Regular Bill" : "Everyday"}
-                      </span>
+                    <td className="px-6 py-3.5 font-mono font-bold text-zinc-700">
+                      {fmt(cat.everydayAllowanceAmount || cat.monthlyAmount)}
                     </td>
-
-                    {/* Balance */}
-                    <td className="px-6 py-4 font-mono font-extrabold text-[#1B2B4B]">{fmt(balanceVal)}</td>
-
-                    {/* Target / Keep Limit */}
-                    <td className="px-6 py-4 font-mono text-zinc-600">
-                      {cat.type === "EVERYDAY" ? (
-                        cat.everydayTargetKeepAmount ? `Keep: ${fmt(cat.everydayTargetKeepAmount)}` : "—"
-                      ) : cat.targetAmount ? (
-                        fmt(cat.targetAmount)
-                      ) : (
-                        "—"
-                      )}
+                    <td className="px-6 py-3.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryToEdit(cat);
+                          setIsFormModalOpen(true);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                      >
+                        Edit
+                      </button>
                     </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-                    {/* Progress & Health Bar */}
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1 w-32">
-                        <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: healthColor }} />
-                        </div>
-                        <span className="text-[10px] font-extrabold text-zinc-500">
-                          {pct}% ({cat.healthStatus === "GREEN" ? "On Track" : cat.healthStatus === "AMBER" ? "Needs Attention" : "Behind"})
-                        </span>
-                      </div>
+      {/* ========================================================================= */}
+      {/* SECTION 2: REGULAR BILLS (COLLAPSABLE) */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
+        {/* Header Summary Banner */}
+        <div className="p-5 bg-gradient-to-r from-blue-50/60 to-white border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-bold">
+              🧾
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-black text-[#1B2B4B]">Regular Bills</h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#2563eb]/10 text-[#2563eb] uppercase tracking-wider">
+                  Overall Pool
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 font-medium">
+                Recurring bill obligations. Individual categories set bill targets; managed at overall Bills pool level.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Overall Bills Pool Balance</p>
+              <p className="text-xl font-mono font-black text-[#1B2B4B]">{fmt(regularBalance)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Monthly Bills Target</p>
+              <p className="text-sm font-mono font-bold text-zinc-600">{fmt(regularMonthlyBudget)}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsRegularCollapsed(!isRegularCollapsed)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1.5"
+            >
+              <span>{isRegularCollapsed ? "Show Categories" : "Hide Categories"}</span>
+              <span className="text-zinc-400">{isRegularCollapsed ? "▼" : "▲"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Collapsable Table Content */}
+        {!isRegularCollapsed && (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-3">Bill Name</th>
+                <th className="px-6 py-3">Monthly Bill Target</th>
+                <th className="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {filteredRegular.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-6 text-center text-xs text-zinc-400 font-medium">
+                    No regular bills matched filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredRegular.map((cat) => (
+                  <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
+                    <td className="px-6 py-3.5">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategoryId(cat.id)}
+                        className="text-[#2563eb] hover:underline font-bold text-left"
+                      >
+                        {cat.name}
+                      </button>
                     </td>
-
-                    {/* Actions: Edit Modal & Archive */}
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-3.5 font-mono font-bold text-zinc-700">{fmt(cat.monthlyAmount)}</td>
+                    <td className="px-6 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
@@ -356,7 +407,115 @@ export default function CategoriesPage() {
                         >
                           Edit
                         </button>
-                        {cat.type !== "EVERYDAY" && (
+                        <button
+                          type="button"
+                          onClick={() => handleArchive(cat)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
+                        >
+                          Archive
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 3: SAVE TOWARD (GOALS) (ALWAYS OPEN / DEDICATED INDIVIDUAL POOLS) */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
+          {/* Header Summary Banner */}
+          <div className="p-5 bg-gradient-to-r from-purple-50/60 to-white border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-600/10 text-purple-600 flex items-center justify-center text-xl font-bold">
+                🎯
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-black text-[#1B2B4B]">Save Toward (Goals)</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-600/10 text-purple-600 uppercase tracking-wider">
+                    Per-Category Target Pools
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-500 font-medium">
+                  Target savings goals managed individually per category with dedicated balances and progress tracking.
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Total Goal Pools</p>
+              <p className="text-xl font-mono font-black text-[#1B2B4B]">{goalCategories.length}</p>
+            </div>
+          </div>
+
+          {/* Goal Categories Table */}
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-4">Goal Name</th>
+                <th className="px-6 py-4">Current Pool Balance</th>
+                <th className="px-6 py-4">Target Amount</th>
+                <th className="px-6 py-4">Target Date</th>
+                <th className="px-6 py-4">Savings Progress</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {filteredGoal.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-xs text-zinc-400 font-medium">
+                    No savings goals matched filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredGoal.map((cat) => {
+                  const balanceVal = parseFloat(cat.currentBalance);
+                  const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
+                  const pct = targetVal > 0 ? Math.min(100, Math.round((balanceVal / targetVal) * 100)) : 100;
+                  const healthColor =
+                    cat.healthStatus === "GREEN" ? "#22C55E" : cat.healthStatus === "AMBER" ? "#F59E0B" : "#EF4444";
+
+                  return (
+                    <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
+                      <td className="px-6 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategoryId(cat.id)}
+                          className="text-purple-600 hover:underline font-bold text-left"
+                        >
+                          {cat.name}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 font-mono font-extrabold text-[#1B2B4B]">{fmt(balanceVal)}</td>
+                      <td className="px-6 py-4 font-mono text-zinc-700">{fmt(cat.targetAmount)}</td>
+                      <td className="px-6 py-4 text-zinc-500 font-medium">{cat.targetDate ? cat.targetDate : "—"}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1 w-32">
+                          <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: healthColor }} />
+                          </div>
+                          <span className="text-[10px] font-extrabold text-zinc-500">
+                            {pct}% ({cat.healthStatus === "GREEN" ? "On Track" : cat.healthStatus === "AMBER" ? "Needs Attention" : "Behind"})
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCategoryToEdit(cat);
+                              setIsFormModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                          >
+                            Edit
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleArchive(cat)}
@@ -364,34 +523,21 @@ export default function CategoriesPage() {
                           >
                             Archive
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination Footer */}
-      <PaginationBar
-        page={page}
-        totalPages={_totalPages}
-        pageSize={pageSize}
-        totalItems={sorted.length}
-        pageSizeOptions={[10, 25, 50, 100]}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-      />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
       {/* Shared Move Money Modal */}
       <MoveMoneyModal
         isOpen={isMoveMoneyOpen}
         onClose={() => setIsMoveMoneyOpen(false)}
         onSuccess={() => {
-          utils.listCategories.invalidate();
           utils.listCategories.invalidate();
         }}
       />
@@ -402,7 +548,6 @@ export default function CategoriesPage() {
         onClose={() => setIsFormModalOpen(false)}
         categoryToEdit={categoryToEdit}
         onSuccess={() => {
-          utils.listCategories.invalidate();
           utils.listCategories.invalidate();
         }}
       />
@@ -415,3 +560,12 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
+export default function CategoriesPage() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Loading categories...</div>}>
+      <CategoriesPageContent />
+    </React.Suspense>
+  );
+}
+

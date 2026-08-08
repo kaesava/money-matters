@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 
 export interface InvitePartnerModalProps {
@@ -19,7 +20,10 @@ export const InvitePartnerModal: React.FC<InvitePartnerModalProps> = ({
 
   const invitePartnerMutation = trpc.invitePartner.useMutation({
     onSuccess: (data) => {
-      Alert.alert('Invite Sent! 🎉', `An invitation link has been generated for ${data.inviteEmail}`);
+      Alert.alert(
+        t("partner.inviteSent"),
+        t("partner.inviteSentSuccess", { email: data.inviteEmail })
+      );
       setEmail('');
       onSuccess?.();
       onClose();
@@ -31,7 +35,7 @@ export const InvitePartnerModal: React.FC<InvitePartnerModalProps> = ({
 
   const handleSubmit = () => {
     if (!email.trim() || !email.includes('@')) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      Alert.alert(t("partner.invalidEmailAlertTitle"), t("partner.invalidEmailAlertBody"));
       return;
     }
     invitePartnerMutation.mutate({ email: email.trim() });
@@ -42,22 +46,22 @@ export const InvitePartnerModal: React.FC<InvitePartnerModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           <View style={styles.header}>
-            <Text style={styles.title}>Invite Household Partner</Text>
+            <Text style={styles.title}>{t("partner.inviteTitle")}</Text>
             <TouchableOpacity onPress={onClose}>
               <Feather name="x" size={20} color={DESIGN_TOKENS.colors.textMuted} />
             </TouchableOpacity>
           </View>
 
           <Text style={styles.subtitle}>
-            Manage finances together. Your partner will get full read/write access to your shared household budget.
+            {t("partner.inviteSubtitle")}
           </Text>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Partner's Email Address</Text>
+            <Text style={styles.label}>{t("partner.emailLabel")}</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
-              placeholder="partner@example.com"
+              placeholder={t("partner.emailPlaceholder")}
               keyboardType="email-address"
               autoCapitalize="none"
               style={styles.input}
@@ -73,7 +77,7 @@ export const InvitePartnerModal: React.FC<InvitePartnerModalProps> = ({
             {invitePartnerMutation.isPending ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
-              <Text style={styles.submitBtnText}>Send Household Invite</Text>
+              <Text style={styles.submitBtnText}>{t("partner.sendInvite")}</Text>
             )}
           </TouchableOpacity>
         </View>

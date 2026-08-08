@@ -15,9 +15,15 @@ interface CategoryDetailDrawerProps {
 type HealthStatus = "GREEN" | "AMBER" | "RED";
 
 const STATUS_COLOR: Record<HealthStatus, string> = {
-  GREEN: "var(--dash-success)",
-  AMBER: "var(--dash-warning)",
-  RED: "var(--dash-critical)",
+  GREEN: "#22C55E",
+  AMBER: "#F59E0B",
+  RED: "#EF4444",
+};
+
+const STATUS_BG: Record<HealthStatus, string> = {
+  GREEN: "#DCFCE7",
+  AMBER: "#FEF3C7",
+  RED: "#FEE2E2",
 };
 
 function fmt(val: string | number) {
@@ -27,9 +33,11 @@ function fmt(val: string | number) {
 
 /** Slide-in panel showing category detail + transaction history. */
 export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDrawerProps) {
-  if (!categoryId) return null;
+  const categoriesQuery = trpc.listCategories.useQuery(undefined, {
+    enabled: Boolean(categoryId),
+  });
 
-  const categoriesQuery = trpc.listCategories.useQuery();
+  if (!categoryId) return null;
 
   const cat = (categoriesQuery.data ?? []).find((c: { id: string }) => c.id === categoryId);
 
@@ -38,7 +46,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
       <SlideOverDrawer title={t("categories.detail.title")} onClose={onClose} widthClass="max-w-lg">
         <div className="p-6 flex flex-col items-center gap-2 py-12">
           <span className="text-3xl">⚠️</span>
-          <p className="text-sm font-semibold" style={{ color: "var(--dash-text)" }}>{t("common.error")}</p>
+          <p className="text-sm font-semibold text-zinc-800">{t("common.error")}</p>
         </div>
       </SlideOverDrawer>
     );
@@ -46,6 +54,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 
   const health = (cat?.healthStatus ?? "GREEN") as HealthStatus;
   const color = STATUS_COLOR[health];
+  const bgColor = STATUS_BG[health];
   const targetNum = cat?.targetAmount ? parseFloat(cat.targetAmount) : null;
   const pct = cat?.progressPercentage ?? 0;
 
@@ -59,17 +68,17 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
       {categoriesQuery.isLoading ? (
         <div className="p-6 flex flex-col gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-12 rounded-xl animate-pulse" style={{ backgroundColor: "var(--dash-border)" }} />
+            <div key={i} className="h-12 rounded-xl bg-zinc-100 animate-pulse" />
           ))}
         </div>
       ) : cat ? (
-        <div className="flex flex-col divide-y" style={{ borderColor: "var(--dash-border)" }}>
+        <div className="flex flex-col divide-y divide-zinc-100">
 
           {/* Balance section */}
           <div className="p-6 flex flex-col gap-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   {t("categories.detail.currentBalance")}
                 </p>
                 <p className="text-3xl font-extrabold mt-1 tabular-nums" style={{ color }}>
@@ -80,7 +89,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
               <span
                 className="px-2.5 py-1 rounded-full text-xs font-bold"
                 style={{
-                  backgroundColor: `${color}18`,
+                  backgroundColor: bgColor,
                   color,
                 }}
               >
@@ -91,11 +100,11 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
             {/* Target + progress */}
             {targetNum !== null && (
               <div className="flex flex-col gap-2">
-                <div className="flex justify-between text-xs font-medium" style={{ color: "var(--dash-muted)" }}>
+                <div className="flex justify-between text-xs font-medium text-zinc-500">
                   <span>{t("categories.detail.targetAmount")}: {fmt(targetNum)}</span>
                   <span>{pct}%</span>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${color}18` }}>
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: bgColor }}>
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{ width: `${pct}%`, backgroundColor: color }}
@@ -106,7 +115,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 
             {/* Due date */}
             {cat.targetDate && (
-              <p className="text-xs font-medium" style={{ color: "var(--dash-muted)" }}>
+              <p className="text-xs font-medium text-zinc-500">
                 {t("categories.nextDue", {
                   date: new Date(cat.targetDate).toLocaleDateString("en-AU", {
                     weekday: "short", day: "numeric", month: "long", year: "numeric",
@@ -118,10 +127,10 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 
           {/* Transaction history section */}
           <div className="p-6 flex flex-col gap-4">
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+            <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
               {t("categories.detail.history")}
             </p>
-          <TransactionHistory categoryId={categoryId} categoryName={cat.name} onClose={onClose} />
+            <TransactionHistory categoryId={categoryId} categoryName={cat.name} onClose={onClose} />
             <FileNotesSection entityType="CATEGORY" entityId={categoryId} />
           </div>
         </div>
@@ -140,7 +149,10 @@ function TransactionHistory({
   categoryName?: string;
   onClose?: () => void;
 }) {
-  const transactionsQuery = trpc.listCategoryTransactions.useQuery({ categoryId, limit: 5 });
+  const transactionsQuery = trpc.listCategoryTransactions.useQuery(
+    { categoryId, limit: 5 },
+    { enabled: Boolean(categoryId) }
+  );
   const txs = transactionsQuery.data ?? [];
 
   if (transactionsQuery.isLoading) {
@@ -149,12 +161,9 @@ function TransactionHistory({
 
   if (txs.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center gap-2 py-6 rounded-xl text-center"
-        style={{ backgroundColor: "var(--dash-bg)" }}
-      >
+      <div className="flex flex-col items-center gap-2 py-6 rounded-xl text-center bg-zinc-50">
         <span className="text-xl">📋</span>
-        <p className="text-xs font-semibold" style={{ color: "var(--dash-muted)" }}>
+        <p className="text-xs font-semibold text-zinc-500">
           No transaction history for this category.
         </p>
       </div>
@@ -172,19 +181,24 @@ function TransactionHistory({
 
   return (
     <div className="flex flex-col gap-2">
-      {(txs as TransactionItem[]).slice(0, 5).map((tx: TransactionItem) => (
-        <div key={tx.id} className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-between text-xs">
-          <div className="flex flex-col gap-0.5">
-            <span className="font-bold text-[#1B2B4B]">{tx.note || tx.categoryName || "Expense"}</span>
-            <span className="text-[10px] text-zinc-400">
-              {new Date(tx.recordedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
+      {(txs as TransactionItem[]).slice(0, 5).map((tx: TransactionItem) => {
+        const recDate = tx.recordedAt ? new Date(tx.recordedAt) : new Date();
+        const dateStr = !isNaN(recDate.getTime())
+          ? recDate.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+          : "—";
+
+        return (
+          <div key={tx.id} className="p-3 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-between text-xs">
+            <div className="flex flex-col gap-0.5">
+              <span className="font-bold text-[#1B2B4B]">{tx.note || tx.categoryName || "Expense"}</span>
+              <span className="text-[10px] text-zinc-400">{dateStr}</span>
+            </div>
+            <span className={`font-black ${tx.flowType === "DEBIT" ? "text-rose-600" : "text-emerald-600"}`}>
+              {tx.flowType === "DEBIT" ? "-" : "+"}{fmt(tx.amount)}
             </span>
           </div>
-          <span className={`font-black ${tx.flowType === "DEBIT" ? "text-rose-600" : "text-emerald-600"}`}>
-            {tx.flowType === "DEBIT" ? "-" : "+"}{fmt(tx.amount)}
-          </span>
-        </div>
-      ))}
+        );
+      })}
 
       <div className="pt-2 text-right">
         <Link
