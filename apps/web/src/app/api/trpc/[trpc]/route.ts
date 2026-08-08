@@ -78,6 +78,14 @@ async function handleProxy(req: NextRequest) {
     const authHeader = req.headers.get("authorization");
     if (authHeader) {
       headers.set("authorization", authHeader);
+    } else {
+      const cookieHeader = req.headers.get("cookie");
+      if (cookieHeader) {
+        const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
+        if (match) {
+          headers.set("authorization", `Bearer ${decodeURIComponent(match[1])}`);
+        }
+      }
     }
     
     // Explicitly set host to align with the target endpoint
