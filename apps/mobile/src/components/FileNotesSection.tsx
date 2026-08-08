@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 
 interface FileNotesSectionProps {
   entityType: string;

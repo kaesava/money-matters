@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from '@money-matters/types';
 

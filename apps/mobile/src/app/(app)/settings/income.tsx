@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 
 const INCOME_TYPES = ['SALARY', 'FREELANCE', 'OTHER'] as const;

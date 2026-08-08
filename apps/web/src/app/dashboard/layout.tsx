@@ -288,108 +288,109 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <IconVisibilityProvider initialShowIcons={initialShowIcons}>
       <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
-      {/* ── Desktop Sidebar (Hidden on mobile) ── */}
-      <aside
-        style={{ backgroundColor: "var(--dash-navy)" }}
-        className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
-      >
-        {renderSidebarContent()}
-
-        {/* Sidebar Collapse Toggle Button */}
-        <button
-          onClick={() => setSidebarCollapsed((c) => !c)}
-          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50 active:scale-95 transition-transform"
-          aria-label="Toggle sidebar"
-        >
-          <svg
-            className={`w-3.5 h-3.5 text-zinc-600 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      </aside>
-
-      {/* ── Mobile Navigation Drawer ── */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop mask shadow */}
-          <div
-            onClick={() => setMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-          />
-          {/* Menu Panel drawer */}
-          <div
-            style={{ backgroundColor: "var(--dash-navy)" }}
-            className="relative w-72 max-w-[85vw] h-full flex flex-col z-10 shadow-2xl transition-transform animate-slide-in"
-          >
-            {renderSidebarContent()}
-          </div>
-        </div>
-      )}
-
-      {/* ── Main Layout Wrapper ── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <TrialBanner />
-        <TrialEndedModal />
-
-        {/* Sticky top headers - Mobile only */}
-        <header
+        {/* ── Desktop Sidebar (Hidden on mobile) ── */}
+        <aside
           style={{ backgroundColor: "var(--dash-navy)" }}
-          className="md:hidden sticky top-0 z-40 h-14 flex items-center px-4 justify-between shadow-md"
+          className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
         >
+          {renderSidebarContent()}
+
+          {/* Sidebar Collapse Toggle Button */}
           <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="p-1 text-white/80 hover:text-white transition-colors"
-            aria-label="Open navigation menu"
+            onClick={() => setSidebarCollapsed((c) => !c)}
+            className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50 active:scale-95 transition-transform"
+            aria-label="Toggle sidebar"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              className={`w-3.5 h-3.5 text-zinc-600 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          
-          <span className="text-sm font-extrabold text-white">
-            {activeItem ? activeItem.label() : t("app.title")}
-          </span>
+        </aside>
 
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
-            style={{ backgroundColor: "var(--dash-teal)" }}
-          >
-            {initials}
+        {/* ── Mobile Navigation Drawer ── */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-50 flex">
+            {/* Backdrop mask shadow */}
+            <div
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            />
+            {/* Menu Panel drawer */}
+            <div
+              style={{ backgroundColor: "var(--dash-navy)" }}
+              className="relative w-72 max-w-[85vw] h-full flex flex-col z-10 shadow-2xl transition-transform animate-slide-in"
+            >
+              {renderSidebarContent()}
+            </div>
           </div>
-        </header>
-
-        {/* Global Toolbar and Main Worksheets Viewport */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          {/* Main workspace */}
-          <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
-            {children}
-          </main>
-        </div>
-
-        {/* Global Quick Action Floating Button (Desktop helper) */}
-        <button
-          id="global-quick-add-btn"
-          onClick={() => setQuickExpenseOpen(true)}
-          style={{ backgroundColor: "var(--dash-teal)", boxShadow: "0 6px 20px rgba(0,180,166,0.3)" }}
-          className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-lg group"
-          title="Quick Record Expense (Shortcut: n)"
-          aria-label={t("transactions.addExpense")}
-        >
-          <svg className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-
-        {quickExpenseOpen && (
-          <QuickExpenseDrawer
-            onClose={() => setQuickExpenseOpen(false)}
-          />
         )}
+
+        {/* ── Main Layout Wrapper ── */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <TrialBanner />
+          <TrialEndedModal />
+
+          {/* Sticky top headers - Mobile only */}
+          <header
+            style={{ backgroundColor: "var(--dash-navy)" }}
+            className="md:hidden sticky top-0 z-40 h-14 flex items-center px-4 justify-between shadow-md"
+          >
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-1 text-white/80 hover:text-white transition-colors"
+              aria-label="Open navigation menu"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            <span className="text-sm font-extrabold text-white">
+              {activeItem ? activeItem.label() : t("app.title")}
+            </span>
+
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
+              style={{ backgroundColor: "var(--dash-teal)" }}
+            >
+              {initials}
+            </div>
+          </header>
+
+          {/* Global Toolbar and Main Worksheets Viewport */}
+          <div className="flex-1 flex flex-col overflow-y-auto">
+            {/* Main workspace */}
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
+              {children}
+            </main>
+          </div>
+
+          {/* Global Quick Action Floating Button (Desktop helper) */}
+          <button
+            id="global-quick-add-btn"
+            onClick={() => setQuickExpenseOpen(true)}
+            style={{ backgroundColor: "var(--dash-teal)", boxShadow: "0 6px 20px rgba(0,180,166,0.3)" }}
+            className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-lg group"
+            title="Quick Record Expense (Shortcut: n)"
+            aria-label={t("transactions.addExpense")}
+          >
+            <svg className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+
+          {quickExpenseOpen && (
+            <QuickExpenseDrawer
+              onClose={() => setQuickExpenseOpen(false)}
+            />
+          )}
+        </div>
       </div>
     </IconVisibilityProvider>
   );

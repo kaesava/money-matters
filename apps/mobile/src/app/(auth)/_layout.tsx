@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 
 export default function AuthLayout() {
   return (

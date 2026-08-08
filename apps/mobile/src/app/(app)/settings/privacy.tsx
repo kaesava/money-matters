@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform } from 'react-native';
-import { MobileScreenWrapper, DESIGN_TOKENS } from '@money-matters/ui';
+import { MobileScreenWrapper, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { useRouter } from 'expo-router';
 
 export default function PrivacySettingsScreen() {

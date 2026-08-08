@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 import { formatAUD } from '../lib/format';
 

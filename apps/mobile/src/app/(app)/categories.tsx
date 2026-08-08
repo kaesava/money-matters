@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Scr
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';

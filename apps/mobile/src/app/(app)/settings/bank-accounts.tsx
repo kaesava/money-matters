@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 import { BankAccountFormModal } from '../../../components/BankAccountFormModal';
 import { formatAUD } from '../../../lib/format';

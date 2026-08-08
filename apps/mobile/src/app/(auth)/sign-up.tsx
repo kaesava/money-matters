@@ -14,7 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileLogo } from "@money-matters/ui";
+import { DESIGN_TOKENS, MobileLogo } from "@money-matters/ui/mobile";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 

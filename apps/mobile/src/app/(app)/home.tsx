@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';

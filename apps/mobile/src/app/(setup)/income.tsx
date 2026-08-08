@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 
 const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const;
 type Frequency = (typeof FREQUENCIES)[number];

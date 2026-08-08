@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 
 interface CategoryItem {

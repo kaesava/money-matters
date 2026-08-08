@@ -3,7 +3,7 @@ import { Text, View, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SQLite from 'expo-sqlite';
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS } from "@money-matters/ui";
+import { DESIGN_TOKENS } from "@money-matters/ui/mobile";
 
 export default function Dashboard() {
   const router = useRouter();

@@ -8,7 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { DESIGN_TOKENS } from "@money-matters/ui";
+import { DESIGN_TOKENS } from "@money-matters/ui/mobile";
 
 export interface MobileBudgetImpactReviewItem {
   id?: string;

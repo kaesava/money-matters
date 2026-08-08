@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
 import { Feather } from '@expo/vector-icons';

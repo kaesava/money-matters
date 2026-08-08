@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostHogProvider } from 'posthog-react-native';
 import { trpc, buildTrpcClient } from '../lib/trpc';
 import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
-import { IconVisibilityProvider } from '@money-matters/ui';
+import { IconVisibilityProvider } from '@money-matters/ui/mobile';
 import { posthog } from '../config/posthog';
 
 interface AppProvidersProps {

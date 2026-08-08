@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { CanAffordVerdictType } from '@money-matters/types';
 import { formatAUD } from '../lib/format';
 

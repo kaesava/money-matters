@@ -141,7 +141,7 @@ export const tenantRouter = {
       };
     }),
 
-  updateUserPreferences: tenantProcedure
+updateUserPreferences: tenantProcedure
     .input(
       z.object({
         quickActionsCollapsed: z.boolean().optional(),
@@ -150,6 +150,7 @@ export const tenantRouter = {
         shortfallAlertsEnabled: z.boolean().optional(),
         billRemindersEnabled: z.boolean().optional(),
         weeklyDigestEnabled: z.boolean().optional(),
+        appPreferences: z.record(z.string(), z.record(z.string(), z.any())).optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
@@ -170,10 +171,12 @@ export const tenantRouter = {
       const updatedAppBlob: AppPreferencesBlob = {
         ...currentAppBlob,
         ...(input.quickActionsCollapsed !== undefined ? { quick_actions_collapsed: input.quickActionsCollapsed } : {}),
+        ...(input.appPreferences?.[appId] ? input.appPreferences[appId] : {}),
       };
 
       const updatedAppPrefs: Record<string, AppPreferencesBlob> = {
         ...existingAppPrefs,
+        ...input.appPreferences,
         [appId]: updatedAppBlob,
       };
 

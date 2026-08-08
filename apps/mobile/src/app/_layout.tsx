@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Stack, usePathname, useGlobalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProviders } from '../providers/AppProviders';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { logger } from '../lib/logger';
 import { posthog } from '../config/posthog';
 import '../../global.css';

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { useRouter } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 
 export default function SetupCompleteScreen() {

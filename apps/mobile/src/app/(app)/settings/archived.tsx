@@ -10,7 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { DESIGN_TOKENS, MobilePaginationBar } from "@money-matters/ui";
+import { DESIGN_TOKENS, MobilePaginationBar } from "@money-matters/ui/mobile";
 import { trpc } from "../../../lib/trpc";
 
 export default function MobileArchivedItemsScreen() {

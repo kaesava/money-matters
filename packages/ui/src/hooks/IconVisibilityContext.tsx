@@ -17,7 +17,7 @@ const IconVisibilityContext = createContext<IconVisibilityContextValue>({
 export interface IconVisibilityProviderProps {
   initialShowIcons?: boolean;
   onChange?: (show: boolean) => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 /**

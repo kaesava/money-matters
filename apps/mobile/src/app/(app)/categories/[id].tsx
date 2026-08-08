@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Modal, TextInput, ScrollView, Switch, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 import { TransactionRow } from '../../../components/TransactionRow';
 import { formatAUD } from '../../../lib/format';
