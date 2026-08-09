@@ -28,7 +28,7 @@ const WEEKLY_GROCERIES = 270;
 const WEEKLY_DINING = 240;
 const WEEKLY_PERSONAL = 100;
 
-export default function SetupWizardPage() {
+function SetupWizardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isRerun = searchParams.get("mode") === "rerun";
@@ -1152,5 +1152,13 @@ export default function SetupWizardPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SetupWizardPage() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Loading setup wizard...</div>}>
+      <SetupWizardContent />
+    </React.Suspense>
   );
 }
