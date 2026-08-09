@@ -31,7 +31,7 @@ const envSchema = z.object({
   STRIPE_PRICE_ANNUAL: z.string().optional(),
   STRIPE_PRICE_FOUNDING_ANNUAL: z.string().optional(),
   // PostHog product analytics
-  NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: z.string().optional(),
 });
 
 let envCache: z.infer<typeof envSchema> | null = null;

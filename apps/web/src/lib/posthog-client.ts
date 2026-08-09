@@ -2,7 +2,6 @@ import posthog from "posthog-js";
 
 const isProduction = process.env.NODE_ENV === "production";
 const projectToken = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-const host = process.env.NEXT_PUBLIC_POSTHOG_HOST;
 
 // Only init PostHog in production. Dev traffic must never pollute analytics.
 if (isProduction) {
@@ -12,7 +11,11 @@ if (isProduction) {
     );
   } else {
     posthog.init(projectToken, {
-      api_host: host || "/ingest",
+      // Always send through the same-origin /ingest reverse proxy so ad
+      // blockers cannot drop events. This value is fixed and cannot be
+      // overridden by an environment variable.
+      api_host: "/ingest",
+      ui_host: "https://us.posthog.com",
       defaults: "2026-01-30",
       capture_exceptions: true,
     });
