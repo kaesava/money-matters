@@ -2,6 +2,9 @@ import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Required by PostHog's Next.js proxy guide: without it some ingestion
+  // paths get a trailing-slash redirect that breaks capture.
+  skipTrailingSlashRedirect: true,
   transpilePackages: [
     "@money-matters/ui",
     "@money-matters/i18n",
