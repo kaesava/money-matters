@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 
 interface Category {
   id: string;
@@ -58,12 +58,12 @@ export function QuickExpenseCard({
   const isIncome = quickType === "CREDIT";
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const getMonthYY = (dStr: string) => {
+  const getMonthYY = useCallback((dStr: string) => {
     const dt = new Date(dStr || todayStr);
     const m = dt.toLocaleString("default", { month: "short" });
     const y = String(dt.getFullYear()).slice(2);
     return `${m}-${y}`;
-  };
+  }, [todayStr]);
 
   // Default name to [Category/Bank Name] [Month-YY] when picker changes if name not manually filled
   useEffect(() => {
@@ -79,7 +79,16 @@ export function QuickExpenseCard({
         setQuickName(`${acc.name} ${monthYY}`);
       }
     }
-  }, [quickCategoryId, quickReceivingAccountId, isIncome, quickDate]);
+  }, [
+    quickCategoryId,
+    quickReceivingAccountId,
+    isIncome,
+    quickDate,
+    categories,
+    bankAccounts,
+    setQuickName,
+    getMonthYY,
+  ]);
 
   const everydayCats = categories.filter((c) => c.type === "EVERYDAY");
   const regularCats = categories.filter((c) => c.type === "REGULAR");

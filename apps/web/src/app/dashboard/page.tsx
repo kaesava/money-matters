@@ -20,6 +20,13 @@ function fmt(val: string | number) {
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+interface AppPreferencesBlob {
+  skip_pool_adjustment_confirmation?: boolean;
+  quick_actions_collapsed?: boolean;
+}
+
+type AppPreferencesMap = Record<string, AppPreferencesBlob>;
+
 export default function DashboardPage() {
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -104,10 +111,9 @@ export default function DashboardPage() {
     .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || "0"), 0);
 
   const userPreferencesQuery = trpc.getUserPreferences.useQuery();
-  const prefsBlob = (userPreferencesQuery.data?.appPreferences as Record<string, any>)?.[
-    "01908bde-34bb-7b19-a178-574211bc93aa"
-  ];
-  const skipConfirmation = prefsBlob?.skip_pool_adjustment_confirmation || false;
+  const appPrefs = userPreferencesQuery.data?.appPreferences as AppPreferencesMap | undefined;
+  const prefsBlob = appPrefs?.["01908bde-34bb-7b19-a178-574211bc93aa"];
+  const skipConfirmation = prefsBlob?.skip_pool_adjustment_confirmation ?? false;
 
   const updateUserPrefsMutation = trpc.updateUserPreferences.useMutation({
     onSuccess: () => userPreferencesQuery.refetch(),

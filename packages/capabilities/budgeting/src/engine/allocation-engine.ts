@@ -172,7 +172,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted);
   fundGoals(goalUncommitted);
 
-  const excessBucket = input.buckets.find((b) => b.type === "GOAL") || everydayBuckets[0];
+  const excessBucket = everydayBuckets[0] || input.buckets.find((b) => b.type === "GOAL");
   if (excessBucket && remaining > 0) {
     const allocated = remaining;
     remaining = 0;
@@ -191,7 +191,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   }
 
-  const isInsufficient = input.incomeAmount > 0 && lines.some((l) => l.proposedAmount === 0 && l.bucketId !== excessBucket?.id);
+  const isInsufficient = input.incomeAmount > 0 && lines.some((l) => {
+    const bucket = input.buckets.find((b) => b.id === l.bucketId);
+    if (!bucket || (!bucket.isEssential && !bucket.isCommitted && bucket.type !== "REGULAR")) return false;
+    return l.proposedAmount === 0;
+  });
 
   return {
     status: isInsufficient ? "INSUFFICIENT" : "OK",

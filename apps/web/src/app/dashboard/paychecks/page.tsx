@@ -249,7 +249,7 @@ function BurstModal({
 
 function SourceTable({
   mode, items, bucketHeader, searchQuery, allIncomeEvents, allExpenseEvents,
-  categories, bankAccounts, onAdd, onArchive, onEdit, onMarkPaid, onSkip, onUnskip, onUpdateEvent,
+  _categories, _bankAccounts, onAdd, onArchive, onEdit, onMarkPaid, onSkip, onUnskip, onUpdateEvent,
   isPendingMarkPaid, isPendingSkip,
 }: {
   mode: "INCOME" | "EXPENSE";
@@ -258,8 +258,8 @@ function SourceTable({
   searchQuery: string;
   allIncomeEvents: EventItem[];
   allExpenseEvents: EventItem[];
-  categories: { id: string; name: string }[];
-  bankAccounts: { id: string; name: string }[];
+  _categories?: { id: string; name: string }[];
+  _bankAccounts?: { id: string; name: string }[];
   onAdd: () => void;
   onArchive: (item: SourceItem) => void;
   onEdit: (item: SourceItem) => void;
@@ -470,7 +470,7 @@ export default function InsAndOutsPage() {
       <SourceTable
         mode="INCOME" items={incomeItems} bucketHeader="Account" searchQuery={searchQuery}
         allIncomeEvents={incomeEvents} allExpenseEvents={expenseEvents}
-        categories={categories} bankAccounts={bankAccounts}
+        _categories={categories} _bankAccounts={bankAccounts}
         onAdd={() => { setModalMode("INCOME"); setSourceToEdit(null); setIsModalOpen(true); }}
         onArchive={(item) => handleArchive(item, "INCOME")}
         onEdit={(item) => handleEdit(item, "INCOME")}
@@ -485,7 +485,7 @@ export default function InsAndOutsPage() {
       <SourceTable
         mode="EXPENSE" items={expenseItems} bucketHeader="Category" searchQuery={searchQuery}
         allIncomeEvents={incomeEvents} allExpenseEvents={expenseEvents}
-        categories={categories} bankAccounts={bankAccounts}
+        _categories={categories} _bankAccounts={bankAccounts}
         onAdd={() => { setModalMode("EXPENSE"); setSourceToEdit(null); setIsModalOpen(true); }}
         onArchive={(item) => handleArchive(item, "EXPENSE")}
         onEdit={(item) => handleEdit(item, "EXPENSE")}

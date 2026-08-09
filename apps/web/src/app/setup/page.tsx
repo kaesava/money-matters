@@ -18,6 +18,16 @@ import {
 } from "@money-matters/types";
 import { Spinner } from "@money-matters/ui/web";
 
+// Static defaults for non-interactive values
+const HAS_PETS = false;
+const PETS_COUNT = 1;
+const ACTIVE_DEBT_MONTHLY_REPAYMENT = 0;
+const GIVES_CHARITY = false;
+const FAMILY_SUPPORT_MONTHLY_AMOUNT = 0;
+const WEEKLY_GROCERIES = 270;
+const WEEKLY_DINING = 240;
+const WEEKLY_PERSONAL = 100;
+
 export default function SetupWizardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -52,18 +62,6 @@ export default function SetupWizardPage() {
   const [hasPrivateHealth, setHasPrivateHealth] = useState(true);
   const [hasGym, setHasGym] = useState(false);
 
-  const [hasPets, setHasPets] = useState(false);
-  const [petsCount, setPetsCount] = useState(1);
-  const [activeDebtMonthlyRepayment, setActiveDebtMonthlyRepayment] = useState(0);
-
-  const [givesCharity, setGivesCharity] = useState(false);
-  const [familySupportMonthlyAmount, setFamilySupportMonthlyAmount] = useState(0);
-
-  // Sliders
-  const [weeklyGroceries, setWeeklyGroceries] = useState(270);
-  const [weeklyDining, setWeeklyDining] = useState(240);
-  const [weeklyPersonal, setWeeklyPersonal] = useState(100);
-
   // Custom added categories & Deleted Categories tracking
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
   const [customCatName, setCustomCatName] = useState("");
@@ -92,7 +90,8 @@ export default function SetupWizardPage() {
 
   // Existing categories query for rerun matching
   const existingCategoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isRerun });
-  const existingCategories = existingCategoriesQuery.data ?? [];
+  const rawExistingCategories = existingCategoriesQuery.data;
+  const existingCategories = useMemo(() => rawExistingCategories ?? [], [rawExistingCategories]);
 
   // Current active caps for diff calculations
   const currentBillsCap = useMemo(() => {
@@ -147,14 +146,14 @@ export default function SetupWizardPage() {
       children: hasKids ? children : [],
       hasPrivateHealth,
       hasGym,
-      hasPets,
-      petsCount: hasPets ? petsCount : 0,
-      activeDebtMonthlyRepayment,
-      givesCharity,
-      familySupportMonthlyAmount,
-      weeklyGroceries,
-      weeklyDining,
-      weeklyPersonal,
+      hasPets: HAS_PETS,
+      petsCount: HAS_PETS ? PETS_COUNT : 0,
+      activeDebtMonthlyRepayment: ACTIVE_DEBT_MONTHLY_REPAYMENT,
+      givesCharity: GIVES_CHARITY,
+      familySupportMonthlyAmount: FAMILY_SUPPORT_MONTHLY_AMOUNT,
+      weeklyGroceries: WEEKLY_GROCERIES,
+      weeklyDining: WEEKLY_DINING,
+      weeklyPersonal: WEEKLY_PERSONAL,
     };
   }, [
     incomes,
@@ -167,14 +166,6 @@ export default function SetupWizardPage() {
     children,
     hasPrivateHealth,
     hasGym,
-    hasPets,
-    petsCount,
-    activeDebtMonthlyRepayment,
-    givesCharity,
-    familySupportMonthlyAmount,
-    weeklyGroceries,
-    weeklyDining,
-    weeklyPersonal,
   ]);
 
   const estimation = useMemo(() => {
@@ -229,7 +220,11 @@ export default function SetupWizardPage() {
     ]);
   };
 
-  const handleUpdateIncome = (id: string, field: keyof IncomeItem, value: any) => {
+  const handleUpdateIncome = <K extends keyof IncomeItem>(
+    id: string,
+    field: K,
+    value: IncomeItem[K]
+  ) => {
     setIncomes((prev) =>
       prev.map((inc) => (inc.id === id ? { ...inc, [field]: value } : inc))
     );
@@ -246,7 +241,11 @@ export default function SetupWizardPage() {
     setVehicles((prev) => [...prev, { id, name: `Vehicle ${prev.length + 1}`, size: "MID_SUV" }]);
   };
 
-  const handleUpdateVehicle = (id: string, field: keyof VehicleConfig, value: any) => {
+  const handleUpdateVehicle = <K extends keyof VehicleConfig>(
+    id: string,
+    field: K,
+    value: VehicleConfig[K]
+  ) => {
     setVehicles((prev) => prev.map((v) => (v.id === id ? { ...v, [field]: value } : v)));
   };
 
@@ -263,7 +262,11 @@ export default function SetupWizardPage() {
     ]);
   };
 
-  const handleUpdateChild = (id: string, field: keyof ChildConfig, value: any) => {
+  const handleUpdateChild = <K extends keyof ChildConfig>(
+    id: string,
+    field: K,
+    value: ChildConfig[K]
+  ) => {
     setChildren((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
   };
 
@@ -476,7 +479,7 @@ export default function SetupWizardPage() {
                       <label className="text-[11px] font-bold text-zinc-500">Frequency</label>
                       <select
                         value={inc.frequency}
-                        onChange={(e) => handleUpdateIncome(inc.id, "frequency", e.target.value)}
+                        onChange={(e) => handleUpdateIncome(inc.id, "frequency", e.target.value as IncomeItem["frequency"])}
                         className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
                       >
                         <option value="WEEKLY">Weekly</option>

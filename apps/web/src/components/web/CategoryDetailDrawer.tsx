@@ -6,11 +6,22 @@ import { SlideOverDrawer } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
 import { FileNotesSection } from "./FileNotesSection";
 
+export interface CategoryDetailItem {
+  id: string;
+  name: string;
+  type: string;
+  currentBalance: string;
+  healthStatus?: string;
+  targetAmount?: string | null;
+  targetDate?: string | null;
+  progressPercentage?: number;
+}
+
 interface CategoryDetailDrawerProps {
   categoryId: string | null;
   onClose: () => void;
-  onEdit?: (cat: any) => void;
-  onArchive?: (cat: any) => void;
+  onEdit?: (cat: CategoryDetailItem) => void;
+  onArchive?: (cat: CategoryDetailItem) => void;
   onResolveShortfall?: (categoryId: string) => void;
 }
 
@@ -41,7 +52,7 @@ export function CategoryDetailDrawer({ categoryId, onClose, onEdit, onArchive }:
 
   if (!categoryId) return null;
 
-  const cat = (categoriesQuery.data ?? []).find((c: { id: string }) => c.id === categoryId);
+  const cat = (categoriesQuery.data ?? []).find((c: { id: string }) => c.id === categoryId) as CategoryDetailItem | undefined;
 
   if (!cat && !categoriesQuery.isLoading) {
     return (

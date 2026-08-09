@@ -216,6 +216,9 @@ export const en = {
       expandCategories: "Show buckets ({count})",
       collapseCategories: "Hide buckets",
     },
+    actions: {
+      moveMoney: "Move Money",
+    },
   },
   landing: {
     getStartedFree: "Get started for free",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
@@ -30,7 +30,7 @@ export default function MobileHistoryScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [flowFilter, setFlowFilter] = useState<'ALL' | 'DEBIT' | 'CREDIT'>('ALL');
-  const [categoryTypeFilter, setCategoryTypeFilter] = useState<'ALL' | 'EVERYDAY' | 'REGULAR' | 'GOAL'>('ALL');
+  const [categoryTypeFilter] = useState<'ALL' | 'EVERYDAY' | 'REGULAR' | 'GOAL'>('ALL');
 
   const filtered = transactions.filter((tx) => {
     const q = searchQuery.toLowerCase().trim();
@@ -61,7 +61,9 @@ export default function MobileHistoryScreen() {
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     try {
       await Share.share({ title: 'Transaction History CSV', message: csvContent });
-    } catch {}
+    } catch (error) {
+      console.error('Failed to export CSV:', error);
+    }
   };
 
   return (

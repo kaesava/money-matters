@@ -222,6 +222,9 @@ export const ja: DeepStringRecord<typeof en> = {
       expandCategories: "バケットを表示 ({count})",
       collapseCategories: "非表示",
     },
+    actions: {
+      moveMoney: "資金を移動",
+    },
   },
   landing: {
     getStartedFree: "無料で始める",

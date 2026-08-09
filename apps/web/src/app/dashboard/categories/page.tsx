@@ -129,11 +129,6 @@ function CategoriesPageContent() {
   const filteredRegular = filterFn(regularCategories);
   const filteredGoal = filterFn(goalCategories);
 
-  // Summary Metrics for Health Counters
-  const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
-  const needsAttentionCount = categories.filter((c) => c.healthStatus === "AMBER").length;
-  const behindCount = categories.filter((c) => c.healthStatus === "RED").length;
-
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       {/* Header & Main Actions */}
@@ -569,4 +564,3 @@ export default function CategoriesPage() {
     </React.Suspense>
   );
 }
-

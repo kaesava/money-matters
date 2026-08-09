@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CanAffordVerdictType } from '@money-matters/types';
-import { monthProgress } from '@money-matters/ui';
 import { t } from '@money-matters/i18n';
 import Link from 'next/link';
 
@@ -391,7 +390,7 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
                 onChange={(e) => setDontShowAgain(e.target.checked)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
               />
-              <span className="text-xs font-semibold text-gray-700">Don't show this again</span>
+              <span className="text-xs font-semibold text-gray-700">Don&apos;t show this again</span>
             </label>
 
             <div className="flex justify-end gap-3 pt-2">
