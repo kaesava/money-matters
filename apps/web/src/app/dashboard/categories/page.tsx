@@ -545,12 +545,18 @@ function CategoriesPageContent() {
         onClose={() => setSelectedCategoryId(null)}
         onEdit={(cat) => {
           setSelectedCategoryId(null);
-          setCategoryToEdit(cat);
-          setIsFormModalOpen(true);
+          const matched = categories.find((c) => c.id === cat.id);
+          if (matched) {
+            setCategoryToEdit(matched);
+            setIsFormModalOpen(true);
+          }
         }}
         onArchive={(cat) => {
           setSelectedCategoryId(null);
-          handleArchive(cat);
+          const matched = categories.find((c) => c.id === cat.id);
+          if (matched) {
+            handleArchive(matched);
+          }
         }}
       />
     </div>
