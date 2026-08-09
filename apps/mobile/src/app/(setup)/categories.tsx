@@ -10,7 +10,7 @@ import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from '@money-matters/types';
 
 export default function SetupCategoriesScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ incomeName: string; incomeAmount: string; incomeFrequency: string }>();
+  const params = useLocalSearchParams<{ incomeName: string; incomeAmount: string; incomeFrequency: string; mode?: string }>();
 
   // State
   const [selected, setSelected] = useState<Set<string>>(() => {
@@ -23,11 +23,13 @@ export default function SetupCategoriesScreen() {
   const [excessBucketId, setExcessBucketId] = useState('emergency');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mutations
+  // Queries & Mutations
+  const existingCategoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: params.mode === 'rerun' });
   const createIncomeSource = trpc.createIncomeSource.useMutation();
   const createCategory = trpc.createCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
   const generateEvents = trpc.generateNextIncomeEvents.useMutation();
+  const reSetupBudget = trpc.reSetupBudget.useMutation();
 
   const allPresets = [...AUSTRALIAN_FAMILY_PRESETS, ...customPresets];
 
@@ -65,45 +67,94 @@ export default function SetupCategoriesScreen() {
   const handleCompleteSetup = async () => {
     setIsSubmitting(true);
     try {
-      // 1. Create main income source
-      const numericAmount = parseFloat(params.incomeAmount || '0') || 0;
-      await createIncomeSource.mutateAsync({
-        name: params.incomeName || t('setup.income.defaultName', { defaultValue: 'My Salary' }),
-        amount: numericAmount.toFixed(2),
-        isRecurring: true,
-        startDate: new Date().toISOString().split('T')[0]!,
-        frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
-      });
+      const isRerun = params.mode === 'rerun';
 
-      // 2. Save categories & schedule targets in parallel batches
-      const selectedList = allPresets.filter((p) => selected.has(p.id));
-      const createdCategories = await Promise.all(
-        selectedList.map(async (cat) => {
-          const isExcess = excessBucketId === cat.id;
-          const created = await createCategory.mutateAsync({
-            name: cat.name,
-            type: cat.type,
-            budgetFrequency: 'MONTHLY',
-            isDefaultExcess: isExcess,
-          });
-          return { presetId: cat.id, createdId: created.id };
-        })
-      );
+      if (isRerun) {
+        const existingCats = existingCategoriesQuery.data ?? [];
+        const selectedList = allPresets.filter((p) => selected.has(p.id));
+        const categoriesList = selectedList.map((c) => {
+          const targetAmt = parseFloat(targets[c.id] || c.suggestedMonthlyAud.toString()) || 0;
+          const matched = existingCats.find((ec) => ec.name.trim().toLowerCase() === c.name.trim().toLowerCase() && ec.type === c.type);
+          return {
+            id: matched?.id,
+            name: c.name,
+            type: c.type as "EVERYDAY" | "REGULAR" | "GOAL",
+            monthlyAmount: targetAmt,
+            targetAmount: targetAmt,
+          };
+        });
 
-      const schedulePromises = createdCategories.map(({ presetId, createdId }) => {
-        const targetAmt = targets[presetId] || allPresets.find((p) => p.id === presetId)!.suggestedMonthlyAud.toString();
-        if (parseFloat(targetAmt) > 0) {
-          return createCategorySchedule.mutateAsync({
-            categoryId: createdId,
-            targetAmount: parseFloat(targetAmt).toFixed(2),
-          });
-        }
-        return Promise.resolve();
-      });
-      await Promise.all(schedulePromises);
+        const totalBillsCap = categoriesList
+          .filter((c) => c.type === 'REGULAR')
+          .reduce((sum, c) => sum + (c.monthlyAmount || 0), 0);
 
-      // 3. Trigger events burst generator
-      await generateEvents.mutateAsync();
+        Alert.alert(
+          "Reconcile & Apply Budget Changes",
+          `Your new monthly Bills target cap will be $${totalBillsCap.toLocaleString()}. Changes take effect on your next payday. Continue?`,
+          [
+            { text: "Keep Editing", style: "cancel", onPress: () => setIsSubmitting(false) },
+            {
+              text: "Confirm & Reconcile",
+              onPress: async () => {
+                try {
+                  await reSetupBudget.mutateAsync({
+                    everydayTargetCap: 2000,
+                    billsTargetCap: totalBillsCap,
+                    categoriesList,
+                  });
+                  router.replace('/(app)/home');
+                } catch (err) {
+                  Alert.alert("Re-setup Failed", "Could not complete budget reconciliation.");
+                } finally {
+                  setIsSubmitting(false);
+                }
+              },
+            },
+          ]
+        );
+        return;
+      } else {
+        // 1. Create main income source
+        const numericAmount = parseFloat(params.incomeAmount || '0') || 0;
+        await createIncomeSource.mutateAsync({
+          name: params.incomeName || t('setup.income.defaultName', { defaultValue: 'My Salary' }),
+          amount: numericAmount.toFixed(2),
+          isRecurring: true,
+          startDate: new Date().toISOString().split('T')[0]!,
+          frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
+        });
+
+        // 2. Save categories & schedule targets in parallel batches
+        const selectedList = allPresets.filter((p) => selected.has(p.id));
+        const createdCategories = await Promise.all(
+          selectedList.map(async (cat) => {
+            const targetAmt = targets[cat.id] || allPresets.find((p) => p.id === cat.id)!.suggestedMonthlyAud.toString();
+            const created = await createCategory.mutateAsync({
+              name: cat.name,
+              type: cat.type,
+              budgetFrequency: 'MONTHLY',
+              enteredAmount: targetAmt,
+              monthlyAmount: targetAmt,
+            });
+            return { presetId: cat.id, createdId: created.id };
+          })
+        );
+
+        const schedulePromises = createdCategories.map(({ presetId, createdId }) => {
+          const targetAmt = targets[presetId] || allPresets.find((p) => p.id === presetId)!.suggestedMonthlyAud.toString();
+          if (parseFloat(targetAmt) > 0) {
+            return createCategorySchedule.mutateAsync({
+              categoryId: createdId,
+              targetAmount: parseFloat(targetAmt).toFixed(2),
+            });
+          }
+          return Promise.resolve();
+        });
+        await Promise.all(schedulePromises);
+
+        // 3. Trigger events burst generator
+        await generateEvents.mutateAsync();
+      }
 
       router.replace('/(app)/home');
     } catch (err) {

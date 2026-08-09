@@ -5,13 +5,28 @@
  * and string interpolation parameters for UI components on web and mobile platforms.
  */
 import { en } from "./dictionaries/en";
+import { ja } from "./dictionaries/ja";
 
 /**
  * Registry of supported localization dictionaries.
  */
 export const translations = {
   en,
+  ja,
 } as const;
+
+export type SupportedLanguage = keyof typeof translations;
+let currentLanguage: SupportedLanguage = "en";
+
+export function setLanguage(lang: SupportedLanguage) {
+  if (lang in translations) {
+    currentLanguage = lang;
+  }
+}
+
+export function getLanguage(): SupportedLanguage {
+  return currentLanguage;
+}
 
 export type TranslationKey = string;
 
@@ -25,10 +40,11 @@ export type TranslationKey = string;
  */
 export function t(
   key: TranslationKey,
-  optionsOrLocale?: "en" | { defaultValue?: string; [key: string]: unknown }
+  optionsOrLocale?: SupportedLanguage | { defaultValue?: string; [key: string]: unknown }
 ): string {
   const parts = key.split(".");
-  let current: unknown = translations.en;
+  const dict = translations[currentLanguage] || translations.en;
+  let current: unknown = dict;
 
   for (const part of parts) {
     if (current && typeof current === "object" && part in current) {
@@ -37,6 +53,20 @@ export function t(
       current = undefined;
       break;
     }
+  }
+
+  // Fallback to English dictionary if key is missing in active language
+  if (current === undefined && currentLanguage !== "en") {
+    let fallback: unknown = translations.en;
+    for (const part of parts) {
+      if (fallback && typeof fallback === "object" && part in fallback) {
+        fallback = (fallback as Record<string, unknown>)[part];
+      } else {
+        fallback = undefined;
+        break;
+      }
+    }
+    current = fallback;
   }
 
   let result = typeof current === "string" ? current : undefined;

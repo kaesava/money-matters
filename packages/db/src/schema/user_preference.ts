@@ -44,4 +44,6 @@ export interface AppPreferencesBlob {
   show_icons?: boolean;
   /** Whether filter groups are expanded in list toolbars. Default: false. */
   filters_expanded?: boolean;
+  /** Whether to skip popup confirmation when adjusting pool balances. Default: false. */
+  skip_pool_adjustment_confirmation?: boolean;
 }

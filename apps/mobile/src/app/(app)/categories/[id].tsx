@@ -21,7 +21,6 @@ export default function CategoryDetailScreen() {
   const [target, setTarget] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [rolloverRule, setRolloverRule] = useState<'ROLLOVER' | 'SWEEP' | 'RESET'>('ROLLOVER');
-  const [isDefaultSavings, setIsDefaultSavings] = useState(false);
   const [everydayAllowanceAmount, setEverydayAllowanceAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -77,7 +76,6 @@ export default function CategoryDetailScreen() {
     setTargetDate(cat.targetDate ? cat.targetDate.split('T')[0] : '');
     
     setRolloverRule(cat.rolloverRule || 'ROLLOVER');
-    setIsDefaultSavings(cat.isDefaultSavings || false);
     setEverydayAllowanceAmount(cat.everydayAllowanceAmount ? parseFloat(cat.everydayAllowanceAmount).toFixed(2) : '');
     setEditVisible(true);
   };
@@ -91,7 +89,6 @@ export default function CategoryDetailScreen() {
         data: {
           name: name.trim(),
           rolloverRule,
-          isDefaultSavings: cat.type === 'GOAL' ? isDefaultSavings : undefined,
           everydayAllowanceAmount: cat.type === 'EVERYDAY' && everydayAllowanceAmount ? parseFloat(everydayAllowanceAmount).toFixed(2) : undefined,
         },
       });
@@ -240,15 +237,6 @@ export default function CategoryDetailScreen() {
                     </View>
                   </View>
 
-                  {cat.type === 'GOAL' && (
-                    <View style={[styles.formGroup, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-                      <Text style={styles.label}>Default Savings Sweep target?</Text>
-                      <Switch
-                        value={isDefaultSavings}
-                        onValueChange={setIsDefaultSavings}
-                      />
-                    </View>
-                  )}
                 </>
               )}
 

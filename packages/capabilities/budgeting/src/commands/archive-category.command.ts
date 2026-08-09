@@ -25,9 +25,6 @@ export async function archiveCategoryCommand(
   if (cat.type === "EVERYDAY") {
     throw new Error("The default Everyday category cannot be deleted or archived.");
   }
-  if (cat.isDefaultSavings || cat.isDefaultExcess) {
-    throw new Error("Cannot archive a category configured as default savings or default excess pool.");
-  }
 
   // 2. Check for upcoming expense events
   const pendingEvents = await dbClient

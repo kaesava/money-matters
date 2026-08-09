@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tenants, tenantUsers, appCategories, categories, bankAccounts } from "@money-matters/db";
+import { tenants, tenantUsers, appCategories, categories, bankAccounts, bankAccountCategoryMappings } from "@money-matters/db";
 import { CreateTenantCommand } from "@money-matters/types";
 import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
@@ -44,6 +44,47 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
         updatedBy: userId,
       });
 
+    // 3. Create default 'Primary Account' and link all three category types
+    const [primaryAccount] = await db
+      .insert(bankAccounts)
+      .values({
+        tenantId,
+        appId,
+        name: "Primary Account",
+        lastKnownBalance: "0.00",
+        unbudgetedBuffer: "0.00",
+        createdBy: userId,
+        updatedBy: userId,
+      })
+      .returning();
+
+    await db.insert(bankAccountCategoryMappings).values([
+      {
+        tenantId,
+        appId,
+        categoryType: "EVERYDAY" as const,
+        bankAccountId: primaryAccount.id,
+        createdBy: userId,
+        updatedBy: userId,
+      },
+      {
+        tenantId,
+        appId,
+        categoryType: "REGULAR" as const,
+        bankAccountId: primaryAccount.id,
+        createdBy: userId,
+        updatedBy: userId,
+      },
+      {
+        tenantId,
+        appId,
+        categoryType: "GOAL" as const,
+        bankAccountId: primaryAccount.id,
+        createdBy: userId,
+        updatedBy: userId,
+      },
+    ]);
+
     // 3. Seed default categories from app_categories template
     const templates = await db
       .select()
@@ -70,13 +111,8 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
           { name: "Emergency Reserve", type: "GOAL" as const, icon: "shield", colour: "#6366F1", monthlyAmount: null },
         ];
 
-    let hasSeededEveryday = false;
     await db.insert(categories).values(
       defaultTemplates.map((template) => {
-        const isEveryday = template.type === "EVERYDAY";
-        const isDefaultExcess = isEveryday && !hasSeededEveryday;
-        if (isEveryday) hasSeededEveryday = true;
-
         return {
           tenantId,
           appId,
@@ -85,9 +121,9 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
           icon: template.icon,
           colour: template.colour,
           monthlyAmount: template.monthlyAmount,
+          enteredAmount: template.monthlyAmount,
+          budgetFrequency: "MONTHLY",
           rolloverRule: "ROLLOVER" as const,
-          isDefaultExcess,
-          isDefaultSavings: false,
           isCommitted: false,
           createdBy: userId,
           updatedBy: userId,

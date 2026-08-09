@@ -108,15 +108,13 @@ export const CategorySchema = BaseSchema.extend({
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   isCommitted: z.boolean().default(false),
   monthlyAmount: z.string().nullable(),
+  enteredAmount: z.string().nullable(),
   budgetFrequency: z.enum(["FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY"),
-  isDefaultExcess: z.boolean().default(false),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).default("ROLLOVER"),
-  isDefaultSavings: z.boolean().default(false),
   everydayTargetKeepAmount: z.string().nullable(),
   everydaySweepFrequency: z.string().nullable(),
   icon: z.string().nullable(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
-  bankAccountId: z.string().uuid().nullable(),
 }).strict();
 
 /**

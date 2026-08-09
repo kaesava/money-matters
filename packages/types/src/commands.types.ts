@@ -27,15 +27,13 @@ export const CreateCategoryCommand = z.object({
   isCommitted: z.boolean().default(false).optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   everydayAllowanceAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  enteredAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   budgetFrequency: z.enum(["FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   targetDate: z.string().optional(),
-  isDefaultExcess: z.boolean().default(false).optional(),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
-  isDefaultSavings: z.boolean().optional(),
   icon: z.string().optional(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  bankAccountId: z.string().uuid().optional(),
 }).strict();
 
 export const UpdateCategoryCommand = z.object({
@@ -44,15 +42,13 @@ export const UpdateCategoryCommand = z.object({
   isCommitted: z.boolean().optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   everydayAllowanceAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  enteredAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   budgetFrequency: z.enum(["FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   targetAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   targetDate: z.string().optional(),
-  isDefaultExcess: z.boolean().optional(),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
-  isDefaultSavings: z.boolean().optional(),
   icon: z.string().optional(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  bankAccountId: z.string().uuid().optional(),
 }).strict();
 
 export const CreateCategoryScheduleCommand = z.object({

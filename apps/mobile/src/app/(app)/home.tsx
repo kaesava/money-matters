@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 
 import { useRouter } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
@@ -53,6 +54,14 @@ export default function HomeScreen() {
   });
 
   const categories = categoriesQuery.data ?? [];
+
+  // Guard: Redirect to setup wizard if tenant has 0 categories configured
+  React.useEffect(() => {
+    if (categoriesQuery.isSuccess && categoriesQuery.data && categoriesQuery.data.length === 0) {
+      router.replace('/(setup)/income');
+    }
+  }, [categoriesQuery.isSuccess, categoriesQuery.data, router]);
+
   const needsAttentionCount = categories.filter((c) => c.healthStatus === 'AMBER').length;
   const behindCount = categories.filter((c) => c.healthStatus === 'RED').length;
   const onTrackCount = categories.filter((c) => c.healthStatus === 'GREEN').length;
@@ -151,8 +160,8 @@ export default function HomeScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.greeting}>Good day 👋</Text>
-          <Text style={styles.headerTitle}>Dashboard</Text>
+          <Text style={styles.greeting}>{t("dashboard.welcome", { name: session?.user?.name ? session.user.name.split(" ")[0] : "Mate" })}</Text>
+          <Text style={styles.headerTitle}>{t("dashboard.title")}</Text>
         </View>
 
         {/* Top Hero Card with Everyday Balance & Can We Afford This Widget */}
@@ -172,6 +181,20 @@ export default function HomeScreen() {
           }}
           onSelectFilter={(health) => router.push({ pathname: '/(app)/categories', params: { health } })}
         />
+
+        {/* Orientation Pro Tip Card */}
+        <View style={styles.tipCard}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={styles.tipTitle}>{t("dashboard.bankAccountTip.title")}</Text>
+            <Text style={styles.tipDesc}>{t("dashboard.bankAccountTip.description")}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/settings/bank-accounts' as any)}
+            style={styles.tipBtn}
+          >
+            <Text style={styles.tipBtnText}>{t("dashboard.bankAccountTip.action")}</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Due-Date Guardrail Shortfall Alert Card */}
         {dueGuardrail && dueGuardrail.status === 'SHORTFALL_ALERT' && (
@@ -193,14 +216,14 @@ export default function HomeScreen() {
 
         {/* Permanent (Non-Collapsible) Quick Actions & Tools Section */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions & Tools</Text>
+          <Text style={styles.sectionTitle}>{t("dashboard.quickActions.title")}</Text>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => { setQuickModalType('DEBIT'); setQuickModalVisible(true); }}
             >
               <Feather name="minus-circle" size={20} color={DESIGN_TOKENS.colors.critical} />
-              <Text style={styles.actionCardText}>Record Expense</Text>
+              <Text style={styles.actionCardText}>{t("dashboard.quickActions.addExpense")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -208,7 +231,7 @@ export default function HomeScreen() {
               onPress={() => { setQuickModalType('CREDIT'); setQuickModalVisible(true); }}
             >
               <Feather name="plus-circle" size={20} color={DESIGN_TOKENS.colors.success} />
-              <Text style={styles.actionCardText}>Record Income</Text>
+              <Text style={styles.actionCardText}>{t("transactions.addIncome")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -216,7 +239,7 @@ export default function HomeScreen() {
               onPress={() => setMoveMoneyVisible(true)}
             >
               <Feather name="repeat" size={20} color={DESIGN_TOKENS.colors.primary} />
-              <Text style={styles.actionCardText}>Move Money</Text>
+              <Text style={styles.actionCardText}>{t("dashboard.quickActions.moveMoney")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -224,7 +247,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/(app)/categories')}
             >
               <Feather name="grid" size={20} color={DESIGN_TOKENS.colors.textPrimary} />
-              <Text style={styles.actionCardText}>Categories</Text>
+              <Text style={styles.actionCardText}>{t("nav.myMoney")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -390,9 +413,10 @@ const styles = StyleSheet.create({
     color: '#78350F',
     marginBottom: 3,
   },
-  guardrailMsg: {
-    fontSize: 11,
-    color: '#92400E',
-    lineHeight: 16,
-  },
+  guardrailMsg: { fontSize: 12, color: '#991B1B', marginTop: 2, lineHeight: 16 },
+  tipCard: { backgroundColor: '#EFF6FF', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#DBEAFE', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tipTitle: { fontSize: 12, fontWeight: '700', color: '#1E40AF' },
+  tipDesc: { fontSize: 11, color: '#1E3A8A', marginTop: 2 },
+  tipBtn: { backgroundColor: '#2563EB', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  tipBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
 });

@@ -81,7 +81,6 @@ export async function previewAllocationQuery(
       name: cat.name,
       type: cat.type,
       isCommitted: cat.isCommitted,
-      isDefaultExcess: cat.isDefaultExcess,
       monthlyAmount: cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : null,
       targetAmount: sched?.targetAmount ? parseFloat(sched.targetAmount) : null,
       targetDate: sched?.targetDate || null,

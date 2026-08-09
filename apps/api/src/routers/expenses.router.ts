@@ -446,4 +446,78 @@ export const expensesRouter = {
         .returning();
       return evt;
     }),
+
+  updateUpcomingExpense: tenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        expectedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+        expectedDate: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const [updated] = await ctx.db
+        .update(expenseEvents)
+        .set({
+          ...(input.expectedAmount !== undefined ? { expectedAmount: input.expectedAmount } : {}),
+          ...(input.expectedDate !== undefined ? { expectedDate: input.expectedDate } : {}),
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!)
+          )
+        )
+        .returning();
+      return updated;
+    }),
+  skipExpenseEvent: tenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db
+        .update(expenseEvents)
+        .set({
+          status: "SKIPPED",
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
+  unskipExpenseEvent: tenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db
+        .update(expenseEvents)
+        .set({
+          status: "UPCOMING",
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
 };

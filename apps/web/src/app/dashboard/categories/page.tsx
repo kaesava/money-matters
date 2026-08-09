@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { monthProgress } from "@money-matters/ui";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
@@ -138,7 +139,7 @@ function CategoriesPageContent() {
       {/* Header & Main Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Categories & Savings Pools</h1>
+          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("categories.title")}</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-0.5">
             Everyday & Bills are managed as overall pools. Save Toward pools are tracked individually.
           </p>
@@ -167,71 +168,7 @@ function CategoriesPageContent() {
         </div>
       </div>
 
-      {/* Top Health Counters */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div
-          onClick={() => { setHealthFilter("ALL"); setSearchQuery(""); }}
-          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
-            healthFilter === "ALL"
-              ? "bg-slate-100 border-slate-400 ring-2 ring-slate-400/40 shadow-md scale-[1.02]"
-              : "bg-white border-zinc-100 shadow-sm hover:border-zinc-300"
-          }`}
-          title="Click to view All Categories"
-        >
-          <div>
-            <p className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider">Total Categories</p>
-            <p className="text-2xl font-black text-[#1B2B4B] mt-0.5 font-mono">{categories.length}</p>
-          </div>
-          <span className="text-2xl">📁</span>
-        </div>
-
-        <div
-          onClick={() => { setHealthFilter("GREEN"); setSearchQuery(""); }}
-          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
-            healthFilter === "GREEN"
-              ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/40 shadow-md scale-[1.02]"
-              : "bg-white border-emerald-100 shadow-sm hover:border-emerald-300"
-          }`}
-        >
-          <div>
-            <p className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">On Track</p>
-            <p className="text-2xl font-black text-emerald-600 mt-0.5 font-mono">{onTrackCount}</p>
-          </div>
-          <span className="text-2xl">✅</span>
-        </div>
-
-        <div
-          onClick={() => { setHealthFilter("AMBER"); setSearchQuery(""); }}
-          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
-            healthFilter === "AMBER"
-              ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/40 shadow-md scale-[1.02]"
-              : "bg-white border-amber-100 shadow-sm hover:border-amber-300"
-          }`}
-        >
-          <div>
-            <p className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider">Needs Attention</p>
-            <p className="text-2xl font-black text-amber-600 mt-0.5 font-mono">{needsAttentionCount}</p>
-          </div>
-          <span className="text-2xl">⚠️</span>
-        </div>
-
-        <div
-          onClick={() => { setHealthFilter("RED"); setSearchQuery(""); }}
-          className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
-            healthFilter === "RED"
-              ? "bg-rose-50 border-rose-500 ring-2 ring-rose-500/40 shadow-md scale-[1.02]"
-              : "bg-white border-rose-100 shadow-sm hover:border-rose-300"
-          }`}
-        >
-          <div>
-            <p className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider">Behind</p>
-            <p className="text-2xl font-black text-rose-600 mt-0.5 font-mono">{behindCount}</p>
-          </div>
-          <span className="text-2xl">🚨</span>
-        </div>
-      </div>
-
-      {/* Filter Bar (Search only — counter cards above handle Health filtering) */}
+      {/* Filter Bar */}
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -256,7 +193,7 @@ function CategoriesPageContent() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-black text-[#1B2B4B]">Everyday Spending</h2>
+                  <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.everydayTitle")}</h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#00B4A6]/10 text-[#00B4A6] uppercase tracking-wider">
                     Overall Pool
                   </span>
@@ -358,7 +295,7 @@ function CategoriesPageContent() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-black text-[#1B2B4B]">Regular Bills</h2>
+                  <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.regularTitle")}</h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#2563eb]/10 text-[#2563eb] uppercase tracking-wider">
                     Overall Pool
                   </span>
@@ -466,7 +403,7 @@ function CategoriesPageContent() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-black text-[#1B2B4B]">Save Toward (Goals)</h2>
+                  <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.goalTitle")}</h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-600/10 text-purple-600 uppercase tracking-wider">
                     Per-Category Target Pools
                   </span>
@@ -611,6 +548,15 @@ function CategoriesPageContent() {
       <CategoryDetailDrawer
         categoryId={selectedCategoryId}
         onClose={() => setSelectedCategoryId(null)}
+        onEdit={(cat) => {
+          setSelectedCategoryId(null);
+          setCategoryToEdit(cat);
+          setIsFormModalOpen(true);
+        }}
+        onArchive={(cat) => {
+          setSelectedCategoryId(null);
+          handleArchive(cat);
+        }}
       />
     </div>
   );

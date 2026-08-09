@@ -1,6 +1,5 @@
 import { pgTable, uuid, varchar, integer, boolean, pgEnum, timestamp, numeric } from "drizzle-orm/pg-core";
 import { tenants } from "./tenant.js";
-import { bankAccounts } from "./bank_account.js";
 import { tenantAndTimestamps } from "./base.js";
 
 export const categoryTypeEnum = pgEnum("category_type_enum", ["REGULAR", "GOAL", "EVERYDAY"]);
@@ -13,13 +12,11 @@ export const categories = pgTable("categories", {
   isCommitted: boolean("is_committed").notNull().default(false), // GOAL committed targets
   monthlyAmount: numeric("monthly_amount", { precision: 12, scale: 2 }), // REGULAR target amount per month
   everydayAllowanceAmount: numeric("everyday_allowance_amount", { precision: 12, scale: 2 }), // EVERYDAY target allowance per paycheck
-  isDefaultExcess: boolean("is_default_excess").notNull().default(false),
+  enteredAmount: numeric("entered_amount", { precision: 12, scale: 2 }), // Target amount entered by user in the UI
   rolloverRule: rolloverRuleEnum("rollover_rule").notNull().default('ROLLOVER'),
-  isDefaultSavings: boolean("is_default_savings").notNull().default(false),
   icon: varchar("icon", { length: 50 }),
   colour: varchar("colour", { length: 7 }), // Hex color code e.g. '#00B4A6'
   budgetFrequency: varchar("budget_frequency", { length: 20 }).default("MONTHLY"), // FORTNIGHTLY, MONTHLY, ANNUALLY
-  bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable for V1, populated in V2
   lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
   ...tenantAndTimestamps,
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { CanAffordVerdictType } from '@money-matters/types';
+import { t } from '@money-matters/i18n';
 import { formatAUD } from '../lib/format';
 
 export interface CanAffordCardProps {
@@ -17,10 +18,10 @@ export function CanAffordCard({
 }: CanAffordCardProps) {
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Can We Afford This?</Text>
+      <Text style={styles.title}>{t("dashboard.quickActions.canAffordTitle")}</Text>
       <TextInput
         keyboardType="decimal-pad"
-        placeholder="Enter Amount ($)"
+        placeholder={t("dashboard.quickActions.enterAmountPlaceholder")}
         value={canAffordAmount}
         onChangeText={setCanAffordAmount}
         style={styles.input}

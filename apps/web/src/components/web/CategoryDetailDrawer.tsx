@@ -9,6 +9,8 @@ import { FileNotesSection } from "./FileNotesSection";
 interface CategoryDetailDrawerProps {
   categoryId: string | null;
   onClose: () => void;
+  onEdit?: (cat: any) => void;
+  onArchive?: (cat: any) => void;
   onResolveShortfall?: (categoryId: string) => void;
 }
 
@@ -32,7 +34,7 @@ function fmt(val: string | number) {
 }
 
 /** Slide-in panel showing category detail + transaction history. */
-export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDrawerProps) {
+export function CategoryDetailDrawer({ categoryId, onClose, onEdit, onArchive }: CategoryDetailDrawerProps) {
   const categoriesQuery = trpc.listCategories.useQuery(undefined, {
     enabled: Boolean(categoryId),
   });
@@ -76,16 +78,7 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
 
           {/* Balance section */}
           <div className="p-6 flex flex-col gap-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  {t("categories.detail.currentBalance")}
-                </p>
-                <p className="text-3xl font-extrabold mt-1 tabular-nums" style={{ color }}>
-                  {fmt(cat.currentBalance)}
-                </p>
-              </div>
-              {/* Health status badge */}
+            <div className="flex items-center justify-between">
               <span
                 className="px-2.5 py-1 rounded-full text-xs font-bold"
                 style={{
@@ -95,6 +88,25 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
               >
                 {health === "GREEN" ? "On Track" : health === "AMBER" ? "At Risk" : "Underfunded"}
               </span>
+
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(cat)}
+                  className="px-3 py-1 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200 transition-colors"
+                >
+                  Edit Category
+                </button>
+              )}
+            </div>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                {cat.type === "GOAL" ? "Current Balance" : t("categories.detail.currentBalance")}
+              </p>
+              <p className="text-3xl font-extrabold mt-1 tabular-nums" style={{ color }}>
+                {fmt(cat.currentBalance)}
+              </p>
             </div>
 
             {/* Target + progress */}
@@ -132,6 +144,18 @@ export function CategoryDetailDrawer({ categoryId, onClose }: CategoryDetailDraw
             </p>
             <TransactionHistory categoryId={categoryId} categoryName={cat.name} onClose={onClose} />
             <FileNotesSection entityType="CATEGORY" entityId={categoryId} />
+
+            {onArchive && cat.type !== "EVERYDAY" && (
+              <div className="pt-4 border-t border-zinc-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onArchive(cat)}
+                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 hover:underline transition-colors"
+                >
+                  Archive Category
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

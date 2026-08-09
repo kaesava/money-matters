@@ -85,7 +85,6 @@ export async function previewPaydayForEvent(
       name: c.name,
       type: c.type,
       isCommitted: c.isCommitted,
-      isDefaultExcess: c.isDefaultExcess,
       monthlyAmount: c.monthlyAmount ? parseFloat(c.monthlyAmount) : null,
       targetAmount: sched?.targetAmount ? parseFloat(sched.targetAmount) : null,
       targetDate: sched?.targetDate || null,

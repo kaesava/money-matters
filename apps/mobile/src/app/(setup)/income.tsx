@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 
@@ -23,6 +23,7 @@ const FREQ_LABELS: Record<Frequency, string> = {
 
 export default function SetupIncomeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
 
   const [name, setName] = useState(t('setup.income.defaultName', { defaultValue: 'My Salary' }));
   const [amount, setAmount] = useState('');
@@ -35,7 +36,8 @@ export default function SetupIncomeScreen() {
       params: {
         incomeName: name.trim(),
         incomeAmount: amount,
-        incomeFrequency: frequency
+        incomeFrequency: frequency,
+        mode: params.mode,
       }
     });
   };

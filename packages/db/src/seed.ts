@@ -4,6 +4,7 @@ import {
   tenants,
   tenantUsers,
   bankAccounts,
+  bankAccountCategoryMappings,
   categories,
   categorySchedules,
   incomeSources,
@@ -96,6 +97,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(categorySchedules);
   await db.delete(categories);
   await db.delete(userPreferences);
+  await db.delete(bankAccountCategoryMappings);
   await db.delete(bankAccounts);
   await db.delete(tenantUsers);
   await db.delete(tenants);
@@ -165,10 +167,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   });
 
   // 4. Bank Accounts
-  const [everydayAccount] = await db
+  const [primaryAccount] = await db
     .insert(bankAccounts)
     .values({
-      name: "ANZ Everyday Smart Account",
+      name: "Primary Account",
       lastKnownBalance: "3450.00",
       unbudgetedBuffer: "500.00",
       tenantId,
@@ -191,18 +193,33 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  const [emergencyVault] = await db
-    .insert(bankAccounts)
-    .values({
-      name: "Emergency Reserve Vault",
-      lastKnownBalance: "15000.00",
-      unbudgetedBuffer: "0.00",
+  // Link Category Types to Bank Accounts (Primary Account gets EVERYDAY & REGULAR, Saver gets GOAL)
+  await db.insert(bankAccountCategoryMappings).values([
+    {
       tenantId,
       appId,
+      categoryType: "EVERYDAY" as const,
+      bankAccountId: primaryAccount.id,
       createdBy: userId,
       updatedBy: userId,
-    })
-    .returning();
+    },
+    {
+      tenantId,
+      appId,
+      categoryType: "REGULAR" as const,
+      bankAccountId: primaryAccount.id,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    {
+      tenantId,
+      appId,
+      categoryType: "GOAL" as const,
+      bankAccountId: savingsAccount.id,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+  ]);
 
   // 5. Canonical Categories
   const canonicalCategories = [
@@ -216,7 +233,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "shopping-cart",
       color: "#10B981",
       monthlyAmount: "1170.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "dining",
@@ -227,7 +243,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "coffee",
       color: "#F59E0B",
       monthlyAmount: "1040.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "petrol",
@@ -238,7 +253,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "navigation",
       color: "#3B82F6",
       monthlyAmount: "260.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "transport",
@@ -249,7 +263,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "truck",
       color: "#8B5CF6",
       monthlyAmount: "180.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "personal",
@@ -260,7 +273,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "smile",
       color: "#EC4899",
       monthlyAmount: "430.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "everyday",
@@ -270,7 +282,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       excess: true,
       icon: "wallet",
       color: "#00B4A6",
-      bankAccountId: everydayAccount.id,
       allowance: "300.00",
     },
 
@@ -284,7 +295,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "home",
       color: "#EF4444",
       monthlyAmount: "3200.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "electricity",
@@ -295,7 +305,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "zap",
       color: "#F59E0B",
       monthlyAmount: "340.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "broadband",
@@ -306,7 +315,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "wifi",
       color: "#22C55E",
       monthlyAmount: "89.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "health",
@@ -317,7 +325,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "heart-pulse",
       color: "#EC4899",
       monthlyAmount: "280.00",
-      bankAccountId: everydayAccount.id,
     },
     {
       key: "subscriptions",
@@ -328,7 +335,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       icon: "tv",
       color: "#8B5CF6",
       monthlyAmount: "65.00",
-      bankAccountId: everydayAccount.id,
     },
 
     // GOAL (Target Savings Pools)
@@ -342,7 +348,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       color: "#EF4444",
       target: "15000.00",
       due: "2026-12-31",
-      bankAccountId: emergencyVault.id,
     },
     {
       key: "car",
@@ -354,7 +359,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       color: "#F59E0B",
       target: "2400.00",
       due: "2027-03-31",
-      bankAccountId: savingsAccount.id,
     },
     {
       key: "holiday",
@@ -367,7 +371,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       color: "#00B4A6",
       target: "8500.00",
       due: "2026-11-30",
-      bankAccountId: savingsAccount.id,
     },
     {
       key: "home_maint",
@@ -379,7 +382,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       color: "#6366F1",
       target: "5000.00",
       due: "2027-06-30",
-      bankAccountId: savingsAccount.id,
     },
   ];
 
@@ -391,14 +393,11 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       .values({
         name: cat.name,
         type: cat.type,
-        isCommitted: cat.isCommitted,
         monthlyAmount: cat.type === "REGULAR" ? cat.monthlyAmount : null,
         everydayAllowanceAmount: cat.type === "EVERYDAY" ? cat.allowance : null,
-        isDefaultExcess: cat.excess,
-        isDefaultSavings: (cat as any).isSavingsDefault || false,
+        enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : (cat.type === "EVERYDAY" ? cat.allowance : null),
         icon: cat.icon,
         colour: cat.color,
-        bankAccountId: cat.bankAccountId || null,
         tenantId,
         appId,
         createdBy: userId,
@@ -428,7 +427,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .values({
       name: "Primary Salary (Fortnightly)",
       amount: "5200.00",
-      receivingAccountId: everydayAccount.id,
+      receivingAccountId: primaryAccount.id,
       rrule: "FREQ=WEEKLY;INTERVAL=2",
       startDate: "2026-07-01",
       tenantId,
@@ -443,7 +442,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .values({
       name: "Freelance & Consulting Work",
       amount: "1500.00",
-      receivingAccountId: everydayAccount.id,
+      receivingAccountId: primaryAccount.id,
       rrule: "FREQ=MONTHLY",
       startDate: "2026-07-05",
       tenantId,
@@ -706,7 +705,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     // Payday Credits
     {
       categoryId: insertedCatMap.mortgage.id,
-      bankAccountId: everydayAccount.id,
+      bankAccountId: primaryAccount.id,
       planLineId: planLineMortgage.id,
       flowType: "CREDIT",
       amount: "1600.00",
@@ -736,7 +735,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     {
       categoryId: insertedCatMap.everyday.id,
-      bankAccountId: everydayAccount.id,
+      bankAccountId: primaryAccount.id,
       planLineId: planLineEveryday.id,
       flowType: "CREDIT",
       amount: "800.00",
@@ -752,7 +751,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     // Ad-hoc Income Credit (Side Hustle)
     {
       categoryId: insertedCatMap.everyday.id,
-      bankAccountId: everydayAccount.id,
+      bankAccountId: primaryAccount.id,
       flowType: "CREDIT",
       amount: "350.00",
       idempotencyKey: "income-freelance-credit-2026-07-18",
@@ -767,7 +766,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     // Expense Debits
     {
       categoryId: insertedCatMap.mortgage.id,
-      bankAccountId: everydayAccount.id,
+      bankAccountId: primaryAccount.id,
       flowType: "DEBIT",
       amount: "1600.00",
       idempotencyKey: "expense-mortgage-debit-2026-07-16",
@@ -781,7 +780,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     {
       categoryId: insertedCatMap.groceries.id,
-      bankAccountId: everydayAccount.id,
+      bankAccountId: primaryAccount.id,
       flowType: "DEBIT",
       amount: "245.50",
       idempotencyKey: "expense-groceries-debit-2026-07-17",
@@ -795,7 +794,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     {
       categoryId: insertedCatMap.everyday.id,
-      bankAccountId: everydayAccount.id,
+      bankAccountId: primaryAccount.id,
       flowType: "DEBIT",
       amount: "48.20",
       idempotencyKey: "expense-coffee-debit-2026-07-20",
@@ -809,7 +808,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     {
       categoryId: insertedCatMap.broadband.id,
-      bankAccountId: everydayAccount.id,
+      bankAccountId: primaryAccount.id,
       flowType: "DEBIT",
       amount: "89.00",
       idempotencyKey: "expense-broadband-debit-2026-07-12",

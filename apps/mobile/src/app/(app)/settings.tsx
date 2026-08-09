@@ -11,7 +11,7 @@ import {
   Switch,
 } from "react-native";
 import { useRouter, Href } from "expo-router";
-import { t } from "@money-matters/i18n";
+import { t, setLanguage, getLanguage, SupportedLanguage } from "@money-matters/i18n";
 import { DESIGN_TOKENS, MobileScreenWrapper, useIconVisibility } from "@money-matters/ui/mobile";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
@@ -175,15 +175,15 @@ export default function SettingsScreen() {
 
       {/* UI Aesthetic Preferences Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>UI Aesthetic & Preferences</Text>
+        <Text style={styles.sectionTitle}>{t("settings.groups.preferences")}</Text>
         <View style={styles.card}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary }}>
-                Show Decorative Icons
+                {t("settings.items.showIcons")}
               </Text>
               <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 }}>
-                Toggle between iconified vs minimalist typographic UI views.
+                {t("settings.items.showIconsHint")}
               </Text>
             </View>
             <Switch
@@ -203,6 +203,47 @@ export default function SettingsScreen() {
               trackColor={{ false: '#E5E7EB', true: DESIGN_TOKENS.colors.accent }}
               thumbColor="#FFFFFF"
             />
+          </View>
+
+          <View style={{ borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 4 }}>
+              {t("settings.language")}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              {(['en', 'ja'] as const).map((lang) => {
+                const prefs = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] as { locale?: SupportedLanguage } | undefined;
+                const currentLang = prefs?.locale || getLanguage();
+                const isActive = currentLang === lang;
+                return (
+                  <TouchableOpacity
+                    key={lang}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 8,
+                      borderRadius: 8,
+                      backgroundColor: isActive ? DESIGN_TOKENS.colors.accent : DESIGN_TOKENS.colors.surfaceVariant,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => {
+                      setLanguage(lang);
+                      const currentBlob = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] || {};
+                      updateUserPrefMut.mutate({
+                        appPreferences: {
+                          ["01908bde-34bb-7b19-a178-574211bc93aa"]: {
+                            ...currentBlob,
+                            locale: lang,
+                          },
+                        },
+                      });
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: isActive ? '#FFFFFF' : DESIGN_TOKENS.colors.textPrimary }}>
+                      {lang === 'en' ? 'English (AU)' : '日本語 (JP)'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
       </View>
@@ -235,24 +276,16 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Group 1: Your Budget */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t("settings.manage", { defaultValue: "Manage" })}</Text>
+        <Text style={styles.sectionTitle}>{t("settings.groups.yourBudget")}</Text>
         <View style={styles.cardList}>
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/setup' as Href)}
+            onPress={() => router.push('/(setup)/income?mode=rerun' as Href)}
             activeOpacity={0.7}
           >
-            <Text style={styles.listItemText}>⚙️ Re-run Budget Setup</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/notifications' as Href)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>🔔 Notification Preferences</Text>
+            <Text style={styles.listItemText}>{t("settings.items.rerunSetup")}</Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
           <View style={styles.listItemDivider} />
@@ -261,16 +294,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/(app)/settings/income')}
             activeOpacity={0.7}
           >
-            <Text style={styles.listItemText}>💸 {t("settings.incomeStreams", { defaultValue: "Income Streams" })}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/archived' as Href)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>📦 Archived Items</Text>
+            <Text style={styles.listItemText}>{t("settings.items.incomePay")}</Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
           <View style={styles.listItemDivider} />
@@ -279,7 +303,46 @@ export default function SettingsScreen() {
             onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
             activeOpacity={0.7}
           >
-            <Text style={styles.listItemText}>🏦 {t("settings.bankAccounts.title")}</Text>
+            <Text style={styles.listItemText}>{t("settings.items.bankAccounts")}</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Group 2: Account & Billing */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t("settings.groups.accountBilling")}</Text>
+        <View style={styles.cardList}>
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/history' as Href)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>{t("settings.items.history")}</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/notifications' as Href)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>{t("settings.items.notifications")}</Text>
+            <Text style={styles.chevron}>→</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Group 4: Danger Zone */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>{t("settings.groups.dangerZone")}</Text>
+        <View style={styles.cardList}>
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => router.push('/(app)/settings/archived' as Href)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>{t("settings.items.archived")}</Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
           <View style={styles.listItemDivider} />
@@ -288,7 +351,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/(app)/settings/privacy' as Href)}
             activeOpacity={0.7}
           >
-            <Text style={styles.listItemText}>🔒 Privacy & Data Security</Text>
+            <Text style={styles.listItemText}>{t("settings.items.privacy")}</Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
           <View style={styles.listItemDivider} />
@@ -297,7 +360,7 @@ export default function SettingsScreen() {
             onPress={handleDownloadDataMobile}
             activeOpacity={0.7}
           >
-            <Text style={styles.listItemText}>📥 Download My Data</Text>
+            <Text style={styles.listItemText}>{t("settings.items.downloadData")}</Text>
             <Text style={styles.chevron}>→</Text>
           </TouchableOpacity>
           <View style={styles.listItemDivider} />

@@ -105,3 +105,18 @@ export function requiresPaidTier(ctx: { subscriptionStatus: SubscriptionStatusDt
   }
 }
 
+/**
+ * Requires an active paid subscription (SUBSCRIBED or active TRIAL_ACTIVE).
+ * Rejects FREE_TIER, TRIAL_GRACE, PAST_DUE, or DEACTIVATED tenants.
+ */
+export const premiumProcedure = tenantProcedure.use(async ({ ctx, next }) => {
+  if (ctx.subscriptionStatus.isFreeTier || ctx.subscriptionStatus.isTrialGrace || ctx.subscriptionStatus.isPastDue || ctx.subscriptionStatus.isDeactivated) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'subscription_premium_required: Premium subscription required for this capability.',
+    });
+  }
+  return next();
+});
+
+

@@ -1,17 +1,62 @@
 import { z } from "zod";
-import { bankAccounts, categories } from "@money-matters/db";
+import { bankAccounts, bankAccountCategoryMappings } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
 import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
+
+export const UpdateBankAccountMappingsSchema = z.object({
+  mappings: z.array(
+    z.object({
+      categoryType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
+      bankAccountId: z.string().uuid(),
+    })
+  ),
+});
+
+/**
+ * Lists bank accounts for a tenant alongside their associated category types.
+ */
+export function getBankAccountsWithMappingsHandler(db: PgDatabase<any, any, any>) {
+  return async (tenantId: string, appId: string) => {
+    const accounts = await db
+      .select()
+      .from(bankAccounts)
+      .where(
+        and(
+          eq(bankAccounts.tenantId, tenantId),
+          eq(bankAccounts.appId, appId),
+          sql`${bankAccounts.archivedAt} IS NULL`
+        )
+      );
+
+    const mappings = await db
+      .select()
+      .from(bankAccountCategoryMappings)
+      .where(
+        and(
+          eq(bankAccountCategoryMappings.tenantId, tenantId),
+          eq(bankAccountCategoryMappings.appId, appId),
+          sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
+        )
+      );
+
+    return accounts.map((acc) => ({
+      ...acc,
+      categoryTypes: mappings
+        .filter((m) => m.bankAccountId === acc.id)
+        .map((m) => m.categoryType),
+    }));
+  };
+}
 
 /**
  * Creates a new bank account within the tenant scope.
  */
 export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
-    input: z.infer<typeof CreateBankAccountCommand>, 
-    tenantId: string, 
-    appId: string, 
+    input: z.infer<typeof CreateBankAccountCommand>,
+    tenantId: string,
+    appId: string,
     userId: string
   ) => {
     const [bankAccount] = await db
@@ -36,10 +81,10 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
  */
 export function updateBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
-    accountId: string, 
-    input: z.infer<typeof UpdateBankAccountCommand>, 
-    tenantId: string, 
-    appId: string, 
+    accountId: string,
+    input: z.infer<typeof UpdateBankAccountCommand>,
+    tenantId: string,
+    appId: string,
     userId: string
   ) => {
     const [updated] = await db
@@ -68,27 +113,78 @@ export function updateBankAccountHandler(db: PgDatabase<any, any, any>) {
 }
 
 /**
- * Archives a bank account within the tenant scope after ensuring no linked categories exist.
+ * Re-assigns category types to bank accounts for a tenant.
+ */
+export function updateBankAccountMappingsHandler(db: PgDatabase<any, any, any>) {
+  return async (
+    input: z.infer<typeof UpdateBankAccountMappingsSchema>,
+    tenantId: string,
+    appId: string,
+    userId: string
+  ) => {
+    for (const mapping of input.mappings) {
+      const [existing] = await db
+        .select()
+        .from(bankAccountCategoryMappings)
+        .where(
+          and(
+            eq(bankAccountCategoryMappings.tenantId, tenantId),
+            eq(bankAccountCategoryMappings.categoryType, mapping.categoryType)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(bankAccountCategoryMappings)
+          .set({
+            bankAccountId: mapping.bankAccountId,
+            updatedAt: new Date(),
+            updatedBy: userId,
+          })
+          .where(eq(bankAccountCategoryMappings.id, existing.id));
+      } else {
+        await db.insert(bankAccountCategoryMappings).values({
+          tenantId,
+          appId,
+          categoryType: mapping.categoryType,
+          bankAccountId: mapping.bankAccountId,
+          createdBy: userId,
+          updatedBy: userId,
+        });
+      }
+    }
+
+    return { success: true };
+  };
+}
+
+/**
+ * Archives a bank account within the tenant scope after ensuring no category types are linked to it.
  */
 export function archiveBankAccountHandler(db: PgDatabase<any, any, any>) {
   return async (
-    accountId: string, 
-    tenantId: string, 
-    appId: string, 
+    accountId: string,
+    tenantId: string,
+    appId: string,
     userId: string
   ) => {
-    const linkedCategories = await db
+    const activeMappings = await db
       .select()
-      .from(categories)
+      .from(bankAccountCategoryMappings)
       .where(
         and(
-          eq(categories.bankAccountId, accountId),
-          sql`${categories.archivedAt} IS NULL`
+          eq(bankAccountCategoryMappings.tenantId, tenantId),
+          eq(bankAccountCategoryMappings.bankAccountId, accountId),
+          sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
         )
       );
 
-    if (linkedCategories.length > 0) {
-      throw new Error("Cannot archive a bank account that has active categories linked to it.");
+    if (activeMappings.length > 0) {
+      const linkedTypes = activeMappings.map((m) => m.categoryType).join(", ");
+      throw new Error(
+        `Cannot delete bank account because category type(s) [${linkedTypes}] are linked to it. Please re-assign them to another bank account first.`
+      );
     }
 
     const [archived] = await db

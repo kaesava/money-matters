@@ -95,7 +95,6 @@ export function CategoryFormModal({
           data: {
             name,
             type,
-            bankAccountId: bankAccountId || undefined,
             monthlyAmount: type === "REGULAR" ? monthlyAmount : undefined,
             targetAmount: type === "GOAL" ? targetAmount : undefined,
             targetDate: type === "GOAL" ? targetDate : undefined,
@@ -106,7 +105,6 @@ export function CategoryFormModal({
         await createCategoryMut.mutateAsync({
           name,
           type,
-          bankAccountId: bankAccountId || undefined,
           monthlyAmount: type === "REGULAR" ? monthlyAmount : undefined,
           targetAmount: type === "GOAL" ? targetAmount : undefined,
           targetDate: type === "GOAL" ? targetDate : undefined,

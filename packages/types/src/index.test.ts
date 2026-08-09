@@ -93,15 +93,13 @@ describe('Domain Schemas Validation', () => {
       type: 'REGULAR',
       isCommitted: true,
       monthlyAmount: '1200.00',
+      enteredAmount: '1200.00',
       budgetFrequency: 'MONTHLY',
-      isDefaultExcess: false,
       rolloverRule: 'ROLLOVER',
-      isDefaultSavings: false,
       everydayTargetKeepAmount: null,
       everydaySweepFrequency: null,
       icon: 'home',
       colour: '#123456',
-      bankAccountId: null,
     });
     expect(category.type).toBe('REGULAR');
     expect(category.colour).toBe('#123456');
@@ -113,11 +111,11 @@ describe('Domain Schemas Validation', () => {
         name: 'Bad Color',
         type: 'GOAL',
         monthlyAmount: null,
+        enteredAmount: null,
         everydayTargetKeepAmount: null,
         everydaySweepFrequency: null,
         icon: null,
         colour: 'invalid-hex',
-        bankAccountId: null,
       })
     ).toThrow();
   });

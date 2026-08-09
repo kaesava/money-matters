@@ -22,7 +22,12 @@ describe('Capability Tenant Handlers', () => {
   });
 
   it('createTenantHandler creates tenant and owner member records', async () => {
-    const valuesMock = vi.fn().mockResolvedValue([]);
+    const returningMock = vi.fn().mockResolvedValue([{ id: 'mock-account-id' }]);
+    const valuesMock = vi.fn().mockImplementation(() => {
+      const promiseObj = Promise.resolve([]);
+      (promiseObj as any).returning = returningMock;
+      return promiseObj;
+    });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
 
     const whereMock = vi.fn().mockResolvedValue([]);
@@ -39,7 +44,7 @@ describe('Capability Tenant Handlers', () => {
 
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
-    expect(insertMock).toHaveBeenCalledTimes(3);
+    expect(insertMock).toHaveBeenCalledTimes(5);
     expect(selectMock).toHaveBeenCalledTimes(1);
   });
 

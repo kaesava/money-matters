@@ -13,19 +13,6 @@ export async function updateCategoryCommand(
   dbClient: PgDatabase<any, any, any> = db
 ) {
   return await dbClient.transaction(async (tx) => {
-    if (input.isDefaultExcess) {
-      await tx
-        .update(categories)
-        .set({ isDefaultExcess: false, updatedBy: userId, updatedAt: new Date() })
-        .where(
-          and(
-            eq(categories.tenantId, tenantId),
-            eq(categories.appId, appId),
-            eq(categories.isDefaultExcess, true)
-          )
-        );
-    }
-
     const [updated] = await tx
       .update(categories)
       .set({
@@ -34,12 +21,11 @@ export async function updateCategoryCommand(
         isCommitted: input.isCommitted,
         monthlyAmount: input.monthlyAmount,
         everydayAllowanceAmount: input.everydayAllowanceAmount,
-        isDefaultExcess: input.isDefaultExcess,
+        enteredAmount: input.enteredAmount,
+        budgetFrequency: input.budgetFrequency,
         rolloverRule: input.rolloverRule,
-        isDefaultSavings: input.isDefaultSavings,
         icon: input.icon,
         colour: input.colour,
-        bankAccountId: input.bankAccountId,
         updatedBy: userId,
         updatedAt: new Date(),
       })

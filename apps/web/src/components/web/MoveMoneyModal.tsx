@@ -21,9 +21,45 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
 
   const categories = categoriesQuery.data ?? [];
   const everydayCat = categories.find((c) => c.type === "EVERYDAY");
-  const maxSavingsCat = [...categories]
-    .filter((c) => c.type !== "EVERYDAY" && parseFloat(c.currentBalance || "0") > 0)
-    .sort((a, b) => parseFloat(b.currentBalance || "0") - parseFloat(a.currentBalance || "0"))[0];
+  // Compute up to 3 live presets moving from Everyday by default
+  const presets: { fromId: string; toId: string; amount: string; reason: string }[] = [];
+  if (everydayCat) {
+    // 1. Deficit categories (negative balance)
+    const deficitCats = categories.filter((c) => c.id !== everydayCat.id && parseFloat(c.currentBalance || "0") < 0);
+    for (const dCat of deficitCats) {
+      if (presets.length >= 3) break;
+      const deficitAmt = Math.abs(parseFloat(dCat.currentBalance)).toFixed(2);
+      presets.push({
+        fromId: everydayCat.id,
+        toId: dCat.id,
+        amount: deficitAmt,
+        reason: `Covering deficit in ${dCat.name}`,
+      });
+    }
+
+    // 2. If space remaining, categories with health RED/AMBER needing funds
+    if (presets.length < 3) {
+      const needyCats = categories.filter(
+        (c) => c.id !== everydayCat.id &&
+               parseFloat(c.currentBalance || "0") >= 0 &&
+               (c.healthStatus === "RED" || c.healthStatus === "AMBER")
+      );
+      for (const nCat of needyCats) {
+        if (presets.length >= 3) break;
+        const targetAmt = nCat.targetAmount ? parseFloat(nCat.targetAmount) : parseFloat(nCat.monthlyAmount || "0");
+        const currentBal = parseFloat(nCat.currentBalance || "0");
+        const needed = Math.max(0, targetAmt - currentBal);
+        if (needed > 0) {
+          presets.push({
+            fromId: everydayCat.id,
+            toId: nCat.id,
+            amount: needed.toFixed(2),
+            reason: `Top up ${nCat.name} to target`,
+          });
+        }
+      }
+    }
+  }
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -104,26 +140,23 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
 
         {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-xs font-bold">{error}</div>}
 
-        {everydayCat && maxSavingsCat && (
-          <div className="flex flex-col gap-1.5">
+        {presets.length > 0 && (
+          <div className="flex flex-col gap-2">
             <label className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-              ⚡ 1-Tap Quick Presets
+              ⚡ Recommended Presets
             </label>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => applyPreset(maxSavingsCat.id, everydayCat.id, "50")}
-                className="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 font-bold text-xs hover:bg-sky-100 transition-all"
-              >
-                Top Up Everyday ($50)
-              </button>
-              <button
-                type="button"
-                onClick={() => applyPreset(maxSavingsCat.id, everydayCat.id, "100")}
-                className="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 font-bold text-xs hover:bg-sky-100 transition-all"
-              >
-                Top Up Everyday ($100)
-              </button>
+            <div className="flex flex-col gap-1.5">
+              {presets.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => applyPreset(p.fromId, p.toId, p.amount)}
+                  className="px-3 py-2 rounded-xl bg-teal-50/70 border border-teal-200 text-[#00B4A6] hover:bg-teal-100 transition-all text-left flex items-center justify-between"
+                >
+                  <span className="text-xs font-bold">{p.reason}</span>
+                  <span className="text-xs font-mono font-black">${p.amount}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}

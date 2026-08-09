@@ -6,6 +6,10 @@ import { t } from '@money-matters/i18n';
 import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
 import { Feather } from '@expo/vector-icons';
 
+import { setLanguage } from '@money-matters/i18n';
+import { trpc } from '../../lib/trpc';
+import { authClient } from '../../lib/auth';
+
 function TabIcon({ name, color, size }: { name: React.ComponentProps<typeof Feather>['name']; color: string; size: number }) {
   return (
     <View style={styles.iconWrap}>
@@ -15,6 +19,17 @@ function TabIcon({ name, color, size }: { name: React.ComponentProps<typeof Feat
 }
 
 export default function AppLayout() {
+  const { data: session } = authClient.useSession();
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
+  const prefs = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] as { locale?: 'en' | 'ja' } | undefined;
+  const userLocale = prefs?.locale || 'en';
+
+  React.useEffect(() => {
+    if (userLocale) {
+      setLanguage(userLocale);
+    }
+  }, [userLocale]);
+
   // Automatically register device push token upon authenticated layout mount
   usePushNotifications();
 
@@ -39,25 +54,27 @@ export default function AppLayout() {
       <Tabs.Screen
         name="categories"
         options={{
-          title: t('nav.categories'),
+          title: t('nav.myMoney'),
           tabBarIcon: ({ color, size }) => <TabIcon name="grid" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="transactions"
-        options={{
-          href: null,
         }}
       />
       <Tabs.Screen
         name="paychecks"
         options={{
-          title: "Income & Expenses",
-          tabBarIcon: ({ color, size }) => <TabIcon name="dollar-sign" color={color} size={size} />,
+          title: t('nav.payday'),
+          tabBarIcon: ({ color, size }) => <TabIcon name="calendar" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
+        options={{
+          title: t('nav.settings'),
+          tabBarIcon: ({ color, size }) => <TabIcon name="settings" color={color} size={size} />,
+        }}
+      />
+      {/* Hidden routes — not in tab bar */}
+      <Tabs.Screen
+        name="transactions"
         options={{ href: null }}
       />
       <Tabs.Screen
@@ -78,6 +95,10 @@ export default function AppLayout() {
       />
       <Tabs.Screen
         name="settings/archived"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="settings/history"
         options={{ href: null }}
       />
       <Tabs.Screen

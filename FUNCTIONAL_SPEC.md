@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-08  
-> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Quiz Onboarding, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System (Streamlined Zone Hero Card, Two-Tier Severity Attention List, Permanent 3-Way Flow Filter), Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
+> **Last updated:** 2026-08-09  
+> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Estimation Quiz Onboarding across Web & Mobile, Backend `reSetupBudget` capability integration for Re-Run Budget Setup (`/setup?mode=rerun` and `/(setup)?mode=rerun`), 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System (Streamlined Zone Hero Card, Two-Tier Severity Attention List, Permanent 3-Way Flow Filter), Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 
@@ -26,24 +26,33 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 
 ---
 
-## 2. Onboarding Experience (Full Interactive Quiz & Estimation Engine)
+## 2. Onboarding Experience (Full Interactive Estimation & Setup Engine)
 
-The onboarding flow delivers an engaging interactive quiz completing in under 60 seconds with 2025/2026 ABS benchmark estimates:
+The onboarding flow delivers an engaging interactive estimation experience completing in under 60 seconds with 2025/2026 ABS benchmark estimates across both Web & Mobile:
 
-1. **Step 1: The Income Engine**:
-   - Primary take-home pay (Amount, Frequency: Weekly/Fortnightly/Monthly, Type: Salary/Business/Benefit).
-   - Optional partner income / side-hustle addition.
-2. **Step 2: The Life-Builder (Interactive Questionnaire)**:
-   - **Housing**: Own (Mortgage) | Own (Outright) | Rent (Solo/Family) | Rent (Share).
-   - **Transport**: Vehicle selection (count, vehicle class: Small/Mid-SUV/Luxury), Public Transport, Rideshare.
-   - **Family**: Children count, school stage (Childcare/Primary/Secondary) & school type (Public/Catholic/Private).
-   - **Health & Wellbeing**: Private Health Insurance, Gym/Fitness memberships, out-of-pocket medical.
-   - **Debt & Pets**: Active debt minimum repayment ($), pet count.
-   - **Obligations & Giving**: Charity donations, family support amount ($).
+1. **Step 1: Income & Earnings (Dynamic Multi-Income Entry)**:
+   - Dynamic list of income sources (Primary Income, Side Hustle, Consulting, etc.) allowing users to add as many income sources as needed one at a time.
+   - Per-income item details: Name/label, take-home amount ($), and frequency (Weekly / Fortnightly / Monthly). No partner-centric assumptions, supporting both single individuals and multi-income households.
+2. **Step 2: Lifestyle Setup (Per-Item Vehicle & Child Configurations)**:
+   - **Housing**: Own (Mortgage) | Own (Outright) | Rent (Solo) | Rent (Sharehouse).
+   - **Transport (Per-Vehicle Configuration)**: Checkbox for vehicle ownership with dynamic per-vehicle configuration (Vehicle name/label + vehicle class: Small/Hatchback, Mid-size SUV/Sedan, Luxury/4WD). Plus options for Public Transport and Rideshare.
+   - **Family (Per-Child Configuration)**: Checkbox for dependents with dynamic per-child configuration (Child name/label + school stage: Childcare, Primary, Secondary + school type: Public, Catholic, Private).
+   - **Health & Wellbeing**: Private Health Cover, Gym/Fitness, out-of-pocket medical.
+   - **Debt & Pets**: Active debt minimum repayments ($), pet count.
+   - **Obligations & Giving**: Charity donations, family financial support ($).
    - **Everyday Spend Sliders**: Weekly spend sliders for Groceries ($270 default), Dining & Fun ($240 default), Personal ($100 default) + dynamic incidental buffer `M`.
-3. **Step 3: Background Estimation & Confirmation**:
-   - Converts all inputs into normalized **Monthly** targets using Australian Bureau of Statistics (ABS) & RACQ 2025/2026 benchmark algorithms.
-   - User reviews and confirms the monthly breakdown before categories and schedules are generated.
+3. **Step 3: Estimated Budget Review & Category Management**:
+   - Presents a clear, user-friendly breakdown: *"Based on your answers, we've estimated your monthly bills, goal funds, and everyday spending."*
+   - Includes **Everyday Spending Categories** (Groceries & Supermarket, Eating Out & Takeaway, Personal & Entertainment, Everyday Incidentals).
+   - Allows users to adjust monthly target amounts ($), add custom categories, or **remove categories** (with a ✕ button).
+4. **Step 4: Monthly Budget Plan Summary**:
+   - Clear, accessible summary comparing Total Monthly Income vs Total Monthly Allocated (Everyday, Bills, Savings Goals).
+   - Highlights Net Surplus or Deficit.
+
+### UX Guardrails & Flow Controls
+- **Info Tooltips (ℹ️)**: Contextual tooltips on each step explaining *why* information is collected and *how* the 5-step waterfall allocations operate.
+- **Discard Warning Guard**: Clicking "Cancel" opens a consistent confirmation modal warning users that un-saved setup changes will be discarded.
+- **Zero-Categories Login Guard**: Logging in or navigating to the Dashboard (`/dashboard` on Web, `/(app)/home` on Mobile) with 0 active categories automatically redirects the user directly to the setup wizard.
 
 ---
 

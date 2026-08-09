@@ -126,7 +126,7 @@ export default function CategoriesScreen() {
               style={styles.moveMoneyHeaderBtn}
               activeOpacity={0.8}
             >
-              <Text style={styles.moveMoneyHeaderBtnText}>↔️ Move Money</Text>
+              <Text style={styles.moveMoneyHeaderBtnText}>{t("categories.actions.moveMoney")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -238,7 +238,7 @@ export default function CategoriesScreen() {
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.sectionTitle}>💳 Everyday Spending</Text>
-                <Text style={styles.sectionSubtitle}>Overall Everyday Pool Balance</Text>
+                <Text style={styles.sectionSubtitle}>{t("categories.sections.overallPoolBalance")}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
                 <Text style={styles.sectionBalance}>{formatAUD(everydayBalance)}</Text>
@@ -314,7 +314,7 @@ export default function CategoriesScreen() {
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.sectionTitle}>🧾 Regular Bills</Text>
-                <Text style={styles.sectionSubtitle}>Overall Bills Pool Balance</Text>
+                <Text style={styles.sectionSubtitle}>{t("categories.sections.overallPoolBalance")}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
                 <Text style={styles.sectionBalance}>{formatAUD(regularBalance)}</Text>
@@ -390,7 +390,7 @@ export default function CategoriesScreen() {
               <View style={styles.sectionHeaderNoToggle}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.sectionTitle}>🎯 Save Toward (Goals)</Text>
-                  <Text style={styles.sectionSubtitle}>Dedicated Target Pools ({goalCats.length})</Text>
+                  <Text style={styles.sectionSubtitle}>{t("categories.sections.goalTitle")} ({goalCats.length})</Text>
                 </View>
               </View>
 

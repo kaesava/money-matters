@@ -18,7 +18,6 @@ export interface EngineBucket {
   type: BucketType;
   isEssential?: boolean;
   isCommitted?: boolean;
-  isDefaultExcess?: boolean;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
   targetDate?: string | null;
@@ -173,7 +172,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted);
   fundGoals(goalUncommitted);
 
-  const excessBucket = input.buckets.find((b) => b.isDefaultExcess) || input.buckets.find((b) => b.type === "GOAL") || everydayBuckets[0];
+  const excessBucket = input.buckets.find((b) => b.type === "GOAL") || everydayBuckets[0];
   if (excessBucket && remaining > 0) {
     const allocated = remaining;
     remaining = 0;

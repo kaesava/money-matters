@@ -3,6 +3,7 @@ export * from "./user.js";
 export * from "./tenant.js";
 export * from "./tenant_user.js";
 export * from "./bank_account.js";
+export * from "./bank_account_category_mapping.js";
 export * from "./category.js";
 export * from "./category_schedule.js";
 export * from "./income.js";

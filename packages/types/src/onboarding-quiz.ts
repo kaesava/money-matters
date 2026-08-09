@@ -12,28 +12,46 @@ export type SchoolType = z.infer<typeof SchoolTypeSchema>;
 export const SchoolStageSchema = z.enum(["CHILDCARE", "PRIMARY", "SECONDARY"]);
 export type SchoolStage = z.infer<typeof SchoolStageSchema>;
 
+export const IncomeItemSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  amount: z.number().positive(),
+  frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY"]).default("FORTNIGHTLY"),
+  type: z.enum(["SALARY", "BUSINESS", "BENEFIT", "OTHER"]).default("SALARY"),
+});
+export type IncomeItem = z.infer<typeof IncomeItemSchema>;
+
+export const VehicleConfigSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  size: CarSizeSchema,
+});
+export type VehicleConfig = z.infer<typeof VehicleConfigSchema>;
+
+export const ChildConfigSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  stage: SchoolStageSchema,
+  type: SchoolTypeSchema,
+});
+export type ChildConfig = z.infer<typeof ChildConfigSchema>;
+
 export const QuizAnswersSchema = z.object({
-  // Step 1: Income Engine
-  incomeAmount: z.number().positive(),
-  incomeFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY"]).default("FORTNIGHTLY"),
-  incomeType: z.enum(["SALARY", "BUSINESS", "BENEFIT"]).default("SALARY"),
-  partnerIncomeAmount: z.number().nonnegative().optional(),
-  partnerIncomeFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY"]).optional(),
+  // Step 1: Income Engine (Dynamic income list)
+  incomes: z.array(IncomeItemSchema).min(1),
 
   // Step 2: Life-Builder Questionnaire
   housingType: HousingTypeSchema.default("RENT_SOLO"),
   
-  // Transport
+  // Transport (Per-vehicle configuration)
   hasCars: z.boolean().default(true),
-  cars: z.array(z.object({ size: CarSizeSchema })).default([{ size: "MID_SUV" }]),
+  vehicles: z.array(VehicleConfigSchema).default([{ id: "veh-1", name: "Vehicle 1", size: "MID_SUV" }]),
   usePublicTransport: z.boolean().default(true),
   useRideshare: z.boolean().default(false),
 
-  // Family
+  // Family (Per-child configuration)
   hasKids: z.boolean().default(false),
-  kidsCount: z.number().int().nonnegative().default(0),
-  schoolStage: SchoolStageSchema.optional(),
-  schoolType: SchoolTypeSchema.optional(),
+  children: z.array(ChildConfigSchema).default([]),
 
   // Health
   hasPrivateHealth: z.boolean().default(true),
@@ -57,6 +75,7 @@ export const QuizAnswersSchema = z.object({
 export type QuizAnswers = z.infer<typeof QuizAnswersSchema>;
 
 export interface EstimatedCategoryItem {
+  id?: string;
   name: string;
   type: "REGULAR" | "GOAL" | "EVERYDAY";
   monthlyAud: number;
@@ -67,6 +86,7 @@ export interface EstimatedCategoryItem {
 export interface EstimationResult {
   regularBills: EstimatedCategoryItem[];
   goalSinkingFunds: EstimatedCategoryItem[];
+  everydayCategories: EstimatedCategoryItem[];
   everydayPool: EstimatedCategoryItem;
   totalMonthlyIncomeAud: number;
   totalMonthlyAllocatedAud: number;
@@ -78,6 +98,7 @@ export interface EstimationResult {
 export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   const regularBills: EstimatedCategoryItem[] = [];
   const goalSinkingFunds: EstimatedCategoryItem[] = [];
+  const everydayCategories: EstimatedCategoryItem[] = [];
 
   // --- 1. HOUSING & UTILITIES (REGULAR) ---
   let rentMortgageAmount = 2750;
@@ -106,17 +127,17 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
 
   regularBills.push({ name: "Home Internet", type: "REGULAR", monthlyAud: 80, icon: "📡" });
 
-  // --- 2. TRANSPORT (REGULAR & GOAL) ---
+  // --- 2. TRANSPORT (REGULAR & GOAL - PER VEHICLE) ---
   let carMaintGoalExtra = 0;
-  if (answers.hasCars && answers.cars.length > 0) {
-    answers.cars.forEach((car, idx) => {
+  if (answers.hasCars && answers.vehicles.length > 0) {
+    answers.vehicles.forEach((veh, idx) => {
       let carMonthly = 390; // MID_SUV
       let maintExtra = 60;
-      if (car.size === "SMALL") { carMonthly = 310; maintExtra = 50; }
-      if (car.size === "LUXURY") { carMonthly = 500; maintExtra = 80; }
+      if (veh.size === "SMALL") { carMonthly = 310; maintExtra = 50; }
+      if (veh.size === "LUXURY") { carMonthly = 500; maintExtra = 80; }
 
       regularBills.push({
-        name: `Car ${idx + 1} Rego, Insurance & Fuel`,
+        name: `${veh.name || `Vehicle ${idx + 1}`} Rego, Insurance & Fuel`,
         type: "REGULAR",
         monthlyAud: carMonthly,
         icon: "🚗",
@@ -132,33 +153,36 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     regularBills.push({ name: "Rideshare / Taxi", type: "REGULAR", monthlyAud: 100, icon: "🚕" });
   }
 
-  // --- 3. FAMILY UNIT (REGULAR) ---
-  if (answers.hasKids && answers.kidsCount > 0) {
-    if (answers.schoolStage === "CHILDCARE") {
-      regularBills.push({
-        name: "Childcare & Early Learning",
-        type: "REGULAR",
-        monthlyAud: 1200 * answers.kidsCount,
-        icon: "👶",
-      });
-    } else if (answers.schoolType) {
-      let feePerChild = 100; // PUBLIC
-      if (answers.schoolType === "CATHOLIC") feePerChild = 400;
-      if (answers.schoolType === "PRIVATE") feePerChild = 1500;
+  // --- 3. FAMILY UNIT (REGULAR - PER CHILD) ---
+  if (answers.hasKids && answers.children.length > 0) {
+    answers.children.forEach((child, idx) => {
+      const childLabel = child.name || `Child ${idx + 1}`;
+      if (child.stage === "CHILDCARE") {
+        regularBills.push({
+          name: `${childLabel} - Childcare & Early Learning`,
+          type: "REGULAR",
+          monthlyAud: 1200,
+          icon: "👶",
+        });
+      } else {
+        let fee = 100; // PUBLIC
+        if (child.type === "CATHOLIC") fee = 400;
+        if (child.type === "PRIVATE") fee = 1500;
+
+        regularBills.push({
+          name: `${childLabel} - School Fees & Tuition`,
+          type: "REGULAR",
+          monthlyAud: fee,
+          icon: "🎓",
+        });
+      }
 
       regularBills.push({
-        name: "School Fees & Tuition",
+        name: `${childLabel} - Extracurricular & Sports`,
         type: "REGULAR",
-        monthlyAud: feePerChild * answers.kidsCount,
-        icon: "🎓",
+        monthlyAud: 150,
+        icon: "⚽",
       });
-    }
-
-    regularBills.push({
-      name: "Kids Extracurricular & Sports",
-      type: "REGULAR",
-      monthlyAud: 150 * answers.kidsCount,
-      icon: "⚽",
     });
   }
 
@@ -197,13 +221,23 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
 
   goalSinkingFunds.push({ name: "Emergency Buffer Fund", type: "GOAL", monthlyAud: 250, icon: "🆘", isCommitted: true });
 
-  // --- 7. EVERYDAY POOL (SLIDERS + INCIDENTAL M) ---
+  // --- 7. EVERYDAY BREAKDOWN (GROCERIES, DINING, PERSONAL, PETROL/INCIDENTAL) ---
   const weeklyG = answers.weeklyGroceries;
   const weeklyD = answers.weeklyDining;
   const weeklyP = answers.weeklyPersonal;
   const weeklyM = (weeklyG * 0.05) + ((weeklyD + weeklyP) * 0.15);
 
-  const monthlyEverydayTotal = Math.round((weeklyG + weeklyD + weeklyP + weeklyM) * (52 / 12));
+  const monthlyGroceries = Math.round(weeklyG * (52 / 12));
+  const monthlyDining = Math.round(weeklyD * (52 / 12));
+  const monthlyPersonal = Math.round(weeklyP * (52 / 12));
+  const monthlyIncidental = Math.round(weeklyM * (52 / 12));
+
+  everydayCategories.push({ name: "Groceries & Supermarket", type: "EVERYDAY", monthlyAud: monthlyGroceries, icon: "🛒" });
+  everydayCategories.push({ name: "Eating Out & Takeaway", type: "EVERYDAY", monthlyAud: monthlyDining, icon: "🍔" });
+  everydayCategories.push({ name: "Personal & Entertainment", type: "EVERYDAY", monthlyAud: monthlyPersonal, icon: "🎟️" });
+  everydayCategories.push({ name: "Everyday Incidentals", type: "EVERYDAY", monthlyAud: monthlyIncidental, icon: "☕" });
+
+  const monthlyEverydayTotal = monthlyGroceries + monthlyDining + monthlyPersonal + monthlyIncidental;
 
   const everydayPool: EstimatedCategoryItem = {
     name: "Everyday Spending Pool",
@@ -212,17 +246,14 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
     icon: "💳",
   };
 
-  // Convert primary income to monthly
-  let monthlyIncome = answers.incomeAmount;
-  if (answers.incomeFrequency === "WEEKLY") monthlyIncome = answers.incomeAmount * (52 / 12);
-  if (answers.incomeFrequency === "FORTNIGHTLY") monthlyIncome = answers.incomeAmount * (26 / 12);
-
-  if (answers.partnerIncomeAmount && answers.partnerIncomeAmount > 0) {
-    let pMonthly = answers.partnerIncomeAmount;
-    if (answers.partnerIncomeFrequency === "WEEKLY") pMonthly = answers.partnerIncomeAmount * (52 / 12);
-    if (answers.partnerIncomeFrequency === "FORTNIGHTLY") pMonthly = answers.partnerIncomeAmount * (26 / 12);
-    monthlyIncome += pMonthly;
-  }
+  // Convert all income items to monthly sum
+  let totalMonthlyIncome = 0;
+  answers.incomes.forEach((inc) => {
+    let m = inc.amount;
+    if (inc.frequency === "WEEKLY") m = inc.amount * (52 / 12);
+    if (inc.frequency === "FORTNIGHTLY") m = inc.amount * (26 / 12);
+    totalMonthlyIncome += m;
+  });
 
   const totalRegular = regularBills.reduce((acc, i) => acc + i.monthlyAud, 0);
   const totalGoal = goalSinkingFunds.reduce((acc, i) => acc + i.monthlyAud, 0);
@@ -231,8 +262,9 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
   return {
     regularBills,
     goalSinkingFunds,
+    everydayCategories,
     everydayPool,
-    totalMonthlyIncomeAud: Math.round(monthlyIncome),
+    totalMonthlyIncomeAud: Math.round(totalMonthlyIncome),
     totalMonthlyAllocatedAud,
   };
 }

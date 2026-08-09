@@ -83,6 +83,7 @@ export async function getMonthlySummaryQuery(
     );
 
   let everydayRemaining = 0;
+  let billsRemaining = 0;
   for (const tx of allTxs) {
     const val = parseFloat(tx.amount);
     const catType = catMap.get(tx.categoryId);
@@ -91,6 +92,12 @@ export async function getMonthlySummaryQuery(
         everydayRemaining += val;
       } else {
         everydayRemaining -= val;
+      }
+    } else if (catType === "REGULAR") {
+      if (tx.flowType === "CREDIT") {
+        billsRemaining += val;
+      } else {
+        billsRemaining -= val;
       }
     }
   }
@@ -102,5 +109,6 @@ export async function getMonthlySummaryQuery(
     totalSpent: totalSpent.toFixed(2),
     totalSaved: totalSaved.toFixed(2),
     everydayRemaining: everydayRemaining.toFixed(2),
+    billsRemaining: billsRemaining.toFixed(2),
   };
 }

@@ -83,7 +83,6 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
           monthlyAmount: type === 'REGULAR' && monthlyAmount ? parseFloat(monthlyAmount).toFixed(2) : undefined,
           targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
           everydayAllowanceAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
-          bankAccountId: bankAccountId || undefined,
         },
       });
     } else {
@@ -94,7 +93,6 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         monthlyAmount: type === 'REGULAR' && monthlyAmount ? parseFloat(monthlyAmount).toFixed(2) : undefined,
         targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
         everydayAllowanceAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
-        bankAccountId: bankAccountId || undefined,
       });
     }
   };

@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { t } from "@money-matters/i18n";
+import { t, setLanguage } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
 import posthog from "../../lib/posthog-client";
 import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
@@ -29,7 +29,7 @@ const NAV_ITEMS = [
   },
   {
     key: "categories",
-    label: () => t("nav.categories"),
+    label: () => t("nav.myMoney"),
     href: "/dashboard/categories",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
@@ -39,21 +39,11 @@ const NAV_ITEMS = [
   },
   {
     key: "paychecks",
-    label: () => "Income & Expenses",
+    label: () => t("nav.payday"),
     href: "/dashboard/paychecks",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-  },
-  {
-    key: "transactions",
-    label: () => t("transactions.title", { defaultValue: "Transactions" }),
-    href: "/dashboard/transactions",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
       </svg>
     ),
   },
@@ -78,6 +68,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
   const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
+  const prefs = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID] as { locale?: "en" | "ja" } | undefined;
+  const userLocale = prefs?.locale || "en";
+
+  useEffect(() => {
+    if (userLocale) {
+      setLanguage(userLocale);
+    }
+  }, [userLocale]);
 
   // Exchange neon_auth_session_verifier for session token cookie
   useEffect(() => {
@@ -175,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex items-center justify-center min-h-screen"
         style={{ backgroundColor: "var(--dash-bg)" }}
       >
-        <Spinner size="lg" label="Synchronizing household data..." />
+        <Spinner size="lg" label={t("dashboard.loading")} />
       </div>
     );
   }

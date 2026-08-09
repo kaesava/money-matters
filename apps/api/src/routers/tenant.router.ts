@@ -1,5 +1,5 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure } from '../trpc/trpc.js';
-import { db, userPreferences, bankAccounts, AppPreferencesBlob } from "@money-matters/db";
+import { db, userPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql } from "drizzle-orm";
 import { inngest } from '../inngest/client.js';
 import { 
@@ -8,6 +8,8 @@ import {
   updateBankAccountHandler,
   archiveBankAccountHandler,
   getTenantHandler,
+  getBankAccountsWithMappingsHandler,
+  updateBankAccountMappingsHandler,
   invitePartnerHandler,
   acceptInviteHandler,
   exportMyDataHandler,
@@ -261,6 +263,24 @@ updateUserPreferences: tenantProcedure
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
+  getBankAccountsWithMappings: tenantProcedure
+    .query(async ({ ctx }) => {
+      const handler = getBankAccountsWithMappingsHandler(ctx.db);
+      return await handler(ctx.tenantId!, ctx.appId!);
+    }),
+
+  updateBankAccountMappings: ownerProcedure
+    .input(z.object({
+      mappings: z.array(z.object({
+        categoryType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
+        bankAccountId: z.string().uuid(),
+      }))
+    }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const handler = updateBankAccountMappingsHandler(ctx.db);
+      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+    }),
+
   listBankAccounts: tenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
@@ -290,8 +310,20 @@ updateUserPreferences: tenantProcedure
 
       const allCategories = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
 
+      const mappings = await ctx.db
+        .select()
+        .from(bankAccountCategoryMappings)
+        .where(
+          and(
+            eq(bankAccountCategoryMappings.tenantId, ctx.tenantId!),
+            eq(bankAccountCategoryMappings.appId, ctx.appId!),
+            sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
+          )
+        );
+
       return accounts.map((acc) => {
-        const linkedCats = allCategories.filter((c) => c.bankAccountId === acc.id);
+        const mappedTypes = mappings.filter((m) => m.bankAccountId === acc.id).map((m) => m.categoryType);
+        const linkedCats = allCategories.filter((c) => mappedTypes.includes(c.type));
         const buffer = parseFloat(acc.unbudgetedBuffer || "0");
         const expectedBalance = linkedCats.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0) + buffer;
         return {
@@ -307,46 +339,40 @@ updateUserPreferences: tenantProcedure
       z.object({
         accountId: z.string().uuid(),
         actualBalance: z.string().regex(/^\d+(\.\d{1,2})?$/),
-        targetCategoryId: z.string().uuid().optional(),
-        drawdowns: z.array(z.object({ categoryId: z.string().uuid(), amount: z.string() })).optional(),
+        splits: z.array(
+          z.object({
+            categoryId: z.string().uuid(),
+            adjustment: z.string(), // positive for CREDIT, negative for DEBIT
+          })
+        ),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
       const accountId = input.accountId;
-      const actual = parseFloat(input.actualBalance);
 
-      const allCategories = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
-      const linkedCats = allCategories.filter((c) => c.bankAccountId === accountId);
-      const [account] = await ctx.db.select().from(bankAccounts).where(eq(bankAccounts.id, accountId));
-      const buffer = parseFloat(account?.unbudgetedBuffer || "0");
-      const expected = linkedCats.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0) + buffer;
+      // Update bank account balance
+      await ctx.db
+        .update(bankAccounts)
+        .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
+        .where(eq(bankAccounts.id, accountId));
 
-      const diff = actual - expected;
+      // Record transaction for each split adjustment
+      for (const split of input.splits) {
+        const adj = parseFloat(split.adjustment);
+        if (Math.abs(adj) < 0.01) continue;
 
-      if (Math.abs(diff) < 0.01) {
-        await ctx.db
-          .update(bankAccounts)
-          .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
-          .where(eq(bankAccounts.id, accountId));
-        return { success: true, diff: 0 };
-      }
-
-      if (diff > 0) {
-        let surplusCatId = input.targetCategoryId;
-        if (!surplusCatId) {
-          const fallback = linkedCats.find((c) => c.type === "GOAL") || linkedCats.find((c) => c.type === "EVERYDAY") || allCategories[0];
-          surplusCatId = fallback?.id;
-        }
-
-        if (!surplusCatId) throw new Error("Please select a target category to allocate the surplus.");
+        const cat = await ctx.db.query.categories.findFirst({
+          where: eq(categories.id, split.categoryId),
+        });
+        const categoryName = cat ? cat.name : "Category";
 
         await recordExpenseCommand(
           {
-            categoryId: surplusCatId,
-            amount: diff.toFixed(2),
-            flowType: "CREDIT",
+            categoryId: split.categoryId,
+            amount: Math.abs(adj).toFixed(2),
+            flowType: adj > 0 ? "CREDIT" : "DEBIT",
             source: "MANUAL",
-            note: `Bank Reconciliation Surplus adjustment`,
+            note: `${categoryName} Pool Adjustment`,
             recordedAt: new Date().toISOString(),
           },
           ctx.tenantId!,
@@ -354,86 +380,9 @@ updateUserPreferences: tenantProcedure
           ctx.userId!,
           ctx.db
         );
-      } else {
-        const drawdowns = input.drawdowns || [];
-        if (drawdowns.length === 0) {
-          let remainingDeficit = Math.abs(diff);
-          const sortedCats = [...linkedCats].sort((a, b) => {
-            const priorityMap = { EVERYDAY: 1, GOAL: 2, REGULAR: 3 };
-            return priorityMap[a.type] - priorityMap[b.type];
-          });
-
-          for (const cat of sortedCats) {
-            if (remainingDeficit <= 0.005) break;
-            const catBalance = Math.max(0, parseFloat(cat.currentBalance));
-            const takeAmount = Math.min(catBalance, remainingDeficit);
-            if (takeAmount > 0) {
-              await recordExpenseCommand(
-                {
-                  categoryId: cat.id,
-                  amount: takeAmount.toFixed(2),
-                  flowType: "DEBIT",
-                  source: "MANUAL",
-                  note: `Bank Reconciliation Deficit adjustment`,
-                  recordedAt: new Date().toISOString(),
-                },
-                ctx.tenantId!,
-                ctx.appId!,
-                ctx.userId!,
-                ctx.db
-              );
-              remainingDeficit -= takeAmount;
-            }
-          }
-
-          if (remainingDeficit > 0.005) {
-            const everydayCat = linkedCats.find((c) => c.type === "EVERYDAY") || allCategories.find((c) => c.type === "EVERYDAY");
-            if (everydayCat) {
-              await recordExpenseCommand(
-                {
-                  categoryId: everydayCat.id,
-                  amount: remainingDeficit.toFixed(2),
-                  flowType: "DEBIT",
-                  source: "MANUAL",
-                  note: `Bank Reconciliation Deficit unallocated adjustment`,
-                  recordedAt: new Date().toISOString(),
-                },
-                ctx.tenantId!,
-                ctx.appId!,
-                ctx.userId!,
-                ctx.db
-              );
-            }
-          }
-        } else {
-          for (const item of drawdowns) {
-            const takeAmt = parseFloat(item.amount);
-            if (takeAmt > 0) {
-              await recordExpenseCommand(
-                {
-                  categoryId: item.categoryId,
-                  amount: takeAmt.toFixed(2),
-                  flowType: "DEBIT",
-                  source: "MANUAL",
-                  note: `Bank Reconciliation Specified Deficit adjustment`,
-                  recordedAt: new Date().toISOString(),
-                },
-                ctx.tenantId!,
-                ctx.appId!,
-                ctx.userId!,
-                ctx.db
-              );
-            }
-          }
-        }
       }
 
-      await ctx.db
-        .update(bankAccounts)
-        .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
-        .where(eq(bankAccounts.id, accountId));
-
-      return { success: true, diff };
+      return { success: true };
     }),
 
   exportMyData: tenantProcedure

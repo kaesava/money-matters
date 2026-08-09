@@ -12,21 +12,7 @@ export async function createCategoryCommand(
   dbClient: PgDatabase<any, any, any> = db
 ) {
   return await dbClient.transaction(async (tx) => {
-    // 1. If this is default excess, disable other default excess
-    if (input.isDefaultExcess) {
-      await tx
-        .update(categories)
-        .set({ isDefaultExcess: false, updatedBy: userId, updatedAt: new Date() })
-        .where(
-          and(
-            eq(categories.tenantId, tenantId),
-            eq(categories.appId, appId),
-            eq(categories.isDefaultExcess, true)
-          )
-        );
-    }
-
-    // 2. Insert category
+    // 1. Insert category
     const [cat] = await tx
       .insert(categories)
       .values({
@@ -35,9 +21,9 @@ export async function createCategoryCommand(
         isCommitted: input.isCommitted,
         monthlyAmount: input.monthlyAmount || null,
         everydayAllowanceAmount: input.everydayAllowanceAmount || null,
-        isDefaultExcess: input.isDefaultExcess,
+        enteredAmount: input.enteredAmount || null,
+        budgetFrequency: input.budgetFrequency || "MONTHLY",
         rolloverRule: input.rolloverRule || "ROLLOVER",
-        isDefaultSavings: input.isDefaultSavings || false,
         icon: input.icon || null,
         colour: input.colour || null,
         tenantId,

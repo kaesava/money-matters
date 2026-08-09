@@ -111,10 +111,14 @@ households (tenant)
 
 ## 5. Core Engines & Services
 
-### 5.1 Onboarding Estimation Engine (Interactive Quiz)
-- Takes user answers (housing status, car details, kids/schooling, health, debt, everyday spend sliders).
-- Executes background estimation using 2025/2026 ABS & RACQ Australian benchmark algorithms.
-- Normalizes all costs to monthly amounts (`REGULAR`, `GOAL`, `EVERYDAY`) for user confirmation before seeding tenant categories and schedules.
+### 5.1 Onboarding Estimation Engine & Re-Setup Budget Capability (Interactive Quiz)
+- Takes user answers (`QuizAnswers`: dynamic income sources array `incomes`, housing status, per-vehicle configuration array `vehicles`, per-child configuration array `children`, health, debt, everyday spend sliders).
+- Executes real-time estimation using 2025/2026 ABS & RACQ Australian benchmark algorithms in `@money-matters/types` (`calculateQuizEstimates`).
+- Generates normalized monthly targets across **Regular Bills**, **Goal Sinking Funds**, and **Everyday Spending Categories** (Groceries, Dining, Personal, Incidentals).
+- Supports full category customization (custom category additions, amount overrides, and category deletions).
+- Includes **Info Tooltips (ℹ️)** explaining calculation rationale and a **Discard Warning Modal** on cancellation.
+- Enforces an automated **Zero-Categories Redirect Guard** on dashboard entry.
+- **Re-Run Budget Setup (`mode=rerun`)**: Accessible via `Settings → Re-run Budget Setup` on Web (`/setup?mode=rerun`) and Mobile (`/(setup)?mode=rerun`). Executes the backend `reSetupBudget` capability (`packages/capabilities/budgeting/src/commands/re-setup-budget.command.ts`) to adjust pool caps and categories while soft-archiving removed categories with transactions to preserve historical audit trails.
 
 ### 5.2 5-Step Waterfall Cascade Engine & Category Bucket Rules
 - **Category Bucket Rules**:
