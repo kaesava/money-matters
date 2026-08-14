@@ -95,8 +95,20 @@ export function CategoryFormModal({
       return;
     }
 
+    const numMonthly = parseFloat(monthlyAmount);
+    const numTarget = parseFloat(targetAmount);
+    const numAllowance = parseFloat(everydayTargetKeepAmount);
+
+    if ((monthlyAmount && (isNaN(numMonthly) || numMonthly < 0)) ||
+        (targetAmount && (isNaN(numTarget) || numTarget < 0)) ||
+        (everydayTargetKeepAmount && (isNaN(numAllowance) || numAllowance < 0))) {
+      setErrorMsg("Amount figures cannot be negative or invalid numbers.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMsg("");
+
 
     try {
       if (isEdit && categoryToEdit) {
