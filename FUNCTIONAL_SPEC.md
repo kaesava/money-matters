@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-09  
-> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration), Interactive Estimation Quiz Onboarding across Web & Mobile, Backend `reSetupBudget` capability integration for Re-Run Budget Setup (`/setup?mode=rerun` and `/(setup)?mode=rerun`), 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System (Streamlined Zone Hero Card, Two-Tier Severity Attention List, Permanent 3-Way Flow Filter), Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
+> **Last updated:** 2026-08-14  
+> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration with 7-Day Read-Only Grace Period), 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, Interactive Estimation Quiz Onboarding across Web & Mobile, Backend `reSetupBudget` capability integration for Re-Run Budget Setup (`/setup?mode=rerun` and `/(setup)?mode=rerun`), 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 
@@ -10,6 +10,12 @@
 Money Matters is a forward-looking allocation budget app designed for Australian households and families.
 - **Freemium Commercial Model**: 30-day full Household trial on sign-up (no credit card required). Expired trials enter a 7-day read-only grace period before dropping to the permanent Free plan. Users can upgrade anytime to the Household plan ($9.99/mo or $89/yr, with a $69/yr founding member launch price).
 - **Free Tier vs Household Plan**: Free plan retains core waterfall allocation, 90 days transaction history, and up to 3 Goal categories. Household plan unlocks full transaction history, unlimited Goal categories, Big 4 AU Bank CSV statement import, and file notes/attachments.
+- **7-Day Read-Only Grace Period & Expiration Fallback**: When Stripe subscription payment fails or is canceled (`invoice.payment_failed` / `customer.subscription.deleted`), the tenant enters a 7-day read-only grace period where financial data remains accessible before seamlessly falling back to the permanent Free Tier cap (max 3 goals, read-only history beyond 90 days). If payment succeeds within 7 days (`invoice.payment_succeeded`), full subscription access is immediately restored.
+- **5-Level "Can We Afford This?" Cashflow Engine**: Evaluates purchases against a 5-level multi-tier decision matrix:
+  1. *Bill Buffer Protection*: Automatically reserves all upcoming bill expense events due before the next payday (`expectedDate <= nextPaycheckDate`), ensuring Everyday cash is strictly evaluated as `netAvailableCash = max(0, everydayBalance - billsReserved)`.
+  2. *Daily Pacing Velocity ($/day)*: Computes `dailyPacingAfterSpend = (everydayBalance - amount - billsReserved) / daysUntilPayday`. Triggers a 🟡 `PACING_WARNING` if daily discretionary allowance drops below $15.00/day.
+  3. *5 Decision Outcomes*: 🟢 `SAFE_YES` (healthy daily pacing), 🟡 `PACING_WARNING` (cash available but tight pacing), 🟠 `IMPACT_GOALS` (dips into uncommitted goal surplus), 🔵 `WAIT_FOR_PAYDAY` (covered by incoming paycheck within 14 days), 🔴 `HARD_NO` (unavoidable bill default/shortfall).
+  4. *Transparent Reasoning Chain*: Displays a step-by-step cashflow breakdown in the UI detailing available cash, reserved bills, and remaining daily allowance velocity.
 - **Everyday Pool**: Single aggregated discretionary spending pool per tenant (groceries, dining, transport, personal).
 - **Unified Bills Pool**: Single aggregated pool for all recurring fixed and semi-fixed obligations (mortgage/rent, utilities, insurance, phone/internet, subscriptions). Sub-categories serve as setup estimation sliders and transaction tags without maintaining separate envelope buckets. Automatic roll-over leaves leftover bills money in the pool, reducing the required top-up on the next paycheck.
 - **Due-Date Guardrail Engine**: Background check evaluating whether upcoming bills in the next 14 days exceed the current Bills Pool balance. Displays a calm amber card on the Dashboard if a shortfall is detected.
@@ -20,6 +26,7 @@ Money Matters is a forward-looking allocation budget app designed for Australian
   3. *Committed Goals & Emergency Buffer*: Allocates target monthly savings contribution.
   4. *Everyday Top-Up*: Tops up pooled Everyday discretionary balance to target cap.
   5. *Surplus Sweep*: Sweeps residual unallocated income strictly into the designated `isSurplusTarget` GOAL category (default: *"Surplus & Offset Reserve"*).
+
 - **Surplus Sweep & Catch-Up Mechanics**: System enforces a single designated `isSurplusTarget` Goal category per household. Deletion of the active Surplus Target category is blocked unless a replacement Goal category is selected. On login after month boundaries, if un-swept Everyday balances exist, an interactive **Catch-Up Sweep Modal** prompts the user to sweep leftover funds into their designated Surplus Target category (or keep them in Everyday spending per household settings).
 - **Settings Re-Run Budget Setup Workflow**: Preservative budget adjustment accessible via `Settings → Re-run Budget Setup`. Pre-fills current config into the wizard and presents a final **Budget Impact Review Panel** showing net monthly cap diffs (+/- $), sub-category changes, next-payday effective date notice, and Apply/Cancel controls (0 DB changes on cancel).
 - **Actionable Bank Transfer Guidance**: Actionable bank transfer prompt cards with 1-tap `[Copy Amount]` buttons when changing pool bank account links in Settings, plus a 1-tap **Payday Transfer Plan Card** post-allocation for Osko/PayID mobile banking transfers.

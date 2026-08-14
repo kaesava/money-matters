@@ -151,7 +151,28 @@ households (tenant)
 - **Pool Pacing Progress Bars (`DualPoolBar`)**: Stacked progress bars in Everyday and Bills pool headers on Categories screens tracking month elapsed vs pool spent percentage.
 - **Goal Target Countdown & Pace Math**: Dynamically computes target date countdowns (`daysLeftText`) and required monthly savings pace (`(target - balance) / monthsRemaining`) for Save Toward categories.
 
-### 5.6 Database & Network Optimization Standards
+### 5.6 5-Level "Can We Afford This?" Engine (`@money-matters/capability-transactions`)
+- **Bill Buffer Protection**: Queries `expenseEvents` where `status = 'UPCOMING'` and `expectedDate <= nextPaycheckDate`. Reserves upcoming bill deficits (`billsReserved`) before calculating spendable cash `netAvailableCash = max(0, everydayBalance - billsReserved)`.
+- **Daily Pacing Velocity**: Computes `dailyPacingAfterSpend = (everydayBalance - amount - billsReserved) / daysUntilPayday`. Triggers `PACING_WARNING` if daily discretionary allowance drops below $15.00/day.
+- **5-Level Discriminated Union Matrix (`CanAffordVerdictDto`)**:
+  - `SAFE_YES`: Cash available + healthy daily allowance ($\ge \$15$/day).
+  - `PACING_WARNING`: Cash available, but tight daily spending allowance ($< \$15$/day).
+  - `IMPACT_GOALS`: Everyday cash short, but covers purchase by dipping into uncommitted goal surplus.
+  - `WAIT_FOR_PAYDAY`: Incoming paycheck within 14 days will cover shortfall.
+  - `HARD_NO`: Purchase causes an unavoidable bill default or debt deficit.
+- **Rationale Step Breakdown**: Returns a step-by-step array of formatted cashflow strings rendered directly in the UI.
+
+### 5.7 Stripe Billing & 7-Day Read-Only Grace Period (`@money-matters/capability-billing`)
+- **Decoupled Capability Architecture**: Stripe Checkout (`createCheckoutSessionCommand`), Customer Portal (`createCustomerPortalSessionCommand`), and Webhooks (`handleStripeWebhook`) isolated inside `packages/capabilities/billing`.
+- **Cryptographic Signature Verification**: Webhook handler (`POST /webhooks/stripe`) validates raw body signatures via `stripe.webhooks.constructEvent`.
+- **Automated Grace Period & Expiration Fallback**:
+  - `invoice.payment_failed` / `customer.subscription.deleted` $\rightarrow$ Triggers `deactivateTenantCommand` setting `subscriptionStatus = 'PAST_DUE'` and populating 7-day `trialGraceEndsAt` timestamp. Dashboard access remains unblocked in read-only state.
+  - `invoice.payment_succeeded` $\rightarrow$ Triggers `activateSubscriptionCommand`, resetting `subscriptionStatus = 'SUBSCRIBED'` and `premiumEnabled = true`.
+  - `getSubscriptionStatus` Query Check $\rightarrow$ Evaluates `now > trialGraceEndsAt`. If 7 days elapse without payment recovery, automatically updates database record: `subscriptionStatus = 'FREE_TIER'`.
+
+
+### 5.8 Database & Network Optimization Standards
+
 - **Bulk Database Operations (Anti-N+1)**: All database writes and queries must be batched. Individual inserts or queries in loops are forbidden. Plan lines and ledger entries are prepared in-memory and written in bulk. Deletions and status transitions must use `inArray` operators (e.g. archiving category arrays or deleting account relations) to prevent query waterfalls.
 - **Parallelized Network Operations**: Onboarding configurations (e.g., category setup or schedule target insertions) must execute mutations in parallel using batch wrappers (`Promise.all`), preventing sequential async waterfalls.
 - **Strict Whitelisted CORS**: Cross-origin resource sharing (CORS) is restricted to whitelisted domains (`*.kaesava.au` and dev `localhost`). Global wildcards (`origin: true`) are explicitly banned.
