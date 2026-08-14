@@ -339,6 +339,17 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
     // GOAL (Target Savings Pools)
     {
+      key: "surplus_reserve",
+      name: "Surplus & Offset Reserve",
+      type: "GOAL" as const,
+      isCommitted: false,
+      isSurplusTarget: true,
+      icon: "bank",
+      color: "#00B4A6",
+      target: null,
+      due: null,
+    },
+    {
       key: "emergency",
       name: "Emergency Reserve (6 Mo Buffer)",
       type: "GOAL" as const,
@@ -366,7 +377,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       type: "GOAL" as const,
       isCommitted: false,
       excess: false,
-      isSavingsDefault: true,
+      isSavingsDefault: false,
       icon: "plane",
       color: "#00B4A6",
       target: "8500.00",
@@ -388,11 +399,17 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   const insertedCatMap: Record<string, any> = {};
 
   for (const cat of canonicalCategories) {
+    const isEssential = cat.key === "mortgage" || cat.key === "electricity";
+    const isSurplusTarget = Boolean((cat as any).isSurplusTarget);
+
     const [inserted] = await db
       .insert(categories)
       .values({
         name: cat.name,
         type: cat.type,
+        isCommitted: cat.isCommitted ?? false,
+        isEssential,
+        isSurplusTarget,
         monthlyAmount: cat.type === "REGULAR" ? cat.monthlyAmount : null,
         everydayAllowanceAmount: cat.type === "EVERYDAY" ? cat.allowance : null,
         enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : (cat.type === "EVERYDAY" ? cat.allowance : null),
@@ -404,6 +421,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
         updatedBy: userId,
       })
       .returning();
+
 
     insertedCatMap[cat.key] = inserted;
 

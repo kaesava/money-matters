@@ -129,7 +129,8 @@ households (tenant)
 2. **`REGULAR` (Bills)**: Prorates monthly bill targets by paycheck frequency.
 3. **`GOAL` committed**: Allocates target monthly contribution.
 4. **`EVERYDAY` top-up cap**: Tops up pooled Everyday balance to target cap.
-5. **`GOAL` uncommitted / Surplus sweep**: Sweeps residual income to default excess category.
+5. **`GOAL` uncommitted / Surplus sweep**: Sweeps residual income strictly into the category where `isSurplusTarget === true` (default: *"Surplus & Offset Reserve"*).
+
 
 ### 5.3 Bank CSV Import Engine (`@money-matters/capability-transactions`)
 - Parses CSV exports from CBA, Westpac, ANZ, NAB, ING, and Macquarie.

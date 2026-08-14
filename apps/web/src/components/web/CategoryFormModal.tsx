@@ -18,9 +18,12 @@ export interface CategoryFormModalProps {
     targetDate?: string | null;
     bankAccountId?: string | null;
     everydayTargetKeepAmount?: string | null;
+    isEssential?: boolean | null;
+    isSurplusTarget?: boolean | null;
   } | null;
   onSuccess?: () => void;
 }
+
 
 export function CategoryFormModal({
   isOpen,
@@ -44,6 +47,8 @@ export function CategoryFormModal({
   const [targetDate, setTargetDate] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");
   const [everydayTargetKeepAmount, setEverydayTargetKeepAmount] = useState("");
+  const [isEssential, setIsEssential] = useState(false);
+  const [isSurplusTarget, setIsSurplusTarget] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -56,6 +61,8 @@ export function CategoryFormModal({
       setTargetDate(categoryToEdit.targetDate || "");
       setBankAccountId(categoryToEdit.bankAccountId || "");
       setEverydayTargetKeepAmount(categoryToEdit.everydayTargetKeepAmount || "");
+      setIsEssential(Boolean(categoryToEdit.isEssential));
+      setIsSurplusTarget(Boolean(categoryToEdit.isSurplusTarget));
     } else {
       setName("");
       setType("REGULAR");
@@ -64,8 +71,11 @@ export function CategoryFormModal({
       setTargetDate("");
       setBankAccountId("");
       setEverydayTargetKeepAmount("");
+      setIsEssential(false);
+      setIsSurplusTarget(false);
     }
     setErrorMsg("");
+
   }, [categoryToEdit, isOpen]);
 
   const isDirty = isEdit
@@ -99,6 +109,8 @@ export function CategoryFormModal({
             targetAmount: type === "GOAL" ? targetAmount : undefined,
             targetDate: type === "GOAL" ? targetDate : undefined,
             everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
+            isEssential: type === "REGULAR" ? isEssential : false,
+            isSurplusTarget: type === "GOAL" ? isSurplusTarget : false,
           },
         });
       } else {
@@ -109,8 +121,11 @@ export function CategoryFormModal({
           targetAmount: type === "GOAL" ? targetAmount : undefined,
           targetDate: type === "GOAL" ? targetDate : undefined,
           everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
+          isEssential: type === "REGULAR" ? isEssential : false,
+          isSurplusTarget: type === "GOAL" ? isSurplusTarget : false,
         });
       }
+
 
       await utils.listCategories.invalidate();
       posthog.capture(isEdit ? "category_updated" : "category_created", {
@@ -182,47 +197,69 @@ export function CategoryFormModal({
 
         {/* Type-Specific Fields */}
         {type === "REGULAR" && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {t("categories.monthlyAmountLabel")}
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="0.00"
-              value={monthlyAmount}
-              onChange={(e) => setMonthlyAmount(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
-            />
-          </div>
-        )}
-
-        {type === "GOAL" && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                {t("categories.targetLabel")}
+                {t("categories.monthlyAmountLabel")}
               </label>
               <input
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                value={targetAmount}
-                onChange={(e) => setTargetAmount(e.target.value)}
+                value={monthlyAmount}
+                onChange={(e) => setMonthlyAmount(e.target.value)}
                 className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                {t("categories.targetDateLabel")}
-              </label>
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-slate-50 p-3 rounded-xl border border-zinc-200">
               <input
-                type="date"
-                value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
-                className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+                type="checkbox"
+                checked={isEssential}
+                onChange={(e) => setIsEssential(e.target.checked)}
+                className="w-4 h-4 text-[#2563eb] rounded"
               />
+              ⭐ Mark as Essential Priority Bill (Funded before standard bills)
+            </label>
+          </div>
+        )}
+
+        {type === "GOAL" && (
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                  {t("categories.targetLabel")}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={targetAmount}
+                  onChange={(e) => setTargetAmount(e.target.value)}
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                  {t("categories.targetDateLabel")}
+                </label>
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+                />
+              </div>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+              <input
+                type="checkbox"
+                checked={isSurplusTarget}
+                onChange={(e) => setIsSurplusTarget(e.target.checked)}
+                className="w-4 h-4 text-emerald-600 rounded"
+              />
+              🏦 Designated Surplus & Offset Target Category
+            </label>
           </div>
         )}
 
@@ -241,6 +278,7 @@ export function CategoryFormModal({
             />
           </div>
         )}
+
 
         {/* Linked Bank Account */}
         <div className="flex flex-col gap-1">

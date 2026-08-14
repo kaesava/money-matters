@@ -25,6 +25,8 @@ export const CreateCategoryCommand = z.object({
   name: z.string().min(1),
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   isCommitted: z.boolean().default(false).optional(),
+  isEssential: z.boolean().default(false).optional(),
+  isSurplusTarget: z.boolean().default(false).optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   everydayAllowanceAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   enteredAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
@@ -40,6 +42,8 @@ export const UpdateCategoryCommand = z.object({
   name: z.string().min(1).optional(),
   type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]).optional(),
   isCommitted: z.boolean().optional(),
+  isEssential: z.boolean().optional(),
+  isSurplusTarget: z.boolean().optional(),
   monthlyAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   everydayAllowanceAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   enteredAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
@@ -50,6 +54,7 @@ export const UpdateCategoryCommand = z.object({
   icon: z.string().optional(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
 }).strict();
+
 
 export const CreateCategoryScheduleCommand = z.object({
   categoryId: z.string().uuid(),

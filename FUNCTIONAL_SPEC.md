@@ -19,7 +19,8 @@ Money Matters is a forward-looking allocation budget app designed for Australian
   2. *Bills Pool Allocation*: Tops up the unified Bills Pool: `BillsTopUp = max(0, TargetBillsCap - CurrentBillsPoolBalance)`.
   3. *Committed Goals & Emergency Buffer*: Allocates target monthly savings contribution.
   4. *Everyday Top-Up*: Tops up pooled Everyday discretionary balance to target cap.
-  5. *Surplus Sweep*: Sweeps residual unallocated income to the default excess category (Emergency Fund / Offset).
+  5. *Surplus Sweep*: Sweeps residual unallocated income strictly into the designated `isSurplusTarget` GOAL category (default: *"Surplus & Offset Reserve"*).
+- **Surplus Sweep & Catch-Up Mechanics**: System enforces a single designated `isSurplusTarget` Goal category per household. Deletion of the active Surplus Target category is blocked unless a replacement Goal category is selected. On login after month boundaries, if un-swept Everyday balances exist, an interactive **Catch-Up Sweep Modal** prompts the user to sweep leftover funds into their designated Surplus Target category (or keep them in Everyday spending per household settings).
 - **Settings Re-Run Budget Setup Workflow**: Preservative budget adjustment accessible via `Settings → Re-run Budget Setup`. Pre-fills current config into the wizard and presents a final **Budget Impact Review Panel** showing net monthly cap diffs (+/- $), sub-category changes, next-payday effective date notice, and Apply/Cancel controls (0 DB changes on cancel).
 - **Actionable Bank Transfer Guidance**: Actionable bank transfer prompt cards with 1-tap `[Copy Amount]` buttons when changing pool bank account links in Settings, plus a 1-tap **Payday Transfer Plan Card** post-allocation for Osko/PayID mobile banking transfers.
 - **Partner Collaboration**: Shared household context (`tenantId`) giving partners full read/write visibility.

@@ -19,6 +19,8 @@ export async function createCategoryCommand(
         name: input.name,
         type: input.type,
         isCommitted: input.isCommitted,
+        isEssential: input.isEssential ?? false,
+        isSurplusTarget: input.isSurplusTarget ?? false,
         monthlyAmount: input.monthlyAmount || null,
         everydayAllowanceAmount: input.everydayAllowanceAmount || null,
         enteredAmount: input.enteredAmount || null,
@@ -32,6 +34,7 @@ export async function createCategoryCommand(
         updatedBy: userId,
       })
       .returning();
+
 
     if (input.targetAmount && input.type === "GOAL") {
       await tx.insert(categorySchedules).values({

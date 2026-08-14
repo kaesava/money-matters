@@ -1,13 +1,13 @@
 /**
- * Paycheck Cascade Waterfall Allocation Engine (V2 - Smart Due Date & Essential Hierarchy)
+ * Paycheck Cascade Waterfall Allocation Engine (V3 - Integer Cent Math & Balance-Aware Capping)
  * 
  * Implements deterministic 5-step waterfall logic distributing incoming paychecks:
  * 0. DEFICIT REPAIR: Restores any overdrawn/negative buckets to $0.
- * 1. ESSENTIAL REGULAR (Bills): Priority 1 bills (Rent/Mortgage, Utilities) ordered by due date.
- * 2. STANDARD REGULAR (Bills): Other bills prorated with exact annualization (12 * monthly / paychecksPerYear).
+ * 1. ESSENTIAL REGULAR (Bills): Priority 1 bills (Rent/Mortgage, Utilities) ordered by due date, capped by current balance deficit.
+ * 2. STANDARD REGULAR (Bills): Other bills prorated and capped by current balance deficit.
  * 3. GOAL (Committed): Priority savings targets funded before discretionary spending.
  * 4. EVERYDAY Top-Up: Top up Everyday bucket to target allowance cap.
- * 5. GOAL (Uncommitted) & Default Excess: Sweeps all remaining residual funds to Offset/Default bucket.
+ * 5. GOAL (Uncommitted) & Residual Sweep: Sweeps 100% of remaining funds to designated isSurplusTarget category.
  */
 
 export type BucketType = "REGULAR" | "GOAL" | "EVERYDAY";
@@ -18,6 +18,7 @@ export interface EngineBucket {
   type: BucketType;
   isEssential?: boolean;
   isCommitted?: boolean;
+  isSurplusTarget?: boolean;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
   targetDate?: string | null;
@@ -45,31 +46,41 @@ export interface AllocationEngineOutput {
   unallocatedAmount: number;
 }
 
+/** Helper to convert decimal dollars to integer cents */
+function toCents(amount: number): number {
+  return Math.round((amount || 0) * 100);
+}
+
+/** Helper to convert integer cents back to decimal dollars */
+function toDollars(cents: number): number {
+  return Number((cents / 100).toFixed(2));
+}
+
 export function runAllocationEngine(input: AllocationEngineInput): AllocationEngineOutput {
-  let remaining = input.incomeAmount;
-  const lines: AllocationLine[] = [];
+  let remainingCents = toCents(input.incomeAmount);
+  const linesMap = new Map<string, { bucketName: string; amountCents: number; reasonings: string[] }>();
 
   const paychecksPerYear = Math.max(1, Math.round(365 / input.paycheckFrequencyDays));
 
   // Step 0: DEFICIT REPAIR — Priority First for any negative bucket balances
   for (const bucket of input.buckets) {
     if (bucket.currentBalance < 0) {
-      const deficit = Math.abs(bucket.currentBalance);
-      const allocated = Math.min(remaining, deficit);
-      remaining = Number((remaining - allocated).toFixed(2));
+      const deficitCents = Math.abs(toCents(bucket.currentBalance));
+      const allocatedCents = Math.min(remainingCents, deficitCents);
+      remainingCents -= allocatedCents;
 
-      lines.push({
-        bucketId: bucket.id,
-        bucketName: bucket.name,
-        proposedAmount: allocated,
-        reasoning: `Deficit repair for negative balance (-$${deficit.toFixed(2)}): $${allocated.toFixed(2)} allocated.`,
-      });
+      if (allocatedCents > 0) {
+        linesMap.set(bucket.id, {
+          bucketName: bucket.name,
+          amountCents: allocatedCents,
+          reasonings: [`Deficit repair for negative balance (-$${Math.abs(bucket.currentBalance).toFixed(2)}): $${toDollars(allocatedCents).toFixed(2)} allocated.`],
+        });
+      }
     }
   }
 
-  // Helper to allocate REGULAR bills
+  // Helper to allocate REGULAR bills (Balance-Aware & Capped)
   const fundRegularBills = (bucketsList: EngineBucket[]) => {
-    // Sort by due date urgency
     const sorted = [...bucketsList].sort((a, b) => {
       if (!a.dueDate) return 1;
       if (!b.dueDate) return -1;
@@ -77,23 +88,44 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     });
 
     for (const bucket of sorted) {
-      const monthlyAmt = bucket.monthlyAmount ?? 0;
-      const prorated = (monthlyAmt * 12) / paychecksPerYear;
-      const needed = Math.max(0, Number(prorated.toFixed(2)));
-      const allocated = Math.min(remaining, needed);
-      remaining = Number((remaining - allocated).toFixed(2));
+      const monthlyCents = toCents(bucket.monthlyAmount ?? 0);
+      const currentCents = Math.max(0, toCents(bucket.currentBalance));
+      
+      // Prorated tranche required for this paycheck cycle
+      const proratedCents = Math.round((monthlyCents * 12) / paychecksPerYear);
+      
+      // Bill Urgency Acceleration: If due date falls within current pay cycle (due within frequencyDays), accelerate required allocation
+      let isUrgentDue = false;
+      if (bucket.dueDate) {
+        const dueD = new Date(bucket.dueDate);
+        const cutoffD = new Date(input.paycheckDate.getTime() + input.paycheckFrequencyDays * 24 * 60 * 60 * 1000);
+        if (dueD <= cutoffD) {
+          isUrgentDue = true;
+        }
+      }
 
-      const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
-      if (existingIndex >= 0) {
-        lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
-        lines[existingIndex]!.reasoning += ` Plus prorated bill target of $${allocated.toFixed(2)}.`;
-      } else {
-        lines.push({
-          bucketId: bucket.id,
-          bucketName: bucket.name,
-          proposedAmount: allocated,
-          reasoning: `Prorated bill target ($${monthlyAmt.toFixed(2)}/mo): $${allocated.toFixed(2)} allocated (due ${bucket.dueDate ?? "recurring"}).`,
-        });
+      // Balance-Aware Capping & Urgency Acceleration:
+      const fullDeficitCents = Math.max(0, monthlyCents - currentCents);
+      const targetNeededCents = isUrgentDue ? fullDeficitCents : Math.min(proratedCents, fullDeficitCents);
+      
+      const allocatedCents = Math.min(remainingCents, targetNeededCents);
+      remainingCents -= allocatedCents;
+
+
+      if (allocatedCents > 0 || proratedCents > 0) {
+        const existing = linesMap.get(bucket.id);
+        const reasoningMsg = `Prorated bill target ($${toDollars(monthlyCents).toFixed(2)}/mo): $${toDollars(allocatedCents).toFixed(2)} allocated (due ${bucket.dueDate ?? "recurring"}).`;
+        
+        if (existing) {
+          existing.amountCents += allocatedCents;
+          existing.reasonings.push(reasoningMsg);
+        } else {
+          linesMap.set(bucket.id, {
+            bucketName: bucket.name,
+            amountCents: allocatedCents,
+            reasonings: [reasoningMsg],
+          });
+        }
       }
     }
   };
@@ -109,9 +141,9 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   // Helper for GOAL targets
   const fundGoals = (bucketsList: EngineBucket[]) => {
     for (const bucket of bucketsList) {
-      const target = bucket.targetAmount ?? 0;
-      const current = Math.max(0, bucket.currentBalance);
-      const gap = Math.max(0, target - current);
+      const targetCents = toCents(bucket.targetAmount ?? 0);
+      const currentCents = Math.max(0, toCents(bucket.currentBalance));
+      const gapCents = Math.max(0, targetCents - currentCents);
       
       let monthsRemaining = 12;
       if (bucket.targetDate) {
@@ -121,22 +153,25 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         monthsRemaining = Math.max(1, Math.ceil(diffDays / 30.4375));
       }
 
-      const monthlyTarget = gap / monthsRemaining;
-      const needed = Math.max(0, Number(((monthlyTarget * 12) / paychecksPerYear).toFixed(2)));
-      const allocated = Math.min(remaining, needed);
-      remaining = Number((remaining - allocated).toFixed(2));
+      const monthlyTargetCents = Math.round(gapCents / monthsRemaining);
+      const neededCents = Math.round((monthlyTargetCents * 12) / paychecksPerYear);
+      const allocatedCents = Math.min(remainingCents, neededCents);
+      remainingCents -= allocatedCents;
 
-      const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
-      if (existingIndex >= 0) {
-        lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
-        lines[existingIndex]!.reasoning += ` Plus goal target allocation of $${allocated.toFixed(2)}.`;
-      } else {
-        lines.push({
-          bucketId: bucket.id,
-          bucketName: bucket.name,
-          proposedAmount: allocated,
-          reasoning: `Target $${target.toFixed(2)} by ${bucket.targetDate ?? "unspecified"}: $${allocated.toFixed(2)} allocated.`,
-        });
+      if (allocatedCents > 0 || neededCents > 0) {
+        const existing = linesMap.get(bucket.id);
+        const reasoningMsg = `Target $${toDollars(targetCents).toFixed(2)} by ${bucket.targetDate ?? "unspecified"}: $${toDollars(allocatedCents).toFixed(2)} allocated.`;
+        
+        if (existing) {
+          existing.amountCents += allocatedCents;
+          existing.reasonings.push(reasoningMsg);
+        } else {
+          linesMap.set(bucket.id, {
+            bucketName: bucket.name,
+            amountCents: allocatedCents,
+            reasonings: [reasoningMsg],
+          });
+        }
       }
     }
   };
@@ -148,48 +183,59 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   // Step 4: EVERYDAY Top-Up Cap
   const everydayBuckets = input.buckets.filter((b) => b.type === "EVERYDAY");
   for (const bucket of everydayBuckets) {
-    const targetCap = bucket.targetAmount ?? bucket.monthlyAmount ?? 0;
-    const currentPositiveBal = Math.max(0, bucket.currentBalance);
-    const topUpNeeded = Math.max(0, targetCap - currentPositiveBal);
-    const allocated = Math.min(remaining, topUpNeeded);
-    remaining = Number((remaining - allocated).toFixed(2));
+    const targetCapCents = toCents(bucket.targetAmount ?? bucket.monthlyAmount ?? 0);
+    const currentPositiveCents = Math.max(0, toCents(bucket.currentBalance));
+    const topUpNeededCents = Math.max(0, targetCapCents - currentPositiveCents);
+    const allocatedCents = Math.min(remainingCents, topUpNeededCents);
+    remainingCents -= allocatedCents;
 
-    const existingIndex = lines.findIndex((l) => l.bucketId === bucket.id);
-    if (existingIndex >= 0) {
-      lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
-      lines[existingIndex]!.reasoning += ` Plus Everyday top-up of $${allocated.toFixed(2)}.`;
-    } else {
-      lines.push({
-        bucketId: bucket.id,
-        bucketName: bucket.name,
-        proposedAmount: allocated,
-        reasoning: `Everyday top-up allocation of $${allocated.toFixed(2)} (target cap $${targetCap.toFixed(2)}).`,
-      });
+    if (allocatedCents > 0 || topUpNeededCents > 0) {
+      const existing = linesMap.get(bucket.id);
+      const reasoningMsg = `Everyday top-up allocation of $${toDollars(allocatedCents).toFixed(2)} (target cap $${toDollars(targetCapCents).toFixed(2)}).`;
+      
+      if (existing) {
+        existing.amountCents += allocatedCents;
+        existing.reasonings.push(reasoningMsg);
+      } else {
+        linesMap.set(bucket.id, {
+          bucketName: bucket.name,
+          amountCents: allocatedCents,
+          reasonings: [reasoningMsg],
+        });
+      }
     }
   }
 
-  // Step 5: GOAL (Uncommitted) & Residual Sweep to Default Excess Bucket
-  const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted);
+  // Step 5: GOAL (Uncommitted) & Residual Sweep to Designated Surplus Target Bucket
+  const goalUncommitted = input.buckets.filter((b) => b.type === "GOAL" && !b.isCommitted && !b.isSurplusTarget);
   fundGoals(goalUncommitted);
 
-  const excessBucket = everydayBuckets[0] || input.buckets.find((b) => b.type === "GOAL");
-  if (excessBucket && remaining > 0) {
-    const allocated = remaining;
-    remaining = 0;
+  const excessBucket = input.buckets.find((b) => b.isSurplusTarget) || input.buckets.find((b) => b.type === "GOAL") || everydayBuckets[0];
+  if (excessBucket && remainingCents > 0) {
+    const allocatedCents = remainingCents;
+    remainingCents = 0;
     
-    const existingIndex = lines.findIndex((l) => l.bucketId === excessBucket.id);
-    if (existingIndex >= 0) {
-      lines[existingIndex]!.proposedAmount = Number((lines[existingIndex]!.proposedAmount + allocated).toFixed(2));
-      lines[existingIndex]!.reasoning += ` Swept residual excess surplus of $${allocated.toFixed(2)}.`;
+    const existing = linesMap.get(excessBucket.id);
+    const reasoningMsg = `Swept residual excess surplus of $${toDollars(allocatedCents).toFixed(2)} to designated surplus bucket (${excessBucket.name}).`;
+    
+    if (existing) {
+      existing.amountCents += allocatedCents;
+      existing.reasonings.push(reasoningMsg);
     } else {
-      lines.push({
-        bucketId: excessBucket.id,
+      linesMap.set(excessBucket.id, {
         bucketName: excessBucket.name,
-        proposedAmount: allocated,
-        reasoning: `Swept residual excess surplus of $${allocated.toFixed(2)} to default bucket.`,
+        amountCents: allocatedCents,
+        reasonings: [reasoningMsg],
       });
     }
   }
+
+  const lines: AllocationLine[] = Array.from(linesMap.entries()).map(([bucketId, data]) => ({
+    bucketId,
+    bucketName: data.bucketName,
+    proposedAmount: toDollars(data.amountCents),
+    reasoning: data.reasonings.join(" "),
+  }));
 
   const isInsufficient = input.incomeAmount > 0 && lines.some((l) => {
     const bucket = input.buckets.find((b) => b.id === l.bucketId);
@@ -200,6 +246,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   return {
     status: isInsufficient ? "INSUFFICIENT" : "OK",
     lines,
-    unallocatedAmount: remaining,
+    unallocatedAmount: toDollars(remainingCents),
   };
 }
+

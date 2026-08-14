@@ -18,16 +18,6 @@ import {
 } from "@money-matters/types";
 import { Spinner } from "@money-matters/ui/web";
 
-// Static defaults for non-interactive values
-const HAS_PETS = false;
-const PETS_COUNT = 1;
-const ACTIVE_DEBT_MONTHLY_REPAYMENT = 0;
-const GIVES_CHARITY = false;
-const FAMILY_SUPPORT_MONTHLY_AMOUNT = 0;
-const WEEKLY_GROCERIES = 270;
-const WEEKLY_DINING = 240;
-const WEEKLY_PERSONAL = 100;
-
 function SetupWizardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,6 +26,12 @@ function SetupWizardContent() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+
+  // Step 2: Interactive Lifestyle Sliders
+  const [weeklyGroceries, setWeeklyGroceries] = useState(270);
+  const [weeklyDining, setWeeklyDining] = useState(240);
+  const [weeklyPersonal, setWeeklyPersonal] = useState(100);
+
 
   // Step 1: Dynamic Income Sources List
   const [incomes, setIncomes] = useState<IncomeItem[]>([
@@ -146,14 +142,14 @@ function SetupWizardContent() {
       children: hasKids ? children : [],
       hasPrivateHealth,
       hasGym,
-      hasPets: HAS_PETS,
-      petsCount: HAS_PETS ? PETS_COUNT : 0,
-      activeDebtMonthlyRepayment: ACTIVE_DEBT_MONTHLY_REPAYMENT,
-      givesCharity: GIVES_CHARITY,
-      familySupportMonthlyAmount: FAMILY_SUPPORT_MONTHLY_AMOUNT,
-      weeklyGroceries: WEEKLY_GROCERIES,
-      weeklyDining: WEEKLY_DINING,
-      weeklyPersonal: WEEKLY_PERSONAL,
+      hasPets: false,
+      petsCount: 0,
+      activeDebtMonthlyRepayment: 0,
+      givesCharity: false,
+      familySupportMonthlyAmount: 0,
+      weeklyGroceries,
+      weeklyDining,
+      weeklyPersonal,
     };
   }, [
     incomes,
@@ -166,7 +162,11 @@ function SetupWizardContent() {
     children,
     hasPrivateHealth,
     hasGym,
+    weeklyGroceries,
+    weeklyDining,
+    weeklyPersonal,
   ]);
+
 
   const estimation = useMemo(() => {
     return calculateQuizEstimates(quizAnswers);
@@ -734,7 +734,63 @@ function SetupWizardContent() {
               </label>
             </div>
 
+
+            {/* Everyday Discretionary Spending Sliders */}
+            <div className="flex flex-col gap-4 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
+              <span className="text-xs font-black uppercase tracking-wider text-zinc-400">Weekly Discretionary Spending Estimates</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
+                    <span>🛒 Groceries & Food</span>
+                    <span className="text-[#2563eb]">${weeklyGroceries}/wk</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="100"
+                    max="600"
+                    step="10"
+                    value={weeklyGroceries}
+                    onChange={(e) => setWeeklyGroceries(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
+                    <span>☕ Dining Out & Coffee</span>
+                    <span className="text-[#2563eb]">${weeklyDining}/wk</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="500"
+                    step="10"
+                    value={weeklyDining}
+                    onChange={(e) => setWeeklyDining(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
+                    <span>🛍️ Personal Allowance</span>
+                    <span className="text-[#2563eb]">${weeklyPersonal}/wk</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="20"
+                    max="300"
+                    step="10"
+                    value={weeklyPersonal}
+                    onChange={(e) => setWeeklyPersonal(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between pt-4">
+
               <button
                 onClick={() => setStep(1)}
                 className="px-4 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
@@ -750,6 +806,7 @@ function SetupWizardContent() {
             </div>
           </div>
         )}
+
 
         {/* Step 3: Category & Cap Customization */}
         {step === 3 && (
@@ -829,11 +886,17 @@ function SetupWizardContent() {
               {activeRegular.map((cat) => {
                 const freq = categoryFrequencies[cat.name] || "MONTHLY";
                 const displayVal = convertFromMonthly(cat.monthlyAud, freq);
+                const isEssential = cat.name.toLowerCase().includes("mortgage") || cat.name.toLowerCase().includes("rent") || cat.name.toLowerCase().includes("electricity");
                 return (
                   <div key={cat.name} className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 bg-slate-50/50">
                     <div className="flex items-center gap-2.5">
                       <span className="text-lg">{cat.icon}</span>
-                      <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
+                        {isEssential && (
+                          <span className="text-[10px] font-semibold text-[#2563eb]">⭐ Essential Priority Bill</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <input
@@ -878,11 +941,17 @@ function SetupWizardContent() {
               {activeGoals.map((cat) => {
                 const freq = categoryFrequencies[cat.name] || "MONTHLY";
                 const displayVal = convertFromMonthly(cat.monthlyAud, freq);
+                const isSurplusTarget = cat.name.toLowerCase().includes("surplus") || cat.name.toLowerCase().includes("reserve");
                 return (
-                  <div key={cat.name} className="flex items-center justify-between p-3 rounded-xl border border-zinc-200/80 bg-slate-50/50">
+                  <div key={cat.name} className={`flex items-center justify-between p-3 rounded-xl border ${isSurplusTarget ? 'border-emerald-300 bg-emerald-50/40' : 'border-zinc-200/80 bg-slate-50/50'}`}>
                     <div className="flex items-center gap-2.5">
                       <span className="text-lg">{cat.icon}</span>
-                      <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
+                        {isSurplusTarget && (
+                          <span className="text-[10px] font-semibold text-emerald-700">🏦 Designated Surplus Target</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <input
@@ -920,6 +989,7 @@ function SetupWizardContent() {
                 );
               })}
             </div>
+
 
             {/* Add Custom Category Form */}
             <div className="flex flex-col gap-2 p-3 bg-zinc-100/60 rounded-xl border border-zinc-200/60">

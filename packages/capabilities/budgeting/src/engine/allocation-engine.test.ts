@@ -39,11 +39,13 @@ describe("paycheck cascade allocation engine", () => {
         name: "Everyday Spending",
         type: "EVERYDAY",
         isCommitted: false,
+        isSurplusTarget: true,
         monthlyAmount: null,
         targetAmount: null,
         targetDate: null,
         currentBalance: 150,
       },
+
     ];
 
     const result = runAllocationEngine({

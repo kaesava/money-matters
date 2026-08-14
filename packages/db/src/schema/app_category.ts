@@ -1,5 +1,6 @@
-import { pgTable, uuid, varchar, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
 import { categoryTypeEnum } from "./category.js";
+
 
 /**
  * App-level category templates. NOT tenant-scoped.
@@ -25,8 +26,11 @@ export const appCategories = pgTable("app_categories", {
    * Divide by 26 for fortnightly. Null means no suggested amount.
    */
   annualisedAmount: numeric("annualised_amount", { precision: 12, scale: 2 }),
+  isSurplusTarget: boolean("is_surplus_target").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   createdBy: uuid("created_by").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   updatedBy: uuid("updated_by").notNull(),
 });
+
+
