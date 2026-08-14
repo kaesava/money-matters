@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatHealthStatus } from '../lib/format';
 
@@ -148,8 +149,8 @@ export function UpcomingExpenseModal({
         'Negative Balance Warning',
         `Payment of ${fmt(numAmount)} exceeds "${selectedCat?.name}" balance (${fmt(currentCatBal)}). Category balance will become negative (${fmt(projectedBal)}). Proceed?`,
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Proceed', onPress: () => executeMarkPaid() },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.confirm'), onPress: () => executeMarkPaid() },
         ]
       );
       return;
@@ -194,9 +195,9 @@ export function UpcomingExpenseModal({
       'Permanent Delete Warning',
       'This upcoming expense record will be permanently deleted (not archived). Are you sure?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setSubmitting(true);
@@ -214,7 +215,6 @@ export function UpcomingExpenseModal({
         },
       ]
     );
-
   };
 
   return (
@@ -223,21 +223,21 @@ export function UpcomingExpenseModal({
         <View style={styles.modalCard}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.title}>
-              {isQuickAdd ? 'Quick Record Expense' : `Edit / Mark Paid: ${name || 'Expense'}`}
+              {isQuickAdd ? t('modals.quickExpense.title') : `${t('modals.upcomingExpense.title')}: ${name || 'Expense'}`}
             </Text>
 
             {errorMsg ? <Text style={styles.errorBanner}>{errorMsg}</Text> : null}
 
             {!isQuickAdd && eventToEdit?.isRecurring ? (
               <View style={styles.seriesBanner}>
-                <Text style={styles.seriesTitle}>Single Occurrence Edit</Text>
+                <Text style={styles.seriesTitle}>{t('modals.upcomingExpense.title')}</Text>
                 <Text style={styles.seriesDesc}>
-                  Editing this specific expense date or amount. Edit Master Series →
+                  Editing this specific expense date or amount.
                 </Text>
               </View>
             ) : null}
 
-            <Text style={styles.label}>Expense Bill Name</Text>
+            <Text style={styles.label}>{t('modals.upcomingExpense.billName')}</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -247,7 +247,7 @@ export function UpcomingExpenseModal({
 
             <View style={styles.row}>
               <View style={styles.halfCol}>
-                <Text style={styles.label}>Amount ($)</Text>
+                <Text style={styles.label}>{t('modals.upcomingExpense.amount')}</Text>
                 <TextInput
                   style={styles.input}
                   value={amount}
@@ -257,7 +257,7 @@ export function UpcomingExpenseModal({
                 />
               </View>
               <View style={styles.halfCol}>
-                <Text style={styles.label}>Expected Date (YYYY-MM-DD)</Text>
+                <Text style={styles.label}>{t('modals.upcomingExpense.expectedDate')}</Text>
                 <TextInput
                   style={styles.input}
                   value={expectedDate}
@@ -267,7 +267,7 @@ export function UpcomingExpenseModal({
               </View>
             </View>
 
-            <Text style={styles.label}>Category {isQuickAdd ? '' : '(Read-Only)'}</Text>
+            <Text style={styles.label}>{t('common.categoryOrAccount')}</Text>
             <TextInput
               style={[styles.input, !isQuickAdd && styles.readOnlyInput]}
               value={selectedCat?.name || eventToEdit?.categoryName || 'Uncategorized'}
@@ -288,18 +288,18 @@ export function UpcomingExpenseModal({
               </View>
             ) : null}
 
-            <Text style={styles.label}>Notes / Description</Text>
+            <Text style={styles.label}>{t('modals.upcomingExpense.notes')}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={note}
               onChangeText={setNote}
               multiline
-              placeholder="Add optional notes..."
+              placeholder={t('fileNotes.placeholder')}
             />
 
             {isFutureDate ? (
               <Text style={styles.futureGuidance}>
-                Your category balances will only update when money is actually marked as paid. Saving this will store your expense so it's ready to go when paid (or change the date above if your expense occurred early!).
+                {t('modals.upcomingExpense.disclaimer')}
               </Text>
             ) : null}
 
@@ -312,12 +312,12 @@ export function UpcomingExpenseModal({
             <View style={styles.btnRow}>
               {!isQuickAdd && eventToEdit?.id ? (
                 <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} disabled={submitting}>
-                  <Text style={styles.deleteBtnText}>🗑️ Delete</Text>
+                  <Text style={styles.deleteBtnText}>🗑️ {t('common.delete')}</Text>
                 </TouchableOpacity>
               ) : null}
 
               <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -325,7 +325,7 @@ export function UpcomingExpenseModal({
                 style={styles.saveNoPayBtn}
                 disabled={submitting}
               >
-                <Text style={styles.saveNoPayText}>Save w/o Paid</Text>
+                <Text style={styles.saveNoPayText}>{t('modals.upcomingExpense.saveWithoutPaid')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -336,7 +336,7 @@ export function UpcomingExpenseModal({
                 {submitting ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.markPaidText}>Mark Paid</Text>
+                  <Text style={styles.markPaidText}>{t('modals.upcomingExpense.markPaid')}</Text>
                 )}
               </TouchableOpacity>
             </View>

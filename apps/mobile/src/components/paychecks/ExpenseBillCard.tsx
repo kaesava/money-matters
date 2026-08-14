@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
@@ -21,7 +22,6 @@ interface ExpenseBillCardProps {
   onViewBurst: (exp: ExpenseSourceItem) => void;
 }
 
-
 export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
   exp,
   categoryName,
@@ -35,7 +35,7 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
         <View style={styles.badgeGroup}>
           <View style={[styles.badge, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
             <Feather name="arrow-up-right" size={12} color="#DC2626" />
-            <Text style={[styles.badgeText, { color: '#DC2626' }]}>BILL</Text>
+            <Text style={[styles.badgeText, { color: '#DC2626' }]}>{t('badges.bill')}</Text>
           </View>
           <Text style={styles.title}>{exp.name}</Text>
         </View>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
@@ -19,7 +20,6 @@ interface IncomeSourceCardProps {
   onViewBurst: (inc: IncomeSourceItem) => void;
 }
 
-
 export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
   inc,
   onEdit,
@@ -32,7 +32,7 @@ export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
         <View style={styles.badgeGroup}>
           <View style={[styles.badge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
             <Feather name="arrow-down-left" size={12} color="#059669" />
-            <Text style={[styles.badgeText, { color: '#059669' }]}>INCOME</Text>
+            <Text style={[styles.badgeText, { color: '#059669' }]}>{t('badges.income')}</Text>
           </View>
           <Text style={styles.title}>{inc.name}</Text>
         </View>

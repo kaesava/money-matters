@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '../tokens';
 import { useIconVisibility } from '../hooks/IconVisibilityContext';
 
@@ -28,7 +29,7 @@ export interface MobileFilterBarProps {
 export default function MobileFilterBar({
   searchQuery,
   onSearchChange,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder,
   filterGroups = [],
   onClearAll,
   defaultExpanded = false,
@@ -37,6 +38,7 @@ export default function MobileFilterBar({
   const { showIcons } = useIconVisibility();
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
 
+  const resolvedPlaceholder = searchPlaceholder || t('common.searchPlaceholder');
   const activeFilterCount = filterGroups.filter((g) => g.value !== 'ALL' && g.value !== '').length;
   const hasActiveFilters = searchQuery.trim().length > 0 || activeFilterCount > 0;
 
@@ -51,7 +53,7 @@ export default function MobileFilterBar({
           <TextInput
             value={searchQuery}
             onChangeText={onSearchChange}
-            placeholder={searchPlaceholder}
+            placeholder={resolvedPlaceholder}
             placeholderTextColor={D.colors.textMuted}
             style={styles.searchInput}
           />
@@ -60,7 +62,7 @@ export default function MobileFilterBar({
               {showIcons ? (
                 <Feather name="x" size={14} color={D.colors.textMuted} />
               ) : (
-                <Text style={styles.clearText}>Clear</Text>
+                <Text style={styles.clearText}>{t('common.clear')}</Text>
               )}
             </TouchableOpacity>
           )}
@@ -74,7 +76,7 @@ export default function MobileFilterBar({
           >
             {showIcons && <Feather name="sliders" size={14} color={expanded ? D.colors.onAccent : D.colors.textPrimary} />}
             <Text style={[styles.filterToggleText, expanded && styles.filterToggleTextActive]}>
-              Filter
+              {t('common.filter')}
             </Text>
             {activeFilterCount > 0 && (
               <View style={styles.badge}>
@@ -120,7 +122,7 @@ export default function MobileFilterBar({
 
           {hasActiveFilters && onClearAll && (
             <TouchableOpacity onPress={onClearAll} style={styles.clearAllBtn} activeOpacity={0.7}>
-              <Text style={styles.clearAllText}>Clear All Filters</Text>
+              <Text style={styles.clearAllText}>{t('common.clearAllFilters')}</Text>
             </TouchableOpacity>
           )}
         </View>

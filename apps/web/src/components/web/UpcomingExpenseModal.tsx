@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { Spinner } from "@money-matters/ui/web";
 import { ExpenseCategoryInfo } from "./upcoming/ExpenseCategoryInfo";
 import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
+
 
 export interface UpcomingExpenseItem {
   id?: string;
@@ -208,7 +210,7 @@ export default function UpcomingExpenseModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={isQuickAdd ? "Quick Record Expense" : `Edit / Mark Paid: ${name || "Expense"}`}
+      title={isQuickAdd ? t('modals.quickExpense.title') : `${t('modals.upcomingExpense.title')}: ${name || "Expense"}`}
       subtitle="Configure bill details, update dates, or record payment"
       isDirty={false}
       onSave={handleSaveWithoutMarkingPaid}
@@ -226,7 +228,7 @@ export default function UpcomingExpenseModal({
 
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-            Expense Bill Name
+            {t('modals.upcomingExpense.billName')}
           </label>
           <input
             type="text"
@@ -240,7 +242,7 @@ export default function UpcomingExpenseModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-              Amount ($)
+              {t('modals.upcomingExpense.amount')}
             </label>
             <input
               type="number"
@@ -255,9 +257,10 @@ export default function UpcomingExpenseModal({
 
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-              Expected Date
+              {t('modals.upcomingExpense.expectedDate')}
             </label>
             <input
+
               type="date"
               value={expectedDate}
               onChange={(e) => setExpectedDate(e.target.value)}
@@ -317,7 +320,7 @@ export default function UpcomingExpenseModal({
 
         {isFutureDate && (
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium leading-relaxed">
-            Your category balances will only update when money is actually marked as paid. Saving this will store your expense so it&apos;s ready to go when paid (or change the date above if your expense occurred early!).
+            {t('modals.upcomingExpense.disclaimer')}
           </div>
         )}
 
@@ -335,7 +338,7 @@ export default function UpcomingExpenseModal({
               disabled={submitting}
               className="px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 transition-all disabled:opacity-50"
             >
-              🗑️ Delete Record
+              🗑️ {t('common.delete')}
             </button>
           ) : (
             <div />
@@ -347,7 +350,7 @@ export default function UpcomingExpenseModal({
               onClick={onClose}
               className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
 
             <button
@@ -357,7 +360,7 @@ export default function UpcomingExpenseModal({
               className="px-4 py-2 text-xs font-bold rounded-xl border border-[#00B4A6] text-[#00B4A6] hover:bg-teal-50 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {submitting && <Spinner size="sm" />}
-              Save without Marking Paid
+              {t('modals.upcomingExpense.saveWithoutPaid')}
             </button>
 
             <button
@@ -372,10 +375,11 @@ export default function UpcomingExpenseModal({
               title={isFutureDate ? "Cannot mark future date as paid" : "Mark expense paid"}
             >
               {submitting && <Spinner size="sm" />}
-              Mark as Paid
+              {t('modals.upcomingExpense.markPaid')}
             </button>
           </div>
         </div>
+
       </form>
     </ModalDialog>
   );

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 
-interface CategoryItem {
+export interface CategoryItem {
   id: string;
   name: string;
   type: 'GOAL' | 'REGULAR' | 'EVERYDAY';
@@ -12,7 +13,11 @@ interface CategoryItem {
   monthlyAmount?: string | null;
   everydayTargetKeepAmount?: string | null;
   bankAccountId?: string | null;
+  currentBalance?: string;
+  everydayAllowanceAmount?: string | null;
+  healthStatus?: string | null;
 }
+
 
 interface CategoryFormModalProps {
   visible: boolean;
@@ -69,7 +74,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Category name is required.');
+      Alert.alert(t('common.error'), t('categories.nameRequired'));
       return;
     }
 
@@ -104,11 +109,11 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={categoryToEdit ? 'Edit Category' : 'New Category'}
+      title={categoryToEdit ? t('modals.categoryForm.titleEdit') : t('modals.categoryForm.titleNew')}
       subtitle={categoryToEdit ? 'Update category properties' : 'Add a new savings goal or bill pool'}
     >
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Category Name</Text>
+        <Text style={styles.label}>{t('categories.nameLabel')}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
@@ -119,7 +124,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Category Type</Text>
+        <Text style={styles.label}>{t('modals.categoryForm.typeLabel')}</Text>
         <View style={styles.typeRow}>
           {(['GOAL', 'REGULAR', 'EVERYDAY'] as const).map((tVal) => (
             <TouchableOpacity
@@ -128,7 +133,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
               style={[styles.typeBtn, type === tVal && styles.typeBtnActive]}
             >
               <Text style={[styles.typeBtnText, type === tVal && styles.typeBtnTextActive]}>
-                {tVal === 'GOAL' ? 'Save Toward' : tVal === 'REGULAR' ? 'Regular Bill' : 'Everyday'}
+                {tVal === 'GOAL' ? t('categories.typeGoal') : tVal === 'REGULAR' ? t('categories.typeRegular') : t('categories.typeEveryday')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -138,7 +143,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       {type === 'GOAL' && (
         <>
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Target Amount ($)</Text>
+            <Text style={styles.label}>{t('modals.categoryForm.targetLabel')}</Text>
             <TextInput
               value={targetAmount}
               onChangeText={setTargetAmount}
@@ -149,7 +154,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
             />
           </View>
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Target Date (YYYY-MM-DD)</Text>
+            <Text style={styles.label}>{t('categories.targetDateLabel')}</Text>
             <TextInput
               value={targetDate}
               onChangeText={setTargetDate}
@@ -163,7 +168,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
 
       {type === 'REGULAR' && (
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Monthly Bill Amount ($)</Text>
+          <Text style={styles.label}>{t('categories.monthlyAmountLabel')}</Text>
           <TextInput
             value={monthlyAmount}
             onChangeText={setMonthlyAmount}
@@ -177,7 +182,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
 
       {type === 'EVERYDAY' && (
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Paycheck Allowance Target ($)</Text>
+          <Text style={styles.label}>{t('categories.targetKeepLabel')}</Text>
           <TextInput
             value={keepAmount}
             onChangeText={setKeepAmount}
@@ -190,7 +195,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       )}
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Linked Bank Account</Text>
+        <Text style={styles.label}>{t('categories.linkedAccountLabel')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bankRow}>
           <TouchableOpacity
             onPress={() => setBankAccountId('')}
@@ -213,7 +218,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       </View>
 
       <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
-        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{categoryToEdit ? 'Save Changes' : 'Create Category'}</Text>}
+        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{categoryToEdit ? t('common.saveChanges') : t('modals.categoryForm.submitNew')}</Text>}
       </TouchableOpacity>
     </MobileModalDialog>
   );

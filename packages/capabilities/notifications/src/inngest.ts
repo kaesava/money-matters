@@ -1,6 +1,7 @@
 import { Inngest } from 'inngest';
 import { db, deviceTokens } from '@money-matters/db';
 import { sendEmail } from '@money-matters/core';
+import { t } from '@money-matters/i18n';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -91,17 +92,16 @@ export function createNotificationFunctions(inngest: Inngest) {
           <div style="font-family: sans-serif; background-color: #0b132b; color: #ffffff; padding: 40px; border-radius: 16px;">
             <h1 style="color: #2563eb; margin-bottom: 16px;">Money Matters</h1>
             <p style="font-size: 16px; line-height: 1.6;">${nameGreeting}</p>
-            <p style="font-size: 16px; line-height: 1.6;">Welcome to Money Matters — your modern, Australian zero-based allocation budget.</p>
-            <p style="font-size: 16px; line-height: 1.6;">Your 30-day full household trial is now active. Explore your dashboard to set up your allocation waterfall and bank accounts.</p>
+            <p style="font-size: 16px; line-height: 1.6;">${t('notifications.inngest.trialActiveBody')}</p>
             <div style="margin-top: 30px;">
-              <a href="https://moneymatters.kaesava.au/dashboard" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; display: inline-block;">Open Dashboard</a>
+              <a href="https://moneymatters.kaesava.au/dashboard" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; display: inline-block;">${t('notifications.inngest.openDashboardCta')}</a>
             </div>
           </div>
         `;
 
         return await sendEmail({
           to: email,
-          subject: 'Welcome to Money Matters — Your Household Allocation Budget',
+          subject: t('notifications.inngest.trialActiveSubject'),
           html,
         });
       });
@@ -120,20 +120,17 @@ export function createNotificationFunctions(inngest: Inngest) {
         const inviteUrl = `https://moneymatters.kaesava.au/invite/${inviteToken}`;
         const html = `
           <div style="font-family: sans-serif; background-color: #0b132b; color: #ffffff; padding: 40px; border-radius: 16px;">
-            <h1 style="color: #2563eb; margin-bottom: 16px;">Money Matters</h1>
-            <h2 style="color: #ffffff;">Household Invitation</h2>
-            <p style="font-size: 16px; line-height: 1.6;">You have been invited to join a household budget on Money Matters.</p>
-            <p style="font-size: 16px; line-height: 1.6;">Joining grants shared visibility over your everyday pools, bill schedules, and savings goals.</p>
+            <h2 style="color: #ffffff;">${t('notifications.inngest.inviteSubject')}</h2>
+            <p style="font-size: 16px; line-height: 1.6;">${t('notifications.inngest.inviteBody')}</p>
             <div style="margin-top: 30px;">
-              <a href="${inviteUrl}" style="background-color: #22c55e; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; display: inline-block;">Accept Household Invitation</a>
+              <a href="${inviteUrl}" style="background-color: #22c55e; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; display: inline-block;">${t('notifications.inngest.acceptInviteCta')}</a>
             </div>
-            <p style="font-size: 12px; color: #94a3b8; margin-top: 24px;">Note: This invitation link is valid for 48 hours.</p>
           </div>
         `;
 
         return await sendEmail({
           to: email,
-          subject: "You've been invited to join a Household on Money Matters",
+          subject: t('notifications.inngest.inviteSubject'),
           html,
         });
       });
@@ -156,18 +153,18 @@ export function createNotificationFunctions(inngest: Inngest) {
         await step.run('send-deletion-confirmation-email', async () => {
           const html = `
             <div style="font-family: sans-serif; background-color: #0b132b; color: #ffffff; padding: 40px; border-radius: 16px;">
-              <h1 style="color: #ba1a1a; margin-bottom: 16px;">Money Matters</h1>
-              <p style="font-size: 16px; line-height: 1.6;">Your account deletion request has been processed.</p>
-              <p style="font-size: 14px; color: #94a3b8;">All personal credentials and associated household records have been permanently erased from our primary databases per privacy governance guidelines.</p>
+              <h1 style="color: #ba1a1a; margin-bottom: 16px;">${t('notifications.inngest.deletionSubject')}</h1>
+              <p style="font-size: 16px; line-height: 1.6;">${t('notifications.inngest.deletionBody')}</p>
             </div>
           `;
           return await sendEmail({
             to: email,
-            subject: 'Account Deletion Confirmation — Money Matters',
+            subject: t('notifications.inngest.deletionSubject'),
             html,
           });
         });
       }
+
 
       return { success: true, userId };
     }

@@ -1,21 +1,24 @@
 const fs = require('fs');
 const path = require('path');
 
-// 1. Read and parse en.ts
-const enTsPath = path.join(__dirname, 'dictionaries/en.ts');
-let enTsContent = fs.readFileSync(enTsPath, 'utf8');
+// 1. Read and parse en.ts and ja.ts
+function parseDict(fileName, exportName) {
+  const dictPath = path.join(__dirname, 'dictionaries', fileName);
+  let content = fs.readFileSync(dictPath, 'utf8');
+  content = content
+    .replace(/^import\s+.*;/gm, '')
+    .replace(/type\s+DeepStringRecord<.*?>\s*=\s*{[\s\S]*?};/g, '')
+    .replace(`export const ${exportName}: DeepStringRecord<typeof en> =`, `const ${exportName} =`)
+    .replace(`export const ${exportName} =`, `const ${exportName} =`)
+    .replace(/\s+as\s+const\s*;?/g, ';');
+  content += `\nmodule.exports = { ${exportName} };`;
 
-// Strip TypeScript exports and type assertions to evaluate as JS
-enTsContent = enTsContent.replace('export const en =', 'const en =').replace(/\s+as\s+const\s*;?/g, ';');
-enTsContent += '\nmodule.exports = { en };';
+  const m = { exports: {} };
+  const fn = new Function('module', 'exports', content);
+  fn(m, m.exports);
+  return m.exports[exportName];
+}
 
-// Evaluate JS safely
-const m = { exports: {} };
-const fn = new Function('module', 'exports', enTsContent);
-fn(m, m.exports);
-const en = m.exports.en;
-
-// Helper to get nested keys
 function getKeys(obj, prefix = '') {
   let keys = [];
   for (const [key, value] of Object.entries(obj)) {
@@ -29,9 +32,30 @@ function getKeys(obj, prefix = '') {
   return keys;
 }
 
-const dictionaryKeys = new Set(getKeys(en));
+const en = parseDict('en.ts', 'en');
+const ja = parseDict('ja.ts', 'ja');
 
-// 2. Scan codebase
+const enKeys = getKeys(en);
+const jaKeys = getKeys(ja);
+
+const enKeySet = new Set(enKeys);
+const jaKeySet = new Set(jaKeys);
+
+const missingInJa = enKeys.filter(k => !jaKeySet.has(k));
+const missingInEn = jaKeys.filter(k => !enKeySet.has(k));
+
+if (missingInJa.length > 0 || missingInEn.length > 0) {
+  console.error('\x1b[31mDictionary parity failure between en.ts and ja.ts:\x1b[0m');
+  if (missingInJa.length > 0) {
+    console.error(`Missing in ja.ts (${missingInJa.length}):`, missingInJa);
+  }
+  if (missingInEn.length > 0) {
+    console.error(`Missing in en.ts (${missingInEn.length}):`, missingInEn);
+  }
+  process.exit(1);
+}
+
+// 2. Scan codebase for missing t('key') references
 const monorepoRoot = path.resolve(__dirname, '../../../');
 const errors = [];
 
@@ -74,9 +98,8 @@ if (fs.existsSync(packagesDir)) findJsTsFiles(packagesDir, files);
 const tRegex = /\bt\(\s*(['"`])(.*?)\1/g;
 
 for (const file of files) {
-  // Skip dictionaries/en.ts itself, check-i18n.js, and any test files
   if (
-    file.includes('dictionaries/en.ts') || 
+    file.includes('dictionaries/') || 
     file.includes('check-i18n.js') ||
     /\.(test|spec)\.(ts|tsx|js|jsx)$/.test(file)
   ) {
@@ -87,11 +110,8 @@ for (const file of files) {
   let match;
   while ((match = tRegex.exec(content)) !== null) {
     const key = match[2];
-    // Skip dynamic keys containing variables or expressions
-    if (key.includes('${') || key.includes('+')) {
-      continue;
-    }
-    if (!dictionaryKeys.has(key)) {
+    if (key.includes('${') || key.includes('+')) continue;
+    if (!enKeySet.has(key)) {
       errors.push({
         file: path.relative(monorepoRoot, file),
         key,
@@ -101,14 +121,13 @@ for (const file of files) {
   }
 }
 
-// 3. Output results
 if (errors.length > 0) {
   console.error(`\x1b[31mFound ${errors.length} missing translation keys:\x1b[0m\n`);
   for (const err of errors) {
     console.error(`  \x1b[33m${err.file}:${err.line}\x1b[0m - Key \x1b[36m"${err.key}"\x1b[0m is missing in en.ts`);
   }
   process.exit(1);
-} else {
-  console.log('\x1b[32m✔ All translation keys validated successfully!\x1b[0m');
-  process.exit(0);
 }
+
+console.log('\x1b[32m✔ All translation keys and EN-JA dictionary parity validated successfully!\x1b[0m');
+process.exit(0);

@@ -186,7 +186,7 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
                 <Text style={styles.label}>
                   {isIncome ? "Target Category" : t("transactions.newExpense.categoryLabel")}
                 </Text>
-                <Text style={styles.subLabel}>Tap to select a category</Text>
+                <Text style={styles.subLabel}>{t("common.tapToSelect")}</Text>
                 <View style={styles.categoriesGrid}>
                   {categories?.map((cat) => {
                     const isSelected = cat.id === selectedCategoryId;
@@ -216,7 +216,7 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
 
               {/* Date Input */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
+                <Text style={styles.label}>{t("modals.quickExpense.dateLabel")}</Text>
                 <TextInput
                   style={styles.noteInput}
                   placeholder="YYYY-MM-DD"

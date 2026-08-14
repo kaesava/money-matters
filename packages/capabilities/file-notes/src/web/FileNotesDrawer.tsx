@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Paperclip, Download } from 'lucide-react';
+import { t } from '@money-matters/i18n';
 import { useFileNotes } from './useFileNotes';
 import { SlideOverDrawer } from '@money-matters/ui/web';
 
 export interface FileNoteEntity {
   id: string;
   name?: string;
+  title?: string;
+  createdBy?: string;
 }
 
 export interface FileNoteItem {
@@ -13,6 +16,9 @@ export interface FileNoteItem {
   comment?: string | null;
   fileName?: string | null;
   fileSize?: string | null;
+  fileKey?: string | null;
+  fileMimeType?: string | null;
+  createdBy?: string | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
@@ -25,8 +31,6 @@ interface FileNotesDrawerProps {
 }
 
 export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNotesDrawerProps) {
-
-
   const [noteComment, setNoteComment] = useState('');
   const [noteFile, setNoteFile] = useState<File | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -56,10 +60,9 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
 
   const renderFileNotesFeed = () => {
     if (!notes || notes.length === 0) {
-      return <div className="text-center text-slate-400 text-xs py-12">No notes or attachments yet.</div>;
+      return <div className="text-center text-slate-400 text-xs py-12">{t('fileNotes.empty')}</div>;
     }
     return notes.map((note: FileNoteItem) => {
-
       const isEditing = editingNoteId === note.id;
       const formattedSize = note.fileSize 
         ? `${(parseInt(note.fileSize, 10) / 1024 / 1024).toFixed(2)} MB`
@@ -79,7 +82,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
                   onClick={() => setEditingNoteId(null)}
                   className="px-2.5 py-1 text-[10px] font-bold border rounded bg-white text-slate-600 hover:bg-slate-50"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={() => {
@@ -88,7 +91,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
                   }}
                   className="px-2.5 py-1 text-[10px] font-bold rounded bg-slate-900 text-white hover:bg-slate-800"
                 >
-                  Save
+                  {t('common.save')}
                 </button>
               </div>
             </div>
@@ -105,10 +108,10 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                Author: {note.createdBy}
+                {t('common.user')}: {note.createdBy || 'System'}
               </span>
               <span className="block text-[9px] text-slate-400">
-                {new Date(note.createdAt).toLocaleString()}
+                {note.createdAt ? new Date(note.createdAt).toLocaleString() : ''}
               </span>
             </div>
 
@@ -121,20 +124,20 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
                   }}
                   className="text-[10px] font-bold text-slate-500 hover:text-slate-900 px-1.5 py-0.5"
                 >
-                  Edit
+                  {t('common.edit')}
                 </button>
               )}
               <button
                 onClick={() => handleArchiveNote(note.id)}
                 className="text-[10px] font-bold text-slate-500 hover:text-rose-600 px-1.5 py-0.5"
               >
-                Archive
+                {t('common.archive')}
               </button>
               <button
                 onClick={() => handlePurgeNote(note.id)}
                 className="text-[10px] font-bold text-rose-600 hover:text-rose-800 px-1.5 py-0.5"
               >
-                Purge
+                {t('common.delete')}
               </button>
             </div>
           </div>
@@ -158,7 +161,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
               <button
                 onClick={() => downloadNote(note.id)}
                 className="p-1 rounded bg-white border hover:bg-slate-50 text-slate-600"
-                title="Download Attachment"
+                title={t('fileNotes.downloadAttachment')}
               >
                 <Download className="w-3.5 h-3.5" />
               </button>
@@ -171,7 +174,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
 
   return (
     <SlideOverDrawer
-      title={`Notes & Receipts: ${entity.name || entity.title || 'Record'}`}
+      title={`${t('fileNotes.title')}: ${entity.name || entity.title || ''}`}
       onClose={onClose}
       onBack={onBack}
       widthClass="max-w-md"
@@ -179,20 +182,20 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
       <div className="p-6 space-y-6 bg-slate-50/50 min-h-full">
         {/* File & Note Creation Form */}
         <form onSubmit={onSubmit} className="space-y-4 ui-card p-4">
-          <h3 className="text-sm font-bold text-slate-900">Add Note / Attachment</h3>
+          <h3 className="text-sm font-bold text-slate-900">{t('fileNotes.addNote')}</h3>
           
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600">Comment</label>
+            <label className="block text-xs font-semibold text-slate-600">{t('fileNotes.comment')}</label>
             <textarea
               value={noteComment}
               onChange={(e) => setNoteComment(e.target.value)}
-              placeholder="Type note comments here..."
+              placeholder={t('fileNotes.placeholder')}
               className="w-full text-sm rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-slate-950 transition-all min-h-[80px] resize-none"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600">Attachment</label>
+            <label className="block text-xs font-semibold text-slate-600">{t('fileNotes.attachment')}</label>
             <input
               id="file-upload-input"
               type="file"
@@ -209,16 +212,16 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
             disabled={isUploadingNote || (!noteComment.trim() && !noteFile)}
             className="ui-btn-primary w-full py-2.5 text-xs"
           >
-            {isUploadingNote ? 'Posting Note...' : 'Post Note'}
+            {isUploadingNote ? t('fileNotes.posting') : t('fileNotes.post')}
           </button>
         </form>
 
         {/* List of Files & Notes */}
         <div className="space-y-4">
           <h3 className="text-sm font-bold text-slate-900 border-b pb-2 border-slate-100 flex items-center justify-between">
-            <span>Notes History</span>
+            <span>{t('fileNotes.notesHistory')}</span>
             <span className="text-[10px] text-slate-400 font-normal">
-              {notes?.length || 0} notes
+              {notes?.length || 0}
             </span>
           </h3>
           

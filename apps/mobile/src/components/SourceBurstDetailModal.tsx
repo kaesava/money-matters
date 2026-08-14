@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatAUD } from '../lib/format';
 
@@ -52,7 +53,7 @@ export function SourceBurstDetailModal({
       {isLoading ? (
         <ActivityIndicator color={D.colors.accent} style={{ marginVertical: 20 }} />
       ) : events.length === 0 ? (
-        <Text style={styles.emptyText}>No burst events generated yet.</Text>
+        <Text style={styles.emptyText}>{t('modals.sourceBurst.empty')}</Text>
       ) : (
         <View style={styles.list}>
           {events.map((evt) => (

@@ -1,55 +1,42 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  TextInput,
-  Linking,
-  Switch,
-} from "react-native";
-import { useRouter, Href } from "expo-router";
-import { t, setLanguage, getLanguage, SupportedLanguage } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileScreenWrapper, useIconVisibility } from "@money-matters/ui/mobile";
-import { authClient } from "../../lib/auth";
-import { trpc, setActiveSessionToken } from "../../lib/trpc";
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { useRouter, Href } from 'expo-router';
+import { t } from '@money-matters/i18n';
+import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import { authClient } from '../../lib/auth';
+import { setActiveSessionToken } from '../../lib/trpc';
+import * as SecureStore from 'expo-secure-store';
 
-import * as SecureStore from "expo-secure-store";
+import { PreferencesSection } from '../../components/settings/PreferencesSection';
+import { HouseholdPartnerInviteSection } from '../../components/settings/HouseholdPartnerInviteSection';
+import { SubscriptionPlanSection } from '../../components/settings/SubscriptionPlanSection';
+import { PrivacyGovernanceSection } from '../../components/settings/PrivacyGovernanceSection';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { showIcons, setShowIcons } = useIconVisibility();
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
 
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const updateUserPrefMut = trpc.updateUserPreferences.useMutation({
-    onSuccess: () => userPrefQuery.refetch(),
-  });
-
   const handleSignOut = async () => {
     Alert.alert(
-      t("settings.signOut", { defaultValue: "Sign Out" }),
-      t("settings.signOutConfirm", { defaultValue: "Are you sure you want to sign out?" }),
+      t('settings.signOut', { defaultValue: 'Sign Out' }),
+      t('settings.signOutConfirm', { defaultValue: 'Are you sure you want to sign out?' }),
       [
-        { text: t("common.cancel", { defaultValue: "Cancel" }), style: "cancel" },
+        { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
         {
-          text: t("settings.signOut", { defaultValue: "Sign Out" }),
-          style: "destructive",
+          text: t('settings.signOut', { defaultValue: 'Sign Out' }),
+          style: 'destructive',
           onPress: async () => {
             setLoading(true);
             try {
               await authClient.signOut();
-              await SecureStore.deleteItemAsync("money-matters_session_token");
-              await SecureStore.deleteItemAsync("money-matters-session-token");
+              await SecureStore.deleteItemAsync('money-matters_session_token');
+              await SecureStore.deleteItemAsync('money-matters-session-token');
               setActiveSessionToken(null);
-              // Reset navigation to the authentication flow
-              router.replace("/(auth)/sign-in");
+              router.replace('/(auth)/sign-in');
             } catch (err) {
               Alert.alert(
-                t("common.error", { defaultValue: "Error" }),
+                t('common.error', { defaultValue: 'Error' }),
                 err instanceof Error ? err.message : String(err)
               );
             } finally {
@@ -61,548 +48,139 @@ export default function SettingsScreen() {
     );
   };
 
-  const [partnerEmail, setPartnerEmail] = useState("");
-  const [partnerInviting, setPartnerInviting] = useState(false);
-  const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
-
-  const inviteMutation = trpc.invitePartner.useMutation();
-
-  const handleInvitePartner = async () => {
-    if (!partnerEmail.trim() || !partnerEmail.includes("@")) {
-      Alert.alert("Invalid Email", "Please enter a valid partner email address.");
-      return;
-    }
-    setPartnerInviting(true);
-    setInviteSuccessMsg(null);
-    try {
-      const res = await inviteMutation.mutateAsync({ email: partnerEmail.trim() });
-      setInviteSuccessMsg(`Invite link created! Share token: ${res.inviteToken}`);
-      setPartnerEmail("");
-    } catch (err) {
-      Alert.alert("Invite Error", err instanceof Error ? err.message : "Failed to generate partner invite.");
-    } finally {
-      setPartnerInviting(false);
-    }
-  };
-
-  const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
-  const deleteAccountMutation = trpc.deleteMyAccount.useMutation();
-
-  const checkoutMut = trpc.createCheckoutSession.useMutation();
-  const portalMut = trpc.createCustomerPortalSession.useMutation();
-
-  const handleOpenStripeCheckout = async () => {
-    try {
-      const res = await checkoutMut.mutateAsync({
-        priceId: "price_founding_member",
-        successUrl: "moneymatters://subscription/success",
-        cancelUrl: "moneymatters://subscription/manage",
-      });
-      if (res.url) {
-        await Linking.openURL(res.url);
-      }
-    } catch (err) {
-      Alert.alert("Checkout Error", err instanceof Error ? err.message : "Could not open Stripe checkout.");
-    }
-  };
-
-  const handleOpenCustomerPortal = async () => {
-    try {
-      const res = await portalMut.mutateAsync({
-        returnUrl: "moneymatters://settings",
-      });
-      if (res.url) {
-        await Linking.openURL(res.url);
-      }
-    } catch (err) {
-      Alert.alert("Billing Portal Error", err instanceof Error ? err.message : "Could not open billing portal.");
-    }
-  };
-
-
-  const handleDownloadDataMobile = async () => {
-    try {
-      const { data } = await exportQuery.refetch();
-      if (data) {
-        Alert.alert(
-          "Data Export Ready",
-          `Export generated containing ${data.categories.length} categories, ${data.transactionLedger.length} ledger transactions, and ${data.incomeSources.length} income sources. You can also download it anytime on the web version.`
-        );
-      }
-    } catch (err) {
-      Alert.alert("Export Failed", err instanceof Error ? err.message : "Could not generate data export.");
-    }
-  };
-
-  const handleDeleteAccountMobile = () => {
-    Alert.alert(
-      "Download Copy First?",
-      "Before deleting your account, ensure you have downloaded a copy of your financial data if needed using 'Download My Data'.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Proceed to Delete",
-          style: "destructive",
-          onPress: () => {
-            Alert.alert(
-              "Permanently Delete Account?",
-              "This action is IRREVERSIBLE. All your household budget categories, transactions, bank accounts, and credentials will be permanently erased.",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "YES, DELETE EVERYTHING",
-                  style: "destructive",
-                  onPress: async () => {
-                    setLoading(true);
-                    try {
-                      await deleteAccountMutation.mutateAsync();
-                      await authClient.signOut();
-                      await SecureStore.deleteItemAsync("money-matters_session_token");
-                      await SecureStore.deleteItemAsync("money-matters-session-token");
-                      setActiveSessionToken(null);
-                      Alert.alert("Account Deleted", "Your account and data have been permanently deleted.");
-                      router.replace("/(auth)/sign-in");
-                    } catch (err) {
-                      Alert.alert("Deletion Failed", err instanceof Error ? err.message : "Failed to delete account.");
-                    } finally {
-                      setLoading(false);
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
-  };
-
   return (
-    <MobileScreenWrapper
-      title={t("settings.title")}
-      user={session?.user}
-      onNavigateHome={() => router.push('/(app)/home')}
-      onNavigateCategories={() => router.push('/(app)/categories')}
-      onNavigateSettings={() => router.push('/(app)/settings')}
-      onSignOut={handleSignOut}
-    >
-      {session?.user && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("settings.profile", { defaultValue: "Profile" })}</Text>
+    <View style={{ flex: 1 }}>
+      <MobileScreenWrapper
+        title={t('settings.title')}
+        user={session?.user}
+        onNavigateHome={() => router.push('/(app)/home')}
+        onNavigateCategories={() => router.push('/(app)/categories')}
+        onNavigateSettings={() => router.push('/(app)/settings')}
+      >
+        <ScrollView contentContainerStyle={{ paddingBottom: 100, gap: 14 }}>
+          {/* Household Profile Card */}
           <View style={styles.card}>
+            <Text style={styles.cardTitle}>👤 Household Account</Text>
             <View style={styles.profileRow}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {session.user.name ? session.user.name.charAt(0).toUpperCase() : "U"}
-                </Text>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.nameText}>{session.user.name}</Text>
-                <Text style={styles.emailText}>{session.user.email}</Text>
-              </View>
+              <Text style={styles.profileLabel}>Name</Text>
+              <Text style={styles.profileVal}>{session?.user?.name ?? 'Household User'}</Text>
+            </View>
+            <View style={styles.profileRow}>
+              <Text style={styles.profileLabel}>Email</Text>
+              <Text style={styles.profileVal}>{session?.user?.email ?? '—'}</Text>
             </View>
           </View>
-        </View>
-      )}
 
-      {/* UI Aesthetic Preferences Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t("settings.groups.preferences")}</Text>
-        <View style={styles.card}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary }}>
-                {t("settings.items.showIcons")}
-              </Text>
-              <Text style={{ fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginTop: 2 }}>
-                {t("settings.items.showIconsHint")}
-              </Text>
-            </View>
-            <Switch
-              value={showIcons}
-              onValueChange={(nextVal) => {
-                setShowIcons(nextVal);
-                const currentBlob = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] || {};
-                updateUserPrefMut.mutate({
-                  appPreferences: {
-                    ["01908bde-34bb-7b19-a178-574211bc93aa"]: {
-                      ...currentBlob,
-                      show_icons: nextVal,
-                    },
-                  },
-                });
-              }}
-              trackColor={{ false: '#E5E7EB', true: DESIGN_TOKENS.colors.accent }}
-              thumbColor="#FFFFFF"
-            />
+          {/* Hub Navigation Links */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📂 Management & Logs</Text>
+            <TouchableOpacity
+              style={styles.navLink}
+              onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.navLinkText}>🏦 Linked Bank Accounts & Statement Import</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navLink}
+              onPress={() => router.push('/(app)/settings/history' as Href)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.navLinkText}>📜 Payday Allocation History</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navLink}
+              onPress={() => router.push('/(app)/settings/archived' as Href)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.navLinkText}>📦 Archived Categories & Bills</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navLink}
+              onPress={() => router.push('/(app)/settings/notifications' as Href)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.navLinkText}>🔔 Push Notifications</Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={{ borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 4 }}>
-              {t("settings.language")}
+          {/* Composable Vertical Slice Sections */}
+          <PreferencesSection />
+          <HouseholdPartnerInviteSection />
+          <SubscriptionPlanSection />
+          <PrivacyGovernanceSection />
+
+          {/* Sign Out Button */}
+          <TouchableOpacity
+            style={[styles.signOutBtn, loading && { opacity: 0.7 }]}
+            onPress={handleSignOut}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.signOutBtnText}>
+              {loading ? 'Signing out...' : t('settings.signOut', { defaultValue: 'Sign Out' })}
             </Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-              {(['en', 'ja'] as const).map((lang) => {
-                const prefs = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] as { locale?: SupportedLanguage } | undefined;
-                const currentLang = prefs?.locale || getLanguage();
-                const isActive = currentLang === lang;
-                return (
-                  <TouchableOpacity
-                    key={lang}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                      backgroundColor: isActive ? DESIGN_TOKENS.colors.accent : DESIGN_TOKENS.colors.surfaceVariant,
-                      alignItems: 'center',
-                    }}
-                    onPress={() => {
-                      setLanguage(lang);
-                      const currentBlob = userPrefQuery.data?.appPreferences?.["01908bde-34bb-7b19-a178-574211bc93aa"] || {};
-                      updateUserPrefMut.mutate({
-                        appPreferences: {
-                          ["01908bde-34bb-7b19-a178-574211bc93aa"]: {
-                            ...currentBlob,
-                            locale: lang,
-                          },
-                        },
-                      });
-                    }}
-                  >
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: isActive ? '#FFFFFF' : DESIGN_TOKENS.colors.textPrimary }}>
-                      {lang === 'en' ? 'English (AU)' : '日本語 (JP)'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Partner Collaboration MVP Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Partner Collaboration</Text>
-        <View style={styles.card}>
-          <Text style={styles.partnerTitle}>Invite Partner to Household</Text>
-          <Text style={styles.partnerSub}>Give your partner full shared read/write access to your household budgets and allocation waterfall.</Text>
-          <TextInput
-            style={styles.partnerInput}
-            placeholder="partner@example.com"
-            placeholderTextColor="#9CA3AF"
-            value={partnerEmail}
-            onChangeText={setPartnerEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <TouchableOpacity
-            style={[styles.partnerBtn, partnerInviting && styles.disabledButton]}
-            onPress={handleInvitePartner}
-            disabled={partnerInviting}
-          >
-            <Text style={styles.partnerBtnText}>{partnerInviting ? "Inviting..." : "✉️ Send Partner Invite"}</Text>
           </TouchableOpacity>
-          {inviteSuccessMsg && (
-            <Text style={styles.inviteSuccessText}>{inviteSuccessMsg}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Group 1: Your Budget */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t("settings.groups.yourBudget")}</Text>
-        <View style={styles.cardList}>
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(setup)/income?mode=rerun' as Href)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>{t("settings.items.rerunSetup")}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/income')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>{t("settings.items.incomePay")}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>{t("settings.items.bankAccounts")}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Group 2: Account & Billing */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t("settings.groups.accountBilling")}</Text>
-        <View style={styles.cardList}>
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/history' as Href)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>{t("settings.items.history")}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleOpenStripeCheckout}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.listItemText, { color: DESIGN_TOKENS.colors.accent, fontWeight: "700" }]}>
-              ⭐ Upgrade to Household Plan ($9.99/mo)
-            </Text>
-            <Text style={styles.chevron}>↗</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleOpenCustomerPortal}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>💳 Manage Stripe Billing Portal</Text>
-            <Text style={styles.chevron}>↗</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-
-      {/* Group 4: Danger Zone */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>{t("settings.groups.dangerZone")}</Text>
-        <View style={styles.cardList}>
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/archived' as Href)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>{t("settings.items.archived")}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/privacy' as Href)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>{t("settings.items.privacy")}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleDownloadDataMobile}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.listItemText}>{t("settings.items.downloadData")}</Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-          <View style={styles.listItemDivider} />
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleDeleteAccountMobile}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.listItemText, { color: "#ba1a1a" }]}>
-              🗑️ {t("settings.deleteAccount", { defaultValue: "Delete Account & Data" })}
-            </Text>
-            <Text style={styles.chevron}>→</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <TouchableOpacity
-          style={[styles.signOutButton, loading && styles.disabledButton]}
-          onPress={handleSignOut}
-          disabled={loading}
-          activeOpacity={0.85}
-        >
-          {loading ? (
-            <ActivityIndicator color="#EF4444" />
-          ) : (
-            <Text style={styles.signOutText}>{t("settings.signOut")}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.versionText}>
-          {t("settings.version", { version: "1.0.0" })}
-        </Text>
-      </View>
-    </MobileScreenWrapper>
+        </ScrollView>
+      </MobileScreenWrapper>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: DESIGN_TOKENS.colors.background,
-    paddingHorizontal: DESIGN_TOKENS.spacing.containerMargin,
-    paddingTop: 64,
-  },
-  header: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: DESIGN_TOKENS.colors.primary,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: DESIGN_TOKENS.colors.textMuted,
-    textTransform: "uppercase",
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
   card: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: DESIGN_TOKENS.radius.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: '#E2E8F0',
+    gap: 10,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1B2B4B',
   },
   profileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    color: DESIGN_TOKENS.colors.onAccent,
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  nameText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  emailText: {
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textMuted,
-    marginTop: 2,
-  },
-  signOutButton: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderWidth: 1,
-    borderColor: "#EF4444",
-    paddingVertical: 14,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  signOutText: {
-    color: "#EF4444",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  footer: {
-    flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "center",
-    paddingBottom: 24,
-  },
-  versionText: {
+  profileLabel: {
     fontSize: 12,
-    color: DESIGN_TOKENS.colors.textMuted,
+    fontWeight: '600',
+    color: '#64748B',
   },
-  cardList: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    overflow: "hidden",
-  },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-  },
-  listItemText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  chevron: {
-    fontSize: 16,
-    color: DESIGN_TOKENS.colors.textMuted,
-    fontWeight: "bold",
-  },
-  listItemDivider: {
-    height: 1,
-    backgroundColor: "#E5E7EB",
-    marginHorizontal: 16,
-  },
-  partnerTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  partnerSub: {
+  profileVal: {
     fontSize: 12,
-    color: DESIGN_TOKENS.colors.textMuted,
-    marginTop: 4,
-    marginBottom: 12,
-    lineHeight: 16,
+    fontWeight: '700',
+    color: '#1B2B4B',
   },
-  partnerInput: {
-    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 12,
+  navLink: {
     paddingVertical: 10,
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textPrimary,
-    marginBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
-  partnerBtn: {
-    backgroundColor: DESIGN_TOKENS.colors.primary,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  partnerBtnText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  inviteSuccessText: {
-    marginTop: 10,
+  navLinkText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: DESIGN_TOKENS.colors.success,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  signOutBtn: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  signOutBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#E11D48',
   },
 });

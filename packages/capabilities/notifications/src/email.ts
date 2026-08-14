@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 import { logger } from '@money-matters/core';
+import { t } from '@money-matters/i18n';
 
 export interface BudgetAlertEmailDetails {
   categoryName: string;
@@ -54,25 +55,21 @@ export async function sendEmailViaResend(options: {
     logger.error('[Resend] Error sending email via Resend:', err);
     throw err;
   }
-
 }
 
 export async function sendBudgetAlertEmail(to: string, details: BudgetAlertEmailDetails) {
+  const title = t('notifications.email.budgetAlertSubject');
+  const alertBodyText = t('notifications.email.budgetAlertBody', { category: details.categoryName });
+  
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-      <h2 style="color: #ef4444; margin-top: 0;">Budget Alert!</h2>
-      <p style="color: #334155; font-size: 14px; line-height: 1.5;">Hello,</p>
-      <p style="color: #334155; font-size: 14px; line-height: 1.5;">This is an automated notification that you have exceeded your target budget limit for category <strong>${details.categoryName}</strong>.</p>
-      
+      <h2 style="color: #ef4444; margin-top: 0;">${title}</h2>
+      <div style="color: #334155; font-size: 14px; line-height: 1.5; white-space: pre-wrap;">${alertBodyText}</div>
       <div style="background-color: #fef2f2; padding: 16px; border-radius: 12px; margin: 24px 0; border: 1px solid #fee2e2;">
-        <p style="margin: 4px 0; font-size: 13px; color: #991b1b;"><strong>Category:</strong> <span style="color: #334155;">${details.categoryName}</span></p>
-        <p style="margin: 4px 0; font-size: 13px; color: #991b1b;"><strong>Budget Limit:</strong> <span style="color: #334155;">$${details.limitAmount}</span></p>
-        <p style="margin: 4px 0; font-size: 13px; color: #991b1b;"><strong>Current Spent:</strong> <span style="color: #ef4444; font-weight: bold;">$${details.spentAmount}</span></p>
+        <p style="margin: 4px 0; font-size: 13px; color: #991b1b;"><strong>${t('common.categoryOrAccount')}:</strong> <span style="color: #334155;">${details.categoryName}</span></p>
+        <p style="margin: 4px 0; font-size: 13px; color: #991b1b;"><strong>Limit:</strong> <span style="color: #334155;">$${details.limitAmount}</span></p>
+        <p style="margin: 4px 0; font-size: 13px; color: #991b1b;"><strong>Spent:</strong> <span style="color: #ef4444; font-weight: bold;">$${details.spentAmount}</span></p>
       </div>
-
-      <p style="color: #64748b; font-size: 13px;">Thank you for using MoneyMatters to keep your financial life aligned.</p>
-      <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 30px 0;" />
-      <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">Automated notification. Please do not reply.</p>
     </div>
   `;
 

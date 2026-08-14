@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
 import { Spinner } from "@money-matters/ui/web";
@@ -71,7 +72,7 @@ export default function EventOverrideModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={`Edit ${eventToEdit.eventType === "INCOME" ? "Paycheck" : "Bill"}: ${eventToEdit.name}`}
+      title={`${t('modals.eventOverride.title')}: ${eventToEdit.name}`}
       subtitle="Modify amount, date, or payment parameters for this occurrence"
       isDirty={false}
       onSave={handleSave}
@@ -92,7 +93,7 @@ export default function EventOverrideModal({
         {/* Notice & Link to Master Series */}
         <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200/80 flex items-center justify-between text-xs">
           <div className="flex flex-col gap-0.5">
-            <span className="font-extrabold text-[#1B2B4B]">Single Occurrence Edit</span>
+            <span className="font-extrabold text-[#1B2B4B]">{t('modals.eventOverride.title')}</span>
             <span className="text-[11px] text-zinc-600">Editing this specific {eventToEdit.eventType.toLowerCase()} date or amount.</span>
           </div>
           <a
@@ -112,7 +113,7 @@ export default function EventOverrideModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Amount ($)
+              {t('modals.eventOverride.overrideAmount')}
             </label>
             <input
               type="number"
@@ -124,7 +125,7 @@ export default function EventOverrideModal({
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Expected Date
+              {t('modals.eventOverride.overrideDate')}
             </label>
             <input
               type="date"
@@ -142,7 +143,7 @@ export default function EventOverrideModal({
             onClick={onClose}
             className="px-4 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -150,7 +151,7 @@ export default function EventOverrideModal({
             className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {submitting && <Spinner size="sm" />}
-            Save Occurrence
+            {t('modals.eventOverride.submit')}
           </button>
         </div>
       </form>

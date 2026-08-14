@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-08  
-> **Status:** Fully synchronized with production Cloudflare Workers architecture (`nodejs_compat`), Fastify API, Neon serverless PostgreSQL with RLS, Expo React Native Android target, OpenNext Web target, Upstash Redis rate limiting, Serene Finance UI design tokens (with JetBrains Mono metric typography & responsive viewport configuration), Universal Logger, and Vitest suite.
+> **Last updated:** 2026-08-14  
+> **Status:** Fully synchronized with production Cloudflare Workers architecture (`nodejs_compat`), Fastify API, Neon serverless PostgreSQL with RLS, Expo React Native Android target, OpenNext Web target, Upstash Redis rate limiting, Serene Finance UI design tokens, 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, and 100% Vitest unit test coverage.
 
 ---
 

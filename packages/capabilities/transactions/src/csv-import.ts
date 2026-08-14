@@ -260,3 +260,16 @@ export function parseBankCsv(
   return { bank: bankName, transactions, headers: rawHeaders };
 }
 
+export function parseCsvBankStatement(
+  csvContent: string,
+  _bank?: string
+): { bank: string; rows: ParsedCsvTransaction[]; headers: string[] } {
+  const result = parseBankCsv(csvContent);
+  return {
+    bank: result.bank,
+    rows: result.transactions,
+    headers: result.headers,
+  };
+}
+
+

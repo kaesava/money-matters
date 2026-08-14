@@ -1,4 +1,5 @@
 import { PgDatabase } from "drizzle-orm/pg-core";
+import { t } from '@money-matters/i18n';
 import { 
   categories, 
   incomeSources, 
@@ -91,15 +92,11 @@ export function deleteMyAccountHandler(db: PgDatabase<any, any, any>) {
           body: JSON.stringify({
             from: process.env.RESEND_FROM_EMAIL || 'MoneyMatters <onboarding@resend.dev>',
             to: [email],
-            subject: "Your Money Matters Account Has Been Deleted",
+            subject: t('privacy.deletionConfirmedTitle'),
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-                <h2 style="color: #1B2B4B; margin-top: 0;">Account Deletion Confirmed</h2>
-                <p style="color: #334155; font-size: 14px; line-height: 1.5;">Hello,</p>
-                <p style="color: #334155; font-size: 14px; line-height: 1.5;">As requested, your Money Matters account and all associated household financial data have been permanently deleted from our servers.</p>
-                <p style="color: #64748b; font-size: 13px;">Thank you for using Money Matters.</p>
-                <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 30px 0;" />
-                <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">Money Matters · Kaesava Platform</p>
+                <h2 style="color: #1B2B4B; margin-top: 0;">${t('privacy.deletionConfirmedTitle')}</h2>
+                <p style="color: #334155; font-size: 14px; line-height: 1.5;">${t('privacy.deletionConfirmedBody')}</p>
               </div>
             `,
           }),

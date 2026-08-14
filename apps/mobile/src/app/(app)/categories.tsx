@@ -1,27 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
-import { useRouter, useLocalSearchParams, Href } from 'expo-router';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
-import { monthProgress } from '@money-matters/ui';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobilePaginationBar, MobileSpinner } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobileSpinner } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import { Feather } from '@expo/vector-icons';
-import { formatAUD } from '../../lib/format';
 
 import { CategoryFormModal } from '../../components/CategoryFormModal';
 import { MoveMoneyModal } from '../../components/MoveMoneyModal';
-
-type SortField = 'name' | 'type' | 'balance' | 'health';
-type SortDir = 'asc' | 'desc';
-
-function pct(balance: string, target: string | null) {
-  const balanceNum = parseFloat(balance);
-  const targetNum = target ? parseFloat(target) : null;
-  if (!targetNum || targetNum === 0) return null;
-  return Math.min(Math.round((balanceNum / targetNum) * 100), 100);
-}
+import { MobileEverydayPoolSection, MobileCategoryItem } from '../../components/categories/MobileEverydayPoolSection';
+import { MobileRegularBillsSection } from '../../components/categories/MobileRegularBillsSection';
+import { MobileSavingsGoalsSection } from '../../components/categories/MobileSavingsGoalsSection';
 
 export default function CategoriesScreen() {
   const router = useRouter();
@@ -31,7 +21,7 @@ export default function CategoriesScreen() {
   const { data: session } = authClient.useSession();
   const { data: categories = [], isLoading, error, refetch } = trpc.listCategories.useQuery();
 
-  type CategoryItem = NonNullable<(typeof categories)[number]>;
+  const typedCategories = categories as MobileCategoryItem[];
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState(params.search ?? '');
@@ -51,14 +41,14 @@ export default function CategoriesScreen() {
 
   // Modals
   const [categoryFormVisible, setCategoryFormVisible] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItem | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<MobileCategoryItem | null>(null);
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
 
   const archiveMut = trpc.archiveCategory.useMutation({
     onSuccess: () => refetch(),
   });
 
-  const handleArchive = (cat: CategoryItem) => {
+  const handleArchive = (cat: MobileCategoryItem) => {
     if (cat.type === 'EVERYDAY') {
       Alert.alert('Archive Locked', 'The Everyday category cannot be archived or deleted.');
       return;
@@ -81,17 +71,20 @@ export default function CategoriesScreen() {
   };
 
   // Bucket Filtering & Aggregations
-  const everydayCats = categories.filter((c) => c?.type === 'EVERYDAY');
-  const regularCats = categories.filter((c) => c?.type === 'REGULAR');
-  const goalCats = categories.filter((c) => c?.type === 'GOAL');
+  const everydayCats = typedCategories.filter((c) => c?.type === 'EVERYDAY');
+  const regularCats = typedCategories.filter((c) => c?.type === 'REGULAR');
+  const goalCats = typedCategories.filter((c) => c?.type === 'GOAL');
 
   const everydayBalance = everydayCats.reduce((sum, c) => sum + parseFloat(c?.currentBalance || '0'), 0);
-  const everydayBudget = everydayCats.reduce((sum, c) => sum + parseFloat(c?.everydayAllowanceAmount || c?.monthlyAmount || '0'), 0);
+  const everydayBudget = everydayCats.reduce(
+    (sum, c) => sum + parseFloat(c?.everydayAllowanceAmount || c?.monthlyAmount || '0'),
+    0
+  );
 
   const regularBalance = regularCats.reduce((sum, c) => sum + parseFloat(c?.currentBalance || '0'), 0);
   const regularBudget = regularCats.reduce((sum, c) => sum + parseFloat(c?.monthlyAmount || '0'), 0);
 
-  const filterFn = (list: CategoryItem[]) =>
+  const filterFn = (list: MobileCategoryItem[]) =>
     list.filter((c) => {
       if (!c) return false;
       const q = searchQuery.toLowerCase().trim();
@@ -101,16 +94,9 @@ export default function CategoriesScreen() {
       return true;
     });
 
-  const filteredEveryday = filterFn(everydayCats);
-  const filteredRegular = filterFn(regularCats);
-  const filteredGoal = filterFn(goalCats);
-
-
-  const onTrackCount = categories.filter((c) => c?.healthStatus === 'GREEN').length;
-  const needsAttentionCount = categories.filter((c) => c?.healthStatus === 'AMBER').length;
-  const behindCount = categories.filter((c) => c?.healthStatus === 'RED').length;
-
-  const D = DESIGN_TOKENS;
+  const onTrackCount = typedCategories.filter((c) => c?.healthStatus === 'GREEN').length;
+  const needsAttentionCount = typedCategories.filter((c) => c?.healthStatus === 'AMBER').length;
+  const behindCount = typedCategories.filter((c) => c?.healthStatus === 'RED').length;
 
   return (
     <View style={{ flex: 1 }}>
@@ -129,7 +115,7 @@ export default function CategoriesScreen() {
               style={styles.moveMoneyHeaderBtn}
               activeOpacity={0.8}
             >
-              <Text style={styles.moveMoneyHeaderBtnText}>{t("categories.actions.moveMoney")}</Text>
+              <Text style={styles.moveMoneyHeaderBtnText}>{t('categories.actions.moveMoney')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -154,7 +140,7 @@ export default function CategoriesScreen() {
               ]}
             >
               <Text style={styles.statChipLabel}>TOTAL</Text>
-              <Text style={styles.statChipVal}>{categories.length}</Text>
+              <Text style={styles.statChipVal}>{typedCategories.length}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -232,342 +218,139 @@ export default function CategoriesScreen() {
             </View>
           )}
 
-          {/* SECTION 1: EVERYDAY SPENDING (COLLAPSABLE) */}
-          <View style={styles.sectionCard}>
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => setIsEverydayCollapsed(!isEverydayCollapsed)}
-              activeOpacity={0.8}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sectionTitle}>💳 Everyday Spending</Text>
-                <Text style={styles.sectionSubtitle}>{t("categories.sections.overallPoolBalance")}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
-                <Text style={styles.sectionBalance}>{formatAUD(everydayBalance)}</Text>
-                <Text style={styles.sectionBudget}>Target: {formatAUD(everydayBudget)}</Text>
-              </View>
-              <Feather name={isEverydayCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#64748B" />
-            </TouchableOpacity>
+          {/* SECTION 1: EVERYDAY SPENDING */}
+          <MobileEverydayPoolSection
+            categories={filterFn(everydayCats)}
+            everydayBalance={everydayBalance}
+            everydayBudget={everydayBudget}
+            isCollapsed={isEverydayCollapsed}
+            onToggleCollapse={() => setIsEverydayCollapsed(!isEverydayCollapsed)}
+            onEditCategory={(cat) => {
+              setCategoryToEdit(cat);
+              setCategoryFormVisible(true);
+            }}
+          />
 
-            <View style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>Pacing Progress</Text>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>
-                  Spent: {everydayBudget > 0 ? Math.min(100, Math.max(0, Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100))) : 0}% | Month: {monthProgress().elapsedPct}%
-                </Text>
-              </View>
-              <View style={{ height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden', gap: 1 }}>
-                <View style={{ height: 2, width: `${monthProgress().elapsedPct}%`, backgroundColor: '#2563eb', borderRadius: 1 }} />
-                <View
-                  style={{
-                    height: 3,
-                    width: `${everydayBudget > 0 ? Math.min(100, Math.max(0, Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100))) : 0}%`,
-                    backgroundColor:
-                      (everydayBudget > 0 ? Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100) : 0) > monthProgress().elapsedPct + 15
-                        ? '#ba1a1a'
-                        : (everydayBudget > 0 ? Math.round(((everydayBudget - everydayBalance) / everydayBudget) * 100) : 0) > monthProgress().elapsedPct + 5
-                        ? '#f59e0b'
-                        : '#22c55e',
-                    borderRadius: 1.5,
-                  }}
-                />
-              </View>
-            </View>
-
-            {!isEverydayCollapsed && (
-              <View style={styles.sectionContent}>
-                {filteredEveryday.length === 0 ? (
-                  <Text style={styles.emptyText}>No Everyday categories found.</Text>
-                ) : (
-                  filteredEveryday.map((cat: CategoryItem) => (
-                    <View key={cat.id} style={styles.itemRow}>
-                      <TouchableOpacity
-                        onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
-                        style={{ flex: 1 }}
-                      >
-                        <Text style={styles.itemName}>{cat.name}</Text>
-                        <Text style={styles.itemPoolBadge}>Managed at overall pool level</Text>
-                      </TouchableOpacity>
-
-                      <Text style={styles.itemTarget}>{formatAUD(cat.everydayAllowanceAmount || cat.monthlyAmount || 0)}/mo</Text>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          setCategoryToEdit(cat);
-                          setCategoryFormVisible(true);
-                        }}
-                        style={styles.actionBtn}
-                      >
-                        <Text style={styles.actionBtnText}>Edit</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                )}
-              </View>
-            )}
-          </View>
-
-          {/* SECTION 2: REGULAR BILLS (COLLAPSABLE) */}
-          <View style={styles.sectionCard}>
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => setIsRegularCollapsed(!isRegularCollapsed)}
-              activeOpacity={0.8}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sectionTitle}>🧾 Regular Bills</Text>
-                <Text style={styles.sectionSubtitle}>{t("categories.sections.overallPoolBalance")}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
-                <Text style={styles.sectionBalance}>{formatAUD(regularBalance)}</Text>
-                <Text style={styles.sectionBudget}>Target: {formatAUD(regularBudget)}</Text>
-              </View>
-              <Feather name={isRegularCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#64748B" />
-            </TouchableOpacity>
-
-            <View style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>Pacing Progress</Text>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: '#64748B' }}>
-                  Spent: {regularBudget > 0 ? Math.min(100, Math.max(0, Math.round(((regularBudget - regularBalance) / regularBudget) * 100))) : 0}% | Month: {monthProgress().elapsedPct}%
-                </Text>
-              </View>
-              <View style={{ height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden', gap: 1 }}>
-                <View style={{ height: 2, width: `${monthProgress().elapsedPct}%`, backgroundColor: '#2563eb', borderRadius: 1 }} />
-                <View
-                  style={{
-                    height: 3,
-                    width: `${regularBudget > 0 ? Math.min(100, Math.max(0, Math.round(((regularBudget - regularBalance) / regularBudget) * 100))) : 0}%`,
-                    backgroundColor:
-                      (regularBudget > 0 ? Math.round(((regularBudget - regularBalance) / regularBudget) * 100) : 0) > monthProgress().elapsedPct + 15
-                        ? '#ba1a1a'
-                        : (regularBudget > 0 ? Math.round(((regularBudget - regularBalance) / regularBudget) * 100) : 0) > monthProgress().elapsedPct + 5
-                        ? '#f59e0b'
-                        : '#22c55e',
-                    borderRadius: 1.5,
-                  }}
-                />
-              </View>
-            </View>
-
-            {!isRegularCollapsed && (
-              <View style={styles.sectionContent}>
-                {filteredRegular.length === 0 ? (
-                  <Text style={styles.emptyText}>No Regular bill categories found.</Text>
-                ) : (
-                  filteredRegular.map((cat: CategoryItem) => (
-                    <View key={cat.id} style={styles.itemRow}>
-                      <TouchableOpacity
-                        onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
-                        style={{ flex: 1 }}
-                      >
-                        <Text style={styles.itemName}>{cat.name}</Text>
-                        <Text style={styles.itemPoolBadge}>Managed at overall pool level</Text>
-                      </TouchableOpacity>
-
-                      <Text style={styles.itemTarget}>{formatAUD(cat.monthlyAmount || 0)}/mo</Text>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          setCategoryToEdit(cat);
-                          setCategoryFormVisible(true);
-                        }}
-                        style={styles.actionBtn}
-                      >
-                        <Text style={styles.actionBtnText}>Edit</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
-                        <Text style={styles.archiveBtnText}>Archive</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                )}
-              </View>
-            )}
-          </View>
+          {/* SECTION 2: REGULAR BILLS */}
+          <MobileRegularBillsSection
+            categories={filterFn(regularCats)}
+            regularBalance={regularBalance}
+            regularBudget={regularBudget}
+            isCollapsed={isRegularCollapsed}
+            onToggleCollapse={() => setIsRegularCollapsed(!isRegularCollapsed)}
+            onEditCategory={(cat) => {
+              setCategoryToEdit(cat);
+              setCategoryFormVisible(true);
+            }}
+            onArchiveCategory={handleArchive}
+          />
 
           {/* SECTION 3: SAVE TOWARD (GOALS) */}
-          <View style={styles.sectionCard}>
-              <View style={styles.sectionHeaderNoToggle}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sectionTitle}>🎯 Save Toward (Goals)</Text>
-                  <Text style={styles.sectionSubtitle}>{t("categories.sections.goalTitle")} ({goalCats.length})</Text>
-                </View>
-              </View>
+          <MobileSavingsGoalsSection
+            categories={filterFn(goalCats)}
+            onEditCategory={(cat) => {
+              setCategoryToEdit(cat);
+              setCategoryFormVisible(true);
+            }}
+            onArchiveCategory={handleArchive}
+          />
+        </ScrollView>
 
-              <View style={styles.sectionContent}>
-                {filteredGoal.length === 0 ? (
-                  <Text style={styles.emptyText}>No savings goals found.</Text>
-                ) : (
-                  filteredGoal.map((cat: CategoryItem) => {
+        <CategoryFormModal
+          visible={categoryFormVisible}
+          categoryToEdit={categoryToEdit}
+          onClose={() => setCategoryFormVisible(false)}
+          onSuccess={() => refetch()}
+        />
 
-                    const p = pct(cat.currentBalance, cat.targetAmount);
-                    const color =
-                      cat.healthStatus === 'GREEN' ? D.colors.success :
-                      cat.healthStatus === 'AMBER' ? D.colors.warning :
-                      cat.healthStatus === 'RED' ? D.colors.critical :
-                      D.colors.accent;
-
-                    let daysLeftText = null;
-                    let reqMonthlyText = null;
-                    if (cat.targetDate) {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const tDate = new Date(cat.targetDate);
-                      tDate.setHours(0, 0, 0, 0);
-                      const diffDays = Math.ceil((tDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                      daysLeftText = diffDays > 0 ? `${diffDays} days left` : diffDays === 0 ? 'Due today!' : `${Math.abs(diffDays)} days past due`;
-
-                      const monthsLeft = Math.max(1, Math.ceil(diffDays / 30.44));
-                      const balanceVal = parseFloat(cat.currentBalance || '0');
-                      const targetVal = cat.targetAmount ? parseFloat(cat.targetAmount) : 0;
-                      const remainingToSave = Math.max(0, targetVal - balanceVal);
-                      reqMonthlyText = `${formatAUD(remainingToSave / monthsLeft)}/mo needed`;
-                    }
-
-                    return (
-                      <View key={cat.id} style={styles.goalCardItem}>
-                        <TouchableOpacity
-                          onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
-                          activeOpacity={0.8}
-                        >
-                          <View style={styles.cardHeader}>
-                            <Text style={styles.catName}>{cat.name}</Text>
-                            <Text style={[styles.catBalance, { color }]}>{formatAUD(cat.currentBalance)}</Text>
-                          </View>
-                          {cat.targetAmount && (
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                              <Text style={styles.target}>Target: {formatAUD(cat.targetAmount)}</Text>
-                              {daysLeftText && <Text style={{ fontSize: 10, fontWeight: '700', color: '#9333EA' }}>{daysLeftText}</Text>}
-                            </View>
-                          )}
-                          {p !== null && (
-                            <>
-                              <View style={[styles.barBg, { height: 8, borderRadius: 4 }]}>
-                                <View style={[styles.barFill, { width: `${p}%`, backgroundColor: color, height: 8, borderRadius: 4 }]} />
-                              </View>
-                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                                <Text style={[styles.pctLabel, { color }]}>{p}% saved</Text>
-                                {reqMonthlyText && (
-                                  <Text style={{ fontSize: 9, fontWeight: '700', color: '#475569', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                                    {reqMonthlyText}
-                                  </Text>
-                                )}
-                              </View>
-                            </>
-                          )}
-                        </TouchableOpacity>
-
-                        <View style={styles.actionRow}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setCategoryToEdit(cat);
-                              setCategoryFormVisible(true);
-                            }}
-                            style={styles.actionBtn}
-                          >
-                            <Text style={styles.actionBtnText}>Edit</Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity onPress={() => handleArchive(cat)} style={styles.archiveBtn}>
-                            <Text style={styles.archiveBtnText}>Archive</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    );
-                  })
-                )}
-              </View>
-            </View>
-          </ScrollView>
+        <MoveMoneyModal
+          visible={moveMoneyVisible}
+          onClose={() => setMoveMoneyVisible(false)}
+          onSuccess={() => refetch()}
+        />
       </MobileScreenWrapper>
-
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {
-          setCategoryToEdit(null);
-          setCategoryFormVisible(true);
-        }}
-        activeOpacity={0.8}
-      >
-        <Feather name="plus" size={24} color="#FFF" />
-      </TouchableOpacity>
-
-      {/* Category Form Modal */}
-      <CategoryFormModal
-        visible={categoryFormVisible}
-        categoryToEdit={categoryToEdit}
-        onClose={() => setCategoryFormVisible(false)}
-        onSuccess={() => refetch()}
-      />
-
-      {/* Move Money Modal */}
-      <MoveMoneyModal
-        visible={moveMoneyVisible}
-        onClose={() => setMoveMoneyVisible(false)}
-        onSuccess={() => refetch()}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginVertical: 4 },
-  moveMoneyHeaderBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: '#E0F2FE', alignItems: 'center' },
-  moveMoneyHeaderBtnText: { fontSize: 12, fontWeight: '800', color: '#0369A1' },
-  newCategoryHeaderBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: '#00B4A6', alignItems: 'center' },
-  newCategoryHeaderBtnText: { fontSize: 12, fontWeight: '800', color: '#FFF' },
-  grid2x2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statChip: { flex: 1, minWidth: '45%', backgroundColor: '#FFF', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#E5E7EB' },
-  statChipLabel: { fontSize: 9, fontWeight: '800', color: '#9CA3AF', letterSpacing: 0.5 },
-  statChipVal: { fontSize: 18, fontWeight: '900', color: '#1B2B4B', marginTop: 2 },
-  emptyText: { textAlign: 'center', fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, marginVertical: 12 },
-  sectionCard: { backgroundColor: '#FFF', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  sectionHeaderNoToggle: { padding: 14, backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#1B2B4B' },
-  sectionSubtitle: { fontSize: 11, color: '#64748B', marginTop: 2 },
-  sectionBalance: { fontSize: 15, fontWeight: '900', color: '#1B2B4B' },
-  sectionBudget: { fontSize: 10, fontWeight: '700', color: '#64748B' },
-  sectionContent: { padding: 12, gap: 8 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  itemName: { fontSize: 13, fontWeight: '700', color: '#1B2B4B' },
-  itemPoolBadge: { fontSize: 9, fontWeight: '600', color: '#94A3B8' },
-  itemTarget: { fontSize: 12, fontWeight: '800', color: '#475569' },
-  goalCardItem: { backgroundColor: '#FFF', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 8 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  catName: { fontSize: 14, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary, flex: 1 },
-  catBalance: { fontSize: 14, fontWeight: '800' },
-  target: { fontSize: 11, color: DESIGN_TOKENS.colors.textMuted, marginBottom: 6 },
-  barBg: { height: 5, borderRadius: 3, backgroundColor: '#F3F4F6', overflow: 'hidden', marginBottom: 4 },
-  barFill: { height: 5, borderRadius: 3 },
-  pctLabel: { fontSize: 10, fontWeight: '700' },
-  actionRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  actionBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F3F4F6' },
-  actionBtnText: { fontSize: 11, fontWeight: '700', color: DESIGN_TOKENS.colors.textPrimary },
-  archiveBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: '#FEE2E2' },
-  archiveBtnText: { fontSize: 11, fontWeight: '700', color: '#991B1B' },
-  errorContainer: { alignItems: 'center', paddingVertical: 40, gap: 8 },
-  errorIcon: { fontSize: 40 },
-  errorTitle: { fontSize: 15, fontWeight: '600', color: DESIGN_TOKENS.colors.textPrimary },
-  errorSubtitle: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted, textAlign: 'center' },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 90,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    justifyContent: 'center',
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  moveMoneyHeaderBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    alignItems: 'center',
+  },
+  moveMoneyHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0D9488',
+  },
+  newCategoryHeaderBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#00B4A6',
+    alignItems: 'center',
+  },
+  newCategoryHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  grid2x2: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statChip: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  statChipLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  statChipVal: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1B2B4B',
+    marginTop: 2,
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    alignItems: 'center',
+  },
+  errorIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  errorTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#991B1B',
+  },
+  errorSubtitle: {
+    fontSize: 12,
+    color: '#B91C1C',
+    textAlign: 'center',
   },
 });

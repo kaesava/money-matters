@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { t } from '@money-matters/i18n';
 import {
   Modal,
   View,
@@ -261,7 +262,7 @@ export function PaydayPreviewWizard({
             style={styles.input}
             value={sourceName}
             onChangeText={setSourceName}
-            placeholder="e.g. Salary, Client Payment"
+            placeholder={t('modals.paydayPreview.incomeNamePlaceholder')}
           />
 
           <View style={styles.row}>
@@ -293,7 +294,7 @@ export function PaydayPreviewWizard({
             value={note}
             onChangeText={setNote}
             multiline
-            placeholder="Add optional income notes..."
+            placeholder={t('modals.paydayPreview.notesPlaceholder')}
           />
 
           {lines.length > 0 ? (
@@ -337,12 +338,12 @@ export function PaydayPreviewWizard({
           <View style={styles.btnRow}>
             {!isQuickAdd && activeId ? (
               <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} disabled={submitting}>
-                <Text style={styles.deleteBtnText}>🗑️ Delete</Text>
+                <Text style={styles.deleteBtnText}>🗑️ {t('common.delete')}</Text>
               </TouchableOpacity>
             ) : null}
 
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-              <Text style={styles.cancelBtnText}>Cancel</Text>
+              <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -350,7 +351,7 @@ export function PaydayPreviewWizard({
               style={styles.saveNoPayBtn}
               disabled={submitting}
             >
-              <Text style={styles.saveNoPayText}>Save Details Only</Text>
+              <Text style={styles.saveNoPayText}>{t('modals.paydayPreview.saveDetailsOnly')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -361,15 +362,14 @@ export function PaydayPreviewWizard({
               {submitting ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.confirmBtnText}>
-                  {isFutureDate ? '📅 Save Plan' : 'Confirm Payday'}
-                </Text>
+                <Text style={styles.confirmBtnText}>{t('modals.paydayPreview.runWaterfall')}</Text>
               )}
             </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
     </Modal>
+
   );
 }
 

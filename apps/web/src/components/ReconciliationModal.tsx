@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { t } from "@money-matters/i18n";
 import posthog from "../lib/posthog-client";
 
 export interface ReconciliationModalProps {
@@ -55,7 +56,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
       <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-6">
         <div className="flex justify-between items-center border-b border-slate-100 pb-4">
           <div>
-            <h3 className="font-extrabold text-lg text-[#1B2B4B]">3-Tap Account Reconciliation</h3>
+            <h3 className="font-extrabold text-lg text-[#1B2B4B]">{t('modals.reconciliation.title')}</h3>
             <p className="text-xs text-slate-500">{accountName}</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
@@ -64,7 +65,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
         {step === 1 ? (
           <div className="space-y-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
-              <span className="font-medium text-slate-600">App Expected Balance:</span>
+              <span className="font-medium text-slate-600">{t('modals.reconciliation.accountBalance')}:</span>
               <span className="font-mono font-bold text-slate-900 text-sm">
                 ${expectedBalance.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
               </span>
@@ -72,7 +73,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Actual Bank Balance
+                {t('modals.reconciliation.actualBalance')}
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-slate-400 font-bold">$</span>
@@ -89,7 +90,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
 
             {isDiscrepancy && (
               <div className={`p-3 rounded-xl text-xs font-semibold flex justify-between ${delta < 0 ? "bg-amber-50 text-amber-900 border border-amber-200" : "bg-emerald-50 text-emerald-900 border border-emerald-200"}`}>
-                <span>Discrepancy Delta:</span>
+                <span>{t('modals.reconciliation.variance')}:</span>
                 <span className="font-mono font-bold">{delta > 0 ? `+$${delta}` : `-$${Math.abs(delta)}`}</span>
               </div>
             )}
@@ -152,7 +153,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
               onClick={() => setStep(1)}
               className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
             >
-              ← Back
+              ← {t('common.back')}
             </button>
           )}
           <button
@@ -160,7 +161,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             disabled={isSubmitting}
             className="flex-1 py-3 bg-[#1B2B4B] hover:bg-blue-900 text-white font-bold text-xs rounded-xl transition-all shadow-md"
           >
-            {isSubmitting ? "Processing..." : step === 1 && isDiscrepancy ? "Continue to Choice →" : "Confirm & Reconcile"}
+            {isSubmitting ? t('common.saving') : step === 1 && isDiscrepancy ? `${t('common.next')} →` : t('modals.reconciliation.submit')}
           </button>
         </div>
       </div>

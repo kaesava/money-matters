@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { Spinner } from "@money-matters/ui/web";
@@ -131,7 +132,7 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">🔄</span>
-            <h2 className="text-lg font-bold text-[#1B2B4B]">Move Money</h2>
+            <h2 className="text-lg font-bold text-[#1B2B4B]">{t('modals.moveMoney.title')}</h2>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 font-bold p-1">
             ✕
@@ -163,7 +164,7 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">From Category</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">{t('modals.moveMoney.sourceCategory')}</label>
             <select
               value={sourceCategoryId}
               onChange={(e) => setSourceCategoryId(e.target.value)}
@@ -180,7 +181,7 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">To Category</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">{t('modals.moveMoney.destinationCategory')}</label>
             <select
               value={destinationCategoryId}
               onChange={(e) => setDestinationCategoryId(e.target.value)}
@@ -197,7 +198,7 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Amount ($)</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">{t('modals.moveMoney.amount')}</label>
             <input
               type="number"
               step="0.01"
@@ -225,7 +226,7 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
             className="mt-2 py-3 rounded-xl font-bold text-sm text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all shadow-md flex items-center justify-center gap-1.5"
           >
             {moveMoneyMutation.isPending && <Spinner size="sm" />}
-            Confirm Move Money
+            {t('modals.moveMoney.submit')}
           </button>
         </form>
       </div>

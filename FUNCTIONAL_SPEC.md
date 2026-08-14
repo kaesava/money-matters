@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-08-14  
-> **Status:** Fully synchronized with Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration with 7-Day Read-Only Grace Period), 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, Interactive Estimation Quiz Onboarding across Web & Mobile, Backend `reSetupBudget` capability integration for Re-Run Budget Setup (`/setup?mode=rerun` and `/(setup)?mode=rerun`), 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
+> **Status:** Fully synchronized with 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, 100% Vitest unit test coverage, Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration with 7-Day Read-Only Grace Period), 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, Interactive Estimation Quiz Onboarding across Web & Mobile, Backend `reSetupBudget` capability integration for Re-Run Budget Setup (`/setup?mode=rerun` and `/(setup)?mode=rerun`), 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 

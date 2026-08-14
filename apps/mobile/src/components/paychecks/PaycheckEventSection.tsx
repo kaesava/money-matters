@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD } from '../../lib/format';
 
@@ -27,8 +28,6 @@ export interface PaycheckEventSectionProps {
   onMarkExpensePaid: (eventId: string, amount: string) => void;
 }
 
-
-
 export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
   incomeEvents,
   expenseEvents,
@@ -38,9 +37,9 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionHeader}>UPCOMING PAYDAYS</Text>
+      <Text style={styles.sectionHeader}>{t('badges.upcomingPaydays')}</Text>
       {incomeEvents.length === 0 ? (
-        <Text style={styles.emptyText}>No upcoming paydays scheduled.</Text>
+        <Text style={styles.emptyText}>{t('badges.noUpcomingPaydays')}</Text>
       ) : (
         incomeEvents.map((item) => (
           <View key={item.id} style={styles.card}>
@@ -56,15 +55,15 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
               onPress={() => onOpenPaydayWizard(item.id)}
             >
               <Feather name="play" size={14} color="#FFF" />
-              <Text style={styles.processBtnText}>Run Payday Waterfall Split</Text>
+              <Text style={styles.processBtnText}>{t('modals.paydayPreview.runWaterfall')}</Text>
             </TouchableOpacity>
           </View>
         ))
       )}
 
-      <Text style={[styles.sectionHeader, { marginTop: 24 }]}>UPCOMING BILLS & EXPENSES</Text>
+      <Text style={[styles.sectionHeader, { marginTop: 24 }]}>{t('badges.upcomingBills')}</Text>
       {expenseEvents.length === 0 ? (
-        <Text style={styles.emptyText}>No upcoming bills scheduled.</Text>
+        <Text style={styles.emptyText}>{t('badges.noUpcomingBills')}</Text>
       ) : (
         expenseEvents.map((item) => (
           <View key={item.id} style={styles.card}>
@@ -81,14 +80,14 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
                 onPress={() => onEditUpcomingExpense(item)}
               >
                 <Feather name="edit-2" size={12} color={DESIGN_TOKENS.colors.primary} />
-                <Text style={styles.editBtnText}>Edit</Text>
+                <Text style={styles.editBtnText}>{t('common.edit')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.payBtn}
                 onPress={() => onMarkExpensePaid(item.id, item.expectedAmount)}
               >
                 <Feather name="check" size={12} color="#FFF" />
-                <Text style={styles.payBtnText}>Mark Paid</Text>
+                <Text style={styles.payBtnText}>{t('modals.upcomingExpense.markPaid')}</Text>
               </TouchableOpacity>
             </View>
           </View>
