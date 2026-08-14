@@ -231,27 +231,48 @@ export const CanAffordQuery = z.object({
  */
 export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
   z.object({
-    verdict: z.literal("YES"),
-    source: z.literal("everyday"),
+    verdict: z.literal("SAFE_YES"),
+    availableCash: z.string(),
+    billsReserved: z.string(),
     everydayRemaining: z.string(),
+    daysUntilPayday: z.number().int(),
+    dailyPacingAfterSpend: z.string(),
+    rationaleSteps: z.array(z.string()),
   }),
   z.object({
-    verdict: z.literal("YES_WITH_IMPACT"),
-    source: z.literal("savings"),
-    affectedBucketName: z.string(),
-    affectedBucketId: z.string(),
-    newBalance: z.string(),
+    verdict: z.literal("PACING_WARNING"),
+    availableCash: z.string(),
+    billsReserved: z.string(),
+    everydayRemaining: z.string(),
+    daysUntilPayday: z.number().int(),
+    dailyPacingAfterSpend: z.string(),
+    rationaleSteps: z.array(z.string()),
   }),
   z.object({
-    verdict: z.literal("WAIT"),
+    verdict: z.literal("IMPACT_GOALS"),
+    availableCash: z.string(),
+    billsReserved: z.string(),
+    affectedGoalName: z.string(),
+    affectedGoalId: z.string(),
+    goalSurplusUsed: z.string(),
+    newGoalBalance: z.string(),
+    rationaleSteps: z.array(z.string()),
+  }),
+  z.object({
+    verdict: z.literal("WAIT_FOR_PAYDAY"),
     daysUntilNextPaycheck: z.number().int(),
     amountExpected: z.string(),
+    shortfall: z.string(),
+    rationaleSteps: z.array(z.string()),
   }),
   z.object({
-    verdict: z.literal("NO"),
+    verdict: z.literal("HARD_NO"),
     shortfall: z.string(),
+    billsReserved: z.string(),
+    rationaleSteps: z.array(z.string()),
   }),
 ]);
+
 
 /**
  * DTO summarizing monthly income, spending, savings, and remaining everyday cash balance.

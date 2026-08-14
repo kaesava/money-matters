@@ -1,4 +1,4 @@
-import { db, categories, transactionLedger, categorySchedules, incomeEvents } from "@money-matters/db";
+import { db, categories, transactionLedger, categorySchedules, incomeEvents, expenseEvents } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 import { CanAffordVerdictType } from "@money-matters/types";
@@ -9,6 +9,9 @@ export async function canAffordQuery(
   appId: string,
   dbClient: PgDatabase<any, any, any> = db
 ): Promise<CanAffordVerdictType> {
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0]!;
+
   // 1. Fetch categories
   const dbCats = await dbClient
     .select()
@@ -72,60 +75,7 @@ export async function canAffordQuery(
     }
   }
 
-  // 5. Verdict Type A: YES
-  if (amount <= everydayBalance) {
-    return {
-      verdict: "YES",
-      source: "everyday",
-      everydayRemaining: (everydayBalance - amount).toFixed(2),
-    };
-  }
-
-  // 6. Verdict Type B: YES_WITH_IMPACT (dips into uncommitted savings surplus)
-  // Let's check savings buckets that have excess surplus (balance > prorated target)
-  const today = new Date();
-  let bestSavingsId = "";
-  let bestSavingsName = "";
-  let bestSavingsSurplus = 0;
-
-  for (const cat of dbCats) {
-    if (cat.type === "GOAL" && !cat.isCommitted) {
-      const sched = schedulesMap.get(cat.id);
-      const balance = balancesMap[cat.id] || 0;
-      if (sched) {
-        const target = parseFloat(sched.targetAmount || "0");
-        let monthsRemaining = 12;
-        if (sched.targetDate) {
-          const targetD = new Date(sched.targetDate);
-          const diffDays = (targetD.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-          monthsRemaining = Math.max(1, Math.ceil(diffDays / 30.4375));
-        }
-        
-        // Target prorated current accumulated goal
-        // Let's assume simple linear accumulation target based on due date proximity (12 months or targetDate)
-        // If balance exceeds prorated targets, that is uncommitted surplus
-        const surplus = Math.max(0, balance);
-        if (surplus > bestSavingsSurplus) {
-          bestSavingsSurplus = surplus;
-          bestSavingsId = cat.id;
-          bestSavingsName = cat.name;
-        }
-      }
-    }
-  }
-
-  if (amount <= everydayBalance + bestSavingsSurplus && bestSavingsSurplus > 0) {
-    const fromSavingsNeeded = amount - everydayBalance;
-    return {
-      verdict: "YES_WITH_IMPACT",
-      source: "savings",
-      affectedBucketId: bestSavingsId,
-      affectedBucketName: bestSavingsName,
-      newBalance: ((balancesMap[bestSavingsId] || 0) - fromSavingsNeeded).toFixed(2),
-    };
-  }
-
-  // 7. Verdict Type C: WAIT (check if paycheck is arriving in next 14 days and would cover the gap)
+  // 5. Query upcoming paychecks to determine next payday date
   const upcomingPaychecks = await dbClient
     .select()
     .from(incomeEvents)
@@ -139,25 +89,144 @@ export async function canAffordQuery(
     )
     .orderBy(desc(incomeEvents.expectedDate));
 
-  const nextPaycheck = upcomingPaychecks[upcomingPaychecks.length - 1]; // closest
-  if (nextPaycheck) {
-    const paycheckDate = new Date(nextPaycheck.expectedDate);
-    const diffDays = Math.ceil((paycheckDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    const paycheckAmount = parseFloat(nextPaycheck.expectedAmount);
-    
-    if (diffDays <= 14 && (everydayBalance + paycheckAmount) >= amount) {
+  const nextPaycheck = upcomingPaychecks[upcomingPaychecks.length - 1]; // Next upcoming paycheck
+  const nextPaycheckDateStr = nextPaycheck ? nextPaycheck.expectedDate : new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
+  const daysUntilPayday = Math.max(1, Math.ceil((new Date(nextPaycheckDateStr).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+
+  // 6. Query upcoming bills due before next payday
+  const upcomingBills = await dbClient
+    .select()
+    .from(expenseEvents)
+    .where(
+      and(
+        eq(expenseEvents.tenantId, tenantId),
+        eq(expenseEvents.appId, appId),
+        eq(expenseEvents.status, "UPCOMING"),
+        sql`${expenseEvents.expectedDate} >= ${todayStr}`,
+        sql`${expenseEvents.expectedDate} <= ${nextPaycheckDateStr}`,
+        sql`${expenseEvents.archivedAt} IS NULL`
+      )
+    );
+
+  let billsReserved = 0;
+  for (const bill of upcomingBills) {
+    const cat = dbCats.find((c) => c.id === bill.categoryId);
+    const catBal = cat ? (balancesMap[cat.id] || 0) : 0;
+    const billAmt = parseFloat(bill.expectedAmount);
+    // Deficit needed for bill
+    const deficitNeeded = Math.max(0, billAmt - catBal);
+    billsReserved += deficitNeeded;
+  }
+
+  const netAvailableCash = Math.max(0, everydayBalance - billsReserved);
+
+  // Verdict 1: SAFE_YES (Available cash covers purchase AND daily pacing >= $15/day)
+  if (amount <= netAvailableCash) {
+    const everydayRemaining = (everydayBalance - amount).toFixed(2);
+    const netRemainingAfterBills = everydayBalance - amount - billsReserved;
+    const dailyPacing = (netRemainingAfterBills / daysUntilPayday).toFixed(2);
+    const numDailyPacing = parseFloat(dailyPacing);
+
+    const rationaleSteps = [
+      `Available Everyday Cash: $${everydayBalance.toFixed(2)}`,
+      `Reserved for Upcoming Bills (due before next pay on ${nextPaycheckDateStr}): -$${billsReserved.toFixed(2)}`,
+      `Net Remaining Discretionary: $${netRemainingAfterBills.toFixed(2)}`,
+      `Daily Allowance Velocity (${daysUntilPayday} days left): $${dailyPacing}/day`,
+    ];
+
+    if (numDailyPacing >= 15) {
       return {
-        verdict: "WAIT",
-        daysUntilNextPaycheck: Math.max(1, diffDays),
-        amountExpected: paycheckAmount.toFixed(2),
+        verdict: "SAFE_YES",
+        availableCash: everydayBalance.toFixed(2),
+        billsReserved: billsReserved.toFixed(2),
+        everydayRemaining,
+        daysUntilPayday,
+        dailyPacingAfterSpend: dailyPacing,
+        rationaleSteps,
+      };
+    } else {
+      // Verdict 2: PACING_WARNING (Cash available, but severe daily spending starvation)
+      return {
+        verdict: "PACING_WARNING",
+        availableCash: everydayBalance.toFixed(2),
+        billsReserved: billsReserved.toFixed(2),
+        everydayRemaining,
+        daysUntilPayday,
+        dailyPacingAfterSpend: dailyPacing,
+        rationaleSteps,
       };
     }
   }
 
-  // 8. Verdict Type D: NO
-  const shortfall = amount - everydayBalance;
+  // Verdict 3: IMPACT_GOALS (Dips into uncommitted savings surplus)
+  let bestSavingsId = "";
+  let bestSavingsName = "";
+  let bestSavingsSurplus = 0;
+
+  for (const cat of dbCats) {
+    if (cat.type === "GOAL" && !cat.isCommitted) {
+      const balance = Math.max(0, balancesMap[cat.id] || 0);
+      if (balance > bestSavingsSurplus) {
+        bestSavingsSurplus = balance;
+        bestSavingsId = cat.id;
+        bestSavingsName = cat.name;
+      }
+    }
+  }
+
+  if (amount <= netAvailableCash + bestSavingsSurplus && bestSavingsSurplus > 0) {
+    const goalSurplusUsed = (amount - netAvailableCash).toFixed(2);
+    const newGoalBalance = (bestSavingsSurplus - parseFloat(goalSurplusUsed)).toFixed(2);
+
+    return {
+      verdict: "IMPACT_GOALS",
+      availableCash: everydayBalance.toFixed(2),
+      billsReserved: billsReserved.toFixed(2),
+      affectedGoalId: bestSavingsId,
+      affectedGoalName: bestSavingsName,
+      goalSurplusUsed,
+      newGoalBalance,
+      rationaleSteps: [
+        `Everyday Cash Available: $${everydayBalance.toFixed(2)}`,
+        `Upcoming Bills Reserved: -$${billsReserved.toFixed(2)}`,
+        `Shortfall in Everyday: -$${(amount - netAvailableCash).toFixed(2)}`,
+        `Covered by uncommitted goal "${bestSavingsName}": $${goalSurplusUsed} used (new balance: $${newGoalBalance})`,
+      ],
+    };
+  }
+
+  // Verdict 4: WAIT_FOR_PAYDAY (Paycheck arriving within 14 days will cover gap)
+  if (nextPaycheck && daysUntilPayday <= 14) {
+    const paycheckAmount = parseFloat(nextPaycheck.expectedAmount);
+    if ((netAvailableCash + paycheckAmount) >= amount) {
+      const shortfall = (amount - netAvailableCash).toFixed(2);
+      return {
+        verdict: "WAIT_FOR_PAYDAY",
+        daysUntilNextPaycheck: daysUntilPayday,
+        amountExpected: paycheckAmount.toFixed(2),
+        shortfall,
+        rationaleSteps: [
+          `Everyday Net Available: $${netAvailableCash.toFixed(2)}`,
+          `Purchase Amount: $${amount.toFixed(2)}`,
+          `Shortfall: -$${shortfall}`,
+          `Next Paycheck of $${paycheckAmount.toFixed(2)} arrives in ${daysUntilPayday} days on ${nextPaycheckDateStr}.`,
+        ],
+      };
+    }
+  }
+
+  // Verdict 5: HARD_NO
+  const shortfall = (amount - netAvailableCash).toFixed(2);
   return {
-    verdict: "NO",
-    shortfall: shortfall.toFixed(2),
+    verdict: "HARD_NO",
+    shortfall,
+    billsReserved: billsReserved.toFixed(2),
+    rationaleSteps: [
+      `Everyday Cash Available: $${everydayBalance.toFixed(2)}`,
+      `Reserved for Upcoming Bills: -$${billsReserved.toFixed(2)}`,
+      `Net Available: $${netAvailableCash.toFixed(2)}`,
+      `Shortfall: -$${shortfall} against purchase of $${amount.toFixed(2)}.`,
+    ],
   };
 }
+
