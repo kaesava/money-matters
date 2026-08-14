@@ -5,6 +5,8 @@ import { DESIGN_TOKENS, monthProgress } from '@money-matters/ui';
 import { CanAffordVerdictType } from '@money-matters/types';
 import { formatAUD } from '../lib/format';
 import { MobileDonutRing } from './MobileDonutRing';
+import { CanAffordCard } from './CanAffordCard';
+
 
 export interface DashboardHeroCardProps {
   readonly everydayBalance: number;
@@ -127,47 +129,16 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
         {/* Can We Afford This Widget inline in top section */}
         <View style={styles.affordBox}>
           <Text style={styles.affordTitle}>Can We Afford This?</Text>
-          <TextInput
-            keyboardType="decimal-pad"
-            placeholder="Amount ($)"
-            value={canAffordAmount}
-            onChangeText={setCanAffordAmount}
-            style={styles.affordInput}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
+          <CanAffordCard
+            canAffordAmount={canAffordAmount}
+            setCanAffordAmount={setCanAffordAmount}
+            canAffordData={canAffordData}
           />
-          {canAffordData && (
-            <View
-              style={[
-                styles.verdictBox,
-                canAffordData.verdict === 'YES'
-                  ? styles.yesBox
-                  : canAffordData.verdict === 'YES_WITH_IMPACT'
-                  ? styles.impactBox
-                  : styles.noBox,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.verdictText,
-                  canAffordData.verdict === 'YES'
-                    ? styles.yesText
-                    : canAffordData.verdict === 'YES_WITH_IMPACT'
-                    ? styles.impactText
-                    : styles.noText,
-                ]}
-                numberOfLines={2}
-              >
-                {canAffordData.verdict === 'YES' && `YES! Available (${formatAUD(canAffordData.everydayRemaining)} left)`}
-                {canAffordData.verdict === 'YES_WITH_IMPACT' && `YES WITH IMPACT: ${canAffordData.affectedBucketName}`}
-                {canAffordData.verdict === 'WAIT' && `WAIT: Paycheck in ${canAffordData.daysUntilNextPaycheck} days`}
-                {canAffordData.verdict === 'NO' && `NO: Shortfall ${formatAUD(canAffordData.shortfall)}`}
-              </Text>
-            </View>
-          )}
         </View>
       </View>
 
       <View style={styles.divider} />
+
 
       {nextPayday ? (
         <TouchableOpacity
