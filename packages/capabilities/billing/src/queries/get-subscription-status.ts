@@ -26,8 +26,23 @@ export async function getSubscriptionStatus(
     throw new Error(`Tenant not found: ${tenantId}`);
   }
 
-  const status = (tenant.subscriptionStatus || "TRIAL_ACTIVE") as TSubscriptionStatusDto["status"];
+  let rawStatus = tenant.subscriptionStatus || "TRIAL_ACTIVE";
   const now = new Date();
+
+  // If status is PAST_DUE, check if the 7-day grace period has expired
+  if (rawStatus === "PAST_DUE" && tenant.trialGraceEndsAt) {
+    const graceExpiry = new Date(tenant.trialGraceEndsAt);
+    if (now > graceExpiry) {
+      // Grace period has elapsed -> Transition automatically to FREE_TIER
+      rawStatus = "FREE_TIER";
+      await db
+        .update(tenants)
+        .set({ subscriptionStatus: "FREE_TIER", updatedAt: now })
+        .where(eq(tenants.id, tenantId));
+    }
+  }
+
+  const status = rawStatus as TSubscriptionStatusDto["status"];
   const daysRemainingInTrial = tenant.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(tenant.trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : null;
@@ -38,7 +53,7 @@ export async function getSubscriptionStatus(
     trialGraceEndsAt: tenant.trialGraceEndsAt ? new Date(tenant.trialGraceEndsAt) : null,
     subscriptionEndsAt: tenant.subscriptionEndsAt ? new Date(tenant.subscriptionEndsAt) : null,
     isTrialActive: status === "TRIAL_ACTIVE",
-    isTrialGrace: status === "TRIAL_GRACE",
+    isTrialGrace: status === "TRIAL_GRACE" || (status === "PAST_DUE" && tenant.trialGraceEndsAt && new Date(tenant.trialGraceEndsAt) > now),
     isFreeTier: status === "FREE_TIER",
     isSubscribed: status === "SUBSCRIBED",
     isPastDue: status === "PAST_DUE",
@@ -46,3 +61,4 @@ export async function getSubscriptionStatus(
     daysRemainingInTrial,
   });
 }
+
