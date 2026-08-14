@@ -44,7 +44,8 @@
       "vite": "^6.0.0"
     }
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "react-native-web": "^0.21.0"
+  }
 }
-
-

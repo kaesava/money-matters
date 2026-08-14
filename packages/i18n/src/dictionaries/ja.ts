@@ -1,4 +1,4 @@
-import { en } from "./en";
+import { en } from "./en.js";
 
 type DeepStringRecord<T> = {
   [K in keyof T]: T[K] extends string ? string : DeepStringRecord<T[K]>;

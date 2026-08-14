@@ -37,11 +37,13 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   console.log(`\n🌱 Seeding database for environment [${envLabel}]...`);
   const db = createDbClient(connectionString);
 
-  const tenantId = "d3b07384-d113-4ec4-a5a4-000000000001"; // Fixed tenant ID matching kaesava@gmail.com session
+  const isProd = envLabel === "production" || connectionString.includes("ep-spring-snow");
   const appId = "01908bde-34bb-7b19-a178-574211bc93aa";
+
+  // 1. Primary User: kaesava@gmail.com
+  const tenantId = "d3b07384-d113-4ec4-a5a4-000000000001";
   let userId = "d3b07384-d113-4ec4-a5a4-000000000001";
 
-  // Check if neon_auth.user already has a user for kaesava@gmail.com
   let existingNeonUsers: any[] = [];
   try {
     const res = await db.execute<{ id: string; email: string }>(
@@ -49,12 +51,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     );
     existingNeonUsers = Array.isArray(res) ? res : (res as any)?.rows ?? [];
   } catch (e) {
-    // If neon_auth schema doesn't exist yet, proceed gracefully
     console.log("Note: neon_auth.user table check skipped or schema not initialized.");
   }
 
   const existingNeonUser = existingNeonUsers[0];
-
   if (existingNeonUser) {
     userId = existingNeonUser.id;
     console.log(`Found existing Neon Auth user for kaesava@gmail.com with ID: ${userId}`);
@@ -73,8 +73,70 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
         VALUES (${userId}, 'Kaesava', 'kaesava@gmail.com', true, now(), now())
       `);
     } catch (e) {
-      console.log("neon_auth.user insert bypassed (schema managed by Neon Auth).");
+      console.log("neon_auth.user insert bypassed.");
     }
+  }
+
+  // 2. Play Store Tester User: tester-play@kaesava.au
+  const testerEmail = "tester-play@kaesava.au";
+  const testerPassword = isProd ? "whtVT!lNWPp9yb" : "j0niOxWVA7nt#c";
+  const testerTenantId = "d3b07384-d113-4ec4-a5a4-000000000002";
+  let testerUserId = "d3b07384-d113-4ec4-a5a4-000000000002";
+
+  console.log(`Setting up Neon Auth user for ${testerEmail} (Env: ${isProd ? "PROD" : "DEV"})...`);
+
+  // Clean up any existing neon_auth user record to ensure fresh sign-up with correct password
+  try {
+    await db.execute(sql`DELETE FROM neon_auth.user WHERE email = ${testerEmail}`);
+  } catch (e) {
+    console.log("Pre-existing neon_auth record cleanup bypassed.");
+  }
+
+  const authUrl = process.env.NEXT_PUBLIC_NEON_AUTH_URL || (isProd ? "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth" : "https://ep-icy-resonance-a7s94hg4.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth");
+  const originUrl = isProd ? "https://moneymatters.kaesava.au" : "http://localhost:3000";
+
+  try {
+    const signupRes = await fetch(`${authUrl}/sign-up/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Origin": originUrl },
+      body: JSON.stringify({
+        email: testerEmail,
+        password: testerPassword,
+        name: "Play Store Tester",
+      }),
+    });
+
+    if (signupRes.ok) {
+      const body = (await signupRes.json()) as any;
+      if (body.user?.id) {
+        testerUserId = body.user.id;
+      }
+      console.log(`Registered ${testerEmail} via Neon Auth REST API. User ID: ${testerUserId}`);
+    } else {
+      console.log(`Neon Auth REST API status ${signupRes.status}, fallback to direct insert.`);
+    }
+  } catch (e) {
+    console.log("Neon Auth API unavailable, proceeding with direct insert.");
+  }
+
+  // Ensure emailVerified is strictly TRUE in neon_auth.user
+  try {
+    const existingTesterRes = await db.execute<{ id: string }>(
+      sql`SELECT id FROM neon_auth.user WHERE email = ${testerEmail} LIMIT 1`
+    );
+    const rows = Array.isArray(existingTesterRes) ? existingTesterRes : (existingTesterRes as any)?.rows ?? [];
+    if (rows.length > 0) {
+      testerUserId = rows[0].id;
+      await db.execute(sql`UPDATE neon_auth.user SET "emailVerified" = true WHERE email = ${testerEmail}`);
+    } else {
+      await db.execute(sql`
+        INSERT INTO neon_auth.user (id, name, email, "emailVerified", "createdAt", "updatedAt")
+        VALUES (${testerUserId}, 'Play Store Tester', ${testerEmail}, true, now(), now())
+      `);
+    }
+    console.log(`Marked emailVerified = true for ${testerEmail} in neon_auth.user.`);
+  } catch (e) {
+    console.log("neon_auth.user update/insert skipped.");
   }
 
   // Ensure DB schema migrations/columns are present
@@ -106,12 +168,19 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   console.log("🧹 Cleaned database tables.");
 
-  // 0. App & User Record
-  await db.insert(users).values({
-    id: userId,
-    email: "kaesava@gmail.com",
-    displayName: "Kaesava",
-  });
+  // 0. App & User Records
+  await db.insert(users).values([
+    {
+      id: userId,
+      email: "kaesava@gmail.com",
+      displayName: "Kaesava",
+    },
+    {
+      id: testerUserId,
+      email: testerEmail,
+      displayName: "Play Store Tester",
+    },
+  ]);
 
   await db.insert(apps).values({
     id: appId,

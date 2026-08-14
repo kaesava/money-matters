@@ -2,6 +2,7 @@
   "name": "@money-matters/i18n",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -14,8 +15,8 @@
   "dependencies": {},
   "scripts": {
     "build": "echo \"No build script needed\"",
-    "check-i18n": "node src/check-i18n.js",
-    "lint": "node src/check-i18n.js",
+    "check-i18n": "node src/check-i18n.cjs",
+    "lint": "node src/check-i18n.cjs",
     "typecheck": "tsc --noEmit"
   }
 }
