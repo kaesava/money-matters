@@ -244,8 +244,8 @@ export default function BankAccountsPage() {
             </button>
           </div>
         ))}
-        ))}
       </div>
+
 
       {/* Bank CSV Statement Import Card & Download Instructions */}
       <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm flex flex-col gap-4">
