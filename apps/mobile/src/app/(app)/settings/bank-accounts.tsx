@@ -33,16 +33,17 @@ export default function BankAccountsScreen() {
     onError: (err) => Alert.alert("Error", err.message),
   });
 
-  const importCsvMut = trpc.importBankCsv.useMutation({
-    onSuccess: (res) => {
+  const importCsvMut = trpc.parseCsv.useMutation({
+    onSuccess: (res: { transactions: Array<any> }) => {
       bankAccountsQuery.refetch();
       Alert.alert(
-        "CSV Import Successful",
-        `Imported ${res.importedCount} new transactions. ${res.duplicateCount} duplicates skipped.`
+        "CSV Statement Parsed Successfully",
+        `Parsed ${res.transactions.length} transactions from bank statement.`
       );
     },
-    onError: (err) => Alert.alert("Import Failed", err.message),
+    onError: (err: { message: string }) => Alert.alert("Import Failed", err.message),
   });
+
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAccountName, setNewAccountName] = useState("");
@@ -68,10 +69,9 @@ export default function BankAccountsScreen() {
           return;
         }
         await importCsvMut.mutateAsync({
-          bankAccountId: targetAccountId,
-          csvContent: fileContent,
-          bankFormat: "AUTO",
+          csvText: fileContent,
         });
+
       }
     } catch (err) {
       Alert.alert("File Selection Error", err instanceof Error ? err.message : "Failed to read CSV file.");
