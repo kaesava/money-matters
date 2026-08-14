@@ -66,13 +66,14 @@ export default function SignUpPage() {
         name: name.trim(),
       });
 
-      // 3. Complete onboarding signup redirects
-      router.push("/dashboard");
+      // 3. Complete onboarding signup redirects to setup wizard
+      router.push("/setup");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign up.");
     } finally {
       setLoading(false);
     }
+
   };
 
   const handleGoogleSignIn = async () => {
