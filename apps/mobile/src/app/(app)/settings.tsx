@@ -88,6 +88,38 @@ export default function SettingsScreen() {
   const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
   const deleteAccountMutation = trpc.deleteMyAccount.useMutation();
 
+  const checkoutMut = trpc.createCheckoutSession.useMutation();
+  const portalMut = trpc.createCustomerPortalSession.useMutation();
+
+  const handleOpenStripeCheckout = async () => {
+    try {
+      const res = await checkoutMut.mutateAsync({
+        priceId: "price_founding_member",
+        successUrl: "moneymatters://subscription/success",
+        cancelUrl: "moneymatters://subscription/manage",
+      });
+      if (res.url) {
+        await Linking.openURL(res.url);
+      }
+    } catch (err) {
+      Alert.alert("Checkout Error", err instanceof Error ? err.message : "Could not open Stripe checkout.");
+    }
+  };
+
+  const handleOpenCustomerPortal = async () => {
+    try {
+      const res = await portalMut.mutateAsync({
+        returnUrl: "moneymatters://settings",
+      });
+      if (res.url) {
+        await Linking.openURL(res.url);
+      }
+    } catch (err) {
+      Alert.alert("Billing Portal Error", err instanceof Error ? err.message : "Could not open billing portal.");
+    }
+  };
+
+
   const handleDownloadDataMobile = async () => {
     try {
       const { data } = await exportQuery.refetch();
@@ -324,14 +356,26 @@ export default function SettingsScreen() {
           <View style={styles.listItemDivider} />
           <TouchableOpacity
             style={styles.listItem}
-            onPress={() => router.push('/(app)/settings/notifications' as Href)}
+            onPress={handleOpenStripeCheckout}
             activeOpacity={0.7}
           >
-            <Text style={styles.listItemText}>{t("settings.items.notifications")}</Text>
-            <Text style={styles.chevron}>→</Text>
+            <Text style={[styles.listItemText, { color: DESIGN_TOKENS.colors.accent, fontWeight: "700" }]}>
+              ⭐ Upgrade to Household Plan ($9.99/mo)
+            </Text>
+            <Text style={styles.chevron}>↗</Text>
+          </TouchableOpacity>
+          <View style={styles.listItemDivider} />
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={handleOpenCustomerPortal}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.listItemText}>💳 Manage Stripe Billing Portal</Text>
+            <Text style={styles.chevron}>↗</Text>
           </TouchableOpacity>
         </View>
       </View>
+
 
       {/* Group 4: Danger Zone */}
       <View style={styles.section}>

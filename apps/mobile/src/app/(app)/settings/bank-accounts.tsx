@@ -33,9 +33,53 @@ export default function BankAccountsScreen() {
     onError: (err) => Alert.alert("Error", err.message),
   });
 
+  const importCsvMut = trpc.importBankCsv.useMutation({
+    onSuccess: (res) => {
+      bankAccountsQuery.refetch();
+      Alert.alert(
+        "CSV Import Successful",
+        `Imported ${res.importedCount} new transactions. ${res.duplicateCount} duplicates skipped.`
+      );
+    },
+    onError: (err) => Alert.alert("Import Failed", err.message),
+  });
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAccountName, setNewAccountName] = useState("");
   const [newAccountBalance, setNewAccountBalance] = useState("0.00");
+  const [importingCsv, setImportingCsv] = useState(false);
+
+  const handlePickAndUploadCsv = async () => {
+    try {
+      const DocumentPicker = require("expo-document-picker");
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["text/csv", "text/comma-separated-values", "application/csv"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        setImportingCsv(true);
+        const FileSystem = require("expo-file-system");
+        const fileContent = await FileSystem.readAsStringAsync(file.uri);
+        const targetAccountId = accounts[0]?.id;
+        if (!targetAccountId) {
+          Alert.alert("Account Required", "Please create a bank account first before importing CSV statements.");
+          return;
+        }
+        await importCsvMut.mutateAsync({
+          bankAccountId: targetAccountId,
+          csvContent: fileContent,
+          bankFormat: "AUTO",
+        });
+      }
+    } catch (err) {
+      Alert.alert("File Selection Error", err instanceof Error ? err.message : "Failed to read CSV file.");
+    } finally {
+      setImportingCsv(false);
+    }
+  };
+
 
   if (bankAccountsQuery.isLoading) {
     return (
@@ -156,7 +200,7 @@ export default function BankAccountsScreen() {
 
         {accounts.map((acc) => (
           <View key={acc.id} style={styles.accountCard}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.accountName}>{acc.name}</Text>
               <Text style={styles.accountBalance}>
                 ${parseFloat(acc.lastKnownBalance || "0").toFixed(2)}
@@ -182,7 +226,21 @@ export default function BankAccountsScreen() {
             </TouchableOpacity>
           </View>
         ))}
+
+        {/* Bank CSV Import Section */}
+        <View style={styles.csvCard}>
+          <Text style={styles.cardTitle}>📄 Big 4 Bank CSV Statement Import</Text>
+          <Text style={styles.cardDesc}>
+            Import statement CSV files directly from CBA, Westpac, ANZ, NAB, ING, or Macquarie.
+          </Text>
+          <TouchableOpacity style={styles.csvBtn} onPress={handlePickAndUploadCsv} disabled={importingCsv}>
+            <Text style={styles.csvBtnText}>
+              {importingCsv ? "Parsing & Deduplicating CSV..." : "📁 Pick Bank CSV File"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+
     </MobileScreenWrapper>
   );
 }
@@ -211,4 +269,8 @@ const styles = StyleSheet.create({
   accountCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   accountName: { fontSize: 14, fontWeight: "700", color: DESIGN_TOKENS.colors.textPrimary },
   accountBalance: { fontSize: 12, fontWeight: "700", color: DESIGN_TOKENS.colors.success },
+  csvCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, marginTop: 12, gap: 10 },
+  csvBtn: { backgroundColor: DESIGN_TOKENS.colors.accent, paddingVertical: 12, borderRadius: 10, alignItems: "center" },
+  csvBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 });
+
