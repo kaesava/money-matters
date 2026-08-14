@@ -5,15 +5,14 @@ interface CanAffordCardProps {
   canAffordAmount: string;
   setCanAffordAmount: (amt: string) => void;
   canAffordData?: CanAffordVerdictType | null;
-  fmt: (val: string | number) => string;
 }
 
 export function CanAffordCard({
   canAffordAmount,
   setCanAffordAmount,
   canAffordData,
-  _fmt,
 }: CanAffordCardProps) {
+
 
   return (
     <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-3">
