@@ -62,7 +62,7 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
     if (!notes || notes.length === 0) {
       return <div className="text-center text-slate-400 text-xs py-12">{t('fileNotes.empty')}</div>;
     }
-    return notes.map((note: FileNoteItem) => {
+    return (notes as unknown as FileNoteItem[]).map((note: FileNoteItem) => {
       const isEditing = editingNoteId === note.id;
       const formattedSize = note.fileSize 
         ? `${(parseInt(note.fileSize, 10) / 1024 / 1024).toFixed(2)} MB`
