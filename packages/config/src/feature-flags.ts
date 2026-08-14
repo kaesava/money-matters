@@ -41,7 +41,14 @@ export const FEATURE_FLAGS = {
     expiresAt: "2026-12-31",
     tenantScopable: true,
   },
+  foundingMemberPromo: {
+    key: "foundingMemberPromo",
+    owner: "product",
+    expiresAt: "never",
+    tenantScopable: false,
+  },
 } as const;
+
 
 /**
  * Evaluates whether a specified feature flag is enabled for an application ID.

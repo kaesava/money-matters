@@ -101,9 +101,7 @@ export default function UpgradePage() {
                 <li className="flex items-center gap-2">✓ {t("subscription.featureNotifications")}</li>
                 <li className="flex items-center gap-2">✓ {t("subscription.featureHistoryFree")}</li>
                 <li className="flex items-center gap-2">✓ {t("subscription.featureGoalsFree")}</li>
-                <li className="flex items-center gap-2 text-zinc-400 line-through">
-                  ✗ {t("subscription.featureCsvImportFree")}
-                </li>
+                <li className="flex items-center gap-2">✓ {t("subscription.featureCsvImportFree")}</li>
                 <li className="flex items-center gap-2 text-zinc-400 line-through">
                   ✗ {t("subscription.featureFileNotesFree")}
                 </li>
@@ -129,16 +127,17 @@ export default function UpgradePage() {
               </span>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-extrabold text-[#1B2B4B]">
-                  {billingCycle === "annual" ? "$89" : "$9.99"}
+                  {billingCycle === "annual" ? "$49" : "$4.99"}
                 </span>
                 <span className="text-sm text-zinc-500">
-                  {billingCycle === "annual" ? "AUD / year ($7.42/mo)" : "AUD / month"}
+                  {billingCycle === "annual" ? "AUD / year ($4.08/mo)" : "AUD / month"}
                 </span>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 font-medium">
                 🏷️ {t("subscription.foundingMemberBadge")}
               </div>
+
 
               <ul className="flex flex-col gap-3 text-sm text-zinc-700 mt-2 font-medium">
                 <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featureHistoryPaid")}</li>
