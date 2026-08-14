@@ -50,10 +50,11 @@ export async function sendEmailViaResend(options: {
 
     const data = await res.json();
     return { success: true, data };
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error('[Resend] Error sending email via Resend:', err);
     throw err;
   }
+
 }
 
 export async function sendBudgetAlertEmail(to: string, details: BudgetAlertEmailDetails) {

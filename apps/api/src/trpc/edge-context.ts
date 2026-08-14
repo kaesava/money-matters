@@ -7,9 +7,23 @@ import { inngest } from '../inngest/client.js';
 
 export const MONEY_MATTERS_APP_ID = '01908bde-34bb-7b19-a178-574211bc93aa';
 
-export async function createEdgeContext({ req, resHeaders }: FetchCreateContextFnOptions, env?: any) {
+export interface EdgeContextEnv {
+  DATABASE_URL?: string;
+  NEXT_PUBLIC_NEON_AUTH_URL?: string;
+  NEON_AUTH_BASE_URL?: string;
+}
+
+
+
+export async function createEdgeContext(
+  { req, resHeaders }: FetchCreateContextFnOptions,
+  env?: EdgeContextEnv
+) {
   const connectionString = env?.DATABASE_URL || process.env.DATABASE_URL;
   const requestDb = connectionString ? createDbClient(connectionString) : db;
+
+
+
 
   const authHeader = req.headers.get('authorization');
   let token = authHeader?.split(' ')[1] ?? '';

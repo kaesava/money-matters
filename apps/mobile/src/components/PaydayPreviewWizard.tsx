@@ -140,8 +140,8 @@ export function PaydayPreviewWizard({
       await utils.listIncomeEvents.invalidate();
       onSuccess?.();
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to save income event.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to save income event.');
     } finally {
       setSubmitting(false);
     }
@@ -173,7 +173,7 @@ export function PaydayPreviewWizard({
           note,
         });
         const preview = await utils.previewPayday.fetch({ incomeEventId: createdEvt.id });
-        const linesPayload = preview.engineResult.lines.map((l: any) => ({
+        const linesPayload = preview.engineResult.lines.map((l) => ({
           bucketId: l.bucketId,
           amount: l.proposedAmount.toFixed(2),
         }));
@@ -189,8 +189,8 @@ export function PaydayPreviewWizard({
       await utils.listTransactions.invalidate();
       onSuccess?.();
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to process payday.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to process payday.');
     } finally {
       setSubmitting(false);
     }
@@ -213,8 +213,8 @@ export function PaydayPreviewWizard({
               await utils.listIncomeEvents.invalidate();
               onSuccess?.();
               onClose();
-            } catch (err: any) {
-              setErrorMsg(err?.message || 'Failed to delete income record.');
+            } catch (err: unknown) {
+              setErrorMsg(err instanceof Error ? err.message : 'Failed to delete income record.');
             } finally {
               setSubmitting(false);
             }
@@ -223,6 +223,7 @@ export function PaydayPreviewWizard({
       ]
     );
   };
+
 
   const showReasonAlert = (catName: string, reason: string) => {
     Alert.alert(`Allocation Reason: ${catName}`, reason || 'Standard budget target allocation.');
@@ -298,8 +299,9 @@ export function PaydayPreviewWizard({
           {lines.length > 0 ? (
             <View style={styles.linesSection}>
               <Text style={styles.sectionHeader}>Category Distribution Splits</Text>
-              {lines.map((l: any) => {
+              {lines.map((l) => {
                 const cat = categories.find((c) => c.id === l.bucketId);
+
                 const curBal = cat ? parseFloat(cat.currentBalance || '0') : 0;
                 const addAmt = parseFloat(allocations[l.bucketId] ?? l.proposedAmount) || 0;
                 const projBal = curBal + addAmt;

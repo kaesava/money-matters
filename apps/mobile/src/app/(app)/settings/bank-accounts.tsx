@@ -34,7 +34,7 @@ export default function BankAccountsScreen() {
   });
 
   const importCsvMut = trpc.parseCsv.useMutation({
-    onSuccess: (res: { transactions: Array<any> }) => {
+    onSuccess: (res: { transactions: Array<{ date: string; amount: string; description: string }> }) => {
       bankAccountsQuery.refetch();
       Alert.alert(
         "CSV Statement Parsed Successfully",
@@ -43,6 +43,7 @@ export default function BankAccountsScreen() {
     },
     onError: (err: { message: string }) => Alert.alert("Import Failed", err.message),
   });
+
 
 
   const [showAddForm, setShowAddForm] = useState(false);

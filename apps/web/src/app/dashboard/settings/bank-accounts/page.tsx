@@ -45,7 +45,7 @@ export default function BankAccountsPage() {
   const [amountCol, setAmountCol] = useState(2);
 
   const parseCsvMut = trpc.parseCsv.useMutation({
-    onSuccess: (res: { bank: string; transactions: Array<any>; headers: string[] }) => {
+    onSuccess: (res: { bank: string; transactions: Array<{ date: string; description: string; amount: string; flowType: "DEBIT" | "CREDIT" }>; headers: string[] }) => {
       if (res.transactions.length === 0 && res.headers.length > 0 && !showCustomMapper) {
         setRawHeaders(res.headers);
         setShowCustomMapper(true);
@@ -55,6 +55,7 @@ export default function BankAccountsPage() {
         setCsvResultMsg(`Successfully parsed ${res.transactions.length} transactions from ${res.bank}!`);
       }
     },
+
     onError: (err: { message: string }) => {
       setCsvResultMsg(`CSV Parse Error: ${err.message}`);
     },

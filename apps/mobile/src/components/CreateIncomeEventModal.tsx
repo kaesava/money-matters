@@ -92,11 +92,12 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
               value={date}
               mode="date"
               display="default"
-              onChange={(event: any, selectedDate?: Date) => {
+              onChange={(_event: unknown, selectedDate?: Date) => {
                 setShowDatePicker(Platform.OS === 'ios');
                 if (selectedDate) setDate(selectedDate);
               }}
             />
+
           )}
 
           <View style={styles.actions}>

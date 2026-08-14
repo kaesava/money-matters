@@ -215,26 +215,59 @@ describe('Domain Schemas Validation', () => {
 
     expect(() => CanAffordQuery.parse({ amount: '120.501' })).toThrow();
 
-    const yesVerdict = CanAffordVerdictDto.parse({
-      verdict: 'YES',
-      source: 'everyday',
-      everydayRemaining: '540.00',
+    const safeYesVerdict = CanAffordVerdictDto.parse({
+      verdict: 'SAFE_YES',
+      availableCash: '1000.00',
+      billsReserved: '200.00',
+      everydayRemaining: '680.00',
+      daysUntilPayday: 10,
+      dailyPacingAfterSpend: '68.00',
+      rationaleSteps: ['Available cash: $1,000.00', 'Reserved bills: $200.00'],
     });
-    expect(yesVerdict.verdict).toBe('YES');
+    expect(safeYesVerdict.verdict).toBe('SAFE_YES');
+
+    const pacingWarningVerdict = CanAffordVerdictDto.parse({
+      verdict: 'PACING_WARNING',
+      availableCash: '200.00',
+      billsReserved: '50.00',
+      everydayRemaining: '30.00',
+      daysUntilPayday: 5,
+      dailyPacingAfterSpend: '6.00',
+      rationaleSteps: ['Pacing warning: $6.00/day'],
+    });
+    expect(pacingWarningVerdict.verdict).toBe('PACING_WARNING');
+
+    const impactGoalsVerdict = CanAffordVerdictDto.parse({
+      verdict: 'IMPACT_GOALS',
+      availableCash: '50.00',
+      billsReserved: '0.00',
+      affectedGoalName: 'Emergency Buffer',
+      affectedGoalId: '11111111-1111-4111-8111-111111111111',
+      goalSurplusUsed: '70.00',
+      newGoalBalance: '430.00',
+      rationaleSteps: ['Dips into Emergency Buffer'],
+    });
+    expect(impactGoalsVerdict.verdict).toBe('IMPACT_GOALS');
 
     const waitVerdict = CanAffordVerdictDto.parse({
-      verdict: 'WAIT',
-      daysUntilNextPaycheck: 5,
-      amountExpected: '1500.00',
+      verdict: 'WAIT_FOR_PAYDAY',
+      daysUntilNextPaycheck: 3,
+      amountExpected: '2000.00',
+      shortfall: '50.00',
+      rationaleSteps: ['Payday arrives in 3 days'],
     });
-    expect(waitVerdict.verdict).toBe('WAIT');
+    expect(waitVerdict.verdict).toBe('WAIT_FOR_PAYDAY');
 
-    const noVerdict = CanAffordVerdictDto.parse({
-      verdict: 'NO',
-      shortfall: '80.00',
+    const hardNoVerdict = CanAffordVerdictDto.parse({
+      verdict: 'HARD_NO',
+      shortfall: '70.00',
+      billsReserved: '100.00',
+      rationaleSteps: ['Causes a bill default'],
     });
-    expect(noVerdict.verdict).toBe('NO');
+    expect(hardNoVerdict.verdict).toBe('HARD_NO');
   });
+
+
 
   it('validates MonthlySummaryDto, ConfirmPlanCommand, and UserPreferencesSchema', () => {
     const summary = MonthlySummaryDto.parse({

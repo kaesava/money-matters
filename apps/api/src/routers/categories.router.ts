@@ -149,20 +149,22 @@ export const categoriesRouter = {
 
       if (balance === undefined || bills === undefined) {
         const categoriesList = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
-        const billsCat = categoriesList.find((c: any) => c.type === 'REGULAR' || c.name.toLowerCase().includes('bill'));
+        const billsCat = categoriesList.find((c) => c.type === 'REGULAR' || c.name.toLowerCase().includes('bill'));
         balance = balance ?? (billsCat ? parseFloat(billsCat.currentBalance) : 0);
 
         if (bills === undefined) {
-          const upcomingEvents = await ctx.db.query?.expenseEvents?.findMany?.({
-            where: (e: any, { eq, and }: any) => and(eq(e.tenantId, ctx.tenantId!), eq(e.status, 'UPCOMING')),
-          }) ?? [];
-          bills = upcomingEvents.map((e: any) => ({
-            id: e.id,
-            name: e.name,
-            amount: parseFloat(e.expectedAmount),
-            dueDate: e.expectedDate,
+          const upcomingEvents = (await ctx.db.query?.expenseEvents?.findMany?.({
+            where: (e, { eq, and }) => and(eq(e.tenantId, ctx.tenantId!), eq(e.status, 'UPCOMING')),
+          })) ?? [];
+
+          bills = upcomingEvents.map((e: Record<string, unknown>) => ({
+            id: String(e.id),
+            name: String(e.name || ''),
+            amount: parseFloat(String(e.expectedAmount || '0')),
+            dueDate: String(e.expectedDate || ''),
           }));
         }
+
       }
 
       return evaluateBillsPoolHealth({

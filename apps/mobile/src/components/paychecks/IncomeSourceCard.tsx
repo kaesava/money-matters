@@ -4,12 +4,21 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
-interface IncomeSourceCardProps {
-  inc: any;
-  onEdit: (inc: any) => void;
-  onArchive: (inc: any) => void;
-  onViewBurst: (inc: any) => void;
+export interface IncomeSourceItem {
+  id: string;
+  name: string;
+  amount: string;
+  rrule?: string | null;
+  startDate?: string | null;
 }
+
+interface IncomeSourceCardProps {
+  inc: IncomeSourceItem;
+  onEdit: (inc: IncomeSourceItem) => void;
+  onArchive: (inc: IncomeSourceItem) => void;
+  onViewBurst: (inc: IncomeSourceItem) => void;
+}
+
 
 export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
   inc,

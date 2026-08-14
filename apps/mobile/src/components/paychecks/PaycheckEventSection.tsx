@@ -4,13 +4,30 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD } from '../../lib/format';
 
-export interface PaycheckEventSectionProps {
-  incomeEvents: any[];
-  expenseEvents: any[];
-  onOpenPaydayWizard: (eventId: string) => void;
-  onEditUpcomingExpense: (event: any) => void;
-  onMarkExpensePaid: (eventId: string, amount: number) => void;
+export interface PaycheckIncomeEvent {
+  id: string;
+  name?: string | null;
+  expectedAmount: string;
+  expectedDate: string;
 }
+
+export interface PaycheckExpenseEvent {
+  id: string;
+  name?: string | null;
+  expectedAmount: string;
+  expectedDate: string;
+  categoryId?: string | null;
+}
+
+export interface PaycheckEventSectionProps {
+  incomeEvents: PaycheckIncomeEvent[];
+  expenseEvents: PaycheckExpenseEvent[];
+  onOpenPaydayWizard: (eventId: string) => void;
+  onEditUpcomingExpense: (event: PaycheckExpenseEvent) => void;
+  onMarkExpensePaid: (eventId: string, amount: string) => void;
+}
+
+
 
 export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
   incomeEvents,

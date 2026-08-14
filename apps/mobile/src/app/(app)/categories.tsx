@@ -31,6 +31,8 @@ export default function CategoriesScreen() {
   const { data: session } = authClient.useSession();
   const { data: categories = [], isLoading, error, refetch } = trpc.listCategories.useQuery();
 
+  type CategoryItem = NonNullable<(typeof categories)[number]>;
+
   // Filters State
   const [searchQuery, setSearchQuery] = useState(params.search ?? '');
 
@@ -49,14 +51,14 @@ export default function CategoriesScreen() {
 
   // Modals
   const [categoryFormVisible, setCategoryFormVisible] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<any>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItem | null>(null);
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
 
   const archiveMut = trpc.archiveCategory.useMutation({
     onSuccess: () => refetch(),
   });
 
-  const handleArchive = (cat: any) => {
+  const handleArchive = (cat: CategoryItem) => {
     if (cat.type === 'EVERYDAY') {
       Alert.alert('Archive Locked', 'The Everyday category cannot be archived or deleted.');
       return;
@@ -89,7 +91,7 @@ export default function CategoriesScreen() {
   const regularBalance = regularCats.reduce((sum, c) => sum + parseFloat(c?.currentBalance || '0'), 0);
   const regularBudget = regularCats.reduce((sum, c) => sum + parseFloat(c?.monthlyAmount || '0'), 0);
 
-  const filterFn = (list: any[]) =>
+  const filterFn = (list: CategoryItem[]) =>
     list.filter((c) => {
       if (!c) return false;
       const q = searchQuery.toLowerCase().trim();
@@ -102,6 +104,7 @@ export default function CategoriesScreen() {
   const filteredEveryday = filterFn(everydayCats);
   const filteredRegular = filterFn(regularCats);
   const filteredGoal = filterFn(goalCats);
+
 
   const onTrackCount = categories.filter((c) => c?.healthStatus === 'GREEN').length;
   const needsAttentionCount = categories.filter((c) => c?.healthStatus === 'AMBER').length;
@@ -277,7 +280,7 @@ export default function CategoriesScreen() {
                 {filteredEveryday.length === 0 ? (
                   <Text style={styles.emptyText}>No Everyday categories found.</Text>
                 ) : (
-                  filteredEveryday.map((cat: any) => (
+                  filteredEveryday.map((cat: CategoryItem) => (
                     <View key={cat.id} style={styles.itemRow}>
                       <TouchableOpacity
                         onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
@@ -353,7 +356,7 @@ export default function CategoriesScreen() {
                 {filteredRegular.length === 0 ? (
                   <Text style={styles.emptyText}>No Regular bill categories found.</Text>
                 ) : (
-                  filteredRegular.map((cat: any) => (
+                  filteredRegular.map((cat: CategoryItem) => (
                     <View key={cat.id} style={styles.itemRow}>
                       <TouchableOpacity
                         onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
@@ -398,7 +401,8 @@ export default function CategoriesScreen() {
                 {filteredGoal.length === 0 ? (
                   <Text style={styles.emptyText}>No savings goals found.</Text>
                 ) : (
-                  filteredGoal.map((cat: any) => {
+                  filteredGoal.map((cat: CategoryItem) => {
+
                     const p = pct(cat.currentBalance, cat.targetAmount);
                     const color =
                       cat.healthStatus === 'GREEN' ? D.colors.success :

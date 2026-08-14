@@ -18,7 +18,7 @@ interface UpcomingExpenseModalProps {
   onClose: () => void;
   eventToEdit?: {
     id?: string;
-    name?: string;
+    name?: string | null;
     expectedDate?: string;
     expectedAmount?: string;
     categoryId?: string | null;
@@ -26,6 +26,7 @@ interface UpcomingExpenseModalProps {
     note?: string | null;
     isRecurring?: boolean;
   } | null;
+
   isQuickAdd?: boolean;
   onSuccess?: () => void;
 }
@@ -131,8 +132,8 @@ export function UpcomingExpenseModal({
       await utils.listCategories.invalidate();
       if (onSuccess) onSuccess();
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to save expense.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to save expense.');
     } finally {
       setSubmitting(false);
     }
@@ -180,8 +181,8 @@ export function UpcomingExpenseModal({
       await utils.listTransactions.invalidate();
       if (onSuccess) onSuccess();
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to mark paid.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to mark paid.');
     } finally {
       setSubmitting(false);
     }
@@ -204,8 +205,8 @@ export function UpcomingExpenseModal({
               await utils.listExpenseEvents.invalidate();
               if (onSuccess) onSuccess();
               onClose();
-            } catch (err: any) {
-              setErrorMsg(err?.message || 'Failed to delete record.');
+            } catch (err: unknown) {
+              setErrorMsg(err instanceof Error ? err.message : 'Failed to delete record.');
             } finally {
               setSubmitting(false);
             }
@@ -213,6 +214,7 @@ export function UpcomingExpenseModal({
         },
       ]
     );
+
   };
 
   return (

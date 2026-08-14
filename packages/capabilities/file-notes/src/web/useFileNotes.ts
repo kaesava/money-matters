@@ -76,8 +76,9 @@ export function useFileNotes(entityType: string, entityId?: string) {
       setToastMessage({ type: 'success', text: 'Note added successfully' });
       setTimeout(() => setToastMessage(null), 3000);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Failed to create note' });
+    } catch (err: unknown) {
+      const text = err instanceof Error ? err.message : 'Failed to create note';
+      setToastMessage({ type: 'error', text });
       setTimeout(() => setToastMessage(null), 4000);
     } finally {
       setIsUploadingNote(false);
@@ -94,8 +95,9 @@ export function useFileNotes(entityType: string, entityId?: string) {
       refetchNotes();
       setToastMessage({ type: 'success', text: 'Note updated successfully' });
       setTimeout(() => setToastMessage(null), 3000);
-    } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Failed to update note' });
+    } catch (err: unknown) {
+      const text = err instanceof Error ? err.message : 'Failed to update note';
+      setToastMessage({ type: 'error', text });
       setTimeout(() => setToastMessage(null), 4000);
     }
   };
@@ -107,8 +109,9 @@ export function useFileNotes(entityType: string, entityId?: string) {
       refetchNotes();
       setToastMessage({ type: 'success', text: 'Note archived successfully' });
       setTimeout(() => setToastMessage(null), 3000);
-    } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Failed to archive note' });
+    } catch (err: unknown) {
+      const text = err instanceof Error ? err.message : 'Failed to archive note';
+      setToastMessage({ type: 'error', text });
       setTimeout(() => setToastMessage(null), 4000);
     }
   };
@@ -120,11 +123,13 @@ export function useFileNotes(entityType: string, entityId?: string) {
       refetchNotes();
       setToastMessage({ type: 'success', text: 'Note permanently deleted' });
       setTimeout(() => setToastMessage(null), 3000);
-    } catch (err: any) {
-      setToastMessage({ type: 'error', text: err.message || 'Failed to purge note' });
+    } catch (err: unknown) {
+      const text = err instanceof Error ? err.message : 'Failed to purge note';
+      setToastMessage({ type: 'error', text });
       setTimeout(() => setToastMessage(null), 4000);
     }
   };
+
 
   const downloadNote = async (noteId: string) => {
     try {

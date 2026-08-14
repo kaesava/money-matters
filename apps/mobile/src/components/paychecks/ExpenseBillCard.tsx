@@ -4,13 +4,23 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
-interface ExpenseBillCardProps {
-  exp: any;
-  categoryName: string;
-  onEdit: (exp: any) => void;
-  onArchive: (exp: any) => void;
-  onViewBurst: (exp: any) => void;
+export interface ExpenseSourceItem {
+  id: string;
+  name: string;
+  amount: string;
+  categoryId?: string | null;
+  rrule?: string | null;
+  startDate?: string | null;
 }
+
+interface ExpenseBillCardProps {
+  exp: ExpenseSourceItem;
+  categoryName: string;
+  onEdit: (exp: ExpenseSourceItem) => void;
+  onArchive: (exp: ExpenseSourceItem) => void;
+  onViewBurst: (exp: ExpenseSourceItem) => void;
+}
+
 
 export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
   exp,

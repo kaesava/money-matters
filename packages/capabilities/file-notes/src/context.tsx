@@ -2,7 +2,7 @@ import React, { createContext, useContext } from 'react';
 
 export interface FileNotesService {
   useListQuery: (input: { entityType: string; entityId: string }) => {
-    data: any[] | undefined;
+    data: Array<Record<string, unknown>> | undefined;
     isFetching: boolean;
     refetch: () => void;
   };
@@ -28,22 +28,23 @@ export interface FileNotesService {
         fileMimeType: string;
         fileSize: number;
       };
-    }) => Promise<any>;
+    }) => Promise<unknown>;
     isLoading: boolean;
   };
   useUpdateCommentMutation: () => {
-    mutateAsync: (input: { id: string; comment: string }) => Promise<any>;
+    mutateAsync: (input: { id: string; comment: string }) => Promise<unknown>;
     isLoading: boolean;
   };
   useArchiveMutation: () => {
-    mutateAsync: (input: { id: string }) => Promise<any>;
+    mutateAsync: (input: { id: string }) => Promise<unknown>;
     isLoading: boolean;
   };
   usePurgeMutation: () => {
-    mutateAsync: (input: { id: string }) => Promise<any>;
+    mutateAsync: (input: { id: string }) => Promise<unknown>;
     isLoading: boolean;
   };
 }
+
 
 const FileNotesServiceContext = createContext<FileNotesService | null>(null);
 

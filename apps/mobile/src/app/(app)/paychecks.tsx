@@ -7,33 +7,18 @@ import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { Feather } from '@expo/vector-icons';
 
-import { IncomeExpenseFormModal } from '../../components/IncomeExpenseFormModal';
+import { IncomeExpenseFormModal, SourceToEdit } from '../../components/IncomeExpenseFormModal';
 import { SourceBurstDetailModal } from '../../components/SourceBurstDetailModal';
 import { UpcomingExpenseModal } from '../../components/UpcomingExpenseModal';
 import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
-import { PaycheckEventSection } from '../../components/paychecks/PaycheckEventSection';
-import { IncomeSourceCard } from '../../components/paychecks/IncomeSourceCard';
-import { ExpenseBillCard } from '../../components/paychecks/ExpenseBillCard';
+import { PaycheckEventSection, PaycheckIncomeEvent, PaycheckExpenseEvent } from '../../components/paychecks/PaycheckEventSection';
+import { IncomeSourceCard, IncomeSourceItem } from '../../components/paychecks/IncomeSourceCard';
+import { ExpenseBillCard, ExpenseSourceItem } from '../../components/paychecks/ExpenseBillCard';
+
 
 export default function IncomeAndExpensesScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-
-  const [activeSegment, setActiveSegment] = useState<'EVENTS' | 'SOURCES'>('EVENTS');
-  const [formModalVisible, setFormModalVisible] = useState(false);
-  const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
-  const [sourceToEdit, setSourceToEdit] = useState<any>(null);
-
-  const [burstModalVisible, setBurstModalVisible] = useState(false);
-  const [burstMode, setBurstMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
-  const [burstSourceId, setBurstSourceId] = useState<string | null>(null);
-  const [burstSourceName, setBurstSourceName] = useState('');
-  const [burstSourceAmount, setBurstSourceAmount] = useState('');
-  const [burstCategoryName, setBurstCategoryName] = useState('');
-
-  const [upcomingExpenseToEdit, setUpcomingExpenseToEdit] = useState<any | null>(null);
-  const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<any | null>(null);
-  const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
 
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
@@ -44,6 +29,23 @@ export default function IncomeAndExpensesScreen() {
   const incomeSources = incomeSourcesQuery.data ?? [];
   const expenseSources = expenseSourcesQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
+
+  const [activeSegment, setActiveSegment] = useState<'EVENTS' | 'SOURCES'>('EVENTS');
+  const [formModalVisible, setFormModalVisible] = useState(false);
+  const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
+  const [sourceToEdit, setSourceToEdit] = useState<SourceToEdit | null>(null);
+
+  const [burstModalVisible, setBurstModalVisible] = useState(false);
+  const [burstMode, setBurstMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
+  const [burstSourceId, setBurstSourceId] = useState<string | null>(null);
+  const [burstSourceName, setBurstSourceName] = useState('');
+  const [burstSourceAmount, setBurstSourceAmount] = useState('');
+  const [burstCategoryName, setBurstCategoryName] = useState('');
+
+  const [upcomingExpenseToEdit, setUpcomingExpenseToEdit] = useState<PaycheckExpenseEvent | null>(null);
+  const [upcomingIncomeToEdit, setUpcomingIncomeToEdit] = useState<PaycheckIncomeEvent | null>(null);
+  const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
+
 
   const archiveIncomeMut = trpc.archiveIncomeSource.useMutation({
     onSuccess: () => {
@@ -66,14 +68,14 @@ export default function IncomeAndExpensesScreen() {
     },
   });
 
-  const handleArchiveIncome = (inc: any) => {
+  const handleArchiveIncome = (inc: IncomeSourceItem) => {
     Alert.alert('Archive Income Stream', `Archive "${inc.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Archive', style: 'destructive', onPress: () => archiveIncomeMut.mutate({ id: inc.id }) },
     ]);
   };
 
-  const handleArchiveExpense = (exp: any) => {
+  const handleArchiveExpense = (exp: ExpenseSourceItem) => {
     Alert.alert('Archive Expense Bill', `Archive "${exp.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Archive', style: 'destructive', onPress: () => archiveExpenseMut.mutate({ id: exp.id }) },
@@ -82,6 +84,7 @@ export default function IncomeAndExpensesScreen() {
 
   const incomeEventsList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
   const expenseEventsList = (expenseEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
+
 
   return (
     <View style={styles.container}>

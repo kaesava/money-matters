@@ -3,15 +3,18 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityInd
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 
-interface SourceToEdit {
+export interface SourceToEdit {
   id: string;
   name: string;
   amount: string;
   type?: string;
   rrule?: string | null;
-  startDate?: string | Date;
+  startDate?: string | Date | null;
+  endDate?: string | null;
   categoryId?: string | null;
+  receivingAccountId?: string | null;
 }
+
 
 interface IncomeExpenseFormModalProps {
   visible: boolean;
@@ -71,7 +74,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   });
 
   const updateIncomeMut = trpc.updateIncomeSource.useMutation({
-    onSuccess: (res: any) => {
+    onSuccess: (res: { hasConfirmedHistory?: boolean }) => {
       if (res?.hasConfirmedHistory) {
         Alert.alert('Notice', "Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.");
       }
@@ -88,7 +91,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   });
 
   const updateExpenseMut = trpc.updateExpenseSource.useMutation({
-    onSuccess: (res: any) => {
+    onSuccess: (res: { hasPaidHistory?: boolean }) => {
       if (res?.hasPaidHistory) {
         Alert.alert('Notice', "Note: Bills that have already been marked as paid won't be changed. Only unperformed future occurrences have been updated.");
       }
@@ -96,6 +99,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
       onClose();
     },
   });
+
 
   const handleSubmit = () => {
     if (!name.trim() || !amount || parseFloat(amount) <= 0) {

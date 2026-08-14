@@ -3,9 +3,23 @@ import { Paperclip, Download } from 'lucide-react';
 import { useFileNotes } from './useFileNotes';
 import { SlideOverDrawer } from '@money-matters/ui/web';
 
+export interface FileNoteEntity {
+  id: string;
+  name?: string;
+}
+
+export interface FileNoteItem {
+  id: string;
+  comment?: string | null;
+  fileName?: string | null;
+  fileSize?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
 interface FileNotesDrawerProps {
   entityType: 'expenses' | 'categories' | string;
-  entity: any | null;
+  entity: FileNoteEntity | null;
   onClose: () => void;
   onBack?: () => void;
 }
@@ -44,7 +58,8 @@ export function FileNotesDrawer({ entityType, entity, onClose, onBack }: FileNot
     if (!notes || notes.length === 0) {
       return <div className="text-center text-slate-400 text-xs py-12">No notes or attachments yet.</div>;
     }
-    return notes.map((note: any) => {
+    return notes.map((note: FileNoteItem) => {
+
       const isEditing = editingNoteId === note.id;
       const formattedSize = note.fileSize 
         ? `${(parseInt(note.fileSize, 10) / 1024 / 1024).toFixed(2)} MB`

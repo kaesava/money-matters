@@ -224,15 +224,17 @@ export default {
           ...securityHeaders,
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[WORKER UNCAUGHT ERROR]', err);
+      const message = err instanceof Error ? err.message : 'Internal Server Error';
       return new Response(
         JSON.stringify({
           error: {
-            message: err?.message || 'Internal Server Error',
+            message,
             code: 'INTERNAL_SERVER_ERROR',
           },
         }),
+
         {
           status: 500,
           headers: {

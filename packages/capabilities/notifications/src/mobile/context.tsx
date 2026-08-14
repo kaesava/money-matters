@@ -1,8 +1,9 @@
 import React, { createContext, useContext } from 'react';
 
 export interface NotificationServiceContextValue {
-  useRegisterToken: () => () => { mutateAsync: (args: { platform: 'ios' | 'android'; token: string }) => Promise<any> };
+  useRegisterToken: () => () => { mutateAsync: (args: { platform: 'ios' | 'android'; token: string }) => Promise<unknown> };
 }
+
 
 const NotificationServiceContext = createContext<NotificationServiceContextValue | null>(null);
 

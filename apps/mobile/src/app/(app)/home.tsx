@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Href } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
+
+
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
@@ -189,11 +191,12 @@ export default function HomeScreen() {
             <Text style={styles.tipDesc}>{t("dashboard.bankAccountTip.description")}</Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push('/(app)/settings/bank-accounts' as any)}
+            onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
             style={styles.tipBtn}
           >
             <Text style={styles.tipBtnText}>{t("dashboard.bankAccountTip.action")}</Text>
           </TouchableOpacity>
+
         </View>
 
         {/* Due-Date Guardrail Shortfall Alert Card */}
