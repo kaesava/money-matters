@@ -202,12 +202,14 @@ export default function PaydayPreviewModal({
         entry_method: activeEventId ? "scheduled_payday" : "quick_record",
       });
       if (onSuccess) onSuccess();
+      alert(`🚀 Payday Cascade Complete! $${numericActual.toLocaleString('en-AU', { minimumFractionDigits: 2 })} allocated across household buckets.`);
       onClose();
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to process payday.");
     } finally {
       setSubmitting(false);
     }
+
   };
 
   const handleDelete = async () => {

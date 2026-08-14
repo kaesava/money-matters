@@ -283,13 +283,22 @@ export default function DashboardPage() {
             {t("dashboard.bankAccountTip.description")}
           </p>
         </div>
-        <button
-          onClick={() => router.push("/dashboard/settings/bank-accounts")}
-          className="px-3 py-2 text-xs font-bold text-white bg-[#2563eb] rounded-xl hover:bg-blue-700 transition-colors shrink-0"
-        >
-          {t("dashboard.bankAccountTip.action")}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => router.push("/dashboard/settings/history")}
+            className="px-3 py-2 text-xs font-bold text-blue-900 bg-white border border-blue-200 rounded-xl hover:bg-blue-50 transition-colors"
+          >
+            📥 Import Bank CSV
+          </button>
+          <button
+            onClick={() => router.push("/dashboard/settings/bank-accounts")}
+            className="px-3 py-2 text-xs font-bold text-white bg-[#2563eb] rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            {t("dashboard.bankAccountTip.action")}
+          </button>
+        </div>
       </div>
+
 
       {/* Attention Items */}
       <AttentionItemsList
