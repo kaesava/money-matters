@@ -88,7 +88,8 @@ export async function handleStripeWebhook(
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
         const tenantId = sub.metadata?.tenantId;
         if (tenantId) {
-          await deactivateTenantCommand(db, tenantId, "PAST_DUE");
+          // Grant 7-day read-only grace period before reverting to Free Tier
+          await deactivateTenantCommand(db, tenantId, "GRACE_PERIOD");
         }
       }
       break;
@@ -98,10 +99,12 @@ export async function handleStripeWebhook(
       const sub = event.data.object as Stripe.Subscription;
       const tenantId = sub.metadata?.tenantId;
       if (tenantId) {
-        await transitionToFreeTierCommand(db, tenantId);
+        // Grant 7-day read-only grace period before reverting to Free Tier
+        await deactivateTenantCommand(db, tenantId, "GRACE_PERIOD");
       }
       break;
     }
+
 
     default:
       break;

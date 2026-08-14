@@ -132,7 +132,21 @@ export default function BankAccountsPage() {
             );
           })}
         </div>
+
+        {/* Unbudgeted Buffer Explanatory Popover */}
+        <div className="mt-2 p-3.5 rounded-xl border border-blue-100 bg-blue-50/50 flex items-start gap-3">
+          <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+            ⓘ
+          </div>
+          <div className="text-xs text-blue-950 space-y-1">
+            <p className="font-bold">What is the Unbudgeted Buffer?</p>
+            <p className="text-zinc-600 leading-relaxed">
+              Unbudgeted Buffer reserves a fixed dollar cushion directly in your account that is isolated from your spendable Everyday pool. This ensures emergency minimum balance protection before waterfall payday allocation.
+            </p>
+          </div>
+        </div>
       </div>
+
 
       {/* Bank Accounts List */}
       <div className="flex items-center justify-between">
