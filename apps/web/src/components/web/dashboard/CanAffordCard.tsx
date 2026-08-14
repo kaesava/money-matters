@@ -12,8 +12,9 @@ export function CanAffordCard({
   canAffordAmount,
   setCanAffordAmount,
   canAffordData,
-  fmt,
+  _fmt,
 }: CanAffordCardProps) {
+
   return (
     <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-3">
       <h3 className="text-sm font-bold text-[#1B2B4B]">Can We Afford This?</h3>
