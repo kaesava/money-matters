@@ -20,6 +20,7 @@ export interface AppConfig {
     partnerInvite: boolean;
     offlineSync: boolean;
     canAffordCalculator: boolean;
+    foundingMemberPromo: boolean;
   };
 }
 
@@ -34,9 +35,11 @@ const REGISTRY: Record<string, AppConfig> = {
       partnerInvite: false,
       offlineSync: false,
       canAffordCalculator: true,
+      foundingMemberPromo: true,
     },
   },
 };
+
 
 /**
  * Resolves application configuration settings by application ID.

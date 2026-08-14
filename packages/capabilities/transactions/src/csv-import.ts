@@ -17,9 +17,24 @@ export interface ParsedCsvTransaction {
   rawBank: string;
 }
 
+export interface CustomColumnMapping {
+  dateColIndex: number;
+  descColIndex: number;
+  amountColIndex: number;
+  debitColIndex?: number;
+  creditColIndex?: number;
+}
+
 export const BankCsvImportInputSchema = z.object({
   csvText: z.string().min(1),
   bankAccountId: z.string().uuid().optional(),
+  customMapping: z.object({
+    dateColIndex: z.number().int().min(0),
+    descColIndex: z.number().int().min(0),
+    amountColIndex: z.number().int().min(0),
+    debitColIndex: z.number().int().min(0).optional(),
+    creditColIndex: z.number().int().min(0).optional(),
+  }).optional(),
 }).strict();
 
 export type BankCsvImportInput = z.infer<typeof BankCsvImportInputSchema>;
@@ -97,20 +112,26 @@ function normalizeDate(rawDate: string): string {
 /**
  * Main parser entrypoint. Identifies CSV structure and returns clean parsed records.
  */
-export function parseBankCsv(csvContent: string): { bank: string; transactions: ParsedCsvTransaction[] } {
+export function parseBankCsv(
+  csvContent: string,
+  customMapping?: CustomColumnMapping
+): { bank: string; transactions: ParsedCsvTransaction[]; headers: string[] } {
   const lines = csvContent
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
   if (lines.length === 0) {
-    return { bank: "Unknown", transactions: [] };
+    return { bank: "Unknown", transactions: [], headers: [] };
   }
 
+  const rawHeaders = parseCsvLine(lines[0]);
   const header = lines[0].toLowerCase();
   let bankName = "Generic CSV";
 
-  if (header.includes("cba") || (header.includes("date") && header.includes("amount") && header.includes("balance") && !header.includes("debit"))) {
+  if (customMapping) {
+    bankName = "Custom Mapped CSV";
+  } else if (header.includes("cba") || (header.includes("date") && header.includes("amount") && header.includes("balance") && !header.includes("debit"))) {
     bankName = "Commonwealth Bank (CBA)";
   } else if (header.includes("narrative") || header.includes("bank account")) {
     bankName = "Westpac";
@@ -134,7 +155,29 @@ export function parseBankCsv(csvContent: string): { bank: string; transactions: 
     let rawAmount = "";
     let flowType: "DEBIT" | "CREDIT" = "DEBIT";
 
-    if (tokens.length >= 3) {
+    if (customMapping) {
+      rawDate = tokens[customMapping.dateColIndex] || "";
+      rawDesc = tokens[customMapping.descColIndex] || "";
+      
+      if (customMapping.debitColIndex !== undefined && customMapping.creditColIndex !== undefined) {
+        const debit = (tokens[customMapping.debitColIndex] || "").replace(/[$,]/g, "");
+        const credit = (tokens[customMapping.creditColIndex] || "").replace(/[$,]/g, "");
+        if (credit && parseFloat(credit) > 0) {
+          flowType = "CREDIT";
+          rawAmount = credit;
+        } else {
+          flowType = "DEBIT";
+          rawAmount = debit.replace("-", "");
+        }
+      } else {
+        rawAmount = tokens[customMapping.amountColIndex] || "";
+        const numVal = parseFloat(rawAmount.replace(/[$,]/g, ""));
+        if (!isNaN(numVal)) {
+          flowType = numVal >= 0 ? "CREDIT" : "DEBIT";
+          rawAmount = Math.abs(numVal).toFixed(2);
+        }
+      }
+    } else if (tokens.length >= 3) {
       // General structure: Date, Description/Narrative, Amount (or Debit/Credit columns)
       rawDate = tokens[0];
       
@@ -214,5 +257,6 @@ export function parseBankCsv(csvContent: string): { bank: string; transactions: 
     });
   }
 
-  return { bank: bankName, transactions };
+  return { bank: bankName, transactions, headers: rawHeaders };
 }
+

@@ -77,7 +77,7 @@ export const transactionsRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       requiresPaidTier(ctx, 'csv_import');
-      const result = parseBankCsv(input.csvText);
+      const result = parseBankCsv(input.csvText, input.customMapping);
       if (posthog && ctx.userId) {
         posthog.capture({
           distinctId: ctx.userId,
@@ -85,12 +85,14 @@ export const transactionsRouter = {
           properties: {
             tenant_id: ctx.tenantId,
             row_count: result?.transactions?.length ?? 0,
+            bank_name: result?.bank,
           },
         });
         await posthog.flush();
       }
       return result;
     }),
+
 
   spendingVelocity: tenantProcedure.query(async ({ ctx }) => {
     return await getSpendingVelocityQuery(ctx.tenantId!, ctx.appId!, ctx.db);

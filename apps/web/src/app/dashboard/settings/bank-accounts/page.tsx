@@ -35,6 +35,59 @@ export default function BankAccountsPage() {
   const [newAccountBalance, setNewAccountBalance] = useState("0.00");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [showGuide, setShowGuide] = useState(false);
+  const [csvResultMsg, setCsvResultMsg] = useState<string | null>(null);
+  const [showCustomMapper, setShowCustomMapper] = useState(false);
+  const [pendingCsvText, setPendingCsvText] = useState<string>("");
+  const [rawHeaders, setRawHeaders] = useState<string[]>([]);
+  const [dateCol, setDateCol] = useState(0);
+  const [descCol, setDescCol] = useState(1);
+  const [amountCol, setAmountCol] = useState(2);
+
+  const parseCsvMut = trpc.parseCsv.useMutation({
+    onSuccess: (res: { bank: string; transactions: Array<any>; headers: string[] }) => {
+      if (res.transactions.length === 0 && res.headers.length > 0 && !showCustomMapper) {
+        setRawHeaders(res.headers);
+        setShowCustomMapper(true);
+        setCsvResultMsg("Unrecognised format. Please map columns manually below.");
+      } else {
+        setShowCustomMapper(false);
+        setCsvResultMsg(`Successfully parsed ${res.transactions.length} transactions from ${res.bank}!`);
+      }
+    },
+    onError: (err: { message: string }) => {
+      setCsvResultMsg(`CSV Parse Error: ${err.message}`);
+    },
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvResultMsg(null);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setPendingCsvText(text);
+        parseCsvMut.mutate({ csvText: text });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleApplyCustomMapping = () => {
+    if (!pendingCsvText) return;
+    parseCsvMut.mutate({
+      csvText: pendingCsvText,
+      customMapping: {
+        dateColIndex: dateCol,
+        descColIndex: descCol,
+        amountColIndex: amountCol,
+      },
+    });
+  };
+
+
   if (bankAccountsQuery.isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -191,7 +244,146 @@ export default function BankAccountsPage() {
             </button>
           </div>
         ))}
+        ))}
       </div>
+
+      {/* Bank CSV Statement Import Card & Download Instructions */}
+      <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-[#1B2B4B] flex items-center gap-2">
+              📄 Big 4 Bank CSV Statement Import
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Supports Commonwealth Bank (CBA), Westpac, ANZ, NAB, ING, and Macquarie.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowGuide(!showGuide)}
+            className="text-xs font-bold text-[#2563eb] hover:underline"
+          >
+            {showGuide ? "Hide Download Instructions ▲" : "How to download your CSV guide ▼"}
+          </button>
+        </div>
+
+        {/* Bank Download Instructions Accordion */}
+        {showGuide && (
+          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 text-xs text-zinc-700 space-y-3">
+            <h4 className="font-bold text-[#1B2B4B] text-xs">Bank-Specific Export Steps:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <span className="font-bold text-[#2563eb]">🟡 CBA (NetBank):</span>
+                <p className="text-zinc-600 mt-1">Log in $\rightarrow$ Accounts $\rightarrow$ Select account $\rightarrow$ Export $\rightarrow$ Choose CSV format.</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <span className="font-bold text-red-700">🔴 Westpac:</span>
+                <p className="text-zinc-600 mt-1">Log in $\rightarrow$ Accounts $\rightarrow$ Export transactions $\rightarrow$ Select Comma Separated Text (.csv).</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <span className="font-bold text-blue-800">🔵 ANZ:</span>
+                <p className="text-zinc-600 mt-1">Log in $\rightarrow$ Accounts $\rightarrow$ Downloads $\rightarrow$ Export as CSV file.</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <span className="font-bold text-red-600">🔴 NAB:</span>
+                <p className="text-zinc-600 mt-1">Log in $\rightarrow$ Transaction list $\rightarrow$ Export transactions $\rightarrow$ Choose CSV format.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 pt-2">
+          <label className="flex-1 cursor-pointer bg-zinc-50 border-2 border-dashed border-zinc-300 hover:border-[#2563eb] rounded-xl p-4 text-center transition-colors">
+            <span className="text-xs font-bold text-zinc-700">
+              {parseCsvMut.isPending ? "Parsing & Deduplicating CSV..." : "📁 Upload Bank CSV File"}
+            </span>
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={parseCsvMut.isPending}
+            />
+          </label>
+        </div>
+
+        {csvResultMsg && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold p-3 rounded-xl">
+            {csvResultMsg}
+          </div>
+        )}
+      </div>
+
+      {/* Custom Column Mapper Modal (Fallback for unrecognised formats) */}
+      {showCustomMapper && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full flex flex-col gap-4 shadow-xl border border-zinc-100">
+            <h3 className="text-base font-bold text-[#1B2B4B]">
+              ⚙️ Custom CSV Column Mapper
+            </h3>
+            <p className="text-xs text-zinc-600">
+              Unrecognised CSV format. Please match the column headers to import transactions:
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-zinc-700">Date Column:</label>
+                <select
+                  value={dateCol}
+                  onChange={(e) => setDateCol(Number(e.target.value))}
+                  className="px-3 py-2 text-xs font-medium rounded-xl border border-zinc-200"
+                >
+                  {rawHeaders.map((h, i) => (
+                    <option key={i} value={i}>Column {i + 1}: {h || `Column ${i + 1}`}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-zinc-700">Description Column:</label>
+                <select
+                  value={descCol}
+                  onChange={(e) => setDescCol(Number(e.target.value))}
+                  className="px-3 py-2 text-xs font-medium rounded-xl border border-zinc-200"
+                >
+                  {rawHeaders.map((h, i) => (
+                    <option key={i} value={i}>Column {i + 1}: {h || `Column ${i + 1}`}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-zinc-700">Amount Column:</label>
+                <select
+                  value={amountCol}
+                  onChange={(e) => setAmountCol(Number(e.target.value))}
+                  className="px-3 py-2 text-xs font-medium rounded-xl border border-zinc-200"
+                >
+                  {rawHeaders.map((h, i) => (
+                    <option key={i} value={i}>Column {i + 1}: {h || `Column ${i + 1}`}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCustomMapper(false)}
+                className="px-4 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyCustomMapping}
+                className="px-4 py-2 text-xs font-bold text-white rounded-xl bg-[#2563eb] hover:bg-blue-700"
+              >
+                Apply & Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Account Modal */}
       {showAddModal && (
