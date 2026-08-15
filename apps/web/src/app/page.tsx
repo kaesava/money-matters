@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { authClient } from "../lib/auth";
 import { trpc } from "../lib/trpc";
@@ -14,12 +14,30 @@ import { BLOG_POSTS } from "../lib/blog-data";
 
 const ENABLE_AUTH = process.env.NEXT_PUBLIC_ENABLE_AUTH !== "false";
 
+function EarlyAccessQueryWatcher({ onTrigger }: { onTrigger: () => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const earlyAccess = searchParams.get("early_access");
+    const authDisabled = searchParams.get("auth_disabled");
+    if (earlyAccess === "true" || authDisabled === "true") {
+      onTrigger();
+    }
+  }, [searchParams, onTrigger]);
+
+  return null;
+}
+
 export default function Home() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [showEarlyAccessModal, setShowEarlyAccessModal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const openEarlyAccessModal = useCallback(() => {
+    setShowEarlyAccessModal(true);
+  }, []);
 
   const subscribeMut = trpc.subscribeEarlyAccess.useMutation({
     onSuccess: () => {
@@ -31,10 +49,14 @@ export default function Home() {
   });
 
   const handleAuthClick = (path: string) => {
-    if (ENABLE_AUTH) {
-      router.push(path);
-    } else {
+    const hasEarlyAccessFlag =
+      typeof window !== "undefined" &&
+      (window.location.search.includes("early_access=true") || window.location.search.includes("auth_disabled=true"));
+
+    if (!ENABLE_AUTH || hasEarlyAccessFlag) {
       setShowEarlyAccessModal(true);
+    } else {
+      router.push(path);
     }
   };
 
@@ -59,6 +81,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white relative">
+      <Suspense fallback={null}>
+        <EarlyAccessQueryWatcher onTrigger={openEarlyAccessModal} />
+      </Suspense>
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-[120] bg-[#1B2B4B] text-white border border-blue-400 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md animate-in slide-in-from-top-4 duration-200">
