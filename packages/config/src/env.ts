@@ -16,6 +16,7 @@ const envSchema = z.object({
   APP_MONEY_MATTERS_ID: z.string().uuid().default("01908bde-34bb-7b19-a178-574211bc93aa"),
   // Email and Storage capabilities
   RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
   STORAGE_ENDPOINT: z.string().optional(),
   STORAGE_ACCESS_KEY_ID: z.string().optional(),
   STORAGE_SECRET_ACCESS_KEY: z.string().optional(),
@@ -23,6 +24,9 @@ const envSchema = z.object({
   STORAGE_BUCKET_NAME: z.string().optional(),
   EXPO_PUBLIC_NEON_AUTH_URL: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
+  // Redis rate limiting
+  UPSTASH_REDIS_REST_URL: z.string().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   // Stripe payments
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
@@ -32,6 +36,8 @@ const envSchema = z.object({
   STRIPE_PRICE_FOUNDING_ANNUAL: z.string().optional(),
   // PostHog product analytics
   NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+  POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_HOST: z.string().optional(),
 });
 
 let envCache: z.infer<typeof envSchema> | null = null;

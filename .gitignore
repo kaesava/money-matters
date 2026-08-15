@@ -11,5 +11,7 @@ coverage/
 .env.local
 .env.development
 .env.production
+!.env.example
 .aider*
 test_credentials.txt
+

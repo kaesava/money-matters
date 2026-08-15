@@ -1,9 +1,53 @@
 # AGENT - In progress...
 
-		
-		
-		
-		
+FOR DISCUSSION ONLY. Grill me if needed.
+
+## "My Money":
+* When the user sets up their income in the setup flows, it should automatically create an Upcoming Income (recurring) for each of the incomes setup in the setup. Are there any gaps you see?
+* If the user has completed the setup flows, but have not setup any upcoming expenses, create a friendly reminder for them on the dashboard to set it up in the Expenses & Income page.
+
+## "Settings"
+* How would a user change their name and any other details (like their authentication methods, etc.) that need to be synced with Neon Auth in the web and mobile apps. I would like to avoid them being able to change their email address.
+* How flexibly are timezones being managed? What is best practice? This includes capture, display and storage of times in the correct timezones and correct timezone translations. What if the user was not in AUS?
+* Show "Show Category Icons" as a toggle switch rather than an icon and change to "Show Visual Icons" -- this setting should control whether visual icons are shown anywhere in the app across mobile or web for the user for the app.
+* Privacy & Security section says "We only collect financial data required to provide household budgeting analytics. Data is encrypted in transit and at rest." Is this correct? Be critical. Alter to be truthful yet provide clarity and security.
+* Export data - I see it downloads in JSON. However, this is not very helpful is it? For example, if they want to Restore, they cannot. What would they use it for? Should it not be a bunch of csv files? Discuss.
+
+### Account Deletion
+* It's confusing. First we say they can confirm permanent deletion. Then we say they can send an email. Which is it?
+* There isn't a way of going back to the Settings page. This should be within the logged in context of the user?
+
+### Bank Account & Statement Import
+* Linking of Categories to Bank Accounts is very obscure and difficult to get to.
+* I feel maybe we separate Bank Accounts (have it more prominent within Settings) and Statement Import separately. Maybe we even promote to one of the nagivation items. Discuss. They can use to setup their Bank accounts and link to Category Types.
+
+# Household Parnter
+* Do a full audit of this feature. Does it work? Has it been setup? Does the invited user have to verify their email address? What role are they setup with? Practically what are their limitations? Are they linked to the correct tenant?
+* I want to implement a fourth Category Type called "Personal" that is restricted to the Tenant (as any other Category) but also in addition, only to the logged in user can see use/see/edit/etc. It is a pooled category like any Bills or Everyday. For now, it will only contain one category (created by default when a new tenant user is created or invitee accepts). The category will called "Personal".
+* Howe would we go about building this? It will have an impact on virtually every screen, calculation, api, etc. Carefully map out impacts.
+* What are the impacts we need to be very careful about?
+* First Grill me instead of making assumptions.
+* We can include this as a premium feature. The free one does not allow private categories. Thoughts?
+
+
+# CRON
+So far, I've been avoiding setting up cron jobs that need to run on dev server and/or web/api server. Have I set this up?
+
+# REGULAR vs Bills
+# Burst Event Regeneration
+What is the trigger to re-burst future expenses/income? What is the recommendation?
+
+# Tenant Switching
+What if a user belongs to more than one tenant. How do they switch using Neon Auth? Are our internal tables setup to ensure strict tenancy separation?
+
+# Scheduled Notifications
+How are these setup? Are they working? Any gaps?
+
+
+## "Income & Bills"
+
+
+
 ## Web App
 # 100% Full-Coverage E2E Web Application Audit Protocol (Round 1 Focus)
 
