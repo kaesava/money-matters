@@ -16,6 +16,9 @@ export const en = {
     transactions: "History",
     history: "History",
   },
+  tenantSwitcher: {
+    label: "Switch Household",
+  },
   common: {
     save: "Save",
     saving: "Saving...",

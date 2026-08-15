@@ -22,6 +22,9 @@ export const ja: DeepStringRecord<typeof en> = {
     transactions: "履歴",
     history: "履歴",
   },
+  tenantSwitcher: {
+    label: "世帯の切り替え",
+  },
   common: {
     save: "保存",
     saving: "保存中...",
