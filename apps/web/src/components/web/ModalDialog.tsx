@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 export interface ModalDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   isDirty?: boolean;
   onSave?: () => void | Promise<void>;

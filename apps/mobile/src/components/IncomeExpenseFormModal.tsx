@@ -168,8 +168,8 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={sourceToEdit ? `Edit ${mode === 'INCOME' ? 'Income' : 'Expense'}` : `Add ${mode === 'INCOME' ? 'Income Deposit' : 'Expense Bill'}`}
-      subtitle={mode === 'INCOME' ? 'Configure salary or deposit source' : 'Configure utility or fixed bill outflow'}
+      title={sourceToEdit ? `Edit ${mode === 'INCOME' ? 'Income' : 'Expense'}: ${sourceToEdit.name}` : (mode === 'INCOME' ? 'Setup Income' : 'Setup Expense or Bill')}
+      subtitle={mode === 'INCOME' ? 'Setup any upcoming one-off or repeating income' : "Setup any upcoming expenses or bills you're expecting"}
     >
       <View style={styles.formGroup}>
         <Text style={styles.label}>{mode === 'INCOME' ? 'Income Name' : 'Bill Name'}</Text>

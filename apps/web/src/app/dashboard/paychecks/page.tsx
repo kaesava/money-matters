@@ -62,16 +62,16 @@ interface EventItem {
 }
 
 function SortHeader({
-  label, sortKey, currentKey, dir, onSort,
+  label, sortKey, currentKey, dir, onSort, align = "left",
 }: {
-  label: string; sortKey: SortKey; currentKey: SortKey; dir: SortDir; onSort: (k: SortKey) => void;
+  label: string; sortKey: SortKey; currentKey: SortKey; dir: SortDir; onSort: (k: SortKey) => void; align?: "left" | "right";
 }) {
   const isActive = currentKey === sortKey;
   return (
     <button
       type="button"
       onClick={() => onSort(sortKey)}
-      className="flex items-center gap-1 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider hover:text-zinc-600 transition-colors select-none group"
+      className={`flex items-center gap-1 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider hover:text-zinc-600 transition-colors select-none group ${align === "right" ? "ml-auto justify-end" : ""}`}
     >
       {label}
       <span className={`ml-0.5 transition-opacity ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
@@ -126,7 +126,7 @@ function BurstModal({
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${sched.isRecurring ? mode === "INCOME" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-teal-50 text-teal-700 border-teal-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                 {sched.frequencyLabel}
               </span>
-              {sched.dateLabel && <span className="text-[11px] text-zinc-500">{sched.isRecurring ? "Kicks off" : "Expected"} {sched.dateLabel}</span>}
+              {sched.dateLabel && <span className="text-[11px] text-zinc-500">{sched.isRecurring ? "Starting" : "Expected"} {sched.dateLabel}</span>}
               <span className={`font-mono font-extrabold text-sm ${mode === "INCOME" ? "text-emerald-600" : "text-rose-600"}`}>
                 {mode === "INCOME" ? "+" : "−"}{fmt(source.amount)}
               </span>
@@ -139,19 +139,23 @@ function BurstModal({
             </div>
           </div>
           <div className="flex items-center gap-2 ml-4 shrink-0">
-            <button type="button" onClick={onEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200 transition-colors">Edit Source</button>
+            <button type="button" onClick={onEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200 transition-colors">
+              {mode === "INCOME" ? "Edit Income" : "Edit Expense"}
+            </button>
             <button type="button" onClick={onClose} className="p-1 text-zinc-400 hover:text-zinc-700 transition-colors text-lg font-bold">✕</button>
           </div>
         </div>
 
         <div className="overflow-y-auto flex-1 p-4">
-          <h4 className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider mb-3 px-1">Scheduled Events ({sourceEvents.length})</h4>
+          <h4 className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider mb-3 px-1">
+            {mode === "INCOME" ? "Scheduled Income" : "Scheduled Bills & Expenses"} ({sourceEvents.length})
+          </h4>
           {sourceEvents.length === 0 ? (
-            <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-50/50 rounded-xl border border-zinc-100">No scheduled events for this source.</div>
+            <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-50/50 rounded-xl border border-zinc-100">No scheduled items for this source.</div>
           ) : (
             <div className="flex flex-col gap-2">
               {sourceEvents.map((evt) => {
-                const isPaid = evt.status === "PAID";
+                const isPaid = evt.status === "PAID" || evt.status === "CONFIRMED";
                 const isSkipped = evt.status === "SKIPPED";
                 const isEditing = editingEventId === evt.id;
                 const isFutureSaveMode = isEditing && isDateFuture(editDate);
@@ -311,11 +315,11 @@ function SourceTable({
       <div className="flex items-center justify-between">
         <h2 className={`text-base font-black flex items-center gap-2 ${isIncome ? "text-emerald-800" : "text-[#1B2B4B]"}`}>
           {showIcons && <span>{isIncome ? "💰" : "💸"}</span>}
-          <span>{isIncome ? "Upcoming Income" : "Upcoming Bills & Expenses"}</span>
+          <span>{isIncome ? "Income" : "Bills & Expenses"}</span>
         </h2>
         <button type="button" onClick={onAdd} className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm ${isIncome ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200" : "bg-[#1B2B4B] text-white hover:bg-[#2c3e5f]"}`}>
           <span>➕</span>
-          <span>{isIncome ? "Add Upcoming Income" : "Add Upcoming Expense"}</span>
+          <span>{isIncome ? "Add Income" : "Add Expense"}</span>
         </button>
       </div>
 
@@ -326,7 +330,7 @@ function SourceTable({
               <th className="px-5 py-3.5"><SortHeader label="Name" sortKey="name" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></th>
               <th className="px-5 py-3.5"><SortHeader label="Schedule" sortKey="schedule" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></th>
               <th className="px-5 py-3.5"><SortHeader label={bucketHeader} sortKey="bucket" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></th>
-              <th className="px-5 py-3.5 text-right"><SortHeader label="Amount" sortKey="amount" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></th>
+              <th className="px-5 py-3.5 text-right"><SortHeader label="Amount" sortKey="amount" currentKey={sortKey} dir={sortDir} onSort={handleSort} align="right" /></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -349,7 +353,7 @@ function SourceTable({
                       <span className={`self-start px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${sched.isRecurring ? isIncome ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-teal-50 text-teal-700 border-teal-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                         {sched.frequencyLabel}
                       </span>
-                      {sched.dateLabel && <span className="text-[11px] text-zinc-500 font-medium">{sched.isRecurring ? "Kicks off" : "Expected"} {sched.dateLabel}</span>}
+                      {sched.dateLabel && <span className="text-[11px] text-zinc-500 font-medium">{sched.isRecurring ? "Starting" : "Expected"} {sched.dateLabel}</span>}
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-zinc-600">
@@ -388,7 +392,7 @@ function SourceTable({
   );
 }
 
-export default function InsAndOutsPage() {
+export default function IncomeAndExpensesPage() {
   const utils = trpc.useUtils();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
@@ -421,11 +425,16 @@ export default function InsAndOutsPage() {
 
   const archiveIncomeMut = trpc.archiveIncomeSource.useMutation({ onSuccess: () => { utils.listIncomeSources.invalidate(); utils.listIncomeEvents.invalidate(); } });
   const archiveExpenseMut = trpc.archiveExpenseSource.useMutation({ onSuccess: () => { utils.listExpenseSources.invalidate(); utils.listExpenseEvents.invalidate(); } });
+  
   const markExpensePaidMut = trpc.markExpensePaid.useMutation({ onSuccess: () => { utils.listExpenseEvents.invalidate(); utils.listCategories.invalidate(); } });
   const skipExpenseEventMut = trpc.skipExpenseEvent.useMutation({ onSuccess: () => { utils.listExpenseEvents.invalidate(); } });
+  const unskipExpenseEventMut = trpc.unskipExpenseEvent.useMutation({ onSuccess: () => { utils.listExpenseEvents.invalidate(); } });
   const updateExpenseEventMut = trpc.updateUpcomingExpense.useMutation({ onSuccess: () => { utils.listExpenseEvents.invalidate(); } });
 
-  const unskipExpenseEventMut = trpc.unskipExpenseEvent.useMutation({ onSuccess: () => { utils.listExpenseEvents.invalidate(); } });
+  const markIncomeReceivedMut = trpc.markIncomeReceived.useMutation({ onSuccess: () => { utils.listIncomeEvents.invalidate(); } });
+  const skipIncomeEventMut = trpc.skipIncomeEvent.useMutation({ onSuccess: () => { utils.listIncomeEvents.invalidate(); } });
+  const unskipIncomeEventMut = trpc.unskipIncomeEvent.useMutation({ onSuccess: () => { utils.listIncomeEvents.invalidate(); } });
+  const updateIncomeEventMut = trpc.updateUpcomingIncome.useMutation({ onSuccess: () => { utils.listIncomeEvents.invalidate(); } });
 
   const handleArchive = useCallback(async (item: SourceItem, mode: "INCOME" | "EXPENSE") => {
     const label = mode === "INCOME" ? "income stream" : "bill";
@@ -443,16 +452,38 @@ export default function InsAndOutsPage() {
   }, []);
 
   const handleMarkPaid = useCallback((eventId: string, amount: string, date: string) => {
-    markExpensePaidMut.mutate({ eventId, actualAmount: parseFloat(amount).toFixed(2), recordedAt: date });
+    const cleaned = amount.replace(/[^0-9.]/g, "");
+    const val = parseFloat(cleaned);
+    const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
+    markExpensePaidMut.mutate({ eventId, actualAmount: cleanAmt, recordedAt: date });
   }, [markExpensePaidMut]);
 
   const handleSkip = useCallback((eventId: string) => { skipExpenseEventMut.mutate({ eventId }); }, [skipExpenseEventMut]);
-
   const handleUnskip = useCallback((eventId: string) => { unskipExpenseEventMut.mutate({ eventId }); }, [unskipExpenseEventMut]);
 
   const handleUpdateEvent = useCallback(async (eventId: string, amount: string, date: string) => {
-    await updateExpenseEventMut.mutateAsync({ eventId, expectedAmount: parseFloat(amount).toFixed(2), expectedDate: date });
+    const cleaned = amount.replace(/[^0-9.]/g, "");
+    const val = parseFloat(cleaned);
+    const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
+    await updateExpenseEventMut.mutateAsync({ eventId, expectedAmount: cleanAmt, expectedDate: date });
   }, [updateExpenseEventMut]);
+
+  const handleMarkIncomeReceived = useCallback((eventId: string, amount: string, date: string) => {
+    const cleaned = amount.replace(/[^0-9.]/g, "");
+    const val = parseFloat(cleaned);
+    const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
+    markIncomeReceivedMut.mutate({ eventId, actualAmount: cleanAmt, recordedAt: date });
+  }, [markIncomeReceivedMut]);
+
+  const handleSkipIncome = useCallback((eventId: string) => { skipIncomeEventMut.mutate({ eventId }); }, [skipIncomeEventMut]);
+  const handleUnskipIncome = useCallback((eventId: string) => { unskipIncomeEventMut.mutate({ eventId }); }, [unskipIncomeEventMut]);
+
+  const handleUpdateIncomeEvent = useCallback(async (eventId: string, amount: string, date: string) => {
+    const cleaned = amount.replace(/[^0-9.]/g, "");
+    const val = parseFloat(cleaned);
+    const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
+    await updateIncomeEventMut.mutateAsync({ eventId, expectedAmount: cleanAmt, expectedDate: date });
+  }, [updateIncomeEventMut]);
 
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
@@ -467,8 +498,12 @@ export default function InsAndOutsPage() {
         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search name, category, or account..." className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6] placeholder:text-zinc-400 font-semibold" />
-        {searchQuery && <button type="button" onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs font-bold">✕</button>}
+        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search name, category, or account..." className="w-full pl-9 pr-14 py-2.5 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6] placeholder:text-zinc-400 font-semibold" />
+        {searchQuery && (
+          <button type="button" onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-100 hover:bg-zinc-200 transition-colors">
+            Clear
+          </button>
+        )}
       </div>
 
       <SourceTable
@@ -478,12 +513,12 @@ export default function InsAndOutsPage() {
         onAdd={() => { setModalMode("INCOME"); setSourceToEdit(null); setIsModalOpen(true); }}
         onArchive={(item) => handleArchive(item, "INCOME")}
         onEdit={(item) => handleEdit(item, "INCOME")}
-        onMarkPaid={() => {}}
-        onSkip={() => {}}
-        onUnskip={() => {}}
-        onUpdateEvent={() => {}}
-        isPendingMarkPaid={false}
-        isPendingSkip={false}
+        onMarkPaid={handleMarkIncomeReceived}
+        onSkip={handleSkipIncome}
+        onUnskip={handleUnskipIncome}
+        onUpdateEvent={handleUpdateIncomeEvent}
+        isPendingMarkPaid={markIncomeReceivedMut.isPending}
+        isPendingSkip={skipIncomeEventMut.isPending}
       />
 
       <SourceTable

@@ -12,15 +12,17 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, title, classN
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <span className={`relative inline-flex items-center align-middle ${className}`}>
+    <span
+      className={`relative inline-flex items-center align-middle ${className}`}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}
         className="w-4 h-4 rounded-full bg-slate-100 hover:bg-blue-100 text-slate-400 hover:text-[#2563eb] text-[10px] font-bold inline-flex items-center justify-center transition-colors border border-slate-200 cursor-pointer"
         aria-label="Information"
       >

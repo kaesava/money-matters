@@ -428,4 +428,129 @@ export const incomeRouter = {
 
       return evt;
     }),
+
+  updateUpcomingIncome: tenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        expectedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+        expectedDate: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const [updated] = await ctx.db
+        .update(incomeEvents)
+        .set({
+          ...(input.expectedAmount !== undefined ? { expectedAmount: input.expectedAmount } : {}),
+          ...(input.expectedDate !== undefined ? { expectedDate: input.expectedDate } : {}),
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!)
+          )
+        )
+        .returning();
+      return updated;
+    }),
+
+  markIncomeReceived: tenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        actualAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+        note: z.string().optional(),
+        recordedAt: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const [evt] = await ctx.db
+        .select()
+        .from(incomeEvents)
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!)
+          )
+        );
+
+      if (!evt) throw new Error("Income event not found.");
+
+      const amountToReceive = input.actualAmount || evt.expectedAmount;
+
+      await ctx.db
+        .update(incomeEvents)
+        .set({
+          status: "CONFIRMED",
+          actualAmount: amountToReceive,
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(eq(incomeEvents.id, input.eventId));
+
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'income_marked_received',
+          properties: {
+            tenant_id: ctx.tenantId,
+            amount: amountToReceive,
+          },
+        });
+        await posthog.flush();
+      }
+      return { success: true, message: "Income marked as received." };
+    }),
+
+  skipIncomeEvent: tenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db
+        .update(incomeEvents)
+        .set({
+          status: "SKIPPED",
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
+
+  unskipIncomeEvent: tenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db
+        .update(incomeEvents)
+        .set({
+          status: "UPCOMING",
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
 };

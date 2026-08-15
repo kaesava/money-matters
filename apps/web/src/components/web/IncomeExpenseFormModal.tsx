@@ -4,7 +4,13 @@ import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { RecurrenceFields } from "./forms/RecurrenceFields";
-import { Spinner } from "@money-matters/ui/web";
+import { InfoTooltip, Spinner } from "@money-matters/ui/web";
+
+function cleanAmount(raw: string): string {
+  const cleaned = raw.replace(/[^0-9.]/g, "");
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? "0.00" : val.toFixed(2);
+}
 
 export interface IncomeExpenseFormModalProps {
   isOpen: boolean;
@@ -111,6 +117,8 @@ export function IncomeExpenseFormModal({
       return;
     }
 
+    const formattedAmount = cleanAmount(amount);
+
     setSubmitting(true);
     setErrorMsg("");
 
@@ -121,7 +129,7 @@ export function IncomeExpenseFormModal({
             id: sourceToEdit.id,
             data: {
               name,
-              amount,
+              amount: formattedAmount,
               receivingAccountId: receivingAccountId || undefined,
               isRecurring,
               frequency: isRecurring ? frequency : undefined,
@@ -135,7 +143,7 @@ export function IncomeExpenseFormModal({
         } else {
           await createIncomeMut.mutateAsync({
             name,
-            amount,
+            amount: formattedAmount,
             receivingAccountId: receivingAccountId || undefined,
             isRecurring,
             frequency: isRecurring ? frequency : undefined,
@@ -150,7 +158,7 @@ export function IncomeExpenseFormModal({
             id: sourceToEdit.id,
             data: {
               name,
-              amount,
+              amount: formattedAmount,
               categoryId: categoryId || undefined,
               isRecurring,
               frequency: isRecurring ? frequency : undefined,
@@ -164,7 +172,7 @@ export function IncomeExpenseFormModal({
         } else {
           await createExpenseMut.mutateAsync({
             name,
-            amount,
+            amount: formattedAmount,
             categoryId,
             isRecurring,
             frequency: isRecurring ? frequency : undefined,
@@ -199,19 +207,25 @@ export function IncomeExpenseFormModal({
     }
   };
 
+  const modalTitle = isEdit
+    ? `Edit ${mode === "INCOME" ? "Income" : "Expense"}: ${sourceToEdit.name}`
+    : mode === "INCOME"
+      ? "Setup Income"
+      : "Setup Expense or Bill";
+
+  const infoTooltipText = mode === "INCOME"
+    ? "Setup any upcoming one-off or repeating income"
+    : "Setup any upcoming expenses or bills you're expecting";
+
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
       title={
-        isEdit
-          ? `Edit ${mode === "INCOME" ? "Income Source" : "Expense Bill"}: ${sourceToEdit.name}`
-          : `Add New ${mode === "INCOME" ? "Income Source" : "Expense Bill"}`
-      }
-      subtitle={
-        mode === "INCOME"
-          ? "Configure paycheck, bonus, or investment deposit"
-          : "Configure recurring utility, rent, or bill obligation"
+        <div className="flex items-center gap-2">
+          <span>{modalTitle}</span>
+          <InfoTooltip content={infoTooltipText} />
+        </div>
       }
       isDirty={isDirty}
       onSave={handleSave}
