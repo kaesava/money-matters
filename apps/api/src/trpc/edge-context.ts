@@ -13,115 +13,165 @@ export interface EdgeContextEnv {
   NEON_AUTH_BASE_URL?: string;
 }
 
+export interface ResolvedClaims {
+  userId: string;
+  email: string;
+  displayName?: string;
+}
 
+/**
+ * Extracts correlation ID from request header or generates a new UUID.
+ * Propagates the correlation ID to the outgoing response headers.
+ */
+export function extractCorrelationId(req: Request, resHeaders?: Headers): string {
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+  if (resHeaders) {
+    resHeaders.set('x-correlation-id', correlationId);
+  }
+  return correlationId;
+}
 
-export async function createEdgeContext(
-  { req, resHeaders }: FetchCreateContextFnOptions,
-  env?: EdgeContextEnv
-) {
-  const connectionString = env?.DATABASE_URL || process.env.DATABASE_URL;
-  const requestDb = connectionString ? createDbClient(connectionString) : db;
-
-
-
-
+/**
+ * Extracts bearer token or Neon Auth session cookie from request headers.
+ */
+export function extractAuthToken(req: Request): string {
   const authHeader = req.headers.get('authorization');
   let token = authHeader?.split(' ')[1] ?? '';
 
   if (!token) {
     const cookieHeader = req.headers.get('cookie');
     if (cookieHeader) {
-      const match = cookieHeader.match(/(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/);
+      const match = cookieHeader.match(
+        /(?:__Secure-)?(?:neon-auth\.session_token|better-auth\.session_token|session_token|neon_auth_session|session)=([^;]+)/
+      );
       if (match) {
         token = decodeURIComponent(match[1]);
       }
     }
   }
+  return token;
+}
 
-  let claims = await verifyJwt(token);
+/**
+ * Fallback: Resolves session claims directly from the database with a 2-second timeout.
+ */
+export async function resolveClaimsFromDatabase(
+  token: string,
+  requestDb: ReturnType<typeof createDbClient> | typeof db,
+  correlationId: string
+): Promise<ResolvedClaims | null> {
+  const cleanToken = token.split('.')[0];
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('DB session lookup timed out after 2000ms')), 2000);
+    });
 
-  // Fallback for opaque database session tokens
-  if (!claims && token) {
-    const cleanToken = token.split(".")[0];
-    try {
-      const dbSessions = await requestDb.execute<{ userId: string; email: string; name: string }>(
-        sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"
-            FROM neon_auth.session s
-            JOIN neon_auth.user u ON s."userId" = u.id
-            WHERE (s.token = ${token} OR s.token = ${cleanToken} OR s.id::text = ${cleanToken} OR s.id::text = ${token})
-              AND s."expiresAt" > NOW()
-            LIMIT 1`
-      );
-      const rows = Array.isArray(dbSessions)
-        ? dbSessions
-        : (dbSessions as { rows: { userId: string; email: string; name: string }[] }).rows;
-      const dbSession = rows?.[0];
-      if (dbSession) {
-        claims = {
-          userId: dbSession.userId,
-          email: dbSession.email,
-          displayName: dbSession.name,
-        };
-      } else {
-        console.warn(`[createEdgeContext] DB session SQL query returned 0 rows for token: ${token.substring(0, 10)}... (cleanToken: ${cleanToken})`);
-      }
-    } catch (err) {
-      console.error('[createEdgeContext] Database session lookup failed:', err);
+    const queryPromise = requestDb.execute<{ userId: string; email: string; name: string }>(
+      sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"
+          FROM neon_auth.session s
+          JOIN neon_auth.user u ON s."userId" = u.id
+          WHERE (s.token = ${token} OR s.token = ${cleanToken} OR s.id::text = ${cleanToken} OR s.id::text = ${token})
+            AND s."expiresAt" > NOW()
+          LIMIT 1`
+    );
+
+    const dbSessions = await Promise.race([queryPromise, timeoutPromise]);
+    const rows = Array.isArray(dbSessions)
+      ? dbSessions
+      : (dbSessions as { rows: { userId: string; email: string; name: string }[] }).rows;
+    const dbSession = rows?.[0];
+
+    if (dbSession) {
+      return {
+        userId: dbSession.userId,
+        email: dbSession.email,
+        displayName: dbSession.name,
+      };
     }
+
+    logger.warn('DB session SQL query returned 0 rows', { correlationId, tokenSnippet: token.substring(0, 10) });
+    return null;
+  } catch (err: unknown) {
+    logger.error('Database session lookup failed in edge context', { correlationId, err });
+    return null;
+  }
+}
+
+/**
+ * Fallback: Verifies session with Neon Auth endpoint using AbortController with 2s timeout.
+ */
+export async function resolveClaimsFromNeonAuth(
+  req: Request,
+  env: EdgeContextEnv | undefined,
+  correlationId: string
+): Promise<ResolvedClaims | null> {
+  const authBase =
+    env?.NEXT_PUBLIC_NEON_AUTH_URL ||
+    env?.NEON_AUTH_BASE_URL ||
+    process.env.NEXT_PUBLIC_NEON_AUTH_URL ||
+    process.env.NEON_AUTH_BASE_URL;
+
+  if (!authBase) {
+    logger.warn('Neon Auth base URL is not configured in env', { correlationId });
+    return null;
   }
 
-  // Fallback: Verify session directly with Neon Auth endpoint if cookie/token is set
-  if (!claims && (token || req.headers.get('cookie'))) {
-    try {
-      const authBase = env?.NEXT_PUBLIC_NEON_AUTH_URL || env?.NEON_AUTH_BASE_URL || process.env.NEXT_PUBLIC_NEON_AUTH_URL || process.env.NEON_AUTH_BASE_URL;
-      const cookieHeader = req.headers.get('cookie');
-      if (authBase) {
-        console.log(`[createEdgeContext] Attempting fetch to ${authBase}/get-session with cookie: ${cookieHeader ? 'present' : 'absent'}, authHeader: ${authHeader ? 'present' : 'absent'}`);
-        const authRes = await fetch(`${authBase}/get-session`, {
-          headers: {
-            ...(cookieHeader ? { cookie: cookieHeader } : {}),
-            ...(authHeader ? { authorization: authHeader } : {}),
-          },
-        });
-        if (authRes.ok) {
-          const sessionData = await authRes.json();
-          if (sessionData?.user?.id && sessionData?.user?.email) {
-            claims = {
-              userId: sessionData.user.id,
-              email: sessionData.user.email,
-              displayName: sessionData.user.name ?? undefined,
-            };
-          } else {
-            console.warn(`[createEdgeContext] Neon Auth /get-session returned status 200 but payload missing user id/email: ${JSON.stringify(sessionData)}`);
-          }
-        } else {
-          console.warn(`[createEdgeContext] Neon Auth /get-session returned status ${authRes.status}: ${await authRes.text()}`);
-        }
-      } else {
-        console.warn('[createEdgeContext] Neither NEXT_PUBLIC_NEON_AUTH_URL nor NEON_AUTH_BASE_URL is configured in env!');
-      }
-    } catch (err) {
-      console.error('[createEdgeContext] Neon Auth endpoint fallback lookup failed:', err);
+  const cookieHeader = req.headers.get('cookie');
+  const authHeader = req.headers.get('authorization');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+  try {
+    logger.debug('Attempting Neon Auth session verification fallback', {
+      correlationId,
+      authBase,
+      hasCookie: Boolean(cookieHeader),
+      hasAuthHeader: Boolean(authHeader),
+    });
+
+    const authRes = await fetch(`${authBase}/get-session`, {
+      headers: {
+        ...(cookieHeader ? { cookie: cookieHeader } : {}),
+        ...(authHeader ? { authorization: authHeader } : {}),
+        'x-correlation-id': correlationId,
+      },
+      signal: controller.signal,
+    });
+
+    if (!authRes.ok) {
+      logger.warn('Neon Auth /get-session returned non-OK status', { correlationId, status: authRes.status });
+      return null;
     }
-  }
 
-  if (!claims) {
-    return {
-      req,
-      resHeaders,
-      db: requestDb,
-      session: null,
-      userId: null,
-      tenantId: null,
-      email: null,
-      appId: null,
-    };
-  }
+    const sessionData = (await authRes.json()) as { user?: { id?: string; email?: string; name?: string } };
+    if (sessionData?.user?.id && sessionData?.user?.email) {
+      return {
+        userId: sessionData.user.id,
+        email: sessionData.user.email,
+        displayName: sessionData.user.name ?? undefined,
+      };
+    }
 
+    logger.warn('Neon Auth /get-session missing user ID or email', { correlationId });
+    return null;
+  } catch (err: unknown) {
+    logger.error('Neon Auth endpoint fallback lookup failed', { correlationId, err });
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Resolves or auto-provisions tenant membership for authenticated claims.
+ */
+export async function resolveTenantMembership(
+  requestDb: ReturnType<typeof createDbClient> | typeof db,
+  claims: ResolvedClaims,
+  requestedTenantId: string | null,
+  correlationId: string
+): Promise<{ tenantId: string | null; role: string | null; appId: string }> {
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName, requestDb);
-
-  const rawTenantHeader = req.headers.get('x-tenant-id') ?? req.headers.get('x-active-tenant');
-  const requestedTenantId = rawTenantHeader || null;
 
   const userMemberships = await requestDb
     .select({
@@ -137,31 +187,87 @@ export async function createEdgeContext(
     : undefined;
 
   const membership = matchedMembership ?? userMemberships[0];
-
-  let tenantId = membership?.tenantId ?? null;
-  let role = membership?.role ?? null;
-  const appId = membership?.appId ?? MONEY_MATTERS_APP_ID;
-
-  if (!tenantId) {
-    try {
-      const handler = createTenantHandler(requestDb);
-      const result = await handler({ name: 'My Household' }, appId, claims.userId);
-      tenantId = result.tenantId;
-      role = 'OWNER';
-
-      // Dispatch non-blocking signup & welcome email event to Inngest
-      inngest.send({
-        name: 'auth/user.signup',
-        data: {
-          userId: claims.userId,
-          email: claims.email,
-          displayName: claims.displayName ?? undefined,
-        },
-      }).catch(() => {});
-    } catch (err) {
-      logger.error('Auto-provisioning tenant in edge context failed', { err });
-    }
+  if (membership?.tenantId) {
+    return {
+      tenantId: membership.tenantId,
+      role: membership.role ?? null,
+      appId: membership.appId ?? MONEY_MATTERS_APP_ID,
+    };
   }
+
+  try {
+    const handler = createTenantHandler(requestDb);
+    const result = await handler({ name: 'My Household' }, MONEY_MATTERS_APP_ID, claims.userId);
+
+    inngest.send({
+      name: 'auth/user.signup',
+      data: {
+        userId: claims.userId,
+        email: claims.email,
+        displayName: claims.displayName ?? undefined,
+      },
+    }).catch(() => {});
+
+    return {
+      tenantId: result.tenantId,
+      role: 'OWNER',
+      appId: MONEY_MATTERS_APP_ID,
+    };
+  } catch (err: unknown) {
+    logger.error('Auto-provisioning tenant in edge context failed', { correlationId, err });
+    return {
+      tenantId: null,
+      role: null,
+      appId: MONEY_MATTERS_APP_ID,
+    };
+  }
+}
+
+/**
+ * Creates edge context with correlation ID tracing, DB connection pooling, and fallback session resolution.
+ */
+export async function createEdgeContext(
+  { req, resHeaders }: FetchCreateContextFnOptions,
+  env?: EdgeContextEnv
+) {
+  const correlationId = extractCorrelationId(req, resHeaders);
+  const connectionString = env?.DATABASE_URL || process.env.DATABASE_URL;
+  const requestDb = connectionString ? createDbClient(connectionString) : db;
+
+  const token = extractAuthToken(req);
+  let claims = token ? await verifyJwt(token) : null;
+
+  if (!claims && token) {
+    claims = await resolveClaimsFromDatabase(token, requestDb, correlationId);
+  }
+
+  if (!claims && (token || req.headers.get('cookie'))) {
+    claims = await resolveClaimsFromNeonAuth(req, env, correlationId);
+  }
+
+  if (!claims) {
+    return {
+      req,
+      resHeaders,
+      db: requestDb,
+      session: null,
+      userId: null,
+      tenantId: null,
+      email: null,
+      appId: null,
+      correlationId,
+    };
+  }
+
+  const rawTenantHeader = req.headers.get('x-tenant-id') ?? req.headers.get('x-active-tenant');
+  const requestedTenantId = rawTenantHeader || null;
+
+  const { tenantId, role, appId } = await resolveTenantMembership(
+    requestDb,
+    claims,
+    requestedTenantId,
+    correlationId
+  );
 
   return {
     req,
@@ -178,7 +284,9 @@ export async function createEdgeContext(
     tenantId,
     email: claims.email,
     appId,
+    correlationId,
   };
 }
 
 export type EdgeContext = Awaited<ReturnType<typeof createEdgeContext>>;
+

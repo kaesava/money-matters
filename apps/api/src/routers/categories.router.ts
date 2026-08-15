@@ -1,4 +1,4 @@
-import { tenantProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import {
   createCategoryCommand,
   updateCategoryCommand,
@@ -27,6 +27,7 @@ export const categoriesRouter = {
   createCategory: tenantProcedure
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       if (input.type === "PERSONAL") {
         await ensurePremiumAccess(ctx.db, ctx.tenantId!, "Personal categories");
       }
@@ -39,18 +40,21 @@ export const categoriesRouter = {
       data: UpdateCategoryCommand
     }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await updateCategoryCommand(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   createCategorySchedule: tenantProcedure
     .input(CreateCategoryScheduleCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await upsertCategoryScheduleCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   archiveCategory: tenantProcedure
     .input(z.object({ categoryId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const result = await archiveCategoryCommand(input.categoryId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
       if (!result) {
         throw new Error("Category not found or access unauthorized.");
@@ -61,6 +65,7 @@ export const categoriesRouter = {
   moveMoney: tenantProcedure
     .input(MoveMoneyCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const result = await moveMoneyCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
       if (posthog && ctx.userId) {
         posthog.capture({
@@ -89,6 +94,7 @@ export const categoriesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const result = await restoreItemCommand(
         input.itemId,
         input.itemType,
@@ -130,6 +136,7 @@ export const categoriesRouter = {
       }).strict()),
     }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await reSetupBudget(ctx.db, {
         tenantId: ctx.tenantId!,
         userId: ctx.userId!,
@@ -159,7 +166,11 @@ export const categoriesRouter = {
 
         if (bills === undefined) {
           const upcomingEvents = (await ctx.db.query?.expenseEvents?.findMany?.({
-            where: (e, { eq, and }) => and(eq(e.tenantId, ctx.tenantId!), eq(e.status, 'UPCOMING')),
+            where: (e, { eq, and }) => and(
+              eq(e.tenantId, ctx.tenantId!),
+              eq(e.appId, ctx.appId!),
+              eq(e.status, 'UPCOMING')
+            ),
           })) ?? [];
 
           bills = upcomingEvents.map((e: Record<string, unknown>) => ({

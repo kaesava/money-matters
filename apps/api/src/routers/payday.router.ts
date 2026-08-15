@@ -1,4 +1,4 @@
-import { tenantProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { allocationPlans, allocationPlanLines, categories } from "@money-matters/db";
 import { and, eq, sql, desc } from "drizzle-orm";
 import { posthog } from '../lib/posthog.js';
@@ -30,6 +30,7 @@ export const paydayRouter = {
   confirmPayday: tenantProcedure
     .input(ConfirmPaydayCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const result = await runAllocationCommand(
         ctx.tenantId!,
         ctx.appId!,
@@ -59,18 +60,21 @@ export const paydayRouter = {
   overrideEvent: tenantProcedure
     .input(OverrideEventCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await overrideEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   deleteUpcomingEvent: tenantProcedure
     .input(DeleteUpcomingEventCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await deleteUpcomingEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   bulkDeleteEvents: tenantProcedure
     .input(BulkDeleteEventsCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await bulkDeleteEventsCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
@@ -120,6 +124,7 @@ export const paydayRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await runAllocationCommand(
         ctx.tenantId!,
         ctx.appId!,
@@ -150,6 +155,7 @@ export const paydayRouter = {
   confirmAllocation: tenantProcedure
     .input(ConfirmAllocationInput)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       return await confirmAllocationCommand(
         input,
         ctx.tenantId!,

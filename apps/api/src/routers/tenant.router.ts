@@ -1,4 +1,5 @@
-import { tenantProcedure, authenticatedProcedure, ownerProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, authenticatedProcedure, ownerProcedure, requiresWriteAccess } from '../trpc/trpc.js';
+import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
 import { db, userPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or } from "drizzle-orm";
 import { inngest } from '../inngest/client.js';
@@ -33,6 +34,7 @@ export const tenantRouter = {
   invitePartner: ownerProcedure
     .input(z.object({ email: z.string().email() }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const handler = invitePartnerHandler(ctx.db);
       const result = await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
 
@@ -79,7 +81,7 @@ export const tenantRouter = {
   createTenant: authenticatedProcedure
     .input(CreateTenantCommand)
     .mutation(async ({ input, ctx }) => {
-      const appId = ctx.appId || ctx.session?.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
+      const appId = ctx.appId || ctx.session?.appId || MONEY_MATTERS_APP_ID;
       const handler = createTenantHandler(ctx.db || db);
       const result = await handler(input, appId, ctx.userId);
       if (posthog && ctx.userId) {
@@ -129,7 +131,7 @@ export const tenantRouter = {
           )
         );
 
-      const appId = ctx.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
+      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
       const appBlob = pref?.appPreferences?.[appId];
 
       return {
@@ -156,6 +158,7 @@ updateUserPreferences: tenantProcedure
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [existing] = await ctx.db
         .select()
         .from(userPreferences)
@@ -166,7 +169,7 @@ updateUserPreferences: tenantProcedure
           )
         );
 
-      const appId = ctx.appId || "01908bde-34bb-7b19-a178-574211bc93aa";
+      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
       const existingAppPrefs: Record<string, AppPreferencesBlob> = existing?.appPreferences || {};
       const currentAppBlob = existingAppPrefs[appId] || {};
 
@@ -230,6 +233,7 @@ updateUserPreferences: tenantProcedure
   createBankAccount: tenantProcedure
     .input(CreateBankAccountCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const handler = createBankAccountHandler(ctx.db);
       const result = await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
       if (posthog && ctx.userId) {
@@ -252,6 +256,7 @@ updateUserPreferences: tenantProcedure
       data: UpdateBankAccountCommand
     }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const handler = updateBankAccountHandler(ctx.db);
       return await handler(input.accountId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
@@ -259,6 +264,7 @@ updateUserPreferences: tenantProcedure
   archiveBankAccount: ownerProcedure
     .input(z.object({ accountId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const handler = archiveBankAccountHandler(ctx.db);
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
@@ -277,6 +283,7 @@ updateUserPreferences: tenantProcedure
       }))
     }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const handler = updateBankAccountMappingsHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
@@ -350,6 +357,7 @@ updateUserPreferences: tenantProcedure
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const accountId = input.accountId;
 
       // Update bank account balance

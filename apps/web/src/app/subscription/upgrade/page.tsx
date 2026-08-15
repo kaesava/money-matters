@@ -8,7 +8,7 @@ import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 
 export default function UpgradePage() {
-  const router = useRouter();
+  const _router = useRouter();
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

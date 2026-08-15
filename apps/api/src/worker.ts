@@ -1,4 +1,5 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { logger } from '@money-matters/core';
 import { appRouter } from './routers/_app.js';
 import { createEdgeContext } from './trpc/edge-context.js';
 import { inngest } from './inngest/client.js';
@@ -46,110 +47,8 @@ export function isValidRedirectUrl(target: string): boolean {
   }
 }
 
-export default {
-  async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
-    const ALLOWED_ORIGINS = [
-      "https://moneymatters.kaesava.au",
-      "https://www.moneymatters.kaesava.au",
-      "https://api.moneymatters.kaesava.au",
-      "https://kaesava.au",
-      "https://www.kaesava.au",
-    ];
-    const requestOrigin = request.headers.get('Origin');
-    const isAllowedOrigin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': isAllowedOrigin ? requestOrigin : ALLOWED_ORIGINS[0],
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, trpc-accept, x-correlation-id',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400',
-    };
-    const securityHeaders = {
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-      'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    };
-
-    try {
-      const url = new URL(request.url);
-
-      // 1. Handle CORS Preflight
-      if (request.method === 'OPTIONS') {
-        return new Response(null, {
-          status: 204,
-          headers: { ...corsHeaders, ...securityHeaders },
-        });
-      }
-
-      // 2. Handle Health Check Endpoint
-      if (url.pathname === '/health') {
-        return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders,
-            ...securityHeaders,
-          },
-        });
-      }
-
-      // 3. Handle Inngest Webhook Endpoint
-      if (url.pathname.startsWith('/api/inngest')) {
-        const inngestHandler = serve({
-          client: inngest,
-          functions,
-          servePath: '/api/inngest',
-          signingKey: env.INNGEST_SIGNING_KEY,
-        }) as unknown as (
-          request: Request,
-          env: Record<string, string | undefined>,
-          ctx?: { waitUntil: (promise: Promise<unknown>) => void }
-        ) => Promise<Response>;
-        return inngestHandler(request, env as unknown as Record<string, string | undefined>, ctx);
-      }
-
-      // 3.5 Handle Stripe Webhook Endpoint
-      if (url.pathname === '/webhooks/stripe' && request.method === 'POST') {
-        const signature = request.headers.get('stripe-signature');
-        if (!signature || !env.STRIPE_WEBHOOK_SECRET) {
-          return new Response(JSON.stringify({ error: 'Missing stripe-signature or webhook secret' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders, ...securityHeaders },
-          });
-        }
-
-        const rawBody = await request.text();
-        const { db: dbClient } = await import('@money-matters/db');
-        const { handleStripeWebhook } = await import('@money-matters/capability-billing');
-
-        const result = await handleStripeWebhook(rawBody, signature, env.STRIPE_WEBHOOK_SECRET, dbClient);
-
-        return new Response(JSON.stringify({ received: true, ...result }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders, ...securityHeaders },
-        });
-      }
-
-      // 4. Handle Password Reset HTML Endpoint
-      if (url.pathname === '/reset-password') {
-        const token = url.searchParams.get('token') || '';
-        const error = url.searchParams.get('error') || '';
-        const requestedRedirect = url.searchParams.get('redirect_to');
-
-        if (requestedRedirect && !isValidRedirectUrl(requestedRedirect)) {
-          return new Response(JSON.stringify({ error: 'Invalid or unwhitelisted redirect target domain' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders, ...securityHeaders },
-          });
-        }
-
-        const redirectTo = (requestedRedirect && isValidRedirectUrl(requestedRedirect))
-          ? requestedRedirect
-          : 'moneymatters://reset-password';
-
-        const html = `<!DOCTYPE html>
+export function renderPasswordResetHtml(token: string, error: string, redirectTo: string): string {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -184,48 +83,178 @@ export default {
   </script>
 </body>
 </html>`;
+}
 
-        return new Response(html, {
-          headers: { 'Content-Type': 'text/html; charset=utf-8', ...securityHeaders },
+export async function handleStripeWebhookRequest(
+  request: Request,
+  env: WorkerEnv,
+  baseHeaders: Record<string, string>
+): Promise<Response> {
+  const signature = request.headers.get('stripe-signature');
+  if (!signature || !env.STRIPE_WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: 'Missing stripe-signature or webhook secret' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...baseHeaders },
+    });
+  }
+
+  const rawBody = await request.text();
+  const { db: dbClient } = await import('@money-matters/db');
+  const { handleStripeWebhook } = await import('@money-matters/capability-billing');
+
+  const result = await handleStripeWebhook(rawBody, signature, env.STRIPE_WEBHOOK_SECRET, dbClient);
+
+  return new Response(JSON.stringify({ received: true, ...result }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...baseHeaders },
+  });
+}
+
+export function handleResetPasswordRequest(url: URL, baseHeaders: Record<string, string>): Response {
+  const token = url.searchParams.get('token') || '';
+  const error = url.searchParams.get('error') || '';
+  const requestedRedirect = url.searchParams.get('redirect_to');
+
+  if (requestedRedirect && !isValidRedirectUrl(requestedRedirect)) {
+    return new Response(JSON.stringify({ error: 'Invalid or unwhitelisted redirect target domain' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...baseHeaders },
+    });
+  }
+
+  const redirectTo = requestedRedirect && isValidRedirectUrl(requestedRedirect)
+    ? requestedRedirect
+    : 'moneymatters://reset-password';
+
+  const html = renderPasswordResetHtml(token, error, redirectTo);
+  return new Response(html, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8', ...baseHeaders },
+  });
+}
+
+export async function handleTrpcRequest(
+  request: Request,
+  env: WorkerEnv,
+  correlationId: string,
+  baseHeaders: Record<string, string>
+): Promise<Response> {
+  const response = await fetchRequestHandler({
+    endpoint: '/trpc',
+    req: request,
+    router: appRouter,
+    createContext: (opts) => createEdgeContext(opts, env),
+    onError: ({ error, path }) => {
+      logger.error(`[tRPC Error] path '${path}'`, { correlationId, error });
+    },
+  });
+
+  const newHeaders = new Headers(response.headers);
+  Object.entries(baseHeaders).forEach(([key, val]) => {
+    newHeaders.set(key, val);
+  });
+  newHeaders.set('x-correlation-id', correlationId);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
+}
+
+export default {
+  async fetch(request: Request, env: WorkerEnv, ctx: { waitUntil: (promise: Promise<unknown>) => void }): Promise<Response> {
+    const correlationId = request.headers.get('x-correlation-id') || crypto.randomUUID();
+    const ALLOWED_ORIGINS = [
+      "https://moneymatters.kaesava.au",
+      "https://www.moneymatters.kaesava.au",
+      "https://api.moneymatters.kaesava.au",
+      "https://kaesava.au",
+      "https://www.kaesava.au",
+    ];
+    const requestOrigin = request.headers.get('Origin');
+    const isAllowedOrigin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': isAllowedOrigin ? requestOrigin : ALLOWED_ORIGINS[0],
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, trpc-accept, x-correlation-id',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400',
+    };
+    const securityHeaders = {
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    };
+    const baseHeaders = {
+      ...corsHeaders,
+      ...securityHeaders,
+      'x-correlation-id': correlationId,
+    };
+
+    try {
+      const url = new URL(request.url);
+
+      if (request.method === 'OPTIONS') {
+        return new Response(null, {
+          status: 204,
+          headers: baseHeaders,
         });
       }
 
-      // 5. Handle tRPC Requests
-      if (url.pathname.startsWith('/trpc')) {
-        const response = await fetchRequestHandler({
-          endpoint: '/trpc',
-          req: request,
-          router: appRouter,
-          createContext: (opts) => createEdgeContext(opts, env),
-          onError: ({ error, path }) => {
-            console.error(`[tRPC Error] path '${path}':`, error);
+      if (url.pathname === '/health') {
+        return new Response(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            ...baseHeaders,
           },
         });
+      }
 
-        const newHeaders = new Headers(response.headers);
-        Object.entries(corsHeaders).forEach(([key, val]) => {
-          newHeaders.set(key, val);
+      if (url.pathname.startsWith('/api/inngest')) {
+        const inngestHandler = serve({
+          client: inngest,
+          functions,
+          servePath: '/api/inngest',
+          signingKey: env.INNGEST_SIGNING_KEY,
+        }) as unknown as (
+          req: Request,
+          e: Record<string, string | undefined>,
+          c?: { waitUntil: (promise: Promise<unknown>) => void }
+        ) => Promise<Response>;
+        const inngestRes = await inngestHandler(request, env as unknown as Record<string, string | undefined>, ctx);
+        const inngestHeaders = new Headers(inngestRes.headers);
+        inngestHeaders.set('x-correlation-id', correlationId);
+        return new Response(inngestRes.body, {
+          status: inngestRes.status,
+          statusText: inngestRes.statusText,
+          headers: inngestHeaders,
         });
-        Object.entries(securityHeaders).forEach(([key, val]) => {
-          newHeaders.set(key, val);
-        });
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: newHeaders,
-        });
+      }
+
+      if (url.pathname === '/webhooks/stripe' && request.method === 'POST') {
+        return await handleStripeWebhookRequest(request, env, baseHeaders);
+      }
+
+      if (url.pathname === '/reset-password') {
+        return handleResetPasswordRequest(url, baseHeaders);
+      }
+
+      if (url.pathname.startsWith('/trpc')) {
+        return await handleTrpcRequest(request, env, correlationId, baseHeaders);
       }
 
       return new Response(JSON.stringify({ error: 'Route not found' }), {
         status: 404,
         headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders,
-          ...securityHeaders,
+          ...baseHeaders,
         },
       });
     } catch (err: unknown) {
-      console.error('[WORKER UNCAUGHT ERROR]', err);
+      logger.error('[WORKER UNCAUGHT ERROR]', { correlationId, err });
       const message = err instanceof Error ? err.message : 'Internal Server Error';
       return new Response(
         JSON.stringify({
@@ -234,16 +263,15 @@ export default {
             code: 'INTERNAL_SERVER_ERROR',
           },
         }),
-
         {
           status: 500,
           headers: {
             'Content-Type': 'application/json',
-            ...corsHeaders,
-            ...securityHeaders,
+            ...baseHeaders,
           },
         }
       );
     }
   },
 };
+

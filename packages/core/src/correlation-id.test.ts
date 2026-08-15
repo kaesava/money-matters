@@ -1,17 +1,20 @@
 import { describe, it, expect, vi } from 'vitest';
 import { correlationIdHook } from './correlation-id.js';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 
 describe('Correlation ID Hook', () => {
   it('generates a new correlation ID if header is not present on request', () => {
     const mockChild = vi.fn().mockReturnValue({});
-    const req: any = {
+    const req = {
       headers: {},
       log: { child: mockChild },
-    };
+    } as unknown as FastifyRequest;
+
     const setHeader = vi.fn();
-    const reply: any = {
+    const reply = {
       header: setHeader,
-    };
+    } as unknown as FastifyReply;
+
     const done = vi.fn();
 
     correlationIdHook(req, reply, done);
@@ -26,12 +29,13 @@ describe('Correlation ID Hook', () => {
   it('reuses existing x-correlation-id header when provided by client', () => {
     const customId = 'custom-correlation-12345';
     const mockChild = vi.fn().mockReturnValue({});
-    const req: any = {
+    const req = {
       headers: { 'x-correlation-id': customId },
       log: { child: mockChild },
-    };
+    } as unknown as FastifyRequest;
+
     const setHeader = vi.fn();
-    const reply: any = { header: setHeader };
+    const reply = { header: setHeader } as unknown as FastifyReply;
     const done = vi.fn();
 
     correlationIdHook(req, reply, done);
@@ -42,3 +46,4 @@ describe('Correlation ID Hook', () => {
     expect(done).toHaveBeenCalled();
   });
 });
+

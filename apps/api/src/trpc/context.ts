@@ -10,10 +10,9 @@ import { inngest } from '../inngest/client.js';
 export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
-  if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG createContext] Incoming Authorization header:", req.headers.authorization);
-    console.log("[DEBUG createContext] Incoming Cookie header:", req.headers.cookie);
-  }
+  const rawCorrelationId = req.headers["x-correlation-id"];
+  const correlationId =
+    (Array.isArray(rawCorrelationId) ? rawCorrelationId[0] : rawCorrelationId) || crypto.randomUUID();
 
   const authHeader = req.headers.authorization;
   let token = authHeader?.split(" ")[1] ?? "";
@@ -27,11 +26,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
     }
   }
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG createContext] Final token evaluated:", token ? `${token.substring(0, 15)}... (len: ${token.length})` : "NONE");
-  }
-
-  let claims = await verifyJwt(token);
+  let claims = token ? await verifyJwt(token) : null;
 
   // Fallback for opaque Neon DB / Better Auth database session tokens
   if (!claims && token) {
@@ -57,7 +52,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
         };
       }
     } catch (err) {
-      logger.error("Database session lookup failed", { err });
+      logger.error("Database session lookup failed", { correlationId, err });
     }
   }
 
@@ -70,10 +65,11 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
           headers: {
             ...(req.headers.cookie ? { cookie: req.headers.cookie } : {}),
             ...(authHeader ? { authorization: authHeader } : {}),
+            "x-correlation-id": correlationId,
           },
         });
         if (authRes.ok) {
-          const sessionData = await authRes.json();
+          const sessionData = (await authRes.json()) as { user?: { id?: string; email?: string; name?: string } };
           if (sessionData?.user?.id && sessionData?.user?.email) {
             claims = {
               userId: sessionData.user.id,
@@ -83,19 +79,12 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
           }
         }
       }
-    } catch (err) {
-      logger.debug("[createContext] Neon Auth endpoint fallback lookup failed: " + (err instanceof Error ? err.message : String(err)));
+    } catch (err: unknown) {
+      logger.debug("Neon Auth endpoint fallback lookup failed in Fastify context", { correlationId, err });
     }
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG createContext] Claims after verifyJwt & dbSession lookup:", claims);
   }
 
   if (!claims) {
-    if (process.env.NODE_ENV === "development") {
-      console.log("[DEBUG createContext] FAILED: claims is null. Cookie header was:", req.headers.cookie, "Token:", token);
-    }
     return {
       req,
       res,
@@ -105,11 +94,8 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
       tenantId: null,
       email: null,
       appId: null,
+      correlationId,
     };
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG createContext] SUCCESS: Resolved claims for userId:", claims.userId);
   }
 
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName);
@@ -161,17 +147,9 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
           displayName: claims.displayName ?? undefined,
         },
       }).catch(() => {});
-
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[DEBUG createContext] Auto-provisioned default tenant ${tenantId} for user ${claims.userId}`);
-      }
     } catch (err) {
-      logger.error("Auto-provisioning tenant failed", { err });
+      logger.error("Auto-provisioning tenant failed", { correlationId, err });
     }
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG createContext] Membership result:", membership, "Resolved tenantId:", tenantId);
   }
 
   return {
@@ -189,9 +167,11 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
     tenantId,
     email: claims.email,
     appId,
+    correlationId,
   };
 }
 
 export type FastifyContext = Awaited<ReturnType<typeof createContext>>;
 export type EdgeContext = Awaited<ReturnType<typeof createEdgeContext>>;
 export type Context = FastifyContext | EdgeContext;
+
