@@ -1,10 +1,18 @@
 import PostHog from 'posthog-react-native';
 import Constants from 'expo-constants';
 
-// Configuration loaded from app.config.js extras via expo-constants.
-// Environment variables are read at build time in app.config.js.
-const projectToken = Constants.expoConfig?.extra?.posthogProjectToken as string | undefined;
-const host = (Constants.expoConfig?.extra?.posthogHost as string | undefined) || 'https://us.i.posthog.com';
+// Configuration loaded from app.config.js extras via expo-constants OR EXPO_PUBLIC_* env vars.
+const projectToken =
+  (Constants.expoConfig?.extra?.posthogProjectToken as string | undefined) ||
+  process.env.EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+
+const host =
+  (Constants.expoConfig?.extra?.posthogHost as string | undefined) ||
+  process.env.EXPO_PUBLIC_POSTHOG_HOST ||
+  process.env.POSTHOG_HOST ||
+  'https://us.i.posthog.com';
+
 const isPostHogConfigured = Boolean(projectToken);
 
 if (__DEV__ && !isPostHogConfigured) {
