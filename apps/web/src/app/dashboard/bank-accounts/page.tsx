@@ -92,38 +92,13 @@ export default function BankAccountsDashboardPage() {
   const [accIsPrivate, setAccIsPrivate] = useState(false);
   const [accSelectedTypes, setAccSelectedTypes] = useState<Array<"EVERYDAY" | "REGULAR" | "GOAL">>([]);
 
-  // CSV Import Drawer / Modal State
+  // CSV Import Modal State
   const [selectedAccountForImport, setSelectedAccountForImport] = useState<BankAccountItem | null>(null);
-  const [selectedBankProvider, setSelectedBankProvider] = useState<BankName>("CBA");
-  const [showImportGuide, setShowImportGuide] = useState(false);
-  const [csvResultMsg, setCsvResultMsg] = useState<string | null>(null);
-  const [showCustomMapper, setShowCustomMapper] = useState(false);
-  const [pendingCsvText, setPendingCsvText] = useState<string>("");
-  const [rawHeaders, setRawHeaders] = useState<string[]>([]);
-  const [dateCol, setDateCol] = useState(0);
-  const [descCol, setDescCol] = useState(1);
-  const [amountCol, setAmountCol] = useState(2);
   const [conflictModalInfo, setConflictModalInfo] = useState<{
     type: "EVERYDAY" | "REGULAR" | "GOAL";
     typeLabel: string;
     previousOwnerName: string;
   } | null>(null);
-
-  const parseCsvMut = trpc.parseCsv.useMutation({
-    onSuccess: (res: { bank: string; transactions: Array<{ date: string; description: string; amount: string; flowType: "DEBIT" | "CREDIT" }>; headers: string[] }) => {
-      if (res.transactions.length === 0 && res.headers.length > 0 && !showCustomMapper) {
-        setRawHeaders(res.headers);
-        setShowCustomMapper(true);
-        setCsvResultMsg("Unrecognised format. Please map columns manually below.");
-      } else {
-        setShowCustomMapper(false);
-        setCsvResultMsg(`Successfully parsed ${res.transactions.length} transactions for ${selectedAccountForImport?.name} using ${selectedBankProvider} format!`);
-      }
-    },
-    onError: (err: { message: string }) => {
-      setCsvResultMsg(`CSV Parse Error: ${err.message}`);
-    },
-  });
 
   useEffect(() => {
     setPage(1);
@@ -315,50 +290,8 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
-  const detectBankFromAccountName = (accName: string): BankName => {
-    const nameLower = accName.toLowerCase();
-    if (nameLower.includes("cba") || nameLower.includes("commbank") || nameLower.includes("commonwealth")) return "CBA";
-    if (nameLower.includes("westpac")) return "Westpac";
-    if (nameLower.includes("anz")) return "ANZ";
-    if (nameLower.includes("nab") || nameLower.includes("national australia")) return "NAB";
-    if (nameLower.includes("ing")) return "ING";
-    if (nameLower.includes("macquarie")) return "Macquarie";
-    return "CBA";
-  };
-
   const openImportModal = (acc: BankAccountItem) => {
     setSelectedAccountForImport(acc);
-    setSelectedBankProvider(acc.bankProvider || detectBankFromAccountName(acc.name));
-    setCsvResultMsg(null);
-    setShowCustomMapper(false);
-    setPendingCsvText("");
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setCsvResultMsg(null);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        setPendingCsvText(text);
-        parseCsvMut.mutate({ csvText: text });
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleApplyCustomMapping = () => {
-    if (!pendingCsvText) return;
-    parseCsvMut.mutate({
-      csvText: pendingCsvText,
-      customMapping: {
-        dateColIndex: dateCol,
-        descColIndex: descCol,
-        amountColIndex: amountCol,
-      },
-    });
   };
 
   return (

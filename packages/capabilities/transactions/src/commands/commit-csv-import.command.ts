@@ -2,6 +2,7 @@ import { transactionLedger, categories, DbOrTx } from "@money-matters/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { CommitCsvImportCommand } from "@money-matters/types";
+import { randomUUID } from "crypto";
 
 export async function commitCsvImportCommand(
   input: z.infer<typeof CommitCsvImportCommand>,
@@ -9,9 +10,11 @@ export async function commitCsvImportCommand(
   appId: string,
   userId: string,
   dbClient: DbOrTx
-): Promise<{ importedCount: number; skippedDuplicatesCount: number }> {
+): Promise<{ importedCount: number; skippedDuplicatesCount: number; batchId: string }> {
+  const batchId = randomUUID();
+
   if (!input.transactions || input.transactions.length === 0) {
-    return { importedCount: 0, skippedDuplicatesCount: 0 };
+    return { importedCount: 0, skippedDuplicatesCount: 0, batchId };
   }
 
   return await dbClient.transaction(async (tx) => {
@@ -56,7 +59,7 @@ export async function commitCsvImportCommand(
     const skippedDuplicatesCount = input.transactions.length - newTransactions.length;
 
     if (newTransactions.length === 0) {
-      return { importedCount: 0, skippedDuplicatesCount };
+      return { importedCount: 0, skippedDuplicatesCount, batchId };
     }
 
     // 4. Construct bulk values
@@ -72,6 +75,7 @@ export async function commitCsvImportCommand(
         idempotencyKey: t.idempotencyKey,
         note: t.note || t.description,
         source: "IMPORT" as const,
+        transferGroupId: batchId,
         recordedAt,
         tenantId,
         appId,
@@ -86,6 +90,7 @@ export async function commitCsvImportCommand(
     return {
       importedCount: insertValues.length,
       skippedDuplicatesCount,
+      batchId,
     };
   });
 }

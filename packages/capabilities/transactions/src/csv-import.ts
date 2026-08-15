@@ -46,13 +46,14 @@ export type BankCsvImportInput = z.infer<typeof BankCsvImportInputSchema>;
  * Keyword-to-category name auto-matching dictionary for Australian merchants.
  */
 const CATEGORY_KEYWORD_MAP: Array<{ keywords: string[]; categoryName: string }> = [
-  { keywords: ["woolworths", "coles", "aldi", "iga", "harris farm"], categoryName: "Groceries & Food Supplies" },
-  { keywords: ["agl", "origin", "energyaustralia", "red energy"], categoryName: "Electricity & Gas (AGL)" },
-  { keywords: ["aussie broadband", "telstra", "optus", "belong", "tpg"], categoryName: "NBN Broadband (Aussie Broadband)" },
-  { keywords: ["bupa", "medibank", "hcf", "nib"], categoryName: "Private Health Insurance (Bupa)" },
-  { keywords: ["netflix", "spotify", "disney", "youtube", "apple.com/bill", "prime video"], categoryName: "Streaming & Subscriptions" },
-  { keywords: ["ampol", "bp ", "caltex", "7-eleven", "shell", "united petrol"], categoryName: "Everyday Spending & Discretionary" },
-  { keywords: ["uber", "didi", "transport for nsw", "opal", "myki"], categoryName: "Everyday Spending & Discretionary" },
+  { keywords: ["woolworths", "coles", "aldi", "iga", "harris farm", "costco", "spudshed"], categoryName: "Groceries & Food Supplies" },
+  { keywords: ["agl", "origin", "energyaustralia", "red energy", "sydney water", "yarra valley"], categoryName: "Electricity & Gas (AGL)" },
+  { keywords: ["aussie broadband", "telstra", "optus", "belong", "tpg", "vodafone", "aussiebb"], categoryName: "NBN Broadband (Aussie Broadband)" },
+  { keywords: ["bupa", "medibank", "hcf", "nib", "allianz", "qbe", "nrma", "racq", "racv"], categoryName: "Private Health Insurance (Bupa)" },
+  { keywords: ["netflix", "spotify", "disney", "youtube", "apple.com/bill", "prime video", "kayo", "stan"], categoryName: "Streaming & Subscriptions" },
+  { keywords: ["ampol", "bp ", "caltex", "7-eleven", "shell", "united petrol", "liberty petrol"], categoryName: "Everyday Spending & Discretionary" },
+  { keywords: ["uber", "didi", "transport for nsw", "opal", "myki", "gocard", "linkt", "translink"], categoryName: "Everyday Spending & Discretionary" },
+  { keywords: ["mcdonalds", "maccas", "kfc", "hungry jacks", "domino", "uber eats", "doordash", "menulog"], categoryName: "Everyday Spending & Discretionary" },
 ];
 
 /**

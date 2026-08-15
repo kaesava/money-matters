@@ -7,9 +7,6 @@
 ## General
 
 ## "Accounts"
-* Be consistent with Everday, Bills, Goal - across the app - I can see Savings Goal, Save Towards, etc all over the app. Be consistent.
-* Ensure that a Category type can only be linked to one Bank account. If I try to link it to another, warn the user and if the user saves, unlink from previous bank account at the same time you link to the current one (atomic)
-* Import CSV should auto detect Bank based on Account Bank selected.
 
 
 
