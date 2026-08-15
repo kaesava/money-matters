@@ -27,14 +27,32 @@ function CategoriesPageContent() {
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [healthFilter, setHealthFilter] = useState(paramHealth);
 
+  // Section Collapse States (Collapsed by default, expanded if filtered)
+  const isFiltered = Boolean(paramSearch || searchQuery.trim() || (paramHealth && paramHealth !== "ALL") || (healthFilter && healthFilter !== "ALL"));
+  const [isEverydayCollapsed, setIsEverydayCollapsed] = useState(!isFiltered);
+  const [isRegularCollapsed, setIsRegularCollapsed] = useState(!isFiltered);
+
   useEffect(() => {
     if (paramSearch) setSearchQuery(paramSearch);
     if (paramHealth) setHealthFilter(paramHealth);
   }, [paramSearch, paramHealth]);
 
-  // Section Collapse States
-  const [isEverydayCollapsed, setIsEverydayCollapsed] = useState(true);
-  const [isRegularCollapsed, setIsRegularCollapsed] = useState(true);
+  useEffect(() => {
+    if (searchQuery.trim() || healthFilter !== "ALL") {
+      setIsEverydayCollapsed(false);
+      setIsRegularCollapsed(false);
+    }
+  }, [searchQuery, healthFilter]);
+
+  // Listen for global floating + button event on Pools screen
+  useEffect(() => {
+    function handleOpenCreateModal() {
+      setCategoryToEdit(null);
+      setIsFormModalOpen(true);
+    }
+    window.addEventListener("open-create-category-modal", handleOpenCreateModal);
+    return () => window.removeEventListener("open-create-category-modal", handleOpenCreateModal);
+  }, []);
 
   // Selection & Modals
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);

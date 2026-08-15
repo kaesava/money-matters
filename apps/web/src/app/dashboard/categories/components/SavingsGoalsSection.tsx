@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { useIconVisibility } from "@money-matters/ui";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
 interface SavingsGoalsSectionProps {
@@ -24,20 +25,21 @@ export function SavingsGoalsSection({
   onEditCategory,
   onArchiveCategory,
 }: SavingsGoalsSectionProps) {
+  const { showIcons } = useIconVisibility();
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
       {/* Header Summary Banner */}
       <div className="p-5 bg-gradient-to-r from-purple-50/60 to-white border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-600/10 text-purple-600 flex items-center justify-center text-xl font-bold">
-            🎯
-          </div>
+          {showIcons && (
+            <div className="w-10 h-10 rounded-xl bg-purple-600/10 text-purple-600 flex items-center justify-center text-xl font-bold">
+              🎯
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.goalTitle")}</h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-600/10 text-purple-600 uppercase tracking-wider">
-                Per-Category Target Pools
-              </span>
             </div>
             <p className="text-xs text-zinc-500 font-medium">
               Target savings goals managed individually per category with dedicated balances and progress tracking.

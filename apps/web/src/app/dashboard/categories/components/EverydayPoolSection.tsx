@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { useIconVisibility } from "@money-matters/ui";
 import { DualPoolProgressBar } from "./DualPoolProgressBar";
 
 export interface CategorySummaryItem {
@@ -15,7 +16,6 @@ export interface CategorySummaryItem {
   targetDate?: string | null;
   healthStatus?: string | null;
 }
-
 
 interface EverydayPoolSectionProps {
   categories: CategorySummaryItem[];
@@ -47,21 +47,33 @@ export function EverydayPoolSection({
   onSelectCategory,
   onEditCategory,
 }: EverydayPoolSectionProps) {
+  const { showIcons } = useIconVisibility();
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
       {/* Header Summary Banner */}
       <div className="p-5 bg-gradient-to-r from-teal-50/60 to-white border-b border-zinc-100 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#00B4A6]/10 text-[#00B4A6] flex items-center justify-center text-xl font-bold">
-              💳
-            </div>
+            {showIcons && (
+              <div className="w-10 h-10 rounded-xl bg-[#00B4A6]/10 text-[#00B4A6] flex items-center justify-center text-xl font-bold">
+                💳
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.everydayTitle")}</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#00B4A6]/10 text-[#00B4A6] uppercase tracking-wider">
-                  Overall Pool
-                </span>
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <span>
+                    {isCollapsed
+                      ? `${categories.length} categor${categories.length === 1 ? "y" : "ies"} ▼`
+                      : "Collapse ▲"}
+                  </span>
+                </button>
               </div>
               <p className="text-xs text-zinc-500 font-medium">
                 Discretionary funds. Budgets set overall target; spent directly from overall Everyday pool.
@@ -78,18 +90,6 @@ export function EverydayPoolSection({
               <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Monthly Budget Target</p>
               <p className="text-sm font-mono font-bold text-zinc-600">{fmt(everydayMonthlyBudget)}</p>
             </div>
-
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <span>
-                {isCollapsed
-                  ? `${categories.length} categor${categories.length === 1 ? "y" : "ies"} ▼`
-                  : "Collapse ▲"}
-              </span>
-            </button>
           </div>
         </div>
         <DualPoolProgressBar elapsedPct={elapsedPct} consumedPct={everydayConsumedPct} />

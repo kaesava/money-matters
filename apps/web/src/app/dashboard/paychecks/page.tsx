@@ -6,6 +6,7 @@ import posthog from "../../../lib/posthog-client";
 import { PaginationBar } from "@money-matters/ui/web";
 import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
 import { useIconVisibility } from "@money-matters/ui";
+import { t } from "@money-matters/i18n";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -308,8 +309,9 @@ function SourceTable({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className={`text-base font-black ${isIncome ? "text-emerald-800" : "text-[#1B2B4B]"}`}>
-          {isIncome ? "↑ Upcoming Income" : "↓ Upcoming Bills & Expenses"}
+        <h2 className={`text-base font-black flex items-center gap-2 ${isIncome ? "text-emerald-800" : "text-[#1B2B4B]"}`}>
+          {showIcons && <span>{isIncome ? "💰" : "💸"}</span>}
+          <span>{isIncome ? "Upcoming Income" : "Upcoming Bills & Expenses"}</span>
         </h2>
         <button type="button" onClick={onAdd} className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm ${isIncome ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200" : "bg-[#1B2B4B] text-white hover:bg-[#2c3e5f]"}`}>
           <span>➕</span>
@@ -455,7 +457,7 @@ export default function InsAndOutsPage() {
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       <div>
-        <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Ins &amp; Outs</h1>
+        <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("nav.incomeExpenses")}</h1>
         <p className="text-xs text-zinc-500 font-semibold mt-0.5">Set up upcoming income and upcoming expenses.</p>
       </div>
 

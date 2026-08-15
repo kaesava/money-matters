@@ -359,19 +359,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
           </div>
 
-          {/* Global Quick Action Floating Button (Desktop helper) */}
-          <button
-            id="global-quick-add-btn"
-            onClick={() => setQuickExpenseOpen(true)}
-            style={{ backgroundColor: "var(--dash-teal)", boxShadow: "0 6px 20px rgba(0,180,166,0.3)" }}
-            className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-lg group"
-            title="Quick Record Expense (Shortcut: n)"
-            aria-label={t("transactions.addExpense")}
-          >
-            <svg className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          {/* Global Quick Action Floating Button (Hidden on Income & Bills page) */}
+          {!pathname.startsWith("/dashboard/paychecks") && (
+            <button
+              id="global-quick-add-btn"
+              onClick={() => {
+                if (pathname.startsWith("/dashboard/categories")) {
+                  window.dispatchEvent(new CustomEvent("open-create-category-modal"));
+                } else {
+                  setQuickExpenseOpen(true);
+                }
+              }}
+              style={{ backgroundColor: "var(--dash-teal)", boxShadow: "0 6px 20px rgba(0,180,166,0.3)" }}
+              className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-lg group"
+              title={pathname.startsWith("/dashboard/categories") ? "Add New Category" : "Quick Record Expense (Shortcut: n)"}
+              aria-label={pathname.startsWith("/dashboard/categories") ? "Add Category" : t("transactions.addExpense")}
+            >
+              <svg className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          )}
 
           {quickExpenseOpen && (
             <QuickExpenseDrawer

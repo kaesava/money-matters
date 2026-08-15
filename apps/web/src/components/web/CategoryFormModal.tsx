@@ -230,7 +230,7 @@ export function CategoryFormModal({
                 onChange={(e) => setIsEssential(e.target.checked)}
                 className="w-4 h-4 text-[#2563eb] rounded"
               />
-              ⭐ Mark as Essential Priority Bill (Funded before standard bills)
+              ⭐ Essential Priority Bill (Funded first every payday before standard bills)
             </label>
           </div>
         )}
@@ -270,7 +270,7 @@ export function CategoryFormModal({
                 onChange={(e) => setIsSurplusTarget(e.target.checked)}
                 className="w-4 h-4 text-emerald-600 rounded"
               />
-              🏦 Designated Surplus & Offset Target Category
+              🏦 Surplus Sweep Target (Sweeps leftover everyday spending cash into this pool on payday)
             </label>
           </div>
         )}
