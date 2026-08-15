@@ -133,6 +133,11 @@ export const ja: DeepStringRecord<typeof en> = {
     verificationSentMessage: "アカウントを作成しました。確認リンクを以下へ送信しました：",
     verifyPrompt: "メール内のリンクをクリックしてアドレスを承認後、ログインしてください。",
     resendVerificationLink: "メールが届きませんか？確認メールを再送信",
+    invalidOtp: "確認コードが無効または期限切れです。もう一度お試しください。",
+    otpLabel: "6桁の確認コード",
+    otpPlaceholder: "123456",
+    verifyCodeCta: "コードを承認",
+    otpSuccess: "メールアドレスが認証されました！",
   },
   searchSelect: {
     searchPlaceholder: "検索...",

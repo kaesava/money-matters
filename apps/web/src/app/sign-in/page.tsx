@@ -14,6 +14,7 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
 
   useEffect(() => {
     // Reset form state on mount to clear any previously entered credentials
@@ -22,6 +23,7 @@ export default function SignInPage() {
     setError(null);
     setResetMessage(null);
     setUnverifiedEmail(null);
+    setOtpCode("");
   }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -44,7 +46,7 @@ export default function SignInPage() {
         const errCode = (result.error as { code?: string }).code || "";
         if (errCode === "EMAIL_NOT_VERIFIED" || errMsg.toLowerCase().includes("not verified")) {
           setUnverifiedEmail(email.trim().toLowerCase());
-          setError(t("auth.emailNotVerified", { defaultValue: "Your email address has not been verified yet. Please check your inbox or resend the link below." }));
+          setError(t("auth.emailNotVerified", { defaultValue: "Your email address has not been verified yet. Enter the 6-digit code sent to your email:" }));
         } else {
           setError(result.error.message || "Failed to sign in. Please check your credentials.");
         }
@@ -55,6 +57,48 @@ export default function SignInPage() {
       window.location.href = "/dashboard";
     } catch (_err) {
       setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetEmail = unverifiedEmail || email;
+    if (!targetEmail || !otpCode || otpCode.trim().length < 6) {
+      setError(t("auth.invalidOtp", { defaultValue: "Please enter a valid 6-digit verification code." }));
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResetMessage(null);
+
+    try {
+      const res = await authClient.emailOtp.verifyEmail({
+        email: targetEmail.trim().toLowerCase(),
+        otp: otpCode.trim(),
+      });
+
+      if (res.error) {
+        setError(res.error.message || t("auth.invalidOtp", { defaultValue: "Invalid or expired verification code." }));
+        return;
+      }
+
+      if (password) {
+        const signInRes = await authClient.signIn.email({
+          email: targetEmail.trim().toLowerCase(),
+          password,
+        });
+        if (!signInRes.error) {
+          window.location.href = "/dashboard";
+          return;
+        }
+      }
+      setResetMessage(t("auth.otpSuccess", { defaultValue: "Email verified successfully! Please sign in with your password." }));
+      setUnverifiedEmail(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to verify code.");
     } finally {
       setLoading(false);
     }
@@ -81,11 +125,19 @@ export default function SignInPage() {
     setError(null);
     setResetMessage(null);
     try {
-      await authClient.sendVerificationEmail({
+      await authClient.emailOtp.sendVerificationOtp({
         email: targetEmail.trim().toLowerCase(),
+        type: "email-verification",
       });
-      setResetMessage(t("auth.resendSuccess", { defaultValue: "Verification link sent! Please check your email inbox." }));
+      setResetMessage(t("auth.resendSuccess", { defaultValue: "Verification code sent! Please check your email inbox." }));
     } catch (_err) {
+      try {
+        await authClient.sendVerificationEmail({
+          email: targetEmail.trim().toLowerCase(),
+        });
+      } catch (_e) {
+        // ignore
+      }
       setResetMessage(t("auth.resendSuccess", { defaultValue: "Verification request submitted. Please check your email inbox." }));
     } finally {
       setLoading(false);
@@ -135,14 +187,31 @@ export default function SignInPage() {
               <span>{error}</span>
             </div>
             {unverifiedEmail && (
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={loading}
-                className="text-xs font-bold text-[#00B4A6] hover:underline text-left mt-1"
-              >
-                ✉️ Resend verification link to {unverifiedEmail}
-              </button>
+              <form onSubmit={handleVerifyOtp} className="flex flex-col gap-2 mt-2 pt-2 border-t border-rose-200">
+                <Input
+                  label={t("auth.otpLabel", { defaultValue: "6-Digit Verification Code" })}
+                  placeholder={t("auth.otpPlaceholder", { defaultValue: "123456" })}
+                  value={otpCode}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOtpCode(e.target.value)}
+                  type="text"
+                  name="signin-verification-otp"
+                  maxLength={6}
+                  required
+                  disabled={loading}
+                  className="text-center tracking-widest text-lg font-mono bg-white"
+                />
+                <Button type="submit" className="w-full" loading={loading}>
+                  {t("auth.verifyCodeCta", { defaultValue: "Verify & Sign In" })}
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={loading}
+                  className="text-xs font-bold text-[#00B4A6] hover:underline text-left mt-1"
+                >
+                  ✉️ Resend 6-digit code to {unverifiedEmail}
+                </button>
+              </form>
             )}
           </div>
         )}

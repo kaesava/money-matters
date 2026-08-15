@@ -127,6 +127,11 @@ export const en = {
     verificationSentMessage: "We've created your account! A verification link has been sent to",
     verifyPrompt: "Please click the link in your email to verify your address, then sign in to get started.",
     resendVerificationLink: "Didn't receive an email? Resend link",
+    invalidOtp: "Invalid or expired verification code. Please try again.",
+    otpLabel: "6-Digit Verification Code",
+    otpPlaceholder: "123456",
+    verifyCodeCta: "Verify Code",
+    otpSuccess: "Email verified successfully!",
   },
   searchSelect: {
     searchPlaceholder: "Search...",

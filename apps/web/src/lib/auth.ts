@@ -1,4 +1,5 @@
 import { createAuthClient } from "better-auth/react";
+import { emailOTPClient } from "better-auth/client/plugins";
 
 const getBaseURL = () => {
   // 1. In browser runtime: always route through first-party proxy
@@ -10,6 +11,7 @@ const getBaseURL = () => {
   return process.env["NEXT_PUBLIC_NEON_AUTH_URL"] || "http://localhost:3000";
 };
 
-export const authClient: ReturnType<typeof createAuthClient> = createAuthClient({
+export const authClient = createAuthClient({
   baseURL: getBaseURL(),
+  plugins: [emailOTPClient()],
 });

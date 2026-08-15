@@ -1,6 +1,6 @@
 import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
-import { jwtClient } from "better-auth/client/plugins";
+import { jwtClient, emailOTPClient } from "better-auth/client/plugins";
 import * as SecureStore from "expo-secure-store";
 
 const NEON_AUTH_URL = process.env["EXPO_PUBLIC_NEON_AUTH_URL"];
@@ -35,6 +35,7 @@ export const authClient = createAuthClient({
       storagePrefix: "money-matters",
     }) as unknown as ReturnType<typeof jwtClient>,
     jwtClient(),
+    emailOTPClient(),
   ],
 });
 

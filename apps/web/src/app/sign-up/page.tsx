@@ -36,6 +36,9 @@ export default function SignUpPage() {
     });
   }, [router]);
 
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState<string | null>(null);
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !confirmPassword || !name) {
@@ -84,7 +87,7 @@ export default function SignUpPage() {
         }
         router.push("/setup");
       } else {
-        // Email verification is required by Neon Auth before session token can be issued
+        // Email verification code is required by Neon Auth before session token can be issued
         setNeedVerification(true);
       }
     } catch (err) {
@@ -99,15 +102,63 @@ export default function SignUpPage() {
     }
   };
 
-  const handleResendVerification = async () => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.trim().length < 6) {
+      setOtpError(t("auth.invalidOtp", { defaultValue: "Please enter a valid 6-digit verification code." }));
+      return;
+    }
+
+    setLoading(true);
+    setOtpError(null);
+
+    try {
+      const res = await authClient.emailOtp.verifyEmail({
+        email: email.trim().toLowerCase(),
+        otp: otpCode.trim(),
+      });
+
+      if (res.error) {
+        setOtpError(res.error.message || t("auth.invalidOtp", { defaultValue: "Invalid or expired verification code." }));
+        return;
+      }
+
+      const sessionData = await authClient.getSession();
+      if (sessionData.data?.session) {
+        try {
+          await createTenant.mutateAsync({ name: name.trim() });
+        } catch (_tErr) {
+          // ignore duplicate tenant creation
+        }
+        window.location.href = "/setup";
+      } else {
+        window.location.href = "/sign-in";
+      }
+    } catch (err) {
+      setOtpError(err instanceof Error ? err.message : "Failed to verify code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
     setLoading(true);
     setResendStatus(null);
+    setOtpError(null);
     try {
-      await authClient.sendVerificationEmail({
+      await authClient.emailOtp.sendVerificationOtp({
         email: email.trim().toLowerCase(),
+        type: "email-verification",
       });
-      setResendStatus(t("auth.resendSuccess", { defaultValue: "Verification email sent! Please check your inbox and spam folder." }));
+      setResendStatus(t("auth.resendSuccess", { defaultValue: "Verification code sent! Please check your email inbox." }));
     } catch (_err) {
+      try {
+        await authClient.sendVerificationEmail({
+          email: email.trim().toLowerCase(),
+        });
+      } catch (_e) {
+        // ignore
+      }
       setResendStatus(t("auth.resendSuccess", { defaultValue: "Verification request submitted. Please check your email inbox." }));
     } finally {
       setLoading(false);
@@ -142,11 +193,18 @@ export default function SignUpPage() {
             </h1>
             <p className="text-sm text-zinc-600 leading-relaxed">
               {t("auth.verificationSentMessage", {
-                defaultValue: "We've created your account! A verification link has been sent to",
+                defaultValue: "We've created your account! Enter the 6-digit verification code sent to",
               })}{" "}
-              <strong className="text-zinc-900">{email}</strong>. {t("auth.verifyPrompt", { defaultValue: "Please click the link in your email to verify your address, then sign in to get started." })}
+              <strong className="text-zinc-900">{email}</strong>.
             </p>
           </div>
+
+          {otpError && (
+            <div className="ui-alert border-rose-200 bg-rose-50 text-rose-800 text-xs font-semibold rounded-lg p-3">
+              <span>⚠️</span>
+              <span>{otpError}</span>
+            </div>
+          )}
 
           {resendStatus && (
             <div className="ui-alert border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-lg p-3">
@@ -155,18 +213,41 @@ export default function SignUpPage() {
             </div>
           )}
 
-          <div className="flex flex-col gap-3 mt-2">
-            <Button onClick={() => router.push("/sign-in")} className="w-full">
-              {t("auth.signInCta", { defaultValue: "Go to Sign In" })}
+          <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4 text-left">
+            <Input
+              label={t("auth.otpLabel", { defaultValue: "6-Digit Verification Code" })}
+              placeholder={t("auth.otpPlaceholder", { defaultValue: "123456" })}
+              value={otpCode}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOtpCode(e.target.value)}
+              type="text"
+              name="verification-otp"
+              maxLength={6}
+              required
+              disabled={loading}
+              className="text-center tracking-widest text-lg font-mono"
+            />
+
+            <Button type="submit" className="w-full mt-1" loading={loading}>
+              {t("auth.verifyCodeCta", { defaultValue: "Verify Code" })}
             </Button>
+          </form>
+
+          <div className="flex flex-col gap-3 mt-1">
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={loading}
+              className="text-xs font-semibold text-[#00B4A6] hover:underline py-1 disabled:opacity-50"
+            >
+              {t("auth.resendVerificationLink", { defaultValue: "Didn't receive a code? Resend code" })}
+            </button>
 
             <button
               type="button"
-              onClick={handleResendVerification}
-              disabled={loading}
-              className="text-xs font-semibold text-[#00B4A6] hover:underline py-2 disabled:opacity-50"
+              onClick={() => router.push("/sign-in")}
+              className="text-xs font-semibold text-zinc-500 hover:underline"
             >
-              {t("auth.resendVerificationLink", { defaultValue: "Didn't receive an email? Resend link" })}
+              {t("auth.signInCta", { defaultValue: "Go to Sign In" })}
             </button>
           </div>
         </main>
