@@ -59,7 +59,18 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const [parsedData, setParsedData] = useState<{
     bank: string;
     transactions: ParsedTx[];
+    statementStartDate?: string | null;
+    statementEndDate?: string | null;
   } | null>(null);
+
+  const handleFlipPolarity = () => {
+    if (!parsedData) return;
+    const flippedTx = parsedData.transactions.map((tx) => ({
+      ...tx,
+      flowType: (tx.flowType === "DEBIT" ? "CREDIT" : "DEBIT") as "DEBIT" | "CREDIT",
+    }));
+    setParsedData({ ...parsedData, transactions: flippedTx });
+  };
 
   // Per-row state
   const [selectedMap, setSelectedMap] = useState<Record<number, boolean>>({});
@@ -487,25 +498,39 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           {/* STEP 2: REVIEW & MAP */}
           {step === 2 && parsedData && (
             <div className="space-y-4">
-              {/* Running Financial Totals Metrics Banner */}
-              <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-900 rounded-2xl text-white shadow-xs">
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Expenses</span>
-                  <span className="text-base font-black text-rose-400 tabular-nums">
-                    -${selectedExpenses.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Income</span>
-                  <span className="text-base font-black text-emerald-400 tabular-nums">
-                    +${selectedIncome.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Net Impact</span>
-                  <span className={`text-base font-black tabular-nums ${netImpact >= 0 ? "text-teal-400" : "text-rose-400"}`}>
-                    {netImpact >= 0 ? "+" : ""}${netImpact.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+              {/* Statement Coverage & Financial Totals Metrics Banner */}
+              <div className="space-y-2">
+                {parsedData.statementStartDate && parsedData.statementEndDate && (
+                  <div className="flex items-center justify-between text-xs font-bold bg-teal-50 border border-teal-200 text-teal-900 px-3.5 py-2 rounded-xl">
+                    <span className="flex items-center gap-1.5">
+                      <span>📅</span>
+                      <span>Statement Period: {parsedData.statementStartDate} — {parsedData.statementEndDate}</span>
+                    </span>
+                    <span className="text-teal-700 text-[11px]">
+                      Bank: {parsedData.bank} ({parsedData.transactions.length} rows)
+                    </span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-900 rounded-2xl text-white shadow-xs">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Expenses</span>
+                    <span className="text-base font-black text-rose-400 tabular-nums">
+                      -${selectedExpenses.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Income</span>
+                    <span className="text-base font-black text-emerald-400 tabular-nums">
+                      +${selectedIncome.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Net Impact</span>
+                    <span className={`text-base font-black tabular-nums ${netImpact >= 0 ? "text-teal-400" : "text-rose-400"}`}>
+                      {netImpact >= 0 ? "+" : ""}${netImpact.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -522,6 +547,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleFlipPolarity}
+                    title="Invert expense/income polarity if bank CSV exports credits as debits"
+                    className="px-2.5 py-1.5 text-xs font-bold bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 rounded-lg flex items-center gap-1"
+                  >
+                    <span>🔄</span>
+                    <span>Flip Debit/Credit</span>
+                  </button>
+
                   <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-0.5">
                     {(["ALL", "DEBIT", "CREDIT", "DUPLICATES"] as const).map((t) => (
                       <button

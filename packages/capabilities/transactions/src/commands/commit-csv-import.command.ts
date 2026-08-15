@@ -1,4 +1,4 @@
-import { transactionLedger, categories, DbOrTx } from "@money-matters/db";
+import { transactionLedger, categories, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { CommitCsvImportCommand } from "@money-matters/types";
@@ -20,7 +20,7 @@ export async function commitCsvImportCommand(
   return await dbClient.transaction(async (tx) => {
     // 1. Fetch default Everyday Pool category for fallback
     const tenantCategories = await tx
-      .select({ id: categories.id, type: categories.type })
+      .select({ id: categories.id, name: categories.name, type: categories.type })
       .from(categories)
       .where(
         and(
@@ -29,6 +29,7 @@ export async function commitCsvImportCommand(
         )
       );
 
+    const categoryMap = new Map(tenantCategories.map((c) => [c.id, c]));
     const validCatIds = new Set(tenantCategories.map((c) => c.id));
     const everydayCat = tenantCategories.find((c) => c.type === "EVERYDAY") || tenantCategories[0];
 
@@ -62,10 +63,26 @@ export async function commitCsvImportCommand(
       return { importedCount: 0, skippedDuplicatesCount, batchId };
     }
 
-    // 4. Construct bulk values
+    // 4. Construct bulk values & learn merchant rules
+    const learnedRules: Record<string, string> = {};
+
     const insertValues = newTransactions.map((t) => {
       const targetCatId = t.categoryId && validCatIds.has(t.categoryId) ? t.categoryId : everydayCat.id;
       const recordedAt = t.date ? new Date(t.date) : new Date();
+      const matchedCat = categoryMap.get(targetCatId);
+
+      // Learn merchant keyword rule if user mapped DEBIT to a non-default category
+      if (t.flowType === "DEBIT" && matchedCat && t.description) {
+        const cleanKeyword = t.description
+          .toLowerCase()
+          .replace(/[^a-z\s]/g, "")
+          .trim()
+          .split(/\s+/)[0]; // Extract primary merchant word
+
+        if (cleanKeyword && cleanKeyword.length >= 3) {
+          learnedRules[cleanKeyword] = matchedCat.name;
+        }
+      }
 
       return {
         categoryId: targetCatId,
@@ -86,6 +103,23 @@ export async function commitCsvImportCommand(
 
     // 5. Bulk insert (single query, Rule #6 compliance)
     await tx.insert(transactionLedger).values(insertValues);
+
+    // 6. Update tenant merchantRules in DB if new rules learned
+    if (Object.keys(learnedRules).length > 0) {
+      const tenantRow = await tx
+        .select({ merchantRules: tenants.merchantRules })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+
+      const existingRules = tenantRow[0]?.merchantRules || {};
+      const updatedRules = { ...existingRules, ...learnedRules };
+
+      await tx
+        .update(tenants)
+        .set({ merchantRules: updatedRules })
+        .where(eq(tenants.id, tenantId));
+    }
 
     return {
       importedCount: insertValues.length,

@@ -52,6 +52,8 @@ export default function BankAccountsDashboardPage() {
     },
   });
 
+  const utils = trpc.useUtils();
+
   const updateAccountMut = trpc.updateBankAccount.useMutation({
     onSuccess: () => {
       bankAccountsQuery.refetch();
@@ -92,13 +94,29 @@ export default function BankAccountsDashboardPage() {
   const [accIsPrivate, setAccIsPrivate] = useState(false);
   const [accSelectedTypes, setAccSelectedTypes] = useState<Array<"EVERYDAY" | "REGULAR" | "GOAL">>([]);
 
-  // CSV Import Modal State
+  // CSV Import Modal & Rollback State
   const [selectedAccountForImport, setSelectedAccountForImport] = useState<BankAccountItem | null>(null);
   const [conflictModalInfo, setConflictModalInfo] = useState<{
     type: "EVERYDAY" | "REGULAR" | "GOAL";
     typeLabel: string;
     previousOwnerName: string;
   } | null>(null);
+
+  const [rollbackBatchId, setRollbackBatchId] = useState("");
+  const [rollbackMsg, setRollbackMsg] = useState<string | null>(null);
+  const [showRollbackSection, setShowRollbackSection] = useState(false);
+
+  const rollbackBatchMut = trpc.rollbackCsvBatch.useMutation({
+    onSuccess: (res) => {
+      setRollbackMsg(`✓ Successfully rolled back ${res.rolledBackCount} imported transactions!`);
+      setRollbackBatchId("");
+      bankAccountsQuery.refetch();
+      utils.listTransactions.invalidate();
+    },
+    onError: (err) => {
+      setRollbackMsg(`Rollback Failed: ${err.message}`);
+    },
+  });
 
   useEffect(() => {
     setPage(1);
@@ -289,31 +307,81 @@ export default function BankAccountsDashboardPage() {
       archiveAccountMut.mutate({ accountId: acc.id });
     }
   };
-
   const openImportModal = (acc: BankAccountItem) => {
     setSelectedAccountForImport(acc);
   };
 
+  const handleExecuteRollback = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rollbackBatchId.trim()) return;
+    rollbackBatchMut.mutate({ batchId: rollbackBatchId.trim() });
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
-      {/* Header Bar */}
+      {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">Bank Accounts</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-            Manage your accounts, linked category pools, and CSV statement imports.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#1B2B4B] flex items-center gap-2">
+            <span>🏦</span>
+            <span>Bank Accounts & Pools</span>
+          </h1>
+          <p className="text-xs text-zinc-500 font-medium mt-1">
+            Connect and map your bank accounts directly to target liquidity pools (Everyday, Bills, Savings).
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
-        >
-          <span>➕</span>
-          <span>Add Bank Account</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowRollbackSection(!showRollbackSection)}
+            className="px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-all flex items-center gap-1.5"
+          >
+            <span>↩️</span>
+            <span>Undo CSV Batch</span>
+          </button>
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
+          >
+            <span>➕</span>
+            <span>Add Bank Account</span>
+          </button>
+        </div>
       </div>
+
+      {rollbackMsg && (
+        <div className="p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs font-semibold flex items-center justify-between shadow-xs">
+          <span>{rollbackMsg}</span>
+          <button onClick={() => setRollbackMsg(null)} className="text-teal-600 hover:text-teal-800 font-bold ml-2">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {showRollbackSection && (
+        <form onSubmit={handleExecuteRollback} className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs flex flex-wrap items-center gap-3 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+            <span className="font-bold text-amber-900 shrink-0">↩️ Rollback CSV Batch ID:</span>
+            <input
+              type="text"
+              value={rollbackBatchId}
+              onChange={(e) => setRollbackBatchId(e.target.value)}
+              placeholder="Paste batch UUID (e.g. 3eaaea7e-1c9f-4cad)..."
+              className="flex-1 px-3 py-2 rounded-xl border border-amber-300 bg-white font-mono text-xs focus:ring-2 focus:ring-amber-500"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={rollbackBatchMut.isPending}
+            className="px-4 py-2 rounded-xl font-bold text-white bg-amber-700 hover:bg-amber-800 transition-colors shadow-xs"
+          >
+            {rollbackBatchMut.isPending ? "Rolling Back..." : "Soft-Delete Batch"}
+          </button>
+        </form>
+      )}
 
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between shadow-xs">

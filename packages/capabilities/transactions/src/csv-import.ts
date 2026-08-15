@@ -118,15 +118,30 @@ function normalizeDate(rawDate: string): string {
  */
 export function parseBankCsv(
   csvContent: string,
-  customMapping?: CustomColumnMapping
-): { bank: string; transactions: ParsedCsvTransaction[]; headers: string[] } {
+  customMapping?: CustomColumnMapping,
+  merchantRules?: Record<string, string>
+): {
+  bank: string;
+  transactions: ParsedCsvTransaction[];
+  headers: string[];
+  statementStartDate: string | null;
+  statementEndDate: string | null;
+  totalRowCount: number;
+} {
   const lines = csvContent
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
   if (lines.length === 0) {
-    return { bank: "Unknown", transactions: [], headers: [] };
+    return {
+      bank: "Unknown",
+      transactions: [],
+      headers: [],
+      statementStartDate: null,
+      statementEndDate: null,
+      totalRowCount: 0,
+    };
   }
 
   const rawHeaders = parseCsvLine(lines[0]);
@@ -182,10 +197,8 @@ export function parseBankCsv(
         }
       }
     } else if (tokens.length >= 3) {
-      // General structure: Date, Description/Narrative, Amount (or Debit/Credit columns)
       rawDate = tokens[0];
       
-      // Westpac: Bank Account, Date, Narrative, Debit Amount, Credit Amount, Balance
       if (bankName === "Westpac" && tokens.length >= 5) {
         rawDate = tokens[1];
         rawDesc = tokens[2];
@@ -199,7 +212,6 @@ export function parseBankCsv(
           rawAmount = debit.replace("-", "");
         }
       } 
-      // ING / ANZ 2-column amounts: Date, Description, Credit, Debit
       else if (bankName === "ING / ANZ" || (tokens.length >= 4 && !isNaN(parseFloat(tokens[2])) && !isNaN(parseFloat(tokens[3])))) {
         rawDesc = tokens[1];
         const credit = tokens[2].replace(/[$,]/g, "");
@@ -212,9 +224,7 @@ export function parseBankCsv(
           rawAmount = debit.replace("-", "");
         }
       }
-      // Single amount column (CBA, NAB, Generic): Date, Amount, Description / Date, Description, Amount
       else {
-        // Find monetary token
         const secondIsNum = !isNaN(parseFloat(tokens[1].replace(/[$,-]/g, "")));
         if (secondIsNum) {
           rawAmount = tokens[1];
@@ -238,13 +248,25 @@ export function parseBankCsv(
     const cleanDesc = rawDesc.replace(/^"|"$/g, "").trim() || "Imported Transaction";
     const amountVal = parseFloat(rawAmount).toFixed(2);
 
-    // Auto-match category keyword
+    // Auto-match category keyword (giving priority to tenant learned rules)
     let suggestedCategoryName: string | null = null;
     const lowerDesc = cleanDesc.toLowerCase();
-    for (const item of CATEGORY_KEYWORD_MAP) {
-      if (item.keywords.some((kw) => lowerDesc.includes(kw))) {
-        suggestedCategoryName = item.categoryName;
-        break;
+
+    if (merchantRules) {
+      for (const [kw, categoryName] of Object.entries(merchantRules)) {
+        if (lowerDesc.includes(kw.toLowerCase())) {
+          suggestedCategoryName = categoryName;
+          break;
+        }
+      }
+    }
+
+    if (!suggestedCategoryName) {
+      for (const item of CATEGORY_KEYWORD_MAP) {
+        if (item.keywords.some((kw) => lowerDesc.includes(kw))) {
+          suggestedCategoryName = item.categoryName;
+          break;
+        }
       }
     }
 
@@ -261,7 +283,24 @@ export function parseBankCsv(
     });
   }
 
-  return { bank: bankName, transactions, headers: rawHeaders };
+  // Calculate statement date range
+  let statementStartDate: string | null = null;
+  let statementEndDate: string | null = null;
+
+  if (transactions.length > 0) {
+    const dates = transactions.map((t) => t.date).sort();
+    statementStartDate = dates[0];
+    statementEndDate = dates[dates.length - 1];
+  }
+
+  return {
+    bank: bankName,
+    transactions,
+    headers: rawHeaders,
+    statementStartDate,
+    statementEndDate,
+    totalRowCount: transactions.length,
+  };
 }
 
 export function parseCsvBankStatement(

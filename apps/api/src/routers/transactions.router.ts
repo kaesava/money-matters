@@ -1,6 +1,8 @@
 import { tenantProcedure, requiresWriteAccess, requiresPaidTier } from '../trpc/trpc.js';
 import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
+import { tenants } from "@money-matters/db";
+import { eq } from "drizzle-orm";
 import {
   recordExpenseCommand,
   listTransactionsQuery,
@@ -9,6 +11,8 @@ import {
   parseBankCsv,
   checkCsvDuplicatesQuery,
   commitCsvImportCommand,
+  rollbackCsvImportBatchCommand,
+  RollbackCsvImportBatchInputSchema,
   BankCsvImportInputSchema,
   getSpendingVelocityQuery,
 } from "@money-matters/capability-transactions";
@@ -28,25 +32,28 @@ export const transactionsRouter = {
       const result = await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
       
       // Fire-and-forget async background event to Inngest for notifications & goal milestones
-      inngest.send({
-        name: 'transaction/recorded',
-        data: {
-          categoryId: input.categoryId,
-          tenantId: ctx.tenantId!,
-          userId: ctx.userId!,
-          amount: input.amount,
-        },
-      }).catch(() => {
-        // Non-blocking: background event dispatch fails gracefully if Inngest is offline in dev
-      });
+      if (inngest) {
+        await inngest.send({
+          name: 'transaction/recorded',
+          data: {
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            categoryId: input.categoryId,
+            amount: input.amount,
+            note: input.note,
+          },
+        }).catch((err) => {
+          console.error('[Inngest] Failed to dispatch transaction/recorded event:', err);
+        });
+      }
 
       if (posthog && ctx.userId) {
         posthog.capture({
           distinctId: ctx.userId,
-          event: 'transaction_recorded',
+          event: 'expense_recorded',
           properties: {
             tenant_id: ctx.tenantId,
-            flow_type: input.flowType,
+            category_id: input.categoryId,
             source: input.source,
             amount: input.amount,
           },
@@ -80,7 +87,16 @@ export const transactionsRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       requiresPaidTier(ctx, 'csv_import');
-      const result = parseBankCsv(input.csvText, input.customMapping);
+      
+      const tenantRow = await ctx.db
+        .select({ merchantRules: tenants.merchantRules })
+        .from(tenants)
+        .where(eq(tenants.id, ctx.tenantId!))
+        .limit(1);
+
+      const merchantRules = tenantRow[0]?.merchantRules || {};
+      const result = parseBankCsv(input.csvText, input.customMapping, merchantRules);
+
       if (result.transactions.length > 0) {
         const keys = result.transactions.map((t) => t.idempotencyKey);
         const dupKeys = await checkCsvDuplicatesQuery(keys, ctx.tenantId!, ctx.appId!, ctx.db);
@@ -127,8 +143,15 @@ export const transactionsRouter = {
       return result;
     }),
 
+  rollbackCsvBatch: tenantProcedure
+    .input(RollbackCsvImportBatchInputSchema)
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'csv_import');
+      return await rollbackCsvImportBatchCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
   spendingVelocity: tenantProcedure.query(async ({ ctx }) => {
     return await getSpendingVelocityQuery(ctx.tenantId!, ctx.appId!, ctx.db);
   }),
 };
-

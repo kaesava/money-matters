@@ -46,4 +46,21 @@ describe("Bank CSV Parser & Auto-Categorization Engine", () => {
     expect(res1.transactions[0].idempotencyKey).toBe(res2.transactions[0].idempotencyKey);
     expect(res1.transactions[0].idempotencyKey).toContain("csv-import-2026-08-01-DEBIT-50.00");
   });
+
+  it("calculates statement date ranges and respects tenant-learned merchant rules", () => {
+    const csv = `Date,Amount,Description
+01/08/2026,-120.00,MY CUSTOM HARDWARE STORE
+15/08/2026,-45.00,LOCAL CAFE BONDI`;
+
+    const merchantRules = {
+      "hardware": "Home Maintenance & Hardware",
+      "cafe": "Dining Out & Takeaway"
+    };
+
+    const result = parseBankCsv(csv, undefined, merchantRules);
+    expect(result.statementStartDate).toBe("2026-08-01");
+    expect(result.statementEndDate).toBe("2026-08-15");
+    expect(result.transactions[0].suggestedCategoryName).toBe("Home Maintenance & Hardware");
+    expect(result.transactions[1].suggestedCategoryName).toBe("Dining Out & Takeaway");
+  });
 });

@@ -23,7 +23,6 @@
 # TEST
 ## Household Parnter
 ## CRON
-## REGULAR vs Bills
 ## Burst Event Regeneration
 ## Tenant Switching
 ## Scheduled Notifications

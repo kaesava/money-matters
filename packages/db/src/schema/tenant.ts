@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { tenantAndTimestamps } from "./base.js";
 
 export const tenants = pgTable("tenants", {
@@ -19,6 +19,7 @@ export const tenants = pgTable("tenants", {
   subscriptionEndsAt: timestamp("subscription_ends_at", { withTimezone: true }),
   sweepEverydayLeftover: boolean("sweep_everyday_leftover").notNull().default(true),
   lastSweepProcessedMonth: varchar("last_sweep_processed_month", { length: 7 }), // e.g. "2026-07"
+  merchantRules: jsonb("merchant_rules").$type<Record<string, string>>().notNull().default({}),
   ...tenantAndTimestamps,
 });
 
