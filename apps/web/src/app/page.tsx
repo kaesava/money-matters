@@ -17,12 +17,14 @@ export default function Home() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [showEarlyAccessModal, setShowEarlyAccessModal] = useState(false);
-  const [emailInput, setEmailInput] = useState("");
-  const [submittedEmail, setSubmittedEmail] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const subscribeMut = trpc.subscribeEarlyAccess.useMutation({
     onSuccess: () => {
-      setSubmittedEmail(true);
+      setShowEarlyAccessModal(false);
+      setEmailInput("");
+      setToastMessage("✓ Thank you! We've registered your email and will notify you as soon as Money Matters goes live.");
+      setTimeout(() => setToastMessage(null), 6000);
     },
   });
 
@@ -48,7 +50,21 @@ export default function Home() {
   if (!isClient) return null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white relative">
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-[120] bg-[#1B2B4B] text-white border border-blue-400 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md animate-in slide-in-from-top-4 duration-200">
+          <span className="text-emerald-400 text-lg">🎉</span>
+          <p className="text-xs font-semibold leading-relaxed flex-1">{toastMessage}</p>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-zinc-400 hover:text-white font-bold text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Early Access Modal when NEXT_PUBLIC_ENABLE_AUTH is false */}
       {showEarlyAccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
@@ -69,42 +85,36 @@ export default function Home() {
               </p>
             </div>
 
-            {submittedEmail ? (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold leading-relaxed">
-                ✓ Thank you! We&apos;ve registered your email and will notify you the moment public access launches.
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (emailInput.trim()) {
+                  subscribeMut.mutate({ email: emailInput.trim() });
+                }
+              }}
+              className="space-y-3 pt-2"
+            >
+              <label className="text-xs font-bold text-zinc-700 block">
+                Get notified when we launch:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  required
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="you@example.com"
+                  className="flex-1 px-3 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                />
+                <button
+                  type="submit"
+                  disabled={subscribeMut.isPending}
+                  className="bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shrink-0"
+                >
+                  {subscribeMut.isPending ? "Submitting..." : "Notify Me"}
+                </button>
               </div>
-            ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (emailInput.trim()) {
-                    subscribeMut.mutate({ email: emailInput.trim() });
-                  }
-                }}
-                className="space-y-3 pt-2"
-              >
-                <label className="text-xs font-bold text-zinc-700 block">
-                  Get notified when we launch:
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    required
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="you@example.com"
-                    className="flex-1 px-3 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                  />
-                  <button
-                    type="submit"
-                    disabled={subscribeMut.isPending}
-                    className="bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shrink-0"
-                  >
-                    {subscribeMut.isPending ? "Submitting..." : "Notify Me"}
-                  </button>
-                </div>
-              </form>
-            )}
+            </form>
           </div>
         </div>
       )}

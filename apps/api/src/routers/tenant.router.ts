@@ -465,13 +465,27 @@ updateUserPreferences: tenantProcedure
     .input(z.object({ email: z.string().email() }).strict())
     .mutation(async ({ input, ctx }) => {
       const { earlyAccessSubscribers } = await import('@money-matters/db');
-      await ctx.db.insert(earlyAccessSubscribers).values({
-        email: input.email,
-        tenantId: ctx.tenantId ?? ctx.appId ?? "01908bde-34bb-7b19-a178-574211bc93aa",
-        appId: ctx.appId ?? "01908bde-34bb-7b19-a178-574211bc93aa",
-        createdBy: ctx.userId ?? "public",
-        updatedBy: ctx.userId ?? "public",
-      });
+      const appId = ctx.appId ?? MONEY_MATTERS_APP_ID;
+      const normalizedEmail = input.email.trim().toLowerCase();
+      const now = new Date();
+
+      await ctx.db
+        .insert(earlyAccessSubscribers)
+        .values({
+          appId,
+          email: normalizedEmail,
+          lastSubscribedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [earlyAccessSubscribers.appId, earlyAccessSubscribers.email],
+          set: {
+            lastSubscribedAt: now,
+            updatedAt: now,
+          },
+        });
+
       return { success: true };
     }),
 };
