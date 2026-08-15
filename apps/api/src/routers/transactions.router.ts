@@ -7,6 +7,8 @@ import {
   listCategoryTransactionsQuery,
   canAffordQuery,
   parseBankCsv,
+  checkCsvDuplicatesQuery,
+  commitCsvImportCommand,
   BankCsvImportInputSchema,
   getSpendingVelocityQuery,
 } from "@money-matters/capability-transactions";
@@ -15,6 +17,7 @@ import {
   ListTransactionsQuery,
   ListCategoryTransactionsQuery,
   CanAffordQuery,
+  CommitCsvImportCommand,
 } from "@money-matters/types";
 
 export const transactionsRouter = {
@@ -78,6 +81,15 @@ export const transactionsRouter = {
       requiresWriteAccess(ctx);
       requiresPaidTier(ctx, 'csv_import');
       const result = parseBankCsv(input.csvText, input.customMapping);
+      if (result.transactions.length > 0) {
+        const keys = result.transactions.map((t) => t.idempotencyKey);
+        const dupKeys = await checkCsvDuplicatesQuery(keys, ctx.tenantId!, ctx.appId!, ctx.db);
+        result.transactions = result.transactions.map((t) => ({
+          ...t,
+          bankAccountId: input.bankAccountId,
+          isDuplicate: dupKeys.has(t.idempotencyKey),
+        }));
+      }
       if (posthog && ctx.userId) {
         posthog.capture({
           distinctId: ctx.userId,
@@ -93,8 +105,30 @@ export const transactionsRouter = {
       return result;
     }),
 
+  commitCsvImport: tenantProcedure
+    .input(CommitCsvImportCommand)
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'csv_import');
+      const result = await commitCsvImportCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'csv_batch_imported',
+          properties: {
+            tenant_id: ctx.tenantId,
+            imported_count: result.importedCount,
+            skipped_duplicates_count: result.skippedDuplicatesCount,
+            bank_account_id: input.bankAccountId,
+          },
+        });
+        await posthog.flush();
+      }
+      return result;
+    }),
 
   spendingVelocity: tenantProcedure.query(async ({ ctx }) => {
     return await getSpendingVelocityQuery(ctx.tenantId!, ctx.appId!, ctx.db);
   }),
 };
+

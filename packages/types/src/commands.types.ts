@@ -193,4 +193,21 @@ export const CreateCustomerPortalCommand = z.object({
   returnUrl: z.string().url(),
 }).strict();
 
+export const CsvImportItemSchema = z.object({
+  date: z.string(),
+  description: z.string(),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  flowType: z.enum(["DEBIT", "CREDIT"]),
+  categoryId: z.string().uuid().optional().nullable(),
+  incomeSourceId: z.string().uuid().optional().nullable(),
+  idempotencyKey: z.string().min(1),
+  note: z.string().optional().nullable(),
+}).strict();
+
+export const CommitCsvImportCommand = z.object({
+  bankAccountId: z.string().uuid(),
+  transactions: z.array(CsvImportItemSchema).min(1),
+}).strict();
+
+
 

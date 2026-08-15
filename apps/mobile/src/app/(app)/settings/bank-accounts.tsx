@@ -232,12 +232,18 @@ export default function BankAccountsScreen() {
         <View style={styles.csvCard}>
           <Text style={styles.cardTitle}>📄 Big 4 Bank CSV Statement Import</Text>
           <Text style={styles.cardDesc}>
-            Import statement CSV files directly from CBA, Westpac, ANZ, NAB, ING, or Macquarie.
+            To review statement transactions, customize category & income mappings, and prevent duplicates, please use the 3-Step CSV Import Wizard on the Money Matters Web Dashboard.
           </Text>
-          <TouchableOpacity style={styles.csvBtn} onPress={handlePickAndUploadCsv} disabled={importingCsv}>
-            <Text style={styles.csvBtnText}>
-              {importingCsv ? "Parsing & Deduplicating CSV..." : "📁 Pick Bank CSV File"}
-            </Text>
+          <TouchableOpacity
+            style={styles.csvBtn}
+            onPress={() =>
+              Alert.alert(
+                "Web Dashboard Required",
+                "Please log into the Money Matters Web App on your browser to access the interactive 3-Step Bank CSV Import Wizard."
+              )
+            }
+          >
+            <Text style={styles.csvBtnText}>🌐 Open Web Dashboard for CSV Import</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

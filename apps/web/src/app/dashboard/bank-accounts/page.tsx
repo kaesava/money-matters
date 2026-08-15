@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { trpc } from "../../../lib/trpc";
 import { Spinner, InfoTooltip, PaginationBar } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
+import { CsvImportModal } from "../../../components/CsvImportModal";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
@@ -767,172 +768,12 @@ export default function BankAccountsDashboardPage() {
 
       {/* Bank Account Selected CSV Import Modal */}
       {selectedAccountForImport && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full flex flex-col gap-4 shadow-xl border border-zinc-100">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-[#1B2B4B] flex items-center gap-2">
-                  <span>📄 CSV Import:</span>
-                  <span className="text-[#00B4A6]">{selectedAccountForImport.name}</span>
-                </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Select your bank provider for automated header mapping and transaction parsing.
-                </p>
-              </div>
-              <button type="button" onClick={() => setSelectedAccountForImport(null)} className="text-zinc-400 hover:text-zinc-600 font-bold">
-                ✕
-              </button>
-            </div>
-
-            {/* Account Selection Drop-down */}
-            <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
-              <label className="text-xs font-bold text-[#1B2B4B]">Import Target Bank Account:</label>
-              <select
-                value={selectedAccountForImport.id}
-                onChange={(e) => {
-                  const targetAcc = accounts.find((a) => a.id === e.target.value);
-                  if (targetAcc) {
-                    setSelectedAccountForImport(targetAcc);
-                    setSelectedBankProvider(detectBankFromAccountName(targetAcc.name));
-                  }
-                }}
-                className="px-3 py-2 text-xs font-bold rounded-lg border border-zinc-300 bg-white text-[#1B2B4B] focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.categoryTypes.join(", ") || "Unlinked"})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Bank Institution Selection */}
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-zinc-700">Bank Institution:</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {BANK_OPTIONS.map((b) => (
-                  <button
-                    key={b.key}
-                    type="button"
-                    onClick={() => setSelectedBankProvider(b.key)}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
-                      selectedBankProvider === b.key
-                        ? "border-[#00B4A6] bg-teal-50/40 shadow-xs"
-                        : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700"
-                    }`}
-                  >
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black ${b.logoBg} ${b.textColor}`}>
-                      {b.key}
-                    </span>
-                    <span className="text-[11px] truncate w-full text-center">{b.key}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Instructions Accordion Toggle */}
-            <button
-              type="button"
-              onClick={() => setShowImportGuide(!showImportGuide)}
-              className="text-xs font-bold text-[#00B4A6] hover:underline flex items-center gap-1 self-start"
-            >
-              <span>{showImportGuide ? "Hide export steps ▲" : `How to export CSV from ${selectedBankProvider} ▼`}</span>
-            </button>
-
-            {showImportGuide && (
-              <div className="bg-teal-50/50 border border-teal-100 rounded-xl p-3.5 text-xs text-zinc-700 space-y-1.5">
-                <p className="font-bold text-[#1B2B4B]">Exporting CSV for {selectedBankProvider}:</p>
-                <p className="text-zinc-600 leading-relaxed">
-                  Log into your bank&apos;s online portal $\rightarrow$ Select <strong>{selectedAccountForImport.name}</strong> $\rightarrow$ Export / Download transactions $\rightarrow$ Select CSV format.
-                </p>
-              </div>
-            )}
-
-            {/* File Upload Drop Area */}
-            <div className="flex items-center gap-3 pt-1">
-              <label className="flex-1 cursor-pointer bg-zinc-50 border-2 border-dashed border-zinc-300 hover:border-[#00B4A6] rounded-xl p-5 text-center transition-colors">
-                <span className="text-xs font-bold text-zinc-700">
-                  {parseCsvMut.isPending ? "Parsing CSV File..." : `📁 Upload ${selectedBankProvider} CSV File`}
-                </span>
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={parseCsvMut.isPending}
-                />
-              </label>
-            </div>
-
-            {csvResultMsg && (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold p-3 rounded-xl">
-                {csvResultMsg}
-              </div>
-            )}
-
-            {/* Fallback Custom Mapper */}
-            {showCustomMapper && (
-              <div className="flex flex-col gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
-                <p className="text-xs font-bold text-zinc-700">Map CSV Columns manually:</p>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-600">Date Col:</label>
-                    <select
-                      value={dateCol}
-                      onChange={(e) => setDateCol(Number(e.target.value))}
-                      className="w-full p-1.5 text-xs border rounded-lg"
-                    >
-                      {rawHeaders.map((h, i) => (
-                        <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-600">Desc Col:</label>
-                    <select
-                      value={descCol}
-                      onChange={(e) => setDescCol(Number(e.target.value))}
-                      className="w-full p-1.5 text-xs border rounded-lg"
-                    >
-                      {rawHeaders.map((h, i) => (
-                        <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-600">Amount Col:</label>
-                    <select
-                      value={amountCol}
-                      onChange={(e) => setAmountCol(Number(e.target.value))}
-                      className="w-full p-1.5 text-xs border rounded-lg"
-                    >
-                      {rawHeaders.map((h, i) => (
-                        <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleApplyCustomMapping}
-                  className="px-3 py-1.5 text-xs font-bold text-white rounded-lg bg-[#00B4A6] hover:opacity-90 self-end"
-                >
-                  Apply & Parse
-                </button>
-              </div>
-            )}
-
-            <div className="flex justify-end pt-2 border-t border-zinc-100">
-              <button
-                type="button"
-                onClick={() => setSelectedAccountForImport(null)}
-                className="px-4 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <CsvImportModal
+          isOpen={!!selectedAccountForImport}
+          bankAccountId={selectedAccountForImport.id}
+          onClose={() => setSelectedAccountForImport(null)}
+          onSuccess={() => bankAccountsQuery.refetch()}
+        />
       )}
     </div>
   );

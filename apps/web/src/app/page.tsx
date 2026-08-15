@@ -40,6 +40,12 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("early_access") === "true" || params.get("auth_disabled") === "true") {
+        setShowEarlyAccessModal(true);
+      }
+    }
     if (ENABLE_AUTH) {
       authClient.getSession().then(({ data }) => {
         if (data?.session) {

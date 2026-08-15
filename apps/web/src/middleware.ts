@@ -21,6 +21,7 @@ export function middleware(request: NextRequest) {
 
   if (!isAuthEnabled && pathname !== "/" && !pathname.startsWith("/blog")) {
     const landingUrl = new URL("/", request.url);
+    landingUrl.searchParams.set("early_access", "true");
     return NextResponse.redirect(landingUrl);
   }
 

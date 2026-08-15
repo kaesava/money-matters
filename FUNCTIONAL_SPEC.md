@@ -69,12 +69,12 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 - **Supported Banks**: Commonwealth Bank (CBA), Westpac, ANZ, National Australia Bank (NAB), ING, and Macquarie.
 - **Import Flow**:
-  - Web: Drag-and-drop CSV file upload in Bank Accounts / Transactions screen.
-  - Mobile: Native file picker selection.
-  - Automatic parsing of bank-specific CSV headers (Date, Description, Amount, Balance).
+  - Web: Interactive 3-Step CSV Import Wizard (`Upload` $\rightarrow$ `Review & Map` $\rightarrow$ `Complete & Commit`).
+  - Mobile: Informative guidance directing users to the Web App for statement CSV imports with category/income mapping and duplicate prevention.
+  - Automatic parsing of bank-specific CSV headers (Date, Description, Amount, Balance) with custom column mapper fallback.
   - Rule-based category matching based on merchant description keywords.
-  - Transaction deduplication based on transaction hash (`date + amount + description`).
-  - User bulk confirmation & manual category re-assignment.
+  - Server-side deduplication based on transaction hash (`date + flowType + amount + description`) pre-flagging duplicate rows (`⚠️ Duplicate`).
+  - Bulk confirmation & manual category / income source re-assignment before committing to the database.
 
 ---
 

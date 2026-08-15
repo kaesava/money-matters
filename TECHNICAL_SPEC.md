@@ -134,9 +134,12 @@ households (tenant)
 
 
 ### 5.3 Bank CSV Import Engine (`@money-matters/capability-transactions`)
-- Parses CSV exports from CBA, Westpac, ANZ, NAB, ING, and Macquarie.
-- Rule-based merchant/description matching to automatically map transactions to existing tenant categories.
-- Deduplication via transaction date, amount, and description hash.
+- Interactive 3-Step Import Wizard on Web Dashboard (`Upload` $\rightarrow$ `Review & Map` $\rightarrow$ `Complete & Commit`).
+- Parses CSV exports from CBA, Westpac, ANZ, NAB, ING, and Macquarie, plus custom column mapping support.
+- Keyword auto-categorization for Australian merchants and income sources.
+- Server-side deduplication via idempotency keys (`csv-import-${date}-${flowType}-${amount}-${cleanDesc}`) pre-flagged as `⚠️ Duplicate` and pre-unchecked in the preview table.
+- Bulk atomic insertion into `transactionLedger` via `commitCsvImportCommand` (Rule #6 compliant single-query insert).
+- Support for `DEBIT` (Category target) and `CREDIT` (Income Source or Category target) transaction mapping.
 
 ### 5.4 Smart Scheduled Notifications (Inngest)
 1. **`notify-payday-incoming`**: Daily alert for upcoming payday tomorrow.

@@ -13,8 +13,11 @@ export interface ParsedCsvTransaction {
   amount: string; // positive string e.g. "45.20"
   flowType: "DEBIT" | "CREDIT";
   suggestedCategoryName: string | null;
+  suggestedIncomeSourceId?: string | null;
   idempotencyKey: string;
   rawBank: string;
+  bankAccountId?: string;
+  isDuplicate?: boolean;
 }
 
 export interface CustomColumnMapping {
