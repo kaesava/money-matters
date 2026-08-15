@@ -101,6 +101,11 @@ export default function BankAccountsDashboardPage() {
   const [dateCol, setDateCol] = useState(0);
   const [descCol, setDescCol] = useState(1);
   const [amountCol, setAmountCol] = useState(2);
+  const [conflictModalInfo, setConflictModalInfo] = useState<{
+    type: "EVERYDAY" | "REGULAR" | "GOAL";
+    typeLabel: string;
+    previousOwnerName: string;
+  } | null>(null);
 
   const parseCsvMut = trpc.parseCsv.useMutation({
     onSuccess: (res: { bank: string; transactions: Array<{ date: string; description: string; amount: string; flowType: "DEBIT" | "CREDIT" }>; headers: string[] }) => {
@@ -263,12 +268,6 @@ export default function BankAccountsDashboardPage() {
       updateMappingsMut.mutate({ mappings: updatedMappings });
     }
   };
-
-  const [conflictModalInfo, setConflictModalInfo] = useState<{
-    type: "EVERYDAY" | "REGULAR" | "GOAL";
-    typeLabel: string;
-    previousOwnerName: string;
-  } | null>(null);
 
   const handleCategoryTypeToggle = (type: "EVERYDAY" | "REGULAR" | "GOAL") => {
     if (accSelectedTypes.includes(type)) {
