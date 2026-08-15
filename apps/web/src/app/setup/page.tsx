@@ -15,6 +15,7 @@ import {
   ChildConfig,
 } from "@money-matters/types";
 import { SetupIncomeStep } from "./components/SetupIncomeStep";
+import { SetupGoalsStep, UserGoalItem } from "./components/SetupGoalsStep";
 import { SetupLifestyleStep } from "./components/SetupLifestyleStep";
 import { SetupCategoriesStep } from "./components/SetupCategoriesStep";
 import { SetupWaterfallStep } from "./components/SetupWaterfallStep";
@@ -30,6 +31,12 @@ function SetupWizardContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showReconcileModal, setShowReconcileModal] = useState(false);
+
+  // Step 2: User Savings & Future Goals
+  const [goals, setGoals] = useState<UserGoalItem[]>([
+    { id: "g-1", name: "Emergency Reserve (3-6 Months)", monthlyAmount: 300, icon: "🛡️", targetAmount: 10000 },
+    { id: "g-2", name: "Annual Family Holiday", monthlyAmount: 250, icon: "✈️", targetAmount: 5000 },
+  ]);
 
   // Step 2: Interactive Lifestyle Sliders
   const [weeklyGroceries, setWeeklyGroceries] = useState(270);
@@ -175,9 +182,26 @@ function SetupWizardContent() {
         ...item,
         monthlyAud: amountOverrides[item.name] ?? item.monthlyAud,
       }));
+    const userGoalsFormatted: EstimatedCategoryItem[] = goals.map((g) => ({
+      name: g.name,
+      type: "GOAL" as const,
+      monthlyAud: g.monthlyAmount,
+      icon: g.icon || "🎯",
+      colour: "#00B4A6",
+    }));
     const custom = customCategories.filter((c) => c.type === "GOAL" && !removedCategoryNames.has(c.name));
-    return [...calculated, ...custom];
-  }, [estimation.goalSinkingFunds, amountOverrides, customCategories, removedCategoryNames]);
+    
+    // Deduplicate goals by name
+    const combined = [...calculated, ...userGoalsFormatted, ...custom];
+    const seen = new Set<string>();
+    return combined.filter((item) => {
+      if (removedCategoryNames.has(item.name)) return false;
+      const lower = item.name.trim().toLowerCase();
+      if (seen.has(lower)) return false;
+      seen.add(lower);
+      return true;
+    });
+  }, [estimation.goalSinkingFunds, amountOverrides, goals, customCategories, removedCategoryNames]);
 
   const activeEveryday = useMemo(() => {
     const calculated = estimation.everydayCategories
@@ -305,7 +329,7 @@ function SetupWizardContent() {
               Cancel
             </button>
             <span className="text-xs font-black text-[#00B4A6] bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
-              Step {step} of 4
+              Step {step} of 5
             </span>
           </div>
         </div>
@@ -331,6 +355,22 @@ function SetupWizardContent() {
         )}
 
         {step === 2 && (
+          <SetupGoalsStep
+            goals={goals}
+            onAddGoal={(g) => {
+              const id = `g-${Date.now()}`;
+              setGoals((prev) => [...prev, { ...g, id }]);
+            }}
+            onUpdateGoal={(id, field, value) => {
+              setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)));
+            }}
+            onRemoveGoal={(id) => setGoals((prev) => prev.filter((g) => g.id !== id))}
+            onBack={() => setStep(1)}
+            onNext={() => setStep(3)}
+          />
+        )}
+
+        {step === 3 && (
           <SetupLifestyleStep
             housingType={housingType}
             setHousingType={setHousingType}
@@ -370,12 +410,12 @@ function SetupWizardContent() {
             setWeeklyDining={setWeeklyDining}
             weeklyPersonal={weeklyPersonal}
             setWeeklyPersonal={setWeeklyPersonal}
-            onBack={() => setStep(1)}
-            onNext={() => setStep(3)}
+            onBack={() => setStep(2)}
+            onNext={() => setStep(4)}
           />
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <SetupCategoriesStep
             activeEveryday={activeEveryday}
             activeRegular={activeRegular}
@@ -407,12 +447,12 @@ function SetupWizardContent() {
             }}
             convertToMonthly={convertToMonthly}
             convertFromMonthly={convertFromMonthly}
-            onBack={() => setStep(2)}
-            onNext={() => setStep(4)}
+            onBack={() => setStep(3)}
+            onNext={() => setStep(5)}
           />
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <SetupWaterfallStep
             totalMonthlyIncomeAud={estimation.totalMonthlyIncomeAud}
             totalAllocatedMonthly={totalAllocatedMonthly}
@@ -421,7 +461,7 @@ function SetupWizardContent() {
             totalGoalMonthly={totalGoalMonthly}
             isRerun={isRerun}
             isSubmitting={isSubmitting}
-            onBack={() => setStep(3)}
+            onBack={() => setStep(4)}
             onFinish={handleFinish}
           />
         )}

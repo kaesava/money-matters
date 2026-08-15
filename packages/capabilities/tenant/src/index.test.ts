@@ -26,6 +26,7 @@ describe('Capability Tenant Handlers', () => {
     const valuesMock = vi.fn().mockImplementation(() => {
       const promiseObj = Promise.resolve([]);
       (promiseObj as any).returning = returningMock;
+      (promiseObj as any).onConflictDoNothing = vi.fn().mockResolvedValue([]);
       return promiseObj;
     });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
@@ -44,7 +45,7 @@ describe('Capability Tenant Handlers', () => {
 
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
-    expect(insertMock).toHaveBeenCalledTimes(5);
+    expect(insertMock).toHaveBeenCalledTimes(7);
     expect(selectMock).toHaveBeenCalledTimes(1);
   });
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tenants, tenantUsers, appCategories, categories, bankAccounts, bankAccountCategoryMappings } from "@money-matters/db";
+import { tenants, tenantUsers, appCategories, categories, bankAccounts, bankAccountCategoryMappings, apps, users } from "@money-matters/db";
 import { CreateTenantCommand } from "@money-matters/types";
 import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
@@ -14,6 +14,25 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
     const trialStartedAt = now;
     const trialEndsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const trialGraceEndsAt = new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000);
+
+    // 0. Guard app and user mirror records
+    await db
+      .insert(apps)
+      .values({
+        id: appId,
+        name: "Money Matters",
+        slug: "money-matters",
+      })
+      .onConflictDoNothing();
+
+    await db
+      .insert(users)
+      .values({
+        id: userId,
+        email: `user-${userId.substring(0, 8)}@moneymatters.kaesava.au`,
+        displayName: "User",
+      })
+      .onConflictDoNothing();
 
     // 1. Insert the tenant with tenantId = its own id
     await db
