@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Button, Input, Logo } from "@money-matters/ui/web";
@@ -13,6 +13,16 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Reset form state on mount to clear any previously entered credentials
+    setEmail("");
+    setPassword("");
+    setError(null);
+    setResetMessage(null);
+    setUnverifiedEmail(null);
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +31,7 @@ export default function SignInPage() {
     setLoading(true);
     setError(null);
     setResetMessage(null);
+    setUnverifiedEmail(null);
 
     try {
       const result = await authClient.signIn.email({
@@ -29,7 +40,14 @@ export default function SignInPage() {
       });
 
       if (result.error) {
-        setError(result.error.message || "Failed to sign in. Please check your credentials.");
+        const errMsg = result.error.message || "";
+        const errCode = (result.error as { code?: string }).code || "";
+        if (errCode === "EMAIL_NOT_VERIFIED" || errMsg.toLowerCase().includes("not verified")) {
+          setUnverifiedEmail(email.trim().toLowerCase());
+          setError(t("auth.emailNotVerified", { defaultValue: "Your email address has not been verified yet. Please check your inbox or resend the link below." }));
+        } else {
+          setError(result.error.message || "Failed to sign in. Please check your credentials.");
+        }
         return;
       }
 
@@ -52,6 +70,24 @@ export default function SignInPage() {
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in with Google.");
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const targetEmail = unverifiedEmail || email;
+    if (!targetEmail) return;
+    setLoading(true);
+    setError(null);
+    setResetMessage(null);
+    try {
+      await authClient.sendVerificationEmail({
+        email: targetEmail.trim().toLowerCase(),
+      });
+      setResetMessage(t("auth.resendSuccess", { defaultValue: "Verification link sent! Please check your email inbox." }));
+    } catch (_err) {
+      setResetMessage(t("auth.resendSuccess", { defaultValue: "Verification request submitted. Please check your email inbox." }));
+    } finally {
       setLoading(false);
     }
   };
@@ -93,9 +129,21 @@ export default function SignInPage() {
         </div>
 
         {error && (
-          <div className="ui-alert border-rose-200 bg-rose-50 text-rose-800 text-sm font-semibold rounded-lg p-3">
-            <span>⚠️</span>
-            <span>{error}</span>
+          <div className="ui-alert border-rose-200 bg-rose-50 text-rose-800 text-sm font-semibold rounded-lg p-3 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+            {unverifiedEmail && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={loading}
+                className="text-xs font-bold text-[#00B4A6] hover:underline text-left mt-1"
+              >
+                ✉️ Resend verification link to {unverifiedEmail}
+              </button>
+            )}
           </div>
         )}
 
@@ -106,13 +154,15 @@ export default function SignInPage() {
           </div>
         )}
 
-        <form onSubmit={handleSignIn} className="flex flex-col gap-4">
+        <form key="sign-in-form" onSubmit={handleSignIn} autoComplete="off" className="flex flex-col gap-4">
           <Input
             label={t("auth.emailLabel")}
             placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             type="email"
+            name="signin-user-email"
+            autoComplete="email"
             required
             disabled={loading}
           />
@@ -124,6 +174,8 @@ export default function SignInPage() {
               value={password}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               type="password"
+              name="signin-user-password"
+              autoComplete="current-password"
               required
               disabled={loading}
             />
@@ -151,6 +203,7 @@ export default function SignInPage() {
         </div>
 
         <button
+          type="button"
           onClick={handleGoogleSignIn}
           className="w-full flex items-center justify-center gap-3 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors py-2.5 rounded-lg text-sm font-semibold text-zinc-700 disabled:opacity-50"
           disabled={loading}
@@ -162,6 +215,7 @@ export default function SignInPage() {
         <div className="flex justify-center gap-1.5 text-sm mt-2">
           <span className="text-zinc-500">{t("auth.signUpPrompt")}</span>
           <button
+            type="button"
             onClick={() => router.push("/sign-up")}
             className="font-bold text-[#00B4A6] hover:underline"
           >

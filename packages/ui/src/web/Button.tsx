@@ -12,12 +12,18 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`${baseClass} ${className} flex items-center justify-center gap-2 font-bold transition-all disabled:opacity-75 disabled:cursor-not-allowed`}
+        className={`${baseClass} ${className} relative flex items-center justify-center font-bold transition-all disabled:opacity-85 disabled:cursor-not-allowed`}
         disabled={loading || props.disabled}
         {...props}
       >
-        {loading && <Spinner size="sm" className="text-current" />}
-        {children}
+        {loading && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Spinner size="sm" className="text-current" />
+          </span>
+        )}
+        <span className={loading ? "opacity-0 pointer-events-none flex items-center justify-center gap-2" : "flex items-center justify-center gap-2"}>
+          {children}
+        </span>
       </button>
     );
   }
