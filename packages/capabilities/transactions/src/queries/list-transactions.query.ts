@@ -1,13 +1,12 @@
-import { db, transactionLedger, categories } from "@money-matters/db";
+import { transactionLedger, categories, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function listTransactionsQuery(
   tenantId: string,
   appId: string,
   limit = 50,
   offset = 0,
-  dbClient: PgDatabase<any, any, any> = db,
+  dbClient: DbOrTx,
   categoryId?: string
 ) {
   const conditions = [
@@ -48,7 +47,7 @@ export async function listCategoryTransactionsQuery(
   appId: string,
   limit = 30,
   offset = 0,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   return await dbClient
     .select({

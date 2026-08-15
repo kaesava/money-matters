@@ -1,6 +1,5 @@
-import { db, transactionLedger, categories } from "@money-matters/db";
+import { transactionLedger, categories, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { MoveMoneyCommand } from "@money-matters/types";
 import { randomUUID } from "crypto";
@@ -10,7 +9,7 @@ export async function moveMoneyCommand(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
     // 1. Verify access to source category

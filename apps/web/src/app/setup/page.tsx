@@ -64,6 +64,16 @@ function SetupWizardContent() {
 
   const [hasPrivateHealth, setHasPrivateHealth] = useState(true);
   const [hasGym, setHasGym] = useState(false);
+  
+  // These values are used in quizAnswers, but their setters were unused.
+  // If you later add inputs for these in SetupLifestyleStep, you can restore 
+  // their setters (e.g., `const [hasDebt, setHasDebt] = useState(false);`)
+  const [hasDebt] = useState(false);
+  const [debtMonthlyRepayment] = useState(0);
+  const [hasPets] = useState(false);
+  const [petsCount] = useState(1);
+  const [hasCharityGiving] = useState(false);
+  const [charityMonthlyAmount] = useState(0);
 
   // Custom added categories & tracking
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
@@ -137,11 +147,11 @@ function SetupWizardContent() {
       children: hasKids ? children : [],
       hasPrivateHealth,
       hasGym,
-      hasPets: false,
-      petsCount: 0,
-      activeDebtMonthlyRepayment: 0,
-      givesCharity: false,
-      familySupportMonthlyAmount: 0,
+      hasPets,
+      petsCount: hasPets ? petsCount : 0,
+      activeDebtMonthlyRepayment: hasDebt ? debtMonthlyRepayment : 0,
+      givesCharity: hasCharityGiving,
+      familySupportMonthlyAmount: hasCharityGiving ? charityMonthlyAmount : 0,
       weeklyGroceries,
       weeklyDining,
       weeklyPersonal,
@@ -157,6 +167,12 @@ function SetupWizardContent() {
     children,
     hasPrivateHealth,
     hasGym,
+    hasPets,
+    petsCount,
+    hasDebt,
+    debtMonthlyRepayment,
+    hasCharityGiving,
+    charityMonthlyAmount,
     weeklyGroceries,
     weeklyDining,
     weeklyPersonal,

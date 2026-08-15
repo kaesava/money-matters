@@ -17,10 +17,10 @@ export interface FormFieldDefinition {
   helperText?: string;
 }
 
-export interface GenericEditFormProps {
+export interface GenericEditFormProps<T extends Record<string, unknown> = Record<string, unknown>> {
   title: string;
-  values: any;
-  onChange: (key: string, val: any) => void;
+  values: T;
+  onChange: (key: string, val: unknown) => void;
   fields?: FormFieldDefinition[];
   onSubmit: (e: React.FormEvent) => void | Promise<void>;
   onCancel: () => void;
@@ -31,7 +31,7 @@ export interface GenericEditFormProps {
   children?: React.ReactNode; // For custom layout overrides
 }
 
-export function GenericEditForm({
+export function GenericEditForm<T extends Record<string, unknown> = Record<string, unknown>>({
   title,
   values,
   onChange,
@@ -43,7 +43,7 @@ export function GenericEditForm({
   isDeleting = false,
   error,
   children,
-}: GenericEditFormProps) {
+}: GenericEditFormProps<T>) {
   const handleDeleteClick = async () => {
     if (!onDelete) return;
     if (confirm(t('common.confirmDelete', { defaultValue: 'Are you sure you want to delete this?' }))) {
@@ -67,7 +67,8 @@ export function GenericEditForm({
 
         <div className="space-y-4">
           {fields.map((f) => {
-            const val = values[f.key] ?? '';
+            const rawVal = values[f.key];
+            const val = rawVal !== undefined && rawVal !== null ? String(rawVal) : '';
             
             if (f.type === 'date') {
               return (

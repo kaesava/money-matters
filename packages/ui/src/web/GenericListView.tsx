@@ -53,7 +53,7 @@ export interface GenericListViewProps<T> {
   columns: ColumnDefinition<T>[];
   gridItemRender: (item: T, onViewDetails: (item: T) => void) => React.ReactNode;
   onRowClick?: (item: T) => void;
-  emptyStateIcon?: React.ComponentType<any>;
+  emptyStateIcon?: React.ComponentType<{ className?: string }>;
   emptyStateText?: string;
 }
 

@@ -35,10 +35,15 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     },
   });
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [categoryOverrides, setCategoryOverrides] = useState<Record<number, string>>({});
+
+  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
+  const categories = categoriesQuery.data ?? [];
+
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = (file: File) => {
     if (!file) return;
     setFileName(file.name);
 
@@ -48,6 +53,33 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       parseCsvMutation.mutate({ csvText: text });
     };
     reader.readAsText(file);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.name.endsWith('.csv')) {
+      processFile(file);
+    }
   };
 
   const handleConfirmImport = () => {
@@ -78,7 +110,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               <span className="text-sm font-semibold text-slate-500">Parsing statement...</span>
             </div>
           ) : !parsedResults ? (
-            <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 text-center transition-colors">
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                isDragging
+                  ? "border-blue-600 bg-blue-50/50 scale-[1.01]"
+                  : "border-slate-300 hover:border-blue-500"
+              }`}
+            >
               <input
                 type="file"
                 accept=".csv"
@@ -90,9 +131,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 htmlFor="csv-file-input"
                 className="cursor-pointer flex flex-col items-center gap-2"
               >
-                <span className="text-3xl">📄</span>
+                <span className="text-3xl">{isDragging ? "📥" : "📄"}</span>
                 <span className="font-semibold text-slate-700">
-                  {fileName ? fileName : "Click to select or drag & drop CSV statement"}
+                  {fileName ? fileName : isDragging ? "Drop CSV statement file here" : "Click to select or drag & drop CSV statement"}
                 </span>
                 <span className="text-xs text-slate-400">
                   Statements exported from your bank app or online banking
@@ -116,7 +157,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                     <tr>
                       <th className="p-3">Date</th>
                       <th className="p-3">Description</th>
-                      <th className="p-3">Category Match</th>
+                      <th className="p-3">Category Re-assignment</th>
                       <th className="p-3 text-right">Amount</th>
                     </tr>
                   </thead>
@@ -126,15 +167,25 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                         <td className="p-3 font-sans text-slate-500 whitespace-nowrap">{tx.date}</td>
                         <td className="p-3 font-sans font-medium text-slate-800 truncate max-w-xs">{tx.description}</td>
                         <td className="p-3 font-sans">
-                          {tx.suggestedCategoryName ? (
-                            <span className="bg-green-100 text-green-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                              {tx.suggestedCategoryName}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 text-[10px]">Everyday Pool</span>
-                          )}
+                          <select
+                            value={categoryOverrides[idx] ?? tx.suggestedCategoryName ?? "EVERYDAY_POOL"}
+                            onChange={(e) =>
+                              setCategoryOverrides((prev) => ({
+                                ...prev,
+                                [idx]: e.target.value,
+                              }))
+                            }
+                            className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white font-semibold text-slate-700"
+                          >
+                            <option value="EVERYDAY_POOL">Everyday Pool</option>
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.name}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
                         </td>
-                        <td className={`p-3 text-right font-bold ${tx.flowType === 'CREDIT' ? 'text-green-600' : 'text-slate-900'}`}>
+                        <td className={`p-3 text-right font-bold tabular-nums ${tx.flowType === 'CREDIT' ? 'text-green-600' : 'text-slate-900'}`}>
                           {tx.flowType === 'CREDIT' ? '+' : '-'}${tx.amount}
                         </td>
                       </tr>

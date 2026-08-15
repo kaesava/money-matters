@@ -1,9 +1,8 @@
 import { eq, and } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
-import { deviceTokens } from "@money-matters/db";
+import { DbOrTx, deviceTokens } from "@money-matters/db";
 import { logger } from "@money-matters/core";
 
-export function registerDeviceTokenHandler(db: PgDatabase<any, any, any>) {
+export function registerDeviceTokenHandler(db: DbOrTx) {
   return async (
     input: { platform: "ios" | "android" | "web"; token: string },
     tenantId: string,
@@ -55,7 +54,7 @@ export function registerDeviceTokenHandler(db: PgDatabase<any, any, any>) {
   };
 }
 
-export function removeDeviceTokenHandler(db: PgDatabase<any, any, any>) {
+export function removeDeviceTokenHandler(db: DbOrTx) {
   return async (
     input: { platform: "ios" | "android" | "web" },
     tenantId: string,

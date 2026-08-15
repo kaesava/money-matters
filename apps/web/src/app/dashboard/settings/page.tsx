@@ -48,8 +48,15 @@ export default function SettingsPage() {
           style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
         >
           <a
-            href="/dashboard/bank-accounts"
+            href="/setup?mode=rerun"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-1 first:pt-0"
+          >
+            <span>🔄 Re-run Budget Setup & Category Targets</span>
+            <span>→</span>
+          </a>
+          <a
+            href="/dashboard/bank-accounts"
+            className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5"
           >
             <span>🏦 Bank Accounts & Statement Import</span>
             <span>→</span>

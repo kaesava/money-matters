@@ -1,6 +1,6 @@
-import { tenantProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { expenseSources, categories, expenseEvents } from "@money-matters/db";
-import { and, eq, sql, asc } from "drizzle-orm";
+import { and, eq, sql, asc, inArray } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
 import { z } from 'zod';
@@ -44,6 +44,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       let rrule: string | null = null;
       if (input.isRecurring && input.startDate) {
         if (input.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
@@ -70,19 +71,21 @@ export const expensesRouter = {
 
       if (input.isRecurring && input.startDate && rrule) {
         const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
-        for (const d of dates) {
-          await ctx.db.insert(expenseEvents).values({
-            expenseSourceId: source.id,
-            categoryId: input.categoryId,
-            name: input.name,
-            expectedDate: d.toISOString().split("T")[0],
-            expectedAmount: input.amount,
-            status: "UPCOMING",
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            createdBy: ctx.userId!,
-            updatedBy: ctx.userId!,
-          });
+        if (dates.length > 0) {
+          await ctx.db.insert(expenseEvents).values(
+            dates.map((d) => ({
+              expenseSourceId: source.id,
+              categoryId: input.categoryId,
+              name: input.name,
+              expectedDate: d.toISOString().split("T")[0],
+              expectedAmount: input.amount,
+              status: "UPCOMING" as const,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
+          );
         }
       } else if (input.startDate) {
         await ctx.db.insert(expenseEvents).values({
@@ -131,6 +134,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [source] = await ctx.db
         .select()
         .from(expenseSources)
@@ -186,25 +190,29 @@ export const expensesRouter = {
       );
 
       if (typeChanged || scheduleOrFreqChanged) {
-        for (const evt of unperformedEvents) {
-          await ctx.db.delete(expenseEvents).where(eq(expenseEvents.id, evt.id));
+        if (unperformedEvents.length > 0) {
+          await ctx.db
+            .delete(expenseEvents)
+            .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
         }
 
         if (isRecurring && rrule) {
           const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
-          for (const d of dates) {
-            await ctx.db.insert(expenseEvents).values({
-              expenseSourceId: source.id,
-              categoryId: newCategoryId,
-              name: newName,
-              expectedDate: d.toISOString().split("T")[0],
-              expectedAmount: newAmount,
-              status: "UPCOMING",
-              tenantId: ctx.tenantId!,
-              appId: ctx.appId!,
-              createdBy: ctx.userId!,
-              updatedBy: ctx.userId!,
-            });
+          if (dates.length > 0) {
+            await ctx.db.insert(expenseEvents).values(
+              dates.map((d) => ({
+                expenseSourceId: source.id,
+                categoryId: newCategoryId,
+                name: newName,
+                expectedDate: d.toISOString().split("T")[0],
+                expectedAmount: newAmount,
+                status: "UPCOMING" as const,
+                tenantId: ctx.tenantId!,
+                appId: ctx.appId!,
+                createdBy: ctx.userId!,
+                updatedBy: ctx.userId!,
+              }))
+            );
           }
         } else {
           await ctx.db.insert(expenseEvents).values({
@@ -221,18 +229,29 @@ export const expensesRouter = {
           });
         }
       } else {
-        for (const evt of unperformedEvents) {
+        if (unperformedEvents.length > 0) {
+          const unperformedIds = unperformedEvents.map((e) => e.id);
+          const updateData: {
+            name: string;
+            categoryId: string;
+            expectedAmount: string;
+            updatedAt: Date;
+            updatedBy: string;
+            expectedDate?: string;
+          } = {
+            name: newName,
+            categoryId: newCategoryId,
+            expectedAmount: newAmount,
+            updatedAt: new Date(),
+            updatedBy: ctx.userId!,
+          };
+          if (!isRecurring && input.data.startDate) {
+            updateData.expectedDate = input.data.startDate;
+          }
           await ctx.db
             .update(expenseEvents)
-            .set({
-              name: newName,
-              categoryId: newCategoryId,
-              expectedAmount: newAmount,
-              expectedDate: (!isRecurring && input.data.startDate) ? input.data.startDate : evt.expectedDate,
-              updatedAt: new Date(),
-              updatedBy: ctx.userId!,
-            })
-            .where(eq(expenseEvents.id, evt.id));
+            .set(updateData)
+            .where(inArray(expenseEvents.id, unperformedIds));
         }
       }
 
@@ -261,6 +280,7 @@ export const expensesRouter = {
   archiveExpenseSource: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const events = await ctx.db
         .select()
         .from(expenseEvents)
@@ -269,8 +289,10 @@ export const expensesRouter = {
       const paidEvents = events.filter((e) => e.status !== "UPCOMING");
       const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
 
-      for (const evt of unperformedEvents) {
-        await ctx.db.delete(expenseEvents).where(eq(expenseEvents.id, evt.id));
+      if (unperformedEvents.length > 0) {
+        await ctx.db
+          .delete(expenseEvents)
+          .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
       const [archived] = await ctx.db
@@ -339,6 +361,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [evt] = await ctx.db
         .insert(expenseEvents)
         .values({
@@ -367,6 +390,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [evt] = await ctx.db
         .select()
         .from(expenseEvents)
@@ -435,6 +459,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [evt] = await ctx.db
         .insert(expenseEvents)
         .values({
@@ -462,6 +487,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [updated] = await ctx.db
         .update(expenseEvents)
         .set({
@@ -487,6 +513,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       await ctx.db
         .update(expenseEvents)
         .set({
@@ -510,6 +537,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       await ctx.db
         .update(expenseEvents)
         .set({
@@ -533,6 +561,7 @@ export const expensesRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [source] = await ctx.db
         .select()
         .from(expenseSources)
@@ -558,25 +587,29 @@ export const expensesRouter = {
           )
         );
 
-      for (const evt of unperformedEvents) {
-        await ctx.db.delete(expenseEvents).where(eq(expenseEvents.id, evt.id));
+      if (unperformedEvents.length > 0) {
+        await ctx.db
+          .delete(expenseEvents)
+          .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
       const startDate = source.startDate || new Date().toISOString().split("T")[0];
       const dates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
-      for (const d of dates) {
-        await ctx.db.insert(expenseEvents).values({
-          expenseSourceId: source.id,
-          categoryId: source.categoryId,
-          name: source.name,
-          expectedDate: d.toISOString().split("T")[0],
-          expectedAmount: source.amount,
-          status: "UPCOMING",
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        });
+      if (dates.length > 0) {
+        await ctx.db.insert(expenseEvents).values(
+          dates.map((d) => ({
+            expenseSourceId: source.id,
+            categoryId: source.categoryId,
+            name: source.name,
+            expectedDate: d.toISOString().split("T")[0],
+            expectedAmount: source.amount,
+            status: "UPCOMING" as const,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          }))
+        );
       }
 
       return { count: dates.length };

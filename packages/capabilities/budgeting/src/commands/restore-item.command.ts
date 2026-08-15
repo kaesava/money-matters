@@ -1,6 +1,5 @@
-import { db, categories, incomeSources, expenseSources, incomeEvents, expenseEvents, bankAccounts } from "@money-matters/db";
+import { categories, incomeSources, expenseSources, incomeEvents, expenseEvents, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
 export async function restoreItemCommand(
@@ -9,7 +8,7 @@ export async function restoreItemCommand(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   let table: typeof categories | typeof incomeSources | typeof expenseSources | typeof bankAccounts = categories;
   if (itemType === "INCOME_SOURCE") table = incomeSources;

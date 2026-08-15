@@ -1,6 +1,5 @@
-import { db, categorySchedules } from "@money-matters/db";
+import { categorySchedules, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { CreateCategoryScheduleCommand } from "@money-matters/types";
 
@@ -9,7 +8,7 @@ export async function upsertCategoryScheduleCommand(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
     // Check if a schedule already exists for this category

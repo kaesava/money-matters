@@ -1,4 +1,3 @@
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { 
   categories, 
   incomeSources, 
@@ -8,11 +7,12 @@ import {
   transactionLedger, 
   bankAccounts, 
   fileNotes, 
-  userPreferences 
+  userPreferences,
+  DbOrTx
 } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
-function arrayToCsv(data: Record<string, any>[]): string {
+function arrayToCsv(data: Record<string, unknown>[]): string {
   if (!data || data.length === 0) return "";
   const headers = Object.keys(data[0]);
   const rows = data.map((row) =>
@@ -28,7 +28,7 @@ function arrayToCsv(data: Record<string, any>[]): string {
   return [headers.join(","), ...rows].join("\n");
 }
 
-export function exportMyDataHandler(db: PgDatabase<any, any, any>) {
+export function exportMyDataHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, appId: string) => {
     // 1. Fetch user categories
     const userCategories = await db

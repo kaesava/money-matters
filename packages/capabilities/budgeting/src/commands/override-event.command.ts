@@ -1,6 +1,5 @@
-import { db, incomeEvents, expenseEvents, incomeSources, expenseSources } from "@money-matters/db";
+import { incomeEvents, expenseEvents, incomeSources, expenseSources, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { OverrideEventCommand } from "@money-matters/types";
 
@@ -9,11 +8,18 @@ export async function overrideEventCommand(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
     if (input.eventType === "INCOME") {
-      const setPayload: Record<string, any> = {
+      const setPayload: {
+        expectedAmount: string;
+        expectedDate: string;
+        isOverridden: boolean;
+        updatedBy: string;
+        updatedAt: Date;
+        note?: string;
+      } = {
         expectedAmount: input.amount,
         expectedDate: input.expectedDate,
         isOverridden: true,
@@ -37,7 +43,12 @@ export async function overrideEventCommand(
       if (!updatedEvent) throw new Error("Income event not found.");
 
       if (input.updateSeries && updatedEvent.incomeSourceId) {
-        const sourcePayload: Record<string, any> = {
+        const sourcePayload: {
+          amount: string;
+          updatedBy: string;
+          updatedAt: Date;
+          name?: string;
+        } = {
           amount: input.amount,
           updatedBy: userId,
           updatedAt: new Date(),
@@ -58,7 +69,16 @@ export async function overrideEventCommand(
 
       return updatedEvent;
     } else {
-      const setPayload: Record<string, any> = {
+      const setPayload: {
+        expectedAmount: string;
+        expectedDate: string;
+        isOverridden: boolean;
+        updatedBy: string;
+        updatedAt: Date;
+        name?: string;
+        categoryId?: string;
+        note?: string;
+      } = {
         expectedAmount: input.amount,
         expectedDate: input.expectedDate,
         isOverridden: true,
@@ -84,7 +104,13 @@ export async function overrideEventCommand(
       if (!updatedEvent) throw new Error("Expense event not found.");
 
       if (input.updateSeries && updatedEvent.expenseSourceId) {
-        const sourcePayload: Record<string, any> = {
+        const sourcePayload: {
+          amount: string;
+          updatedBy: string;
+          updatedAt: Date;
+          name?: string;
+          categoryId?: string;
+        } = {
           amount: input.amount,
           updatedBy: userId,
           updatedAt: new Date(),

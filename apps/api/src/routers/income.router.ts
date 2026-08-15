@@ -1,6 +1,6 @@
-import { tenantProcedure } from '../trpc/trpc.js';
+import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { incomeSources, incomeEvents } from "@money-matters/db";
-import { and, eq, sql, asc } from "drizzle-orm";
+import { and, eq, sql, asc, inArray } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { posthog } from '../lib/posthog.js';
 import {
@@ -22,6 +22,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       let rrule: string | null = null;
       if (input.isRecurring && input.startDate) {
         if (input.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
@@ -48,17 +49,19 @@ export const incomeRouter = {
 
       if (input.isRecurring && input.startDate && rrule) {
         const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
-        for (const d of dates) {
-          await ctx.db.insert(incomeEvents).values({
-            incomeSourceId: source.id,
-            expectedDate: d.toISOString().split("T")[0],
-            expectedAmount: input.amount,
-            status: "UPCOMING",
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            createdBy: ctx.userId!,
-            updatedBy: ctx.userId!,
-          });
+        if (dates.length > 0) {
+          await ctx.db.insert(incomeEvents).values(
+            dates.map((d) => ({
+              incomeSourceId: source.id,
+              expectedDate: d.toISOString().split("T")[0],
+              expectedAmount: input.amount,
+              status: "UPCOMING" as const,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
+          );
         }
       } else if (input.startDate) {
         await ctx.db.insert(incomeEvents).values({
@@ -105,6 +108,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [source] = await ctx.db
         .select()
         .from(incomeSources)
@@ -163,23 +167,27 @@ export const incomeRouter = {
       );
 
       if (typeChanged || scheduleOrFreqChanged) {
-        for (const evt of unperformedEvents) {
-          await ctx.db.delete(incomeEvents).where(eq(incomeEvents.id, evt.id));
+        if (unperformedEvents.length > 0) {
+          await ctx.db
+            .delete(incomeEvents)
+            .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
         }
 
         if (isRecurring && rrule) {
           const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
-          for (const d of dates) {
-            await ctx.db.insert(incomeEvents).values({
-              incomeSourceId: source.id,
-              expectedDate: d.toISOString().split("T")[0],
-              expectedAmount: newAmount,
-              status: "UPCOMING",
-              tenantId: ctx.tenantId!,
-              appId: ctx.appId!,
-              createdBy: ctx.userId!,
-              updatedBy: ctx.userId!,
-            });
+          if (dates.length > 0) {
+            await ctx.db.insert(incomeEvents).values(
+              dates.map((d) => ({
+                incomeSourceId: source.id,
+                expectedDate: d.toISOString().split("T")[0],
+                expectedAmount: newAmount,
+                status: "UPCOMING" as const,
+                tenantId: ctx.tenantId!,
+                appId: ctx.appId!,
+                createdBy: ctx.userId!,
+                updatedBy: ctx.userId!,
+              }))
+            );
           }
         } else {
           await ctx.db.insert(incomeEvents).values({
@@ -194,16 +202,25 @@ export const incomeRouter = {
           });
         }
       } else {
-        for (const evt of unperformedEvents) {
+        if (unperformedEvents.length > 0) {
+          const unperformedIds = unperformedEvents.map((e) => e.id);
+          const updateData: {
+            expectedAmount: string;
+            updatedAt: Date;
+            updatedBy: string;
+            expectedDate?: string;
+          } = {
+            expectedAmount: newAmount,
+            updatedAt: new Date(),
+            updatedBy: ctx.userId!,
+          };
+          if (!isRecurring && input.data.startDate) {
+            updateData.expectedDate = input.data.startDate;
+          }
           await ctx.db
             .update(incomeEvents)
-            .set({
-              expectedAmount: newAmount,
-              expectedDate: (!isRecurring && input.data.startDate) ? input.data.startDate : evt.expectedDate,
-              updatedAt: new Date(),
-              updatedBy: ctx.userId!,
-            })
-            .where(eq(incomeEvents.id, evt.id));
+            .set(updateData)
+            .where(inArray(incomeEvents.id, unperformedIds));
         }
       }
 
@@ -232,6 +249,7 @@ export const incomeRouter = {
   createIncomeEvent: tenantProcedure
     .input(CreateIncomeEventCommand)
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [event] = await ctx.db
         .insert(incomeEvents)
         .values({
@@ -250,6 +268,7 @@ export const incomeRouter = {
 
   generateNextIncomeEvents: tenantProcedure
     .mutation(async ({ ctx }) => {
+      requiresWriteAccess(ctx);
       const sources = await ctx.db
         .select()
         .from(incomeSources)
@@ -263,29 +282,35 @@ export const incomeRouter = {
 
       const todayStr = new Date().toISOString().split('T')[0];
 
-      for (const source of sources) {
-        const [existing] = await ctx.db
-          .select()
-          .from(incomeEvents)
-          .where(
-            and(
-              eq(incomeEvents.incomeSourceId, source.id),
-              eq(incomeEvents.expectedDate, todayStr)
+      const sourceIds = sources.map((s) => s.id);
+      const existingEvents = sourceIds.length > 0
+        ? await ctx.db
+            .select({ incomeSourceId: incomeEvents.incomeSourceId })
+            .from(incomeEvents)
+            .where(
+              and(
+                inArray(incomeEvents.incomeSourceId, sourceIds),
+                eq(incomeEvents.expectedDate, todayStr)
+              )
             )
-          );
+        : [];
 
-        if (!existing) {
-          await ctx.db.insert(incomeEvents).values({
+      const existingSourceIdSet = new Set(existingEvents.map((e) => e.incomeSourceId));
+      const sourcesToInsert = sources.filter((s) => !existingSourceIdSet.has(s.id));
+
+      if (sourcesToInsert.length > 0) {
+        await ctx.db.insert(incomeEvents).values(
+          sourcesToInsert.map((source) => ({
             incomeSourceId: source.id,
             expectedAmount: source.amount,
             expectedDate: todayStr,
-            status: "UPCOMING",
+            status: "UPCOMING" as const,
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
             createdBy: ctx.userId!,
             updatedBy: ctx.userId!,
-          });
-        }
+          }))
+        );
       }
 
       return { success: true, generated: sources.length };
@@ -316,6 +341,7 @@ export const incomeRouter = {
   archiveIncomeSource: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const events = await ctx.db
         .select()
         .from(incomeEvents)
@@ -324,8 +350,10 @@ export const incomeRouter = {
       const confirmedEvents = events.filter((e) => e.status !== "UPCOMING");
       const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
 
-      for (const evt of unperformedEvents) {
-        await ctx.db.delete(incomeEvents).where(eq(incomeEvents.id, evt.id));
+      if (unperformedEvents.length > 0) {
+        await ctx.db
+          .delete(incomeEvents)
+          .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
       const [archived] = await ctx.db
@@ -402,6 +430,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [source] = await ctx.db
         .insert(incomeSources)
         .values({
@@ -444,6 +473,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [updated] = await ctx.db
         .update(incomeEvents)
         .set({
@@ -473,6 +503,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [evt] = await ctx.db
         .select()
         .from(incomeEvents)
@@ -519,6 +550,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       await ctx.db
         .update(incomeEvents)
         .set({
@@ -543,6 +575,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       await ctx.db
         .update(incomeEvents)
         .set({
@@ -567,6 +600,7 @@ export const incomeRouter = {
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
       const [source] = await ctx.db
         .select()
         .from(incomeSources)
@@ -592,23 +626,27 @@ export const incomeRouter = {
           )
         );
 
-      for (const evt of unperformedEvents) {
-        await ctx.db.delete(incomeEvents).where(eq(incomeEvents.id, evt.id));
+      if (unperformedEvents.length > 0) {
+        await ctx.db
+          .delete(incomeEvents)
+          .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
       const startDate = source.startDate || new Date().toISOString().split("T")[0];
       const dates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
-      for (const d of dates) {
-        await ctx.db.insert(incomeEvents).values({
-          incomeSourceId: source.id,
-          expectedDate: d.toISOString().split("T")[0],
-          expectedAmount: source.amount,
-          status: "UPCOMING",
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        });
+      if (dates.length > 0) {
+        await ctx.db.insert(incomeEvents).values(
+          dates.map((d) => ({
+            incomeSourceId: source.id,
+            expectedDate: d.toISOString().split("T")[0],
+            expectedAmount: source.amount,
+            status: "UPCOMING" as const,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          }))
+        );
       }
 
       return { count: dates.length };

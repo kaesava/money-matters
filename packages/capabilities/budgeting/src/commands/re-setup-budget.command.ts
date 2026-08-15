@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { eq, and, isNull, count, inArray } from "drizzle-orm";
-import { categories, transactionLedger } from "@money-matters/db";
-import { PgDatabase } from "drizzle-orm/pg-core";
+import { categories, transactionLedger, DbOrTx } from "@money-matters/db";
+
+const DEFAULT_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
 export const ReSetupCategoryItemSchema = z.object({
   id: z.string().optional(),
@@ -33,7 +34,7 @@ export type ReSetupBudgetInput = z.infer<typeof ReSetupBudgetInputSchema>;
  * - Hard-deletes categories removed during setup if they contain 0 transactions.
  * - Preserves historical transaction_ledger integrity.
  */
-export async function reSetupBudget(db: PgDatabase<any, any, any>, input: ReSetupBudgetInput): Promise<{ status: "SUCCESS"; updatedCount: number; archivedCount: number }> {
+export async function reSetupBudget(db: DbOrTx, input: ReSetupBudgetInput): Promise<{ status: "SUCCESS"; updatedCount: number; archivedCount: number }> {
   ReSetupBudgetInputSchema.parse(input);
 
   // Fetch current active categories for tenant
@@ -46,27 +47,30 @@ export async function reSetupBudget(db: PgDatabase<any, any, any>, input: ReSetu
   let updatedCount = 0;
   let archivedCount = 0;
 
-  // Process incoming category updates & creations
+  // Process incoming category updates & creations concurrently (P0 #4)
   const newCategoriesToInsert = [];
+  const updatePromises = [];
   for (const item of input.categoriesList) {
     if (item.id) {
-      // Update existing category
-      await db
-        .update(categories)
-        .set({
-          name: item.name,
-          type: item.type,
-          monthlyAmount: item.monthlyAmount !== undefined && item.monthlyAmount !== null ? String(item.monthlyAmount) : undefined,
-          updatedAt: new Date(),
-          updatedBy: input.userId,
-        })
-        .where(and(eq(categories.id, item.id), eq(categories.tenantId, input.tenantId)));
+      // Collect update promise for concurrent execution
+      updatePromises.push(
+        db
+          .update(categories)
+          .set({
+            name: item.name,
+            type: item.type,
+            monthlyAmount: item.monthlyAmount !== undefined && item.monthlyAmount !== null ? String(item.monthlyAmount) : undefined,
+            updatedAt: new Date(),
+            updatedBy: input.userId,
+          })
+          .where(and(eq(categories.id, item.id), eq(categories.tenantId, input.tenantId)))
+      );
       updatedCount++;
     } else {
       // Collect new sub-category for bulk insert
       newCategoriesToInsert.push({
         tenantId: input.tenantId,
-        appId: "01908bde-34bb-7b19-a178-574211bc93aa",
+        appId: DEFAULT_APP_ID,
         name: item.name,
         type: item.type,
         monthlyAmount: item.monthlyAmount !== undefined && item.monthlyAmount !== null ? String(item.monthlyAmount) : "0",
@@ -75,6 +79,10 @@ export async function reSetupBudget(db: PgDatabase<any, any, any>, input: ReSetu
       });
       updatedCount++;
     }
+  }
+
+  if (updatePromises.length > 0) {
+    await Promise.all(updatePromises);
   }
 
   if (newCategoriesToInsert.length > 0) {

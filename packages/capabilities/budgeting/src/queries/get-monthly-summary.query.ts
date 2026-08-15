@@ -1,13 +1,12 @@
-import { db, categories, transactionLedger } from "@money-matters/db";
+import { categories, transactionLedger, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function getMonthlySummaryQuery(
   year: number,
   month: number,
   tenantId: string,
   appId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   // Aggregate credits and debits recorded during the given year and month
   const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));

@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "turbo run build",
+    "check-i18n": "pnpm --filter @money-matters/i18n check-i18n",
     "dev": "npx concurrently -k -p \"[{name}]\" -n \"app,inngest,dbstudio\" -c \"cyan,magenta,black\" \"turbo run dev\" \"pnpm run dev:inngest\" \"pnpm run db:studio\"",
     "dev:inngest": "npx inngest-cli@latest dev -u https://kesh-imac.tail09ef18.ts.net/api/inngest",
     "db:studio": "pnpm --filter=@money-matters/db studio",

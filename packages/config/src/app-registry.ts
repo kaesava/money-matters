@@ -24,10 +24,12 @@ export interface AppConfig {
   };
 }
 
+export const DEFAULT_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
+
 // Registry containing apps configured on this SaaS platform
 const REGISTRY: Record<string, AppConfig> = {
-  "01908bde-34bb-7b19-a178-574211bc93aa": {
-    id: "01908bde-34bb-7b19-a178-574211bc93aa",
+  [DEFAULT_APP_ID]: {
+    id: DEFAULT_APP_ID,
     name: "Money Matters",
     slug: "money-matters",
     features: {

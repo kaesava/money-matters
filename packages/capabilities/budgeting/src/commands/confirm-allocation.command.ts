@@ -1,8 +1,6 @@
-import { db, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents } from "@money-matters/db";
+import { allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, DbOrTx } from "@money-matters/db";
 import { eq } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
-import { randomUUID } from "crypto";
 
 export const ConfirmAllocationInput = z.object({
   incomeEventId: z.string().uuid(),
@@ -21,7 +19,7 @@ export async function confirmAllocationCommand(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
     // 1. Create allocation plan

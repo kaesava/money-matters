@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { CanAffordVerdictType } from '@money-matters/types';
 import { t } from '@money-matters/i18n';
 import Link from 'next/link';
+import DonutRing from '../../../components/web/DonutRing';
 
 export interface WebDashboardHeroCardProps {
   readonly everydayBalance: number;
@@ -244,71 +245,95 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left Side: Scorecards */}
-        <div className="flex-1 flex flex-col md:flex-row gap-6">
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col lg:flex-row items-center justify-between gap-8">
+        {/* Dominant Donut Ring Centerpiece */}
+        <div className="flex flex-col sm:flex-row items-center gap-8 w-full lg:w-auto">
+          <div className="relative flex items-center justify-center shrink-0">
+            <DonutRing
+              timeElapsedPct={elapsedPct}
+              consumedPct={everydayMonthlyBudget > 0 ? Math.min(100, Math.max(0, ((everydayMonthlyBudget - everydayBalance) / everydayMonthlyBudget) * 100)) : 0}
+              centerLabel={formatAUD(everydayBalance)}
+              size={220}
+              strokeWidth={18}
+            />
+          </div>
+          <div className="space-y-3 text-center sm:text-left">
+            <div>
+              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Everyday Cash Balance</span>
+              <h2 className="text-3xl font-extrabold text-[#1B2B4B] font-mono tabular-nums tracking-tight">
+                {formatAUD(everydayBalance)}
+              </h2>
+            </div>
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>{daysLeft} days remaining in {monthName}</p>
+              <p className="font-semibold text-blue-600">
+                Monthly Target: <span className="font-mono tabular-nums">{formatAUD(everydayMonthlyBudget)}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Dual Pool Cards & Pacing Indicators */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:max-w-xl">
           {renderPoolCard('Everyday Pool', 'EVERYDAY', everydayBalance, everydayMonthlyBudget)}
           {renderPoolCard('Bills Pool', 'REGULAR', billsBalance, billsMonthlyBudget)}
         </div>
 
-        {/* Right Side: Goals Stack (Vertically stacked) */}
-        <div className="w-full lg:w-72 bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
+        {/* Symmetric Health Status Filter Column */}
+        <div className="w-full lg:w-56 bg-slate-50/60 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shrink-0">
           <div>
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Goals / Save Toward</h3>
+            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Category Health</h3>
             <div className="space-y-2">
-              {/* Behind */}
               <button
                 type="button"
                 onClick={() => onSelectFilter?.('RED')}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-rose-100 bg-rose-50/40 hover:bg-rose-50/90 hover:scale-[1.01] transition-all cursor-pointer text-left"
+                className="w-full flex items-center justify-between p-2.5 rounded-xl border border-rose-100 bg-white hover:bg-rose-50/50 transition-all text-left shadow-2xs"
               >
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
                   <span className="text-xs font-bold text-rose-950">Behind</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-200/80 text-rose-950">
+                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-rose-100 text-rose-800">
                   {behindCount}
                 </span>
               </button>
 
-              {/* Needs Attention */}
               <button
                 type="button"
                 onClick={() => onSelectFilter?.('AMBER')}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-amber-100 bg-amber-50/40 hover:bg-amber-50/90 hover:scale-[1.01] transition-all cursor-pointer text-left"
+                className="w-full flex items-center justify-between p-2.5 rounded-xl border border-amber-100 bg-white hover:bg-amber-50/50 transition-all text-left shadow-2xs"
               >
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                  <span className="text-xs font-bold text-amber-950">Needs Attention</span>
+                  <span className="text-xs font-bold text-amber-950">Attention</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-200/80 text-amber-950">
+                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-800">
                   {needsAttentionCount}
                 </span>
               </button>
 
-              {/* On Track */}
               <button
                 type="button"
                 onClick={() => onSelectFilter?.('GREEN')}
-                className="w-full flex items-center justify-between p-3 rounded-xl border border-emerald-100 bg-emerald-50/40 hover:bg-emerald-50/90 hover:scale-[1.01] transition-all cursor-pointer text-left"
+                className="w-full flex items-center justify-between p-2.5 rounded-xl border border-emerald-100 bg-white hover:bg-emerald-50/50 transition-all text-left shadow-2xs"
               >
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                   <span className="text-xs font-bold text-emerald-950">On Track</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-emerald-200/80 text-emerald-950">
+                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-100 text-emerald-800">
                   {onTrackCount}
                 </span>
               </button>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-gray-100 text-center">
+          <div className="mt-3 pt-2 border-t border-gray-200/60 text-center">
             <Link
               href="/dashboard/categories?type=GOAL"
-              className="text-xs font-bold text-blue-600 hover:text-blue-700"
+              className="text-[11px] font-bold text-blue-600 hover:text-blue-700"
             >
-              View all savings goals →
+              View Savings Goals →
             </Link>
           </div>
         </div>

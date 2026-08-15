@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { PgDatabase } from "drizzle-orm/pg-core";
+import type { DbOrTx } from "@money-matters/db";
 import {
   registerDeviceTokenHandler,
   removeDeviceTokenHandler,
@@ -37,7 +37,7 @@ describe("notifications capability handlers", () => {
     then: vi.fn().mockImplementation((onFulfilled) => {
       return Promise.resolve([{ id: "mock-token-id" }]).then(onFulfilled);
     }),
-  } as unknown as PgDatabase<any, any, any>;
+  } as unknown as DbOrTx;
 
   it("exports handlers correctly", () => {
     expect(registerDeviceTokenHandler).toBeDefined();

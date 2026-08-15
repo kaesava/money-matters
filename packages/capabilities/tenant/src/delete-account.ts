@@ -1,4 +1,3 @@
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { t } from '@money-matters/i18n';
 import { 
   categories, 
@@ -16,11 +15,12 @@ import {
   deviceTokens,
   tenantUsers,
   tenants,
-  users
+  users,
+  DbOrTx,
 } from "@money-matters/db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 
-export function deleteMyAccountHandler(db: PgDatabase<any, any, any>) {
+export function deleteMyAccountHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, email: string, appId: string) => {
     // 1. Hard delete in FK-safe order
     // file_notes

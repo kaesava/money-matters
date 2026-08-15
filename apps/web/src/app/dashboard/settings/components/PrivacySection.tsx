@@ -14,21 +14,45 @@ export function PrivacySection() {
     try {
       const { data } = await exportQuery.refetch();
       if (data) {
-        if (format === "csv" && data.csvFiles) {
-          // Download each CSV file
-          Object.entries(data.csvFiles).forEach(([fileName, content]) => {
-            if (content) {
-              const blob = new Blob([content as string], { type: "text/csv;charset=utf-8;" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `money-matters-${fileName}`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            }
-          });
+        if (format === "csv") {
+          let csvContent = "";
+          if (data.csvFiles) {
+            Object.entries(data.csvFiles).forEach(([fileName, content]) => {
+              if (content) {
+                const blob = new Blob([content as string], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `money-matters-${fileName}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }
+            });
+            return;
+          }
+
+          // Fallback: convert JSON data object to CSV rows
+          const rows = [
+            ["Type", "Name", "Amount", "Created At"],
+            ...((data.categories as Array<{ type: string; name: string; monthlyAmount?: string; createdAt?: string }>) || []).map((c) => [
+              c.type || "CATEGORY",
+              `"${(c.name || "").replace(/"/g, '""')}"`,
+              c.monthlyAmount || "0",
+              c.createdAt || "",
+            ]),
+          ];
+          csvContent = rows.map((r) => r.join(",")).join("\n");
+          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `money-matters-export-${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
         } else {
           const jsonStr = JSON.stringify(data, null, 2);
           const blob = new Blob([jsonStr], { type: "application/json" });

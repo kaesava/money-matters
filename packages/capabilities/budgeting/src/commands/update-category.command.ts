@@ -1,6 +1,5 @@
-import { db, categories, categorySchedules } from "@money-matters/db";
+import { categories, categorySchedules, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { UpdateCategoryCommand } from "@money-matters/types";
 
@@ -10,7 +9,7 @@ export async function updateCategoryCommand(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
     if (input.isSurplusTarget === true) {

@@ -1,14 +1,14 @@
-import { db, categories, categorySchedules, transactionLedger, incomeEvents, incomeSources } from "@money-matters/db";
+import { categories, categorySchedules, transactionLedger, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
+import { parseRruleFrequencyDays } from "../commands/run-allocation.command.js";
 
 export async function previewAllocationQuery(
   tenantId: string,
   appId: string,
   incomeEventId: string,
   incomeAmount: number,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   // 1. Fetch Categories
   const dbCats = await dbClient
@@ -65,13 +65,22 @@ export async function previewAllocationQuery(
     }
   }
 
-  // 4. Fetch income event to resolve dates
+  // 4. Fetch income event to resolve dates & recurrence
   const [event] = await dbClient
     .select()
     .from(incomeEvents)
     .where(eq(incomeEvents.id, incomeEventId));
 
   let freqDays = 14;
+  if (event) {
+    const [source] = await dbClient
+      .select()
+      .from(incomeSources)
+      .where(eq(incomeSources.id, event.incomeSourceId));
+    if (source?.rrule) {
+      freqDays = parseRruleFrequencyDays(source.rrule);
+    }
+  }
 
   const engineBuckets: EngineBucket[] = dbCats.map((cat) => {
     const sched = schedulesMap.get(cat.id);

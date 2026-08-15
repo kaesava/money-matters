@@ -380,6 +380,9 @@ importers:
       '@money-matters/capability-billing':
         specifier: workspace:*
         version: link:../billing
+      '@money-matters/config':
+        specifier: workspace:*
+        version: link:../../config
       '@money-matters/db':
         specifier: workspace:*
         version: link:../../db

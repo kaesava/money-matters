@@ -1,7 +1,5 @@
-import { z } from "zod";
-import { categories, transactionLedger, incomeEvents } from "@money-matters/db";
+import { categories, transactionLedger, incomeEvents, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, gte } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 
 export interface SpendingVelocityResult {
   everydayBalance: string;
@@ -18,7 +16,7 @@ export interface SpendingVelocityResult {
 export async function getSpendingVelocityQuery(
   tenantId: string,
   appId: string,
-  db: PgDatabase<any, any, any>
+  db: DbOrTx
 ): Promise<SpendingVelocityResult> {
   // 1. Fetch Everyday category
   const [everydayCat] = await db

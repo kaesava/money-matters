@@ -124,9 +124,10 @@ households (tenant)
 - **Category Bucket Rules**:
   - **`EVERYDAY` & `REGULAR` (Bills)**: Managed at **overall pool level**. Categories specify monthly targets to compute total bucket target budget. Spending occurs against pooled balances (pooled discretionary cash or pooled bills balance).
   - **`GOAL` (Save Toward)**: Managed **individually per category** with dedicated target balances, target dates, and progress metrics.
+- **Dynamic Paycheck Frequency Engine (`parseRruleFrequencyDays`)**: Automatically evaluates income source recurrence rules (`rrule`) to calculate allocation period days: `WEEKLY` (7 days), `FORTNIGHTLY` (14 days), `MONTHLY` (30 days), and `ANNUALLY`/`YEARLY` (365 days), ensuring prorated target calculations scale precisely with user income schedules.
 - **Category UI Screen**: Organized into 3 distinct sections (Everyday Spending [collapsable], Regular Bills [collapsable], Save Toward Goals).
 1. **`DEFICIT REPAIR` (Step 0)**: Priority 1 restoring negative category balances (`currentBalance < 0`) to $0.
-2. **`REGULAR` (Bills)**: Prorates monthly bill targets by paycheck frequency.
+2. **`REGULAR` (Bills)**: Prorates monthly bill targets by dynamic paycheck frequency (`targetMonthly * (paycheckFrequencyDays / 30)`).
 3. **`GOAL` committed**: Allocates target monthly contribution.
 4. **`EVERYDAY` top-up cap**: Tops up pooled Everyday balance to target cap.
 5. **`GOAL` uncommitted / Surplus sweep**: Sweeps residual income strictly into the category where `isSurplusTarget === true` (default: *"Surplus & Offset Reserve"*).
@@ -174,8 +175,13 @@ households (tenant)
 ### 5.8 Database & Network Optimization Standards
 
 - **Bulk Database Operations (Anti-N+1)**: All database writes and queries must be batched. Individual inserts or queries in loops are forbidden. Plan lines and ledger entries are prepared in-memory and written in bulk. Deletions and status transitions must use `inArray` operators (e.g. archiving category arrays or deleting account relations) to prevent query waterfalls.
-- **Parallelized Network Operations**: Onboarding configurations (e.g., category setup or schedule target insertions) must execute mutations in parallel using batch wrappers (`Promise.all`), preventing sequential async waterfalls.
+- **Parallelized Network Operations**: Onboarding configurations (e.g., category setup or schedule target insertions) and `reSetupBudget` category updates execute mutations concurrently using batch wrappers (`Promise.all`), preventing sequential async waterfalls.
 - **Strict Whitelisted CORS**: Cross-origin resource sharing (CORS) is restricted to whitelisted domains (`*.kaesava.au` and dev `localhost`). Global wildcards (`origin: true`) are explicitly banned.
+
+### 5.9 Typed Feature Flags, Kill Switches & Strict DB Typing Standards
+- **Typed Feature Flags (`@money-matters/config`)**: All feature flags implement `FeatureFlag` with typed expiry, owner, tenant scoping, and mandatory `killSwitchEnabled: boolean`. When `killSwitchEnabled === true`, `isFeatureEnabled()` immediately disables the capability globally regardless of user rollout percentages.
+- **Strict Database Typing (`DbOrTx`)**: Zero `any` policy enforced across all capability command and query signatures. All capability handlers receive strict `DbOrTx` (`DbClient | DbTransaction`) without default client injection parameters, guaranteeing deterministic transactional boundaries and full type safety.
+
 
 ---
 
@@ -185,8 +191,8 @@ households (tenant)
   - Web: `@opennextjs/cloudflare` (`moneymatters.kaesava.au`)
   - API: Fastify on Cloudflare Workers (`api.moneymatters.kaesava.au`)
 - **Automated Workflows (`.github/workflows/`)**:
-  - `ci.yml`: Runs on PR and push to `main` (Lint, Typecheck, Vitest unit tests).
-  - `deploy.yml`: Runs on merge to `main` (Executes `wrangler deploy` for `apps/web` and `apps/api`).
+  - `ci.yml`: Runs on PR and push to `main` (Security scan `pnpm audit --audit-level=high`, i18n parity check `pnpm check-i18n`, Typecheck, Lint, Vitest unit tests, Turbo build).
+  - `deploy.yml`: Runs on merge to `main` (Executes CI suite as a mandatory prerequisite via `needs: [ci]` before running Drizzle DB migrations and `wrangler deploy` for `apps/web` and `apps/api`).
 
 ---
 

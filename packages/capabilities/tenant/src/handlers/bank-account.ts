@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { bankAccounts, bankAccountCategoryMappings } from "@money-matters/db";
+import { bankAccounts, bankAccountCategoryMappings, DbOrTx } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
 import { eq, and, sql, or, ne } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { ensurePremiumAccess } from "@money-matters/capability-billing";
 
 export const UpdateBankAccountMappingsSchema = z.object({
@@ -17,7 +16,7 @@ export const UpdateBankAccountMappingsSchema = z.object({
 /**
  * Lists bank accounts for a tenant alongside their associated category types, respecting private bank account ownership.
  */
-export function getBankAccountsWithMappingsHandler(db: PgDatabase<any, any, any>) {
+export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
   return async (tenantId: string, appId: string, userId?: string) => {
     const accountFilters = [
       eq(bankAccounts.tenantId, tenantId),
@@ -57,7 +56,7 @@ export function getBankAccountsWithMappingsHandler(db: PgDatabase<any, any, any>
 /**
  * Creates a new bank account within the tenant scope.
  */
-export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
+export function createBankAccountHandler(db: DbOrTx) {
   return async (
     input: z.infer<typeof CreateBankAccountCommand>,
     tenantId: string,
@@ -90,7 +89,7 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
 /**
  * Updates an existing bank account within the tenant scope.
  */
-export function updateBankAccountHandler(db: PgDatabase<any, any, any>) {
+export function updateBankAccountHandler(db: DbOrTx) {
   return async (
     accountId: string,
     input: z.infer<typeof UpdateBankAccountCommand>,
@@ -126,7 +125,7 @@ export function updateBankAccountHandler(db: PgDatabase<any, any, any>) {
 /**
  * Re-assigns category types to bank accounts for a tenant.
  */
-export function updateBankAccountMappingsHandler(db: PgDatabase<any, any, any>) {
+export function updateBankAccountMappingsHandler(db: DbOrTx) {
   return async (
     input: z.infer<typeof UpdateBankAccountMappingsSchema>,
     tenantId: string,
@@ -173,7 +172,7 @@ export function updateBankAccountMappingsHandler(db: PgDatabase<any, any, any>) 
 /**
  * Archives a bank account within the tenant scope after ensuring no category types are linked to it.
  */
-export function archiveBankAccountHandler(db: PgDatabase<any, any, any>) {
+export function archiveBankAccountHandler(db: DbOrTx) {
   return async (
     accountId: string,
     tenantId: string,

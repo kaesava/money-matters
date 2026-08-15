@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, ViewStyle, TextStyle, ImageStyle } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "../tokens";
@@ -13,7 +13,7 @@ interface ScreenHeaderProps {
   user?: { name?: string | null; email?: string | null } | null;
   getInitials: () => string;
   onOpenMenu: () => void;
-  styles: any;
+  styles: Record<string, ViewStyle | TextStyle | ImageStyle>;
 }
 
 export function ScreenHeader({

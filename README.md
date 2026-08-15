@@ -48,6 +48,9 @@ pnpm install
 # Build all packages & apps
 pnpm build
 
+# Run i18n parity check
+pnpm check-i18n
+
 # Run typechecks across all 14 monorepo packages
 pnpm typecheck
 

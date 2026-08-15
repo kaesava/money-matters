@@ -1,6 +1,5 @@
-import { db, incomeEvents, expenseEvents } from "@money-matters/db";
+import { incomeEvents, expenseEvents, DbOrTx } from "@money-matters/db";
 import { and, eq } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { DeleteUpcomingEventCommand } from "@money-matters/types";
 
@@ -9,7 +8,7 @@ export async function deleteUpcomingEventCommand(
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
     if (input.eventType === "INCOME") {

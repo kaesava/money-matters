@@ -1,11 +1,10 @@
-import { db, categories, categorySchedules, transactionLedger } from "@money-matters/db";
+import { categories, categorySchedules, transactionLedger, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, or, ne } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function listCategoriesQuery(
   tenantId: string,
   appId: string,
-  dbClient: PgDatabase<any, any, any> = db,
+  dbClient: DbOrTx,
   userId?: string
 ) {
   // 1. Fetch categories with 100% stealth privacy for PERSONAL categories

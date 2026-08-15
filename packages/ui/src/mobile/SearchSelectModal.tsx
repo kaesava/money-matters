@@ -7,6 +7,9 @@ import {
   Modal,
   FlatList,
   SafeAreaView,
+  ViewStyle,
+  TextStyle,
+  ImageStyle,
 } from 'react-native';
 import { t } from '@money-matters/i18n';
 import { MobileSearchSelectOption } from './SearchSelect';
@@ -21,7 +24,7 @@ interface SearchSelectModalProps {
   value: string;
   handleSelect: (val: string) => void;
   renderOption?: (item: MobileSearchSelectOption, isSelected: boolean) => React.ReactNode;
-  styles: any;
+  styles: Record<string, ViewStyle | TextStyle | ImageStyle>;
 }
 
 export function SearchSelectModal({

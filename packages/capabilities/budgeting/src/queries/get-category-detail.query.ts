@@ -1,6 +1,5 @@
-import { db, categories, transactionLedger } from "@money-matters/db";
+import { categories, transactionLedger, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function getCategoryDetailQuery(
   categoryId: string,
@@ -8,7 +7,7 @@ export async function getCategoryDetailQuery(
   appId: string,
   limit = 30,
   offset = 0,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   const [category] = await dbClient
     .select()

@@ -1,13 +1,12 @@
-import { db, categories, expenseEvents } from "@money-matters/db";
+import { categories, expenseEvents, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function archiveCategoryCommand(
   categoryId: string,
   tenantId: string,
   appId: string,
   userId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   // 1. Fetch category
   const [cat] = await dbClient

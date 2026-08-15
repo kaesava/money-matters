@@ -1,13 +1,12 @@
-import { db, incomeEvents, categories, categorySchedules, transactionLedger } from "@money-matters/db";
-import { eq, and, sql, asc } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
+import { incomeEvents, categories, categorySchedules, transactionLedger, DbOrTx } from "@money-matters/db";
+import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 
 export async function previewPaydayQuery(
   incomeEventId: string,
   tenantId: string,
   appId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   // Fetch target event by id regardless of status
   const [targetEvent] = await dbClient
@@ -33,7 +32,7 @@ export async function previewPaydayForEvent(
   targetEvent: { id: string; expectedDate: string; expectedAmount: string; actualAmount?: string | null; name?: string | null },
   tenantId: string,
   appId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   // Fetch categories and schedules to run allocation engine
   const allCategories = await dbClient

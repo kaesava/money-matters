@@ -1,7 +1,6 @@
-'use client';
-
 import React from 'react';
 import { Spinner } from "@money-matters/ui/web";
+import { useIconVisibility } from '@money-matters/ui';
 
 export interface WebAttentionItem {
   readonly id: string;
@@ -36,30 +35,52 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editAmount, setEditAmount] = React.useState("");
   const [editDate, setEditDate] = React.useState("");
+  const { showIcons } = useIconVisibility();
 
   if (!items || items.length === 0) return null;
 
   const todayStr = new Date().toISOString().split("T")[0];
 
+  // Sort: Overdue first (Red tier), then Upcoming within 3 days (Amber tier)
+  const sortedItems = [...items].sort((a, b) => {
+    if (a.isOverdue && !b.isOverdue) return -1;
+    if (!a.isOverdue && b.isOverdue) return 1;
+    return a.expectedDate.localeCompare(b.expectedDate);
+  });
+
   return (
     <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 mb-6 shadow-xs">
       <div className="flex items-center gap-2 mb-4">
+        {showIcons && <span className="text-lg">⚠️</span>}
         <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-          Have you paid these bills yet? ({items.length})
+          Bills Needing Attention ({items.length})
         </h2>
       </div>
 
       <div className="divide-y divide-zinc-100">
-        {items.map((item) => {
+        {sortedItems.map((item) => {
           const isEditing = editingId === item.id;
           const currentDate = isEditing ? editDate : item.expectedDate;
           const currentAmount = isEditing ? parseFloat(editAmount) || item.expectedAmount : item.expectedAmount;
           const isFutureDate = currentDate > todayStr;
 
+          // Severity calculation
+          const isOverdue = item.isOverdue || item.expectedDate < todayStr;
+
           return (
-            <div key={item.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 first:pt-0 last:pb-0">
+            <div
+              key={item.id}
+              className={`py-3 px-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-1 border-l-4 transition-all ${
+                isOverdue
+                  ? "border-l-rose-600 bg-rose-50/40"
+                  : "border-l-amber-500 bg-amber-50/30"
+              }`}
+            >
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
+                  {showIcons && (
+                    <span className="text-xs">{isOverdue ? '🔴' : '🟡'}</span>
+                  )}
                   <span className="text-sm font-bold text-[#1B2B4B]">{item.name}</span>
                   {item.categoryName && (
                     <button
@@ -70,6 +91,15 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       {formatAUD(item.categoryBalance)} available
                     </button>
                   )}
+                  <span
+                    className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      isOverdue
+                        ? "bg-rose-100 text-rose-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {isOverdue ? "Overdue" : "Due Soon"}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -81,7 +111,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       className="px-2 py-1 text-xs border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                     />
                   ) : (
-                    <span className="text-xs text-zinc-500">
+                    <span className={`text-xs font-medium ${isOverdue ? "text-rose-700 font-bold" : "text-zinc-500"}`}>
                       Due: {item.expectedDate}
                     </span>
                   )}
@@ -99,7 +129,9 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                     className="w-24 px-2 py-1 text-xs border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-right"
                   />
                 ) : (
-                  <span className="text-sm font-black text-[#1B2B4B] font-mono">{formatAUD(item.expectedAmount)}</span>
+                  <span className="text-sm font-black text-[#1B2B4B] font-mono tabular-nums">
+                    {formatAUD(item.expectedAmount)}
+                  </span>
                 )}
 
                 <div className="flex items-center gap-2">

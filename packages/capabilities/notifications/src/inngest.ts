@@ -10,7 +10,7 @@ const pushPayloadSchema = z.object({
   tenantId: z.string(),
   title: z.string(),
   body: z.string(),
-  data: z.record(z.any()).optional(),
+  data: z.record(z.unknown()).optional(),
 }).strict();
 
 const partnerInvitePayloadSchema = z.object({

@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Lint, Typecheck & Test
+    name: Lint, Typecheck, Security Scan, Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -30,6 +30,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Security Scan
+        run: pnpm audit --audit-level=high
+
+      - name: i18n Parity Check
+        run: pnpm check-i18n
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -43,3 +49,7 @@ jobs:
           NEON_AUTH_BASE_URL: https://placeholder.neon.tech
           NEON_AUTH_JWKS_URL: https://placeholder.neon.tech/jwks.json
           NODE_ENV: test
+
+      - name: Build
+        run: pnpm build
+

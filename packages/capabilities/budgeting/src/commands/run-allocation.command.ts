@@ -1,7 +1,31 @@
-import { db, categories, categorySchedules, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources } from "@money-matters/db";
+import { DbOrTx, categories, categorySchedules, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
+
+/**
+ * Resolves frequency interval in days from an RRULE recurrence string.
+ * Supports WEEKLY (7d), FORTNIGHTLY (14d), MONTHLY (30d), and ANNUALLY / YEARLY (365d).
+ *
+ * @param rrule - Recurrence rule string (e.g. 'FREQ=WEEKLY;INTERVAL=2' or 'FREQ=MONTHLY')
+ * @returns Frequency duration in calendar days (defaults to 14 if undefined/unmatched)
+ */
+export function parseRruleFrequencyDays(rrule?: string | null): number {
+  if (!rrule) return 14;
+  const upper = rrule.toUpperCase();
+  if (upper.includes("FORTNIGHTLY") || (upper.includes("FREQ=WEEKLY") && upper.includes("INTERVAL=2"))) {
+    return 14;
+  }
+  if (upper.includes("FREQ=WEEKLY") || upper.includes("WEEKLY")) {
+    return 7;
+  }
+  if (upper.includes("FREQ=MONTHLY") || upper.includes("MONTHLY")) {
+    return 30;
+  }
+  if (upper.includes("FREQ=YEARLY") || upper.includes("ANNUALLY") || upper.includes("YEARLY")) {
+    return 365;
+  }
+  return 14;
+}
 
 export async function runAllocationCommand(
   tenantId: string,
@@ -9,7 +33,7 @@ export async function runAllocationCommand(
   userId: string,
   incomeEventId: string,
   incomeAmount: number,
-  dbClient: PgDatabase<any, any, any> = db,
+  dbClient: DbOrTx,
   customLines?: { bucketId: string; amount: string }[],
   markAsReceivedToday?: boolean
 ) {
@@ -68,7 +92,7 @@ export async function runAllocationCommand(
     }
   }
 
-  // 4. Fetch income event to resolve dates
+  // 4. Fetch income event to resolve dates & recurrence frequency
   const [event] = await dbClient
     .select()
     .from(incomeEvents)
@@ -80,8 +104,8 @@ export async function runAllocationCommand(
       .select()
       .from(incomeSources)
       .where(eq(incomeSources.id, event.incomeSourceId));
-    if (source) {
-      const expectedAmount = parseFloat(source.amount);
+    if (source?.rrule) {
+      freqDays = parseRruleFrequencyDays(source.rrule);
     }
   }
 
@@ -185,14 +209,20 @@ export async function runAllocationCommand(
 
     if (!isFuturePlanned) {
       // Update income event status to CONFIRMED
-      const updateData: Record<string, any> = {
+      const updateData: {
+        status: "CONFIRMED";
+        actualAmount: string;
+        updatedBy: string;
+        updatedAt: Date;
+        expectedDate?: string;
+      } = {
         status: "CONFIRMED",
         actualAmount: incomeAmount.toFixed(2),
         updatedBy: userId,
         updatedAt: new Date(),
       };
       if (markAsReceivedToday && event) {
-        updateData.expectedDate = new Date();
+        updateData.expectedDate = new Date().toISOString().split("T")[0];
       }
       await tx
         .update(incomeEvents)

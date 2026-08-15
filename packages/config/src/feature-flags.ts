@@ -17,6 +17,8 @@ export interface FeatureFlag {
   expiresAt: string;
   /** Indicates if flag can be overridden per tenant scope. */
   tenantScopable: boolean;
+  /** Emergency kill switch state to globally disable feature regardless of overrides. */
+  killSwitchEnabled: boolean;
 }
 
 /**
@@ -28,24 +30,28 @@ export const FEATURE_FLAGS = {
     owner: "product",
     expiresAt: "never",
     tenantScopable: true,
+    killSwitchEnabled: false,
   },
   partnerInvite: {
     key: "partnerInvite",
     owner: "product",
     expiresAt: "2026-12-31",
     tenantScopable: true,
+    killSwitchEnabled: false,
   },
   offlineSync: {
     key: "offlineSync",
     owner: "engineering",
     expiresAt: "2026-12-31",
     tenantScopable: true,
+    killSwitchEnabled: false,
   },
   foundingMemberPromo: {
     key: "foundingMemberPromo",
     owner: "product",
     expiresAt: "never",
     tenantScopable: false,
+    killSwitchEnabled: false,
   },
 } as const;
 
@@ -63,6 +69,9 @@ export function isFeatureEnabled(
   appId: string,
   premiumEnabledOverride = false
 ): boolean {
+  if (FEATURE_FLAGS[flag]?.killSwitchEnabled) {
+    return false;
+  }
   const appConfig = resolveAppConfig(appId);
   if (!appConfig) return false;
 

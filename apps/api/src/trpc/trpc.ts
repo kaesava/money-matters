@@ -38,18 +38,22 @@ export const authenticatedProcedure = t.procedure.use(async ({ ctx, next }) => {
  * Resolves subscriptionStatus and gates DEACTIVATED tenants.
  */
 export const tenantProcedure = t.procedure.use(async ({ ctx, next }) => {
-  if (!ctx.session || !ctx.tenantId || !ctx.appId) {
+  if (!ctx.session || !ctx.tenantId || !ctx.appId || !ctx.userId) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'Multi-tenancy boundary isolation violation: Missing or invalid verified session tracking parameters.',
     });
   }
 
+  const tenantId = ctx.tenantId;
+  const appId = ctx.appId;
+  const userId = ctx.userId;
+
   // Wrap the call in a database transaction to scope the SET LOCAL session setting.
   return await ctx.db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT set_config('app.current_tenant_id', ${ctx.tenantId}, true)`);
+    await tx.execute(sql`SELECT set_config('app.current_tenant_id', ${tenantId}, true)`);
 
-    const subscriptionStatus = await getSubscriptionStatus(tx, ctx.tenantId);
+    const subscriptionStatus = await getSubscriptionStatus(tx, tenantId);
 
     if (subscriptionStatus.isDeactivated) {
       throw new TRPCError({
@@ -62,9 +66,9 @@ export const tenantProcedure = t.procedure.use(async ({ ctx, next }) => {
       ctx: {
         ...ctx,
         db: tx, // transactional database client with RLS active
-        tenantId: ctx.tenantId,
-        appId: ctx.appId,
-        userId: ctx.userId,
+        tenantId,
+        appId,
+        userId,
         subscriptionStatus,
       },
     });
@@ -78,7 +82,14 @@ export const ownerProcedure = tenantProcedure.use(async ({ ctx, next }) => {
       message: 'Administrative permission required: Command scoped to OWNER privilege role only.',
     });
   }
-  return next();
+  return next({
+    ctx: {
+      ...ctx,
+      tenantId: ctx.tenantId,
+      appId: ctx.appId,
+      userId: ctx.userId,
+    },
+  });
 });
 
 /**

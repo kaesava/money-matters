@@ -26,12 +26,28 @@ interface SetupLifestyleStepProps {
   setHasPrivateHealth: (val: boolean) => void;
   hasGym: boolean;
   setHasGym: (val: boolean) => void;
+  hasMedicalOutofPocket?: boolean;
+  setHasMedicalOutofPocket?: (val: boolean) => void;
+  hasDebt?: boolean;
+  setHasDebt?: (val: boolean) => void;
+  debtMonthlyRepayment?: number;
+  setDebtMonthlyRepayment?: (val: number) => void;
+  hasPets?: boolean;
+  setHasPets?: (val: boolean) => void;
+  petsCount?: number;
+  setPetsCount?: (val: number) => void;
+  hasCharityGiving?: boolean;
+  setHasCharityGiving?: (val: boolean) => void;
+  charityMonthlyAmount?: number;
+  setCharityMonthlyAmount?: (val: number) => void;
   weeklyGroceries: number;
   setWeeklyGroceries: (val: number) => void;
   weeklyDining: number;
   setWeeklyDining: (val: number) => void;
   weeklyPersonal: number;
   setWeeklyPersonal: (val: number) => void;
+  weeklyIncidentals?: number;
+  setWeeklyIncidentals?: (val: number) => void;
   onBack: () => void;
   onNext: () => void;
 }
@@ -59,12 +75,28 @@ export function SetupLifestyleStep({
   setHasPrivateHealth,
   hasGym,
   setHasGym,
+  hasMedicalOutofPocket = false,
+  setHasMedicalOutofPocket,
+  hasDebt = false,
+  setHasDebt,
+  debtMonthlyRepayment = 0,
+  setDebtMonthlyRepayment,
+  hasPets = false,
+  setHasPets,
+  petsCount = 0,
+  setPetsCount,
+  hasCharityGiving = false,
+  setHasCharityGiving,
+  charityMonthlyAmount = 0,
+  setCharityMonthlyAmount,
   weeklyGroceries,
   setWeeklyGroceries,
   weeklyDining,
   setWeeklyDining,
   weeklyPersonal,
   setWeeklyPersonal,
+  weeklyIncidentals = 50,
+  setWeeklyIncidentals,
   onBack,
   onNext,
 }: SetupLifestyleStepProps) {
@@ -267,8 +299,8 @@ export function SetupLifestyleStep({
         )}
       </div>
 
-      {/* Health & Fitness */}
-      <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
+      {/* Health & Wellbeing */}
+      <div className="flex flex-wrap items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
         <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
           <input
             type="checkbox"
@@ -287,6 +319,98 @@ export function SetupLifestyleStep({
           />
           Gym / Fitness
         </label>
+        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hasMedicalOutofPocket}
+            onChange={(e) => setHasMedicalOutofPocket?.(e.target.checked)}
+            className="w-4 h-4 text-[#2563eb] rounded-md"
+          />
+          Out-of-Pocket Medical / Pharmacy
+        </label>
+      </div>
+
+      {/* Debt & Pets */}
+      <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
+        <span className="text-xs font-bold text-[#1B2B4B]">Debt & Pets</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-zinc-200">
+            <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasDebt}
+                onChange={(e) => setHasDebt?.(e.target.checked)}
+                className="w-4 h-4 text-[#2563eb] rounded-md"
+              />
+              Active Debt Repayments
+            </label>
+            {hasDebt && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-bold">$</span>
+                <input
+                  type="number"
+                  placeholder="Monthly Repayment ($)"
+                  value={debtMonthlyRepayment || ''}
+                  onChange={(e) => setDebtMonthlyRepayment?.(parseFloat(e.target.value) || 0)}
+                  className="w-full px-2.5 py-1 text-xs border border-zinc-200 rounded-lg font-mono"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-zinc-200">
+            <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasPets}
+                onChange={(e) => setHasPets?.(e.target.checked)}
+                className="w-4 h-4 text-[#2563eb] rounded-md"
+              />
+              Pets (Dogs/Cats/Other)
+            </label>
+            {hasPets && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-bold">Count:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={petsCount || 1}
+                  onChange={(e) => setPetsCount?.(parseInt(e.target.value) || 1)}
+                  className="w-20 px-2 py-1 text-xs border border-zinc-200 rounded-lg font-mono text-center"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Obligations & Giving */}
+      <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
+        <span className="text-xs font-bold text-[#1B2B4B]">Obligations & Giving</span>
+        <div className="bg-white p-3 rounded-xl border border-zinc-200 flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasCharityGiving}
+              onChange={(e) => setHasCharityGiving?.(e.target.checked)}
+              className="w-4 h-4 text-[#2563eb] rounded-md"
+            />
+            Charity Donations & Family Support
+          </label>
+          {hasCharityGiving && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs font-bold">$</span>
+              <input
+                type="number"
+                placeholder="Monthly Contribution ($)"
+                value={charityMonthlyAmount || ''}
+                onChange={(e) => setCharityMonthlyAmount?.(parseFloat(e.target.value) || 0)}
+                className="w-full max-w-xs px-2.5 py-1 text-xs border border-zinc-200 rounded-lg font-mono"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Weekly Discretionary Spending Sliders */}
@@ -294,11 +418,11 @@ export function SetupLifestyleStep({
         <span className="text-xs font-black uppercase tracking-wider text-zinc-400">
           Weekly Discretionary Spending Estimates
         </span>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
-              <span>🛒 Groceries & Food</span>
-              <span className="text-[#2563eb]">${weeklyGroceries}/wk</span>
+              <span>🛒 Groceries</span>
+              <span className="text-[#2563eb] font-mono">${weeklyGroceries}/wk</span>
             </div>
             <input
               type="range"
@@ -313,8 +437,8 @@ export function SetupLifestyleStep({
 
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
-              <span>☕ Dining Out & Coffee</span>
-              <span className="text-[#2563eb]">${weeklyDining}/wk</span>
+              <span>☕ Dining & Fun</span>
+              <span className="text-[#2563eb] font-mono">${weeklyDining}/wk</span>
             </div>
             <input
               type="range"
@@ -329,8 +453,8 @@ export function SetupLifestyleStep({
 
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
-              <span>🛍️ Personal Allowance</span>
-              <span className="text-[#2563eb]">${weeklyPersonal}/wk</span>
+              <span>🛍️ Personal</span>
+              <span className="text-[#2563eb] font-mono">${weeklyPersonal}/wk</span>
             </div>
             <input
               type="range"
@@ -339,6 +463,22 @@ export function SetupLifestyleStep({
               step="10"
               value={weeklyPersonal}
               onChange={(e) => setWeeklyPersonal(parseInt(e.target.value))}
+              className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
+              <span>🛡️ Incidental Buffer</span>
+              <span className="text-[#2563eb] font-mono">${weeklyIncidentals}/wk</span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="200"
+              step="10"
+              value={weeklyIncidentals}
+              onChange={(e) => setWeeklyIncidentals?.(parseInt(e.target.value))}
               className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
             />
           </div>

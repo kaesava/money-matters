@@ -1,11 +1,10 @@
-import { db, categories, incomeSources, expenseSources, bankAccounts } from "@money-matters/db";
+import { categories, incomeSources, expenseSources, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function listArchivedItemsQuery(
   tenantId: string,
   appId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ) {
   const [archivedCats, archivedIncome, archivedExpenses, archivedAccounts] = await Promise.all([
     dbClient

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { PgDatabase } from "drizzle-orm/pg-core";
+import type { DbOrTx } from "@money-matters/db";
 import { deleteUpcomingEventCommand } from "./delete-upcoming-event.command.js";
 
 describe("deleteUpcomingEventCommand", () => {
@@ -11,14 +11,14 @@ describe("deleteUpcomingEventCommand", () => {
     };
     const mockDb = {
       transaction: vi.fn().mockImplementation((cb) => cb(mockTx)),
-    };
+    } as unknown as DbOrTx;
 
     const res = await deleteUpcomingEventCommand(
       { eventId: "11111111-1111-4111-8111-111111111111", eventType: "INCOME" },
       "tenant-1",
       "app-1",
       "user-1",
-      mockDb as unknown as PgDatabase<any, any, any>
+      mockDb
     );
 
     expect(res).toEqual({ success: true, id: "event-1" });
@@ -33,14 +33,14 @@ describe("deleteUpcomingEventCommand", () => {
     };
     const mockDb = {
       transaction: vi.fn().mockImplementation((cb) => cb(mockTx)),
-    };
+    } as unknown as DbOrTx;
 
     const res = await deleteUpcomingEventCommand(
       { eventId: "22222222-2222-4222-8222-222222222222", eventType: "EXPENSE" },
       "tenant-1",
       "app-1",
       "user-1",
-      mockDb as unknown as PgDatabase<any, any, any>
+      mockDb
     );
 
     expect(res).toEqual({ success: true, id: "event-2" });

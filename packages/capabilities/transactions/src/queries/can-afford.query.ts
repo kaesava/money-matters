@@ -1,13 +1,12 @@
-import { db, categories, transactionLedger, categorySchedules, incomeEvents, expenseEvents } from "@money-matters/db";
+import { categories, transactionLedger, categorySchedules, incomeEvents, expenseEvents, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { CanAffordVerdictType } from "@money-matters/types";
 
 export async function canAffordQuery(
   amount: number,
   tenantId: string,
   appId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: DbOrTx
 ): Promise<CanAffordVerdictType> {
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0]!;
