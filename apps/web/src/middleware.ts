@@ -15,6 +15,14 @@ const PUBLIC_PREFIXES = [
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Global feature flag check: block auth and app access when auth is disabled
+  const isAuthEnabled = process.env.NEXT_PUBLIC_ENABLE_AUTH !== "false";
+
+  if (!isAuthEnabled && pathname !== "/") {
+    const landingUrl = new URL("/", request.url);
+    return NextResponse.redirect(landingUrl);
+  }
+
   // Bypass session cookie check if session verifier is present (let client SDK handle it)
   if (request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
     return NextResponse.next();
@@ -52,6 +60,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only run on protected paths — do NOT apply to _next static assets
-  matcher: ["/dashboard/:path*", "/setup/:path*", "/subscription/:path*"],
+  // Apply middleware to app routes, sign-in, and sign-up (excluding static assets)
+  matcher: ["/dashboard/:path*", "/setup/:path*", "/subscription/:path*", "/sign-in", "/sign-up"],
 };
