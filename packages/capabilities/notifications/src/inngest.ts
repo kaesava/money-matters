@@ -170,10 +170,39 @@ export function createNotificationFunctions(inngest: Inngest) {
     }
   );
 
+  const sendWeeklyDigestEmail = inngest.createFunction(
+    { id: 'send-weekly-digest-email', retries: 3 },
+    { event: 'notification/send-digest-email' },
+    async ({ event, step }) => {
+      const { email } = event.data as { userId: string; email: string };
+
+      const result = await step.run('send-resend-weekly-digest', async () => {
+        const html = `
+          <div style="font-family: sans-serif; background-color: #0b132b; color: #ffffff; padding: 40px; border-radius: 16px;">
+            <h1 style="color: #2563eb; margin-bottom: 16px;">📊 Weekly Financial Summary</h1>
+            <p style="font-size: 16px; line-height: 1.6;">Here is your weekly financial digest. Your spending and bill schedules for the upcoming week have been calculated.</p>
+            <div style="margin-top: 30px;">
+              <a href="https://moneymatters.kaesava.au/dashboard" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; display: inline-block;">${t('notifications.inngest.openDashboardCta')}</a>
+            </div>
+          </div>
+        `;
+
+        return await sendEmail({
+          to: email,
+          subject: '📊 Your Weekly Financial Digest — Money Matters',
+          html,
+        });
+      });
+
+      return { success: result.success };
+    }
+  );
+
   return [
     sendPushNotification,
     sendWelcomeEmail,
     sendPartnerInviteEmail,
     processAccountDeletion,
+    sendWeeklyDigestEmail,
   ];
 }

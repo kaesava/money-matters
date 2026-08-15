@@ -5,4 +5,5 @@ export * from "./commands/create-customer-portal-session.js";
 export * from "./commands/activate-subscription.js";
 export * from "./commands/deactivate-tenant.js";
 export * from "./commands/transition-to-free-tier.js";
+export * from "./guards/ensure-premium.js";
 export * from "./webhooks/stripe-webhook-handler.js";

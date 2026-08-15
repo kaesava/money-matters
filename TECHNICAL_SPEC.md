@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-14  
-> **Status:** Fully synchronized with production Cloudflare Workers architecture (`nodejs_compat`), Fastify API, Neon serverless PostgreSQL with RLS, Expo React Native Android target, OpenNext Web target, Upstash Redis rate limiting, Serene Finance UI design tokens, 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, and 100% Vitest unit test coverage.
+> **Last updated:** 2026-08-15  
+> **Status:** Fully synchronized with production Cloudflare Workers architecture (`nodejs_compat`), Fastify API, Neon serverless PostgreSQL with RLS, Expo React Native Android target, OpenNext Web target, Upstash Redis rate limiting, Serene Finance UI design tokens, 4th Category Type (`PERSONAL`) with 100% Stealth Privacy, 5-Step Waterfall Engine (with Step 3b Personal Allowances), CSV Zip Export Bundle, Premium Tier Gating (`ensurePremiumAccess`), Multi-Tenant Header Context Switching (`x-tenant-id`), Schedule Burst Event Regeneration with `endDate` support, Inngest Scheduled Notifications (Spending Velocity & Resend Weekly Email Digest), 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, and 100% Vitest unit test coverage.
 
 ---
 

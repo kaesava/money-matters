@@ -29,36 +29,49 @@ export function PreferencesSection({ currentTimezone }: PreferencesSectionProps)
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-[#1B2B4B]">Timezone</p>
-            <p className="text-[11px] text-zinc-500">Australian Eastern Standard Time (AEST)</p>
+            <p className="text-[11px] text-zinc-500">Active regional timezone for schedules and dates</p>
           </div>
           <select
             value={currentTimezone}
             onChange={(e) => updateUserPrefMut.mutate({ timezone: e.target.value })}
-            className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
+            className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white text-zinc-800"
           >
             <option value="Australia/Sydney">Sydney / Melbourne (AEST/AEDT)</option>
             <option value="Australia/Brisbane">Brisbane (AEST)</option>
             <option value="Australia/Adelaide">Adelaide (ACST/ACDT)</option>
             <option value="Australia/Perth">Perth (AWST)</option>
+            <option value="Europe/London">London (GMT/BST)</option>
+            <option value="America/New_York">New York (EST/EDT)</option>
+            <option value="Asia/Tokyo">Tokyo (JST)</option>
+            <option value="UTC">UTC (Universal Coordinated Time)</option>
           </select>
         </div>
 
-        {/* UI Icons Toggle */}
+        {/* UI Visual Icons Toggle Switch */}
         <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
           <div>
-            <p className="text-xs font-bold text-[#1B2B4B]">Show Category Icons</p>
-            <p className="text-[11px] text-zinc-500">Toggle emoji and symbol badges across dashboards</p>
+            <p className="text-xs font-bold text-[#1B2B4B]">Show Visual Icons</p>
+            <p className="text-[11px] text-zinc-500">Control visual icon badges across web and mobile views</p>
           </div>
-          <input
-            type="checkbox"
-            checked={showIcons}
-            onChange={(e) => {
-              setShowIcons(e.target.checked);
-              updateUserPrefMut.mutate({ appPreferences: { ui: { showIcons: e.target.checked } } });
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showIcons}
+            onClick={() => {
+              const nextVal = !showIcons;
+              setShowIcons(nextVal);
+              updateUserPrefMut.mutate({ appPreferences: { ui: { showIcons: nextVal } } });
             }}
-
-            className="w-4 h-4 text-[#2563eb] rounded-md accent-[#2563eb] cursor-pointer"
-          />
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              showIcons ? "bg-[#00B4A6]" : "bg-zinc-300"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                showIcons ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
       </div>
     </section>

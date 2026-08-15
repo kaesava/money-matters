@@ -120,15 +120,23 @@ export async function createEdgeContext(
 
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName, requestDb);
 
-  const [membership] = await requestDb
+  const rawTenantHeader = req.headers.get('x-tenant-id') ?? req.headers.get('x-active-tenant');
+  const requestedTenantId = rawTenantHeader || null;
+
+  const userMemberships = await requestDb
     .select({
       tenantId: tenantUsers.tenantId,
       role: tenantUsers.role,
       appId: tenantUsers.appId,
     })
     .from(tenantUsers)
-    .where(eq(tenantUsers.userId, claims.userId))
-    .limit(1);
+    .where(eq(tenantUsers.userId, claims.userId));
+
+  const matchedMembership = requestedTenantId
+    ? userMemberships.find((m) => m.tenantId === requestedTenantId)
+    : undefined;
+
+  const membership = matchedMembership ?? userMemberships[0];
 
   let tenantId = membership?.tenantId ?? null;
   let role = membership?.role ?? null;

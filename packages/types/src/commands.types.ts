@@ -13,17 +13,22 @@ export const CreateBankAccountCommand = z.object({
   name: z.string().min(1),
   lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
   unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
+  isPrivate: z.boolean().default(false).optional(),
+  userId: z.string().uuid().optional(),
 }).strict();
 
 export const UpdateBankAccountCommand = z.object({
   name: z.string().min(1).optional(),
   lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  isPrivate: z.boolean().optional(),
+  userId: z.string().uuid().optional(),
 }).strict();
 
 export const CreateCategoryCommand = z.object({
   name: z.string().min(1),
-  type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
+  type: z.enum(["REGULAR", "GOAL", "EVERYDAY", "PERSONAL"]),
+  userId: z.string().uuid().optional(),
   isCommitted: z.boolean().default(false).optional(),
   isEssential: z.boolean().default(false).optional(),
   isSurplusTarget: z.boolean().default(false).optional(),
@@ -40,7 +45,8 @@ export const CreateCategoryCommand = z.object({
 
 export const UpdateCategoryCommand = z.object({
   name: z.string().min(1).optional(),
-  type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]).optional(),
+  type: z.enum(["REGULAR", "GOAL", "EVERYDAY", "PERSONAL"]).optional(),
+  userId: z.string().uuid().optional(),
   isCommitted: z.boolean().optional(),
   isEssential: z.boolean().optional(),
   isSurplusTarget: z.boolean().optional(),

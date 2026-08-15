@@ -377,6 +377,9 @@ importers:
 
   packages/capabilities/budgeting:
     dependencies:
+      '@money-matters/capability-billing':
+        specifier: workspace:*
+        version: link:../billing
       '@money-matters/db':
         specifier: workspace:*
         version: link:../../db
@@ -485,6 +488,9 @@ importers:
 
   packages/capabilities/tenant:
     dependencies:
+      '@money-matters/capability-billing':
+        specifier: workspace:*
+        version: link:../billing
       '@money-matters/db':
         specifier: workspace:*
         version: link:../../db

@@ -12,6 +12,22 @@ import {
 } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
+function arrayToCsv(data: Record<string, any>[]): string {
+  if (!data || data.length === 0) return "";
+  const headers = Object.keys(data[0]);
+  const rows = data.map((row) =>
+    headers
+      .map((header) => {
+        const val = row[header];
+        if (val === null || val === undefined) return '""';
+        const str = typeof val === "object" ? JSON.stringify(val) : String(val);
+        return `"${str.replace(/"/g, '""')}"`;
+      })
+      .join(",")
+  );
+  return [headers.join(","), ...rows].join("\n");
+}
+
 export function exportMyDataHandler(db: PgDatabase<any, any, any>) {
   return async (tenantId: string, userId: string, appId: string) => {
     // 1. Fetch user categories
@@ -74,7 +90,7 @@ export function exportMyDataHandler(db: PgDatabase<any, any, any>) {
       .where(eq(userPreferences.userId, userId))
       .limit(1);
 
-    return {
+    const jsonPayload = {
       exportedAt: new Date().toISOString(),
       userId,
       tenantId,
@@ -87,6 +103,19 @@ export function exportMyDataHandler(db: PgDatabase<any, any, any>) {
       bankAccounts: userBankAccounts,
       fileNotes: userFileNotes,
       preferences: prefs ?? null,
+    };
+
+    const csvFiles = {
+      "categories.csv": arrayToCsv(userCategories),
+      "income_sources.csv": arrayToCsv(userIncomeSources),
+      "expense_sources.csv": arrayToCsv(userExpenseSources),
+      "transaction_ledger.csv": arrayToCsv(userLedger),
+      "bank_accounts.csv": arrayToCsv(userBankAccounts),
+    };
+
+    return {
+      ...jsonPayload,
+      csvFiles,
     };
   };
 }

@@ -17,6 +17,7 @@ export const incomeRouter = {
         receivingAccountId: z.string().uuid().optional(),
         isRecurring: z.boolean().default(true),
         startDate: z.string().optional(),
+        endDate: z.string().nullable().optional(),
         frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
       }).strict()
     )
@@ -37,6 +38,7 @@ export const incomeRouter = {
           receivingAccountId: input.receivingAccountId || null,
           rrule,
           startDate: input.startDate || null,
+          endDate: input.endDate || null,
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -45,7 +47,7 @@ export const incomeRouter = {
         .returning();
 
       if (input.isRecurring && input.startDate && rrule) {
-        const dates = generateBurstDates(rrule, input.startDate, null, 12);
+        const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
         for (const d of dates) {
           await ctx.db.insert(incomeEvents).values({
             incomeSourceId: source.id,
@@ -97,6 +99,7 @@ export const incomeRouter = {
           receivingAccountId: z.string().uuid().optional(),
           isRecurring: z.boolean().optional(),
           startDate: z.string().optional(),
+          endDate: z.string().nullable().optional(),
           frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
         }).strict(),
       }).strict()
@@ -130,6 +133,7 @@ export const incomeRouter = {
       const newAmount = input.data.amount ?? source.amount;
       const newReceivingAccountId =
         input.data.receivingAccountId !== undefined ? input.data.receivingAccountId : source.receivingAccountId;
+      const newEndDate = input.data.endDate !== undefined ? input.data.endDate : source.endDate;
 
       const wasRecurring = !!source.rrule;
       const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
@@ -154,6 +158,7 @@ export const incomeRouter = {
       const scheduleOrFreqChanged = isRecurring && (
         typeChanged ||
         (input.data.startDate && input.data.startDate !== source.startDate) ||
+        (input.data.endDate !== undefined && input.data.endDate !== source.endDate) ||
         (newFreq && rrule !== source.rrule)
       );
 
@@ -163,7 +168,7 @@ export const incomeRouter = {
         }
 
         if (isRecurring && rrule) {
-          const dates = generateBurstDates(rrule, newStartDate, null, 12);
+          const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
           for (const d of dates) {
             await ctx.db.insert(incomeEvents).values({
               incomeSourceId: source.id,
@@ -210,6 +215,7 @@ export const incomeRouter = {
           receivingAccountId: newReceivingAccountId,
           rrule,
           startDate: isRecurring ? newStartDate : (input.data.startDate || source.startDate),
+          endDate: newEndDate,
           updatedAt: new Date(),
           updatedBy: ctx.userId!,
         })
@@ -552,5 +558,59 @@ export const incomeRouter = {
           )
         );
       return { success: true };
+    }),
+
+  reburstIncomeSource: tenantProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const [source] = await ctx.db
+        .select()
+        .from(incomeSources)
+        .where(
+          and(
+            eq(incomeSources.id, input.id),
+            eq(incomeSources.tenantId, ctx.tenantId!),
+            eq(incomeSources.appId, ctx.appId!),
+            sql`${incomeSources.archivedAt} IS NULL`
+          )
+        );
+
+      if (!source) throw new Error("Income source not found or unauthorized.");
+      if (!source.rrule) return { count: 0 };
+
+      const unperformedEvents = await ctx.db
+        .select()
+        .from(incomeEvents)
+        .where(
+          and(
+            eq(incomeEvents.incomeSourceId, source.id),
+            eq(incomeEvents.status, "UPCOMING")
+          )
+        );
+
+      for (const evt of unperformedEvents) {
+        await ctx.db.delete(incomeEvents).where(eq(incomeEvents.id, evt.id));
+      }
+
+      const startDate = source.startDate || new Date().toISOString().split("T")[0];
+      const dates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
+      for (const d of dates) {
+        await ctx.db.insert(incomeEvents).values({
+          incomeSourceId: source.id,
+          expectedDate: d.toISOString().split("T")[0],
+          expectedAmount: source.amount,
+          status: "UPCOMING",
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        });
+      }
+
+      return { count: dates.length };
     }),
 };

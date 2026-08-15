@@ -5,6 +5,7 @@ import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { Spinner } from "@money-matters/ui/web";
+import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
 
 export interface CategoryFormModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ export interface CategoryFormModalProps {
   categoryToEdit?: {
     id: string;
     name: string;
-    type: "REGULAR" | "GOAL" | "EVERYDAY";
+    type: "REGULAR" | "GOAL" | "EVERYDAY" | "PERSONAL";
     monthlyAmount?: string | null;
     targetAmount?: string | null;
     targetDate?: string | null;
@@ -24,7 +25,6 @@ export interface CategoryFormModalProps {
   onSuccess?: () => void;
 }
 
-
 export function CategoryFormModal({
   isOpen,
   onClose,
@@ -34,6 +34,8 @@ export function CategoryFormModal({
   const utils = trpc.useUtils();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const bankAccounts = bankAccountsQuery.data ?? [];
+  const { status } = useSubscriptionStatus();
+  const isFreeTier = status?.isFreeTier ?? false;
 
   const createCategoryMut = trpc.createCategory.useMutation();
   const updateCategoryMut = trpc.updateCategory.useMutation();
@@ -41,7 +43,7 @@ export function CategoryFormModal({
   const isEdit = !!categoryToEdit;
 
   const [name, setName] = useState("");
-  const [type, setType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
+  const [type, setType] = useState<"REGULAR" | "GOAL" | "EVERYDAY" | "PERSONAL">("REGULAR");
   const [monthlyAmount, setMonthlyAmount] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
@@ -198,12 +200,15 @@ export function CategoryFormModal({
           </label>
           <select
             value={type}
-            onChange={(e) => setType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
+            onChange={(e) => setType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY" | "PERSONAL")}
             className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
           >
             <option value="REGULAR">{t("categories.typeRegular")}</option>
             <option value="GOAL">{t("categories.typeGoal")}</option>
             <option value="EVERYDAY">{t("categories.typeEveryday")}</option>
+            <option value="PERSONAL" disabled={isFreeTier}>
+              {isFreeTier ? "🔒 Personal Private Category (⭐ Pro Feature)" : "Personal Private Category"}
+            </option>
           </select>
         </div>
 

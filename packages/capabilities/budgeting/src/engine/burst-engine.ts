@@ -17,8 +17,8 @@ export function generateBurstDates(
   rruleStr: string,
   startDateStr: string,
   endDateStr?: string | null,
-  monthsAhead = 6,
-  maxOccurrences = 25
+  monthsAhead = 12,
+  maxOccurrences = 1000
 ): Date[] {
   const dates: Date[] = [];
   const start = new Date(startDateStr);

@@ -58,6 +58,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   if (existingNeonUser) {
     userId = existingNeonUser.id;
     console.log(`Found existing Neon Auth user for kaesava@gmail.com with ID: ${userId}`);
+    await db.execute(sql`UPDATE neon_auth.user SET "emailVerified" = true WHERE id = ${userId}`);
   } else {
     console.log(`Inserting seed user into neon_auth.user for kaesava@gmail.com...`);
     try {
@@ -77,7 +78,46 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     }
   }
 
-  // 2. Play Store Tester User: tester-play@kaesava.au
+  // 2. Secondary Multi-Tenant User: raehankaesava@gmail.com
+  const raehanEmail = "raehankaesava@gmail.com";
+  const raehanTenantId = "d3b07384-d113-4ec4-a5a4-000000000003";
+  let raehanUserId = "d3b07384-d113-4ec4-a5a4-000000000003";
+
+  let existingRaehanUsers: any[] = [];
+  try {
+    const res = await db.execute<{ id: string; email: string }>(
+      sql`SELECT id, email FROM neon_auth.user WHERE email = ${raehanEmail} LIMIT 1`
+    );
+    existingRaehanUsers = Array.isArray(res) ? res : (res as any)?.rows ?? [];
+  } catch (e) {
+    console.log("Note: neon_auth.user table check for raehan skipped.");
+  }
+
+  const existingRaehanUser = existingRaehanUsers[0];
+  if (existingRaehanUser) {
+    raehanUserId = existingRaehanUser.id;
+    console.log(`Found existing Neon Auth user for ${raehanEmail} with ID: ${raehanUserId}`);
+    await db.execute(sql`UPDATE neon_auth.user SET "emailVerified" = true WHERE id = ${raehanUserId}`);
+  } else {
+    console.log(`Inserting seed user into neon_auth.user for ${raehanEmail}...`);
+    try {
+      const existingByIdRes = await db.execute(
+        sql`SELECT id FROM neon_auth.user WHERE id = ${raehanUserId} LIMIT 1`
+      );
+      const hasId = Array.isArray(existingByIdRes) ? existingByIdRes.length > 0 : (existingByIdRes as any)?.rows?.length > 0;
+      if (hasId) {
+        raehanUserId = randomUUID();
+      }
+      await db.execute(sql`
+        INSERT INTO neon_auth.user (id, name, email, "emailVerified", "createdAt", "updatedAt")
+        VALUES (${raehanUserId}, 'Raehan Kaesava', ${raehanEmail}, true, now(), now())
+      `);
+    } catch (e) {
+      console.log("neon_auth.user insert for raehan bypassed.");
+    }
+  }
+
+  // 3. Play Store Tester User: tester-play@kaesava.au
   const testerEmail = "tester-play@kaesava.au";
   const testerPassword = isProd ? "whtVT!lNWPp9yb" : "j0niOxWVA7nt#c";
   const testerTenantId = "d3b07384-d113-4ec4-a5a4-000000000002";
@@ -85,7 +125,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   console.log(`Setting up Neon Auth user for ${testerEmail} (Env: ${isProd ? "PROD" : "DEV"})...`);
 
-  // Clean up any existing neon_auth user record to ensure fresh sign-up with correct password
   try {
     await db.execute(sql`DELETE FROM neon_auth.user WHERE email = ${testerEmail}`);
   } catch (e) {
@@ -119,7 +158,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     console.log("Neon Auth API unavailable, proceeding with direct insert.");
   }
 
-  // Ensure emailVerified is strictly TRUE in neon_auth.user
   try {
     const existingTesterRes = await db.execute<{ id: string }>(
       sql`SELECT id FROM neon_auth.user WHERE email = ${testerEmail} LIMIT 1`
@@ -145,6 +183,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.execute(sql`ALTER TABLE income_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
   await db.execute(sql`ALTER TABLE expense_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
   await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS everyday_allowance_amount NUMERIC(12,2)`);
+  await db.execute(sql`ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false NOT NULL, ADD COLUMN IF NOT EXISTS user_id UUID`);
 
   // Clean all application tables in strict dependency order
   await db.delete(fileNotes);
@@ -176,6 +215,11 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       displayName: "Kaesava",
     },
     {
+      id: raehanUserId,
+      email: raehanEmail,
+      displayName: "Raehan Kaesava",
+    },
+    {
       id: testerUserId,
       email: testerEmail,
       displayName: "Play Store Tester",
@@ -188,7 +232,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     slug: "money-matters",
   });
 
-  // 1. Tenant
+  // 1. Tenants (Kaesava Household & Raehan Household)
   const now = new Date();
   const [household] = await db
     .insert(tenants)
@@ -208,32 +252,101 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  // 2. Tenant Users
-  await db.insert(tenantUsers).values({
-    tenantId: household.id,
-    userId,
-    role: "OWNER" as const,
-    inviteStatus: "ACCEPTED" as const,
-    appId,
-    createdBy: userId,
-    updatedBy: userId,
-  });
+  const [raehanHousehold] = await db
+    .insert(tenants)
+    .values({
+      id: raehanTenantId,
+      name: "Raehan Household",
+      fyEndMonthDay: "06-30",
+      premiumEnabled: true,
+      subscriptionStatus: "TRIAL_ACTIVE",
+      trialStartedAt: now,
+      trialEndsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+      trialGraceEndsAt: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
+      tenantId: raehanTenantId,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    })
+    .returning();
+
+  // 2. Tenant Users (Multi-tenant memberships)
+  await db.insert(tenantUsers).values([
+    // Kaesava Household: kaesava (OWNER), raehan (MEMBER invited by kaesava)
+    {
+      tenantId: household.id,
+      userId,
+      role: "OWNER" as const,
+      inviteStatus: "ACCEPTED" as const,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    {
+      tenantId: household.id,
+      userId: raehanUserId,
+      inviteEmail: raehanEmail,
+      role: "MEMBER" as const,
+      inviteStatus: "ACCEPTED" as const,
+      invitedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    // Raehan Household: raehan (OWNER), kaesava (MEMBER invited by raehan)
+    {
+      tenantId: raehanHousehold.id,
+      userId: raehanUserId,
+      role: "OWNER" as const,
+      inviteStatus: "ACCEPTED" as const,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    {
+      tenantId: raehanHousehold.id,
+      userId,
+      inviteEmail: "kaesava@gmail.com",
+      role: "MEMBER" as const,
+      inviteStatus: "ACCEPTED" as const,
+      invitedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+  ]);
 
   // 3. User Preferences
-  await db.insert(userPreferences).values({
-    userId,
-    tenantId,
-    timezone: "Australia/Sydney",
-    paydayAlertsEnabled: true,
-    shortfallAlertsEnabled: true,
-    billRemindersEnabled: true,
-    weeklyDigestEnabled: true,
-    appPreferences: {
-      [appId]: {
-        quick_actions_collapsed: false,
+  await db.insert(userPreferences).values([
+    {
+      userId,
+      tenantId,
+      timezone: "Australia/Sydney",
+      paydayAlertsEnabled: true,
+      shortfallAlertsEnabled: true,
+      billRemindersEnabled: true,
+      weeklyDigestEnabled: true,
+      appPreferences: {
+        [appId]: {
+          quick_actions_collapsed: false,
+        },
       },
     },
-  });
+    {
+      userId: raehanUserId,
+      tenantId: raehanTenantId,
+      timezone: "Australia/Sydney",
+      paydayAlertsEnabled: true,
+      shortfallAlertsEnabled: true,
+      billRemindersEnabled: true,
+      weeklyDigestEnabled: true,
+      appPreferences: {
+        [appId]: {
+          quick_actions_collapsed: false,
+        },
+      },
+    },
+  ]);
 
   // 4. Bank Accounts
   const [primaryAccount] = await db
@@ -262,7 +375,34 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  // Link Category Types to Bank Accounts (Primary Account gets EVERYDAY & REGULAR, Saver gets GOAL)
+  // Raehan Household Bank Accounts
+  const [raehanPrimaryAccount] = await db
+    .insert(bankAccounts)
+    .values({
+      name: "Everyday Smart Account",
+      lastKnownBalance: "5200.00",
+      unbudgetedBuffer: "400.00",
+      tenantId: raehanTenantId,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    })
+    .returning();
+
+  const [raehanSavingsAccount] = await db
+    .insert(bankAccounts)
+    .values({
+      name: "Wealth Builder Saver",
+      lastKnownBalance: "24000.00",
+      unbudgetedBuffer: "0.00",
+      tenantId: raehanTenantId,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    })
+    .returning();
+
+  // Link Category Types to Bank Accounts
   await db.insert(bankAccountCategoryMappings).values([
     {
       tenantId,
@@ -283,10 +423,51 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     {
       tenantId,
       appId,
+      categoryType: "PERSONAL" as const,
+      bankAccountId: primaryAccount.id,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+    {
+      tenantId,
+      appId,
       categoryType: "GOAL" as const,
       bankAccountId: savingsAccount.id,
       createdBy: userId,
       updatedBy: userId,
+    },
+    // Raehan Household mappings
+    {
+      tenantId: raehanTenantId,
+      appId,
+      categoryType: "EVERYDAY" as const,
+      bankAccountId: raehanPrimaryAccount.id,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    {
+      tenantId: raehanTenantId,
+      appId,
+      categoryType: "REGULAR" as const,
+      bankAccountId: raehanPrimaryAccount.id,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    {
+      tenantId: raehanTenantId,
+      appId,
+      categoryType: "PERSONAL" as const,
+      bankAccountId: raehanPrimaryAccount.id,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    {
+      tenantId: raehanTenantId,
+      appId,
+      categoryType: "GOAL" as const,
+      bankAccountId: raehanSavingsAccount.id,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
     },
   ]);
 
@@ -351,6 +532,28 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       excess: true,
       icon: "wallet",
       color: "#00B4A6",
+      allowance: "300.00",
+    },
+
+    // PERSONAL (Stealth Privacy Allowances - Step 3b Waterfall)
+    {
+      key: "kaesava_personal",
+      name: "Kaesava Personal Fund",
+      type: "PERSONAL" as const,
+      isCommitted: false,
+      excess: false,
+      icon: "user",
+      color: "#3B82F6",
+      allowance: "300.00",
+    },
+    {
+      key: "raehan_personal",
+      name: "Raehan Personal Fund",
+      type: "PERSONAL" as const,
+      isCommitted: false,
+      excess: false,
+      icon: "user-check",
+      color: "#EC4899",
       allowance: "300.00",
     },
 
@@ -476,12 +679,13 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       .values({
         name: cat.name,
         type: cat.type,
+        userId: cat.type === "PERSONAL" ? (cat.key === "kaesava_personal" ? userId : raehanUserId) : null,
         isCommitted: cat.isCommitted ?? false,
         isEssential,
         isSurplusTarget,
         monthlyAmount: cat.type === "REGULAR" ? cat.monthlyAmount : null,
-        everydayAllowanceAmount: cat.type === "EVERYDAY" ? cat.allowance : null,
-        enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : (cat.type === "EVERYDAY" ? cat.allowance : null),
+        everydayAllowanceAmount: (cat.type === "EVERYDAY" || cat.type === "PERSONAL") ? (cat as any).allowance : null,
+        enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : ((cat.type === "EVERYDAY" || cat.type === "PERSONAL") ? (cat as any).allowance : null),
         icon: cat.icon,
         colour: cat.color,
         tenantId,
@@ -490,7 +694,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
         updatedBy: userId,
       })
       .returning();
-
 
     insertedCatMap[cat.key] = inserted;
 
@@ -504,6 +707,41 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
         appId,
         createdBy: userId,
         updatedBy: userId,
+      });
+    }
+
+    // Duplicate categories for Raehan Household so Raehan Household is fully populated
+    const [insertedRaehanCat] = await db
+      .insert(categories)
+      .values({
+        name: cat.name,
+        type: cat.type,
+        userId: cat.type === "PERSONAL" ? (cat.key === "kaesava_personal" ? userId : raehanUserId) : null,
+        isCommitted: cat.isCommitted ?? false,
+        isEssential,
+        isSurplusTarget,
+        monthlyAmount: cat.type === "REGULAR" ? cat.monthlyAmount : null,
+        everydayAllowanceAmount: (cat.type === "EVERYDAY" || cat.type === "PERSONAL") ? (cat as any).allowance : null,
+        enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : ((cat.type === "EVERYDAY" || cat.type === "PERSONAL") ? (cat as any).allowance : null),
+        icon: cat.icon,
+        colour: cat.color,
+        tenantId: raehanTenantId,
+        appId,
+        createdBy: raehanUserId,
+        updatedBy: raehanUserId,
+      })
+      .returning();
+
+    if (cat.type === "GOAL" && cat.target) {
+      await db.insert(categorySchedules).values({
+        categoryId: insertedRaehanCat.id,
+        targetAmount: cat.target,
+        targetDate: cat.due || null,
+        dueDate: cat.due || null,
+        tenantId: raehanTenantId,
+        appId,
+        createdBy: raehanUserId,
+        updatedBy: raehanUserId,
       });
     }
   }
@@ -540,9 +778,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .returning();
 
   // 7. Income Events (Historical & Upcoming)
-  const [pastIncomeEvent1] = await db
-    .insert(incomeEvents)
-    .values({
+  await db.insert(incomeEvents).values([
+    {
       incomeSourceId: salarySource.id,
       expectedDate: "2026-07-01",
       expectedAmount: "5200.00",
@@ -552,12 +789,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       appId,
       createdBy: userId,
       updatedBy: userId,
-    })
-    .returning();
-
-  const [pastIncomeEvent2] = await db
-    .insert(incomeEvents)
-    .values({
+    },
+    {
       incomeSourceId: salarySource.id,
       expectedDate: "2026-07-15",
       expectedAmount: "5200.00",
@@ -567,12 +800,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       appId,
       createdBy: userId,
       updatedBy: userId,
-    })
-    .returning();
-
-  const [upcomingIncomeEvent] = await db
-    .insert(incomeEvents)
-    .values({
+    },
+    {
       incomeSourceId: salarySource.id,
       expectedDate: "2026-07-29",
       expectedAmount: "5200.00",
@@ -581,25 +810,64 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       appId,
       createdBy: userId,
       updatedBy: userId,
+    },
+    {
+      incomeSourceId: freelanceSource.id,
+      expectedDate: "2026-08-05",
+      expectedAmount: "1500.00",
+      status: "UPCOMING",
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
+  ]);
+
+  // Income Sources for Raehan Household
+  const [raehanSalarySource] = await db
+    .insert(incomeSources)
+    .values({
+      name: "Raehan Tech Salary",
+      amount: "5800.00",
+      receivingAccountId: raehanPrimaryAccount.id,
+      rrule: "FREQ=WEEKLY;INTERVAL=2",
+      startDate: "2026-07-01",
+      tenantId: raehanTenantId,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
     })
     .returning();
 
-  await db.insert(incomeEvents).values({
-    incomeSourceId: freelanceSource.id,
-    expectedDate: "2026-08-05",
-    expectedAmount: "1500.00",
-    status: "UPCOMING",
-    tenantId,
-    appId,
-    createdBy: userId,
-    updatedBy: userId,
-  });
+  await db.insert(incomeEvents).values([
+    {
+      incomeSourceId: raehanSalarySource.id,
+      expectedDate: "2026-07-01",
+      expectedAmount: "5800.00",
+      actualAmount: "5800.00",
+      status: "CONFIRMED",
+      tenantId: raehanTenantId,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    {
+      incomeSourceId: raehanSalarySource.id,
+      expectedDate: "2026-07-29",
+      expectedAmount: "5800.00",
+      status: "UPCOMING",
+      tenantId: raehanTenantId,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+  ]);
 
   // 8. Expense Sources & Events
   const [mortgageExpenseSource] = await db
     .insert(expenseSources)
     .values({
-      name: "Home Loan Mortgage Repayment",
+      name: "Mortgage Repayment",
       amount: "3200.00",
       categoryId: insertedCatMap.mortgage.id,
       rrule: "FREQ=MONTHLY",
@@ -611,10 +879,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  const [electricityExpenseSource] = await db
+  const [aglExpenseSource] = await db
     .insert(expenseSources)
     .values({
-      name: "Quarterly Electricity & Gas Bill",
+      name: "AGL Energy",
       amount: "340.00",
       categoryId: insertedCatMap.electricity.id,
       rrule: "FREQ=MONTHLY",
@@ -629,7 +897,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   const [broadbandExpenseSource] = await db
     .insert(expenseSources)
     .values({
-      name: "Aussie Broadband NBN 100/20",
+      name: "Aussie Broadband",
       amount: "89.00",
       categoryId: insertedCatMap.broadband.id,
       rrule: "FREQ=MONTHLY",
@@ -641,31 +909,28 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  // Paid Expense Events
   await db.insert(expenseEvents).values([
     {
       expenseSourceId: mortgageExpenseSource.id,
       categoryId: insertedCatMap.mortgage.id,
-      name: "Home Loan Mortgage Repayment",
+      name: "Mortgage Repayment",
       expectedDate: "2026-07-01",
       expectedAmount: "3200.00",
       actualAmount: "3200.00",
       status: "PAID",
-      paymentMethod: "DIRECT_DEBIT",
       tenantId,
       appId,
       createdBy: userId,
       updatedBy: userId,
     },
     {
-      expenseSourceId: electricityExpenseSource.id,
+      expenseSourceId: aglExpenseSource.id,
       categoryId: insertedCatMap.electricity.id,
-      name: "Quarterly Electricity & Gas Bill",
+      name: "AGL Energy",
       expectedDate: "2026-07-10",
       expectedAmount: "340.00",
       actualAmount: "340.00",
       status: "PAID",
-      paymentMethod: "BPAY",
       tenantId,
       appId,
       createdBy: userId,
@@ -674,40 +939,11 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     {
       expenseSourceId: broadbandExpenseSource.id,
       categoryId: insertedCatMap.broadband.id,
-      name: "Aussie Broadband NBN 100/20",
+      name: "Aussie Broadband",
       expectedDate: "2026-07-12",
       expectedAmount: "89.00",
       actualAmount: "89.00",
       status: "PAID",
-      paymentMethod: "CREDIT_CARD",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-  ]);
-
-  // Upcoming Expense Events
-  await db.insert(expenseEvents).values([
-    {
-      expenseSourceId: null,
-      categoryId: insertedCatMap.health.id,
-      name: "Bupa Health Insurance Premium",
-      expectedDate: "2026-07-28",
-      expectedAmount: "280.00",
-      status: "UPCOMING",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      expenseSourceId: null,
-      categoryId: insertedCatMap.subscriptions.id,
-      name: "Netflix & Spotify Subscriptions",
-      expectedDate: "2026-07-30",
-      expectedAmount: "65.00",
-      status: "UPCOMING",
       tenantId,
       appId,
       createdBy: userId,
@@ -716,7 +952,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     {
       expenseSourceId: mortgageExpenseSource.id,
       categoryId: insertedCatMap.mortgage.id,
-      name: "Home Loan Mortgage Repayment",
+      name: "Mortgage Repayment",
       expectedDate: "2026-08-01",
       expectedAmount: "3200.00",
       status: "UPCOMING",
@@ -725,169 +961,45 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       createdBy: userId,
       updatedBy: userId,
     },
+    {
+      expenseSourceId: aglExpenseSource.id,
+      categoryId: insertedCatMap.electricity.id,
+      name: "AGL Energy",
+      expectedDate: "2026-08-10",
+      expectedAmount: "340.00",
+      status: "UPCOMING",
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    },
   ]);
 
-  // 9. Allocation Plans & Lines
-  const [allocationPlan] = await db
-    .insert(allocationPlans)
-    .values({
-      incomeEventId: pastIncomeEvent2.id,
-      status: "CONFIRMED",
-      totalIncomeAmount: "5200.00",
-      confirmedAt: new Date("2026-07-15T09:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
-    .returning();
-
-  const [planLineMortgage] = await db
-    .insert(allocationPlanLines)
-    .values({
-      planId: allocationPlan.id,
-      categoryId: insertedCatMap.mortgage.id,
-      proposedAmount: "1600.00",
-      confirmedAmount: "1600.00",
-      reasoning: "Fortnightly mortgage contribution split",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
-    .returning();
-
-  const [planLineHoliday] = await db
-    .insert(allocationPlanLines)
-    .values({
-      planId: allocationPlan.id,
-      categoryId: insertedCatMap.holiday.id,
-      proposedAmount: "500.00",
-      confirmedAmount: "500.00",
-      reasoning: "Target savings allocation for Japan 2026 trip",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
-    .returning();
-
-  const [planLineEveryday] = await db
-    .insert(allocationPlanLines)
-    .values({
-      planId: allocationPlan.id,
-      categoryId: insertedCatMap.everyday.id,
-      proposedAmount: "800.00",
-      confirmedAmount: "800.00",
-      reasoning: "Everyday discretionary spending allowance",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
-    .returning();
-
-  // 10. Transaction Ledger History (DEBITs & CREDITs)
+  // 9. Transaction Ledger Entries
   await db.insert(transactionLedger).values([
-    // Payday Credits
-    {
-      categoryId: insertedCatMap.mortgage.id,
-      bankAccountId: primaryAccount.id,
-      planLineId: planLineMortgage.id,
-      flowType: "CREDIT",
-      amount: "1600.00",
-      idempotencyKey: "payday-credit-mortgage-2026-07-15",
-      note: "Payday Allocation Deposit - Mortgage",
-      source: "AUTO",
-      recordedAt: new Date("2026-07-15T09:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      categoryId: insertedCatMap.holiday.id,
-      bankAccountId: savingsAccount.id,
-      planLineId: planLineHoliday.id,
-      flowType: "CREDIT",
-      amount: "500.00",
-      idempotencyKey: "payday-credit-holiday-2026-07-15",
-      note: "Payday Allocation Deposit - Holiday Goal",
-      source: "AUTO",
-      recordedAt: new Date("2026-07-15T09:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      categoryId: insertedCatMap.everyday.id,
-      bankAccountId: primaryAccount.id,
-      planLineId: planLineEveryday.id,
-      flowType: "CREDIT",
-      amount: "800.00",
-      idempotencyKey: "payday-credit-everyday-2026-07-15",
-      note: "Payday Allocation Deposit - Everyday Allowance",
-      source: "AUTO",
-      recordedAt: new Date("2026-07-15T09:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Ad-hoc Income Credit (Side Hustle)
-    {
-      categoryId: insertedCatMap.everyday.id,
-      bankAccountId: primaryAccount.id,
-      flowType: "CREDIT",
-      amount: "350.00",
-      idempotencyKey: "income-freelance-credit-2026-07-18",
-      note: "Quick Income - Freelance Web Design Milestone",
-      source: "MANUAL",
-      recordedAt: new Date("2026-07-18T14:30:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Expense Debits
-    {
-      categoryId: insertedCatMap.mortgage.id,
-      bankAccountId: primaryAccount.id,
-      flowType: "DEBIT",
-      amount: "1600.00",
-      idempotencyKey: "expense-mortgage-debit-2026-07-16",
-      note: "ANZ Direct Debit - Home Loan Repayment",
-      source: "MANUAL",
-      recordedAt: new Date("2026-07-16T10:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
     {
       categoryId: insertedCatMap.groceries.id,
       bankAccountId: primaryAccount.id,
       flowType: "DEBIT",
-      amount: "245.50",
-      idempotencyKey: "expense-groceries-debit-2026-07-17",
-      note: "Woolworths Supermarket - Weekly Groceries",
+      amount: "142.50",
+      idempotencyKey: "expense-groceries-debit-2026-07-02",
+      note: "Woolworths Supermarket",
       source: "MANUAL",
-      recordedAt: new Date("2026-07-17T16:20:00Z"),
+      recordedAt: new Date("2026-07-02T10:30:00Z"),
       tenantId,
       appId,
       createdBy: userId,
       updatedBy: userId,
     },
     {
-      categoryId: insertedCatMap.everyday.id,
+      categoryId: insertedCatMap.dining.id,
       bankAccountId: primaryAccount.id,
       flowType: "DEBIT",
-      amount: "48.20",
-      idempotencyKey: "expense-coffee-debit-2026-07-20",
-      note: "Quick Expense - Local Cafe & Bakery Lunch",
+      amount: "48.00",
+      idempotencyKey: "expense-dining-debit-2026-07-04",
+      note: "Local Cafe Brunch",
       source: "MANUAL",
-      recordedAt: new Date("2026-07-20T12:15:00Z"),
+      recordedAt: new Date("2026-07-04T09:15:00Z"),
       tenantId,
       appId,
       createdBy: userId,
@@ -909,7 +1021,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
   ]);
 
-  // 11. File Notes
+  // 10. File Notes
   await db.insert(fileNotes).values([
     {
       entityType: "categories",
@@ -939,7 +1051,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
   ]);
 
-  // 12. Device Tokens
+  // 11. Device Tokens
   await db.insert(deviceTokens).values([
     {
       userId,

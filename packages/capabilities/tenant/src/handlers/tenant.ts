@@ -150,12 +150,32 @@ export function createTenantHandler(db: PgDatabase<any, any, any>) {
       })
     );
 
+    // Seed default Personal category for tenant owner
+    await db.insert(categories).values({
+      tenantId,
+      appId,
+      name: "Personal",
+      type: "PERSONAL" as const,
+      userId: userId,
+      icon: "user",
+      colour: "#EC4899",
+      monthlyAmount: "200.00",
+      enteredAmount: "200.00",
+      budgetFrequency: "MONTHLY",
+      rolloverRule: "ROLLOVER" as const,
+      isCommitted: false,
+      createdBy: userId,
+      updatedBy: userId,
+    });
+
     return {
       success: true,
       tenantId,
     };
   };
 }
+
+import { ensurePremiumAccess } from "@money-matters/capability-billing";
 
 /**
  * Invites a partner to join the household tenant.
@@ -167,6 +187,8 @@ export function invitePartnerHandler(db: PgDatabase<any, any, any>) {
     appId: string,
     userId: string
   ) => {
+    await ensurePremiumAccess(db, tenantId, "Household partner invitations");
+
     const inviteToken = crypto.randomUUID();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
@@ -234,6 +256,38 @@ export function acceptInviteHandler(db: PgDatabase<any, any, any>) {
       })
       .where(eq(tenantUsers.id, invite.id))
       .returning();
+
+    // Auto-seed default Personal category for joining partner
+    const [existingPersonal] = await db
+      .select()
+      .from(categories)
+      .where(
+        and(
+          eq(categories.tenantId, updated.tenantId),
+          eq(categories.type, "PERSONAL"),
+          eq(categories.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!existingPersonal) {
+      await db.insert(categories).values({
+        tenantId: updated.tenantId,
+        appId: updated.appId,
+        name: "Personal",
+        type: "PERSONAL" as const,
+        userId: userId,
+        icon: "user",
+        colour: "#EC4899",
+        monthlyAmount: "200.00",
+        enteredAmount: "200.00",
+        budgetFrequency: "MONTHLY",
+        rolloverRule: "ROLLOVER" as const,
+        isCommitted: false,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+    }
 
     return {
       success: true,

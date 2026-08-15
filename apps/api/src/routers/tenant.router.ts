@@ -1,6 +1,6 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure } from '../trpc/trpc.js';
 import { db, userPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, or } from "drizzle-orm";
 import { inngest } from '../inngest/client.js';
 import { 
   createTenantHandler,
@@ -266,7 +266,7 @@ updateUserPreferences: tenantProcedure
   getBankAccountsWithMappings: tenantProcedure
     .query(async ({ ctx }) => {
       const handler = getBankAccountsWithMappingsHandler(ctx.db);
-      return await handler(ctx.tenantId!, ctx.appId!);
+      return await handler(ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
   updateBankAccountMappings: ownerProcedure
@@ -290,7 +290,8 @@ updateUserPreferences: tenantProcedure
           and(
             eq(bankAccounts.tenantId, ctx.tenantId!),
             eq(bankAccounts.appId, ctx.appId!),
-            sql`${bankAccounts.archivedAt} IS NULL`
+            sql`${bankAccounts.archivedAt} IS NULL`,
+            or(eq(bankAccounts.isPrivate, false), eq(bankAccounts.userId, ctx.userId!))!
           )
         );
     }),
@@ -304,11 +305,12 @@ updateUserPreferences: tenantProcedure
           and(
             eq(bankAccounts.tenantId, ctx.tenantId!),
             eq(bankAccounts.appId, ctx.appId!),
-            sql`${bankAccounts.archivedAt} IS NULL`
+            sql`${bankAccounts.archivedAt} IS NULL`,
+            or(eq(bankAccounts.isPrivate, false), eq(bankAccounts.userId, ctx.userId!))!
           )
         );
 
-      const allCategories = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+      const allCategories = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
 
       const mappings = await ctx.db
         .select()
@@ -407,6 +409,48 @@ updateUserPreferences: tenantProcedure
       }).catch(() => {});
 
       return result;
+    }),
+
+  listUserTenants: authenticatedProcedure
+    .query(async ({ ctx }) => {
+      const { tenants, tenantUsers } = await import('@money-matters/db');
+      const records = await ctx.db
+        .select({
+          id: tenants.id,
+          name: tenants.name,
+          role: tenantUsers.role,
+        })
+        .from(tenantUsers)
+        .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+        .where(eq(tenantUsers.userId, ctx.userId!));
+
+      return records.map((r) => ({
+        ...r,
+        isCurrent: r.id === ctx.tenantId,
+      }));
+    }),
+
+  switchTenant: authenticatedProcedure
+    .input(z.object({ tenantId: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const { tenantUsers } = await import('@money-matters/db');
+      const [membership] = await ctx.db
+        .select()
+        .from(tenantUsers)
+        .where(
+          and(
+            eq(tenantUsers.tenantId, input.tenantId),
+            eq(tenantUsers.userId, ctx.userId!),
+            eq(tenantUsers.inviteStatus, "ACCEPTED")
+          )
+        )
+        .limit(1);
+
+      if (!membership) {
+        throw new Error("You do not have access to switch to this household.");
+      }
+
+      return { success: true, activeTenantId: input.tenantId };
     }),
 };
 

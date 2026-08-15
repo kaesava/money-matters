@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-14  
-> **Status:** Fully synchronized with 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, 100% Vitest unit test coverage, Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration with 7-Day Read-Only Grace Period), 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, Interactive Estimation Quiz Onboarding across Web & Mobile, Backend `reSetupBudget` capability integration for Re-Run Budget Setup (`/setup?mode=rerun` and `/(setup)?mode=rerun`), 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
+> **Last updated:** 2026-08-15  
+> **Status:** Fully synchronized with 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, 100% Vitest unit test coverage, Freemium Subscription Model (30-Day Free Trial, Permanent Free Tier, Stripe Billing Integration with 7-Day Read-Only Grace Period), 4th Category Type (`PERSONAL`) with 100% Stealth Privacy and Postgres RLS, 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, Interactive Estimation Quiz Onboarding across Web & Mobile, Backend `reSetupBudget` capability integration for Re-Run Budget Setup (`/setup?mode=rerun` and `/(setup)?mode=rerun`), 5-Step Waterfall Cascade (with Step 3b Personal Allowances), Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 
@@ -9,7 +9,8 @@
 
 Money Matters is a forward-looking allocation budget app designed for Australian households and families.
 - **Freemium Commercial Model**: 30-day full Household trial on sign-up (no credit card required). Expired trials enter a 7-day read-only grace period before dropping to the permanent Free plan. Users can upgrade anytime to the Household plan ($9.99/mo or $89/yr, with a $69/yr founding member launch price).
-- **Free Tier vs Household Plan**: Free plan retains core waterfall allocation, 90 days transaction history, and up to 3 Goal categories. Household plan unlocks full transaction history, unlimited Goal categories, Big 4 AU Bank CSV statement import, and file notes/attachments.
+- **Free Tier vs Household Plan (Premium Tier Gating)**: Free plan retains core waterfall allocation, 90 days transaction history, and up to 3 Goal categories. Household Plan unlocks full transaction history, unlimited Goal categories, Big 4 AU Bank CSV statement import, **Household Partner Invites**, **Personal Private Categories**, and **Private Personal Bank Accounts**.
+- **4th Category Type (`PERSONAL`) & 100% Stealth Privacy**: Each user in a household can maintain an isolated Personal category pool and private bank account. PostgreSQL Row-Level Security (RLS) and query filters (`type != 'PERSONAL' OR user_id = current_user`) guarantee 100% stealth privacy — a user's personal category name, transactions, balances, and private bank accounts are completely invisible to their household partner across all APIs, database queries, and reports.
 - **7-Day Read-Only Grace Period & Expiration Fallback**: When Stripe subscription payment fails or is canceled (`invoice.payment_failed` / `customer.subscription.deleted`), the tenant enters a 7-day read-only grace period where financial data remains accessible before seamlessly falling back to the permanent Free Tier cap (max 3 goals, read-only history beyond 90 days). If payment succeeds within 7 days (`invoice.payment_succeeded`), full subscription access is immediately restored.
 - **5-Level "Can We Afford This?" Cashflow Engine**: Evaluates purchases against a 5-level multi-tier decision matrix:
   1. *Bill Buffer Protection*: Automatically reserves all upcoming bill expense events due before the next payday (`expectedDate <= nextPaycheckDate`), ensuring Everyday cash is strictly evaluated as `netAvailableCash = max(0, everydayBalance - billsReserved)`.
@@ -23,9 +24,9 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 - **5-Step Waterfall Allocation Engine**: Automatic self-healing waterfall allocation engine on every income event:
   1. *Deficit Repair*: Priority 1 restoring any negative pool or category (`< $0`) to $0.
   2. *Bills Pool Allocation*: Tops up the unified Bills Pool: `BillsTopUp = max(0, TargetBillsCap - CurrentBillsPoolBalance)`.
-  3. *Committed Goals & Emergency Buffer*: Allocates target monthly savings contribution.
-  4. *Everyday Top-Up*: Tops up pooled Everyday discretionary balance to target cap.
-  5. *Surplus Sweep*: Sweeps residual unallocated income strictly into the designated `isSurplusTarget` GOAL category (default: *"Surplus & Offset Reserve"*).
+  3. *Everyday Top-Up*: Tops up pooled Everyday discretionary balance to target cap.
+  4. *Personal Allowances*: Allocates private Personal category allowances (Step 3b).
+  5. *Goal Targets & Surplus Sweep*: Allocates committed goals and sweeps residual unallocated income strictly into the designated `isSurplusTarget` GOAL category (default: *"Surplus & Offset Reserve"*).
 
 - **Surplus Sweep & Catch-Up Mechanics**: System enforces a single designated `isSurplusTarget` Goal category per household. Deletion of the active Surplus Target category is blocked unless a replacement Goal category is selected. On login after month boundaries, if un-swept Everyday balances exist, an interactive **Catch-Up Sweep Modal** prompts the user to sweep leftover funds into their designated Surplus Target category (or keep them in Everyday spending per household settings).
 - **Settings Re-Run Budget Setup Workflow**: Preservative budget adjustment accessible via `Settings → Re-run Budget Setup`. Pre-fills current config into the wizard and presents a final **Budget Impact Review Panel** showing net monthly cap diffs (+/- $), sub-category changes, next-payday effective date notice, and Apply/Cancel controls (0 DB changes on cancel).

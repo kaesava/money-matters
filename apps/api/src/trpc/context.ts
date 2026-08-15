@@ -123,15 +123,23 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
     });
   }
 
-  const [membership] = await db
+  const rawTenantHeader = req.headers["x-tenant-id"] ?? req.headers["x-active-tenant"];
+  const requestedTenantId = Array.isArray(rawTenantHeader) ? rawTenantHeader[0] : rawTenantHeader;
+
+  const userMemberships = await db
     .select({
       tenantId: tenantUsers.tenantId,
       role: tenantUsers.role,
       appId: tenantUsers.appId,
     })
     .from(tenantUsers)
-    .where(eq(tenantUsers.userId, claims.userId))
-    .limit(1);
+    .where(eq(tenantUsers.userId, claims.userId));
+
+  const matchedMembership = requestedTenantId
+    ? userMemberships.find((m) => m.tenantId === requestedTenantId)
+    : undefined;
+
+  const membership = matchedMembership ?? userMemberships[0];
 
   let tenantId = membership?.tenantId ?? null;
   let role = membership?.role ?? null;

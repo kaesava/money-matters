@@ -1,23 +1,30 @@
 import { db, categories, categorySchedules, transactionLedger } from "@money-matters/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, or, ne } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
 export async function listCategoriesQuery(
   tenantId: string,
   appId: string,
-  dbClient: PgDatabase<any, any, any> = db
+  dbClient: PgDatabase<any, any, any> = db,
+  userId?: string
 ) {
-  // 1. Fetch categories
+  // 1. Fetch categories with 100% stealth privacy for PERSONAL categories
+  const categoryFilters = [
+    eq(categories.tenantId, tenantId),
+    eq(categories.appId, appId),
+    sql`${categories.archivedAt} IS NULL`,
+  ];
+
+  if (userId) {
+    categoryFilters.push(
+      or(ne(categories.type, "PERSONAL"), eq(categories.userId, userId))!
+    );
+  }
+
   let dbCats = await dbClient
     .select()
     .from(categories)
-    .where(
-      and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        sql`${categories.archivedAt} IS NULL`
-      )
-    );
+    .where(and(...categoryFilters));
 
   // Auto-seed default categories if user has 0 active categories
   if (dbCats.length === 0) {
@@ -55,13 +62,7 @@ export async function listCategoriesQuery(
       dbCats = await dbClient
         .select()
         .from(categories)
-        .where(
-          and(
-            eq(categories.tenantId, tenantId),
-            eq(categories.appId, appId),
-            sql`${categories.archivedAt} IS NULL`
-          )
-        );
+        .where(and(...categoryFilters));
     } catch (e) {
       // Ignore conflict or insertion error
     }

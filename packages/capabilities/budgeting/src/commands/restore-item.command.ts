@@ -39,7 +39,7 @@ export async function restoreItemCommand(
       const inc = restored as typeof incomeSources.$inferSelect;
       const startDate = inc.startDate || new Date().toISOString().split("T")[0];
       if (inc.rrule) {
-        const dates = generateBurstDates(inc.rrule, startDate, null, 12);
+        const dates = generateBurstDates(inc.rrule, startDate, inc.endDate, 12);
         for (const d of dates) {
           await dbClient.insert(incomeEvents).values({
             incomeSourceId: inc.id,
@@ -68,7 +68,7 @@ export async function restoreItemCommand(
       const exp = restored as typeof expenseSources.$inferSelect;
       const startDate = exp.startDate || new Date().toISOString().split("T")[0];
       if (exp.rrule) {
-        const dates = generateBurstDates(exp.rrule, startDate, null, 12);
+        const dates = generateBurstDates(exp.rrule, startDate, exp.endDate, 12);
         for (const d of dates) {
           await dbClient.insert(expenseEvents).values({
             expenseSourceId: exp.id,

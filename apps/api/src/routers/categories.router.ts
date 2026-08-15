@@ -21,10 +21,15 @@ import {
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
 
+import { ensurePremiumAccess } from '@money-matters/capability-billing';
+
 export const categoriesRouter = {
   createCategory: tenantProcedure
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
+      if (input.type === "PERSONAL") {
+        await ensurePremiumAccess(ctx.db, ctx.tenantId!, "Personal categories");
+      }
       return await createCategoryCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
@@ -100,7 +105,7 @@ export const categoriesRouter = {
 
   listCategories: tenantProcedure
     .query(async ({ ctx }) => {
-      return await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+      return await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
   getMonthlySummary: tenantProcedure

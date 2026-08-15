@@ -1,4 +1,4 @@
-import { pgTable, uuid, unique } from "drizzle-orm/pg-core";
+import { pgTable, uuid } from "drizzle-orm/pg-core";
 import { categoryTypeEnum } from "./category.js";
 import { bankAccounts } from "./bank_account.js";
 import { tenantAndTimestamps } from "./base.js";
@@ -11,12 +11,7 @@ export const bankAccountCategoryMappings = pgTable(
     bankAccountId: uuid("bank_account_id")
       .references(() => bankAccounts.id, { onDelete: "cascade" })
       .notNull(),
+    userId: uuid("user_id"), // Unique for PERSONAL mappings per user
     ...tenantAndTimestamps,
-  },
-  (table) => ({
-    tenantCategoryTypeUnique: unique("tenant_category_type_unique").on(
-      table.tenantId,
-      table.categoryType
-    ),
-  })
+  }
 );

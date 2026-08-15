@@ -5,9 +5,13 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "@/lib/trpc";
 import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 
-/** Web Bank Accounts management page */
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+
 export default function BankAccountsPage() {
   const router = useRouter();
+  const { status: subStatus } = useSubscriptionStatus();
+  const isFreeTier = subStatus?.isFreeTier ?? false;
+
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const updateMappingsMut = trpc.updateBankAccountMappings.useMutation({
     onSuccess: () => bankAccountsQuery.refetch(),
@@ -17,6 +21,7 @@ export default function BankAccountsPage() {
       bankAccountsQuery.refetch();
       setNewAccountName("");
       setNewAccountBalance("0.00");
+      setIsPrivateAccount(false);
       setShowAddModal(false);
     },
   });
@@ -33,6 +38,7 @@ export default function BankAccountsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAccountName, setNewAccountName] = useState("");
   const [newAccountBalance, setNewAccountBalance] = useState("0.00");
+  const [isPrivateAccount, setIsPrivateAccount] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [showGuide, setShowGuide] = useState(false);
@@ -120,6 +126,7 @@ export default function BankAccountsPage() {
       name: newAccountName.trim(),
       lastKnownBalance: newAccountBalance.trim() || "0.00",
       unbudgetedBuffer: "0.00",
+      isPrivate: isPrivateAccount && !isFreeTier,
     });
   };
 
@@ -419,6 +426,16 @@ export default function BankAccountsPage() {
                 className="px-3 py-2 text-sm font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
               />
             </div>
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-slate-50 p-3 rounded-xl border border-zinc-200">
+              <input
+                type="checkbox"
+                checked={isPrivateAccount}
+                disabled={isFreeTier}
+                onChange={(e) => setIsPrivateAccount(e.target.checked)}
+                className="w-4 h-4 text-[#2563eb] rounded"
+              />
+              <span>🔒 Make Private Personal Account {isFreeTier ? "(⭐ Pro Feature)" : "(Hidden from partner)"}</span>
+            </label>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"

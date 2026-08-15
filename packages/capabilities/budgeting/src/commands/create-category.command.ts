@@ -11,6 +11,7 @@ export async function createCategoryCommand(
   userId: string,
   dbClient: PgDatabase<any, any, any> = db
 ) {
+
   return await dbClient.transaction(async (tx) => {
     // 1. Insert category
     const [cat] = await tx
@@ -18,6 +19,7 @@ export async function createCategoryCommand(
       .values({
         name: input.name,
         type: input.type,
+        userId: input.type === "PERSONAL" ? userId : null,
         isCommitted: input.isCommitted,
         isEssential: input.isEssential ?? false,
         isSurplusTarget: input.isSurplusTarget ?? false,

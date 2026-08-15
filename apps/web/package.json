@@ -6,6 +6,7 @@
     "typecheck": "tsc --noEmit",
     "dev": "next dev",
     "build": "next build",
+    "cf-build": "opennextjs-cloudflare build",
     "preview": "pnpm opennextjs-cloudflare build && wrangler dev",
     "cf-deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
     "lint": "eslint .",

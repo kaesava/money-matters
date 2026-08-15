@@ -67,7 +67,7 @@ describe("notifications capability handlers", () => {
     const { createNotificationFunctions } = await import("./index.js");
     const mockInngest = { createFunction: vi.fn().mockReturnValue({}) } as unknown as Parameters<typeof createNotificationFunctions>[0];
     const functions = createNotificationFunctions(mockInngest);
-    expect(functions).toHaveLength(4);
-    expect(mockInngest.createFunction).toHaveBeenCalledTimes(4);
+    expect(functions).toHaveLength(5);
+    expect(mockInngest.createFunction).toHaveBeenCalledTimes(5);
   });
 });

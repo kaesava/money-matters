@@ -10,7 +10,7 @@
  * 5. GOAL (Uncommitted) & Residual Sweep: Sweeps 100% of remaining funds to designated isSurplusTarget category.
  */
 
-export type BucketType = "REGULAR" | "GOAL" | "EVERYDAY";
+export type BucketType = "REGULAR" | "GOAL" | "EVERYDAY" | "PERSONAL";
 
 export interface EngineBucket {
   id: string;
@@ -21,6 +21,7 @@ export interface EngineBucket {
   isSurplusTarget?: boolean;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
+  everydayAllowanceAmount?: number | null;
   targetDate?: string | null;
   dueDate?: string | null;
   currentBalance: number;
@@ -192,6 +193,32 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     if (allocatedCents > 0 || topUpNeededCents > 0) {
       const existing = linesMap.get(bucket.id);
       const reasoningMsg = `Everyday top-up allocation of $${toDollars(allocatedCents).toFixed(2)} (target cap $${toDollars(targetCapCents).toFixed(2)}).`;
+      
+      if (existing) {
+        existing.amountCents += allocatedCents;
+        existing.reasonings.push(reasoningMsg);
+      } else {
+        linesMap.set(bucket.id, {
+          bucketName: bucket.name,
+          amountCents: allocatedCents,
+          reasonings: [reasoningMsg],
+        });
+      }
+    }
+  }
+
+  // Step 4b: PERSONAL Category Allowance Allocation
+  const personalBuckets = input.buckets.filter((b) => b.type === "PERSONAL");
+  for (const bucket of personalBuckets) {
+    const targetCapCents = toCents(bucket.targetAmount ?? bucket.monthlyAmount ?? bucket.everydayAllowanceAmount ?? 0);
+    const currentPositiveCents = Math.max(0, toCents(bucket.currentBalance));
+    const topUpNeededCents = Math.max(0, targetCapCents - currentPositiveCents);
+    const allocatedCents = Math.min(remainingCents, topUpNeededCents);
+    remainingCents -= allocatedCents;
+
+    if (allocatedCents > 0 || topUpNeededCents > 0) {
+      const existing = linesMap.get(bucket.id);
+      const reasoningMsg = `Personal allowance allocation of $${toDollars(allocatedCents).toFixed(2)}.`;
       
       if (existing) {
         existing.amountCents += allocatedCents;

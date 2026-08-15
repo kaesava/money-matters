@@ -45,7 +45,7 @@ describe('Capability Tenant Handlers', () => {
 
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
-    expect(insertMock).toHaveBeenCalledTimes(7);
+    expect(insertMock).toHaveBeenCalledTimes(8);
     expect(selectMock).toHaveBeenCalledTimes(1);
   });
 
@@ -69,7 +69,13 @@ describe('Capability Tenant Handlers', () => {
       return { returning: returningMock };
     });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
-    const mockDb: any = { insert: insertMock };
+
+    const limitMock = vi.fn().mockResolvedValue([{ subscriptionStatus: 'SUBSCRIBED', trialEndsAt: null }]);
+    const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
+    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+    const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    const mockDb: any = { insert: insertMock, select: selectMock };
 
     const { invitePartnerHandler } = await import('./index.js');
     const handler = invitePartnerHandler(mockDb);

@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { bankAccounts, bankAccountCategoryMappings } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, or, ne } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
+import { ensurePremiumAccess } from "@money-matters/capability-billing";
 
 export const UpdateBankAccountMappingsSchema = z.object({
   mappings: z.array(
@@ -14,20 +15,24 @@ export const UpdateBankAccountMappingsSchema = z.object({
 });
 
 /**
- * Lists bank accounts for a tenant alongside their associated category types.
+ * Lists bank accounts for a tenant alongside their associated category types, respecting private bank account ownership.
  */
 export function getBankAccountsWithMappingsHandler(db: PgDatabase<any, any, any>) {
-  return async (tenantId: string, appId: string) => {
+  return async (tenantId: string, appId: string, userId?: string) => {
+    const accountFilters = [
+      eq(bankAccounts.tenantId, tenantId),
+      eq(bankAccounts.appId, appId),
+      sql`${bankAccounts.archivedAt} IS NULL`,
+    ];
+
+    if (userId) {
+      accountFilters.push(or(eq(bankAccounts.isPrivate, false), eq(bankAccounts.userId, userId))!);
+    }
+
     const accounts = await db
       .select()
       .from(bankAccounts)
-      .where(
-        and(
-          eq(bankAccounts.tenantId, tenantId),
-          eq(bankAccounts.appId, appId),
-          sql`${bankAccounts.archivedAt} IS NULL`
-        )
-      );
+      .where(and(...accountFilters));
 
     const mappings = await db
       .select()
@@ -59,6 +64,10 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
     appId: string,
     userId: string
   ) => {
+    if (input.isPrivate) {
+      await ensurePremiumAccess(db, tenantId, "Private personal bank accounts");
+    }
+
     const [bankAccount] = await db
       .insert(bankAccounts)
       .values({
@@ -66,6 +75,8 @@ export function createBankAccountHandler(db: PgDatabase<any, any, any>) {
         name: input.name,
         lastKnownBalance: input.lastKnownBalance,
         unbudgetedBuffer: input.unbudgetedBuffer,
+        isPrivate: input.isPrivate ?? false,
+        userId: input.isPrivate ? userId : null,
         appId,
         createdBy: userId,
         updatedBy: userId,

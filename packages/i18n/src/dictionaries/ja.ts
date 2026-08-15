@@ -788,6 +788,13 @@ export const ja: DeepStringRecord<typeof en> = {
     },
     sourceBurst: {
       empty: "定期的なイベントはまだ生成されていません。",
+      reburstButton: "スケジュールを再生成",
+      reburstSuccess: "将来のスケジュールが正常に再計算されました。",
+      endDateLabel: "終了日（任意）",
+    },
+    tenantSwitcher: {
+      label: "世帯を切替",
+      current: "現在の世帯",
     },
   },
   notifications: {

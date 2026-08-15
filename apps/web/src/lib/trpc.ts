@@ -40,6 +40,15 @@ export function buildTrpcClient(): ReturnType<typeof trpc.createClient> {
     links: [
       httpBatchLink({
         url: `${getBaseUrl()}/trpc`,
+        headers() {
+          if (typeof window !== "undefined") {
+            const activeTenantId = localStorage.getItem("money_matters_active_tenant_id");
+            if (activeTenantId) {
+              return { "x-tenant-id": activeTenantId };
+            }
+          }
+          return {};
+        },
         // credentials: "include" sends cookies on same-origin /api/trpc requests
         fetch: (url, options) => fetch(url, { ...options, credentials: "include" }),
       }),

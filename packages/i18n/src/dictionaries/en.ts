@@ -68,7 +68,7 @@ export const en = {
     lastPage: "Last",
     incomeAndExpenses: "Payday",
     incomeSources: "Income & pay",
-    expenseBills: "Bills & regulars",
+    expenseBills: "Bills",
     allSources: "Everything",
     upcomingOnly: "Coming up",
     categoryOrAccount: "Bucket / Account",
@@ -199,7 +199,7 @@ export const en = {
     nameLabel: "Name",
     namePlaceholder: "e.g. Groceries, Netflix, Emergency Fund",
     typeLabel: "Type",
-    typeRegular: "Regular Bill",
+    typeRegular: "Bill",
     typeGoal: "Saving For",
     typeEveryday: "Everyday",
     monthlyAmountLabel: "Monthly amount ($)",
@@ -227,7 +227,7 @@ export const en = {
     sections: {
       everydayTitle: "The Everyday Stuff",
       everydayDesc: "Day-to-day spending — groceries, petrol, takeaway. It all adds up.",
-      regularTitle: "The Bills Pile",
+      regularTitle: "Bills",
       regularDesc: "Your recurring commitments — mortgage, power, subscriptions. Auto-managed.",
       goalTitle: "What We're Saving For",
       goalDesc: "Working toward something? Track it here.",
@@ -784,6 +784,13 @@ export const en = {
     },
     sourceBurst: {
       empty: "No burst events generated yet.",
+      reburstButton: "Regenerate Schedule",
+      reburstSuccess: "Future schedule occurrences recalculated successfully.",
+      endDateLabel: "End Date (Optional)",
+    },
+    tenantSwitcher: {
+      label: "Switch Household",
+      current: "Active Household",
     },
   },
   notifications: {

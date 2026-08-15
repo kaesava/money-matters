@@ -6,18 +6,25 @@ import { authClient } from "./auth";
 // Re-export the typed tRPC hook factory — consumed across all screens
 export const trpc = createTRPCReact<AppRouter>();
 
-// In-memory token cache to prevent race conditions during signup/login
+import * as SecureStore from "expo-secure-store";
+
 let activeSessionToken: string | null = null;
+let activeTenantId: string | null = null;
 
 export function setActiveSessionToken(token: string | null) {
   activeSessionToken = token;
 }
 
-import * as SecureStore from "expo-secure-store";
+export function setActiveTenantId(tenantId: string | null) {
+  activeTenantId = tenantId;
+  if (tenantId) {
+    SecureStore.setItemAsync("money_matters_active_tenant_id", tenantId).catch(() => {});
+  } else {
+    SecureStore.deleteItemAsync("money_matters_active_tenant_id").catch(() => {});
+  }
+}
 
-// Default local dev API URL — override via EXPO_PUBLIC_API_URL env var
 const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] ?? "https://kesh-imac.tail09ef18.ts.net";
-const NEON_AUTH_URL = process.env["EXPO_PUBLIC_NEON_AUTH_URL"];
 
 export function buildTrpcClient() {
   return trpc.createClient({
@@ -45,29 +52,32 @@ export function buildTrpcClient() {
           }
         },
         async headers() {
-          console.log(`[DEBUG client trpc] headers() builder invoked. activeSessionToken:`, activeSessionToken ? "cached" : "empty");
           let token = activeSessionToken;
           
           if (!token) {
-            // Retrieve the stored session token manually from SecureStore (check both underscore and hyphen keys)
             const sessionToken = await SecureStore.getItemAsync("money-matters_session_token") || 
                                  await SecureStore.getItemAsync("money-matters-session-token");
-            console.log(`[DEBUG client trpc] Stored session token:`, sessionToken ? "found" : "not found");
             if (sessionToken) {
               token = sessionToken;
               activeSessionToken = token;
             }
           }
           
-          if (!token) {
-            console.log(`[DEBUG client trpc] No session token available. Sending empty headers.`);
-            return {};
+          let tenantId = activeTenantId;
+          if (!tenantId) {
+            tenantId = await SecureStore.getItemAsync("money_matters_active_tenant_id");
+            if (tenantId) activeTenantId = tenantId;
           }
-          
-          console.log(`[DEBUG client trpc] Sending Authorization Bearer token.`);
-          return {
-            Authorization: `Bearer ${token}`,
-          };
+
+          const headersObj: Record<string, string> = {};
+          if (token) {
+            headersObj["Authorization"] = `Bearer ${token}`;
+          }
+          if (tenantId) {
+            headersObj["x-tenant-id"] = tenantId;
+          }
+
+          return headersObj;
         },
       }),
     ],

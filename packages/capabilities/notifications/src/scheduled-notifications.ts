@@ -1,5 +1,5 @@
 import { Inngest } from 'inngest';
-import { db, incomeEvents, incomeSources, expenseEvents, categories, userPreferences } from '@money-matters/db';
+import { db, incomeEvents, incomeSources, expenseEvents, categories, userPreferences, transactionLedger, users } from '@money-matters/db';
 import { eq, and, lte, gte, sql } from 'drizzle-orm';
 
 export function createScheduledNotificationFunctions(inngest: Inngest) {
@@ -21,12 +21,14 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
           })
           .from(incomeEvents)
           .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+          .leftJoin(userPreferences, eq(incomeEvents.createdBy, userPreferences.userId))
           .where(
             and(
               eq(incomeEvents.status, 'UPCOMING'),
               eq(incomeEvents.expectedDate, tomorrowStr),
               sql`${incomeEvents.archivedAt} IS NULL`,
-              sql`${incomeSources.archivedAt} IS NULL`
+              sql`${incomeSources.archivedAt} IS NULL`,
+              sql`(${userPreferences.paydayAlertsEnabled} IS NULL OR ${userPreferences.paydayAlertsEnabled} = true)`
             )
           );
       });
@@ -71,12 +73,14 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
           })
           .from(expenseEvents)
           .leftJoin(categories, eq(expenseEvents.categoryId, categories.id))
+          .leftJoin(userPreferences, eq(expenseEvents.createdBy, userPreferences.userId))
           .where(
             and(
               eq(expenseEvents.status, 'UPCOMING'),
               gte(expenseEvents.expectedDate, todayStr),
               lte(expenseEvents.expectedDate, threeDaysLaterStr),
-              sql`${expenseEvents.archivedAt} IS NULL`
+              sql`${expenseEvents.archivedAt} IS NULL`,
+              sql`(${userPreferences.billRemindersEnabled} IS NULL OR ${userPreferences.billRemindersEnabled} = true)`
             )
           );
       });
@@ -109,16 +113,19 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
         return await db
           .select()
           .from(expenseEvents)
+          .leftJoin(userPreferences, eq(expenseEvents.createdBy, userPreferences.userId))
           .where(
             and(
               eq(expenseEvents.status, 'UPCOMING'),
               lte(expenseEvents.expectedDate, todayStr),
-              sql`${expenseEvents.archivedAt} IS NULL`
+              sql`${expenseEvents.archivedAt} IS NULL`,
+              sql`(${userPreferences.billRemindersEnabled} IS NULL OR ${userPreferences.billRemindersEnabled} = true)`
             )
           );
       });
 
-      for (const bill of overdueBills) {
+      for (const billItem of overdueBills) {
+        const bill = billItem.expense_events;
         await step.sendEvent(`trigger-push-overdue-${bill.id}`, {
           name: 'notification/send-push',
           data: {
@@ -142,8 +149,14 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     async ({ step }) => {
       const allPrefs = await step.run('fetch-users-digest-enabled', async () => {
         return await db
-          .select()
+          .select({
+            id: userPreferences.id,
+            userId: userPreferences.userId,
+            tenantId: userPreferences.tenantId,
+            email: users.email,
+          })
           .from(userPreferences)
+          .leftJoin(users, eq(userPreferences.userId, users.id))
           .where(eq(userPreferences.weeklyDigestEnabled, true));
       });
 
@@ -158,6 +171,16 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
             data: { screen: 'home' },
           },
         });
+
+        if (pref.email) {
+          await step.sendEvent(`trigger-weekly-digest-email-${pref.id}`, {
+            name: 'notification/send-digest-email',
+            data: {
+              userId: pref.userId,
+              email: pref.email,
+            },
+          });
+        }
       }
 
       return { count: allPrefs.length };
@@ -199,7 +222,71 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     { id: 'notify-spending-velocity' },
     { cron: '0 8 * * *' }, // 6pm AEST
     async ({ step }) => {
-      return { status: 'checked' };
+      const now = new Date();
+      const dayOfMonth = now.getDate();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const alerts = await step.run('check-spending-velocity', async () => {
+        const expenseCats = await db
+          .select()
+          .from(categories)
+          .where(
+            and(
+              sql`${categories.type} IN ('EVERYDAY', 'REGULAR')`,
+              sql`${categories.monthlyAmount} IS NOT NULL`,
+              sql`${categories.archivedAt} IS NULL`
+            )
+          );
+
+        const alertsList = [];
+        for (const cat of expenseCats) {
+          if (!cat.monthlyAmount) continue;
+          const target = parseFloat(cat.monthlyAmount);
+          if (target <= 0) continue;
+
+          const transactions = await db
+            .select({ amount: transactionLedger.amount })
+            .from(transactionLedger)
+            .where(
+              and(
+                eq(transactionLedger.categoryId, cat.id),
+                eq(transactionLedger.flowType, 'DEBIT'),
+                gte(transactionLedger.recordedAt, startOfMonth)
+              )
+            );
+
+          const totalSpent = transactions.reduce((acc, t) => acc + parseFloat(t.amount || '0'), 0);
+          const percent = (totalSpent / target) * 100;
+
+          if (percent >= 85 && dayOfMonth < 25) {
+            alertsList.push({
+              categoryId: cat.id,
+              categoryName: cat.name,
+              tenantId: cat.tenantId,
+              createdBy: cat.createdBy,
+              percent: Math.round(percent),
+              totalSpent: totalSpent.toFixed(2),
+              target: target.toFixed(2),
+            });
+          }
+        }
+        return alertsList;
+      });
+
+      for (const alert of alerts) {
+        await step.sendEvent(`trigger-velocity-warning-${alert.categoryId}`, {
+          name: 'notification/send-push',
+          data: {
+            userId: alert.createdBy,
+            tenantId: alert.tenantId,
+            title: `⚠️ Spending Alert: ${alert.categoryName}`,
+            body: `${alert.percent}% of monthly budget spent ($${alert.totalSpent} of $${alert.target}).`,
+            data: { screen: 'categories', categoryId: alert.categoryId },
+          },
+        });
+      }
+
+      return { alertsCount: alerts.length };
     }
   );
 
