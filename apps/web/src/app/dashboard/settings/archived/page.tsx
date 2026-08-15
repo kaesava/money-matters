@@ -8,7 +8,7 @@ import { PaginationBar, Spinner } from "@money-matters/ui/web";
 export default function ArchivedItemsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT">("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -69,7 +69,7 @@ export default function ArchivedItemsPage() {
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
-          {(["ALL", "CATEGORY", "INCOME_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
+          {(["ALL", "CATEGORY", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
@@ -79,7 +79,7 @@ export default function ArchivedItemsPage() {
                   : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
-              {type === "ALL" ? "All" : type === "CATEGORY" ? "Categories" : type === "INCOME_SOURCE" ? "Income" : "Accounts"}
+              {type === "ALL" ? "All" : type === "CATEGORY" ? "Categories" : type === "INCOME_SOURCE" ? "Income" : type === "EXPENSE_SOURCE" ? "Expenses" : "Accounts"}
             </button>
           ))}
         </div>
@@ -121,7 +121,7 @@ export default function ArchivedItemsPage() {
                 onClick={() =>
                   restoreMutation.mutate({
                     itemId: item.id,
-                    itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT",
+                    itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
                   })
                 }
                 disabled={restoreMutation.isPending}

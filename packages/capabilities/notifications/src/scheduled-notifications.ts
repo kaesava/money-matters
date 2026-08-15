@@ -1,6 +1,6 @@
 import { Inngest } from 'inngest';
 import { db, incomeEvents, incomeSources, expenseEvents, categories, userPreferences } from '@money-matters/db';
-import { eq, and, lte, gte } from 'drizzle-orm';
+import { eq, and, lte, gte, sql } from 'drizzle-orm';
 
 export function createScheduledNotificationFunctions(inngest: Inngest) {
   // 1. Payday Incoming
@@ -21,7 +21,14 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
           })
           .from(incomeEvents)
           .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
-          .where(and(eq(incomeEvents.status, 'UPCOMING'), eq(incomeEvents.expectedDate, tomorrowStr)));
+          .where(
+            and(
+              eq(incomeEvents.status, 'UPCOMING'),
+              eq(incomeEvents.expectedDate, tomorrowStr),
+              sql`${incomeEvents.archivedAt} IS NULL`,
+              sql`${incomeSources.archivedAt} IS NULL`
+            )
+          );
       });
 
       for (const payday of upcomingPaydays) {
@@ -68,7 +75,8 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
             and(
               eq(expenseEvents.status, 'UPCOMING'),
               gte(expenseEvents.expectedDate, todayStr),
-              lte(expenseEvents.expectedDate, threeDaysLaterStr)
+              lte(expenseEvents.expectedDate, threeDaysLaterStr),
+              sql`${expenseEvents.archivedAt} IS NULL`
             )
           );
       });
@@ -101,7 +109,13 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
         return await db
           .select()
           .from(expenseEvents)
-          .where(and(eq(expenseEvents.status, 'UPCOMING'), lte(expenseEvents.expectedDate, todayStr)));
+          .where(
+            and(
+              eq(expenseEvents.status, 'UPCOMING'),
+              lte(expenseEvents.expectedDate, todayStr),
+              sql`${expenseEvents.archivedAt} IS NULL`
+            )
+          );
       });
 
       for (const bill of overdueBills) {

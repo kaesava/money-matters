@@ -16,7 +16,7 @@ import { trpc } from "../../../lib/trpc";
 export default function MobileArchivedItemsScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT">("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -67,14 +67,14 @@ export default function MobileArchivedItemsScreen() {
 
       {/* Filter Pills */}
       <View style={styles.pillContainer}>
-        {(["ALL", "CATEGORY", "INCOME_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
+        {(["ALL", "CATEGORY", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
           <TouchableOpacity
             key={type}
             onPress={() => setFilterType(type)}
             style={[styles.pill, filterType === type && styles.pillActive]}
           >
             <Text style={[styles.pillText, filterType === type && styles.pillTextActive]}>
-              {type === "ALL" ? "All" : type === "CATEGORY" ? "Categories" : type === "INCOME_SOURCE" ? "Income" : "Accounts"}
+              {type === "ALL" ? "All" : type === "CATEGORY" ? "Categories" : type === "INCOME_SOURCE" ? "Income" : type === "EXPENSE_SOURCE" ? "Expenses" : "Accounts"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -109,7 +109,7 @@ export default function MobileArchivedItemsScreen() {
                   onPress={() =>
                     restoreMutation.mutate({
                       itemId: item.id,
-                      itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "BANK_ACCOUNT",
+                      itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
                     })
                   }
                   disabled={restoreMutation.isPending}

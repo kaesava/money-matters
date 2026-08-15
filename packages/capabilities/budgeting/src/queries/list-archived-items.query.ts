@@ -1,4 +1,4 @@
-import { db, categories, incomeSources, bankAccounts } from "@money-matters/db";
+import { db, categories, incomeSources, expenseSources, bankAccounts } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { PgDatabase } from "drizzle-orm/pg-core";
 
@@ -7,7 +7,7 @@ export async function listArchivedItemsQuery(
   appId: string,
   dbClient: PgDatabase<any, any, any> = db
 ) {
-  const [archivedCats, archivedIncome, archivedAccounts] = await Promise.all([
+  const [archivedCats, archivedIncome, archivedExpenses, archivedAccounts] = await Promise.all([
     dbClient
       .select({
         id: categories.id,
@@ -42,6 +42,22 @@ export async function listArchivedItemsQuery(
       ),
     dbClient
       .select({
+        id: expenseSources.id,
+        name: expenseSources.name,
+        itemType: sql<string>`'EXPENSE_SOURCE'`,
+        subtitle: expenseSources.amount,
+        archivedAt: expenseSources.archivedAt,
+      })
+      .from(expenseSources)
+      .where(
+        and(
+          eq(expenseSources.tenantId, tenantId),
+          eq(expenseSources.appId, appId),
+          sql`${expenseSources.archivedAt} IS NOT NULL`
+        )
+      ),
+    dbClient
+      .select({
         id: bankAccounts.id,
         name: bankAccounts.name,
         itemType: sql<string>`'BANK_ACCOUNT'`,
@@ -58,7 +74,7 @@ export async function listArchivedItemsQuery(
       ),
   ]);
 
-  return [...archivedCats, ...archivedIncome, ...archivedAccounts].sort(
+  return [...archivedCats, ...archivedIncome, ...archivedExpenses, ...archivedAccounts].sort(
     (a, b) => new Date(b.archivedAt!).getTime() - new Date(a.archivedAt!).getTime()
   );
 }
