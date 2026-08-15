@@ -12,6 +12,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 
+import { InfoTooltip } from '../../components/InfoTooltip';
+
 const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const;
 type Frequency = (typeof FREQUENCIES)[number];
 
@@ -52,8 +54,13 @@ export default function SetupIncomeScreen() {
       </View>
 
       <Text style={styles.stepLabel}>{t('setup.stepOfTwo', { step: 1, total: 2, defaultValue: 'Step 1 of 2' })}</Text>
-      <Text style={styles.title}>{t('setup.income.titleSimple', { defaultValue: 'How much do you get paid?' })}</Text>
-      <Text style={styles.subtitle}>{t('setup.income.subtitleSimple', { defaultValue: "Let's set up your main income source." })}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+        <Text style={styles.title}>{t('setup.income.titleSimple', { defaultValue: 'How much do you get paid?' })}</Text>
+        <InfoTooltip
+          title="Take-Home Pay"
+          content="Knowing your net income allows Money Matters to route earnings into your 5-Step Waterfall automatically."
+        />
+      </View>
 
       <View style={styles.card}>
         <Text style={styles.label}>{t('setup.income.nameLabel')}</Text>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { InfoTooltip } from "@money-matters/ui";
 
 export interface UserGoalItem {
   id: string;
@@ -75,13 +76,14 @@ export function SetupGoalsStep({
       <div>
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-black text-[#1B2B4B]">🎯 Savings & Future Goals</h2>
-          <span className="text-xs font-bold bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full">
+          <InfoTooltip
+            title="Sinking Funds & Goals"
+            content="Setting monthly targets for future goals ensures your money is reserved automatically every payday. You can adjust or add custom goals anytime."
+          />
+          <span className="text-xs font-bold bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full ml-auto">
             {goals.length} Active Goals
           </span>
         </div>
-        <p className="text-xs text-zinc-500 font-semibold mt-1">
-          Budgeting isn&apos;t just about paying bills — it&apos;s about making your money work for what matters most. What are you saving up for?
-        </p>
       </div>
 
       {/* Preset Goal Cards Grid */}

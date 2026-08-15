@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { IncomeItem } from "@money-matters/types";
+import { InfoTooltip } from "@money-matters/ui";
 
 interface SetupIncomeStepProps {
   incomes: IncomeItem[];
@@ -18,8 +19,6 @@ export function SetupIncomeStep({
   onRemoveIncome,
   onNext,
 }: SetupIncomeStepProps) {
-  const [activeTooltip, setActiveTooltip] = useState(false);
-
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       {/* Retention Hero Banner */}
@@ -39,24 +38,13 @@ export function SetupIncomeStep({
       </div>
 
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <h3 className="text-lg font-black text-[#1B2B4B]">💰 Take-Home Pay & Income</h3>
-          <button
-            type="button"
-            onClick={() => setActiveTooltip(!activeTooltip)}
-            className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
-          >
-            ℹ️
-          </button>
+          <InfoTooltip
+            title="Why we collect take-home pay"
+            content="Knowing your net take-home earnings allows us to calculate how much surplus cash you generate each month, funding your savings goals and protecting you against bill shortfalls before you spend."
+          />
         </div>
-        <p className="text-xs text-zinc-500 font-semibold mt-1">
-          Enter your net take-home earnings (after tax). Add all regular income sources so we can calculate your exact payday allocation pool.
-        </p>
-        {activeTooltip && (
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-medium">
-            <strong>Why we ask for this:</strong> Knowing your regular income allows us to calculate how much surplus cash you generate each month, funding your savings goals and protecting you against bill shortfalls before you spend a single dollar.
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-1">
