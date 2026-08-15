@@ -209,7 +209,8 @@ households (tenant)
 | **Inngest Cloud** | Async Workflows & 6 Scheduled Crons | `.env` (`INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`), `/api/inngest` | **READY** (Production signing key & background event dispatch) | Local Inngest CLI (`pnpm run dev:inngest`) |
 | **Stripe API** | Subscriptions, Billing & Webhooks | `.env` / Platform Secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs) | **READY** (Raw signature validation & 7-day read-only grace period) | Vitest mock handlers / Test mode price IDs |
 | **Sentry SaaS** | APM & Exception Tracking | `.env` (`SENTRY_DSN`), `next.config.ts`, `sentry.*.config.ts` | **READY** (Integrated across Fastify API, Next.js Web, Expo Mobile) | Gated to production builds (`NODE_ENV === 'production'`) |
-| **PostHog SaaS** | Product Analytics & Feature Flags | `.env` (`NEXT_PUBLIC_POSTHOG_KEY`, `POSTHOG_API_KEY`, `POSTHOG_HOST`) | **READY** (Integrated across Fastify API, Next.js Web, Expo Mobile) | Safe null-logger fallback in development |
+| **PostHog SaaS** | Product Analytics & Feature Flags | `.env` (`POSTHOG_API_KEY`, `POSTHOG_HOST`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`) | **READY** (Integrated across Fastify API, Next.js Web, Expo Mobile) | Safe null-logger fallback in development |
+
 | **Expo & Expo Push** | Mobile App & Native Push Notifications | `apps/mobile`, `device_tokens` DB table, `https://exp.host/--/api/v2/push/send` | **READY** (Android Native Target SDK 54 / RN 0.81.5) | Expo Go / Android Emulator |
 | **Photon (Komoot OSM)** | Public Geocoding | Public Service (`https://photon.komoot.io`) | **READY** (Zero-config public API, no keys required) | Public API fallback |
 | **Monorepo Tools** | pnpm 9, Turbo 2, TypeScript 6, Vitest 4, ESLint 9 | `package.json`, `pnpm-workspace.yaml`, `turbo.json` | **READY** (100% strict type safety & Vitest unit tests) | Local turbo build & test pipelines |

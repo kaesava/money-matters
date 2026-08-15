@@ -9,8 +9,7 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
   PORT: z.string().transform(val => Number(val)).default("3001"),
-  // Placeholder keys required for Stack Auth / Inngest V1
-  STACK_AUTH_SECRET: z.string().optional().default("mock-secret-for-v1"),
+  // Async workflows (Inngest)
   INNGEST_SIGNING_KEY: z.string().optional().default("mock-inngest-key"),
   INNGEST_EVENT_KEY: z.string().optional().default("mock-inngest-event-key"),
   APP_MONEY_MATTERS_ID: z.string().uuid().default("01908bde-34bb-7b19-a178-574211bc93aa"),
@@ -23,21 +22,25 @@ const envSchema = z.object({
   STORAGE_REGION: z.string().optional().default("auto"),
   STORAGE_BUCKET_NAME: z.string().optional(),
   EXPO_PUBLIC_NEON_AUTH_URL: z.string().optional(),
+  NEXT_PUBLIC_NEON_AUTH_URL: z.string().optional(),
+  NEON_AUTH_JWKS_URL: z.string().optional(),
+  NEON_AUTH_BASE_URL: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
   // Redis rate limiting
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
-  // Stripe payments
+  // Stripe payments (server secret & webhook validation)
   STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_MONTHLY: z.string().optional(),
   STRIPE_PRICE_ANNUAL: z.string().optional(),
   STRIPE_PRICE_FOUNDING_ANNUAL: z.string().optional(),
   // PostHog product analytics
-  NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
   POSTHOG_API_KEY: z.string().optional(),
+  POSTHOG_PROJECT_TOKEN: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: z.string().optional(),
   POSTHOG_HOST: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
 });
 
 let envCache: z.infer<typeof envSchema> | null = null;
@@ -60,4 +63,3 @@ export function validateEnv(): z.infer<typeof envSchema> {
   envCache = result.data;
   return envCache;
 }
-
