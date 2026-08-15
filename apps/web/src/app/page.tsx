@@ -196,52 +196,23 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 w-full max-w-3xl">
-            {/* Free Tier */}
-            <div className="bg-white rounded-2xl p-8 border border-[#e2e4e0] shadow-sm flex flex-col justify-between">
-              <div className="flex flex-col gap-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  {t("landing.pricingFreeTitle")}
-                </span>
-                <div className="flex items-baseline gap-1 font-mono">
-                  <span className="text-4xl font-extrabold text-[#1B2B4B]">
-                    {t("landing.pricingFreePrice")}
-                  </span>
-                  <span className="text-sm font-sans text-zinc-500">
-                    {t("landing.pricingFreeSub")}
-                  </span>
-                </div>
-                <ul className="flex flex-col gap-3 text-sm text-zinc-600 mt-4">
-                  <li className="flex items-center gap-2">✓ {t("landing.pricingFreeFeature1")}</li>
-                  <li className="flex items-center gap-2">✓ {t("landing.pricingFreeFeature2")}</li>
-                  <li className="flex items-center gap-2">✓ {t("landing.pricingFreeFeature3")}</li>
-                  <li className="flex items-center gap-2">✓ {t("landing.pricingFreeFeature4")}</li>
-                  <li className="flex items-center gap-2 text-zinc-400 line-through">
-                    ✗ {t("landing.pricingFreeFeature5Disabled")}
-                  </li>
-                  <li className="flex items-center gap-2 text-zinc-400 line-through">
-                    ✗ {t("landing.pricingFreeFeature6Disabled")}
-                  </li>
-                </ul>
-              </div>
-              <button
-                onClick={() => router.push("/sign-up")}
-                className="w-full mt-8 py-3.5 rounded-xl border border-zinc-300 font-bold text-zinc-700 hover:bg-zinc-50 text-sm transition-colors"
-              >
-                {t("landing.pricingFreeCta")}
-              </button>
-            </div>
-
-            {/* Household Tier */}
+          <div className="w-full max-w-xl">
+            {/* Single Unified Household Tier */}
             <div className="bg-white rounded-2xl p-8 border-2 border-[#2563eb] shadow-xl flex flex-col justify-between relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
-                POPULAR
+                FULL ACCESS
               </div>
               <div className="flex flex-col gap-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#2563eb]">
-                  {t("landing.pricingHouseholdTitle")}
-                </span>
-                <div className="flex items-baseline gap-2 font-mono">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#2563eb]">
+                    {t("landing.pricingHouseholdTitle")}
+                  </span>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] w-fit mt-1">
+                    {t("landing.pricingTrialBadge")}
+                  </div>
+                </div>
+
+                <div className="flex items-baseline gap-2 font-mono mt-1">
                   <span className="text-4xl font-extrabold text-[#1B2B4B]">
                     {t("landing.pricingHouseholdPrice")}
                   </span>
@@ -250,7 +221,7 @@ export default function Home() {
                   </span>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 font-semibold">
+                <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 font-semibold">
                   {t("landing.pricingFoundingBadge")}
                 </div>
 
@@ -259,8 +230,8 @@ export default function Home() {
                   <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("landing.pricingHouseholdFeature2")}</li>
                   <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("landing.pricingHouseholdFeature3")}</li>
                   <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("landing.pricingHouseholdFeature4")}</li>
-                  <li className="flex items-center gap-2">✓ {t("landing.pricingHouseholdFeature5")}</li>
-                  <li className="flex items-center gap-2">✓ {t("landing.pricingHouseholdFeature6")}</li>
+                  <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("landing.pricingHouseholdFeature5")}</li>
+                  <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("landing.pricingHouseholdFeature6")}</li>
                 </ul>
               </div>
               <button

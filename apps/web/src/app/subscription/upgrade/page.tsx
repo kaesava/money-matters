@@ -85,76 +85,53 @@ export default function UpgradePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Free Card */}
-          <div className="bg-white rounded-2xl p-8 border border-zinc-200 flex flex-col justify-between shadow-sm">
-            <div className="flex flex-col gap-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                {t("subscription.freePlanName")}
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-[#1B2B4B]">$0</span>
-                <span className="text-sm text-zinc-500">/ forever</span>
-              </div>
-              <ul className="flex flex-col gap-3 text-sm text-zinc-600 mt-4">
-                <li className="flex items-center gap-2">✓ {t("subscription.featureBudgeting")}</li>
-                <li className="flex items-center gap-2">✓ {t("subscription.featureNotifications")}</li>
-                <li className="flex items-center gap-2">✓ {t("subscription.featureHistoryFree")}</li>
-                <li className="flex items-center gap-2">✓ {t("subscription.featureGoalsFree")}</li>
-                <li className="flex items-center gap-2">✓ {t("subscription.featureCsvImportFree")}</li>
-                <li className="flex items-center gap-2 text-zinc-400 line-through">
-                  ✗ {t("subscription.featureFileNotesFree")}
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="w-full mt-8 py-3 rounded-xl border border-zinc-300 font-semibold text-zinc-700 hover:bg-zinc-50 text-sm transition-colors"
-            >
-              Continue on Free
-            </button>
-          </div>
-
+        <div className="w-full max-w-xl mx-auto">
           {/* Household Card */}
-          <div className="bg-white rounded-2xl p-8 border-2 border-[#2563eb] flex flex-col justify-between shadow-lg relative overflow-hidden">
+          <div className="bg-white rounded-2xl p-8 border-2 border-[#2563eb] flex flex-col justify-between shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
-              POPULAR
+              100% FULL ACCESS
             </div>
 
             <div className="flex flex-col gap-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#2563eb]">
-                {t("subscription.householdPlanName")}
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold text-[#1B2B4B]">
-                  {billingCycle === "annual" ? "$49" : "$4.99"}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2563eb]">
+                  {t("subscription.householdPlanName")}
                 </span>
-                <span className="text-sm text-zinc-500">
-                  {billingCycle === "annual" ? "AUD / year ($4.08/mo)" : "AUD / month"}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] w-fit mt-1">
+                  {t("landing.pricingTrialBadge")}
+                </div>
+              </div>
+
+              <div className="flex items-baseline gap-2 font-mono">
+                <span className="text-4xl font-extrabold text-[#1B2B4B]">
+                  {billingCycle === "annual" ? "$89" : "$9.95"}
+                </span>
+                <span className="text-sm font-sans text-zinc-500">
+                  {billingCycle === "annual" ? "AUD / year ($7.42/mo)" : "AUD / month"}
                 </span>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 font-medium">
-                🏷️ {t("subscription.foundingMemberBadge")}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 font-semibold">
+                {t("subscription.foundingMemberBadge")}
               </div>
-
 
               <ul className="flex flex-col gap-3 text-sm text-zinc-700 mt-2 font-medium">
+                <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featureBudgeting")}</li>
                 <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featureHistoryPaid")}</li>
                 <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featureGoalsPaid")}</li>
                 <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featureCsvImportPaid")}</li>
                 <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featureFileNotesPaid")}</li>
-                <li className="flex items-center gap-2">✓ {t("subscription.featureBudgeting")}</li>
-                <li className="flex items-center gap-2">✓ {t("subscription.featureNotifications")}</li>
+                <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featureNotifications")}</li>
+                <li className="flex items-center gap-2 text-[#2563eb]">✓ {t("subscription.featurePartner")}</li>
               </ul>
             </div>
 
             <Button
               onClick={() => handleCheckout(billingCycle)}
               loading={loading}
-              className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-md text-sm transition-all"
+              className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md text-sm transition-all"
             >
-              {t("subscription.startTrial")}
+              {t("subscription.foundingMemberCta")}
             </Button>
           </div>
         </div>
