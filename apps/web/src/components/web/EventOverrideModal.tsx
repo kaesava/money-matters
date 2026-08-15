@@ -97,10 +97,10 @@ export default function EventOverrideModal({
             <span className="text-[11px] text-zinc-600">Editing this specific {eventToEdit.eventType.toLowerCase()} date or amount.</span>
           </div>
           <a
-            href="/dashboard/paychecks"
+            href="/dashboard/income-and-bills"
             onClick={(e) => {
               e.preventDefault();
-              window.location.href = `/dashboard/paychecks?search=${encodeURIComponent(eventToEdit.name)}`;
+              window.location.href = `/dashboard/income-and-bills?search=${encodeURIComponent(eventToEdit.name)}`;
             }}
             className="text-xs font-black text-[#00B4A6] hover:underline flex items-center gap-1 shrink-0 ml-2"
           >

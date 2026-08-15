@@ -40,7 +40,7 @@ const NAV_ITEMS = [
   {
     key: "paychecks",
     label: () => t("nav.payday"),
-    href: "/dashboard/paychecks",
+    href: "/dashboard/income-and-bills",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -50,7 +50,7 @@ const NAV_ITEMS = [
   {
     key: "bank-accounts",
     label: () => "Accounts",
-    href: "/dashboard/settings/bank-accounts",
+    href: "/dashboard/bank-accounts",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -220,6 +220,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
+              : item.href === "/dashboard/settings"
+              ? pathname === "/dashboard/settings" || (pathname.startsWith("/dashboard/settings/") && !pathname.startsWith("/dashboard/settings/bank-accounts"))
               : pathname.startsWith(item.href);
 
           return (
@@ -369,8 +371,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
           </div>
 
-          {/* Global Quick Action Floating Button (Hidden on Income & Bills page) */}
-          {!pathname.startsWith("/dashboard/paychecks") && (
+          {/* Global Quick Action Floating Button (Hidden on Income & Bills, and Bank Accounts pages) */}
+          {!pathname.startsWith("/dashboard/income-and-bills") && !pathname.startsWith("/dashboard/bank-accounts") && (
             <button
               id="global-quick-add-btn"
               onClick={() => {

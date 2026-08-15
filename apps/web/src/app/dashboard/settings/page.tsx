@@ -48,7 +48,7 @@ export default function SettingsPage() {
           style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
         >
           <a
-            href="/dashboard/settings/bank-accounts"
+            href="/dashboard/bank-accounts"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-1 first:pt-0"
           >
             <span>🏦 Bank Accounts & Statement Import</span>

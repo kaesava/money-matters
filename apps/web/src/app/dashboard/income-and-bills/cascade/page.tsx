@@ -28,7 +28,7 @@ export default function CascadePage() {
   // Strategic Fix: Handle the error natively through tRPC to perfectly infer the error type
   const confirmMutation = trpc.confirmAllocation.useMutation({
     onSuccess: () => {
-      router.push("/dashboard/paychecks");
+      router.push("/dashboard/income-and-bills");
     },
     onError: (error) => {
       setErrorMessage(error.message || "Failed to confirm allocation.");

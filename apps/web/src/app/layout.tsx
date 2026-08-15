@@ -24,6 +24,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://moneymatters.app"),
   title: t("app.title"),
   description: t("app.description"),
   // Kaesava brand icon system — Money Matters product icons
@@ -38,6 +39,11 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
   },
   manifest: "/site.webmanifest",
+  openGraph: {
+    title: t("app.title"),
+    description: t("app.description"),
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Money Matters Logo" }],
+  },
 };
 
 import { AppProviders } from "../providers/AppProviders";

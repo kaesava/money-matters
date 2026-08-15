@@ -8,7 +8,7 @@ interface SeriesNoticeBannerProps {
 export function SeriesNoticeBanner({ eventType, eventName }: SeriesNoticeBannerProps) {
   const targetHref =
     eventType === "INCOME"
-      ? `/dashboard/paychecks?search=${encodeURIComponent(eventName)}`
+      ? `/dashboard/income-and-bills?search=${encodeURIComponent(eventName)}`
       : `/dashboard/settings/income-expenses?search=${encodeURIComponent(eventName)}`;
 
   return (

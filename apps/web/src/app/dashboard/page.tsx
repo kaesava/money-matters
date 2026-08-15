@@ -291,7 +291,7 @@ export default function DashboardPage() {
             📥 Import Bank CSV
           </button>
           <button
-            onClick={() => router.push("/dashboard/settings/bank-accounts")}
+            onClick={() => router.push("/dashboard/bank-accounts")}
             className="px-3 py-2 text-xs font-bold text-white bg-[#2563eb] rounded-xl hover:bg-blue-700 transition-colors"
           >
             {t("dashboard.bankAccountTip.action")}

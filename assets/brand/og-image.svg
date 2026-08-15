@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#1B2B4B" flood-opacity="0.25"/>
+    </filter>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#EFF6FF" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg-grad)" />
+
+  <!-- Centered Card Container -->
+  <g transform="translate(180, 115)">
+    <!-- Large Icon Mark -->
+    <g transform="translate(0, 0) scale(0.39)">
+      <rect width="1024" height="1024" rx="220" ry="220" fill="#FFFFFF" filter="url(#shadow)" />
+      <g fill="#BAE6FD">
+        <rect x="130" y="130" width="210" height="764" rx="24" />
+        <polygon points="330,430 670,130 880,130 460,500 880,890 670,890 330,570" />
+      </g>
+      <g>
+        <path d="M 520,830 A 330,330 0 1,1 640,195" fill="none" stroke="#3B82F6" stroke-width="96" stroke-linecap="round" />
+        <path d="M 640,195 A 330,330 0 0,1 760,280" fill="none" stroke="#06B6D4" stroke-width="96" />
+        <path d="M 760,280 A 330,330 0 0,1 830,410" fill="none" stroke="#10B981" stroke-width="96" />
+        <path d="M 830,410 A 330,330 0 0,1 835,530" fill="none" stroke="#F43F5E" stroke-width="96" stroke-linecap="round" />
+      </g>
+    </g>
+
+    <!-- Title & Tagline -->
+    <text x="440" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="88" font-weight="900" fill="#1B2B4B" letter-spacing="-2">Money Matters</text>
+    <text x="440" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" font-weight="600" fill="#2563EB">Personal Finance &amp; Paycheck Planning</text>
+    <text x="440" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="400" fill="#64748B">Know exactly what you can spend with total clarity.</text>
+  </g>
+</svg>
