@@ -353,6 +353,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .insert(bankAccounts)
     .values({
       name: "Primary Account",
+      bankProvider: "CBA",
       lastKnownBalance: "3450.00",
       unbudgetedBuffer: "500.00",
       tenantId,
@@ -366,6 +367,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .insert(bankAccounts)
     .values({
       name: "High Interest Offset Saver",
+      bankProvider: "ING",
       lastKnownBalance: "48500.00",
       unbudgetedBuffer: "0.00",
       tenantId,
@@ -380,6 +382,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .insert(bankAccounts)
     .values({
       name: "Everyday Smart Account",
+      bankProvider: "Westpac",
       lastKnownBalance: "5200.00",
       unbudgetedBuffer: "400.00",
       tenantId: raehanTenantId,
@@ -393,6 +396,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .insert(bankAccounts)
     .values({
       name: "Wealth Builder Saver",
+      bankProvider: "ANZ",
       lastKnownBalance: "24000.00",
       unbudgetedBuffer: "0.00",
       tenantId: raehanTenantId,

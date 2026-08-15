@@ -11,6 +11,7 @@ type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
 interface BankAccountItem {
   id: string;
   name: string;
+  bankProvider?: BankName;
   lastKnownBalance?: string;
   unbudgetedBuffer?: string;
   isPrivate?: boolean;
@@ -186,7 +187,7 @@ export default function BankAccountsDashboardPage() {
   const openEditModal = (acc: BankAccountItem) => {
     setEditingAccount(acc);
     setAccName(acc.name);
-    setAccBankProvider("CBA");
+    setAccBankProvider(acc.bankProvider || "CBA");
     setAccBalance(acc.lastKnownBalance || "0.00");
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(acc.isPrivate ?? false);
@@ -219,6 +220,7 @@ export default function BankAccountsDashboardPage() {
           accountId: editingAccount.id,
           data: {
             name: accName.trim(),
+            bankProvider: accBankProvider,
             lastKnownBalance: accBalance.trim() || "0.00",
             unbudgetedBuffer: accBuffer.trim() || "0.00",
             isPrivate: accIsPrivate && !isTrialExpired,
@@ -234,6 +236,7 @@ export default function BankAccountsDashboardPage() {
       createAccountMut.mutate(
         {
           name: accName.trim(),
+          bankProvider: accBankProvider,
           lastKnownBalance: accBalance.trim() || "0.00",
           unbudgetedBuffer: accBuffer.trim() || "0.00",
           isPrivate: accIsPrivate && !isTrialExpired,
@@ -324,7 +327,7 @@ export default function BankAccountsDashboardPage() {
 
   const openImportModal = (acc: BankAccountItem) => {
     setSelectedAccountForImport(acc);
-    setSelectedBankProvider(detectBankFromAccountName(acc.name));
+    setSelectedBankProvider(acc.bankProvider || detectBankFromAccountName(acc.name));
     setCsvResultMsg(null);
     setShowCustomMapper(false);
     setPendingCsvText("");
@@ -513,20 +516,20 @@ export default function BankAccountsDashboardPage() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
+                          onClick={() => openEditModal(acc)}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
+                          title="Edit Account Details"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => openImportModal(acc)}
                           className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 transition-colors flex items-center gap-1"
                           title="Import CSV Statement for this account"
                         >
                           <span>📄</span>
                           <span>Import CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(acc)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
-                          title="Edit Account Details"
-                        >
-                          Edit
                         </button>
                         <button
                           type="button"

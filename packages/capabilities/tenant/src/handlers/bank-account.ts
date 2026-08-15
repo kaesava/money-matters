@@ -72,6 +72,7 @@ export function createBankAccountHandler(db: DbOrTx) {
       .values({
         tenantId: tenantId,
         name: input.name,
+        bankProvider: input.bankProvider ?? "CBA",
         lastKnownBalance: input.lastKnownBalance,
         unbudgetedBuffer: input.unbudgetedBuffer,
         isPrivate: input.isPrivate ?? false,

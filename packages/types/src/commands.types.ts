@@ -11,6 +11,7 @@ export const UpdateTenantCommand = z.object({
 
 export const CreateBankAccountCommand = z.object({
   name: z.string().min(1),
+  bankProvider: z.enum(["CBA", "Westpac", "ANZ", "NAB", "ING", "Macquarie", "Other"]).default("CBA").optional(),
   lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
   unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
   isPrivate: z.boolean().default(false).optional(),
@@ -19,6 +20,7 @@ export const CreateBankAccountCommand = z.object({
 
 export const UpdateBankAccountCommand = z.object({
   name: z.string().min(1).optional(),
+  bankProvider: z.enum(["CBA", "Westpac", "ANZ", "NAB", "ING", "Macquarie", "Other"]).optional(),
   lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   isPrivate: z.boolean().optional(),
