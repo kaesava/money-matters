@@ -176,4 +176,27 @@ describe("paycheck cascade allocation engine", () => {
     const utilityLine = result.lines.find((l) => l.bucketId === "utility-bill");
     expect(utilityLine?.proposedAmount).toBe(0);
   });
+
+  it("handles zero income and fallback when no everyday bucket exists gracefully", () => {
+    const buckets: EngineBucket[] = [
+      {
+        id: "rent-bill",
+        name: "Rent Bill",
+        type: "REGULAR",
+        monthlyAmount: 1000,
+        currentBalance: 0,
+      },
+    ];
+
+    const result = runAllocationEngine({
+      incomeAmount: 0,
+      buckets,
+      paycheckDate: new Date(),
+      paycheckFrequencyDays: 14,
+    });
+
+    expect(result.status).toBe("OK");
+    expect(result.lines).toHaveLength(1);
+    expect(result.lines[0].proposedAmount).toBe(0);
+  });
 });

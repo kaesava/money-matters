@@ -43,6 +43,8 @@ export const baseEnvSchema = z
     NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: z.string().min(1).optional(),
     POSTHOG_HOST: z.string().url().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
+    // Feature flags
+    NEXT_PUBLIC_ENABLE_AUTH: z.string().transform((v) => v === "true").default("true"),
   })
   .strict();
 

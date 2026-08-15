@@ -47,3 +47,12 @@ describe('Correlation ID Hook', () => {
   });
 });
 
+describe('verifyJwt error handling', () => {
+  it('returns null when jwtVerify throws signature verification error', async () => {
+    process.env.NEON_AUTH_BASE_URL = 'https://auth.example.com';
+    const { verifyJwt } = await import('./auth.js');
+    const result = await verifyJwt('invalid-jwt-token');
+    expect(result).toBeNull();
+  });
+});
+

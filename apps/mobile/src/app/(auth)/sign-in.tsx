@@ -49,7 +49,6 @@ export default function SignInScreen() {
       }
       const sessionToken = result.data?.token;
       if (sessionToken) {
-        console.log(`[DEBUG client] Storing session token and caching it...`);
         await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
@@ -98,19 +97,15 @@ export default function SignInScreen() {
         callbackURL: `${webOrigin}/auth-callback`,
       });
 
-      console.log(`[DEBUG client] Google social sign-in response:`, result);
-
       const sessionToken = await SecureStore.getItemAsync("money-matters_session_token") || 
                            await SecureStore.getItemAsync("money-matters-session-token");
       if (sessionToken) {
-        console.log(`[DEBUG client] Captured social session token:`, sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
       posthog.capture('user_signed_in', { method: 'google' });
       router.replace("/(app)/home");
     } catch (err) {
-      console.error("[DEBUG client] Google sign-in failed:", err);
       Alert.alert(
         t("auth.signInErrorTitle", { defaultValue: "Sign In Error" }),
         err instanceof Error ? err.message : t("auth.signInErrorGeneric", { defaultValue: "Failed to sign in." })

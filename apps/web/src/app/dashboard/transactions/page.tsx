@@ -2,7 +2,12 @@
 
 import React, { useState, useMemo } from "react";
 import { trpc } from "../../../lib/trpc";
-import { formatCurrency } from "@money-matters/ui";
+
+const formatAUD = (val: number | string): string => {
+  const num = typeof val === 'string' ? parseFloat(val) : val;
+  if (isNaN(num)) return '$0.00';
+  return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(num);
+};
 
 export default function TransactionsPage() {
   const [filterType, setFilterType] = useState<"ALL" | "DEBIT" | "CREDIT">("ALL");
@@ -135,7 +140,7 @@ export default function TransactionsPage() {
                     <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
                       tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'
                     }`}>
-                      {tx.type === 'CREDIT' ? '+' : '-'}{formatCurrency(tx.amount)}
+                      {tx.type === 'CREDIT' ? '+' : '-'}{formatAUD(tx.amount)}
                     </td>
                   </tr>
                 ))}

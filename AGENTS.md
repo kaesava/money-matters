@@ -61,7 +61,7 @@ All tables MUST include:
 - MUST implement data minimization.
 - MUST define retention and deletion policies.
 - MUST support export and erasure.
-- MUST NOT log PII (emails, passwords, tokens, JWTs redacted automatically via universal logger).
+- MUST NOT log PII or session/auth tokens in client or server logs (`console.log(token)` is strictly forbidden; emails, passwords, tokens, JWTs must be redacted automatically via universal logger).
 
 ## 8. Type Safety & Validation
 - `any` is FORBIDDEN. Replaced by `unknown`, strict generic DTOs, or Zod inference. Unsafe type casts (`as any`) are strictly banned across all packages and components, including dynamic route pushes (use `as Href` cast from `expo-router`), Lucide icon components (render them directly), and mock clients in tests.
@@ -96,6 +96,7 @@ All tables MUST include:
 
 ## 13. UI / i18n / Design Tokens
 - ALL user-facing strings via `@money-matters/i18n` (zero hardcoded text literals in components/views/modals).
+- MUST use `React.useId()` for generating unique component/input HTML IDs. `Math.random()` for element IDs is strictly banned.
 - Dates stored in UTC; rendered in timezone-aware AEST/en-AU format.
 - Serene Finance visual identity: Serene Blue `#2563eb`, Navy `#1B2B4B`, Off-white `#F7F8FA`, Green `#22c55e`, Red `#ba1a1a`, JetBrains Mono for monetary metrics.
 

@@ -58,12 +58,21 @@ describe("file-notes capability handlers", () => {
 
   it("can list file notes", async () => {
     const listHandler = listFileNotesHandler(mockDb as unknown as DbOrTx);
-    mockDb.returning.mockImplementationOnce(() => []);
-    const result = await listHandler(
-      { entityType: "EXPENSE", entityId: "some-uuid", status: "ACTIVE" },
-      "tenant-123"
-    );
-    expect(mockDb.select).toHaveBeenCalled();
-    expect(mockDb.from).toHaveBeenCalled();
+    const notes = await listHandler({ entityType: "CATEGORY", entityId: "cat-1", status: "ACTIVE" }, "tenant-1");
+    expect(notes).toHaveLength(1);
+  });
+});
+
+describe("file-notes storage helper tests", () => {
+  it("returns mock presigned download URL when bucket credentials are missing", async () => {
+    const { getPresignedDownloadUrl } = await import("./storage.js");
+    const url = await getPresignedDownloadUrl("test-key.pdf");
+    expect(url).toContain("mock-download");
+  });
+
+  it("returns mock presigned upload URL when bucket credentials are missing", async () => {
+    const { getPresignedUploadUrl } = await import("./storage.js");
+    const url = await getPresignedUploadUrl("test-key.pdf", "application/pdf");
+    expect(url).toContain("mock-upload");
   });
 });

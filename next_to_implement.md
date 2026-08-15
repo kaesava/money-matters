@@ -1,8 +1,11 @@
 # AGENT - In progress...
 
+
+
 # WEB
 
 ## General
+* The app is live but I'm still testing it. I want to keep the landing page, but block the user from registering/logging in. However, I want to easily be able to turn on/off a flag as the developer to turn on/off the sign-up and sign-in capability (which will unlock the rest of the app), for example to test in production. How do I do this?
 
 ## "Accounts"
 * Be consistent with Everday, Bills, Goal - across the app - I can see Savings Goal, Save Towards, etc all over the app. Be consistent.

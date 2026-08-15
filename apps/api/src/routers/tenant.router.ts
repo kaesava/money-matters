@@ -1,4 +1,4 @@
-import { tenantProcedure, authenticatedProcedure, ownerProcedure, requiresWriteAccess } from '../trpc/trpc.js';
+import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
 import { db, userPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or } from "drizzle-orm";
@@ -460,5 +460,20 @@ updateUserPreferences: tenantProcedure
 
       return { success: true, activeTenantId: input.tenantId };
     }),
+
+  subscribeEarlyAccess: publicProcedure
+    .input(z.object({ email: z.string().email() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      const { earlyAccessSubscribers } = await import('@money-matters/db');
+      await ctx.db.insert(earlyAccessSubscribers).values({
+        email: input.email,
+        tenantId: ctx.tenantId ?? ctx.appId ?? "01908bde-34bb-7b19-a178-574211bc93aa",
+        appId: ctx.appId ?? "01908bde-34bb-7b19-a178-574211bc93aa",
+        createdBy: ctx.userId ?? "public",
+        updatedBy: ctx.userId ?? "public",
+      });
+      return { success: true };
+    }),
 };
+
 

@@ -4,29 +4,111 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { authClient } from "../lib/auth";
+import { trpc } from "../lib/trpc";
 import { PaycheckSimulator } from "../components/PaycheckSimulator";
 
 import { DonutRing } from "../components/web/DonutRing";
 
 import { Logo } from "@money-matters/ui/web";
 
+const ENABLE_AUTH = process.env.NEXT_PUBLIC_ENABLE_AUTH !== "false";
+
 export default function Home() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const [showEarlyAccessModal, setShowEarlyAccessModal] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState(false);
+
+  const subscribeMut = trpc.subscribeEarlyAccess.useMutation({
+    onSuccess: () => {
+      setSubmittedEmail(true);
+    },
+  });
+
+  const handleAuthClick = (path: string) => {
+    if (ENABLE_AUTH) {
+      router.push(path);
+    } else {
+      setShowEarlyAccessModal(true);
+    }
+  };
 
   useEffect(() => {
     setIsClient(true);
-    authClient.getSession().then(({ data }) => {
-      if (data?.session) {
-        router.push("/dashboard");
-      }
-    });
+    if (ENABLE_AUTH) {
+      authClient.getSession().then(({ data }) => {
+        if (data?.session) {
+          router.push("/dashboard");
+        }
+      });
+    }
   }, [router]);
 
   if (!isClient) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white">
+      {/* Early Access Modal when NEXT_PUBLIC_ENABLE_AUTH is false */}
+      {showEarlyAccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full border border-[#e2e4e0] shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setShowEarlyAccessModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 text-lg font-bold"
+            >
+              ✕
+            </button>
+            <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-[#2563eb] flex items-center justify-center text-2xl">
+              🚀
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-[#1B2B4B]">Money Matters is Almost Ready!</h3>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                We&apos;re currently performing final testing and polish to ensure your household budgeting experience is flawless. Sign-ups will open very soon.
+              </p>
+            </div>
+
+            {submittedEmail ? (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold leading-relaxed">
+                ✓ Thank you! We&apos;ve registered your email and will notify you the moment public access launches.
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (emailInput.trim()) {
+                    subscribeMut.mutate({ email: emailInput.trim() });
+                  }
+                }}
+                className="space-y-3 pt-2"
+              >
+                <label className="text-xs font-bold text-zinc-700 block">
+                  Get notified when we launch:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="you@example.com"
+                    className="flex-1 px-3 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={subscribeMut.isPending}
+                    className="bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shrink-0"
+                  >
+                    {subscribeMut.isPending ? "Submitting..." : "Notify Me"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header Navigation */}
       <header className="border-b border-[#e2e4e0] bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-2xs">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -38,13 +120,13 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push("/sign-in")}
+              onClick={() => handleAuthClick("/sign-in")}
               className="text-sm font-semibold text-zinc-600 hover:text-[#1B2B4B] transition-colors"
             >
               {t("auth.signInCta")}
             </button>
             <button
-              onClick={() => router.push("/sign-up")}
+              onClick={() => handleAuthClick("/sign-up")}
               className="bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm"
             >
               {t("landing.heroCtaPrimary")}
@@ -67,7 +149,7 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row gap-4 mt-2">
           <button
-            onClick={() => router.push("/sign-up")}
+            onClick={() => handleAuthClick("/sign-up")}
             className="bg-[#1B2B4B] hover:bg-slate-800 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-md text-base"
           >
             {t("landing.heroCtaPrimary")}
@@ -175,7 +257,7 @@ export default function Home() {
 
             <div className="pt-4">
               <button
-                onClick={() => router.push("/sign-up")}
+                onClick={() => handleAuthClick("/sign-up")}
                 className="w-full sm:w-auto bg-[#2563eb] hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-md text-base"
               >
                 {t("landing.heroCtaPrimary")}
@@ -314,7 +396,7 @@ export default function Home() {
                 </div>
               </div>
               <button
-                onClick={() => router.push("/sign-up")}
+                onClick={() => handleAuthClick("/sign-up")}
                 className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-md text-sm transition-colors"
               >
                 {t("landing.heroCtaPrimary")}
@@ -381,7 +463,7 @@ export default function Home() {
             {t("landing.conversionDesc")}
           </p>
           <button
-            onClick={() => router.push("/sign-up")}
+            onClick={() => handleAuthClick("/sign-up")}
             className="bg-[#2563eb] hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-md text-base mt-2"
           >
             {t("landing.heroCtaPrimary")}

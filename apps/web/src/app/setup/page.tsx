@@ -246,15 +246,17 @@ function SetupWizardContent() {
 
     setIsSubmitting(true);
     try {
-      for (const inc of incomes) {
-        await createIncomeSource.mutateAsync({
-          name: inc.name.trim() || "Primary Income",
-          amount: inc.amount.toFixed(2),
-          isRecurring: true,
-          startDate: new Date().toISOString().split("T")[0]!,
-          frequency: inc.frequency,
-        });
-      }
+      await Promise.all(
+        incomes.map((inc) =>
+          createIncomeSource.mutateAsync({
+            name: inc.name.trim() || "Primary Income",
+            amount: inc.amount.toFixed(2),
+            isRecurring: true,
+            startDate: new Date().toISOString().split("T")[0]!,
+            frequency: inc.frequency,
+          })
+        )
+      );
 
       const allCategoriesToCreate = [...activeRegular, ...activeGoals, ...activeEveryday];
       const createdCategories = await Promise.all(

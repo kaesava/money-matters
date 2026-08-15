@@ -264,11 +264,38 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
+  const [conflictModalInfo, setConflictModalInfo] = useState<{
+    type: "EVERYDAY" | "REGULAR" | "GOAL";
+    typeLabel: string;
+    previousOwnerName: string;
+  } | null>(null);
+
   const handleCategoryTypeToggle = (type: "EVERYDAY" | "REGULAR" | "GOAL") => {
     if (accSelectedTypes.includes(type)) {
       setAccSelectedTypes(accSelectedTypes.filter((t) => t !== type));
     } else {
-      setAccSelectedTypes([...accSelectedTypes, type]);
+      const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && a.categoryTypes.includes(type));
+      if (currentOwner) {
+        const labelMap: Record<"EVERYDAY" | "REGULAR" | "GOAL", string> = {
+          EVERYDAY: "Everyday Pool",
+          REGULAR: "Bills Pool",
+          GOAL: "Goal Pool",
+        };
+        setConflictModalInfo({
+          type,
+          typeLabel: labelMap[type],
+          previousOwnerName: currentOwner.name,
+        });
+      } else {
+        setAccSelectedTypes([...accSelectedTypes, type]);
+      }
+    }
+  };
+
+  const confirmConflictTransfer = () => {
+    if (conflictModalInfo) {
+      setAccSelectedTypes([...accSelectedTypes, conflictModalInfo.type]);
+      setConflictModalInfo(null);
     }
   };
 
@@ -285,9 +312,20 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
+  const detectBankFromAccountName = (accName: string): BankName => {
+    const nameLower = accName.toLowerCase();
+    if (nameLower.includes("cba") || nameLower.includes("commbank") || nameLower.includes("commonwealth")) return "CBA";
+    if (nameLower.includes("westpac")) return "Westpac";
+    if (nameLower.includes("anz")) return "ANZ";
+    if (nameLower.includes("nab") || nameLower.includes("national australia")) return "NAB";
+    if (nameLower.includes("ing")) return "ING";
+    if (nameLower.includes("macquarie")) return "Macquarie";
+    return "CBA";
+  };
+
   const openImportModal = (acc: BankAccountItem) => {
     setSelectedAccountForImport(acc);
-    setSelectedBankProvider("CBA");
+    setSelectedBankProvider(detectBankFromAccountName(acc.name));
     setCsvResultMsg(null);
     setShowCustomMapper(false);
     setPendingCsvText("");
@@ -454,7 +492,7 @@ export default function BankAccountsDashboardPage() {
                                 key={type}
                                 className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${badgeStyle}`}
                               >
-                                {type === "EVERYDAY" ? "Everyday" : type === "REGULAR" ? "Bills" : "Savings Goal"}
+                                {type === "EVERYDAY" ? "Everyday" : type === "REGULAR" ? "Bills" : "Goal"}
                               </span>
                             );
                           })
@@ -622,9 +660,9 @@ export default function BankAccountsDashboardPage() {
               </div>
               <div className="flex flex-col gap-2">
                 {[
-                  { key: "EVERYDAY" as const, label: "Everyday Spending Pool", color: "emerald" },
-                  { key: "REGULAR" as const, label: "Regular Bills Pool", color: "blue" },
-                  { key: "GOAL" as const, label: "Savings Goals Pool", color: "indigo" },
+                  { key: "EVERYDAY" as const, label: "Everyday Pool", color: "emerald" },
+                  { key: "REGULAR" as const, label: "Bills Pool", color: "blue" },
+                  { key: "GOAL" as const, label: "Goal Pool", color: "indigo" },
                 ].map((item) => {
                   const isChecked = accSelectedTypes.includes(item.key);
                   const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && a.categoryTypes.includes(item.key));
@@ -676,12 +714,52 @@ export default function BankAccountsDashboardPage() {
               <button
                 type="submit"
                 disabled={createAccountMut.isPending || updateAccountMut.isPending}
-                className="px-4 py-2 text-xs font-bold text-white rounded-xl bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#00B4A6] hover:bg-[#009b8f] rounded-xl shadow-xs transition-colors"
               >
-                {createAccountMut.isPending || updateAccountMut.isPending ? "Saving..." : editingAccount ? "Save Changes" : "Create Account"}
+                {createAccountMut.isPending || updateAccountMut.isPending
+                  ? "Saving..."
+                  : editingAccount
+                  ? "Save Changes"
+                  : "Create Account"}
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Conflict Transfer Warning Modal */}
+      {conflictModalInfo && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-amber-200 shadow-xl space-y-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl">
+              ⚠️
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-[#1B2B4B]">Link Category Transfer Warning</h4>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                <strong>{conflictModalInfo.typeLabel}</strong> is currently linked to <strong>{conflictModalInfo.previousOwnerName}</strong>.
+              </p>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                Linking it to <strong>{accName || "this account"}</strong> will automatically unlink it from <strong>{conflictModalInfo.previousOwnerName}</strong> when you save.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setConflictModalInfo(null)}
+                className="px-3.5 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmConflictTransfer}
+                className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition-colors"
+              >
+                Confirm Transfer
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
