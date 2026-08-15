@@ -17,6 +17,7 @@ export default function Home() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [showEarlyAccessModal, setShowEarlyAccessModal] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const subscribeMut = trpc.subscribeEarlyAccess.useMutation({
@@ -210,73 +211,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Founder's Story Section */}
-      <section className="bg-white border-y border-[#e2e4e0] py-20">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-start">
-          <div className="md:col-span-5 flex flex-col gap-6 sticky top-28">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] uppercase tracking-wider w-fit">
-              {t("landing.founderSectionBadge")}
-            </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#1B2B4B] leading-tight">
-              {t("landing.founderSectionHeading")}
-            </h2>
-            <p className="text-zinc-600 text-base leading-relaxed">
-              {t("landing.founderSectionIntro")}
-            </p>
-            <div className="p-6 bg-[#F7F8FA] border-l-4 border-[#2563eb] rounded-r-2xl space-y-3">
-              <p className="text-lg font-bold text-[#1B2B4B] italic">
-                {t("landing.founderQuote")}
-              </p>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-[#1B2B4B] text-white flex items-center justify-center font-bold text-xs font-mono shadow-xs">
-                  K
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#1B2B4B]">Kesh</p>
-                  <p className="text-[10px] text-zinc-500">Founder & Principal Architect, Money Matters</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="md:col-span-7 flex flex-col gap-8">
-            <div className="p-6 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-2">
-              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderOriginLabel")}</span>
-              <p className="text-sm text-zinc-700 leading-relaxed">{t("landing.founderOriginBody")}</p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-2">
-              <span className="text-xs font-bold font-mono text-[#ba1a1a] uppercase tracking-wider">{t("landing.founderTrapLabel")}</span>
-              <p className="text-sm text-zinc-700 leading-relaxed">{t("landing.founderTrapBody")}</p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-2">
-              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderSolutionLabel")}</span>
-              <p className="text-sm text-zinc-700 leading-relaxed">{t("landing.founderSolutionBody")}</p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-2">
-              <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">{t("landing.founderPayoffLabel")}</span>
-              <p className="text-sm text-zinc-700 leading-relaxed">{t("landing.founderPayoffBody")}</p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-blue-50/50 border border-blue-200 space-y-2">
-              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderCatalystLabel")}</span>
-              <p className="text-sm text-zinc-700 leading-relaxed">{t("landing.founderCatalystBody")}</p>
-            </div>
-
-            <div className="pt-4">
-              <button
-                onClick={() => handleAuthClick("/sign-up")}
-                className="w-full sm:w-auto bg-[#2563eb] hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition-all shadow-md text-base"
-              >
-                {t("landing.heroCtaPrimary")}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Simulator Section */}
       <PaycheckSimulator />
 
@@ -458,6 +392,59 @@ export default function Home() {
                   {t("landing.trust3Desc")}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Founder's Story Section (Refined & Positioned at Bottom) */}
+      <section className="bg-white border-y border-[#e2e4e0] py-16">
+        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-12 gap-10 items-start">
+          <div className="md:col-span-5 flex flex-col gap-5 sticky top-28">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] uppercase tracking-wider w-fit">
+              {t("landing.founderSectionBadge")}
+            </div>
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B] leading-tight">
+              {t("landing.founderSectionHeading")}
+            </h2>
+            <p className="text-zinc-600 text-sm leading-relaxed">
+              {t("landing.founderSectionIntro")}
+            </p>
+            <div className="p-5 bg-[#F7F8FA] border-l-4 border-[#2563eb] rounded-r-2xl space-y-2">
+              <p className="text-base font-bold text-[#1B2B4B] italic">
+                &ldquo;{t("landing.founderQuote")}&rdquo;
+              </p>
+              <div className="flex items-center gap-2.5 pt-1">
+                <div className="w-8 h-8 rounded-full bg-[#1B2B4B] text-white flex items-center justify-center font-bold text-xs font-mono shadow-2xs">
+                  K
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[#1B2B4B]">Kesh</p>
+                  <p className="text-[10px] text-zinc-500">Founder & Principal Architect, Money Matters</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-7 flex flex-col gap-6">
+            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-1.5">
+              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderOriginLabel")}</span>
+              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderOriginBody")}</p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-1.5">
+              <span className="text-xs font-bold font-mono text-[#ba1a1a] uppercase tracking-wider">{t("landing.founderTrapLabel")}</span>
+              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderTrapBody")}</p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-1.5">
+              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderSolutionLabel")}</span>
+              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderSolutionBody")}</p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-200 space-y-1.5">
+              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderPayoffLabel")}</span>
+              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderPayoffBody")}</p>
             </div>
           </div>
         </div>
