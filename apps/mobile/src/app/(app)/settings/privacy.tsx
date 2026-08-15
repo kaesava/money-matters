@@ -48,7 +48,7 @@ export default function PrivacySettingsScreen() {
           <Text style={styles.cardBody}>
             For privacy inquiries or deletion requests, contact our Data Governance Officer at:
           </Text>
-          <Text style={styles.emailText}>info@kaesava.au</Text>
+          <Text style={styles.emailText}>info@moneymatters.kaesava.au</Text>
         </View>
       </ScrollView>
     </MobileScreenWrapper>

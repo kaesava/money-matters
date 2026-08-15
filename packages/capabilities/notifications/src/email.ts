@@ -21,7 +21,7 @@ export async function sendEmailViaResend(options: {
     return { success: true, simulated: true };
   }
 
-  const from = process.env.RESEND_FROM_EMAIL || 'MoneyMatters <onboarding@resend.dev>';
+  const from = process.env.RESEND_FROM_EMAIL || 'Money Matters <info@moneymatters.kaesava.au>';
   
   const resendAttachments = options.attachments?.map(att => ({
     filename: att.filename,

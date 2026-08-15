@@ -343,11 +343,11 @@ export default function Home() {
       <footer className="border-t border-[#e2e4e0] bg-[#F7F8FA] py-8 text-center text-xs text-zinc-500">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <span className="font-semibold">
-            {t("landing.copyright", { appName: t("app.title") })} • Contact: <a href="mailto:info@kaesava.au" className="text-[#2563eb] hover:underline">info@kaesava.au</a>
+            {t("landing.copyright", { appName: t("app.title") })} • Contact: <a href="mailto:info@moneymatters.kaesava.au" className="text-[#2563eb] hover:underline">info@moneymatters.kaesava.au</a>
           </span>
           <div className="flex gap-4 font-semibold">
             <a href="/privacy" className="hover:underline text-[#2563eb]">{t("landing.privacyPolicy")}</a>
-            <a href="mailto:info@kaesava.au" className="hover:underline text-[#2563eb]">Support (info@kaesava.au)</a>
+            <a href="mailto:info@moneymatters.kaesava.au" className="hover:underline text-[#2563eb]">Support (info@moneymatters.kaesava.au)</a>
           </div>
         </div>
       </footer>

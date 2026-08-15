@@ -148,7 +148,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 space-y-2 text-slate-600">
               <li><strong>Data Access & Export:</strong> You may request a complete export of your household categories, transaction ledgers, and allocation history.</li>
-              <li><strong>Right to Erasure (Account Deletion):</strong> Upon requesting account deletion via <code>info@kaesava.au</code>, all personal profiles, bank credentials, categories, and ledger entries associated with your household tenant are permanently purged within 30 days.</li>
+              <li><strong>Right to Erasure (Account Deletion):</strong> Upon requesting account deletion via <code>info@moneymatters.kaesava.au</code>, all personal profiles, bank credentials, categories, and ledger entries associated with your household tenant are permanently purged within 30 days.</li>
               <li><strong>Retention:</strong> Active data is retained for the lifetime of your account. Inactive soft-deleted ledger entries are permanently purged after 90 days.</li>
             </ul>
           </div>
@@ -176,7 +176,7 @@ export default function PrivacyPolicyPage() {
               If you have any questions, wish to exercise your privacy rights, or wish to lodge a privacy complaint, please contact our Data Governance Officer at:
             </p>
             <div className="bg-white p-4 rounded-xl border border-slate-200 inline-block font-mono text-xs text-[#2563eb] font-bold">
-              info@kaesava.au
+              info@moneymatters.kaesava.au
             </div>
             <p className="text-xs text-slate-500 mt-2">
               If you are dissatisfied with our response, you may lodge a complaint directly with the Office of the Australian Information Commissioner (OAIC) at <a href="https://www.oaic.gov.au" target="_blank" rel="noopener noreferrer" className="text-[#2563eb] underline">www.oaic.gov.au</a>.

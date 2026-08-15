@@ -14,7 +14,7 @@ export interface SendEmailPayload {
  */
 export async function sendEmail(payload: SendEmailPayload): Promise<{ success: boolean; id?: string }> {
   const apiKey = process.env["RESEND_API_KEY"];
-  const fromAddress = payload.from || process.env["RESEND_FROM_EMAIL"] || "Money Matters <noreply@moneymatters.kaesava.au>";
+  const fromAddress = payload.from || process.env["RESEND_FROM_EMAIL"] || "Money Matters <info@moneymatters.kaesava.au>";
 
   if (!apiKey) {
     logger.info("[Email Service] RESEND_API_KEY not configured. Simulated email dispatch:", {

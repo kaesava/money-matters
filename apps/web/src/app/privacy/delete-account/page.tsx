@@ -70,10 +70,10 @@ export default function DeleteAccountPage() {
                 <p className="text-sm text-slate-600">
                   Send an email to{" "}
                   <a
-                    href="mailto:privacy@kaesava.au?subject=Account%20Deletion%20Request%20%E2%80%94%20Money%20Matters&body=Hi%2C%0A%0AI%20would%20like%20to%20request%20the%20deletion%20of%20my%20Money%20Matters%20account%20and%20all%20associated%20data.%0A%0AEmail%20address%20registered%3A%20%5Byour%20email%5D%0AReason%20(optional)%3A%20%5Byour%20reason%5D%0A%0AThank%20you."
+                    href="mailto:info@moneymatters.kaesava.au?subject=Account%20Deletion%20Request%20%E2%80%94%20Money%20Matters&body=Hi%2C%0A%0AI%20would%20like%20to%20request%20the%20deletion%20of%20my%20Money%20Matters%20account%20and%20all%20associated%20data.%0A%0AEmail%20address%20registered%3A%20%5Byour%20email%5D%0AReason%20(optional)%3A%20%5Byour%20reason%5D%0A%0AThank%20you."
                     className="font-semibold text-[#2563eb] hover:underline"
                   >
-                    privacy@kaesava.au
+                    info@moneymatters.kaesava.au
                   </a>{" "}
                   using the subject line{" "}
                   <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs font-mono">
@@ -197,10 +197,10 @@ export default function DeleteAccountPage() {
             <div>
               <strong>Email:</strong>{" "}
               <a
-                href="mailto:privacy@kaesava.au"
+                href="mailto:info@moneymatters.kaesava.au"
                 className="text-[#2563eb] underline hover:text-blue-300"
               >
-                privacy@kaesava.au
+                info@moneymatters.kaesava.au
               </a>
             </div>
             <div>

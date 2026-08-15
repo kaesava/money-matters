@@ -48,7 +48,7 @@ export function AccountDeletionSection() {
         window.location.href = "/";
       }, 2000);
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to delete account. Please try again or contact privacy@kaesava.au.";
+      const errorMsg = err instanceof Error ? err.message : "Failed to delete account. Please try again or contact info@moneymatters.kaesava.au.";
       setMessage(errorMsg);
       setIsDeleting(false);
     }
