@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useIconVisibility } from "@money-matters/ui";
+import { useIconVisibility, InfoTooltip } from "@money-matters/ui/web";
 import { DualPoolProgressBar } from "./DualPoolProgressBar";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
@@ -54,10 +54,11 @@ export function RegularBillsSection({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.regularTitle")}</h2>
+                <InfoTooltip content="Recurring bill obligations. Individual categories set bill targets; managed at overall Bills pool level." />
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1 cursor-pointer ml-1"
                 >
                   <span>
                     {isCollapsed
@@ -66,9 +67,6 @@ export function RegularBillsSection({
                   </span>
                 </button>
               </div>
-              <p className="text-xs text-zinc-500 font-medium">
-                Recurring bill obligations. Individual categories set bill targets; managed at overall Bills pool level.
-              </p>
             </div>
           </div>
 

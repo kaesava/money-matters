@@ -4,6 +4,7 @@ import { Href, useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
 import { MobileCategoryItem } from './MobileEverydayPoolSection';
+import { InfoTooltip } from '../InfoTooltip';
 
 interface MobileSavingsGoalsSectionProps {
   categories: MobileCategoryItem[];
@@ -30,9 +31,9 @@ export function MobileSavingsGoalsSection({
   return (
     <View style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           <Text style={styles.sectionTitle}>🎯 Save Toward (Goals)</Text>
-          <Text style={styles.sectionSubtitle}>Individual Target Pools</Text>
+          <InfoTooltip title="Savings Goals" content="Target savings goals managed individually per category with dedicated balances and progress tracking." />
         </View>
         <Text style={styles.sectionGoalCount}>{categories.length} pools</Text>
       </View>

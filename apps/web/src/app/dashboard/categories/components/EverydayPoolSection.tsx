@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useIconVisibility } from "@money-matters/ui";
+import { useIconVisibility, InfoTooltip } from "@money-matters/ui/web";
 import { DualPoolProgressBar } from "./DualPoolProgressBar";
 
 export interface CategorySummaryItem {
@@ -63,10 +63,11 @@ export function EverydayPoolSection({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.everydayTitle")}</h2>
+                <InfoTooltip content="Discretionary funds. Budgets set overall target; spent directly from overall Everyday pool." />
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1 cursor-pointer ml-1"
                 >
                   <span>
                     {isCollapsed
@@ -75,9 +76,6 @@ export function EverydayPoolSection({
                   </span>
                 </button>
               </div>
-              <p className="text-xs text-zinc-500 font-medium">
-                Discretionary funds. Budgets set overall target; spent directly from overall Everyday pool.
-              </p>
             </div>
           </div>
 

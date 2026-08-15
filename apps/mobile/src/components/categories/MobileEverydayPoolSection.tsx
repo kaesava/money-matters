@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { formatAUD } from '../../lib/format';
 
 import { CategoryItem } from '../CategoryFormModal';
+import { InfoTooltip } from '../InfoTooltip';
 
 export type MobileCategoryItem = CategoryItem;
 
@@ -39,9 +40,9 @@ export function MobileEverydayPoolSection({
   return (
     <View style={styles.sectionCard}>
       <TouchableOpacity style={styles.sectionHeader} onPress={onToggleCollapse} activeOpacity={0.8}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           <Text style={styles.sectionTitle}>💳 Everyday Spending</Text>
-          <Text style={styles.sectionSubtitle}>{t('categories.sections.overallPoolBalance')}</Text>
+          <InfoTooltip title="Everyday Pool" content="Discretionary funds. Budgets set overall target; spent directly from overall Everyday pool." />
         </View>
         <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
           <Text style={styles.sectionBalance}>{formatAUD(everydayBalance)}</Text>

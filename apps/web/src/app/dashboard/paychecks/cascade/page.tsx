@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import { DashboardError } from "../../../../components/web/DashboardError";
-import { Spinner } from "@money-matters/ui/web";
+import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -99,12 +99,12 @@ export default function CascadePage() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
-          Cascade Allocation Override
-        </h1>
-        <p className="text-sm font-semibold text-zinc-500 mt-1">
-          Review and override the paycheck waterfall cascade before confirming.
-        </p>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
+            Cascade Allocation Override
+          </h1>
+          <InfoTooltip content="Review and override the paycheck waterfall cascade before confirming." />
+        </div>
       </div>
 
       {/* Calculator Bar */}

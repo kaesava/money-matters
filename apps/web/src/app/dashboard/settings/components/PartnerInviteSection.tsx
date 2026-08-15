@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner } from "@money-matters/ui";
+import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 
 export function PartnerInviteSection() {
   const [partnerEmail, setPartnerEmail] = useState("");
@@ -32,17 +32,17 @@ export function PartnerInviteSection() {
 
   return (
     <section className="flex flex-col gap-2">
-      <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-        Invite Household Partner
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+          Invite Household Partner
+        </p>
+        <InfoTooltip content="Invite your partner or spouse to collaborate on your household budget with shared visibility." />
+      </div>
       <form
         onSubmit={handleInvitePartner}
         className="p-4 rounded-xl flex flex-col gap-3"
         style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
       >
-        <p className="text-xs text-zinc-500">
-          Invite your partner or spouse to collaborate on your household budget with shared visibility.
-        </p>
 
         <div className="flex items-center gap-2">
           <input

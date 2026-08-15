@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "@/lib/trpc";
-import { Spinner } from "@money-matters/ui";
+import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 
 /** Web Bank Accounts management page */
 export default function BankAccountsPage() {
@@ -147,13 +147,11 @@ export default function BankAccountsPage() {
 
       {/* Category Type Mapping Matrix Card */}
       <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm flex flex-col gap-4">
-        <div>
+        <div className="flex items-center gap-2">
           <h2 className="text-base font-bold text-[#1B2B4B]">
             {t("settings.bankAccounts.linkedTypes")}
           </h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {t("settings.bankAccounts.linkedTypesDesc")}
-          </p>
+          <InfoTooltip content={t("settings.bankAccounts.linkedTypesDesc")} />
         </div>
 
         <div className="flex flex-col gap-3 pt-2">

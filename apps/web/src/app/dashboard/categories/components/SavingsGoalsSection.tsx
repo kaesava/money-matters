@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useIconVisibility } from "@money-matters/ui";
+import { useIconVisibility, InfoTooltip } from "@money-matters/ui/web";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
 interface SavingsGoalsSectionProps {
@@ -40,10 +40,8 @@ export function SavingsGoalsSection({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.goalTitle")}</h2>
+              <InfoTooltip content="Target savings goals managed individually per category with dedicated balances and progress tracking." />
             </div>
-            <p className="text-xs text-zinc-500 font-medium">
-              Target savings goals managed individually per category with dedicated balances and progress tracking.
-            </p>
           </div>
         </div>
 

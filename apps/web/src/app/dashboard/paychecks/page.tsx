@@ -5,7 +5,7 @@ import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { PaginationBar } from "@money-matters/ui/web";
 import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
-import { useIconVisibility } from "@money-matters/ui";
+import { useIconVisibility, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 function fmt(val: string | number) {
@@ -457,8 +457,10 @@ export default function InsAndOutsPage() {
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       <div>
-        <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("nav.incomeExpenses")}</h1>
-        <p className="text-xs text-zinc-500 font-semibold mt-0.5">Set up upcoming income and upcoming expenses.</p>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("nav.incomeExpenses")}</h1>
+          <InfoTooltip content="Set up upcoming income and upcoming expenses." />
+        </div>
       </div>
 
       <div className="relative max-w-md">

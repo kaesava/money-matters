@@ -6,6 +6,7 @@ import { monthProgress } from '@money-matters/ui';
 import { Feather } from '@expo/vector-icons';
 import { formatAUD } from '../../lib/format';
 import { MobileCategoryItem } from './MobileEverydayPoolSection';
+import { InfoTooltip } from '../InfoTooltip';
 
 interface MobileRegularBillsSectionProps {
   categories: MobileCategoryItem[];
@@ -37,9 +38,9 @@ export function MobileRegularBillsSection({
   return (
     <View style={styles.sectionCard}>
       <TouchableOpacity style={styles.sectionHeader} onPress={onToggleCollapse} activeOpacity={0.8}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           <Text style={styles.sectionTitle}>🧾 Regular Bills</Text>
-          <Text style={styles.sectionSubtitle}>{t('categories.sections.overallPoolBalance')}</Text>
+          <InfoTooltip title="Bills Pool" content="Recurring bill obligations. Individual categories set bill targets; managed at overall Bills pool level." />
         </View>
         <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
           <Text style={styles.sectionBalance}>{formatAUD(regularBalance)}</Text>

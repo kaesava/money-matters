@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { EstimatedCategoryItem } from "@money-matters/types";
+import { InfoTooltip } from "@money-matters/ui/web";
 
 interface SetupCategoriesStepProps {
   activeEveryday: EstimatedCategoryItem[];
@@ -46,29 +47,13 @@ export function SetupCategoriesStep({
   onBack,
   onNext,
 }: SetupCategoriesStepProps) {
-  const [activeTooltip, setActiveTooltip] = useState(false);
-
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-h-[60vh] overflow-y-auto pr-1">
       <div>
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-black text-[#1B2B4B]">⚙️ Review Your Estimated Budget</h2>
-          <button
-            type="button"
-            onClick={() => setActiveTooltip(!activeTooltip)}
-            className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
-          >
-            ℹ️
-          </button>
+          <InfoTooltip content="Based on your answers, we've estimated your monthly bills, goal funds, and everyday spending. Everyday spending categories pool together into your primary spending bucket while maintaining individual tracking tags." />
         </div>
-        <p className="text-xs text-zinc-500 font-semibold mt-1">
-          Based on your answers, we&apos;ve estimated your monthly bills, goal funds, and everyday spending. You can tweak amounts or remove categories.
-        </p>
-        {activeTooltip && (
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-medium">
-            Everyday spending categories (groceries, dining, entertainment) pool together into your primary spending bucket while maintaining individual tracking tags.
-          </div>
-        )}
       </div>
 
       {/* Everyday Spending Categories */}

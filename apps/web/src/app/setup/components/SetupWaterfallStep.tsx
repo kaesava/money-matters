@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Spinner } from "@money-matters/ui/web";
+import React from "react";
+import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 
 interface SetupWaterfallStepProps {
   totalMonthlyIncomeAud: number;
@@ -26,30 +26,13 @@ export function SetupWaterfallStep({
   onBack,
   onFinish,
 }: SetupWaterfallStepProps) {
-  const [activeTooltip, setActiveTooltip] = useState(false);
-
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       <div>
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-black text-[#1B2B4B]">📊 Monthly Budget Plan Summary</h2>
-          <button
-            type="button"
-            onClick={() => setActiveTooltip(!activeTooltip)}
-            className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
-          >
-            ℹ️
-          </button>
+          <InfoTooltip content="Here is how your total monthly income is distributed into your Everyday pool, Bills, and Savings goals. When paychecks land, Money Matters automatically funds your bills and savings targets first." />
         </div>
-        <p className="text-xs text-zinc-500 font-semibold mt-1">
-          Here is how your total monthly income is distributed into your Everyday pool, Bills, and Savings goals.
-        </p>
-        {activeTooltip && (
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-medium">
-            When paychecks land, Money Matters automatically funds your bills and savings targets first, leaving your
-            everyday spending pool fully clear for guilt-free discretionary spending.
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
