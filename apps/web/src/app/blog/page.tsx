@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Logo } from "@money-matters/ui/web";
@@ -90,7 +90,7 @@ export default function BlogIndexPage() {
             {t("landing.copyright", { appName: t("app.title") })} • Contact: <a href="mailto:info@moneymatters.kaesava.au" className="text-[#2563eb] hover:underline">info@moneymatters.kaesava.au</a>
           </span>
           <div className="flex gap-4 font-semibold">
-            <a href="/" className="hover:underline text-[#2563eb]">Home</a>
+            <Link href="/" className="hover:underline text-[#2563eb]">Home</Link>
             <a href="/privacy" className="hover:underline text-[#2563eb]">{t("landing.privacyPolicy")}</a>
           </div>
         </div>

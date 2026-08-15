@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Logo } from "@money-matters/ui/web";
@@ -132,7 +132,7 @@ export default function BlogPostReaderPage() {
             {t("landing.copyright", { appName: t("app.title") })}
           </span>
           <div className="flex gap-4 font-semibold">
-            <a href="/blog" className="hover:underline text-[#2563eb]">All Articles</a>
+            <Link href="/blog" className="hover:underline text-[#2563eb]">All Articles</Link>
             <a href="/privacy" className="hover:underline text-[#2563eb]">{t("landing.privacyPolicy")}</a>
           </div>
         </div>
