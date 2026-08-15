@@ -781,6 +781,28 @@ export default function BankAccountsDashboardPage() {
               </button>
             </div>
 
+            {/* Account Selection Drop-down */}
+            <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
+              <label className="text-xs font-bold text-[#1B2B4B]">Import Target Bank Account:</label>
+              <select
+                value={selectedAccountForImport.id}
+                onChange={(e) => {
+                  const targetAcc = accounts.find((a) => a.id === e.target.value);
+                  if (targetAcc) {
+                    setSelectedAccountForImport(targetAcc);
+                    setSelectedBankProvider(detectBankFromAccountName(targetAcc.name));
+                  }
+                }}
+                className="px-3 py-2 text-xs font-bold rounded-lg border border-zinc-300 bg-white text-[#1B2B4B] focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({acc.categoryTypes.join(", ") || "Unlinked"})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Bank Institution Selection */}
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-zinc-700">Bank Institution:</label>
