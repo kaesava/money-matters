@@ -317,7 +317,7 @@ export const ja: DeepStringRecord<typeof en> = {
     pricingFreeFeature6Disabled: "ファイルメモ & 領収書添付",
     pricingFreeCta: "無料で始める",
     pricingHouseholdTitle: "Household プラン",
-    pricingHouseholdPrice: "$9.99",
+    pricingHouseholdPrice: "$9.95",
     pricingHouseholdSub: "AUD / 月  または  $89 / 年",
     pricingFoundingBadge: "🏷️ ファウンディングメンバー: 永久に$69/年（先着100世帯限定）",
     pricingHouseholdFeature1: "無制限の取引履歴",

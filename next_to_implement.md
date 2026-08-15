@@ -224,7 +224,7 @@ Register ABN as sole trader at business.gov.au (free, 10 min)
  Open dedicated business bank account (separate from personal)
  Create Stripe account at stripe.com, verify with ABN + bank account
  Create Products & Prices in Stripe Dashboard:
-Money Matters Household — $9.99 AUD / month (recurring) → STRIPE_PRICE_MONTHLY
+Money Matters Household — $9.95 AUD / month (recurring) → STRIPE_PRICE_MONTHLY
 Money Matters Household — $89.00 AUD / year (recurring) → STRIPE_PRICE_ANNUAL
 Founding Member — $69.00 AUD / year (recurring, limited coupon or separate price) → STRIPE_PRICE_FOUNDING_ANNUAL
  Configure Stripe Smart Retries (Settings → Revenue Recovery)
