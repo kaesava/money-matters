@@ -10,6 +10,7 @@ import { PaycheckSimulator } from "../components/PaycheckSimulator";
 import { DonutRing } from "../components/web/DonutRing";
 
 import { Logo } from "@money-matters/ui/web";
+import { BLOG_POSTS } from "../lib/blog-data";
 
 const ENABLE_AUTH = process.env.NEXT_PUBLIC_ENABLE_AUTH !== "false";
 
@@ -397,55 +398,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Founder's Story Section (Refined & Positioned at Bottom) */}
-      <section className="bg-white border-y border-[#e2e4e0] py-16">
-        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-12 gap-10 items-start">
-          <div className="md:col-span-5 flex flex-col gap-5 sticky top-28">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] uppercase tracking-wider w-fit">
-              {t("landing.founderSectionBadge")}
-            </div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B] leading-tight">
-              {t("landing.founderSectionHeading")}
-            </h2>
-            <p className="text-zinc-600 text-sm leading-relaxed">
-              {t("landing.founderSectionIntro")}
-            </p>
-            <div className="p-5 bg-[#F7F8FA] border-l-4 border-[#2563eb] rounded-r-2xl space-y-2">
-              <p className="text-base font-bold text-[#1B2B4B] italic">
-                &ldquo;{t("landing.founderQuote")}&rdquo;
-              </p>
-              <div className="flex items-center gap-2.5 pt-1">
-                <div className="w-8 h-8 rounded-full bg-[#1B2B4B] text-white flex items-center justify-center font-bold text-xs font-mono shadow-2xs">
-                  K
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#1B2B4B]">Kesh</p>
-                  <p className="text-[10px] text-zinc-500">Founder & Principal Architect, Money Matters</p>
-                </div>
+      {/* Blog & Articles Section (Positioned at Bottom) */}
+      <section className="bg-white border-y border-[#e2e4e0] py-20">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col gap-12">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] uppercase tracking-wider">
+                {t("landing.blogSectionBadge")}
               </div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
+                {t("landing.blogSectionHeading")}
+              </h2>
+              <p className="text-zinc-600 text-base leading-relaxed">
+                {t("landing.blogSectionSubheading")}
+              </p>
             </div>
+            <button
+              onClick={() => router.push("/blog")}
+              className="bg-white border border-[#e2e4e0] hover:bg-zinc-50 text-[#2563eb] font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-2xs shrink-0 self-start sm:self-auto flex items-center gap-1.5"
+            >
+              {t("landing.blogViewAll")}
+            </button>
           </div>
 
-          <div className="md:col-span-7 flex flex-col gap-6">
-            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-1.5">
-              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderOriginLabel")}</span>
-              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderOriginBody")}</p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {BLOG_POSTS.map((post) => (
+              <div
+                key={post.slug}
+                onClick={() => router.push(`/blog/${post.slug}`)}
+                className="p-6 rounded-2xl bg-[#F7F8FA] border border-zinc-200 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col justify-between gap-6 group"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2 text-[10px] font-bold font-mono">
+                    <span className="text-[#2563eb] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100 uppercase">
+                      {post.category}
+                    </span>
+                    <span className="text-zinc-400">{post.readTimeMinutes} min read</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-[#1B2B4B] group-hover:text-[#2563eb] transition-colors leading-snug">
+                    {post.title}
+                  </h3>
+                  <p className="text-zinc-600 text-xs leading-relaxed line-clamp-3">
+                    {post.excerpt}
+                  </p>
+                </div>
 
-            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-1.5">
-              <span className="text-xs font-bold font-mono text-[#ba1a1a] uppercase tracking-wider">{t("landing.founderTrapLabel")}</span>
-              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderTrapBody")}</p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-[#F7F8FA] border border-zinc-200 space-y-1.5">
-              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderSolutionLabel")}</span>
-              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderSolutionBody")}</p>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-200 space-y-1.5">
-              <span className="text-xs font-bold text-[#2563eb] uppercase tracking-wider">{t("landing.founderPayoffLabel")}</span>
-              <p className="text-xs text-zinc-700 leading-relaxed">{t("landing.founderPayoffBody")}</p>
-            </div>
+                <div className="flex items-center justify-between pt-3 border-t border-zinc-200/80 text-xs">
+                  <span className="font-semibold text-zinc-500">{post.publishedAt}</span>
+                  <span className="font-bold text-[#2563eb] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                    Read Post &rarr;
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

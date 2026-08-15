@@ -10,6 +10,7 @@ const PUBLIC_PREFIXES = [
   "/invite/",
   "/api/",
   "/subscription/",
+  "/blog",
 ];
 
 export function middleware(request: NextRequest) {
@@ -18,7 +19,7 @@ export function middleware(request: NextRequest) {
   // Global feature flag check: block auth and app access when auth is disabled
   const isAuthEnabled = process.env.NEXT_PUBLIC_ENABLE_AUTH !== "false";
 
-  if (!isAuthEnabled && pathname !== "/") {
+  if (!isAuthEnabled && pathname !== "/" && !pathname.startsWith("/blog")) {
     const landingUrl = new URL("/", request.url);
     return NextResponse.redirect(landingUrl);
   }
