@@ -14,8 +14,8 @@ export function TrialBanner() {
     return null;
   }
 
-  // Show banner only for days 21–30, trial grace, or past due
-  const days = status.daysRemainingInTrial ?? 30;
+  // Show banner for last 10 days of 60-day trial, trial grace, or past due
+  const days = status.daysRemainingInTrial ?? 60;
   const showForTrial = status.isTrialActive && days <= 10;
   const showForGrace = status.isTrialGrace;
   const showForPastDue = status.isPastDue;

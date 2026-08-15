@@ -94,26 +94,26 @@ export function requiresWriteAccess(ctx: { subscriptionStatus: SubscriptionStatu
 }
 
 /**
- * Throws TRPCError FORBIDDEN if feature is not available on free/trial-grace tier.
+ * Throws TRPCError FORBIDDEN if trial has expired.
  */
 export function requiresPaidTier(ctx: { subscriptionStatus: SubscriptionStatusDto }, featureName: string) {
-  if (ctx.subscriptionStatus.isFreeTier || ctx.subscriptionStatus.isTrialGrace) {
+  if (ctx.subscriptionStatus.isTrialExpired || ctx.subscriptionStatus.isDeactivated) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: `subscription_free_tier_limit:${featureName}`,
+      message: `subscription_trial_expired:${featureName}`,
     });
   }
 }
 
 /**
- * Requires an active paid subscription (SUBSCRIBED or active TRIAL_ACTIVE).
- * Rejects FREE_TIER, TRIAL_GRACE, PAST_DUE, or DEACTIVATED tenants.
+ * Requires an active trial or paid subscription.
+ * Rejects TRIAL_EXPIRED or DEACTIVATED tenants.
  */
 export const premiumProcedure = tenantProcedure.use(async ({ ctx, next }) => {
-  if (ctx.subscriptionStatus.isFreeTier || ctx.subscriptionStatus.isTrialGrace || ctx.subscriptionStatus.isPastDue || ctx.subscriptionStatus.isDeactivated) {
+  if (ctx.subscriptionStatus.isTrialExpired || ctx.subscriptionStatus.isDeactivated) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'subscription_premium_required: Premium subscription required for this capability.',
+      message: 'subscription_premium_required: Active subscription or unexpired 60-day trial required.',
     });
   }
   return next();

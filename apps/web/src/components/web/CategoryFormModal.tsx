@@ -35,7 +35,7 @@ export function CategoryFormModal({
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const bankAccounts = bankAccountsQuery.data ?? [];
   const { status } = useSubscriptionStatus();
-  const isFreeTier = status?.isFreeTier ?? false;
+  const isTrialExpired = status?.isTrialExpired ?? false;
 
   const createCategoryMut = trpc.createCategory.useMutation();
   const updateCategoryMut = trpc.updateCategory.useMutation();
@@ -206,8 +206,8 @@ export function CategoryFormModal({
             <option value="REGULAR">{t("categories.typeRegular")}</option>
             <option value="GOAL">{t("categories.typeGoal")}</option>
             <option value="EVERYDAY">{t("categories.typeEveryday")}</option>
-            <option value="PERSONAL" disabled={isFreeTier}>
-              {isFreeTier ? "🔒 Personal Private Category (⭐ Pro Feature)" : "Personal Private Category"}
+            <option value="PERSONAL" disabled={isTrialExpired}>
+              {isTrialExpired ? "🔒 Personal Private Category (Trial Expired)" : "Personal Private Category"}
             </option>
           </select>
         </div>

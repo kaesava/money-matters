@@ -108,7 +108,7 @@ async function main() {
         premiumEnabled: true,
         subscriptionStatus: "TRIAL_ACTIVE",
         trialStartedAt: now,
-        trialEndsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+        trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
         trialGraceEndsAt: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
         tenantId,
         appId,

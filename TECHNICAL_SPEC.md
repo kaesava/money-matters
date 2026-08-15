@@ -168,7 +168,7 @@ households (tenant)
 - **Automated Grace Period & Expiration Fallback**:
   - `invoice.payment_failed` / `customer.subscription.deleted` $\rightarrow$ Triggers `deactivateTenantCommand` setting `subscriptionStatus = 'PAST_DUE'` and populating 7-day `trialGraceEndsAt` timestamp. Dashboard access remains unblocked in read-only state.
   - `invoice.payment_succeeded` $\rightarrow$ Triggers `activateSubscriptionCommand`, resetting `subscriptionStatus = 'SUBSCRIBED'` and `premiumEnabled = true`.
-  - `getSubscriptionStatus` Query Check $\rightarrow$ Evaluates `now > trialGraceEndsAt`. If 7 days elapse without payment recovery, automatically updates database record: `subscriptionStatus = 'FREE_TIER'`.
+  - `getSubscriptionStatus` Query Check $\rightarrow$ Evaluates `now > trialEndsAt` (for active trials) or `now > trialGraceEndsAt` (for past due). Automatically updates database record to `subscriptionStatus = 'TRIAL_EXPIRED'`.
 
 
 ### 5.8 Database & Network Optimization Standards

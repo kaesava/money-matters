@@ -16,9 +16,13 @@ export function TrialEndedModal() {
   useEffect(() => {
     if (isLoading || !status) return;
 
-    const isDismissed = localStorage.getItem(STORAGE_KEY) === "true";
-    if ((status.isFreeTier || status.isTrialGrace) && !isDismissed) {
+    if (status.isTrialExpired) {
       setIsOpen(true);
+    } else {
+      const isDismissed = localStorage.getItem(STORAGE_KEY) === "true";
+      if (status.isTrialGrace && !isDismissed) {
+        setIsOpen(true);
+      }
     }
   }, [status, isLoading]);
 

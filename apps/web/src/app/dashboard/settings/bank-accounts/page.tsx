@@ -10,7 +10,7 @@ import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 export default function BankAccountsPage() {
   const router = useRouter();
   const { status: subStatus } = useSubscriptionStatus();
-  const isFreeTier = subStatus?.isFreeTier ?? false;
+  const isTrialExpired = subStatus?.isTrialExpired ?? false;
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const updateMappingsMut = trpc.updateBankAccountMappings.useMutation({
@@ -126,7 +126,7 @@ export default function BankAccountsPage() {
       name: newAccountName.trim(),
       lastKnownBalance: newAccountBalance.trim() || "0.00",
       unbudgetedBuffer: "0.00",
-      isPrivate: isPrivateAccount && !isFreeTier,
+      isPrivate: isPrivateAccount && !isTrialExpired,
     });
   };
 
@@ -430,11 +430,11 @@ export default function BankAccountsPage() {
               <input
                 type="checkbox"
                 checked={isPrivateAccount}
-                disabled={isFreeTier}
+                disabled={isTrialExpired}
                 onChange={(e) => setIsPrivateAccount(e.target.checked)}
                 className="w-4 h-4 text-[#2563eb] rounded"
               />
-              <span>🔒 Make Private Personal Account {isFreeTier ? "(⭐ Pro Feature)" : "(Hidden from partner)"}</span>
+              <span>🔒 Make Private Personal Account {isTrialExpired ? "(Trial Expired)" : "(Hidden from partner)"}</span>
             </label>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button

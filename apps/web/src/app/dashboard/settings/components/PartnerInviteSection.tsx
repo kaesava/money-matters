@@ -12,12 +12,12 @@ export function PartnerInviteSection() {
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
 
   const { status } = useSubscriptionStatus();
-  const isFreeTier = status?.isFreeTier ?? false;
+  const isTrialExpired = status?.isTrialExpired ?? false;
   const inviteMutation = trpc.invitePartner.useMutation();
 
   const handleInvitePartner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFreeTier) return;
+    if (isTrialExpired) return;
     if (!partnerEmail.trim() || !partnerEmail.includes("@")) {
       alert("Please enter a valid email address.");
       return;
@@ -42,9 +42,9 @@ export function PartnerInviteSection() {
           Invite Household Partner
         </p>
         <InfoTooltip content="Invite your partner or spouse to collaborate on your household budget with shared visibility." />
-        {isFreeTier && (
-          <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 rounded-full">
-            ⭐ Pro Feature
+        {isTrialExpired && (
+          <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 rounded-full">
+            Trial Expired
           </span>
         )}
       </div>
@@ -53,14 +53,14 @@ export function PartnerInviteSection() {
         className="p-4 rounded-xl flex flex-col gap-3"
         style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
       >
-        {isFreeTier ? (
+        {isTrialExpired ? (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900 font-medium">
-            <span>🔒 Partner invitations are available on Money Matters Pro.</span>
+            <span>🔒 Partner invitations require an active subscription ($9.95/mo).</span>
             <Link
               href="/subscription/upgrade"
               className="px-3 py-1 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700 transition-colors shrink-0"
             >
-              Upgrade
+              Subscribe
             </Link>
           </div>
         ) : (

@@ -34,7 +34,7 @@ export * from "./onboarding-quiz.js";
 export const SubscriptionStatus = z.enum([
   "TRIAL_ACTIVE",
   "TRIAL_GRACE",
-  "FREE_TIER",
+  "TRIAL_EXPIRED",
   "SUBSCRIBED",
   "PAST_DUE",
   "DEACTIVATED",
@@ -69,7 +69,7 @@ export const SubscriptionStatusDto = z.object({
   subscriptionEndsAt: z.date().nullable(),
   isTrialActive: z.boolean(),
   isTrialGrace: z.boolean(),
-  isFreeTier: z.boolean(),
+  isTrialExpired: z.boolean(),
   isSubscribed: z.boolean(),
   isPastDue: z.boolean(),
   isDeactivated: z.boolean(),

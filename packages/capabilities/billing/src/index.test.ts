@@ -35,6 +35,6 @@ describe('billing capability', () => {
     const status = await getSubscriptionStatus(mockDb, 'tenant-123');
     expect(status.status).toBe('TRIAL_ACTIVE');
     expect(status.isTrialActive).toBe(true);
-    expect(status.isFreeTier).toBe(false);
+    expect(status.isTrialExpired).toBe(false);
   });
 });

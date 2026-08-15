@@ -11,7 +11,7 @@ export async function ensurePremiumAccess(
   featureName: string = "This feature"
 ): Promise<void> {
   const subStatus = await getSubscriptionStatus(db, tenantId);
-  if (subStatus.isFreeTier || subStatus.isDeactivated) {
-    throw new Error(`${featureName} requires an active Premium subscription or trial.`);
+  if (subStatus.isTrialExpired || subStatus.isDeactivated) {
+    throw new Error(`${featureName} requires an active subscription or unexpired 60-day trial.`);
   }
 }

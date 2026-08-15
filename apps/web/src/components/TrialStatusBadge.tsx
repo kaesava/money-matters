@@ -38,10 +38,11 @@ export function TrialStatusBadge() {
     );
   }
 
-  if (status.isFreeTier) {
+  if (status.isTrialExpired) {
     return (
-      <div className="px-2.5 py-1 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200 flex items-center gap-1.5">
-        <span>{t("subscription.freeTier")}</span>
+      <div className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+        <span>Trial Expired — $9.95/mo</span>
       </div>
     );
   }
