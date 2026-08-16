@@ -184,7 +184,8 @@ export const WaterfallExecutionPayload = z.object({
 }).strict();
 
 export const CreateCheckoutSessionCommand = z.object({
-  priceId: z.string().min(1),
+  priceId: z.string().min(1).optional(),
+  planType: z.enum(["monthly", "annual", "founding"]).optional(),
   successUrl: z.string().url(),
   cancelUrl: z.string().url(),
 }).strict();
