@@ -9,26 +9,32 @@ import posthog from "../../../lib/posthog-client";
 
 export default function UpgradePage() {
   const router = useRouter();
-  const [billingCycle, setBillingCycle] = useState<"founding" | "annual" | "monthly">("founding");
+  const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Toggle switch for special $69 founding offer on annual plan
+  const isFoundingOfferActive = true;
+
   const createCheckoutSession = trpc.createCheckoutSession.useMutation();
 
-  const handleCheckout = async (priceType: "monthly" | "annual" | "founding") => {
+  const handleCheckout = async (selectedCycle: "annual" | "monthly") => {
     setLoading(true);
     setError(null);
+
+    // Map annual cycle to 'founding' when the special offer switch is active
+    const planType = selectedCycle === "annual" && isFoundingOfferActive ? "founding" : selectedCycle;
 
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const result = await createCheckoutSession.mutateAsync({
-        planType: priceType,
+        planType,
         successUrl: `${origin}/subscription/success`,
         cancelUrl: `${origin}/subscription/upgrade`,
       });
 
       if (result.url) {
-        posthog.capture("subscription_checkout_started", { billing_cycle: priceType });
+        posthog.capture("subscription_checkout_started", { billing_cycle: planType });
         window.location.href = result.url;
       }
     } catch (err) {
@@ -68,31 +74,21 @@ export default function UpgradePage() {
             {t("subscription.upgradePageSubtitle")}
           </p>
 
-          {/* Billing Selector Tabs */}
+          {/* Billing Selector Tabs (Two Tabs: Annual & Monthly) */}
           <div className="flex items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl mt-4 border border-slate-300/50 shadow-inner">
             <button
-              onClick={() => setBillingCycle("founding")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
-                billingCycle === "founding"
-                  ? "bg-[#2563eb] text-white shadow-md"
-                  : "text-slate-700 hover:text-slate-900"
-              }`}
-            >
-              🔥 Founding Member ($69/yr)
-            </button>
-            <button
               onClick={() => setBillingCycle("annual")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
                 billingCycle === "annual"
                   ? "bg-[#2563eb] text-white shadow-md"
                   : "text-slate-700 hover:text-slate-900"
               }`}
             >
-              Annual ($89/yr)
+              Annual {isFoundingOfferActive ? "(🔥 Special $69/yr)" : "($89/yr)"}
             </button>
             <button
               onClick={() => setBillingCycle("monthly")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
                 billingCycle === "monthly"
                   ? "bg-[#2563eb] text-white shadow-md"
                   : "text-slate-700 hover:text-slate-900"
@@ -121,33 +117,41 @@ export default function UpgradePage() {
                 <span className="text-xs font-extrabold uppercase tracking-wider text-[#2563eb]">
                   {t("subscription.householdPlanName")}
                 </span>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] w-fit mt-1">
-                  60-Day Money Back Assurance
-                </div>
               </div>
 
               {/* Price display */}
               <div className="flex items-baseline gap-2 font-mono">
-                <span className="text-5xl font-black text-[#1B2B4B]">
-                  {billingCycle === "founding"
-                    ? "$69"
-                    : billingCycle === "annual"
-                    ? "$89"
-                    : "$9.95"}
-                </span>
-                <span className="text-sm font-sans text-slate-500 font-semibold">
-                  {billingCycle === "founding"
-                    ? "AUD / year (Locked for life — $5.75/mo)"
-                    : billingCycle === "annual"
-                    ? "AUD / year ($7.42/mo)"
-                    : "AUD / month"}
-                </span>
+                {billingCycle === "annual" ? (
+                  isFoundingOfferActive ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="line-through text-slate-400 text-3xl font-bold">$89</span>
+                      <span className="text-5xl font-black text-[#1B2B4B]">$69</span>
+                      <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
+                        AUD / year ($5.75/mo)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-5xl font-black text-[#1B2B4B]">$89</span>
+                      <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
+                        AUD / year ($7.42/mo)
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-5xl font-black text-[#1B2B4B]">$9.95</span>
+                    <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
+                      AUD / month
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {billingCycle === "founding" && (
+              {billingCycle === "annual" && isFoundingOfferActive && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 font-bold flex items-center gap-2">
                   <span className="text-base">🏷️</span>
-                  <span>{t("subscription.foundingMemberBadge")}</span>
+                  <span>Special Founding Member Rate: $69 AUD/year locked for life!</span>
                 </div>
               )}
 
@@ -192,10 +196,10 @@ export default function UpgradePage() {
               loading={loading}
               className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl shadow-lg text-base transition-all active:scale-[0.99]"
             >
-              {billingCycle === "founding"
-                ? "Claim $69/yr Founding Rate →"
-                : billingCycle === "annual"
-                ? "Subscribe Annual ($89/yr) →"
+              {billingCycle === "annual"
+                ? isFoundingOfferActive
+                  ? "Claim $69/yr Special Rate →"
+                  : "Subscribe Annual ($89/yr) →"
                 : "Subscribe Monthly ($9.95/mo) →"}
             </Button>
           </div>

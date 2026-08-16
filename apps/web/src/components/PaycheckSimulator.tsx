@@ -28,8 +28,8 @@ export const PaycheckSimulator: React.FC = () => {
   const billsAlloc = rentAlloc + subsAlloc;
 
   // Step 2: Committed Savings Goals ($600 Total Cap)
-  // Emergency Buffer: $300 (Priority Goal - Full Top-Up First)
-  // Holiday Goal: $150 & Car Reserve: $150 (Parallel Top-Up - 50/50 split of remaining goal funds)
+  // Emergency Buffer: $300 (High Priority Goal - Full Top-Up First)
+  // Holiday Goal: $150 & Car Reserve: $150 (Parallel Top-Up at different rates: 60% / 40%)
   const emergencyTarget = 300;
   const holidayTarget = 150;
   const carTarget = 150;
@@ -40,18 +40,18 @@ export const PaycheckSimulator: React.FC = () => {
 
   const parallelPoolTarget = holidayTarget + carTarget; // $300
   const availForParallel = Math.min(parallelPoolTarget, rem);
-  const holidayAlloc = Math.min(holidayTarget, availForParallel / 2);
-  const carAlloc = Math.min(carTarget, availForParallel / 2);
+  const holidayAlloc = Math.min(holidayTarget, availForParallel * 0.6);
+  const carAlloc = Math.min(carTarget, availForParallel * 0.4);
   rem -= (holidayAlloc + carAlloc);
 
   const committedGoalsAlloc = emergencyAlloc + holidayAlloc + carAlloc;
 
   // Step 3: Everyday Discretionary Allowance ($600 Total Cap)
-  // Groceries: $400, Personal: $200 (proportional filling)
+  // Groceries: $400 (70%), Personal: $200 (30%) (filling at different rates)
   const everydayTargetCap = 600;
   const everydayAlloc = Math.min(everydayTargetCap, rem);
-  const groceriesAlloc = Math.min(400, (everydayAlloc * 400) / 600);
-  const personalAlloc = Math.min(200, (everydayAlloc * 200) / 600);
+  const groceriesAlloc = Math.min(400, everydayAlloc * 0.7);
+  const personalAlloc = Math.min(200, everydayAlloc * 0.3);
   rem -= everydayAlloc;
 
   // Step 4: Surplus Sweep & Offset Reserve
@@ -98,16 +98,6 @@ export const PaycheckSimulator: React.FC = () => {
               <span>$5,000</span>
             </div>
           </div>
-
-          {/* Feature Highlight Callout */}
-          <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-100 flex flex-col gap-1.5 text-xs text-blue-900">
-            <div className="font-bold flex items-center gap-1.5">
-              Smart Allocation Logic
-            </div>
-            <p className="text-blue-700 leading-snug">
-              Notice how <strong>Rent</strong> fills 100% first before <strong>Utilities</strong> start. High-priority <strong>Emergency Buffer</strong> completes fully before lower-priority goals fund in <strong>parallel</strong>!
-            </p>
-          </div>
         </div>
 
         {/* Right Column: Live 5-Step Waterfall Breakdown Cards */}
@@ -121,16 +111,15 @@ export const PaycheckSimulator: React.FC = () => {
             </span>
           </div>
 
-          {/* STEP 1: BILLS POOL (Sequential Top-Up) */}
+          {/* STEP 1: BILLS POOL */}
           <div className="bg-white p-5 rounded-xl border border-[#e2e4e0] shadow-2xs flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <div>
                 <span className="font-extrabold text-[#1B2B4B] text-sm block">
                   {t("landing.waterfallStep1")}
                 </span>
-                <span className="text-[11px] text-zinc-400">Sequential Fill: Priority 1 first</span>
               </div>
-              <span className={`${billsAlloc >= billsTargetCap ? "text-[#22c55e]" : "text-amber-600"} font-mono font-bold text-sm`}>
+              <span className={`${billsAlloc >= billsTargetCap ? "text-[#22c55e]" : "text-[#2563eb]"} font-mono font-bold text-sm`}>
                 ${billsAlloc.toFixed(0)} / ${billsTargetCap.toLocaleString()}
               </span>
             </div>
@@ -138,7 +127,7 @@ export const PaycheckSimulator: React.FC = () => {
             {/* Total Step Progress Bar */}
             <div className="w-full bg-[#F7F8FA] h-2.5 rounded-full overflow-hidden border border-zinc-100">
               <div
-                className="bg-[#2563eb] h-full rounded-full transition-all duration-300"
+                className={`${billsAlloc >= billsTargetCap ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                 style={{ width: `${(billsAlloc / billsTargetCap) * 100}%` }}
               />
             </div>
@@ -150,8 +139,8 @@ export const PaycheckSimulator: React.FC = () => {
                 <div className="flex justify-between items-center text-zinc-700">
                   <span className="font-semibold flex items-center gap-1.5">
                     {t("landing.billsRent")}
-                    <span className="text-[10px] bg-blue-100 text-[#2563eb] px-1.5 py-0.5 rounded font-bold">
-                      {t("landing.fullTopupBadge")}
+                    <span className="text-[10px] bg-blue-50 text-[#2563eb] border border-blue-200 px-1.5 py-0.5 rounded font-bold">
+                      High Priority
                     </span>
                   </span>
                   <span className="font-mono font-medium">
@@ -160,7 +149,7 @@ export const PaycheckSimulator: React.FC = () => {
                 </div>
                 <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-[#2563eb] h-full rounded-full transition-all duration-300"
+                    className={`${rentAlloc >= rentTarget ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                     style={{ width: `${(rentAlloc / rentTarget) * 100}%` }}
                   />
                 </div>
@@ -171,9 +160,6 @@ export const PaycheckSimulator: React.FC = () => {
                 <div className="flex justify-between items-center text-zinc-700">
                   <span className="font-semibold flex items-center gap-1.5">
                     {t("landing.billsSubs")}
-                    <span className="text-[10px] bg-zinc-100 text-zinc-600 px-1.5 py-0.5 rounded font-medium">
-                      Sequential 2
-                    </span>
                   </span>
                   <span className="font-mono font-medium">
                     ${subsAlloc.toFixed(0)} / ${subsTarget}
@@ -181,7 +167,7 @@ export const PaycheckSimulator: React.FC = () => {
                 </div>
                 <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-blue-400 h-full rounded-full transition-all duration-300"
+                    className={`${subsAlloc >= subsTarget ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                     style={{ width: `${(subsAlloc / subsTarget) * 100}%` }}
                   />
                 </div>
@@ -189,16 +175,15 @@ export const PaycheckSimulator: React.FC = () => {
             </div>
           </div>
 
-          {/* STEP 2: COMMITTED SAVINGS GOALS (Sequential Priority + Parallel Top-Up) */}
+          {/* STEP 2: COMMITTED SAVINGS GOALS */}
           <div className="bg-white p-5 rounded-xl border border-[#e2e4e0] shadow-2xs flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <div>
                 <span className="font-extrabold text-[#1B2B4B] text-sm block">
                   {t("landing.waterfallStep2")}
                 </span>
-                <span className="text-[11px] text-zinc-400">Full top-up on Emergency, then parallel on Goals</span>
               </div>
-              <span className={`${committedGoalsAlloc >= committedGoalsTarget ? "text-[#22c55e]" : "text-amber-600"} font-mono font-bold text-sm`}>
+              <span className={`${committedGoalsAlloc >= committedGoalsTarget ? "text-[#22c55e]" : "text-[#2563eb]"} font-mono font-bold text-sm`}>
                 ${committedGoalsAlloc.toFixed(0)} / ${committedGoalsTarget.toLocaleString()}
               </span>
             </div>
@@ -206,20 +191,20 @@ export const PaycheckSimulator: React.FC = () => {
             {/* Total Step Progress Bar */}
             <div className="w-full bg-[#F7F8FA] h-2.5 rounded-full overflow-hidden border border-zinc-100">
               <div
-                className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                className={`${committedGoalsAlloc >= committedGoalsTarget ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                 style={{ width: `${(committedGoalsAlloc / committedGoalsTarget) * 100}%` }}
               />
             </div>
 
             {/* Sub-categories Breakdown for GOALS */}
             <div className="pt-2 border-t border-zinc-100 flex flex-col gap-2.5">
-              {/* Emergency Buffer (Priority Goal: Full Top-Up) */}
+              {/* Emergency Buffer */}
               <div className="flex flex-col gap-1 text-xs">
                 <div className="flex justify-between items-center text-zinc-700">
                   <span className="font-semibold flex items-center gap-1.5">
                     {t("landing.goalEmergency")}
-                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">
-                      {t("landing.fullTopupBadge")}
+                    <span className="text-[10px] bg-blue-50 text-[#2563eb] border border-blue-200 px-1.5 py-0.5 rounded font-bold">
+                      High Priority
                     </span>
                   </span>
                   <span className="font-mono font-medium">
@@ -228,20 +213,17 @@ export const PaycheckSimulator: React.FC = () => {
                 </div>
                 <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-indigo-600 h-full rounded-full transition-all duration-300"
+                    className={`${emergencyAlloc >= emergencyTarget ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                     style={{ width: `${(emergencyAlloc / emergencyTarget) * 100}%` }}
                   />
                 </div>
               </div>
 
-              {/* Holiday Goal (Parallel Top-Up) */}
+              {/* Holiday Goal */}
               <div className="flex flex-col gap-1 text-xs">
                 <div className="flex justify-between items-center text-zinc-700">
                   <span className="font-semibold flex items-center gap-1.5">
                     {t("landing.goalHoliday")}
-                    <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">
-                      {t("landing.parallelTopupBadge")}
-                    </span>
                   </span>
                   <span className="font-mono font-medium">
                     ${holidayAlloc.toFixed(0)} / ${holidayTarget}
@@ -249,20 +231,17 @@ export const PaycheckSimulator: React.FC = () => {
                 </div>
                 <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-purple-500 h-full rounded-full transition-all duration-300"
+                    className={`${holidayAlloc >= holidayTarget ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                     style={{ width: `${(holidayAlloc / holidayTarget) * 100}%` }}
                   />
                 </div>
               </div>
 
-              {/* Car Reserve Goal (Parallel Top-Up) */}
+              {/* Car Reserve Goal */}
               <div className="flex flex-col gap-1 text-xs">
                 <div className="flex justify-between items-center text-zinc-700">
                   <span className="font-semibold flex items-center gap-1.5">
                     {t("landing.goalCar")}
-                    <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">
-                      {t("landing.parallelTopupBadge")}
-                    </span>
                   </span>
                   <span className="font-mono font-medium">
                     ${carAlloc.toFixed(0)} / ${carTarget}
@@ -270,7 +249,7 @@ export const PaycheckSimulator: React.FC = () => {
                 </div>
                 <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-purple-400 h-full rounded-full transition-all duration-300"
+                    className={`${carAlloc >= carTarget ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                     style={{ width: `${(carAlloc / carTarget) * 100}%` }}
                   />
                 </div>
@@ -287,14 +266,14 @@ export const PaycheckSimulator: React.FC = () => {
                 </span>
                 <span className="text-[11px] text-zinc-400">Safe-to-spend debit allowance</span>
               </div>
-              <span className="text-[#2563eb] font-mono font-bold text-sm">
+              <span className={`${everydayAlloc >= everydayTargetCap ? "text-[#22c55e]" : "text-[#2563eb]"} font-mono font-bold text-sm`}>
                 ${everydayAlloc.toFixed(0)} / ${everydayTargetCap.toLocaleString()}
               </span>
             </div>
             
             <div className="w-full bg-[#F7F8FA] h-2.5 rounded-full overflow-hidden border border-zinc-100">
               <div
-                className="bg-[#22c55e] h-full rounded-full transition-all duration-300"
+                className={`${everydayAlloc >= everydayTargetCap ? "bg-[#22c55e]" : "bg-[#2563eb]"} h-full rounded-full transition-all duration-300`}
                 style={{ width: `${(everydayAlloc / everydayTargetCap) * 100}%` }}
               />
             </div>
@@ -324,14 +303,14 @@ export const PaycheckSimulator: React.FC = () => {
                 </span>
                 <span className="text-[11px] text-zinc-400">100% of residual income automatically swept</span>
               </div>
-              <span className="text-emerald-700 font-mono font-extrabold text-base">
+              <span className="text-[#22c55e] font-mono font-extrabold text-base">
                 +${surplusSweepAlloc.toFixed(0)}
               </span>
             </div>
             
             <div className="w-full bg-[#F7F8FA] h-2.5 rounded-full overflow-hidden border border-zinc-100">
               <div
-                className="bg-emerald-600 h-full rounded-full transition-all duration-300"
+                className="bg-[#22c55e] h-full rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, (surplusSweepAlloc / 1500) * 100)}%` }}
               />
             </div>

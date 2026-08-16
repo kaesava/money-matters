@@ -1,8 +1,6 @@
 "use client";
 
-import React from "react";
-import { t } from "@money-matters/i18n";
-import { useIconVisibility, InfoTooltip } from "@money-matters/ui/web";
+import { useIconVisibility } from "@money-matters/ui/web";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
 interface SavingsGoalsSectionProps {
@@ -10,6 +8,7 @@ interface SavingsGoalsSectionProps {
   onSelectCategory: (id: string) => void;
   onEditCategory: (cat: CategorySummaryItem) => void;
   onArchiveCategory: (cat: CategorySummaryItem) => void;
+  onOpenCreateModal?: (type?: "REGULAR" | "GOAL" | "EVERYDAY") => void;
 }
 
 function fmt(val: string | number | null | undefined) {
@@ -24,30 +23,39 @@ export function SavingsGoalsSection({
   onSelectCategory,
   onEditCategory,
   onArchiveCategory,
+  onOpenCreateModal,
 }: SavingsGoalsSectionProps) {
   const { showIcons } = useIconVisibility();
 
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
-      {/* Header Summary Banner */}
-      <div className="p-5 bg-gradient-to-r from-purple-50/60 to-white border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
+      {/* Header */}
+      <div className="p-5 bg-gradient-to-r from-blue-50/60 to-white border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {showIcons && (
-            <div className="w-10 h-10 rounded-xl bg-purple-600/10 text-purple-600 flex items-center justify-center text-xl font-bold">
+            <div className="w-10 h-10 rounded-xl bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-bold">
               🎯
             </div>
           )}
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.goalTitle")}</h2>
-              <InfoTooltip content="Target savings goals managed individually per category with dedicated balances and progress tracking." />
-            </div>
+            <h3 className="font-extrabold text-[#1B2B4B] text-base">Savings & Sinking Goals</h3>
+            <p className="text-xs text-zinc-500 font-medium">Targeted funds for specific future milestones</p>
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Total Goal Pools</p>
-          <p className="text-xl font-mono font-black text-[#1B2B4B]">{categories.length}</p>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Total Goal Pools</p>
+            <p className="text-xl font-mono font-black text-[#1B2B4B]">{categories.length}</p>
+          </div>
+          {onOpenCreateModal && (
+            <button
+              onClick={() => onOpenCreateModal("GOAL")}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              + Add Goal
+            </button>
+          )}
         </div>
       </div>
 
@@ -99,7 +107,7 @@ export function SavingsGoalsSection({
                     <button
                       type="button"
                       onClick={() => onSelectCategory(cat.id)}
-                      className="text-purple-600 hover:underline font-bold text-left"
+                      className="text-[#2563eb] hover:underline font-bold text-left"
                     >
                       {cat.name}
                     </button>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../../lib/trpc";
-import { Spinner, InfoTooltip, PaginationBar } from "@money-matters/ui/web";
+import { InfoTooltip, PaginationBar } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { CsvImportModal } from "../../../components/CsvImportModal";
 
@@ -122,23 +122,17 @@ export default function BankAccountsDashboardPage() {
     setPage(1);
   }, [searchQuery, typeFilter, sortField, sortDir, pageSize]);
 
-  if (bankAccountsQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center p-16">
-        <Spinner size="lg" label="Loading bank accounts..." />
-      </div>
-    );
-  }
-
   const accounts = (bankAccountsQuery.data as BankAccountItem[]) || [];
 
   // Filter accounts
   const filtered = accounts.filter((acc) => {
+    if (!acc || !acc.name) return false;
     const q = searchQuery.toLowerCase().trim();
     if (q && !acc.name.toLowerCase().includes(q)) return false;
     if (typeFilter !== "ALL") {
-      if (typeFilter === "UNLINKED" && acc.categoryTypes.length > 0) return false;
-      if (typeFilter !== "UNLINKED" && !acc.categoryTypes.includes(typeFilter as CategoryType)) return false;
+      const catTypes = acc.categoryTypes || [];
+      if (typeFilter === "UNLINKED" && catTypes.length > 0) return false;
+      if (typeFilter !== "UNLINKED" && !catTypes.includes(typeFilter as CategoryType)) return false;
     }
     return true;
   });
