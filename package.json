@@ -17,6 +17,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "validate": "pnpm install && pnpm typecheck && pnpm test:coverage && pnpm test && pnpm check-i18n && pnpm lint && pnpm build",
     "seed": "pnpm --filter @money-matters/db seed"
   },
   "devDependencies": {

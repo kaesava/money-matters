@@ -11,7 +11,8 @@
     "cf-deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
     "lint": "eslint .",
     "test": "vitest run --exclude='e2e/**' --passWithNoTests",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:coverage": "vitest run --exclude=\"e2e/**\" --passWithNoTests --coverage"
   },
   "dependencies": {
     "@money-matters/capability-billing": "workspace:*",

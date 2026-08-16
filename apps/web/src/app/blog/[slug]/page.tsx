@@ -30,6 +30,64 @@ export default function BlogPostReaderPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white">
+      {/* BlogPosting JSON-LD Schema for SERPs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            "headline": post.title,
+            "description": post.excerpt,
+            "author": {
+              "@type": "Person",
+              "name": post.authorName,
+              "jobTitle": post.authorRole,
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Money Matters Australia",
+              "url": "https://moneymatters.kaesava.au",
+            },
+            "datePublished": post.publishedAt,
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": `https://moneymatters.kaesava.au/blog/${post.slug}`,
+            },
+          }),
+        }}
+      />
+
+      {/* BreadcrumbList JSON-LD Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://moneymatters.kaesava.au",
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://moneymatters.kaesava.au/blog",
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": post.title,
+                "item": `https://moneymatters.kaesava.au/blog/${post.slug}`,
+              },
+            ],
+          }),
+        }}
+      />
       {/* Header */}
       <header className="border-b border-[#e2e4e0] bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-2xs">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -52,7 +110,22 @@ export default function BlogPostReaderPage() {
       </header>
 
       {/* Article Header Container */}
-      <main className="max-w-3xl mx-auto px-6 pt-12 pb-20 flex-1 w-full space-y-8">
+      <main className="max-w-3xl mx-auto px-6 pt-8 pb-20 flex-1 w-full space-y-8">
+        {/* Visual HTML Breadcrumbs for Google SERPs & UX */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
+          <Link href="/" className="hover:text-[#2563eb] transition-colors">
+            Home
+          </Link>
+          <span>/</span>
+          <Link href="/blog" className="hover:text-[#2563eb] transition-colors">
+            Blog
+          </Link>
+          <span>/</span>
+          <span className="text-[#1B2B4B] font-bold truncate max-w-[240px] sm:max-w-md">
+            {post.title}
+          </span>
+        </nav>
+
         <div className="space-y-4 border-b border-[#e2e4e0] pb-8">
           <div className="flex items-center gap-3 text-xs font-bold font-mono">
             <span className="text-[#2563eb] bg-blue-50 px-3 py-1 rounded-md border border-blue-100 uppercase">

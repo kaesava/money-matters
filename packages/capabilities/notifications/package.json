@@ -23,7 +23,6 @@
     "@money-matters/core": "workspace:*",
     "@money-matters/i18n": "workspace:*",
     "drizzle-orm": "^0.39.0",
-
     "zod": "^3.22.4",
     "inngest": "^3.12.0",
     "expo-notifications": "~0.32.17",
@@ -38,6 +37,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --passWithNoTests --coverage"
   }
 }

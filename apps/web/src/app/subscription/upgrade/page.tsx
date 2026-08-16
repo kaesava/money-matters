@@ -45,6 +45,41 @@ export default function UpgradePage() {
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col font-sans">
+      {/* Product & Pricing Offer JSON-LD Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Money Matters Household Subscription",
+            "description": "Unlimited household access to automated 5-step waterfall budgeting, mortgage offset optimizer, and bank CSV imports.",
+            "brand": {
+              "@type": "Brand",
+              "name": "Money Matters",
+            },
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Annual Plan (Special Founding Member)",
+                "price": "69.00",
+                "priceCurrency": "AUD",
+                "priceValidUntil": "2027-12-31",
+                "url": "https://moneymatters.kaesava.au/subscription/upgrade",
+                "availability": "https://schema.org/InStock",
+              },
+              {
+                "@type": "Offer",
+                "name": "Monthly Plan",
+                "price": "9.95",
+                "priceCurrency": "AUD",
+                "url": "https://moneymatters.kaesava.au/subscription/upgrade",
+                "availability": "https://schema.org/InStock",
+              },
+            ],
+          }),
+        }}
+      />
       {/* Top Brand Navigation Bar */}
       <header className="w-full bg-[#1B2B4B] border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-md">
         <div className="flex items-center gap-3">

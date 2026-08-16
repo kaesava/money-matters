@@ -486,6 +486,117 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ Section with JSON-LD Schema for SERPs */}
+      <section className="py-20 bg-white border-t border-[#e2e4e0]">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "How does the 5-Step Cashflow Waterfall engine work?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Money Matters automatically ring-fences your fixed bills and committed savings goals on payday, before computing your safe daily spending velocity ($/day) so you never overspend.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  "name": "Can Money Matters help optimize my Australian mortgage offset account?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes! Residual surplus funds are automatically swept into your home loan offset account reserve, minimizing daily mortgage interest while keeping 100% liquidity.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  "name": "How does Money Matters compare to traditional Excel or Google Sheets budgeting?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Unlike static spreadsheets, Money Matters handles shifting bill due dates, irregular pay frequencies, and multi-user household sync in real-time without manual formula maintenance.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  "name": "Is my household financial data private and secure?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Money Matters utilizes PostgreSQL Row Level Security (RLS), tenant isolation, and strict data privacy standards with zero PII logging.",
+                  },
+                },
+              ],
+            }),
+          }}
+        />
+
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center space-y-3 mb-12">
+            <span className="text-[#2563eb] text-xs font-extrabold uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+              Frequently Asked Questions
+            </span>
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
+              Everything You Need to Know About Money Matters
+            </h2>
+            <p className="text-sm text-zinc-600 max-w-xl mx-auto">
+              Got questions about automated waterfall cashflow management, mortgage offset savings, or security? We&apos;ve got answers.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
+                <span>How does the 5-Step Cashflow Waterfall engine work?</span>
+                <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
+                  ↓
+                </span>
+              </summary>
+              <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
+                Money Matters automatically ring-fences your fixed bills and committed savings goals the moment your paycheck arrives. It calculates your safe daily spending velocity ($/day) so you can spend freely without worrying about upcoming bills.
+              </p>
+            </details>
+
+            <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
+                <span>Can Money Matters help optimize my Australian mortgage offset account?</span>
+                <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
+                  ↓
+                </span>
+              </summary>
+              <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
+                Yes! Residual surplus funds are automatically swept into your home loan offset reserve, minimizing daily mortgage interest charges while preserving 100% cash liquidity for your family.
+              </p>
+            </details>
+
+            <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
+                <span>How does Money Matters compare to Excel or Google Sheets budgeting?</span>
+                <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
+                  ↓
+                </span>
+              </summary>
+              <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
+                Static spreadsheets break when bill dates shift or pay schedules vary between partners. Money Matters is an automated cashflow engine that synchronizes across partners in real-time, alerts you before overdrafts occur, and requires zero manual spreadsheet maintenance.
+              </p>
+            </details>
+
+            <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
+                <span>Is my household financial data private and secure?</span>
+                <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
+                  ↓
+                </span>
+              </summary>
+              <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
+                Security and privacy are built into our architecture core. We enforce PostgreSQL Row Level Security (RLS), multi-tenant data isolation, strict HTTPS encryption, and zero PII logging.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
       {/* Conversion Banner */}
       <section className="bg-[#1B2B4B] text-white py-16 text-center">
         <div className="max-w-3xl mx-auto px-6 flex flex-col items-center gap-6">

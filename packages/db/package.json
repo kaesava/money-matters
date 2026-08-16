@@ -37,6 +37,7 @@
     "build": "echo \"Package build complete\"",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
-    "studio": "npx dotenv-cli -e ../../.env.development -- drizzle-kit studio"
+    "studio": "npx dotenv-cli -e ../../.env.development -- drizzle-kit studio",
+    "test:coverage": "vitest run --passWithNoTests --coverage"
   }
 }

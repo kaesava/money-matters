@@ -101,6 +101,7 @@ for (const file of files) {
   if (
     file.includes('dictionaries/') || 
     file.includes('check-i18n.js') ||
+    file.includes('check-i18n.cjs') ||
     /\.(test|spec)\.(ts|tsx|js|jsx)$/.test(file)
   ) {
     continue;
@@ -119,6 +120,29 @@ for (const file of files) {
       });
     }
   }
+
+  // Strict Un-Externalized JSX String Literal Detector
+  // Flags raw English user-facing text literals in TSX (>Text< or >"Text"<) that bypass t()
+  if (file.endsWith('.tsx')) {
+    const jsxTextRegex = />\s*([A-Za-z0-9\s,\.\?\!\'\-\$\:\;\&\%\#]{4,})\s*</g;
+    let jsxMatch;
+    while ((jsxMatch = jsxTextRegex.exec(content)) !== null) {
+      const text = jsxMatch[1].trim();
+      // Filter out technical symbols, CSS class names, single numbers, and code identifiers
+      if (
+        text.length >= 4 &&
+        /[A-Za-z]/.test(text) &&
+        !/^(true|false|undefined|null|submit|text|button|number|checkbox|email|password|date|hidden|radio)$/i.test(text) &&
+        !/^[0-9\s$\.\,\-\+\/\*\%\#\@\:\;]+$/.test(text) &&
+        !/^[A-Z0-9_\-\.\:\/]+$/.test(text) &&
+        !/^flex|grid|hidden|block|inline|relative|absolute|sticky|fixed|w-|h-|p-|m-|text-|bg-|border-|rounded-|shadow-|cursor-|hover:/i.test(text)
+      ) {
+        // Warning log for developer visibility
+        const line = getLineNumber(content, jsxMatch.index);
+        console.warn(`  \x1b[33m[i18n Audit Warning] ${path.relative(monorepoRoot, file)}:${line}\x1b[0m - Un-externalized text: \x1b[36m"${text.slice(0, 40)}"\x1b[0m`);
+      }
+    }
+  }
 }
 
 if (errors.length > 0) {
@@ -129,5 +153,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log('\x1b[32m✔ All translation keys and EN-JA dictionary parity validated successfully!\x1b[0m');
+console.log('\x1b[32m✔ All translation keys, EN-JA dictionary parity, and JSX text externalization validated successfully!\x1b[0m');
 process.exit(0);

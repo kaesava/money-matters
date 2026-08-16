@@ -24,10 +24,11 @@
   "devDependencies": {
     "@types/node": "^20.14.9",
     "typescript": "^6.0.3",
-    "vitest": "^2.0.5"
+    "vitest": "^4.1.10"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --passWithNoTests --coverage"
   }
 }

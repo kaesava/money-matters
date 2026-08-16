@@ -45,6 +45,7 @@
     "build": "echo \"Primitive design build script complete\"",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:coverage": "vitest run --passWithNoTests --coverage"
   }
 }

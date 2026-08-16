@@ -153,8 +153,9 @@ All tables MUST include:
 - Functions >30 lines MUST be split.
 - **Smart Commenting**: Prohibit trivial comments that restate what code does (e.g. `// increment count`). Mandate high-value "why" comments explaining complex business math (e.g. 5-step waterfall deficit repair steps), architectural decisions, concurrency locks, or edge-case handling.
 
-## 23. CI/CD Enforcement
-CI MUST enforce: lint, typecheck, tests, build, security scan, i18n checks (`check-i18n`).
+## 23. CI/CD Enforcement & Validation Shortcut
+- **Validation Shortcut**: After any significant coding session or refactor, you MUST execute `pnpm validate` to run the full verification pipeline (`pnpm install` → `pnpm typecheck` → `pnpm test:coverage` → `pnpm test` → `pnpm check-i18n` → `pnpm lint` → `pnpm build`).
+- CI MUST enforce: lint, typecheck, tests, build, security scan, i18n checks (`check-i18n`).
 Failures MUST block merge.
 
 ## 24. AI Behavior

@@ -11,6 +11,30 @@ export default function BlogIndexPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white">
+      {/* BreadcrumbList JSON-LD Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://moneymatters.kaesava.au",
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://moneymatters.kaesava.au/blog",
+              },
+            ],
+          }),
+        }}
+      />
       {/* Header */}
       <header className="border-b border-[#e2e4e0] bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-2xs">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
