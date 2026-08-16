@@ -5,6 +5,7 @@ import { trpc } from "../../../lib/trpc";
 import { InfoTooltip, PaginationBar } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { CsvImportModal } from "../../../components/CsvImportModal";
+import { BankAccountFormModal } from "./components/BankAccountFormModal";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
@@ -559,170 +560,29 @@ export default function BankAccountsDashboardPage() {
 
       {/* Add / Edit Account Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <form
-            onSubmit={handleSaveAccount}
-            className="bg-white rounded-2xl p-6 max-w-md w-full flex flex-col gap-4 shadow-xl border border-zinc-100"
-          >
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <h3 className="text-base font-bold text-[#1B2B4B]">
-                {editingAccount ? "Edit Bank Account" : "Add New Bank Account"}
-              </h3>
-              <button type="button" onClick={closeModal} className="text-zinc-400 hover:text-zinc-600 font-bold">
-                ✕
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1">
-                <label className="text-xs font-bold text-zinc-700">Bank Institution</label>
-                <InfoTooltip content="Select the Australian bank or financial institution for this account." />
-              </div>
-              <select
-                value={accBankProvider}
-                onChange={(e) => setAccBankProvider(e.target.value as BankName)}
-                className="px-3 py-2 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white"
-              >
-                {BANK_OPTIONS.map((b) => (
-                  <option key={b.key} value={b.key}>
-                    {b.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-zinc-700">Account Name</label>
-              <input
-                type="text"
-                value={accName}
-                onChange={(e) => setAccName(e.target.value)}
-                placeholder="e.g. Smart Access Savings"
-                className="px-3 py-2 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                required
-              />
-            </div>
-
-            {/* Separate Rows for Current Balance & Unbudgeted Buffer */}
-            <div className="flex flex-col gap-3 p-3.5 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1">
-                  <label className="text-xs font-bold text-zinc-700">Current Balance ($)</label>
-                  <InfoTooltip content="Total actual funds currently in this bank account." />
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={accBalance}
-                  onChange={(e) => setAccBalance(e.target.value)}
-                  className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1">
-                  <label className="text-xs font-bold text-zinc-700">Unbudgeted Buffer / Earmarked Funds ($)</label>
-                  <InfoTooltip content="Funds held in this account that are reserved/earmarked and excluded from your budget (e.g. kids' offset savings, emergency buffer). Must not exceed Current Balance." />
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={accBuffer}
-                  onChange={(e) => setAccBuffer(e.target.value)}
-                  placeholder="0.00"
-                  className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                />
-              </div>
-
-              {/* Readonly Calculated Amount Available to Budget */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-teal-50/80 border border-teal-200/80 text-xs font-bold">
-                <div className="flex items-center gap-1">
-                  <span className="text-[#1B2B4B]">Amount Available to Budget:</span>
-                  <InfoTooltip content="Net spendable funds in this account (Current Balance − Earmarked Funds)." />
-                </div>
-                <span className={`font-mono text-sm font-black ${
-                  (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0) < 0
-                    ? "text-rose-600"
-                    : "text-emerald-700"
-                }`}>
-                  {fmtMoney(Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0)))}
-                </span>
-              </div>
-            </div>
-
-            {/* Category Type Linkage Section */}
-            <div className="flex flex-col gap-2 pt-1 border-t border-zinc-100">
-              <div className="flex items-center gap-1">
-                <label className="text-xs font-bold text-[#1B2B4B]">Link Category Types to this Account</label>
-                <InfoTooltip content="Each category pool (Everyday, Bills, Savings) can only be linked to a single bank account for waterfall payday routing." />
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  { key: "EVERYDAY" as const, label: "Everyday Pool", color: "emerald" },
-                  { key: "REGULAR" as const, label: "Bills Pool", color: "blue" },
-                  { key: "GOAL" as const, label: "Goal Pool", color: "indigo" },
-                ].map((item) => {
-                  const isChecked = accSelectedTypes.includes(item.key);
-                  const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && a.categoryTypes.includes(item.key));
-
-                  return (
-                    <label
-                      key={item.key}
-                      className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors ${
-                        isChecked ? "bg-teal-50/50 border-[#00B4A6] text-[#1B2B4B]" : "bg-zinc-50/50 border-zinc-200 text-zinc-600"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleCategoryTypeToggle(item.key)}
-                          className="w-4 h-4 text-[#00B4A6] rounded focus:ring-2 focus:ring-[#00B4A6]"
-                        />
-                        <span>{item.label}</span>
-                      </div>
-                      {currentOwner && !isChecked && (
-                        <span className="text-[10px] font-normal text-zinc-400">Currently linked: {currentOwner.name}</span>
-                      )}
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-slate-50 p-3 rounded-xl border border-zinc-200">
-              <input
-                type="checkbox"
-                checked={accIsPrivate}
-                disabled={isTrialExpired}
-                onChange={(e) => setAccIsPrivate(e.target.checked)}
-                className="w-4 h-4 text-[#00B4A6] rounded focus:ring-2 focus:ring-[#00B4A6]"
-              />
-              <span>🔒 Private Personal Account {isTrialExpired ? "(Trial Expired)" : "(Hidden from other users)"}</span>
-            </label>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={createAccountMut.isPending || updateAccountMut.isPending}
-                className="px-4 py-2 text-xs font-bold text-white bg-[#00B4A6] hover:bg-[#009b8f] rounded-xl shadow-xs transition-colors"
-              >
-                {createAccountMut.isPending || updateAccountMut.isPending
-                  ? "Saving..."
-                  : editingAccount
-                  ? "Save Changes"
-                  : "Create Account"}
-              </button>
-            </div>
-          </form>
-        </div>
+        <BankAccountFormModal
+          isOpen={isModalOpen}
+          editingAccount={editingAccount}
+          accName={accName}
+          setAccName={setAccName}
+          accBankProvider={accBankProvider}
+          setAccBankProvider={setAccBankProvider}
+          accBalance={accBalance}
+          setAccBalance={setAccBalance}
+          accBuffer={accBuffer}
+          setAccBuffer={setAccBuffer}
+          accIsPrivate={accIsPrivate}
+          setAccIsPrivate={setAccIsPrivate}
+          accSelectedTypes={accSelectedTypes}
+          accounts={accounts}
+          isTrialExpired={isTrialExpired}
+          isSaving={createAccountMut.isPending || updateAccountMut.isPending}
+          bankOptions={BANK_OPTIONS}
+          onClose={closeModal}
+          onSubmit={handleSaveAccount}
+          onCategoryTypeToggle={handleCategoryTypeToggle}
+          fmtMoney={fmtMoney}
+        />
       )}
 
       {/* Conflict Transfer Warning Modal */}

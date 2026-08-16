@@ -50,15 +50,23 @@ export function generateBurstDates(
       dates.push(new Date(current.getTime()));
     }
 
-    // Stop condition: reached max occurrences AND passed cutoff date (or reached end date)
-    if (dates.length >= maxOccurrences && current > cutOff) {
+    // Stop condition: reached max occurrences OR passed cutoff date
+    if (dates.length >= maxOccurrences || current > cutOff) {
       break;
     }
 
     if (isMonthly) {
-      current = new Date(current.getFullYear(), current.getMonth() + 1, current.getDate());
+      const targetYear = current.getFullYear() + Math.floor((current.getMonth() + 1) / 12);
+      const targetMonth = (current.getMonth() + 1) % 12;
+      const originalDay = start.getDate();
+      const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      current = new Date(targetYear, targetMonth, Math.min(originalDay, daysInTargetMonth));
     } else if (isYearly) {
-      current = new Date(current.getFullYear() + 1, current.getMonth(), current.getDate());
+      const targetYear = current.getFullYear() + 1;
+      const originalMonth = start.getMonth();
+      const originalDay = start.getDate();
+      const daysInTargetMonth = new Date(targetYear, originalMonth + 1, 0).getDate();
+      current = new Date(targetYear, originalMonth, Math.min(originalDay, daysInTargetMonth));
     } else {
       current = new Date(current.getTime() + stepDays * 24 * 60 * 60 * 1000);
     }

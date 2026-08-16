@@ -173,8 +173,11 @@ export async function canAffordQuery(
     }
   }
 
-  if (amount <= netAvailableCash + bestSavingsSurplus && bestSavingsSurplus > 0) {
-    const goalSurplusUsed = (amount - netAvailableCash).toFixed(2);
+  const everydayDeficit = everydayBalance < 0 ? Math.abs(everydayBalance) : 0;
+  const netAvailableBeforeDeficit = Math.max(0, everydayBalance - billsReserved);
+
+  if (amount <= netAvailableBeforeDeficit + (bestSavingsSurplus - everydayDeficit) && bestSavingsSurplus > everydayDeficit) {
+    const goalSurplusUsed = (amount - netAvailableBeforeDeficit + everydayDeficit).toFixed(2);
     const newGoalBalance = (bestSavingsSurplus - parseFloat(goalSurplusUsed)).toFixed(2);
 
     return {
@@ -188,7 +191,7 @@ export async function canAffordQuery(
       rationaleSteps: [
         `Everyday Cash Available: $${everydayBalance.toFixed(2)}`,
         `Upcoming Bills Reserved: -$${billsReserved.toFixed(2)}`,
-        `Shortfall in Everyday: -$${(amount - netAvailableCash).toFixed(2)}`,
+        `Shortfall in Everyday: -$${(amount - netAvailableBeforeDeficit + everydayDeficit).toFixed(2)}`,
         `Covered by uncommitted goal "${bestSavingsName}": $${goalSurplusUsed} used (new balance: $${newGoalBalance})`,
       ],
     };

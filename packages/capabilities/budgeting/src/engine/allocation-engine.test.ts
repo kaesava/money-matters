@@ -195,7 +195,7 @@ describe("paycheck cascade allocation engine", () => {
       paycheckFrequencyDays: 14,
     });
 
-    expect(result.status).toBe("OK");
+    expect(result.status).toBe("INSUFFICIENT");
     expect(result.lines).toHaveLength(1);
     expect(result.lines[0].proposedAmount).toBe(0);
   });

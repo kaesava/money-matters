@@ -15,7 +15,7 @@ export const fileNotesRouter = {
   listFileNotes: tenantProcedure
     .input(
       z.object({
-        entityType: z.string(),
+        entityType: z.enum(['TRANSACTION', 'EXPENSE', 'CATEGORY', 'BANK_ACCOUNT', 'INCOME']),
         entityId: z.string().uuid(),
         status: z.enum(['ACTIVE', 'ARCHIVED', 'ALL']).default('ACTIVE'),
       }).strict()
@@ -35,7 +35,7 @@ export const fileNotesRouter = {
   createPreSignedUploadUrl: tenantProcedure
     .input(
       z.object({
-        entityType: z.string(),
+        entityType: z.enum(['TRANSACTION', 'EXPENSE', 'CATEGORY', 'BANK_ACCOUNT', 'INCOME']),
         entityId: z.string().uuid(),
         fileName: z.string(),
         fileMimeType: z.string(),
@@ -52,12 +52,14 @@ export const fileNotesRouter = {
   createFileNote: tenantProcedure
     .input(
       z.object({
-        entityType: z.string(),
+        entityType: z.enum(['TRANSACTION', 'EXPENSE', 'CATEGORY', 'BANK_ACCOUNT', 'INCOME']),
         entityId: z.string().uuid(),
         comment: z.string().max(2048).optional(),
         attachment: z
           .object({
-            fileKey: z.string(),
+            fileKey: z.string().refine((key) => key.startsWith('tenants/'), {
+              message: 'File key must be tenant-scoped',
+            }),
             fileName: z.string(),
             fileMimeType: z.string(),
             fileSize: z.number().int(),
@@ -80,6 +82,8 @@ export const fileNotesRouter = {
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'file_notes');
       const handler = updateFileNoteCommentHandler(ctx.db);
       return await handler(input, ctx.tenantId!, ctx.userId!);
     }),
@@ -87,6 +91,8 @@ export const fileNotesRouter = {
   archiveFileNote: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'file_notes');
       const handler = archiveFileNoteHandler(ctx.db);
       return await handler(input.id, ctx.tenantId!, ctx.userId!);
     }),
@@ -94,6 +100,8 @@ export const fileNotesRouter = {
   restoreFileNote: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'file_notes');
       const handler = restoreFileNoteHandler(ctx.db);
       return await handler(input.id, ctx.tenantId!, ctx.userId!);
     }),
@@ -101,6 +109,8 @@ export const fileNotesRouter = {
   purgeFileNote: tenantProcedure
     .input(z.object({ id: z.string().uuid() }).strict())
     .mutation(async ({ ctx, input }) => {
+      requiresWriteAccess(ctx);
+      requiresPaidTier(ctx, 'file_notes');
       const handler = purgeFileNoteHandler(ctx.db);
       return await handler(input.id, ctx.tenantId!);
     }),

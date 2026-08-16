@@ -60,9 +60,9 @@
 
   /* ── Dashboard Design Tokens (match mobile DESIGN_TOKENS) ────────────────── */
   /* These are used only in /dashboard routes. Landing page keeps sage-green.   */
-  --dash-navy: #1B2B4B;            /* Primary navy — backgrounds, headers */
-  --dash-teal: #00B4A6;            /* Accent teal — CTAs, highlights, progress */
-  --dash-teal-soft: rgba(0,180,166,0.1); /* Teal tint for hover/selected states */
+  --dash-navy: #1B2B4B;            /* Primary navy — headers, dark cards */
+  --dash-teal: #2563eb;            /* Primary Serene Blue accent — CTAs, highlights */
+  --dash-teal-soft: rgba(37,99,235,0.1); /* Serene Blue tint for hover/selected states */
   --dash-bg: #F7F8FA;              /* Dashboard background */
   --dash-surface: #FFFFFF;         /* Card surfaces */
   --dash-border: #E5E7EB;          /* Card/divider borders */

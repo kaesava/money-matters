@@ -52,7 +52,7 @@ export function getFileNoteDownloadUrlHandler() {
       )
       .limit(1);
 
-    if (!note || !note.fileKey) {
+    if (!note || !note.fileKey || !note.fileKey.startsWith(`tenants/${tenantId}/`)) {
       throw new Error("Attachment not found");
     }
 
@@ -88,9 +88,10 @@ export function createPreSignedUploadUrlHandler() {
       throw new Error(`File type '${fileMimeType}' is not allowed.`);
     }
 
+    const sanitizedEntityType = entityType.replace(/[^a-zA-Z0-9_-]/g, "");
     const uuid = randomUUID();
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const fileKey = `tenants/${tenantId}/${entityType.toLowerCase()}/${entityId}/${uuid}-${sanitizedFileName}`;
+    const fileKey = `tenants/${tenantId}/${sanitizedEntityType.toLowerCase()}/${entityId}/${uuid}-${sanitizedFileName}`;
 
     const uploadUrl = await getPresignedUploadUrl(fileKey, fileMimeType);
 

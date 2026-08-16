@@ -1,5 +1,5 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { logger } from '@money-matters/core';
+import { logger, checkRateLimit } from '@money-matters/core';
 import { appRouter } from './routers/_app.js';
 import { createEdgeContext } from './trpc/edge-context.js';
 import { inngest } from './inngest/client.js';
@@ -47,7 +47,15 @@ export function isValidRedirectUrl(target: string): boolean {
   }
 }
 
+function escapeForScript(val: string): string {
+  return JSON.stringify(val || "").replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
+}
+
 export function renderPasswordResetHtml(token: string, error: string, redirectTo: string): string {
+  const safeToken = escapeForScript(token);
+  const safeError = escapeForScript(error);
+  const safeRedirectTo = escapeForScript(redirectTo);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,7 +65,7 @@ export function renderPasswordResetHtml(token: string, error: string, redirectTo
   <style>
     body { font-family: sans-serif; background-color: #0b132b; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
     .card { background: rgba(27, 43, 75, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 40px; max-width: 420px; text-align: center; }
-    .btn { display: inline-block; width: 100%; padding: 16px; background-color: #3b82f6; color: #fff; text-decoration: none; font-weight: 600; border-radius: 14px; margin-top: 20px; }
+    .btn { display: inline-block; width: 100%; padding: 16px; background-color: #2563eb; color: #fff; text-decoration: none; font-weight: 600; border-radius: 14px; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -67,9 +75,9 @@ export function renderPasswordResetHtml(token: string, error: string, redirectTo
     <a href="#" id="openAppBtn" class="btn">Open Money Matters App</a>
   </div>
   <script>
-    const token = ${JSON.stringify(token)};
-    const error = ${JSON.stringify(error)};
-    const baseRedirect = ${JSON.stringify(redirectTo)};
+    const token = ${safeToken};
+    const error = ${safeError};
+    const baseRedirect = ${safeRedirectTo};
     let targetUrl = baseRedirect;
     if (targetUrl.includes('?')) {
       if (error) targetUrl += '&error=' + encodeURIComponent(error);
@@ -208,6 +216,24 @@ export default {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
+            ...baseHeaders,
+          },
+        });
+      }
+
+      // Enforce rate limiting across API routes
+      const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown-ip";
+      const authHeader = request.headers.get("authorization");
+      const rateLimitKey = authHeader ? `auth:${authHeader.slice(-16)}` : `ip:${clientIp}`;
+      const limit = url.pathname === "/reset-password" ? 10 : url.pathname === "/webhooks/stripe" ? 60 : 120;
+      
+      const { allowed } = await checkRateLimit(rateLimitKey, limit, 60);
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Too many requests. Please try again in a minute." }), {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": "60",
             ...baseHeaders,
           },
         });

@@ -25,6 +25,10 @@ export function createFileNoteHandler(db: DbOrTx) {
       throw new Error("Empty notes are not allowed");
     }
 
+    if (attachment?.fileKey && !attachment.fileKey.startsWith(`tenants/${tenantId}/`)) {
+      throw new Error("Attachment file key must belong to the active tenant");
+    }
+
     const now = new Date();
 
     const [newNote] = await db
@@ -165,6 +169,9 @@ export function purgeFileNoteHandler(db: DbOrTx) {
     }
 
     if (existing.fileKey) {
+      if (!existing.fileKey.startsWith(`tenants/${tenantId}/`)) {
+        throw new Error("Attachment file key must belong to the active tenant");
+      }
       await deleteFileFromBucket(existing.fileKey);
     }
 

@@ -48,37 +48,37 @@ export async function moveMoneyCommand(
     const timestamp = new Date();
     const commonId = randomUUID();
 
-    // 3. Insert DEBIT transaction from source
-    await tx.insert(transactionLedger).values({
-      categoryId: input.sourceCategoryId,
-      flowType: "DEBIT",
-      amount: input.amount,
-      idempotencyKey: `move-debit-${commonId}`,
-      transferGroupId: commonId,
-      note,
-      source: "MANUAL",
-      recordedAt: timestamp,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    });
-
-    // 4. Insert CREDIT transaction to destination
-    await tx.insert(transactionLedger).values({
-      categoryId: input.destinationCategoryId,
-      flowType: "CREDIT",
-      amount: input.amount,
-      idempotencyKey: `move-credit-${commonId}`,
-      transferGroupId: commonId,
-      note,
-      source: "MANUAL",
-      recordedAt: timestamp,
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    });
+    // 3. Bulk insert DEBIT and CREDIT transactions in single SQL statement
+    await tx.insert(transactionLedger).values([
+      {
+        categoryId: input.sourceCategoryId,
+        flowType: "DEBIT",
+        amount: input.amount,
+        idempotencyKey: `move-debit-${commonId}`,
+        transferGroupId: commonId,
+        note,
+        source: "MANUAL",
+        recordedAt: timestamp,
+        tenantId,
+        appId,
+        createdBy: userId,
+        updatedBy: userId,
+      },
+      {
+        categoryId: input.destinationCategoryId,
+        flowType: "CREDIT",
+        amount: input.amount,
+        idempotencyKey: `move-credit-${commonId}`,
+        transferGroupId: commonId,
+        note,
+        source: "MANUAL",
+        recordedAt: timestamp,
+        tenantId,
+        appId,
+        createdBy: userId,
+        updatedBy: userId,
+      },
+    ]);
 
     return { success: true };
   });

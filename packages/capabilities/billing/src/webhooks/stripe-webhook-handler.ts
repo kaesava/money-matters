@@ -4,7 +4,8 @@
  */
 import Stripe from "stripe";
 import { validateEnv } from "@money-matters/config";
-import { type DbOrTx } from "@money-matters/db";
+import { type DbOrTx, processedWebhooks } from "@money-matters/db";
+import { eq } from "drizzle-orm";
 import { activateSubscriptionCommand } from "../commands/activate-subscription.js";
 import { deactivateTenantCommand } from "../commands/deactivate-tenant.js";
 import { transitionToFreeTierCommand } from "../commands/transition-to-free-tier.js";
@@ -28,6 +29,17 @@ export async function handleStripeWebhook(
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
     throw new Error(`Stripe webhook signature verification failed: ${(err as Error).message}`);
+  }
+
+  // Idempotency check
+  const [alreadyProcessed] = await db
+    .select()
+    .from(processedWebhooks)
+    .where(eq(processedWebhooks.eventId, event.id))
+    .limit(1);
+
+  if (alreadyProcessed) {
+    return { processed: true, eventType: `${event.type} (already_processed)` };
   }
 
   switch (event.type) {
@@ -109,6 +121,12 @@ export async function handleStripeWebhook(
     default:
       break;
   }
+
+  await db.insert(processedWebhooks).values({
+    eventId: event.id,
+    eventType: event.type,
+    processedAt: new Date(),
+  }).onConflictDoNothing();
 
   return { processed: true, eventType: event.type };
 }

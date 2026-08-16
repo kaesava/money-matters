@@ -37,20 +37,27 @@ export async function commitCsvImportCommand(
       throw new Error("No valid budget category found for this tenant.");
     }
 
-    // 2. Query existing idempotency keys to avoid duplicates
+    // 2. Query existing idempotency keys in chunks of 200 to avoid parameter limits
     const idempotencyKeys = input.transactions.map((t) => t.idempotencyKey);
-    const existingRows = await tx
-      .select({ idempotencyKey: transactionLedger.idempotencyKey })
-      .from(transactionLedger)
-      .where(
-        and(
-          eq(transactionLedger.tenantId, tenantId),
-          eq(transactionLedger.appId, appId),
-          inArray(transactionLedger.idempotencyKey, idempotencyKeys)
-        )
-      );
+    const existingKeysSet = new Set<string>();
+    const CHUNK_SIZE = 200;
 
-    const existingKeysSet = new Set(existingRows.map((r) => r.idempotencyKey));
+    for (let i = 0; i < idempotencyKeys.length; i += CHUNK_SIZE) {
+      const chunk = idempotencyKeys.slice(i, i + CHUNK_SIZE);
+      const existingRows = await tx
+        .select({ idempotencyKey: transactionLedger.idempotencyKey })
+        .from(transactionLedger)
+        .where(
+          and(
+            eq(transactionLedger.tenantId, tenantId),
+            eq(transactionLedger.appId, appId),
+            inArray(transactionLedger.idempotencyKey, chunk)
+          )
+        );
+      for (const row of existingRows) {
+        existingKeysSet.add(row.idempotencyKey);
+      }
+    }
 
     // 3. Filter out existing duplicates
     const newTransactions = input.transactions.filter(
@@ -101,8 +108,11 @@ export async function commitCsvImportCommand(
       };
     });
 
-    // 5. Bulk insert (single query, Rule #6 compliance)
-    await tx.insert(transactionLedger).values(insertValues);
+    // 5. Bulk insert in chunks of 200 to enforce Rule #6 without parameter overflow
+    for (let i = 0; i < insertValues.length; i += CHUNK_SIZE) {
+      const valueChunk = insertValues.slice(i, i + CHUNK_SIZE);
+      await tx.insert(transactionLedger).values(valueChunk);
+    }
 
     // 6. Update tenant merchantRules in DB if new rules learned
     if (Object.keys(learnedRules).length > 0) {

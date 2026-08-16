@@ -29,6 +29,83 @@
       "when": 1784455046730,
       "tag": "0003_schema_refactor",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784500000000,
+      "tag": "0004_remove_household_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784600000000,
+      "tag": "0005_category_last_notified_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784700000000,
+      "tag": "0006_schema_v2_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784800000000,
+      "tag": "0007_add_income_event_note_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784900000000,
+      "tag": "0008_add_tenant_users_invite_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785000000000,
+      "tag": "0009_user_preferences_app_jsonb",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785100000000,
+      "tag": "0010_add_app_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785200000000,
+      "tag": "0011_add_subscription_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785300000000,
+      "tag": "0012_complete_rls_and_invite_expiry",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785400000000,
+      "tag": "0013_surplus_target_and_sweep_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1785500000000,
+      "tag": "0014_add_critical_indexes",
+      "breakpoints": true
     }
   ]
 }

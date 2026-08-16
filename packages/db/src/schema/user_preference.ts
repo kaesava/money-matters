@@ -18,6 +18,7 @@ export const userPreferences = pgTable("user_preferences", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
   tenantId: uuid("tenant_id").notNull(),
+  appId: uuid("app_id"),
   // --- Global preferences (app-agnostic) ---
   timezone: varchar("timezone", { length: 100 }).notNull().default("UTC"),
   paydayAlertsEnabled: boolean("payday_alerts_enabled").notNull().default(true),
@@ -30,7 +31,11 @@ export const userPreferences = pgTable("user_preferences", {
   // without coupling app-specific UI state into typed columns.
   appPreferences: jsonb("app_preferences").$type<Record<string, AppPreferencesBlob>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdBy: uuid("created_by"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedBy: uuid("updated_by"),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  archivedBy: uuid("archived_by"),
 });
 
 /**

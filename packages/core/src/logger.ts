@@ -105,3 +105,20 @@ export const logger = {
   },
 };
 
+/**
+ * Structured audit logging helper for security-critical events (Rule 19).
+ */
+export function logAuditEvent(
+  action: string,
+  tenantId: string,
+  userId: string,
+  meta?: Record<string, unknown>
+): void {
+  logger.info(`[AUDIT_EVENT] ${action}`, {
+    action,
+    tenantId,
+    userId,
+    ...meta,
+  });
+}
+

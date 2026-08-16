@@ -10,12 +10,14 @@
     "preview": "pnpm opennextjs-cloudflare build && wrangler dev",
     "cf-deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --exclude='e2e/**' --passWithNoTests",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@money-matters/capability-billing": "workspace:*",
     "@money-matters/capability-budgeting": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",
+    "@money-matters/core": "workspace:*",
     "@money-matters/i18n": "workspace:^",
     "@money-matters/types": "workspace:*",
     "@money-matters/ui": "workspace:^",
@@ -36,6 +38,7 @@
     "@types/node": "^20.14.9",
     "@types/react": "19.1.17",
     "@types/react-dom": "19.0.2",
+    "@playwright/test": "^1.50.0",
     "eslint": "^9",
     "eslint-config-next": "15.0.0",
     "tailwindcss": "^4.0.0",

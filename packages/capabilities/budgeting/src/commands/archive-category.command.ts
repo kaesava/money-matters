@@ -24,6 +24,9 @@ export async function archiveCategoryCommand(
   if (cat.type === "EVERYDAY") {
     throw new Error("The default Everyday category cannot be deleted or archived.");
   }
+  if (cat.isSurplusTarget) {
+    throw new Error("Cannot archive the designated Surplus Target category. Please designate another Surplus Target category first.");
+  }
 
   // 2. Check for upcoming expense events
   const pendingEvents = await dbClient

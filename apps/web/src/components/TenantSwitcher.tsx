@@ -14,7 +14,8 @@ export const TenantSwitcher: React.FC = () => {
 
   const handleSwitchTenant = (tenantId: string) => {
     localStorage.setItem("money_matters_active_tenant_id", tenantId);
-    document.cookie = `active_tenant_id=${tenantId}; path=/; max-age=31536000`;
+    const isSecure = window.location.protocol === "https:";
+    document.cookie = `active_tenant_id=${tenantId}; path=/; max-age=31536000; SameSite=Lax${isSecure ? "; Secure" : ""}`;
     window.location.reload();
   };
 

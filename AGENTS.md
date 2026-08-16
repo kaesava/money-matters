@@ -145,6 +145,7 @@ All tables MUST include:
 - ALL code MUST have unit tests in Vitest.
 - MUST cover: auth, tenant isolation, 5-step waterfall allocation, bank CSV parsing, onboarding math, edge cases.
 - Bug fixes REQUIRE regression tests.
+- **E2E & Capability Coverage**: When ANY new capability, screen, modal, or interactive control is built or modified, it MUST be explicitly added to and tested in the Playwright screen-by-screen spec (`apps/web/e2e/screen-by-screen.spec.ts`).
 
 ## 22. Code Quality & Smart Commenting (MECE)
 - NO `utils.ts` or generic helper files.

@@ -251,6 +251,25 @@ export default function DashboardPage() {
     expectedBalance: acc.expectedBalance,
   }));
 
+  // Due-Date Guardrail Evaluation for upcoming bills in 14 days
+  const upcomingBillsList = (expenseEventsQuery.data ?? [])
+    .filter((e) => e.status === "UPCOMING")
+    .map((e) => ({
+      id: e.id,
+      name: e.name,
+      amount: parseFloat(e.expectedAmount),
+      dueDate: e.expectedDate,
+    }));
+
+  const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+  const billsDue14Days = upcomingBillsList.filter((b) => {
+    const due = new Date(b.dueDate).getTime();
+    return due >= new Date().getTime() - 86400000 && due <= new Date().getTime() + fourteenDaysMs;
+  });
+
+  const totalBillsDue14Days = billsDue14Days.reduce((sum, b) => sum + b.amount, 0);
+  const billsShortfall = Math.max(0, totalBillsDue14Days - billsBalance);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6">
       <DashboardHeroCard
@@ -272,6 +291,34 @@ export default function DashboardPage() {
         skipConfirmation={skipConfirmation}
         onSaveSkipConfirmation={handleSaveSkipConfirmation}
       />
+
+      {/* Due-Date Guardrail Shortfall Amber Card */}
+      {billsShortfall > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 font-bold flex items-center justify-center text-lg">
+              ⚠️
+            </div>
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-full">
+                Due-Date Shortfall Warning
+              </span>
+              <h4 className="text-xs font-bold text-[#1B2B4B] mt-0.5">
+                Bills Pool Shortfall of <span className="font-mono text-amber-800 font-extrabold">{fmt(billsShortfall)}</span> Due in Next 14 Days
+              </h4>
+              <p className="text-[11px] text-amber-900 mt-0.5">
+                You have {billsDue14Days.length} upcoming bill(s) totaling {fmt(totalBillsDue14Days)} due before next pay, but current Bills pool has {fmt(billsBalance)}.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setMoveMoneyOpen(true)}
+            className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shrink-0 shadow-sm"
+          >
+            Move Money →
+          </button>
+        </div>
+      )}
 
       {/* Orientation Pro Tip Card */}
       <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-between">

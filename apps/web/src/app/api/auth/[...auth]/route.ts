@@ -12,8 +12,44 @@ export async function OPTIONS(req: NextRequest) {
   return handleProxy(req);
 }
 
+function isValidOrigin(req: NextRequest): boolean {
+  const allowedOrigins = [
+    "https://moneymatters.kaesava.au",
+    "https://api.moneymatters.kaesava.au",
+    ...(process.env.NODE_ENV !== "production"
+      ? ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"]
+      : []),
+  ];
+
+  const origin = req.headers.get("origin");
+  if (origin) {
+    return allowedOrigins.includes(origin);
+  }
+
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      return allowedOrigins.includes(refererOrigin);
+    } catch {
+      return false;
+    }
+  }
+
+  // Same-origin GET/HEAD/OPTIONS requests may omit Origin/Referer
+  return true;
+}
+
 async function handleProxy(req: NextRequest) {
   try {
+    const isStateChanging = !["GET", "HEAD", "OPTIONS"].includes(req.method.toUpperCase());
+    if (isStateChanging && !isValidOrigin(req)) {
+      return new Response(JSON.stringify({ error: "CSRF validation failed: Invalid Origin or Referer" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/api\/auth/, "");
     const authBase = process.env.NEXT_PUBLIC_NEON_AUTH_URL;

@@ -3,6 +3,7 @@ import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
 import { db, userPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or } from "drizzle-orm";
 import { inngest } from '../inngest/client.js';
+import { logAuditEvent } from '@money-matters/core';
 import { 
   createTenantHandler,
   createBankAccountHandler,
@@ -48,6 +49,9 @@ export const tenantRouter = {
           senderUserId: ctx.userId!,
         },
       }).catch(() => {});
+
+      // Log structured audit event for security monitoring (Rule 19)
+      logAuditEvent('partner_invited', ctx.tenantId!, ctx.userId!, { inviteEmail: input.email });
 
       if (posthog && ctx.userId) {
         posthog.capture({
@@ -154,7 +158,7 @@ updateUserPreferences: tenantProcedure
         shortfallAlertsEnabled: z.boolean().optional(),
         billRemindersEnabled: z.boolean().optional(),
         weeklyDigestEnabled: z.boolean().optional(),
-        appPreferences: z.record(z.string(), z.record(z.string(), z.any())).optional(),
+        appPreferences: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {

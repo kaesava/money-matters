@@ -21,6 +21,7 @@ import { SetupCategoriesStep } from "./components/SetupCategoriesStep";
 import { SetupWaterfallStep } from "./components/SetupWaterfallStep";
 import { SetupDiscardModal } from "./components/SetupDiscardModal";
 import { SetupReconcileModal } from "./components/SetupReconcileModal";
+import { BudgetImpactReviewModal } from "../../components/BudgetImpactReviewModal";
 
 function SetupWizardContent() {
   const router = useRouter();
@@ -484,16 +485,34 @@ function SetupWizardContent() {
           />
         )}
 
-        <SetupReconcileModal
-          isOpen={showReconcileModal}
-          isSubmitting={isSubmitting}
-          totalRegularMonthly={totalRegularMonthly}
-          totalEverydayMonthly={totalEverydayMonthly}
-          currentBillsCap={currentBillsCap}
-          currentEverydayCap={currentEverydayCap}
-          onClose={() => setShowReconcileModal(false)}
-          onConfirm={handleConfirmReconcile}
-        />
+        {isRerun ? (
+          <BudgetImpactReviewModal
+            isOpen={showReconcileModal}
+            isSubmitting={isSubmitting}
+            oldEverydayCap={currentEverydayCap}
+            newEverydayCap={totalEverydayMonthly}
+            oldBillsCap={currentBillsCap}
+            newBillsCap={totalRegularMonthly}
+            items={[
+              ...activeRegular.map((c) => ({ name: c.name, type: "REGULAR" as const, monthlyAmount: c.monthlyAud, status: "MODIFIED" as const })),
+              ...activeGoals.map((c) => ({ name: c.name, type: "GOAL" as const, monthlyAmount: c.monthlyAud, status: "MODIFIED" as const })),
+              ...activeEveryday.map((c) => ({ name: c.name, type: "EVERYDAY" as const, monthlyAmount: c.monthlyAud, status: "MODIFIED" as const })),
+            ]}
+            onClose={() => setShowReconcileModal(false)}
+            onConfirm={handleConfirmReconcile}
+          />
+        ) : (
+          <SetupReconcileModal
+            isOpen={showReconcileModal}
+            isSubmitting={isSubmitting}
+            totalRegularMonthly={totalRegularMonthly}
+            totalEverydayMonthly={totalEverydayMonthly}
+            currentBillsCap={currentBillsCap}
+            currentEverydayCap={currentEverydayCap}
+            onClose={() => setShowReconcileModal(false)}
+            onConfirm={handleConfirmReconcile}
+          />
+        )}
 
         <SetupDiscardModal
           isOpen={showDiscardModal}

@@ -71,10 +71,12 @@ export function ModalDialog({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [isOpen, handleRequestClose]);
 
+  const titleId = React.useId();
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity"
@@ -88,12 +90,13 @@ export function ModalDialog({
         {/* Header */}
         <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-base font-extrabold text-[#1B2B4B]">{title}</h3>
+            <h3 id={titleId} className="text-base font-extrabold text-[#1B2B4B]">{title}</h3>
             {subtitle && <p className="text-xs text-zinc-400 font-medium">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={handleRequestClose}
+            aria-label="Close modal dialog"
             className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors font-bold text-sm"
             title="Close (Esc)"
           >
@@ -107,7 +110,7 @@ export function ModalDialog({
 
       {/* Unsaved Changes Confirmation Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150" role="dialog" aria-modal="true">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-zinc-200 flex flex-col gap-4 text-center">
             <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-2xl mx-auto font-bold border border-amber-200">
               ⚠️
@@ -124,7 +127,7 @@ export function ModalDialog({
                   type="button"
                   onClick={handleConfirmSave}
                   disabled={saving}
-                  className="w-full py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-sm"
+                  className="w-full py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-sm"
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </button>

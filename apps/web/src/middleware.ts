@@ -5,7 +5,7 @@ const PUBLIC_PREFIXES = [
   "/sign-in",
   "/sign-up",
   "/auth-callback",
-  "/dev-callback/",
+  ...(process.env.NODE_ENV !== "production" ? ["/dev-callback/"] : []),
   "/reset-password",
   "/invite/",
   "/api/",
@@ -25,8 +25,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(landingUrl);
   }
 
-  // Bypass session cookie check if session verifier is present (let client SDK handle it)
-  if (request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
+  // Bypass session cookie check ONLY for /auth-callback when session verifier is present (let client SDK handle exchange)
+  if (pathname === "/auth-callback" && request.nextUrl.searchParams.has("neon_auth_session_verifier")) {
     return NextResponse.next();
   }
 

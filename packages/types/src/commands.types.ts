@@ -116,7 +116,7 @@ export const RecordExpenseCommand = z.object({
 export const MoveMoneyCommand = z.object({
   sourceCategoryId: z.string().uuid(),
   destinationCategoryId: z.string().uuid(),
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
 }).strict();
 
 export const OverrideEventCommand = z.object({
@@ -207,7 +207,7 @@ export const CsvImportItemSchema = z.object({
 
 export const CommitCsvImportCommand = z.object({
   bankAccountId: z.string().uuid(),
-  transactions: z.array(CsvImportItemSchema).min(1),
+  transactions: z.array(CsvImportItemSchema).min(1).max(1000, "Cannot commit more than 1,000 transactions at once"),
 }).strict();
 
 

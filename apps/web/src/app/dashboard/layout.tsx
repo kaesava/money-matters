@@ -10,6 +10,7 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 import { TrialBanner } from "../../components/TrialBanner";
 import { SidebarTrialNavItem } from "../../components/TrialStatusBadge";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
+import { CatchUpSweepModal } from "../../components/web/CatchUpSweepModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
 import { Logo, Spinner } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
@@ -77,6 +78,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isExchanging, setIsExchanging] = useState(false);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
+  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
+  const moveMoneyMutation = trpc.moveMoney.useMutation({
+    onSuccess: () => {
+      categoriesQuery.refetch();
+    },
+  });
+
   const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
   const prefs = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID] as { locale?: "en" | "ja" } | undefined;
   const userLocale = prefs?.locale || "en";
@@ -86,6 +94,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setLanguage(userLocale);
     }
   }, [userLocale]);
+
+  // Zero-Categories Guard: redirect to setup wizard if user has 0 categories
+  useEffect(() => {
+    if (
+      !isPending &&
+      session?.user &&
+      !categoriesQuery.isLoading &&
+      categoriesQuery.data &&
+      categoriesQuery.data.length === 0 &&
+      !pathname.startsWith("/dashboard/setup")
+    ) {
+      router.replace("/dashboard/setup");
+    }
+  }, [isPending, session, categoriesQuery.isLoading, categoriesQuery.data, pathname, router]);
 
   // Exchange neon_auth_session_verifier for session token cookie
   useEffect(() => {
@@ -402,6 +424,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClose={() => setQuickExpenseOpen(false)}
             />
           )}
+
+          {/* Catch-Up Sweep Modal */}
+          {(() => {
+            const everydayCat = categoriesQuery.data?.find((c) => c.type === "EVERYDAY");
+            const surplusCat = categoriesQuery.data?.find((c: Record<string, unknown>) => c.isSurplusTarget === true) || categoriesQuery.data?.find((c) => c.type === "GOAL");
+            const leftover = Math.max(0, parseFloat(everydayCat?.currentBalance || "0"));
+
+            if (!everydayCat || !surplusCat || leftover <= 10) return null;
+
+            return (
+              <CatchUpSweepModal
+                leftoverEverydayBalance={leftover}
+                surplusTargetName={surplusCat.name}
+                onSweep={async () => {
+                  await moveMoneyMutation.mutateAsync({
+                    sourceCategoryId: everydayCat.id,
+                    destinationCategoryId: surplusCat.id,
+                    amount: leftover.toFixed(2),
+                  });
+                }}
+                onKeepInEveryday={() => {}}
+              />
+            );
+          })()}
         </div>
       </div>
     </IconVisibilityProvider>

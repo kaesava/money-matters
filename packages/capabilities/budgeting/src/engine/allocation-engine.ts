@@ -58,7 +58,7 @@ function toDollars(cents: number): number {
 }
 
 export function runAllocationEngine(input: AllocationEngineInput): AllocationEngineOutput {
-  let remainingCents = toCents(input.incomeAmount);
+  let remainingCents = toCents(Math.max(0, input.incomeAmount || 0));
   const linesMap = new Map<string, { bucketName: string; amountCents: number; reasonings: string[] }>();
 
   const paychecksPerYear = Math.max(1, Math.round(365 / input.paycheckFrequencyDays));
@@ -264,10 +264,11 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     reasoning: data.reasonings.join(" "),
   }));
 
-  const isInsufficient = input.incomeAmount > 0 && lines.some((l) => {
+  const isInsufficient = lines.some((l) => {
     const bucket = input.buckets.find((b) => b.id === l.bucketId);
     if (!bucket || (!bucket.isEssential && !bucket.isCommitted && bucket.type !== "REGULAR")) return false;
-    return l.proposedAmount === 0;
+    const monthlyTargetCents = toCents(bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
+    return l.proposedAmount === 0 && monthlyTargetCents > 0;
   });
 
   return {

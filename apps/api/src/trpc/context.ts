@@ -2,7 +2,7 @@ import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { verifyJwt, upsertUserFromJwt, logger } from "@money-matters/core";
 import { db, tenantUsers } from "@money-matters/db";
 import { createTenantHandler } from "@money-matters/capability-tenant";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import type { createEdgeContext } from "./edge-context.js";
 import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
@@ -36,7 +36,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
         sql`SELECT s."userId" as "userId", u.email as "email", u.name as "name"
             FROM neon_auth.session s
             JOIN neon_auth.user u ON s."userId" = u.id
-            WHERE (s.token = ${token} OR s.token = ${cleanToken} OR s.id::text = ${cleanToken} OR s.id::text = ${token})
+            WHERE (s.token = ${token} OR s.token = ${cleanToken})
               AND s."expiresAt" > NOW()
             LIMIT 1`
       );
@@ -119,7 +119,13 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
       appId: tenantUsers.appId,
     })
     .from(tenantUsers)
-    .where(eq(tenantUsers.userId, claims.userId));
+    .where(
+      and(
+        eq(tenantUsers.userId, claims.userId),
+        eq(tenantUsers.inviteStatus, "ACCEPTED"),
+        isNull(tenantUsers.archivedAt)
+      )
+    );
 
   const matchedMembership = requestedTenantId
     ? userMemberships.find((m) => m.tenantId === requestedTenantId)

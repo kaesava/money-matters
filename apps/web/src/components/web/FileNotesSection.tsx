@@ -5,7 +5,7 @@ import { trpc } from "../../lib/trpc";
 import { Spinner } from "@money-matters/ui/web";
 
 interface FileNotesSectionProps {
-  entityType: string;
+  entityType: "TRANSACTION" | "EXPENSE" | "CATEGORY" | "BANK_ACCOUNT" | "INCOME";
   entityId: string;
 }
 
@@ -58,7 +58,7 @@ export function FileNotesSection({ entityType, entityId }: FileNotesSectionProps
         <button
           type="submit"
           disabled={createFileNoteMutation.isPending || !comment.trim()}
-          className="px-3 py-2 text-xs font-bold text-white rounded-xl transition-opacity bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5"
+          className="px-3 py-2 text-xs font-bold text-white rounded-xl transition-opacity bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
         >
           {createFileNoteMutation.isPending && <Spinner size="sm" />}
           {t("fileNotes.post")}

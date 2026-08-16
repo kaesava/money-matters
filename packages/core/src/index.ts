@@ -6,3 +6,4 @@ export * from "./rate-limiter.js";
 export * from "./user-sync.js";
 export * from "./australian-calendar.js";
 export * from "./email.js";
+export * from "./guards/ensure-premium.js";

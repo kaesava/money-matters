@@ -2,7 +2,7 @@ import { z } from "zod";
 import { bankAccounts, bankAccountCategoryMappings, DbOrTx } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
 import { eq, and, sql, or, ne } from "drizzle-orm";
-import { ensurePremiumAccess } from "@money-matters/capability-billing";
+import { ensurePremiumAccess } from "@money-matters/core";
 
 export const UpdateBankAccountMappingsSchema = z.object({
   mappings: z.array(

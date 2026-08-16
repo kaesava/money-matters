@@ -19,4 +19,5 @@ export * from "./expense_event.js";
 export * from "./app.js";
 export * from "./app_category.js";
 export * from "./early_access.js";
+export * from "./processed_webhooks.js";
 

@@ -6,7 +6,22 @@ import { sql } from 'drizzle-orm';
 import { getSubscriptionStatus } from '@money-matters/capability-billing';
 import type { SubscriptionStatusDto } from '@money-matters/types';
 
-const t = initTRPC.context<Context>().create();
+const t = initTRPC.context<Context>().create({
+  errorFormatter({ shape, error }) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    return {
+      ...shape,
+      message:
+        error.code === 'INTERNAL_SERVER_ERROR' && isProduction
+          ? 'An unexpected error occurred. Please try again later.'
+          : error.message,
+      data: {
+        ...shape.data,
+        stack: isProduction ? undefined : shape.data.stack,
+      },
+    };
+  },
+});
 
 export const router = t.router;
 export const publicProcedure = t.procedure;

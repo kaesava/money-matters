@@ -5,7 +5,7 @@ import { trpc } from '../lib/trpc';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 
 interface FileNotesSectionProps {
-  entityType: string;
+  entityType: 'INCOME' | 'EXPENSE' | 'CATEGORY' | 'BANK_ACCOUNT' | 'TRANSACTION';
   entityId: string;
 }
 

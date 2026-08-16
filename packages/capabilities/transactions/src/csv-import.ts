@@ -29,7 +29,7 @@ export interface CustomColumnMapping {
 }
 
 export const BankCsvImportInputSchema = z.object({
-  csvText: z.string().min(1),
+  csvText: z.string().min(1).max(2 * 1024 * 1024, "CSV payload cannot exceed 2MB"),
   bankAccountId: z.string().uuid().optional(),
   customMapping: z.object({
     dateColIndex: z.number().int().min(0),
@@ -93,23 +93,28 @@ function parseCsvLine(line: string): string[] {
  */
 function normalizeDate(rawDate: string): string {
   const cleaned = rawDate.replace(/"/g, "").trim();
+  let candidate = "";
   
   // DD/MM/YYYY
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cleaned)) {
     const [d, m, y] = cleaned.split("/");
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    candidate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   // YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
-    return cleaned;
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+    candidate = cleaned;
   }
   // DD-MM-YYYY
-  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(cleaned)) {
+  else if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(cleaned)) {
     const [d, m, y] = cleaned.split("-");
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    candidate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
 
-  // Fallback to today if unparseable
+  if (candidate && !isNaN(new Date(candidate).getTime())) {
+    return candidate;
+  }
+
+  // Fallback to today if unparseable or calendar invalid
   return new Date().toISOString().split("T")[0];
 }
 

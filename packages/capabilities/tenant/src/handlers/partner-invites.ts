@@ -1,6 +1,6 @@
 import { tenantUsers, categories, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
-import { ensurePremiumAccess } from "@money-matters/capability-billing";
+import { ensurePremiumAccess } from "@money-matters/core";
 
 /**
  * Invites a partner to join the household tenant.
@@ -67,8 +67,10 @@ export function acceptInviteHandler(db: DbOrTx) {
       throw new Error("Invitation token has expired. Please request a new invitation from the household owner.");
     }
 
-    if (invite.inviteEmail && userEmail && invite.inviteEmail.trim().toLowerCase() !== userEmail.trim().toLowerCase()) {
-      throw new Error("Invitation email does not match authenticated user email.");
+    if (invite.inviteEmail) {
+      if (!userEmail || invite.inviteEmail.trim().toLowerCase() !== userEmail.trim().toLowerCase()) {
+        throw new Error("Invitation email does not match authenticated user email.");
+      }
     }
 
     const [updated] = await db
