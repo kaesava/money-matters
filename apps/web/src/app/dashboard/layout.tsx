@@ -8,7 +8,7 @@ import posthog from "../../lib/posthog-client";
 import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
-import { TrialStatusBadge } from "../../components/TrialStatusBadge";
+import { SidebarTrialNavItem } from "../../components/TrialStatusBadge";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
 import { Logo, Spinner } from "@money-matters/ui/web";
@@ -215,40 +215,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Navigation items */}
-      <nav className="flex-1 px-4 py-6 flex flex-col gap-2 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : item.href === "/dashboard/settings"
-              ? pathname === "/dashboard/settings" || (pathname.startsWith("/dashboard/settings/") && !pathname.startsWith("/dashboard/settings/bank-accounts"))
-              : pathname.startsWith(item.href);
+      <nav className="flex-1 px-4 py-6 flex flex-col justify-between overflow-y-auto">
+        <div className="flex flex-col gap-2">
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
+                : item.href === "/dashboard/settings"
+                ? pathname === "/dashboard/settings" || (pathname.startsWith("/dashboard/settings/") && !pathname.startsWith("/dashboard/settings/bank-accounts"))
+                : pathname.startsWith(item.href);
 
-          return (
-            <Link
-              key={item.key}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-3.5 px-3 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative ${
-                isActive
-                  ? "text-white shadow-lg shadow-black/10"
-                  : "text-[#9EACC7] hover:text-white hover:bg-white/5"
-              }`}
-              style={{
-                backgroundColor: isActive ? "var(--dash-teal)" : "transparent",
-              }}
-              title={sidebarCollapsed ? item.label() : undefined}
-            >
-              {item.icon(isActive)}
-              {!sidebarCollapsed && <span>{item.label()}</span>}
-              {sidebarCollapsed && (
-                <div className="absolute left-full ml-3 px-2 py-1 bg-zinc-900 text-white text-xs font-semibold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-md">
-                  {item.label()}
-                </div>
-              )}
-            </Link>
-          );
-        })}
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3.5 px-3 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative ${
+                  isActive
+                    ? "text-white shadow-lg shadow-black/10"
+                    : "text-[#9EACC7] hover:text-white hover:bg-white/5"
+                }`}
+                style={{
+                  backgroundColor: isActive ? "var(--dash-teal)" : "transparent",
+                }}
+                title={sidebarCollapsed ? item.label() : undefined}
+              >
+                {item.icon(isActive)}
+                {!sidebarCollapsed && <span>{item.label()}</span>}
+                {sidebarCollapsed && (
+                  <div className="absolute left-full ml-3 px-2 py-1 bg-zinc-900 text-white text-xs font-semibold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-md">
+                    {item.label()}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Free trial / Upgrade item at bottom of nav list above user box */}
+        <div className="pt-4 border-t border-white/10 mt-auto">
+          <SidebarTrialNavItem collapsed={sidebarCollapsed} onNavigate={() => setMobileMenuOpen(false)} />
+        </div>
       </nav>
 
       {/* User profile section at the bottom */}
@@ -263,10 +270,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           {!sidebarCollapsed && (
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-1 mb-0.5">
-                <p className="text-xs font-extrabold text-white truncate">{session?.user?.name}</p>
-                <TrialStatusBadge />
-              </div>
+              <p className="text-xs font-extrabold text-white truncate">{session?.user?.name}</p>
               <p className="text-[10px] text-[#9EACC7] truncate">{session?.user?.email}</p>
               <button
                 type="button"
