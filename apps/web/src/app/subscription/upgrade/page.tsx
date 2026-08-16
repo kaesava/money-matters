@@ -20,16 +20,8 @@ export default function UpgradePage() {
     setError(null);
 
     try {
-      const priceId =
-        priceType === "monthly"
-          ? process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY
-          : priceType === "founding"
-          ? process.env.NEXT_PUBLIC_STRIPE_PRICE_FOUNDING_ANNUAL
-          : process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL;
-
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const result = await createCheckoutSession.mutateAsync({
-        priceId: priceId || undefined,
         planType: priceType,
         successUrl: `${origin}/subscription/success`,
         cancelUrl: `${origin}/subscription/upgrade`,

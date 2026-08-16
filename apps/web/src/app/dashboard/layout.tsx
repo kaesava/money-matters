@@ -183,7 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex items-center justify-center min-h-screen"
         style={{ backgroundColor: "var(--dash-bg)" }}
       >
-        <Spinner size="lg" label={t("dashboard.loading")} />
+        <Spinner size="lg" label={t("dashboard.loading")} direction="col" />
       </div>
     );
   }

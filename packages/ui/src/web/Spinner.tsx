@@ -5,9 +5,10 @@ export interface SpinnerProps {
   className?: string;
   color?: string;
   label?: string;
+  direction?: "row" | "col";
 }
 
-export function Spinner({ size = "md", className = "", color, label }: SpinnerProps) {
+export function Spinner({ size = "md", className = "", color, label, direction = "row" }: SpinnerProps) {
   const dimensions = {
     xs: { outer: "w-4 h-4", inner: "w-2 h-2", text: "text-[10px]" },
     sm: { outer: "w-5 h-5", inner: "w-2.5 h-2.5", text: "text-xs" },
@@ -20,9 +21,11 @@ export function Spinner({ size = "md", className = "", color, label }: SpinnerPr
   const accentColor = color || "var(--dash-teal, #00B4A6)";
   const primaryColor = "var(--dash-navy, #1B2B4B)";
 
+  const flexDirClass = direction === "col" ? "flex-col" : "flex-row";
+
   return (
     <div
-      className={`inline-flex flex-col items-center justify-center gap-2 select-none ${className}`}
+      className={`inline-flex ${flexDirClass} items-center justify-center gap-2 select-none whitespace-nowrap ${className}`}
       role="status"
       aria-label={label || "Loading"}
     >
