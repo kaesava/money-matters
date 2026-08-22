@@ -107,7 +107,7 @@ export function acceptInviteHandler(db: DbOrTx) {
       .where(
         and(
           eq(categories.tenantId, updated.tenantId),
-          eq(categories.type, "PERSONAL"),
+          eq(categories.isPrivate, true),
           eq(categories.userId, userId)
         )
       )
@@ -117,8 +117,9 @@ export function acceptInviteHandler(db: DbOrTx) {
       await db.insert(categories).values({
         tenantId: updated.tenantId,
         appId: tenant.appId, // derived from parent tenant
-        name: "Personal",
-        type: "PERSONAL" as const,
+        name: "Personal Private Pool",
+        type: "EVERYDAY" as const,
+        isPrivate: true,
         userId: userId,
         icon: "user",
         colour: "#EC4899",

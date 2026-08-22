@@ -1,5 +1,6 @@
 "use client";
 
+import { t } from "@money-matters/i18n";
 import { useIconVisibility } from "@money-matters/ui/web";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
@@ -38,8 +39,7 @@ export function SavingsGoalsSection({
             </div>
           )}
           <div>
-            <h3 className="font-extrabold text-[#1B2B4B] text-base">Savings & Sinking Goals</h3>
-            <p className="text-xs text-zinc-500 font-medium">Targeted funds for specific future milestones</p>
+            <h3 className="font-extrabold text-[#1B2B4B] text-base">{t("categories.goalSection")}</h3>
           </div>
         </div>
 
@@ -107,9 +107,14 @@ export function SavingsGoalsSection({
                     <button
                       type="button"
                       onClick={() => onSelectCategory(cat.id)}
-                      className="text-[#2563eb] hover:underline font-bold text-left"
+                      className="text-[#2563eb] hover:underline font-bold text-left flex items-center gap-1.5"
                     >
-                      {cat.name}
+                      <span>{cat.name}</span>
+                      {cat.isPrivate && (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          🔒 Private
+                        </span>
+                      )}
                     </button>
                   </td>
                   <td className="px-6 py-4 font-mono font-extrabold text-[#1B2B4B]">{fmt(balanceVal)}</td>

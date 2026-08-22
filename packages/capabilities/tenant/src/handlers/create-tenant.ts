@@ -150,12 +150,13 @@ export function createTenantHandler(db: DbOrTx) {
       })
     );
 
-    // Seed default Personal category for tenant owner
+    // Seed default Personal Private category pool for tenant owner
     await db.insert(categories).values({
       tenantId,
       appId,
-      name: "Personal",
-      type: "PERSONAL" as const,
+      name: "Personal Private Pool",
+      type: "EVERYDAY" as const,
+      isPrivate: true,
       userId: userId,
       icon: "user",
       colour: "#EC4899",

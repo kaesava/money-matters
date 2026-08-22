@@ -10,6 +10,7 @@ export interface UserGoalItem {
   icon: string;
   targetAmount: number;
   dueDate: string;
+  isPrivate?: boolean;
 }
 
 interface SetupGoalsStepProps {

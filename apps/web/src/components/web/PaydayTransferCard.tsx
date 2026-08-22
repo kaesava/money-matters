@@ -4,7 +4,7 @@ import React, { useState } from "react";
 
 export interface PaydayTransferLine {
   categoryName: string;
-  categoryType: "REGULAR" | "GOAL" | "EVERYDAY" | "PERSONAL";
+  categoryType: "REGULAR" | "GOAL" | "EVERYDAY";
   targetAccountName: string;
   amount: number;
   payID?: string;

@@ -126,7 +126,7 @@ function CategoriesPageContent() {
         <div>
           <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("categories.title")}</h1>
           <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-            Everyday & Bills are managed as overall pools. Save Toward pools are tracked individually.
+            {t("categories.subtitle")}
           </p>
         </div>
 
@@ -148,7 +148,7 @@ function CategoriesPageContent() {
             className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
           >
             <span>➕</span>
-            <span>New Category</span>
+            <span>{t("categories.addCategory")}</span>
           </button>
         </div>
       </div>
@@ -157,7 +157,7 @@ function CategoriesPageContent() {
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search category name..."
+        searchPlaceholder="Search pool name..."
         filterGroups={[]}
         onClearAll={() => {
           setSearchQuery("");

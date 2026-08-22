@@ -7,7 +7,7 @@ export async function listCategoriesQuery(
   dbClient: DbOrTx,
   userId?: string
 ) {
-  // 1. Fetch categories with 100% stealth privacy for PERSONAL categories
+  // 1. Fetch categories with 100% stealth privacy for isPrivate categories
   const categoryFilters = [
     eq(categories.tenantId, tenantId),
     eq(categories.appId, appId),
@@ -16,7 +16,7 @@ export async function listCategoriesQuery(
 
   if (userId) {
     categoryFilters.push(
-      or(ne(categories.type, "PERSONAL"), eq(categories.userId, userId))!
+      or(eq(categories.isPrivate, false), eq(categories.userId, userId))!
     );
   }
 

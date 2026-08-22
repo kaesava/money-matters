@@ -253,6 +253,7 @@ function SetupWizardContent() {
           const created = await createCategory.mutateAsync({
             name: cat.name,
             type: cat.type,
+            isPrivate: Boolean("isPrivate" in cat && Boolean(cat.isPrivate)),
             budgetFrequency: "MONTHLY",
             enteredAmount: cat.monthlyAud.toString(),
             monthlyAmount: cat.monthlyAud.toString(),

@@ -105,8 +105,9 @@ export const BankAccountSchema = BaseSchema.extend({
 export const CategorySchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(["REGULAR", "GOAL", "EVERYDAY", "PERSONAL"]),
+  type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
   userId: z.string().uuid().nullable().optional(),
+  isPrivate: z.boolean().default(false),
   isCommitted: z.boolean().default(false),
   monthlyAmount: z.string().nullable(),
   enteredAmount: z.string().nullable(),

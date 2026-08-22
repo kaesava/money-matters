@@ -28,8 +28,8 @@ export const categoriesRouter = {
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      if (input.type === "PERSONAL") {
-        await ensurePremiumAccess(ctx.db, ctx.tenantId!, "Personal categories");
+      if (input.isPrivate) {
+        await ensurePremiumAccess(ctx.db, ctx.tenantId!, "Private pools");
       }
       return await createCategoryCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),

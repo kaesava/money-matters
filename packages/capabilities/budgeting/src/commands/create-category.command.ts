@@ -17,7 +17,8 @@ export async function createCategoryCommand(
       .values({
         name: input.name,
         type: input.type,
-        userId: input.type === "PERSONAL" ? userId : null,
+        isPrivate: input.isPrivate ?? false,
+        userId: input.isPrivate ? userId : null,
         isCommitted: input.isCommitted,
         isEssential: input.isEssential ?? false,
         isSurplusTarget: input.isSurplusTarget ?? false,

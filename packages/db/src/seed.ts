@@ -402,7 +402,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     {
       tenantId,
       appId,
-      categoryType: "PERSONAL" as const,
+      categoryType: "EVERYDAY" as const,
       bankAccountId: primaryAccount.id,
       createdBy: userId,
       updatedBy: userId,
@@ -481,11 +481,12 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       allowance: "300.00",
     },
 
-    // PERSONAL (Stealth Privacy Allowances - Step 3b Waterfall)
+    // PRIVATE EVERYDAY POOLS (Stealth Privacy Personal Funds)
     {
       key: "kaesava_personal",
-      name: "Kaesava Personal Fund",
-      type: "PERSONAL" as const,
+      name: "Kaesava Private Pool",
+      type: "EVERYDAY" as const,
+      isPrivate: true,
       isCommitted: false,
       excess: false,
       icon: "user",
@@ -494,8 +495,9 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
     {
       key: "raehan_personal",
-      name: "Raehan Personal Fund",
-      type: "PERSONAL" as const,
+      name: "Raehan Private Pool",
+      type: "EVERYDAY" as const,
+      isPrivate: true,
       isCommitted: false,
       excess: false,
       icon: "user-check",
@@ -625,13 +627,14 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       .values({
         name: cat.name,
         type: cat.type,
-        userId: cat.type === "PERSONAL" ? (cat.key === "kaesava_personal" ? userId : raehanUserId) : null,
+        isPrivate: Boolean((cat as any).isPrivate),
+        userId: (cat as any).isPrivate ? (cat.key === "kaesava_personal" ? userId : raehanUserId) : null,
         isCommitted: cat.isCommitted ?? false,
         isEssential,
         isSurplusTarget,
         monthlyAmount: cat.type === "REGULAR" ? cat.monthlyAmount : null,
-        everydayAllowanceAmount: (cat.type === "EVERYDAY" || cat.type === "PERSONAL") ? (cat as any).allowance : null,
-        enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : ((cat.type === "EVERYDAY" || cat.type === "PERSONAL") ? (cat as any).allowance : null),
+        everydayAllowanceAmount: cat.type === "EVERYDAY" ? (cat as any).allowance : null,
+        enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : (cat.type === "EVERYDAY" ? (cat as any).allowance : null),
         icon: cat.icon,
         colour: cat.color,
         tenantId,

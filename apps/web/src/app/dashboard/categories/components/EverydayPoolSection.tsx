@@ -9,12 +9,15 @@ export interface CategorySummaryItem {
   id: string;
   name: string;
   type: "REGULAR" | "GOAL" | "EVERYDAY";
+  isPrivate?: boolean | null;
   currentBalance: string;
   monthlyAmount?: string | null;
   everydayAllowanceAmount?: string | null;
   targetAmount?: string | null;
   targetDate?: string | null;
   healthStatus?: string | null;
+  isEssential?: boolean | null;
+  isSurplusTarget?: boolean | null;
 }
 
 interface EverydayPoolSectionProps {

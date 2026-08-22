@@ -2,14 +2,15 @@ import { pgTable, uuid, varchar, integer, boolean, pgEnum, timestamp, numeric } 
 import { tenants } from "./tenant.js";
 import { tenantAndTimestamps } from "./base.js";
 
-export const categoryTypeEnum = pgEnum("category_type_enum", ["REGULAR", "GOAL", "EVERYDAY", "PERSONAL"]);
+export const categoryTypeEnum = pgEnum("category_type_enum", ["REGULAR", "GOAL", "EVERYDAY"]);
 export const rolloverRuleEnum = pgEnum("rollover_rule_enum", ["ROLLOVER", "SWEEP", "RESET"]);
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   type: categoryTypeEnum("type").notNull(),
-  userId: uuid("user_id"), // Applicable for PERSONAL category types
+  userId: uuid("user_id"), // Owner userId for isPrivate categories
+  isPrivate: boolean("is_private").notNull().default(false), // 🔒 Stealth privacy flag
   isCommitted: boolean("is_committed").notNull().default(false), // GOAL committed targets
   isEssential: boolean("is_essential").notNull().default(false), // REGULAR essential priority bill (Rent, Utilities)
   monthlyAmount: numeric("monthly_amount", { precision: 12, scale: 2 }), // REGULAR target amount per month

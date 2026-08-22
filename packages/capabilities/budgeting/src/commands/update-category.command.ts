@@ -31,6 +31,7 @@ export async function updateCategoryCommand(
       .set({
         name: input.name,
         type: input.type,
+        ...(input.isPrivate !== undefined ? { isPrivate: input.isPrivate, userId: input.isPrivate ? userId : null } : {}),
         isCommitted: input.isCommitted,
         isEssential: input.isEssential,
         isSurplusTarget: input.isSurplusTarget,
