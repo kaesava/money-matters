@@ -5,8 +5,8 @@ I am testing on-boarding and noted these changes:
 ## General
 * Do a thorough audit of whether/how all fields in Step 3 are used and whether they take into account all the information that is available from ABS correctly, and whether they take into account everything that the user has answered. For example, Private Health cover is assumed for 5 people if there are 3 dependents, cap payments (rego, insurance, etc.) accounts for all cars, etc. Are there gaps/recommendations? This question is for discussion only. All other points in this prompt are for discussion and/or action. Are these correctly and fully represented in Step 4? Grill me if needed.
 * Include more (i) information icons around "why" we are asking the user questions - for example, why are we asking the type of car. Decide where you think it needs to be added across all Steps. Keep the language targeted at the Aussie user.
-* Call it a 3 step process and mark as Steps x of 3, 
-* There is a lot of logic that goes into maintaining existing categories, amounts, etc. if the user is "re-doing" this workflow. For Release 1, I think it's risky. Can we disable it as a feature build for Release 2, and what do you recommend we do with code already written? I'm happy to delete. 
+* There is a lot of logic that goes into maintaining existing categories, amounts, etc. if the user is "re-doing" this workflow. Disabled for Release 1 (users manage categories directly in `/dashboard/categories`).
+* **[RELEASE 2 SCOPE]**: Re-Run Budget Setup Wizard (`mode=rerun`) with category soft-archiving (`archivedAt = NOW()`) to preserve foreign key transaction integrity.
 
 ## Step 1
 * Escape must cancel. However, if they cancel, it immediately brings them back to this screen. If the user has been presented this screen and chose not to proceed, they should not keep getting pulled back into this screen.
