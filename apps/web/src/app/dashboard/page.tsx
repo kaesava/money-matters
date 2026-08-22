@@ -270,8 +270,55 @@ export default function DashboardPage() {
   const totalBillsDue14Days = billsDue14Days.reduce((sum, b) => sum + b.amount, 0);
   const billsShortfall = Math.max(0, totalBillsDue14Days - billsBalance);
 
+  const hasExpenseEvents = (expenseEventsQuery.data ?? []).length > 0;
+  const hasIncomeEvents = (incomeEventsQuery.data ?? []).length > 0;
+  const showScheduleReminder = (!hasExpenseEvents || !hasIncomeEvents) && !expenseEventsQuery.isLoading && !incomeEventsQuery.isLoading;
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6">
+      {/* Friendly Reminder Banner for Missing Income or Expense Schedules */}
+      {showScheduleReminder && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-50/90 via-teal-50/70 to-blue-50/90 border border-amber-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-200">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-100/90 text-amber-800 flex items-center justify-center text-xl shrink-0 font-bold border border-amber-200 shadow-2xs">
+              💡
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-[#1B2B4B]">Complete Your Cashflow Automation</h4>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-200/60 text-amber-900 border border-amber-300/80">
+                  Action Recommended
+                </span>
+              </div>
+              <p className="text-xs text-zinc-600 leading-relaxed max-w-2xl">
+                {!hasExpenseEvents && !hasIncomeEvents
+                  ? "You haven't set up any upcoming income or bill expense schedules yet. Add your recurring paychecks and bills so Money Matters can automatically ring-fence your obligations on payday."
+                  : !hasExpenseEvents
+                  ? "You haven't set up any recurring bill expense schedules yet. Add your rent, utilities, and subscriptions so Money Matters can protect your bill pool when paychecks land."
+                  : "You haven't set up any upcoming income schedules yet. Add your regular paychecks so Money Matters can automatically waterfall funds into your categories."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/income-and-bills")}
+              className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-xl bg-[#2563eb] hover:bg-blue-700 text-white transition-all shadow-sm text-center"
+            >
+              📅 Set Up Schedules
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/setup?mode=rerun")}
+              className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200/90 bg-white hover:bg-zinc-50 text-zinc-700 transition-colors text-center"
+            >
+              ⚙️ Re-Run Setup
+            </button>
+          </div>
+        </div>
+      )}
+
       <DashboardHeroCard
         everydayBalance={everydayBalance}
         everydayMonthlyBudget={everydayMonthlyBudget}
