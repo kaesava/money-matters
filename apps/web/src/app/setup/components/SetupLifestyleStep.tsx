@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { HousingType, CarSize, SchoolType, SchoolStage, VehicleConfig, ChildConfig } from "@money-matters/types";
 import { InfoTooltip } from "@money-matters/ui";
 
