@@ -97,7 +97,8 @@ All tables MUST include:
 ## 13. UI / i18n / Design Tokens
 - ALL user-facing strings via `@money-matters/i18n` (zero hardcoded text literals in components/views/modals).
 - MUST use `React.useId()` for generating unique component/input HTML IDs. `Math.random()` for element IDs is strictly banned.
-- Dates stored in UTC; rendered in timezone-aware AEST/en-AU format.
+- Dates stored in UTC; rendered in timezone-aware AEST/en-AU format. NEVER use raw `new Date().toISOString().split('T')[0]` (causes off-by-one date errors in Australian UTC+10/11 timezones); format using `new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`.
+- Next.js App Router prerendering: pages/components using `useSearchParams()` MUST be wrapped in a `<Suspense>` boundary to prevent build errors during production export.
 - Serene Finance visual identity: Serene Blue `#2563eb`, Navy `#1B2B4B`, Off-white `#F7F8FA`, Green `#22c55e`, Red `#ba1a1a`, JetBrains Mono for monetary metrics.
 
 ## 14. Integrations
@@ -145,6 +146,7 @@ All tables MUST include:
 - ALL code MUST have unit tests in Vitest.
 - MUST cover: auth, tenant isolation, 5-step waterfall allocation, bank CSV parsing, onboarding math, edge cases.
 - Bug fixes REQUIRE regression tests.
+- **Unit Test Mock Safety**: When invoking raw SQL via `db.execute(sql\`...\`)` in domain handlers, always guard with `if (typeof db.execute === 'function')` to ensure compatibility with Vitest mock database objects.
 - **E2E & Capability Coverage**: When ANY new capability, screen, modal, or interactive control is built or modified, it MUST be explicitly added to and tested in the Playwright screen-by-screen spec (`apps/web/e2e/screen-by-screen.spec.ts`).
 
 ## 22. Code Quality & Smart Commenting (MECE)
