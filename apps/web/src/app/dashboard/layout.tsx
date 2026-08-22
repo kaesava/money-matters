@@ -99,14 +99,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [userLocale]);
 
-  // Zero-Categories Guard: redirect to setup wizard if user has 0 categories
+  // Zero-Categories Guard: redirect to setup wizard if user has 0 categories and hasn't explicitly cancelled/completed setup
   useEffect(() => {
+    const isSkipped = typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true";
     if (
       !isPending &&
       session?.user &&
       !categoriesQuery.isLoading &&
       categoriesQuery.data &&
       categoriesQuery.data.length === 0 &&
+      !isSkipped &&
       !pathname.startsWith("/setup")
     ) {
       router.replace("/setup");

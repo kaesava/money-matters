@@ -8,8 +8,8 @@ export interface UserGoalItem {
   name: string;
   monthlyAmount: number;
   icon: string;
-  targetAmount?: number;
-  dueDate?: string;
+  targetAmount: number;
+  dueDate: string;
 }
 
 interface SetupGoalsStepProps {
@@ -21,14 +21,28 @@ interface SetupGoalsStepProps {
   onNext: () => void;
 }
 
+const getFutureDate = (months: number) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().split("T")[0];
+};
+
 const PRESET_GOALS = [
-  { name: "Emergency Reserve (3-6 Months)", icon: "🛡️", defaultMonthly: 300, defaultTarget: 10000 },
-  { name: "Annual Family Holiday", icon: "✈️", defaultMonthly: 250, defaultTarget: 5000 },
-  { name: "Car Rego, Service & Tyres", icon: "🚗", defaultMonthly: 150, defaultTarget: 1800 },
-  { name: "Home Maintenance & Repairs", icon: "🏡", defaultMonthly: 200, defaultTarget: 4000 },
-  { name: "Investment & Wealth Building", icon: "📈", defaultMonthly: 400, defaultTarget: 20000 },
-  { name: "Tech & Gadget Upgrade", icon: "💻", defaultMonthly: 100, defaultTarget: 1500 },
+  { name: "Emergency Reserve (3-6 Months)", icon: "🛡️", defaultTarget: 10000, defaultMonths: 12 },
+  { name: "Annual Family Holiday", icon: "✈️", defaultTarget: 5000, defaultMonths: 12 },
+  { name: "New Car", icon: "🚗", defaultTarget: 15000, defaultMonths: 24 },
+  { name: "Home Maintenance & Repairs", icon: "🏡", defaultTarget: 4000, defaultMonths: 12 },
+  { name: "Investment & Wealth Building", icon: "📈", defaultTarget: 20000, defaultMonths: 36 },
+  { name: "Tech & Gadget Upgrade", icon: "💻", defaultTarget: 1500, defaultMonths: 6 },
 ];
+
+function getMonthsDiff(targetDateStr: string): number {
+  if (!targetDateStr) return 12;
+  const now = new Date();
+  const target = new Date(targetDateStr);
+  const months = (target.getFullYear() - now.getFullYear()) * 12 + (target.getMonth() - now.getMonth());
+  return Math.max(1, months);
+}
 
 export function SetupGoalsStep({
   goals,
@@ -39,8 +53,9 @@ export function SetupGoalsStep({
   onNext,
 }: SetupGoalsStepProps) {
   const [customName, setCustomName] = useState("");
-  const [customAmount, setCustomAmount] = useState("150");
-  const [customIcon, setCustomIcon] = useState("🎯");
+  const [customTarget, setCustomTarget] = useState("5000");
+  const [customDate, setCustomDate] = useState("");
+  const todayStr = new Date().toISOString().split("T")[0];
 
   const isPresetActive = (name: string) => goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
 
@@ -49,36 +64,44 @@ export function SetupGoalsStep({
     if (existing) {
       onRemoveGoal(existing.id);
     } else {
+      const dueDate = getFutureDate(preset.defaultMonths);
+      const months = Math.max(1, preset.defaultMonths);
       onAddGoal({
         name: preset.name,
-        monthlyAmount: preset.defaultMonthly,
-        icon: preset.icon,
         targetAmount: preset.defaultTarget,
+        dueDate,
+        monthlyAmount: Math.round(preset.defaultTarget / months),
+        icon: preset.icon,
       });
     }
   };
 
   const handleAddCustom = () => {
-    if (!customName.trim()) return;
+    if (!customName.trim() || !customDate) return;
+    const targetAmount = parseFloat(customTarget) || 1000;
+    const months = getMonthsDiff(customDate);
     onAddGoal({
       name: customName.trim(),
-      monthlyAmount: parseFloat(customAmount) || 100,
-      icon: customIcon || "🎯",
+      targetAmount,
+      dueDate: customDate,
+      monthlyAmount: Math.round(targetAmount / months),
+      icon: "🎯",
     });
     setCustomName("");
-    setCustomAmount("150");
+    setCustomTarget("5000");
+    setCustomDate("");
   };
 
-  const totalMonthlyGoals = goals.reduce((sum, g) => sum + (g.monthlyAmount || 0), 0);
+  const totalTargetGoals = goals.reduce((sum, g) => sum + (g.targetAmount || 0), 0);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       <div>
         <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-black text-[#1B2B4B]">🎯 Savings & Future Goals</h2>
+          <h2 className="text-2xl font-black text-[#1B2B4B]">🎯 Savings &amp; Future Goals</h2>
           <InfoTooltip
             title="Sinking Funds & Goals"
-            content="Setting monthly targets for future goals ensures your money is reserved automatically every payday. You can adjust or add custom goals anytime."
+            content="Setting target amounts and target dates for your goals allows the waterfall engine to automatically reserve funds every payday. The actual amount allocated will depend on paydays, etc. and this is a guide only."
           />
           <span className="text-xs font-bold bg-teal-100 text-teal-800 px-2.5 py-0.5 rounded-full ml-auto">
             {goals.length} Active Goals
@@ -92,6 +115,8 @@ export function SetupGoalsStep({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {PRESET_GOALS.map((preset) => {
             const active = isPresetActive(preset.name);
+            const months = preset.defaultMonths;
+            const estMonthly = Math.round(preset.defaultTarget / months);
             return (
               <button
                 key={preset.name}
@@ -115,8 +140,8 @@ export function SetupGoalsStep({
                 </div>
                 <div className="mt-2">
                   <div className="text-xs font-bold text-[#1B2B4B] line-clamp-1">{preset.name}</div>
-                  <div className="text-[11px] font-semibold text-zinc-400 mt-0.5">
-                    Est. ${preset.defaultMonthly}/mo target
+                  <div className="text-[11px] font-semibold text-zinc-500 mt-0.5">
+                    Target: ${preset.defaultTarget.toLocaleString()} • Est. ${estMonthly}/mo
                   </div>
                 </div>
               </button>
@@ -131,51 +156,83 @@ export function SetupGoalsStep({
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-[#1B2B4B]">Your Savings Targets ({goals.length})</span>
             <span className="text-xs font-extrabold text-[#00B4A6]">
-              Total Goals: ${totalMonthlyGoals}/mo
+              Total Target: ${totalTargetGoals.toLocaleString()}
             </span>
           </div>
 
           <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1">
-            {goals.map((g) => (
-              <div
-                key={g.id}
-                className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg">{g.icon || "🎯"}</span>
-                  <div>
-                    <input
-                      type="text"
-                      value={g.name}
-                      onChange={(e) => onUpdateGoal(g.id, "name", e.target.value)}
-                      className="text-xs font-bold text-[#1B2B4B] bg-transparent border-b border-transparent hover:border-zinc-300 focus:border-[#2563eb] outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 self-end sm:self-auto">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] font-bold text-zinc-400">$</span>
-                    <input
-                      type="number"
-                      value={g.monthlyAmount}
-                      onChange={(e) => onUpdateGoal(g.id, "monthlyAmount", parseFloat(e.target.value) || 0)}
-                      className="w-20 px-2 py-1 text-xs font-bold text-right rounded-lg border border-zinc-200 bg-slate-50"
-                    />
-                    <span className="text-[11px] font-bold text-zinc-400">/mo</span>
+            {goals.map((g) => {
+              const months = getMonthsDiff(g.dueDate);
+              const estMonthly = Math.round((g.targetAmount || 0) / months);
+              return (
+                <div
+                  key={g.id}
+                  className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg">{g.icon || "🎯"}</span>
+                    <div>
+                      <input
+                        type="text"
+                        value={g.name}
+                        onChange={(e) => onUpdateGoal(g.id, "name", e.target.value)}
+                        className="text-xs font-bold text-[#1B2B4B] bg-transparent border-b border-transparent hover:border-zinc-300 focus:border-[#2563eb] outline-none"
+                      />
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onRemoveGoal(g.id)}
-                    className="text-xs text-red-500 font-bold hover:text-red-700 p-1"
-                  >
-                    ✕
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-zinc-400">Target $</span>
+                      <input
+                        type="number"
+                        value={g.targetAmount || ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          onUpdateGoal(g.id, "targetAmount", val);
+                          onUpdateGoal(g.id, "monthlyAmount", Math.round(val / months));
+                        }}
+                        className="w-24 px-2 py-1 text-xs font-bold text-right rounded-lg border border-zinc-200 bg-slate-50 font-mono"
+                        placeholder="Target Amount"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-zinc-400">By</span>
+                      <input
+                        type="date"
+                        min={todayStr}
+                        value={g.dueDate || ""}
+                        onChange={(e) => {
+                          const dateVal = e.target.value;
+                          onUpdateGoal(g.id, "dueDate", dateVal);
+                          const m = getMonthsDiff(dateVal);
+                          onUpdateGoal(g.id, "monthlyAmount", Math.round((g.targetAmount || 0) / m));
+                        }}
+                        className="px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 bg-slate-50"
+                      />
+                    </div>
+
+                    <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded-md border border-teal-200/60">
+                      Est. ${estMonthly}/mo guide
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => onRemoveGoal(g.id)}
+                      className="text-xs text-red-500 font-bold hover:text-red-700 p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          <p className="text-[11px] text-zinc-500 italic mt-1">
+            ℹ️ Note: The actual amount allocated will depend on paydays, income waterfalls, and your target date — the monthly amount above is a guide only.
+          </p>
         </div>
       )}
 
@@ -183,18 +240,6 @@ export function SetupGoalsStep({
       <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
         <label className="text-xs font-bold text-[#1B2B4B]">Add a Custom Savings Goal:</label>
         <div className="flex flex-col sm:flex-row gap-2">
-          <select
-            value={customIcon}
-            onChange={(e) => setCustomIcon(e.target.value)}
-            className="w-16 px-2 py-2 text-sm rounded-xl border border-zinc-200 bg-slate-50"
-          >
-            <option value="🎯">🎯 Goal</option>
-            <option value="🏖️">🏖️ Beach</option>
-            <option value="💍">💍 Wedding</option>
-            <option value="🎓">🎓 Education</option>
-            <option value="🎁">🎁 Gift</option>
-            <option value="⛵">⛵ Boat</option>
-          </select>
           <input
             type="text"
             value={customName}
@@ -204,15 +249,23 @@ export function SetupGoalsStep({
           />
           <input
             type="number"
-            value={customAmount}
-            onChange={(e) => setCustomAmount(e.target.value)}
-            placeholder="Monthly $"
-            className="w-28 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200"
+            value={customTarget}
+            onChange={(e) => setCustomTarget(e.target.value)}
+            placeholder="Target Amount ($)"
+            className="w-32 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 font-mono"
+          />
+          <input
+            type="date"
+            min={todayStr}
+            value={customDate}
+            onChange={(e) => setCustomDate(e.target.value)}
+            className="w-36 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
           />
           <button
             type="button"
             onClick={handleAddCustom}
-            className="px-4 py-2 bg-teal-50 border border-teal-200 text-[#00B4A6] text-xs font-bold rounded-xl hover:bg-teal-100 transition-colors"
+            disabled={!customName.trim() || !customDate}
+            className="px-4 py-2 bg-teal-50 border border-teal-200 text-[#00B4A6] text-xs font-bold rounded-xl hover:bg-teal-100 transition-colors disabled:opacity-50"
           >
             + Add Goal
           </button>

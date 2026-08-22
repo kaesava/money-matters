@@ -16,7 +16,7 @@ export const IncomeItemSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   amount: z.number().positive(),
-  frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY"]).default("FORTNIGHTLY"),
+  frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("FORTNIGHTLY"),
   type: z.enum(["SALARY", "BUSINESS", "BENEFIT", "OTHER"]).default("SALARY"),
 });
 export type IncomeItem = z.infer<typeof IncomeItemSchema>;
@@ -75,13 +75,13 @@ export const QuizAnswersSchema = z.object({
 export type QuizAnswers = z.infer<typeof QuizAnswersSchema>;
 
 export interface EstimatedCategoryItem {
-  id?: string;
   name: string;
   type: "REGULAR" | "GOAL" | "EVERYDAY";
   monthlyAud: number;
-  icon: string;
-  isCommitted?: boolean;
+  icon?: string;
+  colour?: string;
   rationale?: string;
+  isCommitted?: boolean;
 }
 
 export interface EstimationResult {
@@ -196,7 +196,15 @@ export function calculateQuizEstimates(answers: QuizAnswers): EstimationResult {
 
   // --- 4. HEALTH & WELLBEING (REGULAR) ---
   if (answers.hasPrivateHealth) {
-    regularBills.push({ name: "Private Health Insurance", type: "REGULAR", monthlyAud: 350, icon: "🏥", rationale: "Combined Hospital & Extras Australian private health cover benchmark." });
+    const kidsCount = answers.hasKids ? answers.children.length : 0;
+    const healthAud = kidsCount === 0 ? 180 : kidsCount <= 2 ? 350 : 480;
+    regularBills.push({
+      name: "Private Health Insurance",
+      type: "REGULAR",
+      monthlyAud: healthAud,
+      icon: "🏥",
+      rationale: "Combined Hospital & Extras Australian private health cover benchmark based on family composition.",
+    });
   }
   regularBills.push({ name: "Out-of-Pocket Medical & Pharmacy", type: "REGULAR", monthlyAud: 100, icon: "💊", rationale: "PBS pharmacy and Medicare out-of-pocket medical benchmark." });
   if (answers.hasGym) {

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
@@ -18,28 +18,47 @@ import { SetupIncomeStep } from "./components/SetupIncomeStep";
 import { SetupGoalsStep, UserGoalItem } from "./components/SetupGoalsStep";
 import { SetupLifestyleStep } from "./components/SetupLifestyleStep";
 import { SetupCategoriesStep } from "./components/SetupCategoriesStep";
-import { SetupWaterfallStep } from "./components/SetupWaterfallStep";
 import { SetupDiscardModal } from "./components/SetupDiscardModal";
-import { SetupReconcileModal } from "./components/SetupReconcileModal";
-import { BudgetImpactReviewModal } from "../../components/BudgetImpactReviewModal";
 
 function SetupWizardContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isRerun = searchParams.get("mode") === "rerun";
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
-  const [showReconcileModal, setShowReconcileModal] = useState(false);
+
+  // Escape key handler to trigger discard modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowDiscardModal(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Step 2: User Savings & Future Goals
   const [goals, setGoals] = useState<UserGoalItem[]>([
-    { id: "g-1", name: "Emergency Reserve (3-6 Months)", monthlyAmount: 300, icon: "🛡️", targetAmount: 10000 },
-    { id: "g-2", name: "Annual Family Holiday", monthlyAmount: 250, icon: "✈️", targetAmount: 5000 },
+    {
+      id: "g-1",
+      name: "Emergency Reserve (3-6 Months)",
+      monthlyAmount: 300,
+      icon: "🛡️",
+      targetAmount: 10000,
+      dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    },
+    {
+      id: "g-2",
+      name: "Annual Family Holiday",
+      monthlyAmount: 250,
+      icon: "✈️",
+      targetAmount: 5000,
+      dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    },
   ]);
 
-  // Step 2: Interactive Lifestyle Sliders
+  // Step 3: Interactive Lifestyle Sliders
   const [weeklyGroceries, setWeeklyGroceries] = useState(270);
   const [weeklyDining, setWeeklyDining] = useState(240);
   const [weeklyPersonal, setWeeklyPersonal] = useState(100);
@@ -49,7 +68,7 @@ function SetupWizardContent() {
     { id: "inc-1", name: "Primary Income", amount: 3200, frequency: "FORTNIGHTLY", type: "SALARY" },
   ]);
 
-  // Step 2: Life-Builder Questionnaire
+  // Step 3: Life-Builder Questionnaire
   const [housingType, setHousingType] = useState<HousingType>("RENT_SOLO");
   const [hasCars, setHasCars] = useState(true);
   const [vehicles, setVehicles] = useState<VehicleConfig[]>([
@@ -65,16 +84,16 @@ function SetupWizardContent() {
 
   const [hasPrivateHealth, setHasPrivateHealth] = useState(true);
   const [hasGym, setHasGym] = useState(false);
-  
-  // These values are used in quizAnswers, but their setters were unused.
-  // If you later add inputs for these in SetupLifestyleStep, you can restore 
-  // their setters (e.g., `const [hasDebt, setHasDebt] = useState(false);`)
-  const [hasDebt] = useState(false);
-  const [debtMonthlyRepayment] = useState(0);
-  const [hasPets] = useState(false);
-  const [petsCount] = useState(1);
-  const [hasCharityGiving] = useState(false);
-  const [charityMonthlyAmount] = useState(0);
+  const [hasMedicalOutofPocket, setHasMedicalOutofPocket] = useState(false);
+
+  const [hasDebt, setHasDebt] = useState(false);
+  const [debtMonthlyRepayment, setDebtMonthlyRepayment] = useState(0);
+
+  const [hasPets, setHasPets] = useState(false);
+  const [petsCount, setPetsCount] = useState(1);
+
+  const [hasCharityGiving, setHasCharityGiving] = useState(false);
+  const [charityMonthlyAmount, setCharityMonthlyAmount] = useState(0);
 
   // Custom added categories & tracking
   const [customCategories, setCustomCategories] = useState<EstimatedCategoryItem[]>([]);
@@ -102,39 +121,10 @@ function SetupWizardContent() {
     return Math.round(monthlyAmount);
   };
 
-  const existingCategoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isRerun });
-  const existingCategories = useMemo(() => existingCategoriesQuery.data ?? [], [existingCategoriesQuery.data]);
-
-  const currentBillsCap = useMemo(() => {
-    return existingCategories
-      .filter((c) => c.type === "REGULAR")
-      .reduce((sum, c) => sum + parseFloat(c.monthlyAmount || "0"), 0);
-  }, [existingCategories]);
-
-  const currentEverydayCap = useMemo(() => {
-    return existingCategories
-      .filter((c) => c.type === "EVERYDAY")
-      .reduce((sum, c) => sum + parseFloat(c.monthlyAmount || "0"), 0);
-  }, [existingCategories]);
-
-  const mapWithExistingId = (item: EstimatedCategoryItem, type: "REGULAR" | "GOAL" | "EVERYDAY") => {
-    const matched = existingCategories.find(
-      (ec) => ec.name.trim().toLowerCase() === item.name.trim().toLowerCase() && ec.type === type
-    );
-    return {
-      id: matched?.id,
-      name: item.name,
-      type,
-      monthlyAmount: item.monthlyAud,
-      targetAmount: item.monthlyAud,
-    };
-  };
-
   const createIncomeSource = trpc.createIncomeSource.useMutation();
   const createCategory = trpc.createCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
   const generateEvents = trpc.generateNextIncomeEvents.useMutation();
-  const reSetupBudget = trpc.reSetupBudget.useMutation();
 
   const quizAnswers: QuizAnswers = useMemo(() => {
     return {
@@ -207,8 +197,7 @@ function SetupWizardContent() {
       colour: "#00B4A6",
     }));
     const custom = customCategories.filter((c) => c.type === "GOAL" && !removedCategoryNames.has(c.name));
-    
-    // Deduplicate goals by name
+
     const combined = [...calculated, ...userGoalsFormatted, ...custom];
     const seen = new Set<string>();
     return combined.filter((item) => {
@@ -240,9 +229,8 @@ function SetupWizardContent() {
   const totalAllocatedMonthly = totalRegularMonthly + totalGoalMonthly + totalEverydayMonthly;
 
   const handleFinish = async () => {
-    if (isRerun) {
-      setShowReconcileModal(true);
-      return;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("skip_setup_wizard", "true");
     }
 
     setIsSubmitting(true);
@@ -254,7 +242,7 @@ function SetupWizardContent() {
             amount: inc.amount.toFixed(2),
             isRecurring: true,
             startDate: new Date().toISOString().split("T")[0]!,
-            frequency: inc.frequency,
+            frequency: inc.frequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY",
           })
         )
       );
@@ -286,7 +274,7 @@ function SetupWizardContent() {
       );
 
       await generateEvents.mutateAsync();
-      posthog.capture("interactive_setup_completed", {
+      posthog.capture("quick_setup_completed", {
         total_categories: allCategoriesToCreate.length,
         total_income: estimation.totalMonthlyIncomeAud,
       });
@@ -299,56 +287,52 @@ function SetupWizardContent() {
     }
   };
 
-  const handleConfirmReconcile = async () => {
-    setIsSubmitting(true);
-    try {
-      const categoriesList = [
-        ...activeRegular.map((c) => mapWithExistingId(c, "REGULAR")),
-        ...activeGoals.map((c) => mapWithExistingId(c, "GOAL")),
-        ...activeEveryday.map((c) => mapWithExistingId(c, "EVERYDAY")),
-      ];
-
-      await reSetupBudget.mutateAsync({
-        everydayTargetCap: totalEverydayMonthly,
-        billsTargetCap: totalRegularMonthly,
-        categoriesList,
-      });
-
-      posthog.capture("budget_resetup_completed", {
-        total_categories: categoriesList.length,
-        total_income: estimation.totalMonthlyIncomeAud,
-      });
-
-      setShowReconcileModal(false);
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Failed to complete budget re-setup:", err);
-    } finally {
-      setIsSubmitting(false);
+  const handleDiscard = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("skip_setup_wizard", "true");
     }
+    setShowDiscardModal(false);
+    router.push("/dashboard");
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl border border-zinc-200/80 p-6 sm:p-8 flex flex-col gap-6 relative">
-        {/* Header */}
+      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl border border-zinc-200/80 p-6 sm:p-8 flex flex-col gap-6 relative">
+        {/* Top Bar Navigation & Header */}
         <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">✨</span>
-            <h1 className="text-lg font-black text-[#1B2B4B]">
-              {isRerun ? "Re-run Budget Setup" : "Interactive Budget Setup"}
-            </h1>
-          </div>
           <div className="flex items-center gap-3">
+            <span className="text-xl">✨</span>
+            <h1 className="text-lg font-black text-[#1B2B4B]">Quick Setup of Pools</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => setStep((s) => Math.max(1, s - 1))}
+                className="px-3 py-1.5 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-slate-50 transition-colors"
+              >
+                ← Back
+              </button>
+            )}
+            {step < 4 && (
+              <button
+                type="button"
+                onClick={() => setStep((s) => Math.min(4, s + 1))}
+                className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-xs"
+              >
+                Next →
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setShowDiscardModal(true)}
-              className="text-xs font-bold text-zinc-400 hover:text-zinc-600 transition-colors"
+              className="text-xs font-bold text-zinc-400 hover:text-zinc-600 transition-colors px-1"
             >
               Cancel
             </button>
             <span className="text-xs font-black text-[#00B4A6] bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
-              Step {step} of 5
+              {step <= 3 ? `Step ${step} of 3` : "Summary Preview"}
             </span>
           </div>
         </div>
@@ -360,7 +344,7 @@ function SetupWizardContent() {
               const id = `inc-${Date.now()}`;
               setIncomes((prev) => [
                 ...prev,
-                { id, name: `Income Source ${prev.length + 1}`, amount: 1500, frequency: "FORTNIGHTLY", type: "SALARY" },
+                { id, name: `Income ${prev.length + 1}`, amount: 1500, frequency: "FORTNIGHTLY", type: "SALARY" },
               ]);
             }}
             onUpdateIncome={(id, field, value) => {
@@ -423,6 +407,20 @@ function SetupWizardContent() {
             setHasPrivateHealth={setHasPrivateHealth}
             hasGym={hasGym}
             setHasGym={setHasGym}
+            hasMedicalOutofPocket={hasMedicalOutofPocket}
+            setHasMedicalOutofPocket={setHasMedicalOutofPocket}
+            hasDebt={hasDebt}
+            setHasDebt={setHasDebt}
+            debtMonthlyRepayment={debtMonthlyRepayment}
+            setDebtMonthlyRepayment={setDebtMonthlyRepayment}
+            hasPets={hasPets}
+            setHasPets={setHasPets}
+            petsCount={petsCount}
+            setPetsCount={setPetsCount}
+            hasCharityGiving={hasCharityGiving}
+            setHasCharityGiving={setHasCharityGiving}
+            charityMonthlyAmount={charityMonthlyAmount}
+            setCharityMonthlyAmount={setCharityMonthlyAmount}
             weeklyGroceries={weeklyGroceries}
             setWeeklyGroceries={setWeeklyGroceries}
             weeklyDining={weeklyDining}
@@ -466,61 +464,21 @@ function SetupWizardContent() {
             }}
             convertToMonthly={convertToMonthly}
             convertFromMonthly={convertFromMonthly}
-            onBack={() => setStep(3)}
-            onNext={() => setStep(5)}
-          />
-        )}
-
-        {step === 5 && (
-          <SetupWaterfallStep
             totalMonthlyIncomeAud={estimation.totalMonthlyIncomeAud}
             totalAllocatedMonthly={totalAllocatedMonthly}
             totalEverydayMonthly={totalEverydayMonthly}
             totalRegularMonthly={totalRegularMonthly}
             totalGoalMonthly={totalGoalMonthly}
-            isRerun={isRerun}
             isSubmitting={isSubmitting}
-            onBack={() => setStep(4)}
+            onBack={() => setStep(3)}
             onFinish={handleFinish}
-          />
-        )}
-
-        {isRerun ? (
-          <BudgetImpactReviewModal
-            isOpen={showReconcileModal}
-            isSubmitting={isSubmitting}
-            oldEverydayCap={currentEverydayCap}
-            newEverydayCap={totalEverydayMonthly}
-            oldBillsCap={currentBillsCap}
-            newBillsCap={totalRegularMonthly}
-            items={[
-              ...activeRegular.map((c) => ({ name: c.name, type: "REGULAR" as const, monthlyAmount: c.monthlyAud, status: "MODIFIED" as const })),
-              ...activeGoals.map((c) => ({ name: c.name, type: "GOAL" as const, monthlyAmount: c.monthlyAud, status: "MODIFIED" as const })),
-              ...activeEveryday.map((c) => ({ name: c.name, type: "EVERYDAY" as const, monthlyAmount: c.monthlyAud, status: "MODIFIED" as const })),
-            ]}
-            onClose={() => setShowReconcileModal(false)}
-            onConfirm={handleConfirmReconcile}
-          />
-        ) : (
-          <SetupReconcileModal
-            isOpen={showReconcileModal}
-            isSubmitting={isSubmitting}
-            totalRegularMonthly={totalRegularMonthly}
-            totalEverydayMonthly={totalEverydayMonthly}
-            currentBillsCap={currentBillsCap}
-            currentEverydayCap={currentEverydayCap}
-            onClose={() => setShowReconcileModal(false)}
-            onConfirm={handleConfirmReconcile}
           />
         )}
 
         <SetupDiscardModal
           isOpen={showDiscardModal}
           onClose={() => setShowDiscardModal(false)}
-          onConfirm={() => {
-            setShowDiscardModal(false);
-            router.push("/dashboard");
-          }}
+          onConfirm={handleDiscard}
         />
       </div>
     </div>
@@ -529,7 +487,7 @@ function SetupWizardContent() {
 
 export default function SetupWizardPage() {
   return (
-    <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">{t('common.loading')}</div>}>
+    <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">{t("common.loading")}</div>}>
       <SetupWizardContent />
     </React.Suspense>
   );

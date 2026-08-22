@@ -27,13 +27,13 @@ export function SetupIncomeStep({
           <span className="text-xs font-extrabold uppercase tracking-wider text-teal-300 bg-white/10 px-3 py-1 rounded-full border border-teal-300/30">
             ⏱ Takes Under 2 Minutes • Zero Math Required
           </span>
-          <span className="text-xs font-bold text-slate-300">Step 1 of 5</span>
+          <span className="text-xs font-bold text-slate-300">Step 1 of 3</span>
         </div>
         <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
-          Welcome to Money Matters! Let&apos;s put your cashflow on autopilot ✨
+          Let&apos;s get your setup sorted in no time ✨
         </h2>
         <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-          Traditional budgeting fails because spreadsheets force manual tracking. Money Matters automatically routes every paycheck through a <strong>5-Step Payday Waterfall</strong> so your bills are paid, your savings grow, and your guilt-free spending is clear.
+          Tell us what you&apos;re saving for, answer a few simple lifestyle questions, and we&apos;ll estimate your bills &amp; everyday spending. You&apos;ll be ready to go in under 2 minutes.
         </p>
       </div>
 
@@ -51,7 +51,7 @@ export function SetupIncomeStep({
         {incomes.map((inc, index) => (
           <div key={inc.id} className="p-4 bg-slate-50 rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#1B2B4B]">Income Source #{index + 1}</span>
+              <span className="text-xs font-bold text-[#1B2B4B]">Income #{index + 1}</span>
               {incomes.length > 1 && (
                 <button
                   type="button"
@@ -92,6 +92,7 @@ export function SetupIncomeStep({
                   <option value="WEEKLY">Weekly</option>
                   <option value="FORTNIGHTLY">Fortnightly</option>
                   <option value="MONTHLY">Monthly</option>
+                  <option value="ANNUALLY">Annually</option>
                 </select>
               </div>
             </div>
@@ -113,7 +114,7 @@ export function SetupIncomeStep({
           onClick={onNext}
           className="px-6 py-3 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-md"
         >
-          Continue to Lifestyle Questions →
+          Continue to Savings Goals →
         </button>
       </div>
     </div>

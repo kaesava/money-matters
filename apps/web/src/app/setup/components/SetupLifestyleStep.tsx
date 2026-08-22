@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { HousingType, CarSize, SchoolType, SchoolStage, VehicleConfig, ChildConfig } from "@money-matters/types";
+import { InfoTooltip } from "@money-matters/ui";
 
 interface SetupLifestyleStepProps {
   housingType: HousingType;
@@ -46,8 +47,6 @@ interface SetupLifestyleStepProps {
   setWeeklyDining: (val: number) => void;
   weeklyPersonal: number;
   setWeeklyPersonal: (val: number) => void;
-  weeklyIncidentals?: number;
-  setWeeklyIncidentals?: (val: number) => void;
   onBack: () => void;
   onNext: () => void;
 }
@@ -83,7 +82,7 @@ export function SetupLifestyleStep({
   setDebtMonthlyRepayment,
   hasPets = false,
   setHasPets,
-  petsCount = 0,
+  petsCount = 1,
   setPetsCount,
   hasCharityGiving = false,
   setHasCharityGiving,
@@ -95,40 +94,39 @@ export function SetupLifestyleStep({
   setWeeklyDining,
   weeklyPersonal,
   setWeeklyPersonal,
-  weeklyIncidentals = 50,
-  setWeeklyIncidentals,
   onBack,
   onNext,
 }: SetupLifestyleStepProps) {
-  const [activeTooltip, setActiveTooltip] = useState(false);
-
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-h-[60vh] overflow-y-auto pr-1">
       <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-black text-[#1B2B4B]">🏡 Lifestyle Setup</h2>
-          <button
-            type="button"
-            onClick={() => setActiveTooltip(!activeTooltip)}
-            className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs font-bold flex items-center justify-center"
-          >
-            ℹ️
-          </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-black text-[#1B2B4B]">🏡 Lifestyle Setup</h2>
+            <InfoTooltip
+              title="Australian Lifestyle Benchmarks"
+              content="We use official 2025/2026 Australian Bureau of Statistics (ABS) & RACQ benchmark statistics to calculate initial bill estimates tailored specifically for your lifestyle."
+            />
+          </div>
+          <span className="text-xs font-bold text-zinc-400 bg-slate-100 px-3 py-1 rounded-full border border-zinc-200">
+            Step 3 of 3
+          </span>
         </div>
         <p className="text-xs text-zinc-500 font-semibold mt-1">
           Tell us a few details about your living setup so we can auto-estimate baseline bill costs.
         </p>
-        {activeTooltip && (
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 font-medium">
-            We use official 2025/2026 Australian Bureau of Statistics (ABS) & RACQ benchmark statistics to calculate initial bill estimates tailored specifically for your lifestyle.
-          </div>
-        )}
       </div>
 
-      {/* Housing */}
-      <div className="flex flex-col gap-2">
-        <label className="text-xs font-bold text-[#1B2B4B]">Housing Setup</label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {/* Housing Setup */}
+      <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-black text-[#1B2B4B]">🏡 Housing Setup</label>
+          <InfoTooltip
+            title="Why Rent Solo vs Sharehouse matters"
+            content="Renting solo means you cover 100% of the property lease and utility connections. In a Sharehouse, rent is split and utility bills are shared among housemates, lowering your baseline obligation."
+          />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
           {[
             { id: "RENT_SOLO", label: "Rent (Solo)" },
             { id: "RENT_SHARE", label: "Sharehouse" },
@@ -141,7 +139,7 @@ export function SetupLifestyleStep({
               onClick={() => setHousingType(opt.id as HousingType)}
               className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
                 housingType === opt.id
-                  ? "bg-[#2563eb] text-white border-[#2563eb]"
+                  ? "bg-[#2563eb] text-white border-[#2563eb] shadow-xs"
                   : "bg-white text-[#1B2B4B] border-zinc-200 hover:border-zinc-300"
               }`}
             >
@@ -151,10 +149,16 @@ export function SetupLifestyleStep({
         </div>
       </div>
 
-      {/* Transport */}
+      {/* Transport & Vehicles */}
       <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
-        <span className="text-xs font-bold text-[#1B2B4B]">Transport & Vehicles</span>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-black text-[#1B2B4B]">🚗 Transport &amp; Vehicles</span>
+          <InfoTooltip
+            title="RACQ Vehicle Benchmarks"
+            content="Different vehicle sizes have different rego, fuel, insurance and maintenance cost benchmarks in Australia. Adding multiple vehicles calculates accurate bills for each."
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-6">
           <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
             <input
               type="checkbox"
@@ -211,7 +215,7 @@ export function SetupLifestyleStep({
                   <select
                     value={v.size}
                     onChange={(e) => onUpdateVehicle(v.id, "size", e.target.value as CarSize)}
-                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200"
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
                     <option value="SMALL">Small / Hatchback</option>
                     <option value="MID_SUV">Mid-size SUV / Sedan</option>
@@ -223,7 +227,7 @@ export function SetupLifestyleStep({
             <button
               type="button"
               onClick={onAddVehicle}
-              className="py-1.5 px-3 bg-slate-100 text-zinc-700 text-xs font-bold rounded-lg hover:bg-slate-200 border border-zinc-200"
+              className="py-1.5 px-3 bg-white text-zinc-700 text-xs font-bold rounded-lg hover:bg-slate-100 border border-zinc-200 transition-colors"
             >
               + Add Another Vehicle
             </button>
@@ -231,17 +235,23 @@ export function SetupLifestyleStep({
         )}
       </div>
 
-      {/* Kids */}
+      {/* Dependents & Children */}
       <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
-        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
-          <input
-            type="checkbox"
-            checked={hasKids}
-            onChange={(e) => setHasKids(e.target.checked)}
-            className="w-4 h-4 text-[#2563eb] rounded-md"
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-xs font-black text-[#1B2B4B] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasKids}
+              onChange={(e) => setHasKids(e.target.checked)}
+              className="w-4 h-4 text-[#2563eb] rounded-md"
+            />
+            👨‍👩‍👧 Dependents / Children
+          </label>
+          <InfoTooltip
+            title="Schooling & Childcare"
+            content="Child tuition and early learning benchmarks are dynamically scaled based on public, catholic, or private schooling choices."
           />
-          Dependents / Children
-        </label>
+        </div>
 
         {hasKids && (
           <div className="flex flex-col gap-3 pt-2">
@@ -270,7 +280,7 @@ export function SetupLifestyleStep({
                   <select
                     value={c.stage}
                     onChange={(e) => onUpdateChild(c.id, "stage", e.target.value as SchoolStage)}
-                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200"
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
                     <option value="CHILDCARE">Childcare / Daycare</option>
                     <option value="PRIMARY">Primary School</option>
@@ -279,7 +289,7 @@ export function SetupLifestyleStep({
                   <select
                     value={c.type}
                     onChange={(e) => onUpdateChild(c.id, "type", e.target.value as SchoolType)}
-                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200"
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white"
                   >
                     <option value="PUBLIC">Public</option>
                     <option value="CATHOLIC">Systemic / Catholic</option>
@@ -291,7 +301,7 @@ export function SetupLifestyleStep({
             <button
               type="button"
               onClick={onAddChild}
-              className="py-1.5 px-3 bg-slate-100 text-zinc-700 text-xs font-bold rounded-lg hover:bg-slate-200 border border-zinc-200"
+              className="py-1.5 px-3 bg-white text-zinc-700 text-xs font-bold rounded-lg hover:bg-slate-100 border border-zinc-200 transition-colors"
             >
               + Add Another Child
             </button>
@@ -300,41 +310,45 @@ export function SetupLifestyleStep({
       </div>
 
       {/* Health & Wellbeing */}
-      <div className="flex flex-wrap items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
-        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
-          <input
-            type="checkbox"
-            checked={hasPrivateHealth}
-            onChange={(e) => setHasPrivateHealth(e.target.checked)}
-            className="w-4 h-4 text-[#2563eb] rounded-md"
-          />
-          Private Health Cover
-        </label>
-        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
-          <input
-            type="checkbox"
-            checked={hasGym}
-            onChange={(e) => setHasGym(e.target.checked)}
-            className="w-4 h-4 text-[#2563eb] rounded-md"
-          />
-          Gym / Fitness
-        </label>
-        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
-          <input
-            type="checkbox"
-            checked={hasMedicalOutofPocket}
-            onChange={(e) => setHasMedicalOutofPocket?.(e.target.checked)}
-            className="w-4 h-4 text-[#2563eb] rounded-md"
-          />
-          Out-of-Pocket Medical / Pharmacy
-        </label>
+      <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
+        <span className="text-xs font-black text-[#1B2B4B]">🏥 Health &amp; Wellbeing</span>
+        <div className="flex flex-wrap items-center gap-6">
+          <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasPrivateHealth}
+              onChange={(e) => setHasPrivateHealth(e.target.checked)}
+              className="w-4 h-4 text-[#2563eb] rounded-md"
+            />
+            Private Health Cover
+          </label>
+          <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasGym}
+              onChange={(e) => setHasGym(e.target.checked)}
+              className="w-4 h-4 text-[#2563eb] rounded-md"
+            />
+            Gym / Fitness
+          </label>
+          <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasMedicalOutofPocket}
+              onChange={(e) => setHasMedicalOutofPocket?.(e.target.checked)}
+              className="w-4 h-4 text-[#2563eb] rounded-md"
+            />
+            Out-of-Pocket Medical / Pharmacy
+          </label>
+        </div>
       </div>
 
-      {/* Debt & Pets */}
+      {/* Other Obligations (Debt, Pets, Charity & Family Support) */}
       <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
-        <span className="text-xs font-bold text-[#1B2B4B]">Debt & Pets</span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-zinc-200">
+        <span className="text-xs font-black text-[#1B2B4B]">💳 Other Obligations</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Active Debt */}
+          <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col gap-2">
             <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
               <input
                 type="checkbox"
@@ -342,7 +356,7 @@ export function SetupLifestyleStep({
                 onChange={(e) => setHasDebt?.(e.target.checked)}
                 className="w-4 h-4 text-[#2563eb] rounded-md"
               />
-              Active Debt Repayments
+              💳 Active Debt Repayments
             </label>
             {hasDebt && (
               <div className="flex items-center gap-2 mt-1">
@@ -350,7 +364,7 @@ export function SetupLifestyleStep({
                 <input
                   type="number"
                   placeholder="Monthly Repayment ($)"
-                  value={debtMonthlyRepayment || ''}
+                  value={debtMonthlyRepayment || ""}
                   onChange={(e) => setDebtMonthlyRepayment?.(parseFloat(e.target.value) || 0)}
                   className="w-full px-2.5 py-1 text-xs border border-zinc-200 rounded-lg font-mono"
                 />
@@ -358,7 +372,8 @@ export function SetupLifestyleStep({
             )}
           </div>
 
-          <div className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-zinc-200">
+          {/* Pets */}
+          <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col gap-2">
             <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
               <input
                 type="checkbox"
@@ -366,7 +381,7 @@ export function SetupLifestyleStep({
                 onChange={(e) => setHasPets?.(e.target.checked)}
                 className="w-4 h-4 text-[#2563eb] rounded-md"
               />
-              Pets (Dogs/Cats/Other)
+              🐾 Pets (Dogs/Cats/Other)
             </label>
             {hasPets && (
               <div className="flex items-center gap-2 mt-1">
@@ -382,34 +397,31 @@ export function SetupLifestyleStep({
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Obligations & Giving */}
-      <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/60">
-        <span className="text-xs font-bold text-[#1B2B4B]">Obligations & Giving</span>
-        <div className="bg-white p-3 rounded-xl border border-zinc-200 flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
-            <input
-              type="checkbox"
-              checked={hasCharityGiving}
-              onChange={(e) => setHasCharityGiving?.(e.target.checked)}
-              className="w-4 h-4 text-[#2563eb] rounded-md"
-            />
-            Charity Donations & Family Support
-          </label>
-          {hasCharityGiving && (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs font-bold">$</span>
+          {/* Charity & Family Support */}
+          <div className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col gap-2 sm:col-span-2">
+            <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
               <input
-                type="number"
-                placeholder="Monthly Contribution ($)"
-                value={charityMonthlyAmount || ''}
-                onChange={(e) => setCharityMonthlyAmount?.(parseFloat(e.target.value) || 0)}
-                className="w-full max-w-xs px-2.5 py-1 text-xs border border-zinc-200 rounded-lg font-mono"
+                type="checkbox"
+                checked={hasCharityGiving}
+                onChange={(e) => setHasCharityGiving?.(e.target.checked)}
+                className="w-4 h-4 text-[#2563eb] rounded-md"
               />
-            </div>
-          )}
+              ❤️ Charity Donations &amp; 🤝 Family Support
+            </label>
+            {hasCharityGiving && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-bold">$</span>
+                <input
+                  type="number"
+                  placeholder="Monthly Contribution ($)"
+                  value={charityMonthlyAmount || ""}
+                  onChange={(e) => setCharityMonthlyAmount?.(parseFloat(e.target.value) || 0)}
+                  className="w-full max-w-xs px-2.5 py-1 text-xs border border-zinc-200 rounded-lg font-mono"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -418,8 +430,8 @@ export function SetupLifestyleStep({
         <span className="text-xs font-black uppercase tracking-wider text-zinc-400">
           Weekly Discretionary Spending Estimates
         </span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-1.5 bg-white p-3 rounded-xl border border-zinc-200">
             <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
               <span>🛒 Groceries</span>
               <span className="text-[#2563eb] font-mono">${weeklyGroceries}/wk</span>
@@ -435,9 +447,9 @@ export function SetupLifestyleStep({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 bg-white p-3 rounded-xl border border-zinc-200">
             <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
-              <span>☕ Dining & Fun</span>
+              <span>☕ Dining &amp; Fun</span>
               <span className="text-[#2563eb] font-mono">${weeklyDining}/wk</span>
             </div>
             <input
@@ -451,54 +463,38 @@ export function SetupLifestyleStep({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 bg-white p-3 rounded-xl border border-zinc-200">
             <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
-              <span>🛍️ Personal</span>
+              <span>🛍️ Personal &amp; Buffer</span>
               <span className="text-[#2563eb] font-mono">${weeklyPersonal}/wk</span>
             </div>
             <input
               type="range"
-              min="20"
-              max="300"
+              min="30"
+              max="400"
               step="10"
               value={weeklyPersonal}
               onChange={(e) => setWeeklyPersonal(parseInt(e.target.value))}
               className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
             />
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center text-xs font-bold text-[#1B2B4B]">
-              <span>🛡️ Incidental Buffer</span>
-              <span className="text-[#2563eb] font-mono">${weeklyIncidentals}/wk</span>
-            </div>
-            <input
-              type="range"
-              min="10"
-              max="200"
-              step="10"
-              value={weeklyIncidentals}
-              onChange={(e) => setWeeklyIncidentals?.(parseInt(e.target.value))}
-              className="w-full h-1.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-[#2563eb]"
-            />
-          </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex justify-between items-center pt-4 border-t border-zinc-100">
         <button
           type="button"
           onClick={onBack}
-          className="px-4 py-2 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+          className="px-5 py-2.5 text-xs font-bold text-zinc-500 hover:text-zinc-700"
         >
-          ← Back
+          ← Back to Goals
         </button>
         <button
           type="button"
           onClick={onNext}
           className="px-6 py-3 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-md"
         >
-          Review Estimated Budget →
+          Review Budget Summary →
         </button>
       </div>
     </div>
