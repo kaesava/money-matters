@@ -41,7 +41,7 @@ export default function UpcomingExpenseModal({
   onSuccess,
 }: UpcomingExpenseModalProps) {
   const utils = trpc.useUtils();
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
@@ -62,7 +62,7 @@ export default function UpcomingExpenseModal({
   const recordExpenseMut = trpc.recordExpense.useMutation();
 
   useEffect(() => {
-    const currentTodayStr = new Date().toISOString().split("T")[0];
+    const currentTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
     if (eventToEdit) {
       setName(eventToEdit.name || "");
       setCategoryId(eventToEdit.categoryId || (categories[0]?.id ?? ""));

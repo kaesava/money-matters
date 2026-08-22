@@ -56,7 +56,7 @@ export function QuickExpenseCard({
   onSubmit,
 }: QuickExpenseCardProps) {
   const isIncome = quickType === "CREDIT";
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
   const getMonthYY = useCallback((dStr: string) => {
     const dt = new Date(dStr || todayStr);

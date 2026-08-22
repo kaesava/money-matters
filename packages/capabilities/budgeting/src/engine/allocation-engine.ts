@@ -142,7 +142,13 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   // Helper for GOAL targets (Target-Date & Gap Prioritized)
   const fundGoals = (bucketsList: EngineBucket[]) => {
-    for (const bucket of bucketsList) {
+    const sortedGoals = [...bucketsList].sort((a, b) => {
+      if (!a.targetDate) return 1;
+      if (!b.targetDate) return -1;
+      return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
+    });
+
+    for (const bucket of sortedGoals) {
       const targetCents = toCents(bucket.targetAmount ?? 0);
       const currentCents = Math.max(0, toCents(bucket.currentBalance));
       const gapCents = Math.max(0, targetCents - currentCents);

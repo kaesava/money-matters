@@ -12,7 +12,7 @@ import { DonutRing } from "../components/web/DonutRing";
 import { Logo } from "@money-matters/ui/web";
 import { BLOG_POSTS } from "../lib/blog-data";
 
-const ENABLE_AUTH = process.env.NEXT_PUBLIC_ENABLE_AUTH !== "false";
+const ENABLE_AUTH = process.env.NEXT_PUBLIC_ENABLE_AUTH ? process.env.NEXT_PUBLIC_ENABLE_AUTH === "true" : process.env.NODE_ENV === "production" ? true : false;
 
 function EarlyAccessQueryWatcher({ onTrigger }: { onTrigger: () => void }) {
   const searchParams = useSearchParams();
@@ -535,62 +535,62 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-center space-y-3 mb-12">
             <span className="text-[#2563eb] text-xs font-extrabold uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-              Frequently Asked Questions
+              {t("landing.faqSectionBadge")}
             </span>
             <h2 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
-              Everything You Need to Know About Money Matters
+              {t("landing.faqSectionTitle")}
             </h2>
             <p className="text-sm text-zinc-600 max-w-xl mx-auto">
-              Got questions about automated waterfall cashflow management, mortgage offset savings, or security? We&apos;ve got answers.
+              {t("landing.faqSectionSubtitle")}
             </p>
           </div>
 
           <div className="space-y-4">
             <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
-                <span>How does the 5-Step Cashflow Waterfall engine work?</span>
+                <span>{t("landing.faq1Title")}</span>
                 <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
                   ↓
                 </span>
               </summary>
               <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
-                Money Matters automatically ring-fences your fixed bills and committed savings goals the moment your paycheck arrives. It calculates your safe daily spending velocity ($/day) so you can spend freely without worrying about upcoming bills.
+                {t("landing.faq1Body")}
               </p>
             </details>
 
             <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
-                <span>Can Money Matters help optimize my Australian mortgage offset account?</span>
+                <span>{t("landing.faq2Title")}</span>
                 <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
                   ↓
                 </span>
               </summary>
               <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
-                Yes! Residual surplus funds are automatically swept into your home loan offset reserve, minimizing daily mortgage interest charges while preserving 100% cash liquidity for your family.
+                {t("landing.faq2Body")}
               </p>
             </details>
 
             <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
-                <span>How does Money Matters compare to Excel or Google Sheets budgeting?</span>
+                <span>{t("landing.faq3Title")}</span>
                 <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
                   ↓
                 </span>
               </summary>
               <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
-                Static spreadsheets break when bill dates shift or pay schedules vary between partners. Money Matters is an automated cashflow engine that synchronizes across partners in real-time, alerts you before overdrafts occur, and requires zero manual spreadsheet maintenance.
+                {t("landing.faq3Body")}
               </p>
             </details>
 
             <details className="group bg-[#F7F8FA] p-6 rounded-2xl border border-zinc-200 shadow-2xs transition-all [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex items-center justify-between font-bold text-[#1B2B4B] cursor-pointer text-base">
-                <span>Is my household financial data private and secure?</span>
+                <span>{t("landing.faq4Title")}</span>
                 <span className="text-[#2563eb] group-open:rotate-180 transition-transform font-mono font-black text-lg">
                   ↓
                 </span>
               </summary>
               <p className="mt-4 text-sm text-zinc-600 leading-relaxed">
-                Security and privacy are built into our architecture core. We enforce PostgreSQL Row Level Security (RLS), multi-tenant data isolation, strict HTTPS encryption, and zero PII logging.
+                {t("landing.faq4Body")}
               </p>
             </details>
           </div>
@@ -623,6 +623,7 @@ export default function Home() {
           </span>
           <div className="flex gap-4 font-semibold">
             <a href="/privacy" className="hover:underline text-[#2563eb]">{t("landing.privacyPolicy")}</a>
+            <a href="/terms" className="hover:underline text-[#2563eb]">{t("landing.termsOfService")}</a>
             <a href="mailto:info@moneymatters.kaesava.au" className="hover:underline text-[#2563eb]">Support (info@moneymatters.kaesava.au)</a>
           </div>
         </div>

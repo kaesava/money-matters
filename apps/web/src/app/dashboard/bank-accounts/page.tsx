@@ -212,7 +212,7 @@ export default function BankAccountsDashboardPage() {
             bankProvider: accBankProvider,
             lastKnownBalance: accBalance.trim() || "0.00",
             unbudgetedBuffer: accBuffer.trim() || "0.00",
-            isPrivate: accIsPrivate && !isTrialExpired,
+            isPrivate: accIsPrivate,
           },
         },
         {
@@ -228,7 +228,7 @@ export default function BankAccountsDashboardPage() {
           bankProvider: accBankProvider,
           lastKnownBalance: accBalance.trim() || "0.00",
           unbudgetedBuffer: accBuffer.trim() || "0.00",
-          isPrivate: accIsPrivate && !isTrialExpired,
+          isPrivate: accIsPrivate,
         },
         {
           onSuccess: (newAcc) => {

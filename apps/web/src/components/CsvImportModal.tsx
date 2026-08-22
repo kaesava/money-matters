@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { trpc } from "../lib/trpc";
 import { Spinner } from "@money-matters/ui/web";
 
@@ -63,14 +63,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     statementEndDate?: string | null;
   } | null>(null);
 
+  const [isFlipped, setIsFlipped] = useState(false);
+
   const handleFlipPolarity = () => {
-    if (!parsedData) return;
-    const flippedTx = parsedData.transactions.map((tx) => ({
-      ...tx,
-      flowType: (tx.flowType === "DEBIT" ? "CREDIT" : "DEBIT") as "DEBIT" | "CREDIT",
-    }));
-    setParsedData({ ...parsedData, transactions: flippedTx });
+    setIsFlipped((prev) => !prev);
   };
+
+  const getFlowType = useCallback((tx: ParsedTx) => {
+    if (!isFlipped) return tx.flowType;
+    return tx.flowType === "DEBIT" ? "CREDIT" : "DEBIT";
+  }, [isFlipped]);
 
   // Per-row state
   const [selectedMap, setSelectedMap] = useState<Record<number, boolean>>({});
@@ -83,8 +85,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, { enabled: isOpen });
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
 
-  const categories = categoriesQuery.data ?? [];
-  const incomeSources = incomeSourcesQuery.data ?? [];
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const incomeSources = useMemo(() => incomeSourcesQuery.data ?? [], [incomeSourcesQuery.data]);
   const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
 
   // Default target account if not passed
@@ -165,7 +167,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       if (newCat && newCat.id && parsedData) {
         const nextCat = { ...categoryMap };
         parsedData.transactions.forEach((tx, idx) => {
-          if (selectedMap[idx] && tx.flowType === "DEBIT") {
+          if (selectedMap[idx] && getFlowType(tx) === "DEBIT") {
             nextCat[idx] = newCat.id;
           }
         });
@@ -191,7 +193,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       if (selectedMap[idx]) {
         selCount++;
         const amt = parseFloat(tx.amount) || 0;
-        if (tx.flowType === "DEBIT") {
+        if (getFlowType(tx) === "DEBIT") {
           expSum += amt;
         } else {
           incSum += amt;
@@ -206,26 +208,29 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       selectedCount: selCount,
       duplicateCount: dupCount,
     };
-  }, [transactions, selectedMap]);
+  }, [transactions, selectedMap, getFlowType]);
 
   // Filtered rows for Step 2
   const filteredRows = useMemo(() => {
     return transactions
       .map((tx, idx) => ({ tx, idx }))
-      .filter(({ tx }) => {
+      .filter(({ tx, idx }) => {
         if (hideDuplicates && tx.isDuplicate) return false;
-        if (filterType === "DEBIT" && tx.flowType !== "DEBIT") return false;
-        if (filterType === "CREDIT" && tx.flowType !== "CREDIT") return false;
+        if (filterType === "DEBIT" && getFlowType(tx) !== "DEBIT") return false;
+        if (filterType === "CREDIT" && getFlowType(tx) !== "CREDIT") return false;
         if (filterType === "DUPLICATES" && !tx.isDuplicate) return false;
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
           const matchDesc = tx.description.toLowerCase().includes(q);
           const matchAmt = tx.amount.includes(q);
-          if (!matchDesc && !matchAmt) return false;
+          const catId = categoryMap[idx];
+          const catName = catId ? categories.find((c) => c.id === catId)?.name.toLowerCase() : "";
+          const matchCat = catName ? catName.includes(q) : false;
+          if (!matchDesc && !matchAmt && !matchCat) return false;
         }
         return true;
       });
-  }, [transactions, hideDuplicates, filterType, searchQuery]);
+  }, [transactions, hideDuplicates, filterType, searchQuery, categoryMap, categories, getFlowType]);
 
   if (!isOpen) return null;
 
@@ -297,7 +302,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     if (!catId || !parsedData) return;
     const nextCat: Record<number, string> = { ...categoryMap };
     parsedData.transactions.forEach((tx, idx) => {
-      if (selectedMap[idx] && tx.flowType === "DEBIT") {
+      if (selectedMap[idx] && getFlowType(tx) === "DEBIT") {
         nextCat[idx] = catId;
       }
     });
@@ -324,7 +329,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         date: tx.date,
         description: tx.description,
         amount: tx.amount,
-        flowType: tx.flowType,
+        flowType: getFlowType(tx),
         categoryId: categoryMap[idx] || null,
         incomeSourceId: incomeSourceMap[idx] || null,
         idempotencyKey: tx.idempotencyKey,
@@ -710,16 +715,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                           <td className="p-3">
                             <span
                               className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                tx.flowType === "CREDIT"
+                                getFlowType(tx) === "CREDIT"
                                   ? "bg-emerald-100 text-emerald-800"
                                   : "bg-slate-100 text-slate-700"
                               }`}
                             >
-                              {tx.flowType}
+                              {getFlowType(tx)}
                             </span>
                           </td>
                           <td className="p-3">
-                            {tx.flowType === "DEBIT" ? (
+                            {getFlowType(tx) === "DEBIT" ? (
                               <select
                                 value={categoryMap[idx] || ""}
                                 onChange={(e) =>
@@ -765,10 +770,10 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                           </td>
                           <td
                             className={`p-3 text-right font-mono font-bold tabular-nums ${
-                              tx.flowType === "CREDIT" ? "text-emerald-600" : "text-slate-900"
+                              getFlowType(tx) === "CREDIT" ? "text-emerald-600" : "text-slate-900"
                             }`}
                           >
-                            {tx.flowType === "CREDIT" ? "+" : "-"}${tx.amount}
+                            {getFlowType(tx) === "CREDIT" ? "+" : "-"}${tx.amount}
                           </td>
                           <td className="p-3 text-center">
                             {tx.isDuplicate ? (

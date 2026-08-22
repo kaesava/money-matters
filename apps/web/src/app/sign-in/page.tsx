@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { Button, Input, Logo } from "@money-matters/ui/web";
+import { Button, Input, Logo, Spinner } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,15 +50,15 @@ export default function SignInPage() {
           setUnverifiedEmail(email.trim().toLowerCase());
           setError(t("auth.emailNotVerified", { defaultValue: "Your email address has not been verified yet. Enter the 6-digit code sent to your email:" }));
         } else {
-          setError(result.error.message || "Failed to sign in. Please check your credentials.");
+          setError(result.error.message || t("auth.signInFailed"));
         }
         return;
       }
 
       // Full browser redirect ensures session cookie is sent to middleware and server components
-      window.location.href = "/dashboard";
+      window.location.href = redirectUrl;
     } catch (_err) {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t("auth.unexpectedError"));
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ export default function SignInPage() {
           password,
         });
         if (!signInRes.error) {
-          window.location.href = "/dashboard";
+          window.location.href = redirectUrl;
           return;
         }
       }
@@ -110,10 +112,24 @@ export default function SignInPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: window.location.origin + "/dashboard",
+        callbackURL: window.location.origin + redirectUrl,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign in with Google.");
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await authClient.signIn.social({
+        provider: "apple",
+        callbackURL: window.location.origin + redirectUrl,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sign in with Apple.");
       setLoading(false);
     }
   };
@@ -209,7 +225,7 @@ export default function SignInPage() {
                   disabled={loading}
                   className="text-xs font-bold text-[#00B4A6] hover:underline text-left mt-1"
                 >
-                  ✉️ Resend 6-digit code to {unverifiedEmail}
+                  ✉️ {t("auth.resendCodeTo", { email: unverifiedEmail })}
                 </button>
               </form>
             )}
@@ -271,21 +287,33 @@ export default function SignInPage() {
           <div className="flex-1 h-[1px] bg-zinc-200"></div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors py-2.5 rounded-lg text-sm font-semibold text-zinc-700 disabled:opacity-50"
-          disabled={loading}
-        >
-          <span className="text-lg font-bold text-blue-500">G</span>
-          {t("auth.signInWithGoogle")}
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors py-2.5 rounded-lg text-sm font-semibold text-zinc-700 disabled:opacity-50"
+            disabled={loading}
+          >
+            <span className="text-lg font-bold text-blue-500">G</span>
+            {t("auth.signInWithGoogle")}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAppleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-black border border-black hover:bg-zinc-800 transition-colors py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+            disabled={loading}
+          >
+            <span className="text-lg font-bold text-white"></span>
+            {t("auth.signInWithApple", { defaultValue: "Sign in with Apple" })}
+          </button>
+        </div>
 
         <div className="flex justify-center gap-1.5 text-sm mt-2">
           <span className="text-zinc-500">{t("auth.signUpPrompt")}</span>
           <button
             type="button"
-            onClick={() => router.push("/sign-up")}
+            onClick={() => router.push(`/sign-up${redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`)}
             className="font-bold text-[#00B4A6] hover:underline"
           >
             {t("auth.signUpCta")}
@@ -293,5 +321,13 @@ export default function SignInPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center"><Spinner size="lg" /></div>}>
+      <SignInContent />
+    </Suspense>
   );
 }

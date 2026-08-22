@@ -1,5 +1,5 @@
 import { tenantUsers, categories, tenants, DbOrTx } from "@money-matters/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
 
 /**
@@ -131,6 +131,11 @@ export function acceptInviteHandler(db: DbOrTx) {
         createdBy: userId,
         updatedBy: userId,
       });
+    }
+
+    // Verify user email since they successfully accepted an invite sent to their email
+    if (typeof db.execute === "function") {
+      await db.execute(sql`UPDATE neon_auth.user SET "emailVerified" = true, "updatedAt" = NOW() WHERE id = ${userId} AND ("emailVerified" = false OR "emailVerified" IS NULL)`);
     }
 
     return {

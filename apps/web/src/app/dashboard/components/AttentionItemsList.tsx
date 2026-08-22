@@ -39,7 +39,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
 
   if (!items || items.length === 0) return null;
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
   // Sort: Overdue first (Red tier), then Upcoming within 3 days (Amber tier)
   const sortedItems = [...items].sort((a, b) => {

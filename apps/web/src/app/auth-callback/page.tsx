@@ -11,10 +11,10 @@ export default function AuthCallbackPage() {
     // Extract the JWT session token
     const token = session?.session?.token;
     if (token) {
-      console.log("Redirecting back to mobile app with token...");
+      if (process.env.NODE_ENV === "development") console.log("Redirecting back to mobile app with token...");
       window.location.href = `moneymatters://home?token=${token}`;
     } else {
-      console.log("No token found, redirecting back to mobile app home...");
+      if (process.env.NODE_ENV === "development") console.log("No token found, redirecting back to mobile app home...");
       window.location.href = "moneymatters://home";
     }
   }, [session, isPending]);

@@ -6,6 +6,7 @@ import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { Spinner } from "@money-matters/ui/web";
 import { InfoTooltip } from "@money-matters/ui";
+import { authClient } from "../../lib/auth";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
 
 export interface CategoryFormModalProps {
@@ -19,10 +20,12 @@ export interface CategoryFormModalProps {
     monthlyAmount?: string | null;
     targetAmount?: string | null;
     targetDate?: string | null;
+    everydayAllowanceAmount?: string | null;
     everydayTargetKeepAmount?: string | null;
     isEssential?: boolean | null;
     isSurplusTarget?: boolean | null;
     budgetFrequency?: string | null;
+    userId?: string | null;
   } | null;
   onSuccess?: () => void;
 }
@@ -33,6 +36,7 @@ export function CategoryFormModal({
   categoryToEdit,
   onSuccess,
 }: CategoryFormModalProps) {
+  const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
   const { status } = useSubscriptionStatus();
   const isTrialExpired = status?.isTrialExpired ?? false;
@@ -187,7 +191,7 @@ export function CategoryFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? t("categories.editTitle", { name: categoryToEdit.name }) : t("categories.createTitle")}
-      subtitle={isEdit ? t("categories.updateSubtitle") : t("categories.createSubtitle")}
+      subtitle={isEdit && session?.user?.id !== categoryToEdit.userId ? "Read-only. Only the owner can edit this pool." : (isEdit ? t("categories.updateSubtitle") : t("categories.createSubtitle"))}
       isDirty={isDirty}
       onSave={handleSave}
     >
@@ -204,6 +208,12 @@ export function CategoryFormModal({
           </div>
         )}
 
+        {isEdit && session?.user?.id !== categoryToEdit.userId && (
+          <div className="p-3 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl">
+            You are not the owner of this pool. You cannot modify its details or privacy settings.
+          </div>
+        )}
+
         {/* Pool Name */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
@@ -213,9 +223,9 @@ export function CategoryFormModal({
             type="text"
             placeholder={t("categories.namePlaceholder")}
             value={name}
-            disabled={type === "EVERYDAY" && name === "Everyday Incidental Buffer"}
+            disabled={(type === "EVERYDAY" && name === "Everyday Incidental Buffer") || (isEdit && session?.user?.id !== categoryToEdit.userId)}
             onChange={(e) => setName(e.target.value)}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 text-zinc-900"
+            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
           />
         </div>
 
@@ -226,8 +236,9 @@ export function CategoryFormModal({
           </label>
           <select
             value={type}
+            disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
             onChange={(e) => setType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
           >
             <option value="REGULAR">{t("categories.typeRegular")}</option>
             <option value="GOAL">{t("categories.typeGoal")}</option>
@@ -241,9 +252,9 @@ export function CategoryFormModal({
             <input
               type="checkbox"
               checked={isPrivate}
-              disabled={isTrialExpired && !isPrivate}
+              disabled={(isTrialExpired && !isPrivate) || (isEdit && session?.user?.id !== categoryToEdit.userId)}
               onChange={(e) => setIsPrivate(e.target.checked)}
-              className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+              className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 disabled:opacity-75"
             />
             <span>{t("categories.privatePoolLabel")}</span>
             <InfoTooltip content={t("categories.privatePoolTooltip")} />
@@ -268,8 +279,9 @@ export function CategoryFormModal({
                   step="0.01"
                   placeholder="0.00"
                   value={monthlyAmount}
+                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
                   onChange={(e) => setMonthlyAmount(e.target.value)}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -278,10 +290,11 @@ export function CategoryFormModal({
                 </label>
                 <select
                   value={budgetFrequency}
+                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
                   onChange={(e) =>
                     setBudgetFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY")
                   }
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 >
                   <option value="WEEKLY">Weekly</option>
                   <option value="FORTNIGHTLY">Fortnightly</option>
@@ -295,8 +308,9 @@ export function CategoryFormModal({
               <input
                 type="checkbox"
                 checked={isEssential}
+                disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
                 onChange={(e) => setIsEssential(e.target.checked)}
-                className="w-4 h-4 text-[#2563eb] rounded"
+                className="w-4 h-4 text-[#2563eb] rounded disabled:opacity-75"
               />
               {t("categories.priorityBillLabel")}
             </label>
@@ -315,8 +329,9 @@ export function CategoryFormModal({
                   step="0.01"
                   placeholder="0.00"
                   value={targetAmount}
+                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
                   onChange={(e) => setTargetAmount(e.target.value)}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -326,8 +341,9 @@ export function CategoryFormModal({
                 <input
                   type="date"
                   value={targetDate}
+                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
                   onChange={(e) => setTargetDate(e.target.value)}
-                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+                  className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 />
               </div>
             </div>
@@ -342,8 +358,9 @@ export function CategoryFormModal({
               <input
                 type="checkbox"
                 checked={isSurplusTarget}
+                disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
                 onChange={(e) => setIsSurplusTarget(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded"
+                className="w-4 h-4 text-emerald-600 rounded disabled:opacity-75"
               />
               🏦 Surplus Sweep Target (Sweeps leftover everyday spending cash into this pool on payday)
             </label>
@@ -360,8 +377,9 @@ export function CategoryFormModal({
               step="0.01"
               placeholder="e.g. 500.00"
               value={everydayTargetKeepAmount}
+              disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
               onChange={(e) => setEverydayTargetKeepAmount(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
             />
           </div>
         )}
@@ -377,8 +395,8 @@ export function CategoryFormModal({
           </button>
           <button
             type="submit"
-            disabled={submitting}
-            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2"
+            disabled={submitting || (isEdit && session?.user?.id !== categoryToEdit.userId)}
+            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 disabled:bg-zinc-400 disabled:opacity-75"
           >
             {submitting && <Spinner size="sm" />}
             {isEdit ? t("common.saveChanges") : t("categories.createButton")}

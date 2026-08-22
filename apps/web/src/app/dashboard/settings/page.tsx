@@ -7,6 +7,7 @@ import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
 
+import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { ProfileSection } from "./components/ProfileSection";
 import { SubscriptionSection } from "./components/SubscriptionSection";
 import { PartnerInviteSection } from "./components/PartnerInviteSection";
@@ -16,6 +17,7 @@ import { PrivacySection } from "./components/PrivacySection";
 export default function SettingsPage() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
+  const { status } = useSubscriptionStatus();
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -34,14 +36,14 @@ export default function SettingsPage() {
 
       {/* Composable Vertical Slices */}
       <ProfileSection user={session?.user} />
-      <SubscriptionSection isTrialOrActive={Boolean(userPrefQuery.data)} />
+      <SubscriptionSection status={status} />
       <PartnerInviteSection />
       <PreferencesSection currentTimezone={currentTimezone} />
 
       {/* Management Quick Links */}
       <section className="flex flex-col gap-2">
         <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-          Management & Logs
+          {t("settings.managementTitle")}
         </p>
         <div
           className="p-4 rounded-xl flex flex-col gap-3 divide-y divide-zinc-100"
@@ -51,35 +53,35 @@ export default function SettingsPage() {
             href="/dashboard/bank-accounts"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-1 first:pt-0"
           >
-            <span>🏦 Bank Accounts & Statement Import</span>
+            <span>🏦 {t("settings.bankAccountsLink")}</span>
             <span>→</span>
           </a>
           <a
             href="/dashboard/transactions"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5"
           >
-            <span>📜 Transaction History & Itemized Ledger</span>
+            <span>📜 {t("settings.transactionHistoryLink")}</span>
             <span>→</span>
           </a>
           <a
             href="/dashboard/settings/history"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5"
           >
-            <span>💸 Payday Allocation History</span>
+            <span>💸 {t("settings.allocationHistoryLink")}</span>
             <span>→</span>
           </a>
           <a
             href="/dashboard/settings/archived"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5"
           >
-            <span>📦 Archived Categories & Bills</span>
+            <span>📦 {t("settings.archivedLink")}</span>
             <span>→</span>
           </a>
           <a
             href="/dashboard/settings/notifications"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5"
           >
-            <span>🔔 Notification Preferences</span>
+            <span>🔔 {t("settings.notificationsLink")}</span>
             <span>→</span>
           </a>
         </div>

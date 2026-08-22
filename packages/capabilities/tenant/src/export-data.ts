@@ -9,6 +9,8 @@ import {
   fileNotes, 
   userPreferences,
   tenantUserPreferences,
+  allocationPlans,
+  allocationPlanLines,
   DbOrTx
 } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
@@ -84,6 +86,17 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(fileNotes)
       .where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
 
+    // 6.5 Fetch allocation plans
+    const userAllocationPlans = await db
+      .select()
+      .from(allocationPlans)
+      .where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
+
+    const userAllocationPlanLines = await db
+      .select()
+      .from(allocationPlanLines)
+      .where(and(eq(allocationPlanLines.tenantId, tenantId), eq(allocationPlanLines.appId, appId)));
+
     // 7. Fetch user preferences
     const [globalPrefs] = await db
       .select()
@@ -113,6 +126,8 @@ export function exportMyDataHandler(db: DbOrTx) {
       transactionLedger: userLedger,
       bankAccounts: userBankAccounts,
       fileNotes: userFileNotes,
+      allocationPlans: userAllocationPlans,
+      allocationPlanLines: userAllocationPlanLines,
     };
 
     const csvFiles = {
@@ -121,6 +136,8 @@ export function exportMyDataHandler(db: DbOrTx) {
       "expense_sources.csv": arrayToCsv(userExpenseSources),
       "transaction_ledger.csv": arrayToCsv(userLedger),
       "bank_accounts.csv": arrayToCsv(userBankAccounts),
+      "allocation_plans.csv": arrayToCsv(userAllocationPlans),
+      "allocation_plan_lines.csv": arrayToCsv(userAllocationPlanLines),
     };
 
     return {

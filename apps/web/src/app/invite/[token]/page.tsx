@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '../../../lib/trpc';
+import { authClient } from '../../../lib/auth';
 import { Spinner } from '@money-matters/ui/web';
 import { t } from '@money-matters/i18n';
 
@@ -13,6 +14,7 @@ export default function AcceptInvitePage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const { data: session, isPending } = authClient.useSession();
   const acceptInviteMutation = trpc.acceptInvite.useMutation({
     onSuccess: () => {
       setStatus('success');
@@ -27,20 +29,51 @@ export default function AcceptInvitePage() {
   const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
+    if (isPending) return;
+    if (!session?.user) {
+      setStatus('loading'); // Just stop loading to show unauth state below
+      return;
+    }
     if (token && !hasTriggeredRef.current) {
       hasTriggeredRef.current = true;
       acceptInviteMutation.mutate({ inviteToken: token });
     }
-  }, [token, acceptInviteMutation]);
+  }, [token, acceptInviteMutation, session, isPending]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-sm border border-gray-200 text-center">
-        {status === 'loading' && (
+        {(status === 'loading' && isPending) && (
           <div className="space-y-4">
             <Spinner size="lg" className="text-[#00B4A6] mx-auto" />
             <h1 className="text-xl font-bold text-gray-900">{t("partner.acceptTitle")}</h1>
             <p className="text-sm text-gray-500">{t("partner.acceptSubtitle")}</p>
+          </div>
+        )}
+
+        {(status === 'loading' && !isPending && !session?.user) && (
+          <div className="space-y-4">
+            <h1 className="text-xl font-bold text-gray-900">Join Household</h1>
+            <p className="text-sm text-gray-500">Create an account to accept your partner&apos;s invite.</p>
+            <div className="flex flex-col gap-3 mt-4">
+              <button
+                type="button"
+                onClick={() => router.push(`/sign-up?redirect=/invite/${token}`)}
+                className="bg-[#00B4A6] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-teal-600 transition-colors w-full"
+              >
+                Sign Up
+              </button>
+              <p className="text-xs text-gray-500">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => router.push(`/sign-in?redirect=/invite/${token}`)}
+                  className="font-bold text-[#00B4A6] hover:underline"
+                >
+                  Sign In
+                </button>
+              </p>
+            </div>
           </div>
         )}
 

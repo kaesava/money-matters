@@ -56,7 +56,7 @@ export function SetupGoalsStep({
   const [customName, setCustomName] = useState("");
   const [customTarget, setCustomTarget] = useState("5000");
   const [customDate, setCustomDate] = useState("");
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
   const isPresetActive = (name: string) => goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
 

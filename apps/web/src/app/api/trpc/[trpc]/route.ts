@@ -93,7 +93,7 @@ async function handleProxy(req: NextRequest) {
     const targetUrl = `${apiBase}/trpc${path}${url.search}`;
 
     if (process.env.NODE_ENV === "development") {
-      console.log(`[DEBUG tRPC Proxy] Forwarding ${req.method} to ${targetUrl} (Cookie present: ${req.headers.has("cookie")})`);
+      if (process.env.NODE_ENV === "development") console.log(`[DEBUG tRPC Proxy] Forwarding ${req.method} to ${targetUrl} (Cookie present: ${req.headers.has("cookie")})`);
     }
 
     const headers = new Headers();

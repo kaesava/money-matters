@@ -95,7 +95,7 @@ export default function HistoryPage() {
     if (sorted.length === 0) return;
     const headers = ["Date", "Bucket", "Flow", "Amount", "Source", "What for"];
     const rows = sorted.map((tx: TransactionItem) => [
-      `"${new Date(tx.recordedAt).toISOString().split("T")[0]}"`,
+      `"${new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(tx.recordedAt))}"`,
       `"${tx.categoryName || "Uncategorized"}"`,
       `"${tx.flowType}"`,
       `"${tx.amount}"`,
@@ -107,7 +107,7 @@ export default function HistoryPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `history_export_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `history_export_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date())}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

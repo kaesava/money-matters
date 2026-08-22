@@ -13,6 +13,7 @@ import { TrialEndedModal } from "../../components/TrialEndedModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
 import { Logo, Spinner } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
+import { TenantSwitcher } from "../../components/TenantSwitcher";
 
 const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 
@@ -49,7 +50,7 @@ const NAV_ITEMS = [
   },
   {
     key: "bank-accounts",
-    label: () => "Accounts",
+    label: () => t("nav.accounts"),
     href: "/dashboard/bank-accounts",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
@@ -83,11 +84,15 @@ const NAV_ITEMS = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, isPending, error: sessionError } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const [isExchanging, setIsExchanging] = useState(false);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
+  const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
+  const createTenant = trpc.createTenant.useMutation();
+
+  const hasMultipleTenants = (tenantsQuery.data?.length ?? 0) > 1;
 
   const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
   const prefs = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID] as { locale?: "en" | "ja" } | undefined;
@@ -98,6 +103,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setLanguage(userLocale);
     }
   }, [userLocale]);
+
+  // Tenant Creation Guard: if user has 0 tenants (e.g. signed up via Google), create one and redirect to setup
+  useEffect(() => {
+    if (
+      !isPending &&
+      session?.user &&
+      !tenantsQuery.isLoading &&
+      tenantsQuery.data &&
+      tenantsQuery.data.length === 0 &&
+      !createTenant.isPending &&
+      !createTenant.isSuccess
+    ) {
+      createTenant.mutate({ name: session.user.name || "My Finances" }, {
+        onSuccess: () => {
+          tenantsQuery.refetch().then(() => {
+            router.replace("/setup");
+          });
+        }
+      });
+    }
+  }, [isPending, session, tenantsQuery.isLoading, tenantsQuery.data, createTenant, router, tenantsQuery]);
+
 
   // Zero-Categories Guard: redirect to setup wizard if user has 0 categories and hasn't explicitly cancelled/completed setup
   useEffect(() => {
@@ -121,18 +148,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const verifier = params.get("neon_auth_session_verifier");
     if (verifier) {
       setIsExchanging(true);
-      console.log("[Auth Exchange] Exchanging verifier:", verifier);
       fetch(`/api/auth/get-session?neon_auth_session_verifier=${verifier}`)
-        .then((res) => {
-          console.log("[Auth Exchange] Verifier exchange response status:", res.status);
+        .then(() => {
           
           // Clear verifier from query string and reload to /dashboard with cookie in place
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete("neon_auth_session_verifier");
           window.location.href = newUrl.pathname;
         })
-        .catch((err) => {
-          console.error("[Auth Exchange] Error exchanging verifier:", err);
+        .catch(() => {
         })
         .finally(() => {
           setIsExchanging(false);
@@ -141,12 +165,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG DashboardLayout] isPending:", isPending, "isExchanging:", isExchanging, "session:", session, "error:", sessionError);
+    console.log("[DEBUG DashboardLayout] isPending:", isPending, "isExchanging:", isExchanging);
   }
   
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidebar_collapsed") === "true";
+    }
+    return false;
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key === "?") {
+        setShowShortcutsModal((prev) => !prev);
+      } else if (e.key === "Escape") {
+        setShowShortcutsModal(false);
+      } else if (e.key === "n" || e.key === "N") {
+        setQuickExpenseOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     await authClient.signOut();
@@ -188,7 +241,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setQuickExpenseOpen(true);
       } else if (e.key === "/") {
         e.preventDefault();
-        const searchInput = document.getElementById("category-search-input");
+        const searchInput = document.querySelector<HTMLInputElement>('[data-search-input]') || document.querySelector<HTMLInputElement>('input[type="search"]') || document.querySelector<HTMLInputElement>('input[placeholder*="Search"]');
         if (searchInput) {
           searchInput.focus();
         }
@@ -241,6 +294,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
       </div>
+      
+      {hasMultipleTenants && !sidebarCollapsed && (
+        <div className="px-4 py-3 border-b border-white/10 shrink-0">
+          <TenantSwitcher />
+        </div>
+      )}
 
       {/* Navigation items */}
       <nav className="flex-1 px-4 py-6 flex flex-col justify-between overflow-y-auto">
@@ -329,7 +388,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Sidebar Collapse Toggle Button */}
           <button
-            onClick={() => setSidebarCollapsed((c) => !c)}
+            onClick={() => setSidebarCollapsed((c) => {
+              const next = !c;
+              localStorage.setItem("sidebar_collapsed", String(next));
+              return next;
+            })}
             className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50 active:scale-95 transition-transform"
             aria-label="Toggle sidebar"
           >
@@ -429,6 +492,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <QuickExpenseDrawer
               onClose={() => setQuickExpenseOpen(false)}
             />
+          )}
+
+          {showShortcutsModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+                <button
+                  onClick={() => setShowShortcutsModal(false)}
+                  className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <h2 className="text-xl font-bold text-[#1B2B4B] mb-6 flex items-center gap-2">
+                  <span className="text-[#2563eb]">⌘</span> {t("keyboardShortcuts.title")}
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.quickExpense")}</span>
+                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">N</kbd>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.search")}</span>
+                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">/</kbd>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.shortcuts")}</span>
+                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">?</kbd>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.close")}</span>
+                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">Esc</kbd>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

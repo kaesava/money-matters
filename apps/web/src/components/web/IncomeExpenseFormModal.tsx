@@ -59,7 +59,7 @@ export function IncomeExpenseFormModal({
   const [receivingAccountId, setReceivingAccountId] = useState("");
   const [isRecurring, setIsRecurring] = useState(true);
   const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -82,7 +82,7 @@ export function IncomeExpenseFormModal({
         setFrequency("MONTHLY");
       }
 
-      setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : new Date().toISOString().split("T")[0]);
+      setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
     } else {
       setName("");
       setAmount("");
@@ -90,7 +90,7 @@ export function IncomeExpenseFormModal({
       setReceivingAccountId(bankAccounts[0]?.id || "");
       setIsRecurring(true);
       setFrequency("MONTHLY");
-      setStartDate(new Date().toISOString().split("T")[0]);
+      setStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
     }
     setErrorMsg("");
   }, [sourceToEdit, isOpen, bankAccounts, categories]);

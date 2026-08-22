@@ -2,6 +2,7 @@
 
 import React, { useId } from "react";
 import { InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
@@ -197,17 +198,22 @@ export function BankAccountFormModal({
           </div>
         </div>
 
-        <label htmlFor={privateCheckId} className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-slate-50 p-3 rounded-xl border border-zinc-200">
-          <input
-            id={privateCheckId}
-            type="checkbox"
-            checked={accIsPrivate}
-            disabled={isTrialExpired}
-            onChange={(e) => setAccIsPrivate(e.target.checked)}
-            className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb]"
-          />
-          <span>🔒 Private Personal Account {isTrialExpired ? "(Trial Expired)" : "(Hidden from other users)"}</span>
-        </label>
+        <div className={`flex items-center gap-2 p-3 rounded-xl border ${isTrialExpired ? 'bg-zinc-100 border-zinc-200 opacity-70' : 'bg-slate-50 border-zinc-200'}`}>
+          <label htmlFor={privateCheckId} className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 flex-1">
+            <input
+              id={privateCheckId}
+              type="checkbox"
+              checked={accIsPrivate}
+              disabled={isTrialExpired}
+              onChange={(e) => setAccIsPrivate(e.target.checked)}
+              className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
+            />
+            <span>{t("bankAccounts.privatePersonalAccount", { defaultValue: "🔒 Private Personal Account (Hidden from other users)" })}</span>
+          </label>
+          {isTrialExpired && (
+            <InfoTooltip content={t("bankAccounts.upgradeToPrivate", { defaultValue: "Upgrade to Premium to mark accounts as private" })} />
+          )}
+        </div>
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
           <button

@@ -52,10 +52,10 @@ export const TenantSwitcher: React.FC = () => {
           ))}
           <div className="border-t border-slate-100 mt-2 pt-2 px-3">
             <button
-              onClick={() => alert("Partner invite link: Share your household invite code in settings.")}
+              onClick={() => window.location.href = '/dashboard/settings'}
               className="text-xs text-blue-600 font-bold hover:underline"
             >
-              + Join or Invite Partner
+              {t("tenantSwitcher.joinOrInvite")}
             </button>
           </div>
         </div>

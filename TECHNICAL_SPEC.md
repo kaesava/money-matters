@@ -137,7 +137,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 ### 5.2 5-Step Waterfall Cascade Engine & Category Bucket Rules
 - **Category Bucket Rules**:
   - **`EVERYDAY` & `REGULAR` (Bills)**: Managed at **overall pool level**. Categories specify monthly targets to compute total bucket target budget. Spending occurs against pooled balances (pooled discretionary cash or pooled bills balance).
-  - **`GOAL` (Save Toward)**: Managed **individually per category** with dedicated target balances, target dates, and progress metrics.
+  - **`GOAL` (Save Toward)**: Managed **individually per category** with dedicated target balances, target dates, and progress metrics. Goal sorting logic automatically places high-priority or nearest-term goals at the top.
 - **Dynamic Paycheck Frequency Engine (`parseRruleFrequencyDays`)**: Automatically evaluates income source recurrence rules (`rrule`) to calculate allocation period days: `WEEKLY` (7 days), `FORTNIGHTLY` (14 days), `MONTHLY` (30 days), and `ANNUALLY`/`YEARLY` (365 days), ensuring prorated target calculations scale precisely with user income schedules.
 - **Category UI Screen**: Organized into 3 distinct sections (Everyday Spending [collapsable], Regular Bills [collapsable], Save Toward Goals).
 1. **`DEFICIT REPAIR` (Step 0)**: Priority 1 restoring negative category balances (`currentBalance < 0`) to $0.
@@ -191,6 +191,9 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 
 ### 5.8 Database & Network Optimization Standards
 
+- **Timezone-Aware Formatting**: All dates are stored in UTC within the database. The presentation layer strictly uses `Intl.DateTimeFormat` configured with AEST/en-AU to ensure timezone-aware formatting across all transaction ledgers and reports.
+- **tRPC/Auth Proxy Logging Guards**: Client & Server Log Scrubbing is strictly enforced. Auth tokens, JWT credentials, and PII must never be emitted to stdout/stderr via `console.log`. Logger abstractions automatically sanitize sensitive fields in the tRPC and auth proxy paths.
+- **Data Export Details**: The `exportTenantData` capability securely generates a CSV bundle including complete transaction ledgers, allocation plans, and historical allocation configurations, supporting the tenant's right to data sovereignty.
 - **Bulk Database Operations (Anti-N+1)**: All database writes and queries must be batched. Individual inserts or queries in loops are forbidden. Plan lines and ledger entries are prepared in-memory and written in bulk. Deletions and status transitions must use `inArray` operators (e.g. archiving category arrays or deleting account relations) to prevent query waterfalls.
 - **Parallelized Network Operations**: Onboarding configurations (e.g., category setup or schedule target insertions) and `reSetupBudget` category updates execute mutations concurrently using batch wrappers (`Promise.all`), preventing sequential async waterfalls.
 - **Strict Whitelisted CORS**: Cross-origin resource sharing (CORS) is restricted to whitelisted domains (`*.kaesava.au` and dev `localhost`). Global wildcards (`origin: true`) are explicitly banned.

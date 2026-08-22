@@ -97,7 +97,7 @@ function BurstModal({
   isPendingMarkPaid: boolean;
   isPendingSkip: boolean;
 }) {
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
   const sched = parseSchedule(source.rrule, source.startDate);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");

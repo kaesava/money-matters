@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { AccountDeletionSection } from "./AccountDeletionSection";
 
 import { Logo } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export const metadata: Metadata = {
   title: "Delete Your Account & Data | Money Matters",
@@ -46,7 +47,7 @@ export default function DeleteAccountPage() {
 
         {/* Who is this for */}
         <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3">
-          <h2 className="text-lg font-bold text-[#1B2B4B]">About this page</h2>
+          <h2 className="text-lg font-bold text-[#1B2B4B]">{t("privacy.aboutThisPage")}</h2>
           <p className="text-sm text-slate-600 leading-relaxed">
             This page is for users of the <strong>Money Matters</strong> household budgeting app
             (published on Google Play by Kaesava). You can use the steps below to request complete
@@ -66,9 +67,9 @@ export default function DeleteAccountPage() {
                 1
               </div>
               <div className="space-y-1">
-                <h3 className="font-bold text-[#1B2B4B]">Email us your deletion request</h3>
+                <h3 className="font-bold text-[#1B2B4B]">{t("privacy.deleteStep1Title")}</h3>
                 <p className="text-sm text-slate-600">
-                  Send an email to{" "}
+                  {t("privacy.deleteStep1Body")}{" "}
                   <a
                     href="mailto:info@moneymatters.kaesava.au?subject=Account%20Deletion%20Request%20%E2%80%94%20Money%20Matters&body=Hi%2C%0A%0AI%20would%20like%20to%20request%20the%20deletion%20of%20my%20Money%20Matters%20account%20and%20all%20associated%20data.%0A%0AEmail%20address%20registered%3A%20%5Byour%20email%5D%0AReason%20(optional)%3A%20%5Byour%20reason%5D%0A%0AThank%20you."
                     className="font-semibold text-[#2563eb] hover:underline"
@@ -89,10 +90,9 @@ export default function DeleteAccountPage() {
                 2
               </div>
               <div className="space-y-1">
-                <h3 className="font-bold text-[#1B2B4B]">Include your account email address</h3>
+                <h3 className="font-bold text-[#1B2B4B]">{t("privacy.deleteStep2Title")}</h3>
                 <p className="text-sm text-slate-600">
-                  Provide the exact email address you used to register your Money Matters account.
-                  This is required so we can locate and verify your account before proceeding.
+                  {t("privacy.deleteStep2Body")}
                 </p>
               </div>
             </div>
@@ -103,10 +103,9 @@ export default function DeleteAccountPage() {
                 3
               </div>
               <div className="space-y-1">
-                <h3 className="font-bold text-[#1B2B4B]">We confirm receipt within 3 business days</h3>
+                <h3 className="font-bold text-[#1B2B4B]">{t("privacy.deleteStep3Title")}</h3>
                 <p className="text-sm text-slate-600">
-                  Our team will send a confirmation reply acknowledging your request. We may ask for
-                  identity verification if the request cannot be matched to an active account.
+                  {t("privacy.deleteStep3Body")}
                 </p>
               </div>
             </div>
@@ -117,11 +116,9 @@ export default function DeleteAccountPage() {
                 4
               </div>
               <div className="space-y-1">
-                <h3 className="font-bold text-[#1B2B4B]">Deletion completed within 30 days</h3>
+                <h3 className="font-bold text-[#1B2B4B]">{t("privacy.deleteStep4Title")}</h3>
                 <p className="text-sm text-slate-600">
-                  Your account and associated personal data will be permanently deleted within 30
-                  calendar days of verification. You will receive a final confirmation email once
-                  the deletion is complete.
+                  {t("privacy.deleteStep4Body")}
                 </p>
               </div>
             </div>
@@ -130,19 +127,10 @@ export default function DeleteAccountPage() {
 
         {/* What gets deleted */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-bold text-[#1B2B4B]">What Data Is Deleted</h2>
+          <h2 className="text-2xl font-bold text-[#1B2B4B]">{t("privacy.whatGetsDeleted")}</h2>
           <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
             <ul className="space-y-3 text-sm text-slate-700">
-              {[
-                "Your name, email address, and authentication credentials",
-                "All household and tenant membership records",
-                "All budget categories, allocation plans, and spending waterfall configurations",
-                "All income and expense events, amounts, and notes",
-                "All bank account records and transaction ledger entries",
-                "All financial file notes and attachments",
-                "All notification preferences and device push tokens",
-                "All session tokens and login history",
-              ].map((item) => (
+              {[t("privacy.delItem1"), t("privacy.delItem2"), t("privacy.delItem3"), t("privacy.delItem4"), t("privacy.delItem5"), t("privacy.delItem6"), t("privacy.delItem7"), t("privacy.delItem8")].map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <span className="text-[#ba1a1a] font-bold mt-0.5 flex-shrink-0">✗</span>
                   <span>{item}</span>
@@ -154,28 +142,13 @@ export default function DeleteAccountPage() {
 
         {/* What is retained */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-bold text-[#1B2B4B]">What May Be Retained (and Why)</h2>
+          <h2 className="text-2xl font-bold text-[#1B2B4B]">{t("privacy.whatMayBeRetained")}</h2>
           <div className="p-6 bg-amber-50 border border-amber-200 rounded-2xl shadow-sm space-y-3">
             <p className="text-sm text-amber-800 font-medium">
-              In limited circumstances required by Australian law, we may retain de-identified
-              records for a retention period:
+              {t("privacy.whatMayBeRetainedSub")}
             </p>
             <ul className="space-y-3 text-sm text-amber-900">
-              {[
-                {
-                  item: "Aggregated, de-identified usage metrics",
-                  note: "Retained for up to 7 years for service improvement; cannot be linked back to you",
-                },
-                {
-                  item: "Records required by Australian taxation or financial regulations",
-                  note:
-                    "May be retained for up to 7 years as required by the Corporations Act 2001 (Cth)",
-                },
-                {
-                  item: "Security audit logs",
-                  note: "Retained for 90 days for fraud prevention; automatically purged after",
-                },
-              ].map(({ item, note }) => (
+              {[{item: t("privacy.retainItem1"), note: t("privacy.retainNote1")}, {item: t("privacy.retainItem2"), note: t("privacy.retainNote2")}, {item: t("privacy.retainItem3"), note: t("privacy.retainNote3")}].map(({ item, note }) => (
                 <li key={item} className="flex items-start gap-2">
                   <span className="text-amber-600 font-bold mt-0.5 flex-shrink-0">⚠</span>
                   <span>
@@ -189,9 +162,9 @@ export default function DeleteAccountPage() {
 
         {/* Contact section */}
         <section className="p-6 bg-[#1B2B4B] text-white rounded-2xl shadow-md space-y-3">
-          <h2 className="text-xl font-bold">Privacy Contact</h2>
+          <h2 className="text-xl font-bold">{t("privacy.privacyContact")}</h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            For all data, privacy, or deletion enquiries, contact us at:
+            {t("privacy.privacyContactSub")}
           </p>
           <div className="space-y-1 text-sm">
             <div>
@@ -204,16 +177,16 @@ export default function DeleteAccountPage() {
               </a>
             </div>
             <div>
-              <strong>Developer:</strong> Kaesava, Australia
+              <strong>{t("privacy.devLabel")}</strong> Kaesava, Australia
             </div>
             <div>
-              <strong>App:</strong> Money Matters — Household Budget Manager
+              <strong>{t("privacy.appLabel")}</strong> Money Matters — Household Budget Manager
             </div>
           </div>
         </section>
 
         <p className="text-xs text-slate-400 text-center">
-          This page fulfils Google Play Data Safety requirements for account deletion.
+          {t("privacy.googlePlayNotice")}
           &nbsp;·&nbsp;
           <Link href="/privacy" className="underline hover:text-slate-600">
             Full Privacy Policy

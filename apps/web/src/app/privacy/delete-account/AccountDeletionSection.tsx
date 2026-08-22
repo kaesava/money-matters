@@ -5,6 +5,7 @@ import Link from "next/link";
 import { trpc } from "../../../lib/trpc";
 import { authClient } from "../../../lib/auth";
 import { Spinner } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export function AccountDeletionSection() {
   const { data: session } = authClient.useSession();
@@ -46,7 +47,7 @@ export function AccountDeletionSection() {
     setMessage(null);
     try {
       await deleteMutation.mutateAsync();
-      setMessage("Your account and all associated data have been permanently deleted.");
+      setMessage(t("privacy.deletionSuccess"));
       setTimeout(async () => {
         await authClient.signOut();
         window.location.href = "/";
@@ -61,23 +62,23 @@ export function AccountDeletionSection() {
   return (
     <section className="p-6 bg-white border border-red-200 rounded-2xl shadow-sm space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-[#ba1a1a]">Instant Account Erasure</h2>
+        <h2 className="text-xl font-bold text-[#ba1a1a]">{t("privacy.instantErasure")}</h2>
         <Link
           href="/dashboard/settings"
           className="text-xs font-bold text-[#2563eb] hover:underline"
         >
-          ← Back to Settings
+          {t("privacy.backToSettings")}
         </Link>
       </div>
       <p className="text-sm text-slate-600">
-        You are currently signed in as <strong>{session.user.email}</strong>. You can export your data and permanently delete your account immediately.
+        {t("privacy.signedInAs")}<strong>{session.user.email}</strong>{t("privacy.signedInAsEnd")}
       </p>
 
       {/* Step 1: Download data */}
       <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-        <h3 className="text-sm font-bold text-[#1B2B4B]">Step 1: Export financial data (optional)</h3>
+        <h3 className="text-sm font-bold text-[#1B2B4B]">{t("privacy.step1ExportTitle")}</h3>
         <p className="text-xs text-slate-600">
-          Save a complete copy of your budget categories, income, expenses, transactions, and bank accounts to your local device before deletion.
+          {t("privacy.step1ExportBody")}
         </p>
         <button
           onClick={handleDownload}
@@ -85,13 +86,13 @@ export function AccountDeletionSection() {
           className="px-4 py-2 bg-[#2563eb] text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-1.5"
         >
           {exportQuery.isFetching && <Spinner size="sm" />}
-          {downloaded ? "✓ Data Downloaded (Click to re-download)" : "📥 Export My Data"}
+          {downloaded ? t("privacy.dataDownloaded") : t("privacy.exportMyData")}
         </button>
       </div>
 
       {/* Step 2: Confirm & Delete */}
       <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-3">
-        <h3 className="text-sm font-bold text-[#ba1a1a]">Step 2: Confirm Permanent Erasure</h3>
+        <h3 className="text-sm font-bold text-[#ba1a1a]">{t("privacy.step2ConfirmTitle")}</h3>
         <label className="flex items-start gap-2 cursor-pointer text-xs text-slate-700 font-medium">
           <input
             type="checkbox"
@@ -100,20 +101,20 @@ export function AccountDeletionSection() {
             className="mt-0.5 rounded text-red-600 focus:ring-red-500"
           />
           <span>
-            I understand that deleting my account will permanently erase all my household budgets, transactions, income records, and account details.
+            {t("privacy.understandErasure")}
           </span>
         </label>
 
         {confirmed && (
           <div className="space-y-1.5 pt-1">
             <p className="text-xs font-bold text-slate-700">
-              Type <code className="bg-red-100 px-1 py-0.5 rounded text-red-800 font-mono">DELETE MY HOUSEHOLD</code> to confirm:
+              {t("privacy.typeToConfirm", { phrase: "" })} <code className="bg-red-100 px-1 py-0.5 rounded text-red-800 font-mono">{t("privacy.deleteMyHousehold")}</code>
             </p>
             <input
               type="text"
               value={typedConfirmation}
               onChange={(e) => setTypedConfirmation(e.target.value)}
-              placeholder="DELETE MY HOUSEHOLD"
+              placeholder={t("privacy.deleteMyHousehold")}
               className="w-full px-3 py-2 text-xs font-mono border border-red-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
@@ -131,7 +132,7 @@ export function AccountDeletionSection() {
           className="w-full py-2.5 bg-[#ba1a1a] text-white text-xs font-bold rounded-lg hover:bg-red-800 transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center gap-1.5"
         >
           {isDeleting && <Spinner size="sm" />}
-          Permanently Delete My Account Now
+          {t("privacy.deleteAccountNow")}
         </button>
       </div>
     </section>

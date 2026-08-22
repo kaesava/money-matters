@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Spinner } from "@money-matters/ui/web";
+import { authClient } from "../../lib/auth";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -38,15 +39,12 @@ function ResetPasswordForm() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+      const res = await authClient.resetPassword({
+        newPassword: password,
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Failed to reset password. The link may have expired.");
+      if (res.error) {
+        throw new Error(res.error.message || "Failed to reset password. The link may have expired.");
       }
 
       setSuccess(true);

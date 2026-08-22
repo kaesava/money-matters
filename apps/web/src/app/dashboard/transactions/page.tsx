@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { trpc } from "../../../lib/trpc";
+import { t } from "@money-matters/i18n";
 
 const formatAUD = (val: number | string): string => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -10,9 +11,11 @@ const formatAUD = (val: number | string): string => {
 };
 
 export default function TransactionsPage() {
-  const [filterType, setFilterType] = useState<"ALL" | "DEBIT" | "CREDIT">("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "DEBIT" | "CREDIT" | "TRANSFER">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [sortColumn, setSortColumn] = useState<"recordedAt" | "description" | "amount">("recordedAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   const categoriesQuery = trpc.listCategories.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100, offset: 0 });
@@ -55,7 +58,7 @@ export default function TransactionsPage() {
 
         result.push({
           id: tx.id,
-          date: tx.recordedAt ? new Date(tx.recordedAt).toISOString().split("T")[0] : "N/A",
+          date: tx.recordedAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(tx.recordedAt)) : "N/A",
           description: tx.note || "Internal Transfer",
           categoryName: "Internal Transfer",
           amount: tx.amount,
@@ -65,7 +68,7 @@ export default function TransactionsPage() {
         processedIds.add(tx.id);
         result.push({
           id: tx.id,
-          date: tx.recordedAt ? new Date(tx.recordedAt).toISOString().split("T")[0] : "N/A",
+          date: tx.recordedAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(tx.recordedAt)) : "N/A",
           description: tx.note || `Transaction (${tx.source})`,
           categoryName: tx.categoryName || "Uncategorized",
           amount: tx.amount,
@@ -79,8 +82,7 @@ export default function TransactionsPage() {
 
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
-      if (filterType === "DEBIT" && tx.type === "CREDIT") return false;
-      if (filterType === "CREDIT" && tx.type === "DEBIT") return false;
+      if (filterType !== "ALL" && tx.type !== filterType) return false;
 
       if (selectedCategory !== "ALL" && tx.categoryName !== selectedCategory) return false;
 
@@ -96,32 +98,46 @@ export default function TransactionsPage() {
     });
   }, [allTransactions, filterType, selectedCategory, searchQuery]);
 
+  const sortedTransactions = useMemo(() => {
+    return [...filteredTransactions].sort((a, b) => {
+      let cmp = 0;
+      if (sortColumn === "recordedAt") {
+        cmp = a.date.localeCompare(b.date);
+      } else if (sortColumn === "description") {
+        cmp = a.description.localeCompare(b.description);
+      } else if (sortColumn === "amount") {
+        cmp = parseFloat(a.amount) - parseFloat(b.amount);
+      }
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+  }, [filteredTransactions, sortColumn, sortDirection]);
+
   return (
     <div className="flex flex-col gap-6 max-w-6xl pb-16 animate-in fade-in duration-200">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--dash-text)" }}>
-            Transactions History
+            {t("transactions.title") || "Transactions History"}
           </h1>
           <p className="text-xs text-zinc-500 font-semibold mt-1">
-            Complete itemized ledger of income allocations, bill payments, and spend transactions.
+            {t("transactions.subtitle") || "Complete itemized ledger of income allocations, bill payments, and spend transactions."}
           </p>
         </div>
 
         {/* Permanent 3-Way Segmented Control */}
         <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-zinc-200 self-start sm:self-auto">
-          {(["ALL", "DEBIT", "CREDIT"] as const).map((t) => (
+          {(["ALL", "DEBIT", "CREDIT", "TRANSFER"] as const).map((tType) => (
             <button
-              key={t}
+              key={tType}
               type="button"
-              onClick={() => setFilterType(t)}
+              onClick={() => setFilterType(tType)}
               className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                filterType === t
+                filterType === tType
                   ? "bg-white text-[#2563eb] shadow-xs"
                   : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
-              {t === "ALL" ? "All" : t === "DEBIT" ? "Debits (-)" : "Credits (+)"}
+              {tType === "ALL" ? (t("transactions.filterAll") || "All") : tType === "DEBIT" ? (t("transactions.filterDebit") || "Debits (-)") : tType === "CREDIT" ? (t("transactions.filterCredit") || "Credits (+)") : (t("transactions.filterTransfer") || "Transfers")}
             </button>
           ))}
         </div>
@@ -132,7 +148,7 @@ export default function TransactionsPage() {
         <div className="relative flex-1 w-full">
           <input
             type="text"
-            placeholder="Search description or category..."
+            placeholder={t("transactions.searchPlaceholder") || "Search description or category..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -144,7 +160,7 @@ export default function TransactionsPage() {
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="w-full sm:w-48 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
         >
-          <option value="ALL">All Categories</option>
+          <option value="ALL">{t("transactions.allCategories") || "All Categories"}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.name}>
               {c.name}
@@ -155,23 +171,47 @@ export default function TransactionsPage() {
 
       {/* Transactions Table */}
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-2xs">
-        {filteredTransactions.length === 0 ? (
+        {sortedTransactions.length === 0 ? (
           <div className="p-12 text-center text-xs font-semibold text-zinc-400">
-            No transactions found matching the selected filters.
+            {t("transactions.noTransactionsFound") || "No transactions found matching the selected filters."}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Description</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4 text-right">Amount</th>
+                  <th 
+                    className="py-3 px-4 cursor-pointer hover:bg-slate-100" 
+                    onClick={() => {
+                      if (sortColumn === 'recordedAt') setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                      else { setSortColumn('recordedAt'); setSortDirection('desc'); }
+                    }}
+                  >
+                    {t("transactions.date") || "Date"} {sortColumn === 'recordedAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  </th>
+                  <th 
+                    className="py-3 px-4 cursor-pointer hover:bg-slate-100"
+                    onClick={() => {
+                      if (sortColumn === 'description') setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                      else { setSortColumn('description'); setSortDirection('asc'); }
+                    }}
+                  >
+                    {t("transactions.description") || "Description"} {sortColumn === 'description' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  </th>
+                  <th className="py-3 px-4">{t("transactions.category") || "Category"}</th>
+                  <th 
+                    className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
+                    onClick={() => {
+                      if (sortColumn === 'amount') setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                      else { setSortColumn('amount'); setSortDirection('desc'); }
+                    }}
+                  >
+                    {t("transactions.amount") || "Amount"} {sortColumn === 'amount' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 text-xs">
-                {filteredTransactions.map((tx) => (
+                {sortedTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-3 px-4 font-mono text-zinc-500">{tx.date}</td>
                     <td className="py-3 px-4 font-semibold text-[#1B2B4B]">{tx.description}</td>

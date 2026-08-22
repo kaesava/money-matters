@@ -152,6 +152,8 @@ export async function listCategoriesQuery(
       endDate: sched?.endDate || null,
       progressPercentage: progressPct,
       healthStatus: health,
+      isPrivate: cat.isPrivate,
+      userId: cat.userId,
     };
   });
 }

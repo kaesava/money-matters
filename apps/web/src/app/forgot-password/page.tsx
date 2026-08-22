@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Spinner } from "@money-matters/ui/web";
+import { authClient } from "../../lib/auth";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -17,17 +18,13 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch("/api/auth/request-password-reset", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      const res = await authClient.requestPasswordReset({
+        email,
+        redirectTo: window.location.origin + "/reset-password",
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Failed to send password reset email.");
+      if (res.error) {
+        throw new Error(res.error.message || "Failed to send password reset email.");
       }
-
       setSubmitted(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred.");

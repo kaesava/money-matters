@@ -58,7 +58,7 @@ async function handleProxy(req: NextRequest) {
     }
 
     const targetUrl = `${authBase}${path}${url.search}`;
-    console.log(`[DEBUG Auth Proxy] Forwarding ${req.method} to ${targetUrl}`);
+    if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Forwarding ${req.method} to ${targetUrl}`);
 
     const headers = new Headers();
     req.headers.forEach((value, key) => {
@@ -76,7 +76,7 @@ async function handleProxy(req: NextRequest) {
     // In dev mode, map un-prefixed neon-auth cookies back to __Secure- for the target Neon auth server
     const reqCookie = req.headers.get("cookie");
     if (process.env.NODE_ENV === "development") {
-      console.log(`[DEBUG Auth Proxy] Incoming cookie header: ${reqCookie}`);
+      if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Incoming cookie header: ${reqCookie}`);
       if (reqCookie) {
         let mapped = reqCookie;
         if (mapped.includes("neon-auth.session_token=") && !mapped.includes("__Secure-neon-auth.session_token=")) {
@@ -90,7 +90,7 @@ async function handleProxy(req: NextRequest) {
         }
         if (mapped !== reqCookie) {
           headers.set("cookie", mapped);
-          console.log(`[DEBUG Auth Proxy] Mapped cookie header for backend: ${mapped}`);
+          if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Mapped cookie header for backend: ${mapped}`);
         }
       }
     }
@@ -125,7 +125,7 @@ async function handleProxy(req: NextRequest) {
             
             bodyJson.callbackURL = callbackUrlObj.toString();
             bodyText = JSON.stringify(bodyJson);
-            console.log(`[DEBUG Auth Proxy] Rewrote callbackURL from ${originalUrl} to ${bodyJson.callbackURL}`);
+            if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Rewrote callbackURL from ${originalUrl} to ${bodyJson.callbackURL}`);
           }
         } catch (_e) {
           // Ignore JSON parse errors
@@ -138,10 +138,10 @@ async function handleProxy(req: NextRequest) {
     const response = await fetch(targetUrl, options);
     const buffer = await response.arrayBuffer();
 
-    console.log(`[DEBUG Auth Proxy] Target response status: ${response.status}`);
+    if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Target response status: ${response.status}`);
     if (response.status >= 400) {
       const errorText = new TextDecoder().decode(buffer);
-      console.log(`[DEBUG Auth Proxy] Target error response: ${errorText}`);
+      if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Target error response: ${errorText}`);
     }
 
     const responseHeaders = new Headers();
@@ -162,7 +162,7 @@ async function handleProxy(req: NextRequest) {
               locUrl.protocol = proto;
               locUrl.host = incomingHost;
               value = locUrl.toString();
-              console.log(`[DEBUG Auth Proxy] Rewrote redirect Location from localhost:3000 to ${value}`);
+              if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Rewrote redirect Location from localhost:3000 to ${value}`);
             }
           } catch (_e) {
             // Relative URL or invalid URL, keep it
@@ -191,7 +191,7 @@ async function handleProxy(req: NextRequest) {
     }
 
     if (process.env.NODE_ENV === "development") {
-      console.log("[DEBUG Auth Proxy] Final Set-Cookie headers:", responseHeaders.get("set-cookie"));
+      if (process.env.NODE_ENV === "development") console.log("[DEBUG Auth Proxy] Final Set-Cookie headers:", responseHeaders.get("set-cookie"));
     }
 
     return new Response(buffer, {

@@ -9,15 +9,20 @@
 
 | Feature | Reason deferred | Design consideration |
 |---|---|---|
-| **Partner invite / household member invite** | **DELIVERED (Phase 5)** | Implemented via `invitePartner` and `acceptInvite` commands in `@money-matters/capability-tenant` |
+| **Partner invite / household member invite** | **DELIVERED** | Implemented via `invitePartner` and `acceptInvite` commands in `@money-matters/capability-tenant` with auto-redirect |
+| **Tenant Switcher** | **DELIVERED** | Sidebar component allowing users to switch between multiple household contexts seamlessly |
+| **Apple Sign-In** | **DELIVERED** | Enabled via Neon Auth social providers alongside Google and Email |
+| **5-step waterfall logic details** | **DELIVERED** | Fully implemented in cascading steps: Deficit Repair, Bills, Everyday, Goals, Surplus Sweep |
+| **Data export details** | **DELIVERED** | Complete CSV generation supporting transaction ledgers and allocation plans |
+| **AEST timezone rendering** | **DELIVERED** | UTC dates formatted timezone-aware via `Intl.DateTimeFormat` |
 | **AI/LLM allocation engine** | Premium tier; requires dataset first | Allocation engine abstracted behind interface — rules-based and AI-based are swappable |
 | **AI budget estimation** | Premium tier | — |
 | **AI shortfall recovery plans** | Premium tier | — |
 | **Offline-first sync logic** | Simplifies initial scope; SQLite queue schema scaffolded | All mutations accept `idempotencyKey`; SQLite schema built |
 | **Savings reconciliation — AI auto-spread** | Premium tier | Reconciliation service abstracted behind interface |
-| **Stripe / subscription payments** | No premium tier initially | Feature flag `premiumEnabled` on Household |
+| **Stripe / subscription payments** | **DELIVERED** | Integrated with trial lockouts, webhooks, and read-only grace periods |
 | **Uptime Monitoring (Better Stack / UptimeRobot)** | Deferred to Release 2 | Automated ping checks on `/health` and Web frontend |
-| **Product Analytics (PostHog)** | Deferred to Release 2 | Privacy-friendly event tracking for onboarding & allocations |
+| **Product Analytics (PostHog)** | **DELIVERED** | Integrated telemetry and telemetry context providers |
 
 ---
 

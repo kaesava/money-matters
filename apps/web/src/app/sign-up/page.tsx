@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { Button, Input, Logo } from "@money-matters/ui/web";
+import { Button, Input, Logo, Spinner } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,10 +33,10 @@ export default function SignUpPage() {
     // If already signed in with an active session, push to dashboard
     authClient.getSession().then(({ data }) => {
       if (data?.session) {
-        router.push("/dashboard");
+        router.push(redirectUrl);
       }
     });
-  }, [router]);
+  }, [router, redirectUrl]);
 
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export default function SignUpPage() {
         } catch (_tenantErr) {
           // Ignore if tenant creation fails during initial auth token propagation
         }
-        router.push("/setup");
+        router.push(redirectUrl === "/dashboard" ? "/setup" : redirectUrl);
       } else {
         // Email verification code is required by Neon Auth before session token can be issued
         setNeedVerification(true);
@@ -130,7 +132,7 @@ export default function SignUpPage() {
         } catch (_tErr) {
           // ignore duplicate tenant creation
         }
-        window.location.href = "/setup";
+        window.location.href = redirectUrl === "/dashboard" ? "/setup" : redirectUrl;
       } else {
         window.location.href = "/sign-in";
       }
@@ -171,10 +173,24 @@ export default function SignUpPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: window.location.origin + "/dashboard",
+        callbackURL: window.location.origin + redirectUrl,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign up with Google.");
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await authClient.signIn.social({
+        provider: "apple",
+        callbackURL: window.location.origin + redirectUrl,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sign up with Apple.");
       setLoading(false);
     }
   };
@@ -244,7 +260,7 @@ export default function SignUpPage() {
 
             <button
               type="button"
-              onClick={() => router.push("/sign-in")}
+              onClick={() => router.push(`/sign-in${redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`)}
               className="text-xs font-semibold text-zinc-500 hover:underline"
             >
               {t("auth.signInCta", { defaultValue: "Go to Sign In" })}
@@ -296,21 +312,33 @@ export default function SignUpPage() {
             disabled={loading}
           />
 
-          <Input
-            label={t("auth.passwordLabel")}
-            placeholder={t("auth.passwordPlaceholder")}
-            value={password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-            type="password"
-            name="signup-user-password"
-            autoComplete="new-password"
-            required
-            disabled={loading}
-          />
+          <div className="flex flex-col gap-1">
+            <Input
+              label={t("auth.passwordLabel")}
+              placeholder={t("auth.passwordPlaceholder")}
+              value={password}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              type="password"
+              name="signup-user-password"
+              autoComplete="new-password"
+              required
+              disabled={loading}
+            />
+            {password && (
+              <div className="text-xs font-semibold flex items-center gap-1 mt-1">
+                <div className={`h-1.5 flex-1 rounded-full ${password.length < 6 ? 'bg-[#ba1a1a]' : password.length < 10 ? 'bg-amber-500' : 'bg-[#22c55e]'}`} />
+                <div className={`h-1.5 flex-1 rounded-full ${password.length < 10 ? 'bg-zinc-200' : 'bg-[#22c55e]'}`} />
+                <div className={`h-1.5 flex-1 rounded-full ${password.length < 12 ? 'bg-zinc-200' : 'bg-[#22c55e]'}`} />
+                <span className={`ml-2 ${password.length < 6 ? 'text-[#ba1a1a]' : password.length < 10 ? 'text-amber-500' : 'text-[#22c55e]'}`}>
+                  {password.length < 6 ? t("passwordStrength.weak") : password.length < 10 ? t("passwordStrength.medium") : t("passwordStrength.strong")}
+                </span>
+              </div>
+            )}
+          </div>
 
           <Input
-            label="Confirm Password"
-            placeholder="Re-enter your password"
+            label={t("auth.confirmPasswordLabel")}
+            placeholder={t("auth.confirmPasswordPlaceholder")}
             value={confirmPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
             type="password"
@@ -331,21 +359,33 @@ export default function SignUpPage() {
           <div className="flex-1 h-[1px] bg-zinc-200"></div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors py-2.5 rounded-lg text-sm font-semibold text-zinc-700 disabled:opacity-50"
-          disabled={loading}
-        >
-          <span className="text-lg font-bold text-blue-500">G</span>
-          Sign up with Google
-        </button>
-
-        <div className="flex justify-center gap-1.5 text-sm mt-2">
-          <span className="text-zinc-500">Already have an account?</span>
+        <div className="flex flex-col gap-3">
           <button
             type="button"
-            onClick={() => router.push("/sign-in")}
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors py-2.5 rounded-lg text-sm font-semibold text-zinc-700 disabled:opacity-50"
+            disabled={loading}
+          >
+            <span className="text-lg font-bold text-blue-500">G</span>
+            {t("auth.signUpWithGoogle")}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAppleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-black border border-black hover:bg-zinc-800 transition-colors py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+            disabled={loading}
+          >
+            <span className="text-lg font-bold text-white"></span>
+            {t("auth.signUpWithApple", { defaultValue: "Sign up with Apple" })}
+          </button>
+        </div>
+
+        <div className="flex justify-center gap-1.5 text-sm mt-2">
+          <span className="text-zinc-500">{t("auth.signInPrompt")}</span>
+          <button
+            type="button"
+            onClick={() => router.push(`/sign-in${redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`)}
             className="font-bold text-[#00B4A6] hover:underline"
           >
             {t("auth.signInCta")}
@@ -353,5 +393,13 @@ export default function SignUpPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center"><Spinner size="lg" /></div>}>
+      <SignUpContent />
+    </Suspense>
   );
 }

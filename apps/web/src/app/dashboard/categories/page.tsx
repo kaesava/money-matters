@@ -23,6 +23,9 @@ function CategoriesPageContent() {
   const categoriesQuery = trpc.listCategories.useQuery();
   const categories = (categoriesQuery.data ?? []) as CategorySummaryItem[];
 
+  const archivedQuery = trpc.listArchivedItems.useQuery();
+  const hasArchivedCategories = archivedQuery.data?.some(i => i.itemType === 'CATEGORY') ?? false;
+
   // Filter States
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [healthFilter, setHealthFilter] = useState(paramHealth);
@@ -208,6 +211,17 @@ function CategoriesPageContent() {
         }}
         onArchiveCategory={handleArchive}
       />
+
+      {hasArchivedCategories && (
+        <div className="flex justify-center pt-4">
+          <a
+            href="/dashboard/settings/archived"
+            className="text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition-colors"
+          >
+            {t("categories.viewArchived") || "View archived pools →"}
+          </a>
+        </div>
+      )}
 
       {/* Shared Modals & Drawers */}
       <MoveMoneyModal

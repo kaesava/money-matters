@@ -12,15 +12,28 @@ interface PreferencesSectionProps {
 export function PreferencesSection({ currentTimezone }: PreferencesSectionProps) {
   const { showIcons, setShowIcons } = useIconVisibility();
   const utils = trpc.useUtils();
+  const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+
   const updateUserPrefMut = trpc.updateUserPreferences.useMutation({
-    onSuccess: () => utils.getUserPreferences.invalidate(),
+    onSuccess: () => {
+      utils.getUserPreferences.invalidate();
+      setSaveMessage("Preferences saved ✓");
+      setTimeout(() => setSaveMessage(null), 3000);
+    },
   });
 
   return (
     <section className="flex flex-col gap-2">
-      <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-        {t("settings.title")}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+          {t("settings.title")}
+        </p>
+        {saveMessage && (
+          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md animate-in fade-in duration-200">
+            {saveMessage}
+          </span>
+        )}
+      </div>
       <div
         className="p-4 rounded-xl flex flex-col gap-4"
         style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}

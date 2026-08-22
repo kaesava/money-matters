@@ -9,7 +9,7 @@ interface QuickExpenseDrawerProps {
 }
 
 export function QuickExpenseDrawer({ onClose }: QuickExpenseDrawerProps) {
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
   const [type, setType] = useState<"DEBIT" | "CREDIT">("DEBIT");
   const [name, setName] = useState("");

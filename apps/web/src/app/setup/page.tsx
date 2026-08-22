@@ -241,7 +241,7 @@ function SetupWizardContent() {
             name: inc.name.trim() || "Primary Income",
             amount: inc.amount.toFixed(2),
             isRecurring: true,
-            startDate: new Date().toISOString().split("T")[0]!,
+            startDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()),
             frequency: inc.frequency as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY",
           })
         )

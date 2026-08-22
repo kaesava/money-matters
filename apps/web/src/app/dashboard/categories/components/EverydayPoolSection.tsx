@@ -18,6 +18,7 @@ export interface CategorySummaryItem {
   healthStatus?: string | null;
   isEssential?: boolean | null;
   isSurplusTarget?: boolean | null;
+  userId?: string | null;
 }
 
 interface EverydayPoolSectionProps {
