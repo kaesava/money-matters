@@ -47,7 +47,8 @@ money-matters/
 │   │   ├── budgeting/       # 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus)
 │   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator & spending velocity
 │   │   ├── notifications/   # Expo push + 6 scheduled Inngest functions (payday, bill, overdue, digest, goal, velocity)
-│   │   └── file-notes/      # Notes, comments, attachments via Cloudflare R2
+│   │   ├── file-notes/      # Notes, comments, attachments via Cloudflare R2
+│   │   └── bug-reports/     # In-app Beta bug report persistence, diagnostic metadata capture, tenant-isolated bugReports schema
 │   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags
 │   ├── db/            # Drizzle schemas (`app_categories`, `user_preferences` JSONB), migrations & seeds

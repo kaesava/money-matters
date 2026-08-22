@@ -108,6 +108,8 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - **Bank Reconciliation (`BankReconcileCard` & `BankReconcileModal`)**: Static status indicators with direct wiring to the `reconcileBankBalance` tRPC mutation.
   - **Deduplicated & Streamlined Filter Surfaces**: Counter-card health filter integration on Categories screen; permanent 3-way (`All / Debits / Credits`) segmented control on Transaction History screen.
   - **Collapsible Sections & Minimalist View Mode**: Quick Actions, All Upcoming Payments, and Category Health can be collapsed. Users can toggle "Show Decorative Icons" in Settings to switch between iconified vs minimalist typographic UI layouts across Web and Mobile apps.
+  - **In-App Beta Bug Reporting**: "Report a Bug" feature accessible from Settings on Web and Mobile. Displays a prominent **Beta Release Testing** callout banner, captures issue title, category, severity, description/steps to reproduce, and auto-attached environment diagnostics (`platform`, `appVersion`, `pageUrl`, `deviceInfo`), persisting directly to PostgreSQL (`bug_reports` table) with strict multi-tenant isolation.
+
 
 ---
 
