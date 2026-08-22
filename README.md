@@ -16,6 +16,7 @@ money-matters/
 │   ├── capabilities/  # Decoupled vertical slice business logic
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & portal, webhook processor
 │   │   ├── budgeting/       # 5-step waterfall cascade calculation & allocation engine
+│   │   ├── bug-reports/     # In-app Beta bug report persistence & diagnostic metadata capture
 │   │   ├── file-notes/      # Notes & attachments via Cloudflare R2
 │   │   ├── notifications/   # Expo push & 6 scheduled Inngest background jobs
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD

@@ -105,6 +105,14 @@ export default function SettingsScreen() {
             >
               <Text style={styles.navLinkText}>🔔 Push Notifications</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navLink}
+              onPress={() => router.push('/(app)/settings/bug-report' as Href)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.navLinkText}>🐛 {t('settings.reportBugLink', { defaultValue: 'Report a Bug' })}</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Composable Vertical Slice Sections */}

@@ -592,7 +592,14 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "今後の予定",
       "filterAll": "すべて",
       "filterIncome": "収入",
-      "filterExpense": "請求"
+      "filterExpense": "請求",
+      "categoryBalanceDetails": "カテゴリー残高詳細:",
+      "healthLabel": "状況:",
+      "healthOnTrack": "順調",
+      "healthNeedsAttention": "要確認",
+      "healthBehind": "遅れ",
+      "currentBalanceLabel": "現在の残高",
+      "projectedAfterLabel": "予定後の残高"
     },
     "hero": {
       "everydayBalance": "使えるお金",
@@ -640,6 +647,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "allocationHistoryLink": "給与日配分履歴",
     "archivedLink": "アーカイブされたカテゴリと請求書",
     "notificationsLink": "通知設定",
+    "reportBugLink": "バグを報告する",
     "bankAccounts": {
       "title": "銀行口座",
       "addAccount": "銀行口座を追加",
@@ -977,5 +985,41 @@ export const ja: DeepStringRecord<typeof en> = {
   "bankAccounts": {
     "privatePersonalAccount": "🔒 Private Personal Account (Hidden from other users)",
     "upgradeToPrivate": "Upgrade to Premium to mark accounts as private"
+  },
+  "bugReport": {
+    "title": "バグ報告",
+    "subtitle": "不具合を見つけましたか？修正のために状況をお知らせください。",
+    "betaNoticeTitle": "ベータ版テスト中",
+    "betaNoticeBody": "Money Mattersは現在ベータテスト中です。皆様からのご報告がアプリの安定性とパフォーマンス向上に直結します。",
+    "formTitleLabel": "不具合の概要",
+    "formTitlePlaceholder": "発生した問題の簡単な概要...",
+    "formCategoryLabel": "カテゴリー",
+    "formSeverityLabel": "深刻度",
+    "formDescriptionLabel": "詳細と再現手順",
+    "formDescriptionPlaceholder": "何が発生したか、期待していた動作、再現手順を入力してください...",
+    "environmentSectionTitle": "取得されたシステム情報",
+    "platform": "プラットフォーム",
+    "appVersion": "アプリバージョン",
+    "pageUrl": "ページルート",
+    "deviceInfo": "デバイス / OS情報",
+    "submitBtn": "バグ報告を送信",
+    "submitting": "送信中...",
+    "successMsg": "バグ報告が正常に送信されました。ご協力ありがとうございます！",
+    "errorMsg": "バグ報告の送信に失敗しました。入力内容をご確認ください。",
+    "categories": {
+      "budgeting": "予算と計算",
+      "transactions": "取引と明細インポート",
+      "bank_accounts": "銀行口座と同期",
+      "ui_ux": "UIと表示",
+      "auth": "アカウントと認証",
+      "other": "その他"
+    },
+    "severities": {
+      "low": "低 — 軽微な表示上の問題",
+      "medium": "中 — 通常のバグ",
+      "high": "高 — 機能が正常動作しない",
+      "critical": "緊急 — アプリのクラッシュ / 進行不可"
+    },
+    "closeBtn": "閉じる"
   }
 } as const;

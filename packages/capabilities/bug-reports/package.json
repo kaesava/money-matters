@@ -1,0 +1,29 @@
+{
+  "name": "@money-matters/capability-bug-reports",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@money-matters/db": "workspace:*",
+    "@money-matters/core": "workspace:*",
+    "drizzle-orm": "^0.39.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --passWithNoTests --coverage"
+  }
+}

@@ -3,6 +3,7 @@ import { requiresWriteAccess } from "../trpc/trpc.js";
 import { MONEY_MATTERS_APP_ID } from "../trpc/context.js";
 import { TRPCError } from "@trpc/server";
 import { categoriesRouter } from "./categories.router.js";
+import { bugReportRouter } from "./bug-report.router.js";
 import type { SubscriptionStatusDto } from "@money-matters/types";
 
 describe("Router Write Access & Protection Guards", () => {
@@ -87,6 +88,10 @@ describe("Router Write Access & Protection Guards", () => {
     const caller = categoriesRouter.evaluateDueGuardrail;
     const result = await (caller as unknown as { _def: { mutation?: unknown; query?: unknown } });
     expect(result).toBeDefined();
+  });
+  it("exports bugReportRouter with createBugReport procedure", () => {
+    expect(bugReportRouter).toBeDefined();
+    expect(bugReportRouter.createBugReport).toBeDefined();
   });
 });
 

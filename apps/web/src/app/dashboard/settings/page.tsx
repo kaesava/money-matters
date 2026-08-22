@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { authClient } from "../../../lib/auth";
@@ -13,11 +13,13 @@ import { SubscriptionSection } from "./components/SubscriptionSection";
 import { PartnerInviteSection } from "./components/PartnerInviteSection";
 import { PreferencesSection } from "./components/PreferencesSection";
 import { PrivacySection } from "./components/PrivacySection";
+import { BugReportModal } from "./components/BugReportModal";
 
 export default function SettingsPage() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const { status } = useSubscriptionStatus();
+  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -84,10 +86,23 @@ export default function SettingsPage() {
             <span>🔔 {t("settings.notificationsLink")}</span>
             <span>→</span>
           </a>
+          <button
+            type="button"
+            onClick={() => setIsBugReportOpen(true)}
+            className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5 w-full text-left"
+          >
+            <span>🐛 {t("settings.reportBugLink")}</span>
+            <span>→</span>
+          </button>
         </div>
       </section>
 
       <PrivacySection />
+
+      <BugReportModal
+        isOpen={isBugReportOpen}
+        onClose={() => setIsBugReportOpen(false)}
+      />
 
       {/* Sign Out Action */}
       <div className="pt-2">
