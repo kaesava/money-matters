@@ -1,8 +1,21 @@
 import { pgTable, uuid, varchar, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
-import { tenantAndTimestamps } from "./base.js";
+import { apps } from "./app.js";
+import { timestamps } from "./base.js";
 
+/**
+ * Root tenant entity. Represents one household/workspace scoped to exactly one app.
+ *
+ * DESIGN: tenants IS the isolation boundary — it must NOT reference itself.
+ * Therefore it uses `timestamps` (audit-only mixin) not `tenantAndTimestamps`.
+ * appId is declared explicitly with a FK to apps.id, not via the base mixin.
+ *
+ * A user can belong to multiple tenants. If a user needs two apps, they get
+ * two separate tenant IDs — one per app. There is no multi-app tenant join table.
+ */
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // Every tenant belongs to exactly one app. FK enforces referential integrity.
+  appId: uuid("app_id").notNull().references(() => apps.id),
   name: varchar("name", { length: 255 }).notNull(),
   fyEndMonthDay: varchar("fy_end_month_day", { length: 5 }).notNull().default("06-30"),
   premiumEnabled: boolean("premium_enabled").notNull().default(false),
@@ -20,7 +33,5 @@ export const tenants = pgTable("tenants", {
   sweepEverydayLeftover: boolean("sweep_everyday_leftover").notNull().default(true),
   lastSweepProcessedMonth: varchar("last_sweep_processed_month", { length: 7 }), // e.g. "2026-07"
   merchantRules: jsonb("merchant_rules").$type<Record<string, string>>().notNull().default({}),
-  ...tenantAndTimestamps,
+  ...timestamps,
 });
-
-

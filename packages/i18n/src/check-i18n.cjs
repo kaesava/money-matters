@@ -137,8 +137,14 @@ for (const file of files) {
         !/^[A-Z0-9_\-\.\:\/]+$/.test(text) &&
         !/^flex|grid|hidden|block|inline|relative|absolute|sticky|fixed|w-|h-|p-|m-|text-|bg-|border-|rounded-|shadow-|cursor-|hover:/i.test(text)
       ) {
-        // Warning log for developer visibility
         const line = getLineNumber(content, jsxMatch.index);
+        const lineContent = content.split('\n')[line - 1] || '';
+        if (
+          /^\s*(interface|type|export interface|export type|\/\*|\*|\/\/)\b/.test(lineContent) ||
+          /:\s*Record\b|:\s*Promise\b|:\s*StyleProp\b|void;|React\.ReactNode;|\bprev\s*-\s*1\b/.test(lineContent)
+        ) {
+          continue;
+        }
         console.warn(`  \x1b[33m[i18n Audit Warning] ${path.relative(monorepoRoot, file)}:${line}\x1b[0m - Un-externalized text: \x1b[36m"${text.slice(0, 40)}"\x1b[0m`);
       }
     }

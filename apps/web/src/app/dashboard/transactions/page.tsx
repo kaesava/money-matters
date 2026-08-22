@@ -19,25 +19,68 @@ export default function TransactionsPage() {
 
   const categories = categoriesQuery.data ?? [];
 
-  // Map transaction ledger items for spacious display
+  // Map transaction ledger items for spacious display and group internal transfer pairs
   const allTransactions = useMemo(() => {
-    // Move the initialization inside useMemo to avoid changing dependencies on every render
     const rawTransactions = transactionsQuery.data ?? [];
-    
-    return rawTransactions.map((tx) => ({
-      id: tx.id,
-      date: tx.recordedAt ? new Date(tx.recordedAt).toISOString().split("T")[0] : "N/A",
-      description: tx.note || `Transaction (${tx.source})`,
-      categoryName: tx.categoryName || "Uncategorized",
-      amount: tx.amount,
-      type: tx.flowType as "DEBIT" | "CREDIT",
-    }));
+    const result: Array<{
+      id: string;
+      date: string;
+      description: string;
+      categoryName: string;
+      amount: string;
+      type: "DEBIT" | "CREDIT" | "TRANSFER";
+    }> = [];
+
+    const processedIds = new Set<string>();
+
+    for (let i = 0; i < rawTransactions.length; i++) {
+      const tx = rawTransactions[i];
+      if (processedIds.has(tx.id)) continue;
+
+      const isTransferNote = Boolean(tx.transferGroupId) || tx.note?.startsWith("Transferred");
+      const partner = isTransferNote
+        ? rawTransactions.find(
+            (other) =>
+              other.id !== tx.id &&
+              !processedIds.has(other.id) &&
+              other.amount === tx.amount &&
+              other.flowType !== tx.flowType &&
+              other.note === tx.note
+          )
+        : null;
+
+      if (partner) {
+        processedIds.add(tx.id);
+        processedIds.add(partner.id);
+
+        result.push({
+          id: tx.id,
+          date: tx.recordedAt ? new Date(tx.recordedAt).toISOString().split("T")[0] : "N/A",
+          description: tx.note || "Internal Transfer",
+          categoryName: "Internal Transfer",
+          amount: tx.amount,
+          type: "TRANSFER",
+        });
+      } else {
+        processedIds.add(tx.id);
+        result.push({
+          id: tx.id,
+          date: tx.recordedAt ? new Date(tx.recordedAt).toISOString().split("T")[0] : "N/A",
+          description: tx.note || `Transaction (${tx.source})`,
+          categoryName: tx.categoryName || "Uncategorized",
+          amount: tx.amount,
+          type: tx.flowType as "DEBIT" | "CREDIT",
+        });
+      }
+    }
+
+    return result;
   }, [transactionsQuery.data]);
 
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
-      if (filterType === "DEBIT" && tx.type !== "DEBIT") return false;
-      if (filterType === "CREDIT" && tx.type !== "CREDIT") return false;
+      if (filterType === "DEBIT" && tx.type === "CREDIT") return false;
+      if (filterType === "CREDIT" && tx.type === "DEBIT") return false;
 
       if (selectedCategory !== "ALL" && tx.categoryName !== selectedCategory) return false;
 
@@ -133,14 +176,16 @@ export default function TransactionsPage() {
                     <td className="py-3 px-4 font-mono text-zinc-500">{tx.date}</td>
                     <td className="py-3 px-4 font-semibold text-[#1B2B4B]">{tx.description}</td>
                     <td className="py-3 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-zinc-700">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                        tx.type === 'TRANSFER' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-100 text-zinc-700'
+                      }`}>
                         {tx.categoryName}
                       </span>
                     </td>
                     <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
-                      tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'
+                      tx.type === 'TRANSFER' ? 'text-blue-600' : tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-rose-600'
                     }`}>
-                      {tx.type === 'CREDIT' ? '+' : '-'}{formatAUD(tx.amount)}
+                      {tx.type === 'TRANSFER' ? '🔄 ' : tx.type === 'CREDIT' ? '+' : '-'}{formatAUD(tx.amount)}
                     </td>
                   </tr>
                 ))}

@@ -139,13 +139,14 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const standardBills = input.buckets.filter((b) => b.type === "REGULAR" && !b.isEssential);
   fundRegularBills(standardBills);
 
-  // Helper for GOAL targets
+  // Helper for GOAL targets (Target-Date & Gap Prioritized)
   const fundGoals = (bucketsList: EngineBucket[]) => {
     for (const bucket of bucketsList) {
       const targetCents = toCents(bucket.targetAmount ?? 0);
       const currentCents = Math.max(0, toCents(bucket.currentBalance));
       const gapCents = Math.max(0, targetCents - currentCents);
-      
+      if (gapCents <= 0) continue; // Goal is already 100% funded
+
       let monthsRemaining = 12;
       if (bucket.targetDate) {
         const targetD = new Date(bucket.targetDate);
@@ -154,15 +155,16 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
         monthsRemaining = Math.max(1, Math.ceil(diffDays / 30.4375));
       }
 
+      // Calculate required monthly contribution to hit targetAmount by targetDate
       const monthlyTargetCents = Math.round(gapCents / monthsRemaining);
-      const neededCents = Math.round((monthlyTargetCents * 12) / paychecksPerYear);
+      const neededCents = Math.min(gapCents, Math.round((monthlyTargetCents * 12) / paychecksPerYear));
       const allocatedCents = Math.min(remainingCents, neededCents);
       remainingCents -= allocatedCents;
 
       if (allocatedCents > 0 || neededCents > 0) {
         const existing = linesMap.get(bucket.id);
-        const reasoningMsg = `Target $${toDollars(targetCents).toFixed(2)} by ${bucket.targetDate ?? "unspecified"}: $${toDollars(allocatedCents).toFixed(2)} allocated.`;
-        
+        const reasoningMsg = `Target $${toDollars(targetCents).toFixed(2)} by ${bucket.targetDate ?? "12-mo horizon"}: $${toDollars(allocatedCents).toFixed(2)} allocated (${monthsRemaining} mo remaining).`;
+
         if (existing) {
           existing.amountCents += allocatedCents;
           existing.reasonings.push(reasoningMsg);

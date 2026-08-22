@@ -72,6 +72,7 @@ export function SetupCategoriesStep({
               <div className="flex items-center gap-2.5">
                 <span className="text-lg">{cat.icon}</span>
                 <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
+                {cat.rationale && <InfoTooltip title="Estimation Rationale" content={cat.rationale} />}
               </div>
               <div className="flex items-center gap-2">
                 <input

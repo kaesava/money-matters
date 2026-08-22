@@ -14,6 +14,7 @@ export * from "./transaction_ledger.js";
 export * from "./device_token.js";
 export * from "./file_note.js";
 export * from "./user_preference.js";
+export * from "./tenant_user_preference.js";
 export * from "./expense_source.js";
 export * from "./expense_event.js";
 export * from "./app.js";

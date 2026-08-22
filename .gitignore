@@ -14,4 +14,6 @@ coverage/
 !.env.example
 .aider*
 test_credentials.txt
+seed_credentials.local.md
+*.credentials.local.*
 

@@ -10,7 +10,6 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 import { TrialBanner } from "../../components/TrialBanner";
 import { SidebarTrialNavItem } from "../../components/TrialStatusBadge";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
-import { CatchUpSweepModal } from "../../components/web/CatchUpSweepModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
 import { Logo, Spinner } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
@@ -59,6 +58,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    key: "transactions",
+    label: () => t("nav.transactions", { defaultValue: "Transactions" }),
+    href: "/dashboard/transactions",
+    icon: (active: boolean) => (
+      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    ),
+  },
+  {
     key: "settings",
     label: () => t("nav.settings"),
     href: "/dashboard/settings",
@@ -79,11 +88,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
-  const moveMoneyMutation = trpc.moveMoney.useMutation({
-    onSuccess: () => {
-      categoriesQuery.refetch();
-    },
-  });
 
   const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
   const prefs = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID] as { locale?: "en" | "ja" } | undefined;
@@ -103,9 +107,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       !categoriesQuery.isLoading &&
       categoriesQuery.data &&
       categoriesQuery.data.length === 0 &&
-      !pathname.startsWith("/dashboard/setup")
+      !pathname.startsWith("/setup")
     ) {
-      router.replace("/dashboard/setup");
+      router.replace("/setup");
     }
   }, [isPending, session, categoriesQuery.isLoading, categoriesQuery.data, pathname, router]);
 
@@ -424,30 +428,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onClose={() => setQuickExpenseOpen(false)}
             />
           )}
-
-          {/* Catch-Up Sweep Modal */}
-          {(() => {
-            const everydayCat = categoriesQuery.data?.find((c) => c.type === "EVERYDAY");
-            const surplusCat = categoriesQuery.data?.find((c: Record<string, unknown>) => c.isSurplusTarget === true) || categoriesQuery.data?.find((c) => c.type === "GOAL");
-            const leftover = Math.max(0, parseFloat(everydayCat?.currentBalance || "0"));
-
-            if (!everydayCat || !surplusCat || leftover <= 10) return null;
-
-            return (
-              <CatchUpSweepModal
-                leftoverEverydayBalance={leftover}
-                surplusTargetName={surplusCat.name}
-                onSweep={async () => {
-                  await moveMoneyMutation.mutateAsync({
-                    sourceCategoryId: everydayCat.id,
-                    destinationCategoryId: surplusCat.id,
-                    amount: leftover.toFixed(2),
-                  });
-                }}
-                onKeepInEveryday={() => {}}
-              />
-            );
-          })()}
         </div>
       </div>
     </IconVisibilityProvider>

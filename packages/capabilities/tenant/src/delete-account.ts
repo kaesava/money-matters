@@ -9,6 +9,7 @@ import {
   bankAccounts, 
   fileNotes, 
   userPreferences,
+  tenantUserPreferences,
   allocationPlans,
   allocationPlanLines,
   categorySchedules,
@@ -56,8 +57,9 @@ export function deleteMyAccountHandler(db: DbOrTx) {
     }
     await db.delete(categories).where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
 
-    // user_preferences & bank_accounts
+    // user_preferences & tenant_user_preferences & bank_accounts
     await db.delete(userPreferences).where(eq(userPreferences.userId, userId));
+    await db.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
     await db.delete(bankAccounts).where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
 
     // tenant_users & tenants & users

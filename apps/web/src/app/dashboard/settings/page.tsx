@@ -62,10 +62,17 @@ export default function SettingsPage() {
             <span>→</span>
           </a>
           <a
+            href="/dashboard/transactions"
+            className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5"
+          >
+            <span>📜 Transaction History & Itemized Ledger</span>
+            <span>→</span>
+          </a>
+          <a
             href="/dashboard/settings/history"
             className="flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline pt-2.5"
           >
-            <span>📜 Payday Allocation History</span>
+            <span>💸 Payday Allocation History</span>
             <span>→</span>
           </a>
           <a

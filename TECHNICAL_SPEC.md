@@ -89,23 +89,37 @@ money-matters/
 
 ## 4. Canonical Data Model
 
-All persistent tables include: `id`, `tenantId`, `appId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`, `archivedBy`.
+All persistent domain tables include: `id`, `tenantId`, `appId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`, `archivedBy`. Root identity tables (`tenants`, `tenant_users`, `users`, `apps`) use exact single-purpose keys with FK constraints.
 
 ```
-households (tenant)
-├── tenant_users (userId, role: OWNER|MEMBER, inviteEmail, inviteToken, inviteStatus: PENDING|ACCEPTED|REVOKED, invitedAt)
-├── bank_accounts (lastKnownBalance, purpose: INCOME_LANDING|SAVINGS|EVERYDAY, isOffset)
-├── user_preferences (timezone, paydayAlertsEnabled, billRemindersEnabled, appPreferences: JSONB)
-├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
-├── categories (tenantId, appId, name, type: REGULAR|GOAL|EVERYDAY, bankAccountId, monthlyAmount, rolloverRule, isDefaultExcess)
-│   ├── category_schedules (targetAmount, targetDate, dueDate, rrule)
-│   └── transaction_ledger (flowType: DEBIT|CREDIT, source: MANUAL|IMPORT, recordedAt, note, metadata)
-├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
-│   └── income_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
-├── expense_sources (name, amount, categoryId, rrule, startDate, endDate)
-│   └── expense_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
-└── file_notes (entityType: CATEGORY|TRANSACTION, comment, fileKey, fileName, mimeType)
+apps (id PK [stable UUID], name, slug UNIQUE)
+  │ FK (appId)
+  ▼
+tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
+  │
+  ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id [nullable for PENDING], role: OWNER|MEMBER, inviteEmail, inviteToken, inviteStatus: PENDING|ACCEPTED|REVOKED, invitedAt)
+  ├── bank_accounts (lastKnownBalance, unbudgetedBuffer, isPrivate, userId)
+  ├── user_preferences (Global 1:1 per userId: userId UNIQUE, timezone, locale, theme, showIcons)
+  ├── tenant_user_preferences (Scoped to userId, tenantId, appId: paydayAlertsEnabled, shortfallAlertsEnabled, billRemindersEnabled, weeklyDigestEnabled, appPreferences: JSONB)
+  ├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
+  ├── categories (tenantId, appId, name, type: REGULAR|GOAL|EVERYDAY|PERSONAL, bankAccountId, monthlyAmount, rolloverRule, isCommitted)
+  │   ├── category_schedules (targetAmount, targetDate, dueDate)
+  │   └── transaction_ledger (flowType: DEBIT|CREDIT, source: MANUAL|IMPORT, recordedAt, note, metadata)
+  ├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
+  │   └── income_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
+  ├── expense_sources (name, amount, categoryId, rrule, startDate, endDate)
+  │   └── expense_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
+  └── file_notes (entityType: CATEGORY|TRANSACTION, comment, fileKey, fileName, mimeType)
 ```
+
+> **Tenant-App Relationship**: Every tenant belongs to exactly one app via `tenants.app_id → apps.id`. `tenant_users` links users to tenants and derives `appId` via JOIN to `tenants`. If a user requires access to multiple apps, separate tenant IDs are provisioned for each app context.
+
+### 4.1 Managed Identity (`neon_auth`) vs Domain Schema (`public`) Architecture
+
+- **Auth Layer (`neon_auth`)**: Managed externally by Neon Auth / Better Auth. Handles identity authentication (passwords, JWTs, session tokens, magic links).
+- **Domain Layer (`public.users`)**: Platform-level user profile mirror (`id == neon_auth.user.id`). Foreign key `users_neon_auth_fk` enforces `ON DELETE CASCADE` from `neon_auth.user`. Syncs JIT via `upsertUserFromJwt`.
+- **Domain Tenant Engine (`public.tenants` & `public.tenant_users`)**: `public.tenants` owns financial settings (`fyEndMonthDay`), commercial billing (`subscriptionStatus`, Stripe customer IDs), and waterfall engine rules (`sweepEverydayLeftover`, `merchantRules`). `public.tenant_users` manages invite tokens, role RBAC, and membership lifecycle.
+- **Design Rationale**: Avoiding Neon Auth's `organization` plugin prevents contaminating the auth layer with domain budgeting math, maintains 100% type-safe Drizzle ORM schema control, avoids cross-schema migration risks, and ensures edge compatibility on Cloudflare Workers.
 
 ---
 

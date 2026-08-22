@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { tenants, tenantUsers, appCategories, categories, bankAccounts, bankAccountCategoryMappings, apps, users, DbOrTx } from "@money-matters/db";
 import { CreateTenantCommand } from "@money-matters/types";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 
 /**
  * Creates a new tenant scope and assigns the creator user as OWNER.
+ *
+ * DESIGN: tenants.tenant_id no longer exists — the tenant IS its own isolation root.
+ * tenant_users.app_id no longer exists — app context is derived from tenants.app_id.
  */
 export function createTenantHandler(db: DbOrTx) {
   return async (input: z.infer<typeof CreateTenantCommand>, appId: string, userId: string) => {
@@ -33,12 +36,11 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .onConflictDoNothing();
 
-    // 1. Insert the tenant with tenantId = its own id
+    // 1. Insert the tenant — appId is a FK to apps.id, no self-referential tenantId
     await db
       .insert(tenants)
       .values({
         id: tenantId,
-        tenantId: tenantId,
         appId,
         name: input.name,
         subscriptionStatus: "TRIAL_ACTIVE",
@@ -49,7 +51,7 @@ export function createTenantHandler(db: DbOrTx) {
         updatedBy: userId,
       });
 
-    // 2. Add the owner record to tenant_users
+    // 2. Add the owner record to tenant_users — no appId stored here; derived from tenant
     await db
       .insert(tenantUsers)
       .values({
@@ -57,7 +59,6 @@ export function createTenantHandler(db: DbOrTx) {
         userId,
         role: "OWNER" as const,
         inviteStatus: "ACCEPTED" as const,
-        appId,
         createdBy: userId,
         updatedBy: userId,
       });
@@ -179,29 +180,29 @@ export function createTenantHandler(db: DbOrTx) {
  */
 export function getTenantHandler(db: DbOrTx) {
   return async (tenantId: string, appId: string) => {
+    // Query by PK directly — tenants.tenant_id column no longer exists
     const [tenant] = await db
       .select()
       .from(tenants)
       .where(
         and(
-          eq(tenants.tenantId, tenantId),
+          eq(tenants.id, tenantId),
           eq(tenants.appId, appId),
-          sql`${tenants.archivedAt} IS NULL`
+          isNull(tenants.archivedAt)
         )
       )
       .limit(1);
 
     if (!tenant) return null;
 
+    // No appId filter on tenantUsers — app context lives on the tenant row
     const tenantMemberList = await db
       .select()
       .from(tenantUsers)
       .where(
         and(
           eq(tenantUsers.tenantId, tenant.id),
-          eq(tenantUsers.tenantId, tenantId),
-          eq(tenantUsers.appId, appId),
-          sql`${tenantUsers.archivedAt} IS NULL`
+          isNull(tenantUsers.archivedAt)
         )
       );
 
@@ -211,9 +212,8 @@ export function getTenantHandler(db: DbOrTx) {
       .where(
         and(
           eq(bankAccounts.tenantId, tenant.id),
-          eq(bankAccounts.tenantId, tenantId),
           eq(bankAccounts.appId, appId),
-          sql`${bankAccounts.archivedAt} IS NULL`
+          isNull(bankAccounts.archivedAt)
         )
       );
 

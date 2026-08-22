@@ -1,6 +1,6 @@
 import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 import { verifyJwt, upsertUserFromJwt, logger, createDbClient } from '@money-matters/core';
-import { db, tenantUsers } from '@money-matters/db';
+import { db, tenantUsers, tenants } from '@money-matters/db';
 import { createTenantHandler } from '@money-matters/capability-tenant';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { inngest } from '../inngest/client.js';
@@ -177,12 +177,14 @@ export async function resolveTenantMembership(
     .select({
       tenantId: tenantUsers.tenantId,
       role: tenantUsers.role,
-      appId: tenantUsers.appId,
+      appId: tenants.appId,
     })
     .from(tenantUsers)
+    .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
     .where(
       and(
         eq(tenantUsers.userId, claims.userId),
+        eq(tenants.appId, MONEY_MATTERS_APP_ID),
         eq(tenantUsers.inviteStatus, 'ACCEPTED'),
         isNull(tenantUsers.archivedAt)
       )

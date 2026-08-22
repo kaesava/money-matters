@@ -1,6 +1,5 @@
-"use client";
-
 import React from "react";
+import { InfoTooltip } from "@money-matters/ui/web";
 
 interface PaydayLineRowProps {
   bucketId: string;
@@ -26,7 +25,7 @@ export function PaydayLineRow({
   reasoning,
   amountVal,
   onAmountChange,
-  onShowReasoning,
+  onShowReasoning: _onShowReasoning,
   categoryBalance = 0,
   healthStatus,
   isFutureDate,
@@ -53,15 +52,7 @@ export function PaydayLineRow({
           </span>
           <p className="text-xs font-bold truncate text-[#1B2B4B]">{bucketName}</p>
           {reasoning && (
-            <button
-              type="button"
-              onClick={() => onShowReasoning(bucketName, reasoning)}
-              className="text-xs font-bold text-[#00B4A6] hover:underline flex items-center gap-0.5 shrink-0"
-              title="Click to see allocation reasoning"
-            >
-              <span>ⓘ</span>
-              <span className="hidden sm:inline">Why this amount?</span>
-            </button>
+            <InfoTooltip title="Allocation Rationale" content={reasoning} />
           )}
         </div>
 

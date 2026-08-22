@@ -1,6 +1,6 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
-import { db, userPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
+import { db, userPreferences, tenantUserPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or } from "drizzle-orm";
 import { inngest } from '../inngest/client.js';
 import { logAuditEvent } from '@money-matters/core';
@@ -37,7 +37,7 @@ export const tenantRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       const handler = invitePartnerHandler(ctx.db);
-      const result = await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
+      const result = await handler(input, ctx.tenantId!, ctx.userId!);
 
       // Dispatch non-blocking partner invite email trigger to Inngest
       inngest.send({
@@ -125,35 +125,57 @@ export const tenantRouter = {
 
   getUserPreferences: tenantProcedure
     .query(async ({ ctx }) => {
-      const [pref] = await ctx.db
+      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
+
+      // 1. Global User Preferences (1:1 per userId)
+      const [globalPref] = await ctx.db
         .select()
         .from(userPreferences)
+        .where(eq(userPreferences.userId, ctx.userId!));
+
+      // 2. Tenant & App User Preferences (userId + tenantId + appId)
+      const [tenantPref] = await ctx.db
+        .select()
+        .from(tenantUserPreferences)
         .where(
           and(
-            eq(userPreferences.userId, ctx.userId!),
-            eq(userPreferences.tenantId, ctx.tenantId!)
+            eq(tenantUserPreferences.userId, ctx.userId!),
+            eq(tenantUserPreferences.tenantId, ctx.tenantId!),
+            eq(tenantUserPreferences.appId, appId)
           )
         );
 
-      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
-      const appBlob = pref?.appPreferences?.[appId];
+      const appBlob = tenantPref?.appPreferences?.[appId];
 
       return {
-        ...pref,
+        id: globalPref?.id || tenantPref?.id,
+        userId: ctx.userId!,
+        tenantId: ctx.tenantId!,
+        appId,
+        // Global User Preferences (App & Tenant Agnostic)
+        timezone: globalPref?.timezone ?? "Australia/Sydney",
+        locale: globalPref?.locale ?? "en-AU",
+        theme: globalPref?.theme ?? "system",
+        showIcons: globalPref?.showIcons ?? appBlob?.show_icons ?? true,
+        // Tenant / Cashflow Alert Preferences (Tenant Scoped)
+        paydayAlertsEnabled: tenantPref?.paydayAlertsEnabled ?? true,
+        shortfallAlertsEnabled: tenantPref?.shortfallAlertsEnabled ?? true,
+        billRemindersEnabled: tenantPref?.billRemindersEnabled ?? true,
+        weeklyDigestEnabled: tenantPref?.weeklyDigestEnabled ?? false,
+        // App UI Blob
+        appPreferences: tenantPref?.appPreferences ?? {},
         quickActionsCollapsed: appBlob?.quick_actions_collapsed ?? false,
-        timezone: pref?.timezone ?? "Australia/Sydney",
-        paydayAlertsEnabled: pref?.paydayAlertsEnabled ?? true,
-        shortfallAlertsEnabled: pref?.shortfallAlertsEnabled ?? true,
-        billRemindersEnabled: pref?.billRemindersEnabled ?? true,
-        weeklyDigestEnabled: pref?.weeklyDigestEnabled ?? false,
       };
     }),
 
-updateUserPreferences: tenantProcedure
+  updateUserPreferences: tenantProcedure
     .input(
       z.object({
         quickActionsCollapsed: z.boolean().optional(),
         timezone: z.string().optional(),
+        locale: z.string().optional(),
+        theme: z.string().optional(),
+        showIcons: z.boolean().optional(),
         paydayAlertsEnabled: z.boolean().optional(),
         shortfallAlertsEnabled: z.boolean().optional(),
         billRemindersEnabled: z.boolean().optional(),
@@ -163,23 +185,56 @@ updateUserPreferences: tenantProcedure
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
-      const [existing] = await ctx.db
+      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
+
+      // 1. Upsert Global User Preferences (userId only)
+      const [existingGlobal] = await ctx.db
         .select()
         .from(userPreferences)
+        .where(eq(userPreferences.userId, ctx.userId!));
+
+      if (existingGlobal) {
+        await ctx.db
+          .update(userPreferences)
+          .set({
+            timezone: input.timezone ?? existingGlobal.timezone,
+            locale: input.locale ?? existingGlobal.locale,
+            theme: input.theme ?? existingGlobal.theme,
+            showIcons: input.showIcons ?? existingGlobal.showIcons,
+            updatedAt: new Date(),
+          })
+          .where(eq(userPreferences.id, existingGlobal.id));
+      } else {
+        await ctx.db
+          .insert(userPreferences)
+          .values({
+            userId: ctx.userId!,
+            timezone: input.timezone ?? "Australia/Sydney",
+            locale: input.locale ?? "en-AU",
+            theme: input.theme ?? "system",
+            showIcons: input.showIcons ?? true,
+          });
+      }
+
+      // 2. Upsert Tenant User Preferences (userId + tenantId + appId)
+      const [existingTenantPref] = await ctx.db
+        .select()
+        .from(tenantUserPreferences)
         .where(
           and(
-            eq(userPreferences.userId, ctx.userId!),
-            eq(userPreferences.tenantId, ctx.tenantId!)
+            eq(tenantUserPreferences.userId, ctx.userId!),
+            eq(tenantUserPreferences.tenantId, ctx.tenantId!),
+            eq(tenantUserPreferences.appId, appId)
           )
         );
 
-      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
-      const existingAppPrefs: Record<string, AppPreferencesBlob> = existing?.appPreferences || {};
+      const existingAppPrefs: Record<string, AppPreferencesBlob> = existingTenantPref?.appPreferences || {};
       const currentAppBlob = existingAppPrefs[appId] || {};
 
       const updatedAppBlob: AppPreferencesBlob = {
         ...currentAppBlob,
         ...(input.quickActionsCollapsed !== undefined ? { quick_actions_collapsed: input.quickActionsCollapsed } : {}),
+        ...(input.showIcons !== undefined ? { show_icons: input.showIcons } : {}),
         ...(input.appPreferences?.[appId] ? input.appPreferences[appId] : {}),
       };
 
@@ -189,49 +244,34 @@ updateUserPreferences: tenantProcedure
         [appId]: updatedAppBlob,
       };
 
-      if (existing) {
-        const [updated] = await ctx.db
-          .update(userPreferences)
+      if (existingTenantPref) {
+        await ctx.db
+          .update(tenantUserPreferences)
           .set({
             appPreferences: updatedAppPrefs,
-            timezone: input.timezone ?? existing.timezone,
-            paydayAlertsEnabled: input.paydayAlertsEnabled ?? existing.paydayAlertsEnabled,
-            shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? existing.shortfallAlertsEnabled,
-            billRemindersEnabled: input.billRemindersEnabled ?? existing.billRemindersEnabled,
-            weeklyDigestEnabled: input.weeklyDigestEnabled ?? existing.weeklyDigestEnabled,
+            paydayAlertsEnabled: input.paydayAlertsEnabled ?? existingTenantPref.paydayAlertsEnabled,
+            shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? existingTenantPref.shortfallAlertsEnabled,
+            billRemindersEnabled: input.billRemindersEnabled ?? existingTenantPref.billRemindersEnabled,
+            weeklyDigestEnabled: input.weeklyDigestEnabled ?? existingTenantPref.weeklyDigestEnabled,
             updatedAt: new Date(),
           })
-          .where(eq(userPreferences.id, existing.id))
-          .returning();
-
-        const resAppBlob = updated.appPreferences?.[appId];
-
-        return {
-          ...updated,
-          quickActionsCollapsed: resAppBlob?.quick_actions_collapsed ?? false,
-        };
+          .where(eq(tenantUserPreferences.id, existingTenantPref.id));
       } else {
-        const [inserted] = await ctx.db
-          .insert(userPreferences)
+        await ctx.db
+          .insert(tenantUserPreferences)
           .values({
             userId: ctx.userId!,
             tenantId: ctx.tenantId!,
+            appId,
             appPreferences: updatedAppPrefs,
-            timezone: input.timezone ?? "Australia/Sydney",
             paydayAlertsEnabled: input.paydayAlertsEnabled ?? true,
             shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? true,
             billRemindersEnabled: input.billRemindersEnabled ?? true,
             weeklyDigestEnabled: input.weeklyDigestEnabled ?? false,
-          })
-          .returning();
-
-        const resAppBlob = inserted.appPreferences?.[appId];
-
-        return {
-          ...inserted,
-          quickActionsCollapsed: resAppBlob?.quick_actions_collapsed ?? false,
-        };
+          });
       }
+
+      return { success: true };
     }),
 
   createBankAccount: tenantProcedure

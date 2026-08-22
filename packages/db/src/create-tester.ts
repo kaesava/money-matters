@@ -1,10 +1,11 @@
-import { db, tenants, tenantUsers, users, userPreferences } from "./index.js";
+import { db, tenants, tenantUsers, users, userPreferences, tenantUserPreferences } from "./index.js";
 import { sql, and, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 async function main() {
   const email = "tester-play@kaesava.au";
   const name = "Play Store Tester";
+  const appId = "01908bde-34bb-7b19-a178-574211bc93aa";
   
   const isProd = process.env.NODE_ENV === "production" || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes("ep-spring-snow"));
   const password = isProd ? "whtVT!lNWPp9yb" : "j0niOxWVA7nt#c";
@@ -19,12 +20,14 @@ async function main() {
   let userId: string | null = null;
 
   try {
-    // 1. Delete pre-existing user in neon_auth.user to guarantee fresh password registration
+    // 1. Delete pre-existing user in neon_auth.user and public.users to guarantee fresh registration
     try {
+      await db.execute(sql`DELETE FROM tenant_users WHERE user_id IN (SELECT id FROM users WHERE email = ${email})`);
+      await db.execute(sql`DELETE FROM users WHERE email = ${email}`);
       await db.execute(sql`DELETE FROM neon_auth.user WHERE email = ${email}`);
-      console.log("Cleaned up any existing neon_auth record.");
+      console.log("Cleaned up any existing user records.");
     } catch (e) {
-      console.log("Pre-existing neon_auth cleanup bypassed.");
+      console.log("Pre-existing user cleanup bypassed.");
     }
 
     // 2. Call the Neon Auth Sign Up REST API
@@ -61,13 +64,13 @@ async function main() {
     const rows = Array.isArray(checkRes) ? checkRes : (checkRes as any)?.rows ?? [];
     if (rows.length > 0) {
       userId = rows[0].id;
-      await db.execute(sql`UPDATE neon_auth.user SET "emailVerified" = true WHERE email = ${email}`);
+      await db.execute(sql`UPDATE neon_auth.user SET "emailVerified" = true, role = COALESCE(role, 'user') WHERE email = ${email}`);
       console.log("Marked emailVerified = true in neon_auth.user.");
     } else {
       userId = userId || "d3b07384-d113-4ec4-a5a4-000000000002";
       await db.execute(sql`
-        INSERT INTO neon_auth.user (id, name, email, "emailVerified", "createdAt", "updatedAt")
-        VALUES (${userId}, ${name}, ${email}, true, now(), now())
+        INSERT INTO neon_auth.user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+        VALUES (${userId}, ${name}, ${email}, true, 'user', now(), now())
       `);
       console.log("Inserted user into neon_auth.user with emailVerified = true.");
     }
@@ -110,7 +113,6 @@ async function main() {
         trialStartedAt: now,
         trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
         trialGraceEndsAt: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
-        tenantId,
         appId,
         createdBy: userId!,
         updatedBy: userId!,
@@ -123,7 +125,6 @@ async function main() {
         userId: userId!,
         role: "OWNER",
         inviteStatus: "ACCEPTED",
-        appId,
         createdBy: userId!,
         updatedBy: userId!,
       });
@@ -131,12 +132,27 @@ async function main() {
 
       // 8. Ensure User Preferences exist
       await db.insert(userPreferences).values({
-        id: randomUUID(),
+        userId: userId!,
+        timezone: "Australia/Sydney",
+        locale: "en-AU",
+        theme: "system",
+        showIcons: true,
+        createdBy: userId!,
+        updatedBy: userId!,
+      }).onConflictDoNothing();
+
+      await db.insert(tenantUserPreferences).values({
         userId: userId!,
         tenantId,
-        timezone: "Australia/Sydney",
-      });
-      console.log("Created user preferences.");
+        appId,
+        paydayAlertsEnabled: true,
+        shortfallAlertsEnabled: true,
+        billRemindersEnabled: true,
+        weeklyDigestEnabled: true,
+        createdBy: userId!,
+        updatedBy: userId!,
+      }).onConflictDoNothing();
+      console.log("Created user preferences and tenant user preferences.");
     }
 
     console.log("\n==============================================");

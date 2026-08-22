@@ -8,6 +8,7 @@ import {
   bankAccounts, 
   fileNotes, 
   userPreferences,
+  tenantUserPreferences,
   DbOrTx
 } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
@@ -84,16 +85,26 @@ export function exportMyDataHandler(db: DbOrTx) {
       .where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
 
     // 7. Fetch user preferences
-    const [prefs] = await db
+    const [globalPrefs] = await db
       .select()
       .from(userPreferences)
       .where(eq(userPreferences.userId, userId))
+      .limit(1);
+
+    const [tenantPrefs] = await db
+      .select()
+      .from(tenantUserPreferences)
+      .where(and(eq(tenantUserPreferences.userId, userId), eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.appId, appId)))
       .limit(1);
 
     const jsonPayload = {
       exportedAt: new Date().toISOString(),
       userId,
       tenantId,
+      preferences: {
+        global: globalPrefs || null,
+        tenant: tenantPrefs || null,
+      },
       categories: userCategories,
       incomeSources: userIncomeSources,
       incomeEvents: userIncomeEvents,
@@ -102,7 +113,6 @@ export function exportMyDataHandler(db: DbOrTx) {
       transactionLedger: userLedger,
       bankAccounts: userBankAccounts,
       fileNotes: userFileNotes,
-      preferences: prefs ?? null,
     };
 
     const csvFiles = {

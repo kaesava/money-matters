@@ -79,7 +79,7 @@ describe('Capability Tenant Handlers', () => {
 
     const { invitePartnerHandler } = await import('./index.js');
     const handler = invitePartnerHandler(mockDb);
-    const result = await handler({ email: 'partner@example.com' }, tenantId, appId, userId);
+    const result = await handler({ email: 'partner@example.com' }, tenantId, userId);
 
     expect(result.success).toBe(true);
     expect(result.inviteEmail).toBe('partner@example.com');
@@ -89,17 +89,35 @@ describe('Capability Tenant Handlers', () => {
 
   it('acceptInviteHandler updates pending invite to accepted state when valid', async () => {
     const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const limitMock = vi.fn().mockResolvedValue([{ id: 'invite-1', tenantId, role: 'MEMBER', inviteEmail: 'partner@example.com', expiresAt: futureDate }]);
-    const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
-    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
-    const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    let selectCallCount = 0;
+    const selectMock = vi.fn().mockImplementation(() => ({
+      from: vi.fn().mockImplementation(() => ({
+        where: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) {
+            // First call: find invite in tenantUsers
+            return { limit: vi.fn().mockResolvedValue([{ id: 'invite-1', tenantId, role: 'MEMBER', inviteEmail: 'partner@example.com', expiresAt: futureDate }]) };
+          } else if (selectCallCount === 2) {
+            // Second call: find parent tenant to derive appId
+            return { limit: vi.fn().mockResolvedValue([{ appId }]) };
+          } else {
+            // Third call: check existing personal category
+            return { limit: vi.fn().mockResolvedValue([]) };
+          }
+        }),
+      })),
+    }));
 
     const returningMock = vi.fn().mockResolvedValue([{ tenantId, role: 'MEMBER' }]);
     const setWhereMock = vi.fn().mockReturnValue({ returning: returningMock });
     const setMock = vi.fn().mockReturnValue({ where: setWhereMock });
     const updateMock = vi.fn().mockReturnValue({ set: setMock });
 
-    const mockDb: any = { select: selectMock, update: updateMock };
+    const valuesMock = vi.fn().mockResolvedValue([]);
+    const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
+
+    const mockDb: any = { select: selectMock, update: updateMock, insert: insertMock };
 
     const { acceptInviteHandler } = await import('./index.js');
     const handler = acceptInviteHandler(mockDb);

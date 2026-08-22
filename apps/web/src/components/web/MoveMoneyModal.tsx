@@ -25,6 +25,17 @@ export function MoveMoneyModal({ isOpen, onClose, onSuccess }: MoveMoneyModalPro
   // Compute up to 3 live presets moving from Everyday by default
   const presets: { fromId: string; toId: string; amount: string; reason: string }[] = [];
   if (everydayCat) {
+    const everydayBal = parseFloat(everydayCat.currentBalance || "0");
+    const surplusCat = categories.find((c: Record<string, unknown>) => c.isSurplusTarget === true) || categories.find((c) => c.type === "GOAL");
+    if (surplusCat && everydayBal > 0) {
+      presets.push({
+        fromId: everydayCat.id,
+        toId: surplusCat.id,
+        amount: everydayBal.toFixed(2),
+        reason: `✨ Sweep Everyday Surplus ($${everydayBal.toFixed(2)}) to ${surplusCat.name}`,
+      });
+    }
+
     // 1. Deficit categories (negative balance)
     const deficitCats = categories.filter((c) => c.id !== everydayCat.id && parseFloat(c.currentBalance || "0") < 0);
     for (const dCat of deficitCats) {

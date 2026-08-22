@@ -1,13 +1,14 @@
 import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { verifyJwt, upsertUserFromJwt, logger } from "@money-matters/core";
-import { db, tenantUsers } from "@money-matters/db";
+import { db, tenantUsers, tenants } from "@money-matters/db";
 import { createTenantHandler } from "@money-matters/capability-tenant";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import type { createEdgeContext } from "./edge-context.js";
 import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
+import { MONEY_MATTERS_APP_ID } from './edge-context.js';
 
-export const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
+export { MONEY_MATTERS_APP_ID } from './edge-context.js';
 
 export async function createContext({ req, res }: CreateFastifyContextOptions) {
   const rawCorrelationId = req.headers["x-correlation-id"];
@@ -116,12 +117,14 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
     .select({
       tenantId: tenantUsers.tenantId,
       role: tenantUsers.role,
-      appId: tenantUsers.appId,
+      appId: tenants.appId,
     })
     .from(tenantUsers)
+    .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
     .where(
       and(
         eq(tenantUsers.userId, claims.userId),
+        eq(tenants.appId, MONEY_MATTERS_APP_ID),
         eq(tenantUsers.inviteStatus, "ACCEPTED"),
         isNull(tenantUsers.archivedAt)
       )

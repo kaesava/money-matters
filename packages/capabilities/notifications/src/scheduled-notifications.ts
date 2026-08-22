@@ -1,5 +1,5 @@
 import { Inngest } from 'inngest';
-import { db, incomeEvents, incomeSources, expenseEvents, categories, userPreferences, transactionLedger, users } from '@money-matters/db';
+import { db, incomeEvents, incomeSources, expenseEvents, categories, userPreferences, tenantUserPreferences, transactionLedger, users } from '@money-matters/db';
 import { eq, and, lte, gte, sql } from 'drizzle-orm';
 
 export function createScheduledNotificationFunctions(inngest: Inngest) {
@@ -21,14 +21,20 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
           })
           .from(incomeEvents)
           .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
-          .leftJoin(userPreferences, eq(incomeEvents.createdBy, userPreferences.userId))
+          .leftJoin(
+            tenantUserPreferences,
+            and(
+              eq(incomeEvents.createdBy, tenantUserPreferences.userId),
+              eq(incomeEvents.tenantId, tenantUserPreferences.tenantId)
+            )
+          )
           .where(
             and(
               eq(incomeEvents.status, 'UPCOMING'),
               eq(incomeEvents.expectedDate, tomorrowStr),
               sql`${incomeEvents.archivedAt} IS NULL`,
               sql`${incomeSources.archivedAt} IS NULL`,
-              sql`(${userPreferences.paydayAlertsEnabled} IS NULL OR ${userPreferences.paydayAlertsEnabled} = true)`
+              sql`(${tenantUserPreferences.paydayAlertsEnabled} IS NULL OR ${tenantUserPreferences.paydayAlertsEnabled} = true)`
             )
           );
       });
@@ -73,14 +79,20 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
           })
           .from(expenseEvents)
           .leftJoin(categories, eq(expenseEvents.categoryId, categories.id))
-          .leftJoin(userPreferences, eq(expenseEvents.createdBy, userPreferences.userId))
+          .leftJoin(
+            tenantUserPreferences,
+            and(
+              eq(expenseEvents.createdBy, tenantUserPreferences.userId),
+              eq(expenseEvents.tenantId, tenantUserPreferences.tenantId)
+            )
+          )
           .where(
             and(
               eq(expenseEvents.status, 'UPCOMING'),
               gte(expenseEvents.expectedDate, todayStr),
               lte(expenseEvents.expectedDate, threeDaysLaterStr),
               sql`${expenseEvents.archivedAt} IS NULL`,
-              sql`(${userPreferences.billRemindersEnabled} IS NULL OR ${userPreferences.billRemindersEnabled} = true)`
+              sql`(${tenantUserPreferences.billRemindersEnabled} IS NULL OR ${tenantUserPreferences.billRemindersEnabled} = true)`
             )
           );
       });
@@ -113,13 +125,19 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
         return await db
           .select()
           .from(expenseEvents)
-          .leftJoin(userPreferences, eq(expenseEvents.createdBy, userPreferences.userId))
+          .leftJoin(
+            tenantUserPreferences,
+            and(
+              eq(expenseEvents.createdBy, tenantUserPreferences.userId),
+              eq(expenseEvents.tenantId, tenantUserPreferences.tenantId)
+            )
+          )
           .where(
             and(
               eq(expenseEvents.status, 'UPCOMING'),
               lte(expenseEvents.expectedDate, todayStr),
               sql`${expenseEvents.archivedAt} IS NULL`,
-              sql`(${userPreferences.billRemindersEnabled} IS NULL OR ${userPreferences.billRemindersEnabled} = true)`
+              sql`(${tenantUserPreferences.billRemindersEnabled} IS NULL OR ${tenantUserPreferences.billRemindersEnabled} = true)`
             )
           );
       });
@@ -150,14 +168,14 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
       const allPrefs = await step.run('fetch-users-digest-enabled', async () => {
         return await db
           .select({
-            id: userPreferences.id,
-            userId: userPreferences.userId,
-            tenantId: userPreferences.tenantId,
+            id: tenantUserPreferences.id,
+            userId: tenantUserPreferences.userId,
+            tenantId: tenantUserPreferences.tenantId,
             email: users.email,
           })
-          .from(userPreferences)
-          .leftJoin(users, eq(userPreferences.userId, users.id))
-          .where(eq(userPreferences.weeklyDigestEnabled, true));
+          .from(tenantUserPreferences)
+          .leftJoin(users, eq(tenantUserPreferences.userId, users.id))
+          .where(eq(tenantUserPreferences.weeklyDigestEnabled, true));
       });
 
       for (const pref of allPrefs) {

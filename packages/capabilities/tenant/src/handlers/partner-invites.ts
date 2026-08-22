@@ -1,15 +1,18 @@
-import { tenantUsers, categories, DbOrTx } from "@money-matters/db";
+import { tenantUsers, categories, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
 
 /**
  * Invites a partner to join the household tenant.
+ *
+ * DESIGN: appId is NOT stored on tenant_users — it is derived from the parent
+ * tenant (tenants.app_id) via JOIN. The appId parameter is removed from this
+ * handler's signature as a result.
  */
 export function invitePartnerHandler(db: DbOrTx) {
   return async (
     input: { email: string },
     tenantId: string,
-    appId: string,
     userId: string
   ) => {
     await ensurePremiumAccess(db, tenantId, "Household partner invitations");
@@ -22,7 +25,6 @@ export function invitePartnerHandler(db: DbOrTx) {
       .insert(tenantUsers)
       .values({
         tenantId,
-        appId,
         inviteEmail: input.email,
         inviteToken,
         inviteStatus: "PENDING" as const,
@@ -45,6 +47,9 @@ export function invitePartnerHandler(db: DbOrTx) {
 
 /**
  * Accepts a household partner invitation after verifying token expiry and email identity.
+ *
+ * Derives appId from the parent tenant (via JOIN) to seed the Personal category,
+ * since tenant_users no longer stores app_id.
  */
 export function acceptInviteHandler(db: DbOrTx) {
   return async (input: { inviteToken: string }, userId: string, userEmail?: string) => {
@@ -84,6 +89,17 @@ export function acceptInviteHandler(db: DbOrTx) {
       .where(eq(tenantUsers.id, invite.id))
       .returning();
 
+    // Derive appId from parent tenant — tenant_users no longer stores app_id
+    const [tenant] = await db
+      .select({ appId: tenants.appId })
+      .from(tenants)
+      .where(eq(tenants.id, updated.tenantId))
+      .limit(1);
+
+    if (!tenant) {
+      throw new Error("Tenant not found for accepted invitation.");
+    }
+
     // Auto-seed default Personal category for joining partner
     const [existingPersonal] = await db
       .select()
@@ -100,7 +116,7 @@ export function acceptInviteHandler(db: DbOrTx) {
     if (!existingPersonal) {
       await db.insert(categories).values({
         tenantId: updated.tenantId,
-        appId: updated.appId,
+        appId: tenant.appId, // derived from parent tenant
         name: "Personal",
         type: "PERSONAL" as const,
         userId: userId,
