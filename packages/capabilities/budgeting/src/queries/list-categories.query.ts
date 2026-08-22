@@ -25,48 +25,6 @@ export async function listCategoriesQuery(
     .from(categories)
     .where(and(...categoryFilters));
 
-  // Auto-seed default categories if user has 0 active categories
-  if (dbCats.length === 0) {
-    const defaultTemplates = [
-      { name: "Groceries & Food Supplies", type: "EVERYDAY" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1170.00" },
-      { name: "Dining Out & Coffee", type: "EVERYDAY" as const, icon: "coffee", colour: "#F59E0B", monthlyAmount: "1040.00" },
-      { name: "Petrol & Fuel", type: "EVERYDAY" as const, icon: "navigation", colour: "#3B82F6", monthlyAmount: "260.00" },
-      { name: "Public Transport & Rideshare", type: "EVERYDAY" as const, icon: "truck", colour: "#8B5CF6", monthlyAmount: "180.00" },
-      { name: "Personal Care & Fun", type: "EVERYDAY" as const, icon: "smile", colour: "#EC4899", monthlyAmount: "430.00" },
-      { name: "Everyday Incidental Buffer", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "300.00" },
-      { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", colour: "#EF4444", monthlyAmount: "2400.00" },
-      { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", colour: "#F59E0B", monthlyAmount: "300.00" },
-      { name: "Emergency Reserve", type: "GOAL" as const, icon: "shield", colour: "#6366F1", monthlyAmount: null },
-    ];
-
-    try {
-      await dbClient.insert(categories).values(
-        defaultTemplates.map((t) => ({
-          tenantId,
-          appId,
-          name: t.name,
-          type: t.type,
-          icon: t.icon,
-          colour: t.colour,
-          monthlyAmount: t.monthlyAmount,
-          enteredAmount: t.monthlyAmount,
-          budgetFrequency: "MONTHLY" as const,
-          rolloverRule: "ROLLOVER" as const,
-          isCommitted: false,
-          createdBy: "SYSTEM",
-          updatedBy: "SYSTEM",
-        }))
-      );
-
-      dbCats = await dbClient
-        .select()
-        .from(categories)
-        .where(and(...categoryFilters));
-    } catch (e) {
-      // Ignore conflict or insertion error
-    }
-  }
-
   // 2. Fetch category schedules
   const dbSchedules = await dbClient
     .select()
