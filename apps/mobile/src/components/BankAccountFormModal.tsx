@@ -52,11 +52,8 @@ export function BankAccountFormModal({ visible, accountToEdit, onClose, onSucces
 
   const toggleType = (tVal: string) => {
     if (selectedTypes.includes(tVal)) {
-      if (selectedTypes.length === 1) {
-        Alert.alert('Validation Error', 'At least one Category Type must be selected for the account.');
-        return;
-      }
-      setSelectedTypes(selectedTypes.filter((t) => t !== tVal));
+      Alert.alert('Validation Error', 'Every pool must be linked to a bank account. To move this pool to a different bank account, edit the bank account that you want to link it to.');
+      return;
     } else {
       setSelectedTypes([...selectedTypes, tVal]);
     }
@@ -118,7 +115,7 @@ export function BankAccountFormModal({ visible, accountToEdit, onClose, onSucces
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Category Types (Account Purpose)</Text>
+        <Text style={styles.label}>Linked Pools</Text>
         <View style={styles.chipRow}>
           {[
             { id: 'EVERYDAY', label: 'Everyday' },

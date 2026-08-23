@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId } from "react";
+import React, { useId, useEffect, useState } from "react";
 import { InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
@@ -63,15 +63,52 @@ export function BankAccountFormModal({
   const bufferInputId = useId();
   const privateCheckId = useId();
 
+  const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
+
+  // Escape key handler for modal dismissal
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
+
+  const handlePoolCheckboxClick = (typeKey: CategoryType) => {
+    const isCurrentlyChecked = accSelectedTypes.includes(typeKey);
+    if (isCurrentlyChecked) {
+      alert("Every pool must be linked to a bank account. To move this pool to a different bank account, edit the bank account that you want to link it to.");
+      return;
+    }
+    onCategoryTypeToggle(typeKey);
+  };
+
+  const handlePrivateCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const targetValue = e.target.checked;
+    if (targetValue !== accIsPrivate) {
+      setPrivacyWarningTarget(targetValue);
+    }
+  };
+
+  const handleConfirmPrivacyChange = () => {
+    if (privacyWarningTarget !== null) {
+      setAccIsPrivate(privacyWarningTarget);
+      setPrivacyWarningTarget(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150" role="dialog" aria-modal="true" aria-labelledby={modalId}>
       <form
         onSubmit={onSubmit}
-        className="bg-white rounded-2xl p-6 max-w-md w-full flex flex-col gap-4 shadow-xl border border-zinc-100"
+        className="bg-white rounded-2xl p-6 max-w-md w-full flex flex-col gap-4 shadow-xl border border-zinc-100 relative"
       >
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <h3 id={modalId} className="text-base font-bold text-[#1B2B4B]">
@@ -132,7 +169,7 @@ export function BankAccountFormModal({
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1">
-              <label htmlFor={bufferInputId} className="text-xs font-bold text-zinc-700">Unbudgeted Buffer / Earmarked Funds ($)</label>
+              <label htmlFor={bufferInputId} className="text-xs font-bold text-zinc-700">Unbudgeted Buffer / Reserved Funds ($)</label>
               <InfoTooltip content="Funds held in this account that are reserved/earmarked and excluded from your budget (e.g. kids' offset savings, emergency buffer)." />
             </div>
             <input
@@ -149,7 +186,7 @@ export function BankAccountFormModal({
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs font-bold">
             <div className="flex items-center gap-1">
               <span className="text-[#1B2B4B]">Amount Available to Budget:</span>
-              <InfoTooltip content="Net spendable funds in this account (Current Balance − Earmarked Funds)." />
+              <InfoTooltip content="Net spendable funds in this account (Current Balance − Reserved Funds)." />
             </div>
             <span className={`font-mono text-sm font-black ${
               (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0) < 0
@@ -163,8 +200,8 @@ export function BankAccountFormModal({
 
         <div className="flex flex-col gap-2 pt-1 border-t border-zinc-100">
           <div className="flex items-center gap-1">
-            <label className="text-xs font-bold text-[#1B2B4B]">Link Category Types to this Account</label>
-            <InfoTooltip content="Each category pool (Everyday, Bills, Savings) can only be linked to a single bank account for waterfall payday routing." />
+            <label className="text-xs font-bold text-[#1B2B4B]">Link Pools to this Account</label>
+            <InfoTooltip content="Each category pool (Everyday, Bills, Goals) must be linked to a bank account for waterfall payday routing." />
           </div>
           <div className="flex flex-col gap-2">
             {[
@@ -186,7 +223,7 @@ export function BankAccountFormModal({
                     <input
                       type="checkbox"
                       checked={isChecked}
-                      onChange={() => onCategoryTypeToggle(item.key)}
+                      onChange={() => handlePoolCheckboxClick(item.key)}
                       className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb]"
                     />
                     <span>{item.label}</span>
@@ -207,7 +244,7 @@ export function BankAccountFormModal({
               type="checkbox"
               checked={accIsPrivate}
               disabled={isTrialExpired}
-              onChange={(e) => setAccIsPrivate(e.target.checked)}
+              onChange={handlePrivateCheckboxChange}
               className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
             />
             <span>{t("bankAccounts.privatePersonalAccount", { defaultValue: "🔒 Private Personal Account (Hidden from other users)" })}</span>
@@ -251,7 +288,43 @@ export function BankAccountFormModal({
             </button>
           </div>
         </div>
+
+        {/* Privacy Warning Confirmation Modal */}
+        {privacyWarningTarget !== null && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-amber-200 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl">
+                ⚠️
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-[#1B2B4B]">Privacy Settings Warning</h4>
+                <p className="text-xs text-zinc-600 leading-relaxed">
+                  {privacyWarningTarget
+                    ? "Marking this account as Private will hide it completely from your household partner, including its name, balance, and transaction history. Are you sure?"
+                    : "Making this account Shared will allow your household partner to see its name, balance, and all past transaction history. Are you sure?"}
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setPrivacyWarningTarget(null)}
+                  className="px-3.5 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmPrivacyChange}
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition-colors"
+                >
+                  Confirm Change
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );
 }
+

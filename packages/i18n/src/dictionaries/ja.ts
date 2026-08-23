@@ -14,7 +14,7 @@ export const ja: DeepStringRecord<typeof en> = {
   "nav": {
     "dashboard": "ダッシュボード",
     "home": "ホーム",
-    "accounts": "口座",
+    "accounts": "銀行口座",
     "categories": "お金の管理",
     "myMoney": "お金の管理",
     "paychecks": "入出金",
@@ -280,7 +280,7 @@ export const ja: DeepStringRecord<typeof en> = {
       "billCoverageNextDue": "次回期日 {date}"
     },
     "actions": {
-      "moveMoney": "資金を移動"
+      "moveMoney": "カテゴリー間送金"
     }
   },
   "landing": {
@@ -664,6 +664,24 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "💡 ヒント: 口座の分離管理",
       "description": "生活費、固定費、貯蓄を別々の銀行口座に分けることで、給与振分がスムーズになります。設定 > 銀行口座で設定を変更できます。",
       "action": "銀行口座を管理"
+    },
+    "goals": {
+      "title": "貯蓄目標",
+      "onTrack": "{total} 個中 {count} 個が順調",
+      "allOnTrack": "全 {total} 個の目標が順調です 🎉",
+      "almostThere": "{name} がもうすぐ達成です！ 🎉",
+      "viewAll": "すべての目標を表示"
+    },
+    "nextPay": {
+      "title": "次の給料日",
+      "daysAway": "{name} · {amount} · あと {days} 日",
+      "today": "今日が給料日です！ 🎉 {name} · {amount}",
+      "process": "給与を仕分ける"
+    },
+    "bankBalances": {
+      "title": "銀行口座残高",
+      "update": "更新",
+      "lastUpdated": "{time} 前に更新"
     }
   },
   "settings": {
@@ -692,16 +710,16 @@ export const ja: DeepStringRecord<typeof en> = {
       "accountName": "口座名",
       "accountNamePlaceholder": "例: 高金利セーバー",
       "initialBalance": "現在の残高 ($)",
-      "linkedTypes": "紐付けられたカテゴリータイプ",
-      "linkedTypesDesc": "各カテゴリータイプ（生活費、固定費、貯蓄）は必ず1つの銀行口座に紐付けられます。",
+      "linkedTypes": "紐付けられたプール",
+      "linkedTypesDesc": "各プール（生活費、固定費、貯蓄）は必ず1つの銀行口座に紐付けられます。",
       "everyday": "🛒 生活費",
       "regular": "📋 請求書と固定費",
       "goal": "🎯 貯蓄目標",
       "deleteSuccess": "銀行口座を削除しました。",
       "deleteConfirmTitle": "銀行口座の削除",
       "deleteConfirmBody": "{name} を削除してもよろしいですか？",
-      "reassignRequiredTitle": "カテゴリータイプの再割り当てが必要です",
-      "reassignRequiredBody": "この口座にはカテゴリータイプ（{types}）が紐付けられています。削除する前に別の口座へ再割り当てしてください。"
+      "reassignRequiredTitle": "プールの再割り当てが必要です",
+      "reassignRequiredBody": "この口座にはプール（{types}）が紐付けられています。削除する前に別の口座へ再割り当てしてください。"
     },
     "version": "バージョン {version}",
     "deleteAccount": "アカウントとデータの削除",

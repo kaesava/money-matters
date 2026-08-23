@@ -76,6 +76,7 @@ export function CategoryFormModal({
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [catPrivacyWarningTarget, setCatPrivacyWarningTarget] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (categoryToEdit) {
@@ -267,14 +268,19 @@ export function CategoryFormModal({
           </select>
         </div>
 
-        {/* 🔒 Private Pool Toggle */}
+        {/* 🔒 Private Category Toggle */}
         <div className="flex flex-col gap-1 bg-amber-50/60 p-3 rounded-xl border border-amber-200/80">
           <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-900">
             <input
               type="checkbox"
               checked={isPrivate}
               disabled={(isTrialExpired && !isPrivate) || isReadOnly}
-              onChange={(e) => setIsPrivate(e.target.checked)}
+              onChange={(e) => {
+                const targetVal = e.target.checked;
+                if (targetVal !== isPrivate) {
+                  setCatPrivacyWarningTarget(targetVal);
+                }
+              }}
               className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 disabled:opacity-75"
             />
             <span>{t("categories.privatePoolLabel")}</span>
@@ -282,26 +288,31 @@ export function CategoryFormModal({
           </label>
           {isTrialExpired && !isPrivate && (
             <p className="text-[10px] text-amber-700 font-semibold pl-6">
-              🔒 Private pools require an active premium trial or subscription.
+              🔒 Private categories require an active premium trial or subscription.
             </p>
           )}
         </div>
 
         {/* Type-Specific Fields */}
-        {type === "REGULAR" && (
+        {(type === "REGULAR" || type === "EVERYDAY") && (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-                  Amount ($)
+                  Target Budget Amount ($)
                 </label>
                 <input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  value={monthlyAmount}
+                  value={type === "EVERYDAY" ? (everydayTargetKeepAmount || monthlyAmount) : monthlyAmount}
                   disabled={isReadOnly}
-                  onChange={(e) => setMonthlyAmount(e.target.value)}
+                  onChange={(e) => {
+                    setMonthlyAmount(e.target.value);
+                    if (type === "EVERYDAY") {
+                      setEverydayTargetKeepAmount(e.target.value);
+                    }
+                  }}
                   className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 />
               </div>
@@ -325,16 +336,36 @@ export function CategoryFormModal({
               </div>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-slate-50 p-3 rounded-xl border border-zinc-200">
-              <input
-                type="checkbox"
-                checked={isEssential}
-                disabled={isReadOnly}
-                onChange={(e) => setIsEssential(e.target.checked)}
-                className="w-4 h-4 text-[#2563eb] rounded disabled:opacity-75"
-              />
-              {t("categories.priorityBillLabel")}
-            </label>
+            {/* Calculated Monthly Equivalent Badge */}
+            {(() => {
+              const enteredVal = parseFloat(type === "EVERYDAY" ? (everydayTargetKeepAmount || monthlyAmount) : monthlyAmount) || 0;
+              let calcMonthly = enteredVal;
+              if (budgetFrequency === "WEEKLY") calcMonthly = enteredVal * (52 / 12);
+              else if (budgetFrequency === "FORTNIGHTLY") calcMonthly = enteredVal * (26 / 12);
+              else if (budgetFrequency === "ANNUALLY") calcMonthly = enteredVal / 12;
+
+              return (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs font-bold">
+                  <span className="text-[#1B2B4B]">Calculated Monthly Target:</span>
+                  <span className="font-mono text-xs font-black text-[#2563eb]">
+                    ${calcMonthly.toFixed(2)} / mo
+                  </span>
+                </div>
+              );
+            })()}
+
+            {type === "REGULAR" && (
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-slate-50 p-3 rounded-xl border border-zinc-200">
+                <input
+                  type="checkbox"
+                  checked={isEssential}
+                  disabled={isReadOnly}
+                  onChange={(e) => setIsEssential(e.target.checked)}
+                  className="w-4 h-4 text-[#2563eb] rounded disabled:opacity-75"
+                />
+                {t("categories.priorityBillLabel")}
+              </label>
+            )}
           </div>
         )}
 
@@ -435,6 +466,46 @@ export function CategoryFormModal({
             </button>
           </div>
         </div>
+
+        {/* Category Privacy Warning Confirmation Modal */}
+        {catPrivacyWarningTarget !== null && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-amber-200 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150 text-left">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl">
+                ⚠️
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-[#1B2B4B]">Privacy Settings Warning</h4>
+                <p className="text-xs text-zinc-600 leading-relaxed">
+                  {catPrivacyWarningTarget
+                    ? "Marking this category as Private will hide it completely from your household partner, including its target budget and transaction history. Are you sure?"
+                    : "Making this category Shared will allow your household partner to see its target budget and transaction history. Are you sure?"}
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setCatPrivacyWarningTarget(null)}
+                  className="px-3.5 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (catPrivacyWarningTarget !== null) {
+                      setIsPrivate(catPrivacyWarningTarget);
+                      setCatPrivacyWarningTarget(null);
+                    }
+                  }}
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition-colors"
+                >
+                  Confirm Change
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </ModalDialog>
   );

@@ -11,6 +11,7 @@ import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDraw
 import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { FilterBar } from "../../../components/web/FilterBar";
 import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
+import { CategoryActivityModal } from "../../../components/web/CategoryActivityModal";
 import { EverydayPoolSection, CategorySummaryItem } from "./components/EverydayPoolSection";
 import { RegularBillsSection } from "./components/RegularBillsSection";
 import { SavingsGoalsSection } from "./components/SavingsGoalsSection";
@@ -65,6 +66,7 @@ function CategoriesPageContent() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState<CategorySummaryItem | null>(null);
+  const [activityCategory, setActivityCategory] = useState<CategorySummaryItem | null>(null);
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
 
   // Month progress
@@ -190,6 +192,7 @@ function CategoriesPageContent() {
           setCategoryToEdit(cat);
           setIsFormModalOpen(true);
         }}
+        onOpenActivity={setActivityCategory}
       />
 
       {/* SECTION 2: REGULAR BILLS */}
@@ -208,6 +211,7 @@ function CategoriesPageContent() {
           setIsFormModalOpen(true);
         }}
         onArchiveCategory={handleArchive}
+        onOpenActivity={setActivityCategory}
       />
 
       {/* SECTION 3: SAVE TOWARD (GOALS) */}
@@ -219,6 +223,7 @@ function CategoriesPageContent() {
           setIsFormModalOpen(true);
         }}
         onArchiveCategory={handleArchive}
+        onOpenActivity={setActivityCategory}
       />
 
       {hasArchivedCategories && (
@@ -248,6 +253,12 @@ function CategoriesPageContent() {
         onClose={() => setIsFormModalOpen(false)}
         categoryToEdit={categoryToEdit}
         onSuccess={() => utils.listCategories.invalidate()}
+      />
+
+      <CategoryActivityModal
+        isOpen={activityCategory !== null}
+        onClose={() => setActivityCategory(null)}
+        category={activityCategory}
       />
 
       <CategoryDetailDrawer

@@ -95,3 +95,23 @@ Allow a household to opt in to category-level balance tracking for Everyday and/
 > - Naively checking `billsPoolBalance >= totalUpcoming` and marking all categories "Covered ✓" would be **false and misleading** — the user might assume a bill is covered when they simply forgot to schedule it.
 > - **V1 Mitigation:** The `listBillCoverageQuery` explicitly returns `NO_SCHEDULE` status for categories without upcoming expense events in the window. The UI renders a neutral grey badge (`"No schedule set ℹ️"`) instead of `"Covered ✓"`, prompting the user to add an upcoming bill event.
 
+
+---
+
+## V2 Feature: Category Health Warning Suppression & Snooze UX
+
+### Feature ID
+
+`FEAT-V2-002-HEALTH-WARNING-SUPPRESSION`
+
+### Context
+
+During the dashboard redesign (2026-08-23), category health warning indicators (e.g. goal or bill categories showing `AMBER` or `RED` health status) were surfaced as compact chips. Without dismissal mechanisms, a category that falls behind stays highlighted continuously until the goal date or target is modified.
+
+### Scope & Technical Requirements
+
+1. **User Preference / Dismissal State:** Store dismiss/snooze timestamps in `appPreferences` or dedicated `health_warning_acknowledgements` table (`tenantId`, `categoryId`, `snoozedUntil`).
+2. **Notification Integration:** Connect health warnings with scheduled email digests and push notification preferences.
+3. **UI Behaviour:** Allow users to "Acknowledge / Snooze for 7 days" directly from category cards or dashboard status chips.
+
+

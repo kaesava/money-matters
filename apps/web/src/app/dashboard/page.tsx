@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip } from "@money-matters/ui/web";
@@ -9,12 +9,14 @@ import posthog from "../../lib/posthog-client";
 import { DashboardHeroCard } from "./components/DashboardHeroCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
 import { ShortfallAlertCard } from "./components/ShortfallAlertCard";
-import { OrientationProTipCard } from "./components/OrientationProTipCard";
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
+import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
+import { NextPaydayCard } from "./components/NextPaydayCard";
+import { BankBalancesRow } from "./components/BankBalancesRow";
+import { CanAffordModal } from "./components/CanAffordModal";
 import { DashboardModals } from "./components/DashboardModals";
 
-import { QuickExpenseCard } from "@/components/web/dashboard/QuickExpenseCard";
-import { BankReconcileCard } from "@/components/web/dashboard/BankReconcileCard";
+import { useDashboardData } from "./hooks/useDashboardData";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -28,8 +30,6 @@ interface AppPreferencesBlob {
 
 type AppPreferencesMap = Record<string, AppPreferencesBlob>;
 
-import { useDashboardData } from "./hooks/useDashboardData";
-
 export default function DashboardPage() {
   const {
     router,
@@ -38,21 +38,6 @@ export default function DashboardPage() {
     setMoveMoneyOpen,
     paydayPreviewEventId,
     setPaydayPreviewEventId,
-    quickType,
-    setQuickType,
-    quickName,
-    setQuickName,
-    quickCategoryId,
-    setQuickCategoryId,
-    quickReceivingAccountId,
-    setQuickReceivingAccountId,
-    quickAmount,
-    setQuickAmount,
-    quickDate,
-    setQuickDate,
-    quickNote,
-    setQuickNote,
-    quickMsg,
     canAffordAmount,
     setCanAffordAmount,
     reconcilingAccountId,
@@ -74,7 +59,10 @@ export default function DashboardPage() {
     updateUpcomingExpenseMutation,
   } = useDashboardData();
 
+  const [canAffordModalOpen, setCanAffordModalOpen] = useState(false);
+
   const categories = categoriesQuery.data ?? [];
+  const goalCategories = categories.filter((c) => c.type === "GOAL");
   const needsAttentionCount = categories.filter((c) => c.healthStatus === "AMBER").length;
   const behindCount = categories.filter((c) => c.healthStatus === "RED").length;
   const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
@@ -96,17 +84,17 @@ export default function DashboardPage() {
       appPreferences: {
         ["01908bde-34bb-7b19-a178-574211bc93aa"]: {
           skip_pool_adjustment_confirmation: true,
-        }
-      }
+        },
+      },
     });
   };
 
-  const handleUpdatePoolBalance = async (poolType: 'EVERYDAY' | 'REGULAR', newAmount: number) => {
-    const currentBalance = poolType === 'EVERYDAY' ? everydayBalance : billsBalance;
+  const handleUpdatePoolBalance = async (poolType: "EVERYDAY" | "REGULAR", newAmount: number) => {
+    const currentBalance = poolType === "EVERYDAY" ? everydayBalance : billsBalance;
     const diff = newAmount - currentBalance;
     if (Math.abs(diff) < 0.01) return;
 
-    const targetCat = categories.find((c) => c.type === poolType);
+    const targetCat = categories.find((c) => c.type === poolType) || categories[0];
     if (!targetCat) {
       alert(`No category found of type ${poolType} to post the adjustment transaction.`);
       return;
@@ -116,7 +104,7 @@ export default function DashboardPage() {
       amount: Math.abs(diff).toFixed(2),
       categoryId: targetCat.id,
       flowType: diff > 0 ? "CREDIT" : "DEBIT",
-      note: `${poolType === 'EVERYDAY' ? 'Everyday' : 'Bills'} Pool Adjustment`,
+      note: `${poolType === "EVERYDAY" ? "Everyday" : "Bills"} Pool Adjustment`,
       recordedAt: todayStr,
     });
   };
@@ -184,33 +172,25 @@ export default function DashboardPage() {
     });
   };
 
-  const handleQuickSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    recordExpenseMutation.mutate(
-      {
-        amount: quickAmount,
-        categoryId: quickCategoryId || categories.find((c) => c.type === "EVERYDAY")?.id || categories[0]?.id || "",
-        flowType: quickType,
-        note: quickName ? `${quickName}${quickNote ? `: ${quickNote}` : ''}` : (quickNote || undefined),
-        recordedAt: quickDate,
-      },
-      {
-        onSuccess: () => {
-          posthog.capture("transaction_recorded", {
-            flow_type: quickType,
-            entry_method: "quick_action",
-          });
-        },
-      }
-    );
-  };
-
   const bankAccountsMapped = (bankAccountsQuery.data ?? []).map((acc) => ({
     id: acc.id,
     name: acc.name,
     lastKnownBalance: acc.lastKnownBalance,
     expectedBalance: acc.expectedBalance,
   }));
+
+  const handleInlineBankReconcile = (accountId: string, actualBalanceStr: string) => {
+    const targetCatId = categories.find((c) => c.type === "EVERYDAY")?.id || categories[0]?.id;
+    const acc = bankAccountsQuery.data?.find((a) => a.id === accountId);
+    const expected = parseFloat(acc?.expectedBalance || "0");
+    const actual = parseFloat(actualBalanceStr);
+    const diff = actual - expected;
+    reconcileMutation.mutate({
+      accountId,
+      actualBalance: actual.toFixed(2),
+      splits: targetCatId ? [{ categoryId: targetCatId, adjustment: diff.toFixed(2) }] : [],
+    });
+  };
 
   // Due-Date Guardrail Evaluation for upcoming bills in 14 days
   const upcomingBillsList = (expenseEventsQuery.data ?? [])
@@ -232,7 +212,8 @@ export default function DashboardPage() {
   const billsShortfall = Math.max(0, totalBillsDue14Days - billsBalance);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6">
+    <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6 animate-in fade-in duration-200">
+      {/* Page Title */}
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-[#1B2B4B]">
           {t("nav.dashboard") || "Dashboard"}
@@ -242,31 +223,14 @@ export default function DashboardPage() {
           content={t("tooltips.dashboard.content")}
         />
       </div>
+
+      {/* 1. Missing Schedules Banner (Contextual) */}
       <MissingSchedulesBanner
         incomeCount={incomeEventsQuery.data?.length ?? 0}
         billsCount={expenseEventsQuery.data?.length ?? 0}
       />
 
-      <DashboardHeroCard
-        everydayBalance={everydayBalance}
-        everydayMonthlyBudget={everydayMonthlyBudget}
-        billsBalance={billsBalance}
-        billsMonthlyBudget={billsMonthlyBudget}
-        needsAttentionCount={needsAttentionCount}
-        behindCount={behindCount}
-        onTrackCount={onTrackCount}
-        canAffordAmount={canAffordAmount}
-        setCanAffordAmount={setCanAffordAmount}
-        canAffordData={canAffordQuery.data}
-        nextPayday={nextPaydayData}
-        onPressNextPay={(id) => setPaydayPreviewEventId(id)}
-        onSelectFilter={(health) => router.push(`/dashboard/categories?health=${health}`)}
-        formatAUD={fmt}
-        onUpdatePoolBalance={handleUpdatePoolBalance}
-        skipConfirmation={skipConfirmation}
-        onSaveSkipConfirmation={handleSaveSkipConfirmation}
-      />
-
+      {/* 2. Shortfall Alert Card (Contextual) */}
       <ShortfallAlertCard
         billsShortfall={billsShortfall}
         billsDue14DaysCount={billsDue14Days.length}
@@ -276,10 +240,37 @@ export default function DashboardPage() {
         onMoveMoney={() => setMoveMoneyOpen(true)}
       />
 
-      <OrientationProTipCard />
+      {/* 3. Hero Command Card */}
+      <DashboardHeroCard
+        everydayBalance={everydayBalance}
+        everydayMonthlyBudget={everydayMonthlyBudget}
+        billsBalance={billsBalance}
+        billsMonthlyBudget={billsMonthlyBudget}
+        needsAttentionCount={needsAttentionCount}
+        behindCount={behindCount}
+        onTrackCount={onTrackCount}
+        onOpenCanAfford={() => setCanAffordModalOpen(true)}
+        onSelectFilter={(health) => router.push(`/dashboard/categories?health=${health}`)}
+        formatAUD={fmt}
+        onUpdatePoolBalance={handleUpdatePoolBalance}
+        skipConfirmation={skipConfirmation}
+        onSaveSkipConfirmation={handleSaveSkipConfirmation}
+      />
 
+      {/* 4. Savings Goals Optimistic Strip */}
+      <GoalsProgressStrip
+        goalCategories={goalCategories}
+        formatAUD={fmt}
+      />
 
-      {/* Attention Items */}
+      {/* 5. Next Payday Card */}
+      <NextPaydayCard
+        nextPayday={nextPaydayData}
+        onPressNextPay={(id) => setPaydayPreviewEventId(id)}
+        formatAUD={fmt}
+      />
+
+      {/* 6. Attention Items (Bills Overdue / Due Soon) */}
       <AttentionItemsList
         items={attentionItems}
         onMarkPaid={handleMarkPaidItem}
@@ -290,41 +281,23 @@ export default function DashboardPage() {
         onNavigateCategory={(catName) => router.push(`/dashboard/categories?search=${encodeURIComponent(catName)}`)}
       />
 
-      {/* Quick Actions & Bank Reconciliation Tools */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <QuickExpenseCard
-            quickType={quickType}
-            setQuickType={setQuickType}
-            quickName={quickName}
-            setQuickName={setQuickName}
-            quickAmount={quickAmount}
-            setQuickAmount={setQuickAmount}
-            quickCategoryId={quickCategoryId}
-            setQuickCategoryId={setQuickCategoryId}
-            quickReceivingAccountId={quickReceivingAccountId}
-            setQuickReceivingAccountId={setQuickReceivingAccountId}
-            quickDate={quickDate}
-            setQuickDate={setQuickDate}
-            quickNote={quickNote}
-            setQuickNote={setQuickNote}
-            quickMsg={quickMsg}
-            categories={categories}
-            bankAccounts={bankAccountsQuery.data ?? []}
-            isPending={recordExpenseMutation.isPending}
-            onSubmit={handleQuickSubmit}
-          />
+      {/* 7. Bank Balances Compact Row */}
+      <BankBalancesRow
+        accounts={bankAccountsMapped}
+        onReconcile={handleInlineBankReconcile}
+        formatAUD={fmt}
+      />
 
-          <BankReconcileCard
-            accounts={bankAccountsMapped}
-            onOpenSettings={() => router.push('/dashboard/settings')}
-            onReconcile={(id: string, lastKnownBalance: string) => {
-              setReconcilingAccountId(id);
-              setReconcileActualAmount(lastKnownBalance);
-            }}
-            fmt={fmt}
-          />
-        </div>
+      {/* Can We Afford This? Modal */}
+      <CanAffordModal
+        isOpen={canAffordModalOpen}
+        onClose={() => setCanAffordModalOpen(false)}
+        canAffordAmount={canAffordAmount}
+        setCanAffordAmount={setCanAffordAmount}
+        canAffordData={canAffordQuery.data}
+      />
 
+      {/* Dashboard Global Modals & Drawers */}
       <DashboardModals
         reconcilingAccountId={reconcilingAccountId}
         onCloseReconcile={() => {

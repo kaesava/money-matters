@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, SearchInput, PaginationBar } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput, PaginationBar, fmtDate } from "@money-matters/ui/web";
 
 const formatAUD = (val: number | string): string => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -71,7 +71,7 @@ export default function TransactionsPage() {
 
         result.push({
           id: tx.id,
-          date: tx.recordedAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(tx.recordedAt)) : "N/A",
+          date: fmtDate(tx.recordedAt),
           description: tx.note || "Transfer between categories",
           categoryName: `${sourceCatName} ➔ ${destCatName}`,
           amount: tx.amount,
@@ -83,7 +83,7 @@ export default function TransactionsPage() {
         const catName = tx.categoryName || "Uncategorized";
         result.push({
           id: tx.id,
-          date: tx.recordedAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(tx.recordedAt)) : "N/A",
+          date: fmtDate(tx.recordedAt),
           description: tx.note || `Transaction (${tx.source || 'MANUAL'})`,
           categoryName: catName,
           categoryType: categoryMap.get(catName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,

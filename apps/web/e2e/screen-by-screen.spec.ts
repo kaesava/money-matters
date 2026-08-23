@@ -227,7 +227,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   // 4. MAIN DASHBOARD, TENANT SWITCHER & SHORTCUTS (`/dashboard`)
   // ---------------------------------------------------------------------------
   test.describe('4. Main Dashboard Screen (`/dashboard`) Controls & Shortcuts', () => {
-    test('4.1 Hero Donut Ring, TenantSwitcher & Quick Expense Drawer', async ({ page }) => {
+    test('4.1 Hero Donut Ring, TenantSwitcher, Goals Strip, Next Payday & Bank Balances', async ({ page }) => {
       await page.goto('/dashboard');
       await expect(page.locator('main, div[class*="dashboard"]')).toBeVisible();
 
@@ -237,13 +237,22 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
         await expect(tenantSwitcherBtn).toBeVisible();
       }
 
-      // Quick Expense Drawer Inputs
-      const descInput = page.locator('input[placeholder*="coffee"], input[placeholder*="expense"]').first();
-      const amountInput = page.locator('input[placeholder="0.00"]').first();
+      // Goals Progress Strip check
+      const goalsHeader = page.locator('text=Savings Goals').first();
+      if (await goalsHeader.isVisible()) {
+        await expect(goalsHeader).toBeVisible();
+      }
 
-      if (await descInput.isVisible()) {
-        await descInput.fill('Morning Flat White');
-        await amountInput.fill('5.50');
+      // Next Payday Card check
+      const nextPayHeader = page.locator('text=Next Payday').first();
+      if (await nextPayHeader.isVisible()) {
+        await expect(nextPayHeader).toBeVisible();
+      }
+
+      // Bank Balances Row check
+      const bankBalancesHeader = page.locator('text=Bank Balances').first();
+      if (await bankBalancesHeader.isVisible()) {
+        await expect(bankBalancesHeader).toBeVisible();
       }
     });
 
@@ -260,17 +269,25 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
-    test('4.3 "Can We Afford This?" Cashflow Evaluator Widget Audit', async ({ page }) => {
+    test('4.3 "Can We Afford This?" Hero Button & Modal Audit', async ({ page }) => {
       await page.goto('/dashboard');
 
-      const affordInput = page.locator('input[placeholder*="amount"], input[placeholder*="150"]').first();
-      const checkBtn = page.locator('button:has-text("Check"), button:has-text("Can I Afford")').first();
+      const affordBtn = page.locator('button:has-text("Can We Afford This")').first();
 
-      if (await affordInput.isVisible()) {
-        await affordInput.fill('180.00');
-        if (await checkBtn.isVisible()) {
-          await checkBtn.click();
+      if (await affordBtn.isVisible()) {
+        await affordBtn.click();
+        
+        // Modal popup should open
+        const affordModalTitle = page.locator('h3:has-text("Can We Afford This")').first();
+        await expect(affordModalTitle).toBeVisible();
+
+        const amountInput = page.locator('input[type="number"]').first();
+        if (await amountInput.isVisible()) {
+          await amountInput.fill('180.00');
         }
+
+        // Escape key dismissal test
+        await page.keyboard.press('Escape');
       }
     });
   });

@@ -13,7 +13,7 @@ export const en = {
   nav: {
     dashboard: "Dashboard",
     home: "Home",
-    accounts: "Accounts",
+    accounts: "Bank Accounts",
     categories: "Pools",
     myMoney: "Pools",
     paychecks: "Income & Bills",
@@ -293,7 +293,7 @@ export const en = {
       billCoverageNextDue: "Next due {date}",
     },
     actions: {
-      moveMoney: "Move Money",
+      moveMoney: "Transfer between Categories",
     },
   },
   landing: {
@@ -679,6 +679,24 @@ export const en = {
       description: "Keeping your Everyday Spend, Bills Pile, and Savings in separate bank accounts makes managing paydays effortless. Head to Settings > Bank Accounts to customize your layout.",
       action: "Manage Bank Accounts",
     },
+    goals: {
+      title: "Savings Goals",
+      onTrack: "{count} of {total} on track",
+      allOnTrack: "All {total} goals on track 🎉",
+      almostThere: "{name} almost there! 🎉",
+      viewAll: "View All Goals",
+    },
+    nextPay: {
+      title: "Next Payday",
+      daysAway: "{name} · {amount} · in {days} days",
+      today: "Payday today! 🎉 {name} · {amount}",
+      process: "Process Pay",
+    },
+    bankBalances: {
+      title: "Bank Balances",
+      update: "Update",
+      lastUpdated: "Updated {time} ago",
+    },
   },
   settings: {
     title: "Settings",
@@ -706,8 +724,8 @@ export const en = {
       accountName: "Account Name",
       accountNamePlaceholder: "e.g. High Interest Saver",
       initialBalance: "Current Balance ($)",
-      linkedTypes: "Linked Category Types",
-      linkedTypesDesc: "Every category type (Everyday, Bills Pile, Save For) must map to exactly one bank account.",
+      linkedTypes: "Linked Pools",
+      linkedTypesDesc: "Every pool (Everyday, Bills, Goals) must map to exactly one bank account.",
       everyday: "🛒 The Everyday Stuff",
       regular: "📋 The Bills Pile",
       goal: "🎯 What We're Saving For",
@@ -715,7 +733,7 @@ export const en = {
       deleteConfirmTitle: "Delete Bank Account",
       deleteConfirmBody: "Are you sure you want to delete {name}?",
       reassignRequiredTitle: "Re-assignment Required",
-      reassignRequiredBody: "This account has Category Type(s) linked to it ({types}). Please re-assign them to another bank account before deleting.",
+      reassignRequiredBody: "This account has Pool(s) linked to it ({types}). Please re-assign them to another bank account before deleting.",
     },
     version: "Version {version}",
     deleteAccount: "Delete Account & Data",

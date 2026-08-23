@@ -314,6 +314,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {quickExpenseOpen && (
             <QuickExpenseDrawer
+              initialTab={pathname.startsWith("/dashboard/bank-accounts") ? "CREDIT" : "DEBIT"}
               onClose={() => setQuickExpenseOpen(false)}
             />
           )}

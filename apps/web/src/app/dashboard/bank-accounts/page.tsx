@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, fmtDate } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./components/BankAccountTable";
 import { TransferConflictModal } from "./components/TransferConflictModal";
@@ -30,6 +30,8 @@ export default function BankAccountsDashboardPage() {
   const isTrialExpired = subStatus?.isTrialExpired ?? false;
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
+  const csvBatchesQuery = trpc.listCsvImportBatches.useQuery();
+  const csvBatches = csvBatchesQuery.data ?? [];
   
   const updateMappingsMut = trpc.updateBankAccountMappings.useMutation({
     onSuccess: () => bankAccountsQuery.refetch(),
@@ -92,15 +94,14 @@ export default function BankAccountsDashboardPage() {
     previousOwnerName: string;
   } | null>(null);
 
-  const [rollbackBatchId, setRollbackBatchId] = useState("");
   const [rollbackMsg, setRollbackMsg] = useState<string | null>(null);
   const [showRollbackSection, setShowRollbackSection] = useState(false);
 
   const rollbackBatchMut = trpc.rollbackCsvBatch.useMutation({
     onSuccess: (res) => {
-      setRollbackMsg(`✓ Successfully rolled back ${res.rolledBackCount} imported transactions!`);
-      setRollbackBatchId("");
+      setRollbackMsg(`✓ Successfully archived ${res.rolledBackCount} imported transactions!`);
       bankAccountsQuery.refetch();
+      utils.listCsvImportBatches.invalidate();
       utils.listTransactions.invalidate();
     },
     onError: (err) => {
@@ -192,7 +193,7 @@ export default function BankAccountsDashboardPage() {
     const bufNum = parseFloat(accBuffer) || 0;
 
     if (bufNum > balNum) {
-      setErrorMsg("Unbudgeted Buffer / Earmarked amount cannot exceed the Current Balance.");
+      setErrorMsg("Unbudgeted Buffer / Reserved amount cannot exceed the Current Balance.");
       return;
     }
 
@@ -299,12 +300,6 @@ export default function BankAccountsDashboardPage() {
     setSelectedAccountForImport(acc);
   };
 
-  const handleExecuteRollback = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rollbackBatchId.trim()) return;
-    rollbackBatchMut.mutate({ batchId: rollbackBatchId.trim() });
-  };
-
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
       {/* Page Header */}
@@ -324,10 +319,10 @@ export default function BankAccountsDashboardPage() {
           <button
             type="button"
             onClick={() => setShowRollbackSection(!showRollbackSection)}
-            className="px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-all flex items-center gap-1.5 shadow-2xs"
           >
-            <span>↩️</span>
-            <span>Undo CSV Batch</span>
+            <span>📄</span>
+            <span>CSV Imports Log ({csvBatches.length})</span>
           </button>
           <button
             type="button"
@@ -350,26 +345,51 @@ export default function BankAccountsDashboardPage() {
       )}
 
       {showRollbackSection && (
-        <form onSubmit={handleExecuteRollback} className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs flex flex-wrap items-center gap-3 animate-in fade-in duration-150">
-          <div className="flex items-center gap-2 flex-1 min-w-[280px]">
-            <span className="font-bold text-amber-900 shrink-0">↩️ Rollback CSV Batch ID:</span>
-            <input
-              type="text"
-              value={rollbackBatchId}
-              onChange={(e) => setRollbackBatchId(e.target.value)}
-              placeholder="Paste batch UUID (e.g. 3eaaea7e-1c9f-4cad)..."
-              className="flex-1 px-3 py-2 rounded-xl border border-amber-300 bg-white font-mono text-xs focus:ring-2 focus:ring-amber-500"
-              required
-            />
+        <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs flex flex-col gap-3 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between">
+            <span className="font-extrabold text-amber-900 flex items-center gap-1.5">
+              <span>📄</span>
+              <span>Recent CSV Statement Imports</span>
+            </span>
+            <span className="text-[11px] text-amber-700 font-medium">
+              Archiving a batch removes its transactions from all calculations and balances.
+            </span>
           </div>
-          <button
-            type="submit"
-            disabled={rollbackBatchMut.isPending}
-            className="px-4 py-2 rounded-xl font-bold text-white bg-amber-700 hover:bg-amber-800 transition-colors shadow-xs"
-          >
-            {rollbackBatchMut.isPending ? "Rolling Back..." : "Soft-Delete Batch"}
-          </button>
-        </form>
+
+          {csvBatches.length === 0 ? (
+            <p className="text-zinc-500 italic py-2">No active CSV statement imports found.</p>
+          ) : (
+            <div className="divide-y divide-amber-200/60 bg-white rounded-xl border border-amber-200/80 overflow-hidden">
+              {csvBatches.map((batch) => (
+                <div key={batch.batchId} className="p-3 flex flex-wrap items-center justify-between gap-3 hover:bg-amber-50/30 transition-colors">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-[#1B2B4B]">{batch.bankAccountName}</span>
+                    <span className="text-[10px] text-zinc-400 font-medium">
+                      Imported {fmtDate(batch.importedAt)} • {batch.rowCount} transactions
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs font-black text-zinc-800">
+                      Total: ${batch.totalAmount}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={rollbackBatchMut.isPending}
+                      onClick={() => {
+                        if (confirm(`Archive this CSV import batch (${batch.rowCount} transactions)?`)) {
+                          rollbackBatchMut.mutate({ batchId: batch.batchId });
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shadow-2xs cursor-pointer"
+                    >
+                      Archive Batch
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {errorMsg && (

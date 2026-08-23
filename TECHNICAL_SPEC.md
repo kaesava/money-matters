@@ -137,10 +137,12 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 
 ### 5.2 5-Step Waterfall Cascade Engine & Category Bucket Rules
 - **Category Bucket Rules**:
-  - **`EVERYDAY` & `REGULAR` (Bills)**: Managed at **overall pool level**. Categories specify monthly targets to compute total bucket target budget. Spending occurs against pooled balances (pooled discretionary cash or pooled bills balance). `REGULAR` (Bills) categories expose a read-only `listBillCoverageQuery` (budgeting capability) returning per-category `BillCoverageItem` coverage status (`COVERED` / `SHORT_BY` / `NO_SCHEDULE`). Status is derived from pool-level balance vs upcoming expense events due before next payday. No per-category envelope balances are stored.
+  - **`EVERYDAY` & `REGULAR` (Bills)**: Managed at **overall pool level**. Category form modal (`CategoryFormModal.tsx`) captures **Target Budget Amount ($)** and **Frequency** (`Weekly`, `Fortnightly`, `Monthly`, `Annual`) matching the Setup Wizard, displaying a live calculated monthly target budget badge (`$X.XX/mo`). `REGULAR` (Bills) categories expose a read-only `listBillCoverageQuery` (budgeting capability) returning per-category `BillCoverageItem` coverage status (`COVERED` / `SHORT_BY` / `NO_SCHEDULE`). Status is derived from pool-level balance vs upcoming expense events due before next payday. No per-category envelope balances are stored.
   - **`GOAL` (Save Toward)**: Managed **individually per category** with dedicated target balances, target dates, and progress metrics. Goal sorting logic automatically places high-priority or nearest-term goals at the top.
 - **Dynamic Paycheck Frequency Engine (`parseRruleFrequencyDays`)**: Automatically evaluates income source recurrence rules (`rrule`) to calculate allocation period days: `WEEKLY` (7 days), `FORTNIGHTLY` (14 days), `MONTHLY` (30 days), and `ANNUALLY`/`YEARLY` (365 days), ensuring prorated target calculations scale precisely with user income schedules.
-- **Category UI Screen**: Organized into 3 distinct sections (Everyday Spending [collapsable], Regular Bills [collapsable], Save Toward Goals).
+- **Category UI Screen & Activity Drawer**: Organized into 3 distinct sections (Everyday Spending [collapsable], Regular Bills [collapsable], Save Toward Goals). Each category row features a `📊 Activity` button triggering a 2-tab **`CategoryActivityModal`** showing **Tab 1: Past Transaction History** (read-only ledger) and **Tab 2: Upcoming Events** (scheduled occurrence dates and mark paid/skip actions). Category form modals feature amber Privacy Settings Warning confirmation dialogs when toggling Private status.
+- **Pool Balance Adjustment Safeguards**: Pool balance adjustment modal in `DashboardHeroCard.tsx` enforces `isAdjusting` loading state and button lockout to prevent duplicate transactions from rapid double-clicking.
+- **Application-wide Date Standardisation (`fmtDate`)**: Centralized date utility in `@money-matters/ui` (`fmtDate`) formatting all date strings into standard Australian format (`26 Aug 2026`) across Web and Mobile tables.
 1. **`DEFICIT REPAIR` (Step 0)**: Priority 1 restoring negative category balances (`currentBalance < 0`) to $0.
 2. **`REGULAR` (Bills)**: Prorates monthly bill targets by dynamic paycheck frequency (`targetMonthly * (paycheckFrequencyDays / 30)`).
 3. **`GOAL` committed**: Allocates target monthly contribution.
@@ -148,10 +150,10 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 5. **`GOAL` uncommitted / Surplus sweep**: Sweeps residual income strictly into the category where `isSurplusTarget === true` (default: *"Surplus & Offset Reserve"*).
 
 
-### 5.3 Bank CSV Import Engine (`@money-matters/capability-transactions`)
+### 5.3 Bank CSV Import Engine & Import Log (`@money-matters/capability-transactions`)
 - Interactive 3-Step Import Wizard on Web Dashboard (`Upload` $\rightarrow$ `Review & Map` $\rightarrow$ `Complete & Commit`).
-- Parses CSV exports from CBA, Westpac, ANZ, NAB, ING, and Macquarie, plus custom column mapping support.
-- Keyword auto-categorization for Australian merchants and income sources.
+- Visual **CSV Imports Log** on Bank Accounts page powered by `listCsvImportBatchesQuery` displaying import date (`26 Aug 2026`), bank account name, row count, net amount, and a 1-click **Archive Batch** button.
+- Archiving a batch soft-deletes (`archivedAt = now()`) all transactions in that batch via `rollbackCsvImportBatchCommand`.
 - Server-side deduplication via idempotency keys (`csv-import-${date}-${flowType}-${amount}-${cleanDesc}`) pre-flagged as `⚠️ Duplicate` and pre-unchecked in the preview table.
 - Bulk atomic insertion into `transactionLedger` via `commitCsvImportCommand` (Rule #6 compliant single-query insert).
 - Support for `DEBIT` (Category target) and `CREDIT` (Income Source or Category target) transaction mapping.
@@ -169,6 +171,12 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 - **Dual-Arc Donut Ring (`DonutRing` Web / `MobileDonutRing` Mobile)**: Pure SVG arc visualizations wrapping Everyday balance on Hero Cards, tracking time elapsed vs pool consumed percentages with 3-tier color warning states (Green, Amber, Red). Mobile implementation powered by `react-native-svg` and `Animated.Value`.
 - **Pool Pacing Progress Bars (`DualPoolBar`)**: Stacked progress bars in Everyday and Bills pool headers on Categories screens tracking month elapsed vs pool spent percentage.
 - **Goal Target Countdown & Pace Math**: Dynamically computes target date countdowns (`daysLeftText`) and required monthly savings pace (`(target - balance) / monthsRemaining`) for Save Toward categories.
+
+### #### Bank Account Management
+- **Navigation Bar Label:** "Bank Accounts" (externalized in i18n as `nav.accounts`).
+- **Linked Pools:** Everyday, Bills, and Goal pools map 1-to-1 to primary bank accounts. Pools cannot be unchecked directly in account settings (users must re-assign a pool from another account).
+- **Privacy Controls:** Marking an account Private or Shared triggers an amber confirmation warning dialog detailing partner visibility implications before state changes.
+- **Unbudgeted Buffer / Reserved Funds:** Excluded from available spendable balance calculation (`Available = Current Balance − Reserved Funds`).
 
 ### 5.6 5-Level "Can We Afford This?" Engine (`@money-matters/capability-transactions`)
 - **Bill Buffer Protection**: Queries `expenseEvents` where `status = 'UPCOMING'` and `expectedDate <= nextPaycheckDate`. Reserves upcoming bill deficits (`billsReserved`) before calculating spendable cash `netAvailableCash = max(0, everydayBalance - billsReserved)`.

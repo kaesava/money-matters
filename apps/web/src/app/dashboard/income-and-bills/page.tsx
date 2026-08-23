@@ -6,7 +6,7 @@ import posthog from "../../../lib/posthog-client";
 import { SourceTable } from "./components/SourceTable";
 import { SourceItem, EventItem } from "./components/BurstModal";
 import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 
@@ -114,18 +114,17 @@ export default function IncomeAndExpensesPage() {
             content={t("tooltips.incomeBills.content")}
           />
         </div>
+        <p className="text-xs text-zinc-500 font-medium mt-1">
+          Set up upcoming paychecks and recurring bills to automate your payday waterfall.
+        </p>
       </div>
 
-      <div className="relative max-w-md">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search name, category, or account..." className="w-full pl-9 pr-14 py-2.5 text-xs rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6] placeholder:text-zinc-400 font-semibold" />
-        {searchQuery && (
-          <button type="button" onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs font-bold px-1.5 py-0.5 rounded bg-zinc-100 hover:bg-zinc-200 transition-colors">
-            Clear
-          </button>
-        )}
+      <div className="max-w-md">
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search name, category, or account..."
+        />
       </div>
 
       <SourceTable

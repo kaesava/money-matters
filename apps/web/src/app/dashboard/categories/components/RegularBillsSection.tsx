@@ -20,6 +20,7 @@ interface RegularBillsSectionProps {
   onSelectCategory?: (id: string) => void;
   onEditCategory: (cat: CategorySummaryItem) => void;
   onArchiveCategory?: (cat: CategorySummaryItem) => void;
+  onOpenActivity?: (cat: CategorySummaryItem) => void;
 }
 
 function fmt(val: string | number | null | undefined) {
@@ -41,6 +42,7 @@ export function RegularBillsSection({
   onSelectCategory: _onSelectCategory,
   onEditCategory,
   onArchiveCategory: _onArchiveCategory,
+  onOpenActivity,
 }: RegularBillsSectionProps) {
   const { showIcons } = useIconVisibility();
   const coverageMap = new Map(billCoverageItems.map((item) => [item.categoryId, item]));
@@ -53,13 +55,13 @@ export function RegularBillsSection({
           <div className="flex items-center gap-3">
             {showIcons && (
               <div className="w-10 h-10 rounded-xl bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-bold">
-                🧾
+                🗓️
               </div>
             )}
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.regularTitle")}</h2>
-                <InfoTooltip content="Recurring bill obligations. Individual categories set bill targets; managed at overall Bills pool level." />
+                <InfoTooltip content="Committed obligations. Sub-categories show due dates; spent directly from overall Bills pool." />
                 <button
                   type="button"
                   onClick={onToggleCollapse}
@@ -77,15 +79,11 @@ export function RegularBillsSection({
 
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                {t("categories.sections.overallPoolBalance")}
-              </p>
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Overall Pool Balance</p>
               <p className="text-xl font-mono font-black text-[#1B2B4B]">{fmt(regularBalance)}</p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                {t("categories.sections.totalMonthlyBudget")}
-              </p>
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Monthly Budget Target</p>
               <p className="text-sm font-mono font-bold text-zinc-600">{fmt(regularMonthlyBudget)}</p>
             </div>
           </div>
@@ -98,17 +96,17 @@ export function RegularBillsSection({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-              <th className="px-6 py-3">{t("categories.nameLabel")}</th>
-              <th className="px-6 py-3">{t("categories.sections.billCoverageWindowLabel")}</th>
-              <th className="px-6 py-3 text-center">Status</th>
-              <th className="px-6 py-3 text-right">{t("categories.sections.monthlyBudgetTarget")}</th>
+              <th className="px-6 py-3">Category Name</th>
+              <th className="px-6 py-3">Next Due Date</th>
+              <th className="px-6 py-3 text-center">Upcoming Coverage</th>
+              <th className="px-6 py-3 text-right">Monthly Target Budget</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {categories.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-6 py-6 text-center text-xs text-zinc-400 font-medium">
-                  {t("categories.noRegularBillsFilter")}
+                  No bill categories matched filters.
                 </td>
               </tr>
             ) : (
@@ -117,13 +115,26 @@ export function RegularBillsSection({
                 return (
                   <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
                     <td className="px-6 py-3.5">
-                      <button
-                        type="button"
-                        onClick={() => onEditCategory(cat)}
-                        className="text-[#2563eb] hover:underline font-bold text-left cursor-pointer"
-                      >
-                        {cat.name}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onEditCategory(cat)}
+                          className="text-[#2563eb] hover:underline font-bold text-left cursor-pointer"
+                        >
+                          {cat.name}
+                        </button>
+                        {onOpenActivity && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenActivity(cat)}
+                            className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                            title="View past transactions and upcoming events for this category"
+                          >
+                            <span>📊</span>
+                            <span>Activity</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-3.5 font-mono text-zinc-600">
                       {cov && cov.nextDueDate ? (

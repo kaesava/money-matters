@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { SearchInput, fmtDate } from "@money-matters/ui/web";
 
 export interface UpcomingEvent {
   id: string;
@@ -28,7 +29,7 @@ interface UpcomingEventsListProps {
   onProcessPayday: (evt: UpcomingEvent) => void;
   onMarkPaid: (evt: UpcomingEvent) => void;
   fmt: (val: string | number) => string;
-  fmtAUDate: (dStr: string) => string;
+  _fmtAUDate?: (dStr: string) => string;
   todayStr: string;
 }
 
@@ -45,7 +46,7 @@ export function UpcomingEventsList({
   onProcessPayday,
   onMarkPaid,
   fmt,
-  fmtAUDate,
+  _fmtAUDate,
   todayStr,
 }: UpcomingEventsListProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -114,13 +115,13 @@ export function UpcomingEventsList({
             </button>
           )}
 
-          <input
-            type="text"
-            placeholder="Search upcoming..."
-            value={upcomingSearch}
-            onChange={(e) => setUpcomingSearch(e.target.value)}
-            className="px-3.5 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-          />
+          <div className="w-full sm:w-64">
+            <SearchInput
+              value={upcomingSearch}
+              onChange={setUpcomingSearch}
+              placeholder="Search upcoming events..."
+            />
+          </div>
 
           <div className="flex bg-zinc-100 p-1 rounded-xl">
             {(["ALL", "INCOME", "EXPENSE"] as const).map((tab) => (
@@ -255,7 +256,7 @@ export function UpcomingEventsList({
                       )}
                     </div>
                     <span className="text-xs text-zinc-400">
-                      Date: {fmtAUDate(evt.expectedDate)} • Category: {evt.categoryName} • {evt.note}
+                      Date: {fmtDate(evt.expectedDate)} • Category: {evt.categoryName} • {evt.note}
                     </span>
                   </div>
                 </div>

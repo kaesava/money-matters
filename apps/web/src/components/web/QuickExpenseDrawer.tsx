@@ -249,6 +249,24 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                 />
               </div>
+
+              {(() => {
+                const isFuture = Boolean(date && new Date(date).setHours(0, 0, 0, 0) > new Date().setHours(0, 0, 0, 0));
+                if (isFuture) {
+                  return (
+                    <div className="col-span-2 p-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-blue-900 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-150">
+                      <span className="text-base shrink-0">📅</span>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[#1B2B4B]">Scheduled for Payday Waterfall</span>
+                        <span className="text-[11px] text-blue-700 font-medium">
+                          This future {!isIncome ? "expense bill" : "income deposit"} will be included as an upcoming event in your payday allocation horizon.
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <div className="pt-2 flex items-center justify-end gap-2">

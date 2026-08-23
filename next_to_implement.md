@@ -7,29 +7,55 @@ Setup does not include bank accounts - ok?
 # WEB
 
 ## General
+* I'm still seeing dates like 2026-12-31 (for example: Pools > Savings > Target date). Ensure that across the app and all screens, modals, etc. dates are shown like 31 Dec 2026. Update any md file you need to so this is adhered to.
+## "Pools"
+* PENDING - Upcoming Coverae
+### Activity
+PENDING
+### New/Edit of Everday/Bills
+### Move Money
+
+## "History"
+DONE
+## Accounts
+### Adding/Editing Modal:
+DONE
+### Import CSV
+PENDING
+
+## "Income & Bills"
+* Once a Bill is marked Paid (whether one-off or one of the burst items in a recurring series), it cannot be edited; similar with one-off Income Allocated.
+## "Settings"
+## "Main Dashboard"
+
+### Manually adjusting Bills or Everyday.
 
 ## "Pools"
-## "History"
-## "Income & Bills"
-## Accounts
 
 
-## "Settings"
+
+
+
+
 ### Main Setting page
 
 
 ## Workflows
+### Can I afford
 ### Payday cascade
 ### Account Deletion
-### Archive/Unarchive
+### Archive/Unarchive - feature by feature - Account, Category, Transaction(?), Income/Expense schedule, Income/Expense Item, Quick Add Expense/Income/Transfer, etc.
 ## Setup
 ## Burst Event Regeneration
 ## Tenant Switching
-## Scheduled Notifications
+## Notification Settings
 ## Subscription Upgrade, Pay, cancel
 ## Household Parnter Invitation & Acceptance
 ### Bank Account & Statement Import
-
+## Stripe Payment Readiness
+## Apple Sign in Readiness
+## Private Bank Accounts, Private Categories
+## Icon setting
 
 # TEST
 

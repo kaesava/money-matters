@@ -63,13 +63,13 @@ export function BankAccountTable({
               <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors" onClick={() => toggleSort("lastKnownBalance")}>
                 <div className="flex items-center gap-1">
                   <span>Available Balance</span>
-                  <InfoTooltip content="Amount available to budget (Actual Balance minus Earmarked/Unbudgeted Buffer)." />
+                  <InfoTooltip content="Amount available to budget (Actual Balance minus Reserved Funds)." />
                   {sortField === "lastKnownBalance" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </th>
               <th className="py-3.5 px-4">
                 <div className="flex items-center gap-1">
-                  <span>Linked Category Types</span>
+                  <span>Linked Pools</span>
                   <InfoTooltip content="Category pools linked to this bank account for waterfall payday distribution." />
                 </div>
               </th>
@@ -106,7 +106,7 @@ export function BankAccountTable({
                         <span className="text-sm font-black text-emerald-600">{fmtMoney(availBal)}</span>
                         <span className="text-[10px] text-zinc-400 font-medium">
                           Actual Balance: {fmtMoney(actualBal)}
-                          {buf > 0 && ` (Earmarked: ${fmtMoney(buf)})`}
+                          {buf > 0 && ` (Reserved: ${fmtMoney(buf)})`}
                         </span>
                       </div>
                     </td>

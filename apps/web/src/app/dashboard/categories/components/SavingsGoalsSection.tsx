@@ -10,6 +10,7 @@ interface SavingsGoalsSectionProps {
   onEditCategory: (cat: CategorySummaryItem) => void;
   onArchiveCategory?: (cat: CategorySummaryItem) => void;
   onOpenCreateModal?: (type?: "REGULAR" | "GOAL" | "EVERYDAY") => void;
+  onOpenActivity?: (cat: CategorySummaryItem) => void;
 }
 
 function fmt(val: string | number | null | undefined) {
@@ -25,6 +26,7 @@ export function SavingsGoalsSection({
   onEditCategory,
   onArchiveCategory: _onArchiveCategory,
   onOpenCreateModal,
+  onOpenActivity,
 }: SavingsGoalsSectionProps) {
   const { showIcons } = useIconVisibility();
 
@@ -103,18 +105,31 @@ export function SavingsGoalsSection({
               return (
                 <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
                   <td className="px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => onEditCategory(cat)}
-                      className="text-[#2563eb] hover:underline font-bold text-left flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>{cat.name}</span>
-                      {cat.isPrivate && (
-                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                          🔒 Private
-                        </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEditCategory(cat)}
+                        className="text-[#2563eb] hover:underline font-bold text-left flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>{cat.name}</span>
+                        {cat.isPrivate && (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                            🔒 Private
+                          </span>
+                        )}
+                      </button>
+                      {onOpenActivity && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenActivity(cat)}
+                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                          title="View past transactions and upcoming events for this category"
+                        >
+                          <span>📊</span>
+                          <span>Activity</span>
+                        </button>
                       )}
-                    </button>
+                    </div>
                   </td>
                   <td className="px-6 py-4 font-mono font-extrabold text-[#1B2B4B]">{fmt(balanceVal)}</td>
                   <td className="px-6 py-4 font-mono text-zinc-700">{fmt(cat.targetAmount)}</td>

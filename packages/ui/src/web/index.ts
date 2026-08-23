@@ -32,6 +32,7 @@ export * from './SearchableCategorySelect';
 export * from './ListViewToolbar';
 export * from './StatCard';
 export * from '../hooks/IconVisibilityContext';
+export * from '../utils/formatDate';
 
 
 

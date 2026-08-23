@@ -15,6 +15,7 @@ import {
   RollbackCsvImportBatchInputSchema,
   BankCsvImportInputSchema,
   getSpendingVelocityQuery,
+  listCsvImportBatchesQuery,
 } from "@money-matters/capability-transactions";
 import {
   RecordExpenseCommand,
@@ -153,5 +154,9 @@ export const transactionsRouter = {
 
   spendingVelocity: tenantProcedure.query(async ({ ctx }) => {
     return await getSpendingVelocityQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+  }),
+
+  listCsvImportBatches: tenantProcedure.query(async ({ ctx }) => {
+    return await listCsvImportBatchesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
   }),
 };

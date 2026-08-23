@@ -1,19 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PaginationBar, useIconVisibility } from "@money-matters/ui/web";
+import { PaginationBar, useIconVisibility, fmtDate } from "@money-matters/ui/web";
 import { BurstModal, SourceItem, EventItem } from "./BurstModal";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function fmtDate(dStr?: string | null): string {
-  if (!dStr) return "";
-  const parts = dStr.split("T")[0].split("-");
-  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  return dStr;
 }
 
 function parseSchedule(rrule?: string | null, startDate?: string | null) {
@@ -153,10 +146,18 @@ export function SourceTable({
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex flex-col gap-0.5">
-                      <span className={`self-start px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${sched.isRecurring ? isIncome ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-blue-50 text-[#2563eb] border-blue-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
-                        {sched.frequencyLabel}
-                      </span>
-                      {sched.dateLabel && <span className="text-[11px] text-zinc-500 font-medium">{sched.isRecurring ? "Starting" : "Expected"} {sched.dateLabel}</span>}
+                      <button
+                        type="button"
+                        onClick={() => setBurstSource(item)}
+                        className="self-start flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                        title="Click to view scheduled event occurrences burst"
+                      >
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border flex items-center gap-1 ${sched.isRecurring ? isIncome ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-blue-50 text-[#2563eb] border-blue-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                          <span>📅</span>
+                          <span>{sched.frequencyLabel}</span>
+                        </span>
+                      </button>
+                      {sched.dateLabel && <span className="text-[11px] text-zinc-500 font-medium">{sched.isRecurring ? "Starting" : "Expected"} {fmtDate(item.startDate)}</span>}
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-zinc-600">

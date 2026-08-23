@@ -32,8 +32,10 @@ export function useQuickActionState(
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
 
-  const categories = categoriesQuery.data ?? [];
-  const bankAccounts = bankAccountsQuery.data ?? [];
+  const rawCategories = categoriesQuery.data;
+  const categories = useMemo(() => rawCategories ?? [], [rawCategories]);
+  const rawBankAccounts = bankAccountsQuery.data;
+  const bankAccounts = useMemo(() => rawBankAccounts ?? [], [rawBankAccounts]);
   const rawTxList = transactionsQuery.data;
   const txList = useMemo(() => rawTxList ?? [], [rawTxList]);
 
@@ -103,9 +105,12 @@ export function useQuickActionState(
       { note: string; amount: string; sourceCatId?: string; destCatId?: string }
     >();
 
+    const catNameMap = new Map(categories.map((c) => [c.id, c.name]));
+
     for (const tx of txList) {
-      if (tx.transferGroupId) {
-        const existing = transferMap.get(tx.transferGroupId) || {
+      const groupKey = tx.transferGroupId || (tx.note?.startsWith("Transferred") ? tx.note : null);
+      if (groupKey) {
+        const existing = transferMap.get(groupKey) || {
           note: tx.note || "Transfer",
           amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : "0.00",
         };
@@ -114,18 +119,25 @@ export function useQuickActionState(
         } else if (tx.flowType === "CREDIT") {
           existing.destCatId = tx.categoryId || undefined;
         }
-        transferMap.set(tx.transferGroupId, existing);
+        transferMap.set(groupKey, existing);
       }
     }
 
     const seen = new Set<string>();
     for (const transfer of transferMap.values()) {
-      const cleanNote = transfer.note.trim();
-      const key = `${cleanNote.toLowerCase()}-${transfer.sourceCatId}-${transfer.destCatId}`;
+      const srcName = transfer.sourceCatId ? catNameMap.get(transfer.sourceCatId) : null;
+      const dstName = transfer.destCatId ? catNameMap.get(transfer.destCatId) : null;
+
+      let displayName = transfer.note.trim();
+      if (srcName && dstName && (displayName === "Transfer" || displayName.startsWith("Transferred"))) {
+        displayName = `${srcName} ➔ ${dstName}`;
+      }
+
+      const key = `${transfer.sourceCatId || ""}->${transfer.destCatId || ""}:${transfer.amount}:${displayName.toLowerCase()}`;
       if (!seen.has(key)) {
         seen.add(key);
         presets.push({
-          name: cleanNote,
+          name: displayName,
           amount: transfer.amount,
           sourceCategoryId: transfer.sourceCatId,
           destinationCategoryId: transfer.destCatId,
@@ -134,7 +146,7 @@ export function useQuickActionState(
       }
     }
     return presets;
-  }, [txList]);
+  }, [txList, categories]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: () => handleDone(),

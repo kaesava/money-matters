@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CanAffordVerdictType } from '@money-matters/types';
 import { t } from '@money-matters/i18n';
 import Link from 'next/link';
+import { Spinner } from '@money-matters/ui/web';
 import DonutRing from '../../../components/web/DonutRing';
 
 export interface WebDashboardHeroCardProps {
@@ -14,16 +14,7 @@ export interface WebDashboardHeroCardProps {
   readonly needsAttentionCount: number;
   readonly behindCount: number;
   readonly onTrackCount: number;
-  readonly canAffordAmount: string;
-  readonly setCanAffordAmount: (amt: string) => void;
-  readonly canAffordData?: CanAffordVerdictType | null;
-  readonly nextPayday?: {
-    readonly id: string;
-    readonly name: string;
-    readonly amount: number;
-    readonly expectedDate: string;
-  } | null;
-  readonly onPressNextPay: (eventId: string) => void;
+  readonly onOpenCanAfford?: () => void;
   readonly onSelectFilter?: (health: string) => void;
   readonly formatAUD: (val: number | string) => string;
   readonly onUpdatePoolBalance: (poolType: 'EVERYDAY' | 'REGULAR', newAmount: number) => Promise<void>;
@@ -39,11 +30,7 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
   needsAttentionCount,
   behindCount,
   onTrackCount,
-  canAffordAmount,
-  setCanAffordAmount,
-  canAffordData,
-  nextPayday,
-  onPressNextPay,
+  onOpenCanAfford,
   onSelectFilter,
   formatAUD,
   onUpdatePoolBalance,
@@ -72,19 +59,6 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
     diff: number;
   } | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
-
-  // Time remaining text
-  let daysAwayText = '';
-  if (nextPayday?.expectedDate) {
-    const payDate = new Date(nextPayday.expectedDate);
-    payDate.setHours(0, 0, 0, 0);
-    const todayZero = new Date();
-    todayZero.setHours(0, 0, 0, 0);
-    const diffDays = Math.ceil((payDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) daysAwayText = 'Due today!';
-    else if (diffDays > 0) daysAwayText = `${diffDays} day${diffDays === 1 ? '' : 's'} away`;
-    else daysAwayText = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`;
-  }
 
   const handleEditClick = (pool: 'EVERYDAY' | 'REGULAR', currentVal: number) => {
     setEditingPool(pool);
@@ -115,15 +89,22 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
     }
   };
 
+  const [isAdjusting, setIsAdjusting] = useState(false);
+
   const handleConfirmAdjustment = async () => {
-    if (!confirmDetails) return;
-    if (dontShowAgain) {
-      await onSaveSkipConfirmation();
+    if (!confirmDetails || isAdjusting) return;
+    setIsAdjusting(true);
+    try {
+      if (dontShowAgain) {
+        await onSaveSkipConfirmation();
+      }
+      await onUpdatePoolBalance(confirmDetails.poolType, confirmDetails.newVal);
+    } finally {
+      setIsAdjusting(false);
+      setShowConfirmModal(false);
+      setConfirmDetails(null);
+      setEditingPool(null);
     }
-    await onUpdatePoolBalance(confirmDetails.poolType, confirmDetails.newVal);
-    setShowConfirmModal(false);
-    setConfirmDetails(null);
-    setEditingPool(null);
   };
 
   const handleCancelAdjustment = () => {
@@ -149,7 +130,7 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
     const isSpentPacingOk = spentPct <= elapsedPct;
 
     return (
-      <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+      <div className="flex-1 bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{title}</span>
@@ -157,7 +138,7 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
               <button
                 type="button"
                 onClick={() => handleEditClick(poolType, balance)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+                className="text-xs text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
               >
                 Edit
               </button>
@@ -165,12 +146,12 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
           </div>
 
           {isEditing ? (
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xl font-bold text-gray-800">$</span>
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-lg font-bold text-gray-800">$</span>
               <input
                 type="number"
                 step="0.01"
-                className="w-32 px-2.5 py-1 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                className="w-28 px-2 py-1 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 autoFocus
@@ -182,34 +163,34 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
               <button
                 type="button"
                 onClick={() => handleSaveClick(poolType)}
-                className="px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 cursor-pointer"
               >
                 Save
               </button>
               <button
                 type="button"
                 onClick={() => setEditingPool(null)}
-                className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 font-semibold"
+                className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
               >
-                Cancel
+                ✕
               </button>
             </div>
           ) : (
-            <div className="text-3xl font-extrabold text-[#1B2B4B] font-mono tracking-tight mb-2">
+            <div className="text-2xl font-extrabold text-[#1B2B4B] font-mono tracking-tight mb-1 tabular-nums">
               {formatAUD(balance)}
             </div>
           )}
 
           {/* Expected details */}
-          <div className="text-xs text-gray-600 space-y-1 mb-4">
-            <div className="flex justify-between">
+          <div className="text-xs text-gray-600 space-y-1 mb-3">
+            <div className="flex justify-between items-center">
               <span>Expected remaining:</span>
               <span className="font-mono font-semibold">{formatAUD(expected)}</span>
             </div>
-            <div className="flex justify-between items-center pt-0.5">
+            <div className="flex justify-between items-center">
               <span>Status:</span>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                isOver ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                isOver ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
               }`}>
                 {isOver ? `On track (+${formatAUD(diff)})` : `Over budget (${formatAUD(Math.abs(diff))})`}
               </span>
@@ -218,20 +199,18 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
         </div>
 
         {/* Pacing timeline visual */}
-        <div className="space-y-1.5 mt-auto">
+        <div className="space-y-1 mt-auto">
           <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-            <span>{daysLeft} days left in {monthName}</span>
+            <span>{daysLeft}d left in {monthName}</span>
             <span>{Math.round(spentPct)}% spent</span>
           </div>
-          <div className="relative h-2 bg-gray-100 rounded-full overflow-visible">
-            {/* Actual spent bar */}
+          <div className="relative h-2 bg-gray-200/80 rounded-full overflow-visible">
             <div
               className={`h-full rounded-full transition-all duration-300 ${
                 isSpentPacingOk ? 'bg-emerald-500' : 'bg-rose-500'
               }`}
               style={{ width: `${spentPct}%` }}
             />
-            {/* Time elapsed marker pin */}
             <div
               className="absolute top-1/2 -translate-y-1/2 w-1.5 h-3.5 bg-blue-600 rounded-full shadow-xs pointer-events-none"
               style={{ left: `${elapsedPct}%` }}
@@ -244,191 +223,101 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-xs flex flex-col lg:flex-row items-center justify-between gap-8">
-        {/* Dominant Donut Ring Centerpiece */}
-        <div className="flex flex-col sm:flex-row items-center gap-8 w-full lg:w-auto">
+    <div className="bg-white border border-gray-200/90 rounded-3xl p-6 shadow-xs space-y-6">
+      {/* Upper Hero Row: Ring + Main Balance & Pool Cards */}
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+        {/* Ring Visual & Hero Balance */}
+        <div className="flex flex-col sm:flex-row items-center gap-6 w-full lg:w-auto">
           <div className="relative flex items-center justify-center shrink-0">
             <DonutRing
               timeElapsedPct={elapsedPct}
               consumedPct={everydayMonthlyBudget > 0 ? Math.min(100, Math.max(0, ((everydayMonthlyBudget - everydayBalance) / everydayMonthlyBudget) * 100)) : 0}
               centerLabel={formatAUD(everydayBalance)}
-              size={220}
-              strokeWidth={18}
+              size={200}
+              strokeWidth={16}
             />
           </div>
-          <div className="space-y-3 text-center sm:text-left">
-            <div>
-              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Everyday Cash Balance</span>
-              <h2 className="text-3xl font-extrabold text-[#1B2B4B] font-mono tabular-nums tracking-tight">
-                {formatAUD(everydayBalance)}
-              </h2>
-            </div>
-            <div className="text-xs text-gray-500 space-y-1">
+          <div className="space-y-2 text-center sm:text-left">
+            <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-widest block">
+              {t('dashboard.hero.everydayBalance') || 'Left to Spend'}
+            </span>
+            <h2 className="text-4xl font-extrabold text-[#1B2B4B] font-mono tabular-nums tracking-tight">
+              {formatAUD(everydayBalance)}
+            </h2>
+            <div className="text-xs text-gray-500 space-y-0.5">
               <p>{daysLeft} days remaining in {monthName}</p>
-              <p className="font-semibold text-blue-600">
-                Monthly Target: <span className="font-mono tabular-nums">{formatAUD(everydayMonthlyBudget)}</span>
+              <p className="font-medium text-blue-600">
+                Monthly Cap: <span className="font-mono font-semibold">{formatAUD(everydayMonthlyBudget)}</span>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Dual Pool Cards & Pacing Indicators */}
+        {/* Dual Pool Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:max-w-xl">
           {renderPoolCard('Everyday Pool', 'EVERYDAY', everydayBalance, everydayMonthlyBudget)}
           {renderPoolCard('Bills Pool', 'REGULAR', billsBalance, billsMonthlyBudget)}
         </div>
-
-        {/* Symmetric Health Status Filter Column */}
-        <div className="w-full lg:w-56 bg-slate-50/60 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between shrink-0">
-          <div>
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">Category Health</h3>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => onSelectFilter?.('RED')}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl border border-rose-100 bg-white hover:bg-rose-50/50 transition-all text-left shadow-2xs"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0" />
-                  <span className="text-xs font-bold text-rose-950">Behind</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-rose-100 text-rose-800">
-                  {behindCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectFilter?.('AMBER')}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl border border-amber-100 bg-white hover:bg-amber-50/50 transition-all text-left shadow-2xs"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                  <span className="text-xs font-bold text-amber-950">Attention</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-800">
-                  {needsAttentionCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectFilter?.('GREEN')}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl border border-emerald-100 bg-white hover:bg-emerald-50/50 transition-all text-left shadow-2xs"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="text-xs font-bold text-emerald-950">On Track</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-100 text-emerald-800">
-                  {onTrackCount}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-3 pt-2 border-t border-gray-200/60 text-center">
-            <Link
-              href="/dashboard/categories?type=GOAL"
-              className="text-[11px] font-bold text-blue-600 hover:text-blue-700"
-            >
-              View Savings Goals →
-            </Link>
-          </div>
-        </div>
       </div>
 
-      {/* Tools Section: Affordability & Payday */}
-      <div className="p-4 lg:px-6 flex flex-col md:flex-row gap-6 border-t border-gray-100 bg-slate-50/40 rounded-2xl">
-        {/* Can We Afford This? Widget */}
-        <div className="flex-1 bg-white border border-slate-200/85 rounded-xl p-4 flex flex-col gap-2 shadow-2xs">
-          <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">{t("dashboard.quickActions.canAffordTitle")}</h3>
-          <input
-            type="number"
-            step="0.01"
-            placeholder={t("dashboard.quickActions.enterAmountPlaceholder")}
-            value={canAffordAmount}
-            onChange={(e) => setCanAffordAmount(e.target.value)}
-            className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-          />
-          {canAffordData && (
-            <div
-              className={`p-3 rounded-xl text-xs font-semibold flex flex-col gap-2 transition-all ${
-                canAffordData.verdict === 'SAFE_YES'
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-950'
-                  : canAffordData.verdict === 'PACING_WARNING'
-                  ? 'bg-amber-50 border border-amber-200 text-amber-950'
-                  : canAffordData.verdict === 'IMPACT_GOALS'
-                  ? 'bg-orange-50 border border-orange-200 text-orange-950'
-                  : canAffordData.verdict === 'WAIT_FOR_PAYDAY'
-                  ? 'bg-blue-50 border border-blue-200 text-blue-950'
-                  : 'bg-rose-50 border border-rose-200 text-rose-950'
-              }`}
-            >
-              <div className="flex items-center justify-between font-bold text-sm">
-                <span>
-                  {canAffordData.verdict === 'SAFE_YES' && '🟢 Yes, Safe to Buy'}
-                  {canAffordData.verdict === 'PACING_WARNING' && '🟡 Yes, but Tight Daily Pacing'}
-                  {canAffordData.verdict === 'IMPACT_GOALS' && '🟠 Yes, Dips into Savings'}
-                  {canAffordData.verdict === 'WAIT_FOR_PAYDAY' && '🔵 Wait for Payday'}
-                  {canAffordData.verdict === 'HARD_NO' && '🔴 No, Do Not Buy'}
-                </span>
-                <span className="font-mono text-xs opacity-80">
-                  {canAffordData.verdict === 'SAFE_YES' && `$${canAffordData.dailyPacingAfterSpend}/day left`}
-                  {canAffordData.verdict === 'PACING_WARNING' && `$${canAffordData.dailyPacingAfterSpend}/day left`}
-                  {canAffordData.verdict === 'IMPACT_GOALS' && `$${canAffordData.goalSurplusUsed} from ${canAffordData.affectedGoalName}`}
-                  {canAffordData.verdict === 'WAIT_FOR_PAYDAY' && `${canAffordData.daysUntilNextPaycheck}d away`}
-                  {canAffordData.verdict === 'HARD_NO' && `Shortfall -$${canAffordData.shortfall}`}
-                </span>
-              </div>
+      {/* Hero Action & Health Status Footer Strip */}
+      <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Category Health Filter Chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-1">
+            Category Health:
+          </span>
+          <button
+            type="button"
+            onClick={() => onSelectFilter?.('RED')}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors text-xs font-bold text-rose-800 cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-rose-600" />
+            <span>Behind ({behindCount})</span>
+          </button>
 
-              {/* Reasoning Rationale Waterfall Breakdown */}
-              <div className="pt-2 border-t border-black/10 space-y-1 text-[11px] font-mono leading-relaxed">
-                {canAffordData.rationaleSteps.map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-1.5">
-                    <span className="opacity-60">•</span>
-                    <span>{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => onSelectFilter?.('AMBER')}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-xs font-bold text-amber-800 cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span>Attention ({needsAttentionCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectFilter?.('GREEN')}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors text-xs font-bold text-emerald-800 cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>On Track ({onTrackCount})</span>
+          </button>
+
+          <Link
+            href="/dashboard/categories"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
+          >
+            View Pools →
+          </Link>
         </div>
 
-
-        {/* Next Payday Row */}
-        {nextPayday ? (
-          <div className="flex items-center justify-between flex-1 bg-white border border-slate-200/85 rounded-xl p-4 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0 bg-emerald-500">
-                $
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Next Pay: {nextPayday.name}</p>
-                <p className="text-xs text-gray-500 font-mono">
-                  {formatAUD(nextPayday.amount)} • {daysAwayText} ({nextPayday.expectedDate})
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onPressNextPay(nextPayday.id)}
-              className="flex items-center gap-1 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer"
-            >
-              Process Pay →
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center flex-1 bg-white border border-slate-200/85 rounded-xl p-4 shadow-2xs">
-            <p className="text-xs text-gray-400">No upcoming payday scheduled</p>
-          </div>
+        {/* Can We Afford This? Hero Button */}
+        {onOpenCanAfford && (
+          <button
+            type="button"
+            onClick={onOpenCanAfford}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-xs font-bold text-blue-700 transition-colors cursor-pointer shrink-0"
+          >
+            <span>🤔 Can We Afford This?</span>
+            <span>→</span>
+          </button>
         )}
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Pool Balance Adjustment Confirmation Modal */}
       {showConfirmModal && confirmDetails && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl border border-gray-100">
             <h3 className="text-base font-bold text-gray-900">Confirm Pool Balance Adjustment</h3>
             <p className="text-xs text-gray-600 leading-relaxed">
@@ -455,10 +344,18 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
               </button>
               <button
                 type="button"
+                disabled={isAdjusting}
                 onClick={handleConfirmAdjustment}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:opacity-75 transition-colors cursor-pointer flex items-center gap-1.5"
               >
-                Confirm
+                {isAdjusting ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  "Confirm"
+                )}
               </button>
             </div>
           </div>

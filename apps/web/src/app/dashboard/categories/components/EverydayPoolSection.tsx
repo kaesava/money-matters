@@ -31,6 +31,7 @@ interface EverydayPoolSectionProps {
   onToggleCollapse: () => void;
   onSelectCategory?: (id: string) => void;
   onEditCategory: (cat: CategorySummaryItem) => void;
+  onOpenActivity?: (cat: CategorySummaryItem) => void;
 }
 
 function fmt(val: string | number | null | undefined) {
@@ -50,6 +51,7 @@ export function EverydayPoolSection({
   onToggleCollapse,
   onSelectCategory: _onSelectCategory,
   onEditCategory,
+  onOpenActivity,
 }: EverydayPoolSectionProps) {
   const { showIcons } = useIconVisibility();
 
@@ -117,13 +119,26 @@ export function EverydayPoolSection({
               categories.map((cat) => (
                 <tr key={cat.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
                   <td className="px-6 py-3.5">
-                    <button
-                      type="button"
-                      onClick={() => onEditCategory(cat)}
-                      className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
-                    >
-                      {cat.name}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEditCategory(cat)}
+                        className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
+                      >
+                        {cat.name}
+                      </button>
+                      {onOpenActivity && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenActivity(cat)}
+                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                          title="View past transactions and upcoming events for this category"
+                        >
+                          <span>📊</span>
+                          <span>Activity</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-3.5 font-mono font-bold text-zinc-700 text-right">
                     {fmt(cat.everydayAllowanceAmount || cat.monthlyAmount)}
