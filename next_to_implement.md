@@ -1,34 +1,38 @@
+
+
 # AGENT - In progress...
 
+Setup does not include bank accounts - ok?
 
 # WEB
 
 ## General
 
-## Pools
-* Inconsistent wording across the screen.. titles, labels, text, button titles, and modal screen fields, etc. (Pools, Categories and Bucket) - stick to Pool across the entire app from a UI point of view. Ensure no hardcoding of user facing literals.
-* Change " Essential Priority Bill (Funded first every payday before standard bills)" to  "Priority Bill (Funded before standard bills)". Also, has this logic been correctly implemented?
-* Add new - we don't link categories to bank accounts any more ("Linked bank account (optional)") -- we link category types - fix in UI, backend, API, etc.
-
-
-
-## "My Money"
+## "Pools"
+## "History"
 ## "Income & Bills"
+## Accounts
+
+
 ## "Settings"
+### Main Setting page
 
 
+## Workflows
+### Payday cascade
 ### Account Deletion
-
+### Archive/Unarchive
+## Setup
+## Burst Event Regeneration
+## Tenant Switching
+## Scheduled Notifications
+## Subscription Upgrade, Pay, cancel
+## Household Parnter Invitation & Acceptance
 ### Bank Account & Statement Import
 
 
 # TEST
-## Subscription
-## Household Parnter
-## CRON
-## Burst Event Regeneration
-## Tenant Switching
-## Scheduled Notifications
+
  Configure Stripe Smart Retries (Settings → Revenue Recovery)
  Configure Stripe Customer Portal (Settings → Billing → Customer Portal → enable cancel, update payment)
 
