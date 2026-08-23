@@ -11,7 +11,7 @@ export interface QuickActionDrawerProps {
 export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickActionDrawerProps) {
   const {
     type,
-    setType,
+    handleTabChange,
     name,
     setName,
     amount,
@@ -89,7 +89,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
             <div className="flex rounded-xl bg-zinc-100 p-1">
               <button
                 type="button"
-                onClick={() => setType("DEBIT")}
+                onClick={() => handleTabChange("DEBIT")}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   type === "DEBIT" ? "bg-white text-rose-700 shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                 }`}
@@ -99,7 +99,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
               </button>
               <button
                 type="button"
-                onClick={() => setType("CREDIT")}
+                onClick={() => handleTabChange("CREDIT")}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   type === "CREDIT" ? "bg-emerald-600 text-white shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                 }`}
@@ -109,7 +109,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
               </button>
               <button
                 type="button"
-                onClick={() => setType("TRANSFER")}
+                onClick={() => handleTabChange("TRANSFER")}
                 className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   type === "TRANSFER" ? "bg-blue-600 text-white shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                 }`}

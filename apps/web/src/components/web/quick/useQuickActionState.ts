@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { QuickPresetItem } from "./QuickPickBadges";
@@ -23,8 +23,6 @@ export function useQuickActionState(
   const [success, setSuccess] = useState(false);
 
   const utils = trpc.useUtils();
-  const userPrefsQuery = trpc.getUserPreferences.useQuery();
-  const updateUserPrefMut = trpc.updateUserPreferences.useMutation();
 
   const isIncome = type === "CREDIT";
   const isTransfer = type === "TRANSFER";
@@ -32,16 +30,111 @@ export function useQuickActionState(
 
   const categoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
+  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
 
   const categories = categoriesQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
+  const rawTxList = transactionsQuery.data;
+  const txList = useMemo(() => rawTxList ?? [], [rawTxList]);
 
-  const quickExpensePresets: QuickPresetItem[] =
-    userPrefsQuery.data?.quickExpensePresets ?? [];
-  const quickIncomePresets: QuickPresetItem[] =
-    userPrefsQuery.data?.quickIncomePresets ?? [];
-  const quickTransferPresets: QuickPresetItem[] =
-    userPrefsQuery.data?.quickTransferPresets ?? [];
+  // Tab switch handler: clear all entered data
+  function handleTabChange(newType: "DEBIT" | "CREDIT" | "TRANSFER") {
+    setType(newType);
+    setName("");
+    setAmount("");
+    setCategoryId("");
+    setSourceCategoryId("");
+    setDestinationCategoryId("");
+    setReceivingAccountId("");
+    setDate(todayStr);
+    setError(null);
+    setSuccess(false);
+  }
+
+  // Derive last 3 Expense presets from actual transactions
+  const quickExpensePresets = useMemo(() => {
+    const presets: QuickPresetItem[] = [];
+    const seen = new Set<string>();
+    for (const tx of txList) {
+      if (tx.flowType === "DEBIT" && !tx.transferGroupId && tx.note) {
+        const cleanNote = tx.note.trim();
+        const key = cleanNote.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          presets.push({
+            name: cleanNote,
+            amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
+            categoryId: tx.categoryId || undefined,
+          });
+          if (presets.length >= 3) break;
+        }
+      }
+    }
+    return presets;
+  }, [txList]);
+
+  // Derive last 3 Income presets from actual transactions
+  const quickIncomePresets = useMemo(() => {
+    const presets: QuickPresetItem[] = [];
+    const seen = new Set<string>();
+    for (const tx of txList) {
+      if (tx.flowType === "CREDIT" && !tx.transferGroupId && tx.note) {
+        const cleanNote = tx.note.trim();
+        const key = cleanNote.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          presets.push({
+            name: cleanNote,
+            amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
+            receivingAccountId: tx.bankAccountId || undefined,
+          });
+          if (presets.length >= 3) break;
+        }
+      }
+    }
+    return presets;
+  }, [txList]);
+
+  // Derive last 3 Transfer presets from actual transactions
+  const quickTransferPresets = useMemo(() => {
+    const presets: QuickPresetItem[] = [];
+    const transferMap = new Map<
+      string,
+      { note: string; amount: string; sourceCatId?: string; destCatId?: string }
+    >();
+
+    for (const tx of txList) {
+      if (tx.transferGroupId) {
+        const existing = transferMap.get(tx.transferGroupId) || {
+          note: tx.note || "Transfer",
+          amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : "0.00",
+        };
+        if (tx.flowType === "DEBIT") {
+          existing.sourceCatId = tx.categoryId || undefined;
+        } else if (tx.flowType === "CREDIT") {
+          existing.destCatId = tx.categoryId || undefined;
+        }
+        transferMap.set(tx.transferGroupId, existing);
+      }
+    }
+
+    const seen = new Set<string>();
+    for (const transfer of transferMap.values()) {
+      const cleanNote = transfer.note.trim();
+      const key = `${cleanNote.toLowerCase()}-${transfer.sourceCatId}-${transfer.destCatId}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        presets.push({
+          name: cleanNote,
+          amount: transfer.amount,
+          sourceCategoryId: transfer.sourceCatId,
+          destinationCategoryId: transfer.destCatId,
+        });
+        if (presets.length >= 3) break;
+      }
+    }
+    return presets;
+  }, [txList]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: () => handleDone(),
@@ -71,50 +164,37 @@ export function useQuickActionState(
     utils.listIncomeEvents.invalidate();
     utils.listExpenseEvents.invalidate();
     utils.listBankAccountsWithExpected.invalidate();
-    utils.getUserPreferences.invalidate();
     setSuccess(true);
     setTimeout(() => onClose(), 1200);
   }
 
+  // Populate preset values: skip any archived categories or bank accounts
   function handleSelectPreset(preset: QuickPresetItem) {
     if (preset.name) setName(preset.name);
     if (preset.amount) setAmount(preset.amount);
-    if (preset.categoryId) setCategoryId(preset.categoryId);
-    if (preset.sourceCategoryId) setSourceCategoryId(preset.sourceCategoryId);
-    if (preset.destinationCategoryId) setDestinationCategoryId(preset.destinationCategoryId);
-    if (preset.receivingAccountId) setReceivingAccountId(preset.receivingAccountId);
-  }
 
-  function savePresetOnSubmit() {
-    if (!name.trim()) return;
-    const cleanName = name.trim();
+    if (preset.categoryId) {
+      const isActive = categories.some((c) => c.id === preset.categoryId);
+      if (isActive) setCategoryId(preset.categoryId);
+    }
 
-    if (type === "DEBIT") {
-      const newItem: QuickPresetItem = { name: cleanName, amount, categoryId };
-      const filtered = quickExpensePresets.filter(
-        (p) => p.name.trim().toLowerCase() !== cleanName.toLowerCase()
+    if (preset.sourceCategoryId) {
+      const isActive = categories.some((c) => c.id === preset.sourceCategoryId);
+      if (isActive) setSourceCategoryId(preset.sourceCategoryId);
+    }
+
+    if (preset.destinationCategoryId) {
+      const isActive = categories.some(
+        (c) => c.id === preset.destinationCategoryId
       );
-      const updated = [newItem, ...filtered].slice(0, 3);
-      updateUserPrefMut.mutate({ quickExpensePresets: updated });
-    } else if (type === "CREDIT") {
-      const newItem: QuickPresetItem = { name: cleanName, amount, receivingAccountId };
-      const filtered = quickIncomePresets.filter(
-        (p) => p.name.trim().toLowerCase() !== cleanName.toLowerCase()
+      if (isActive) setDestinationCategoryId(preset.destinationCategoryId);
+    }
+
+    if (preset.receivingAccountId) {
+      const isActive = bankAccounts.some(
+        (a) => a.id === preset.receivingAccountId
       );
-      const updated = [newItem, ...filtered].slice(0, 3);
-      updateUserPrefMut.mutate({ quickIncomePresets: updated });
-    } else if (type === "TRANSFER") {
-      const newItem: QuickPresetItem = {
-        name: cleanName,
-        amount,
-        sourceCategoryId,
-        destinationCategoryId,
-      };
-      const filtered = quickTransferPresets.filter(
-        (p) => p.name.trim().toLowerCase() !== cleanName.toLowerCase()
-      );
-      const updated = [newItem, ...filtered].slice(0, 3);
-      updateUserPrefMut.mutate({ quickTransferPresets: updated });
+      if (isActive) setReceivingAccountId(preset.receivingAccountId);
     }
   }
 
@@ -139,8 +219,6 @@ export function useQuickActionState(
       return;
     }
 
-    savePresetOnSubmit();
-
     if (isTransfer) {
       if (!sourceCategoryId || !destinationCategoryId) {
         setError("Please select both source and destination categories.");
@@ -155,20 +233,39 @@ export function useQuickActionState(
         if (sourceCat.type === "GOAL") {
           const catBal = parseFloat(sourceCat.currentBalance || "0");
           if (amountNum > catBal) {
-            if (!confirm(`Warning: Transferring $${amountNum.toFixed(2)} exceeds "${sourceCat.name}" goal balance ($${catBal.toFixed(2)}). Proceed?`)) {
+            if (
+              !confirm(
+                `Warning: Transferring $${amountNum.toFixed(
+                  2
+                )} exceeds "${sourceCat.name}" goal balance ($${catBal.toFixed(
+                  2
+                )}). Proceed?`
+              )
+            ) {
               return;
             }
           }
         } else {
           // Everyday & Regular (Bills) draw from the entire Pool bucket
-          const poolCategories = categories.filter((c) => c.type === sourceCat.type);
+          const poolCategories = categories.filter(
+            (c) => c.type === sourceCat.type
+          );
           const totalPoolBalance = poolCategories.reduce(
             (sum, c) => sum + parseFloat(c.currentBalance || "0"),
             0
           );
           if (amountNum > totalPoolBalance) {
-            const poolLabel = sourceCat.type === "EVERYDAY" ? "Everyday" : "Bills";
-            if (!confirm(`Warning: Transferring $${amountNum.toFixed(2)} exceeds available ${poolLabel} pool balance ($${totalPoolBalance.toFixed(2)}). Proceed?`)) {
+            const poolLabel =
+              sourceCat.type === "EVERYDAY" ? "Everyday" : "Bills";
+            if (
+              !confirm(
+                `Warning: Transferring $${amountNum.toFixed(
+                  2
+                )} exceeds available ${poolLabel} pool balance ($${totalPoolBalance.toFixed(
+                  2
+                )}). Proceed?`
+              )
+            ) {
               return;
             }
           }
@@ -198,19 +295,38 @@ export function useQuickActionState(
         if (targetCat.type === "GOAL") {
           const catBal = parseFloat(targetCat.currentBalance || "0");
           if (amountNum > catBal) {
-            if (!confirm(`Warning: Recording $${amountNum.toFixed(2)} expense exceeds "${targetCat.name}" goal balance ($${catBal.toFixed(2)}). Proceed?`)) {
+            if (
+              !confirm(
+                `Warning: Recording $${amountNum.toFixed(
+                  2
+                )} expense exceeds "${targetCat.name}" goal balance ($${catBal.toFixed(
+                  2
+                )}). Proceed?`
+              )
+            ) {
               return;
             }
           }
         } else {
-          const poolCategories = categories.filter((c) => c.type === targetCat.type);
+          const poolCategories = categories.filter(
+            (c) => c.type === targetCat.type
+          );
           const totalPoolBalance = poolCategories.reduce(
             (sum, c) => sum + parseFloat(c.currentBalance || "0"),
             0
           );
           if (amountNum > totalPoolBalance) {
-            const poolLabel = targetCat.type === "EVERYDAY" ? "Everyday" : "Bills";
-            if (!confirm(`Warning: Expense of $${amountNum.toFixed(2)} exceeds available ${poolLabel} pool balance ($${totalPoolBalance.toFixed(2)}). Proceed?`)) {
+            const poolLabel =
+              targetCat.type === "EVERYDAY" ? "Everyday" : "Bills";
+            if (
+              !confirm(
+                `Warning: Expense of $${amountNum.toFixed(
+                  2
+                )} exceeds available ${poolLabel} pool balance ($${totalPoolBalance.toFixed(
+                  2
+                )}). Proceed?`
+              )
+            ) {
               return;
             }
           }
@@ -270,7 +386,7 @@ export function useQuickActionState(
 
   return {
     type,
-    setType,
+    handleTabChange,
     name,
     setName,
     amount,
