@@ -137,7 +137,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 
 ### 5.2 5-Step Waterfall Cascade Engine & Category Bucket Rules
 - **Category Bucket Rules**:
-  - **`EVERYDAY` & `REGULAR` (Bills)**: Managed at **overall pool level**. Categories specify monthly targets to compute total bucket target budget. Spending occurs against pooled balances (pooled discretionary cash or pooled bills balance).
+  - **`EVERYDAY` & `REGULAR` (Bills)**: Managed at **overall pool level**. Categories specify monthly targets to compute total bucket target budget. Spending occurs against pooled balances (pooled discretionary cash or pooled bills balance). `REGULAR` (Bills) categories expose a read-only `listBillCoverageQuery` (budgeting capability) returning per-category `BillCoverageItem` coverage status (`COVERED` / `SHORT_BY` / `NO_SCHEDULE`). Status is derived from pool-level balance vs upcoming expense events due before next payday. No per-category envelope balances are stored.
   - **`GOAL` (Save Toward)**: Managed **individually per category** with dedicated target balances, target dates, and progress metrics. Goal sorting logic automatically places high-priority or nearest-term goals at the top.
 - **Dynamic Paycheck Frequency Engine (`parseRruleFrequencyDays`)**: Automatically evaluates income source recurrence rules (`rrule`) to calculate allocation period days: `WEEKLY` (7 days), `FORTNIGHTLY` (14 days), `MONTHLY` (30 days), and `ANNUALLY`/`YEARLY` (365 days), ensuring prorated target calculations scale precisely with user income schedules.
 - **Category UI Screen**: Organized into 3 distinct sections (Everyday Spending [collapsable], Regular Bills [collapsable], Save Toward Goals).

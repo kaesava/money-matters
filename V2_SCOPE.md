@@ -23,6 +23,7 @@
 | **Stripe / subscription payments** | **DELIVERED** | Integrated with trial lockouts, webhooks, and read-only grace periods |
 | **Uptime Monitoring (Better Stack / UptimeRobot)** | Deferred to Release 2 | Automated ping checks on `/health` and Web frontend |
 | **Product Analytics (PostHog)** | **DELIVERED** | Integrated telemetry and telemetry context providers |
+| **Category-Level Balance Management (Everyday & Bills)** | Deferred to Release 2 | Managed at pool level in V1; see detailed feature spec below |
 
 ---
 
@@ -43,3 +44,54 @@
 - Categories map at category-type level (`REGULAR`, `GOAL`, `EVERYDAY`).
 - Transfer instructions calculate difference between Everyday top-up and target bill/goal buckets.
 - Reconciliation compares expected calculated balance against actual entered balance.
+
+---
+
+## Decision Record: Pool-Level vs. Category-Level Management
+
+### Context
+
+During V1 architecture review (2026-08-23), the question was raised: should users be given the choice to manage **Everyday and/or Bills at category level** (i.e. full envelope budgeting with individual category balances) rather than the current pool-level model?
+
+### Decision
+
+**V1 ships with pool-level management only for Everyday and Bills.** Goals remain individually tracked at category level (unchanged).
+
+### Rationale & Product Philosophy
+
+1. **Target audience fit:** Aussie households are the primary segment. The product philosophy (Zero Friction, Zero Daily Micro-Tracking) is fundamentally incompatible with the cognitive overhead of managing individual envelope balances for Everyday and Bills.
+2. **The real user need is addressed via Bill Coverage View:** Users want to know *"will my bills be covered before next payday?"* not *"how much is left in my Netflix envelope?"*. The **Enhanced Bill Coverage View** (V1) answers this via read-only coverage status per bill category derived from pool balance vs upcoming expense events — without introducing envelope complexity.
+3. **Implementation cost:** A dual-mode system (pool vs category) requires branching logic across the waterfall engine, allocation flow, dashboard, "Can We Afford This?" engine, transaction logging, setup wizard, notifications, and bank reconciliation. Estimated 4–6 weeks of additional build time.
+4. **Usage data validation:** V2 category-level envelope scope should be validated by real user demand post-launch before committing engineering effort.
+
+---
+
+## V2 Feature: Category-Level Management Mode for Everyday and/or Bills
+
+### Feature ID
+
+`FEAT-V2-001-CATEGORY-LEVEL-MANAGEMENT`
+
+### Expiry & Governance
+
+Review at 6 months post-launch. Gated by kill switch `feature.categoryLevelManagement.killSwitchEnabled: true`.
+
+### Scope & Technical Requirements
+
+Allow a household to opt in to category-level balance tracking for Everyday and/or Bills:
+
+1. **Data Model (`packages/db`):** Add `tenant_pool_settings` table (`tenantId`, `appId`, `poolType: 'EVERYDAY' | 'REGULAR'`, `managementMode: 'POOL' | 'CATEGORY'`). Standard RLS and audit columns.
+2. **Waterfall Engine (`packages/capabilities/budgeting`):** Step 2 (Bills) and Step 4 (Everyday) branch on `managementMode`. In category mode, top-ups split across individual categories by target amount rather than single pool bucket.
+3. **"Can We Afford This?" Engine (`packages/capabilities/transactions`):** In category mode, bill buffer checks evaluate individual envelope balances.
+4. **UI Surfaces (`apps/web`, `apps/mobile`):** Categories screen displays individual envelope balances instead of "Managed at pool level". Quick Expense and transaction logging debit/credit specific category envelopes.
+5. **Setup Wizard:** Add option to select Simple (Pool mode, default) vs Advanced (Category mode).
+
+---
+
+## Known User Risk: Unscheduled Bill Categories
+
+> [!WARNING]
+> **Risk Analysis (Bill Coverage View):** If a user creates a bill category (e.g. "Car Insurance" or "Council Rates") but does not set up a recurring expense schedule or upcoming event for it:
+> - Naively checking `billsPoolBalance >= totalUpcoming` and marking all categories "Covered ✓" would be **false and misleading** — the user might assume a bill is covered when they simply forgot to schedule it.
+> - **V1 Mitigation:** The `listBillCoverageQuery` explicitly returns `NO_SCHEDULE` status for categories without upcoming expense events in the window. The UI renders a neutral grey badge (`"No schedule set ℹ️"`) instead of `"Covered ✓"`, prompting the user to add an upcoming bill event.
+

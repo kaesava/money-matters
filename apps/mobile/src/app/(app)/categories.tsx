@@ -20,6 +20,8 @@ export default function CategoriesScreen() {
 
   const { data: session } = authClient.useSession();
   const { data: categories = [], isLoading, error, refetch } = trpc.listCategories.useQuery();
+  const billCoverageQuery = trpc.listBillCoverage.useQuery();
+  const billCoverageItems = billCoverageQuery.data?.items ?? [];
 
   const typedCategories = categories as MobileCategoryItem[];
 
@@ -45,7 +47,10 @@ export default function CategoriesScreen() {
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
 
   const archiveMut = trpc.archiveCategory.useMutation({
-    onSuccess: () => refetch(),
+    onSuccess: () => {
+      refetch();
+      billCoverageQuery.refetch();
+    },
   });
 
   const handleArchive = (cat: MobileCategoryItem) => {
@@ -126,7 +131,7 @@ export default function CategoriesScreen() {
               style={styles.newCategoryHeaderBtn}
               activeOpacity={0.8}
             >
-              <Text style={styles.newCategoryHeaderBtnText}>➕ New Category</Text>
+              <Text style={styles.newCategoryHeaderBtnText}>➕ {t('categories.addCategory')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -184,7 +189,7 @@ export default function CategoriesScreen() {
           <MobileFilterBar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            searchPlaceholder="Search category name..."
+            searchPlaceholder={t('categories.searchPlaceholder')}
             filterGroups={[
               {
                 label: 'Health',
@@ -206,7 +211,7 @@ export default function CategoriesScreen() {
 
           {isLoading && (
             <View style={{ paddingVertical: 32, alignItems: 'center' }}>
-              <MobileSpinner size="large" label="Loading categories & savings pools..." />
+              <MobileSpinner size="large" label={t('categories.loading')} />
             </View>
           )}
 
@@ -234,6 +239,7 @@ export default function CategoriesScreen() {
           {/* SECTION 2: REGULAR BILLS */}
           <MobileRegularBillsSection
             categories={filterFn(regularCats)}
+            billCoverageItems={billCoverageItems}
             regularBalance={regularBalance}
             regularBudget={regularBudget}
             isCollapsed={isRegularCollapsed}

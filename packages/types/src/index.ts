@@ -289,6 +289,26 @@ export const MonthlySummaryDto = z.object({
 }).strict();
 
 /**
+ * Bill coverage item and overall result schemas.
+ */
+export const BillCoverageItemSchema = z.object({
+  categoryId: z.string(),
+  categoryName: z.string(),
+  monthlyAmount: z.string().nullable(),
+  nextDueDate: z.string().nullable(),
+  nextDueAmount: z.string().nullable(),
+  coverageStatus: z.enum(["COVERED", "SHORT_BY", "NO_SCHEDULE"]),
+  shortfallAmount: z.string().nullable(),
+}).strict();
+
+export const BillCoverageResultSchema = z.object({
+  billsPoolBalance: z.number(),
+  totalUpcomingBeforePayday: z.number(),
+  nextPaydayDate: z.string().nullable(),
+  items: z.array(BillCoverageItemSchema),
+}).strict();
+
+/**
  * Command schema to finalize and confirm a paycheck allocation plan.
  */
 export const ConfirmPlanCommand = z.object({
@@ -320,4 +340,7 @@ export type AllocationPlanLineType = z.infer<typeof AllocationPlanLineSchema>;
 export type TransactionLedgerType = z.infer<typeof TransactionLedgerSchema>;
 export type CanAffordVerdictType = z.infer<typeof CanAffordVerdictDto>;
 export type MonthlySummaryType = z.infer<typeof MonthlySummaryDto>;
+export type BillCoverageItem = z.infer<typeof BillCoverageItemSchema>;
+export type BillCoverageResult = z.infer<typeof BillCoverageResultSchema>;
+
 

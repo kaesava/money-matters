@@ -24,6 +24,9 @@ function CategoriesPageContent() {
   const categoriesQuery = trpc.listCategories.useQuery();
   const categories = (categoriesQuery.data ?? []) as CategorySummaryItem[];
 
+  const billCoverageQuery = trpc.listBillCoverage.useQuery();
+  const billCoverageItems = billCoverageQuery.data?.items ?? [];
+
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const hasArchivedCategories = archivedQuery.data?.some(i => i.itemType === 'CATEGORY') ?? false;
 
@@ -71,6 +74,7 @@ function CategoriesPageContent() {
   const archiveCategoryMut = trpc.archiveCategory.useMutation({
     onSuccess: () => {
       utils.listCategories.invalidate();
+      utils.listBillCoverage.invalidate();
     },
   });
 
@@ -144,7 +148,7 @@ function CategoriesPageContent() {
             className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs"
           >
             <span>↔️</span>
-            <span>Move Money</span>
+            <span>{t("categories.actions.moveMoney")}</span>
           </button>
           <button
             type="button"
@@ -164,7 +168,7 @@ function CategoriesPageContent() {
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search pool name..."
+        searchPlaceholder={t("categories.searchPlaceholder")}
         filterGroups={[]}
         onClearAll={() => {
           setSearchQuery("");
@@ -191,6 +195,7 @@ function CategoriesPageContent() {
       {/* SECTION 2: REGULAR BILLS */}
       <RegularBillsSection
         categories={filterFn(regularCategories)}
+        billCoverageItems={billCoverageItems}
         regularBalance={regularBalance}
         regularMonthlyBudget={regularMonthlyBudget}
         regularConsumedPct={regularConsumedPct}
@@ -270,7 +275,7 @@ function CategoriesPageContent() {
 
 export default function CategoriesPage() {
   return (
-    <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Loading categories...</div>}>
+    <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">{t("categories.loading")}</div>}>
       <CategoriesPageContent />
     </React.Suspense>
   );

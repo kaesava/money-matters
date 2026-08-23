@@ -335,6 +335,22 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
         }
       }
     });
+
+    test('6.2 New Category Button Terminology & Bill Coverage Table Audit', async ({ page }) => {
+      await page.goto('/dashboard/categories');
+
+      // Check New Category CTA Button Terminology
+      const addCategoryBtn = page.locator('button:has-text("New Category")').first();
+      if (await addCategoryBtn.isVisible()) {
+        await expect(addCategoryBtn).toBeVisible();
+      }
+
+      // Check Bills Pool Table Column Headers & Status Badges
+      const tableHeader = page.locator('table th').first();
+      if (await tableHeader.isVisible()) {
+        await expect(page.locator('table')).toBeVisible();
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------

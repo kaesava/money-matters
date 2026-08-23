@@ -8,8 +8,11 @@ import { formatAUD } from '../../lib/format';
 import { MobileCategoryItem } from './MobileEverydayPoolSection';
 import { InfoTooltip } from '../InfoTooltip';
 
+import { BillCoverageItem } from '@money-matters/types';
+
 interface MobileRegularBillsSectionProps {
   categories: MobileCategoryItem[];
+  billCoverageItems?: BillCoverageItem[];
   regularBalance: number;
   regularBudget: number;
   isCollapsed: boolean;
@@ -20,6 +23,7 @@ interface MobileRegularBillsSectionProps {
 
 export function MobileRegularBillsSection({
   categories,
+  billCoverageItems = [],
   regularBalance,
   regularBudget,
   isCollapsed,
@@ -28,6 +32,7 @@ export function MobileRegularBillsSection({
   onArchiveCategory,
 }: MobileRegularBillsSectionProps) {
   const router = useRouter();
+  const coverageMap = new Map(billCoverageItems.map((item) => [item.categoryId, item]));
   const spentPct =
     regularBudget > 0
       ? Math.min(100, Math.max(0, Math.round(((regularBudget - regularBalance) / regularBudget) * 100)))
@@ -39,7 +44,7 @@ export function MobileRegularBillsSection({
     <View style={styles.sectionCard}>
       <TouchableOpacity style={styles.sectionHeader} onPress={onToggleCollapse} activeOpacity={0.8}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={styles.sectionTitle}>🧾 Regular Bills</Text>
+          <Text style={styles.sectionTitle}>🧾 {t('categories.sections.regularTitle')}</Text>
           <InfoTooltip title="Bills Pool" content="Recurring bill obligations. Individual categories set bill targets; managed at overall Bills pool level." />
         </View>
         <View style={{ alignItems: 'flex-end', marginRight: 8 }}>
@@ -65,31 +70,50 @@ export function MobileRegularBillsSection({
       {!isCollapsed && (
         <View style={styles.sectionContent}>
           {categories.length === 0 ? (
-            <Text style={styles.emptyText}>No Regular Bills categories found.</Text>
+            <Text style={styles.emptyText}>{t('categories.noRegularBillsFilter')}</Text>
           ) : (
-            categories.map((cat) => (
-              <View key={cat.id} style={styles.itemRow}>
-                <TouchableOpacity
-                  onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
-                  style={{ flex: 1 }}
-                >
-                  <Text style={[styles.itemName, { color: '#2563eb' }]}>{cat.name}</Text>
-                  <Text style={styles.itemPoolBadge}>Managed at overall pool level</Text>
-                </TouchableOpacity>
+            categories.map((cat) => {
+              const cov = coverageMap.get(cat.id);
+              return (
+                <View key={cat.id} style={styles.itemRow}>
+                  <TouchableOpacity
+                    onPress={() => router.push(`/(app)/categories/${cat.id}` as Href)}
+                    style={{ flex: 1 }}
+                  >
+                    <Text style={[styles.itemName, { color: '#2563eb' }]}>{cat.name}</Text>
+                    {cov?.coverageStatus === 'COVERED' && (
+                      <Text style={[styles.itemPoolBadge, { color: '#059669', fontWeight: '700' }]}>
+                        {t('categories.sections.billCoverageStatusCovered')}
+                      </Text>
+                    )}
+                    {cov?.coverageStatus === 'SHORT_BY' && (
+                      <Text style={[styles.itemPoolBadge, { color: '#d97706', fontWeight: '700' }]}>
+                        {t('categories.sections.billCoverageStatusShort', {
+                          amount: cov.shortfallAmount ? `$${parseFloat(cov.shortfallAmount).toFixed(2)}` : '',
+                        })}
+                      </Text>
+                    )}
+                    {(cov?.coverageStatus === 'NO_SCHEDULE' || !cov) && (
+                      <Text style={[styles.itemPoolBadge, { color: '#64748B' }]}>
+                        {t('categories.sections.billCoverageStatusNoSchedule')}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
 
-                <Text style={styles.itemTarget}>{formatAUD(cat.monthlyAmount || 0)}/mo</Text>
+                  <Text style={styles.itemTarget}>{formatAUD(cat.monthlyAmount || 0)}/mo</Text>
 
-                <TouchableOpacity onPress={() => onEditCategory(cat)} style={styles.actionBtn}>
-                  <Text style={styles.actionBtnText}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => onArchiveCategory(cat)}
-                  style={[styles.actionBtn, { backgroundColor: '#FEF2F2' }]}
-                >
-                  <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Archive</Text>
-                </TouchableOpacity>
-              </View>
-            ))
+                  <TouchableOpacity onPress={() => onEditCategory(cat)} style={styles.actionBtn}>
+                    <Text style={styles.actionBtnText}>{t('common.edit')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => onArchiveCategory(cat)}
+                    style={[styles.actionBtn, { backgroundColor: '#FEF2F2' }]}
+                  >
+                    <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>{t('common.archive')}</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })
           )}
         </View>
       )}

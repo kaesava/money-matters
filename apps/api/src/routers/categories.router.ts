@@ -5,6 +5,7 @@ import {
   archiveCategoryCommand,
   restoreItemCommand,
   listCategoriesQuery,
+  listBillCoverageQuery,
   getMonthlySummaryQuery,
   listArchivedItemsQuery,
   upsertCategoryScheduleCommand,
@@ -17,6 +18,7 @@ import {
   UpdateCategoryCommand,
   CreateCategoryScheduleCommand,
   MoveMoneyCommand,
+  BillCoverageResultSchema,
 } from "@money-matters/types";
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
@@ -112,6 +114,12 @@ export const categoriesRouter = {
   listCategories: tenantProcedure
     .query(async ({ ctx }) => {
       return await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
+    }),
+
+  listBillCoverage: tenantProcedure
+    .output(BillCoverageResultSchema)
+    .query(async ({ ctx }) => {
+      return await listBillCoverageQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
   getMonthlySummary: tenantProcedure
