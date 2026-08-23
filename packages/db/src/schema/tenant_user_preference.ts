@@ -3,6 +3,15 @@ import { users } from "./user.js";
 import { tenants } from "./tenant.js";
 import { apps } from "./app.js";
 
+export interface QuickPresetItem {
+  name: string;
+  amount?: string;
+  categoryId?: string;
+  sourceCategoryId?: string;
+  destinationCategoryId?: string;
+  receivingAccountId?: string;
+}
+
 export interface AppPreferencesBlob {
   // Household / Cashflow Notification Alerts (Tenant Scoped)
   payday_alerts_enabled?: boolean;
@@ -25,6 +34,11 @@ export interface AppPreferencesBlob {
   setup_completed?: boolean;
   /** ISO timestamp when setup was completed. */
   setup_completed_at?: string;
+
+  // Quick Action Presets (Last 3 per type)
+  quick_expense_presets?: QuickPresetItem[];
+  quick_income_presets?: QuickPresetItem[];
+  quick_transfer_presets?: QuickPresetItem[];
 }
 
 /**

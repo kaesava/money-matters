@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { t } from '@money-matters/i18n';
 
 interface SlideOverDrawerProps {
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   onClose: () => void;
   onBack?: () => void;
@@ -56,9 +56,9 @@ export function SlideOverDrawer({
             </button>
           )}
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-slate-900 leading-snug truncate" title={title}>
+            <div className="text-lg font-bold text-slate-900 leading-snug flex items-center gap-2 truncate">
               {title}
-            </h2>
+            </div>
             {subtitle && (
               <p className="text-xs text-slate-400 mt-0.5 truncate">{subtitle}</p>
             )}

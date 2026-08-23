@@ -168,6 +168,10 @@ export const tenantRouter = {
         // App UI Blob
         appPreferences: tenantPref?.appPreferences ?? {},
         quickActionsCollapsed: appBlob?.quick_actions_collapsed ?? false,
+        // Quick Presets
+        quickExpensePresets: appBlob?.quick_expense_presets ?? [],
+        quickIncomePresets: appBlob?.quick_income_presets ?? [],
+        quickTransferPresets: appBlob?.quick_transfer_presets ?? [],
       };
     }),
 
@@ -184,6 +188,9 @@ export const tenantRouter = {
         billRemindersEnabled: z.boolean().optional(),
         weeklyDigestEnabled: z.boolean().optional(),
         setupCompleted: z.boolean().optional(),
+        quickExpensePresets: z.array(z.object({ name: z.string(), amount: z.string().optional(), categoryId: z.string().optional() })).optional(),
+        quickIncomePresets: z.array(z.object({ name: z.string(), amount: z.string().optional(), receivingAccountId: z.string().optional() })).optional(),
+        quickTransferPresets: z.array(z.object({ name: z.string(), amount: z.string().optional(), sourceCategoryId: z.string().optional(), destinationCategoryId: z.string().optional() })).optional(),
         appPreferences: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
       }).strict()
     )
@@ -243,6 +250,9 @@ export const tenantRouter = {
         ...(input.weeklyDigestEnabled !== undefined ? { weekly_digest_enabled: input.weeklyDigestEnabled } : {}),
         ...(input.quickActionsCollapsed !== undefined ? { quick_actions_collapsed: input.quickActionsCollapsed } : {}),
         ...(input.showIcons !== undefined ? { show_icons: input.showIcons } : {}),
+        ...(input.quickExpensePresets !== undefined ? { quick_expense_presets: input.quickExpensePresets.slice(0, 3) } : {}),
+        ...(input.quickIncomePresets !== undefined ? { quick_income_presets: input.quickIncomePresets.slice(0, 3) } : {}),
+        ...(input.quickTransferPresets !== undefined ? { quick_transfer_presets: input.quickTransferPresets.slice(0, 3) } : {}),
         ...(input.setupCompleted !== undefined
           ? {
               setup_completed: input.setupCompleted,

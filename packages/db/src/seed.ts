@@ -319,6 +319,20 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
           skip_pool_adjustment_confirmation: false,
           setup_completed: true,
           setup_completed_at: now.toISOString(),
+          quick_expense_presets: [
+            { name: "Woolworths Groceries", amount: "120.00" },
+            { name: "Shell Fuel", amount: "65.00" },
+            { name: "Coffee & Snacks", amount: "12.50" },
+          ],
+          quick_income_presets: [
+            { name: "Payday Salary", amount: "2500.00" },
+            { name: "Side Hustle", amount: "350.00" },
+            { name: "Refund", amount: "45.00" },
+          ],
+          quick_transfer_presets: [
+            { name: "Everyday → Savings", amount: "200.00" },
+            { name: "Surplus → Bills Reserve", amount: "150.00" },
+          ],
         },
       },
       createdBy: userId,

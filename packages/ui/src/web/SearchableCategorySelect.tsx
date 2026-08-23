@@ -21,6 +21,47 @@ export interface SearchableCategorySelectProps {
   className?: string;
 }
 
+function renderCategoryIcon(icon?: string | null, type?: "EVERYDAY" | "REGULAR" | "GOAL") {
+  if (!icon) {
+    return type === "REGULAR" ? "📌" : type === "GOAL" ? "🎯" : "🛒";
+  }
+  if (/\p{Extended_Pictographic}/u.test(icon)) {
+    return icon;
+  }
+  const iconMap: Record<string, string> = {
+    coffee: "☕",
+    home: "🏠",
+    car: "🚗",
+    "shopping-cart": "🛒",
+    "shopping-bag": "🛍️",
+    zap: "⚡",
+    wifi: "📡",
+    phone: "📱",
+    tv: "📺",
+    umbrella: "☂️",
+    heart: "❤️",
+    book: "📚",
+    shield: "🛡️",
+    user: "👤",
+    "user-check": "👤",
+    smile: "😊",
+    "dollar-sign": "💵",
+    briefcase: "💼",
+    piggy: "🐷",
+    target: "🎯",
+    pin: "📌",
+    gift: "🎁",
+    plane: "✈️",
+    graduation: "🎓",
+    music: "🎵",
+    film: "🎬",
+    tool: "🔧",
+    key: "🔑",
+  };
+  const lowerKey = icon.toLowerCase().trim();
+  return iconMap[lowerKey] || (type === "REGULAR" ? "📌" : type === "GOAL" ? "🎯" : "🛒");
+}
+
 export function SearchableCategorySelect({
   value,
   onChange,
@@ -144,9 +185,9 @@ export function SearchableCategorySelect({
       >
         {selectedCategory ? (
           <div className="flex items-center gap-2 overflow-hidden min-w-0">
-            {showIcons && <span>{selectedCategory.icon || (selectedCategory.type === "REGULAR" ? "📌" : selectedCategory.type === "GOAL" ? "🎯" : "🛒")}</span>}
+            {showIcons && <span>{renderCategoryIcon(selectedCategory.icon, selectedCategory.type)}</span>}
             <span className="font-bold text-[#1B2B4B] truncate">{selectedCategory.name}</span>
-            {selectedCategory.currentBalance !== undefined && (
+            {selectedCategory.type === "GOAL" && selectedCategory.currentBalance !== undefined && (
               <span className="text-[11px] font-mono text-zinc-500 shrink-0">
                 (${parseFloat(String(selectedCategory.currentBalance || 0)).toFixed(2)})
               </span>
@@ -214,13 +255,13 @@ export function SearchableCategorySelect({
                     }`}
                   >
                     <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                      {showIcons && <span>{cat.icon || (cat.type === "REGULAR" ? "📌" : cat.type === "GOAL" ? "🎯" : "🛒")}</span>}
+                      {showIcons && <span>{renderCategoryIcon(cat.icon, cat.type)}</span>}
                       <span className="font-bold text-[#1B2B4B] truncate">{cat.name}</span>
                       <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border shrink-0 ${getPoolBadgeColor(cat.type)}`}>
                         {getPoolLabel(cat.type)}
                       </span>
                     </div>
-                    {cat.currentBalance !== undefined && (
+                    {cat.type === "GOAL" && cat.currentBalance !== undefined && (
                       <span className="font-mono font-bold text-zinc-600 ml-2 shrink-0">
                         ${parseFloat(String(cat.currentBalance || 0)).toFixed(2)}
                       </span>
