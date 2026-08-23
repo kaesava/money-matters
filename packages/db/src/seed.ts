@@ -418,16 +418,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     {
       tenantId,
       appId,
-      categoryType: "EVERYDAY" as const,
-      bankAccountId: primaryAccount.id,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      tenantId,
-      appId,
       categoryType: "GOAL" as const,
-      bankAccountId: savingsAccount.id,
+      bankAccountId: primaryAccount.id,
       createdBy: userId,
       updatedBy: userId,
     },

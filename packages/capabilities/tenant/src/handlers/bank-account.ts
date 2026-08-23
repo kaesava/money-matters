@@ -150,6 +150,7 @@ export function updateBankAccountMappingsHandler(db: DbOrTx) {
           .update(bankAccountCategoryMappings)
           .set({
             bankAccountId: mapping.bankAccountId,
+            archivedAt: null,
             updatedAt: new Date(),
             updatedBy: userId,
           })
@@ -164,6 +165,25 @@ export function updateBankAccountMappingsHandler(db: DbOrTx) {
           updatedBy: userId,
         });
       }
+    }
+
+    // Verify all 3 pools remain mapped to active bank accounts
+    const activeMappings = await db
+      .select()
+      .from(bankAccountCategoryMappings)
+      .where(
+        and(
+          eq(bankAccountCategoryMappings.tenantId, tenantId),
+          eq(bankAccountCategoryMappings.appId, appId),
+          sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
+        )
+      );
+
+    const mappedTypes = new Set(activeMappings.map((m) => m.categoryType));
+    const requiredTypes = ["EVERYDAY", "REGULAR", "GOAL"] as const;
+    const missing = requiredTypes.filter((t) => !mappedTypes.has(t));
+    if (missing.length > 0) {
+      throw new Error(`All pools must be linked to at least one bank account. Unlinked pools: ${missing.join(", ")}`);
     }
 
     return { success: true };
