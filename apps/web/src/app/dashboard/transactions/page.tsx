@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
+import { InfoTooltip, SearchInput, PaginationBar } from "@money-matters/ui/web";
 
 const formatAUD = (val: number | string): string => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -13,14 +14,20 @@ const formatAUD = (val: number | string): string => {
 export default function TransactionsPage() {
   const [filterType, setFilterType] = useState<"ALL" | "DEBIT" | "CREDIT" | "TRANSFER">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [selectedPool, setSelectedPool] = useState<string>("ALL");
   const [sortColumn, setSortColumn] = useState<"recordedAt" | "description" | "amount">("recordedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const categoriesQuery = trpc.listCategories.useQuery();
-  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100, offset: 0 });
+  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500, offset: 0 });
 
-  const categories = categoriesQuery.data ?? [];
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, searchQuery, selectedPool, sortColumn, sortDirection]);
+
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   // Map transaction ledger items for spacious display and group internal transfer pairs
   const allTransactions = useMemo(() => {
@@ -30,11 +37,14 @@ export default function TransactionsPage() {
       date: string;
       description: string;
       categoryName: string;
+      categoryType?: "EVERYDAY" | "REGULAR" | "GOAL";
       amount: string;
       type: "DEBIT" | "CREDIT" | "TRANSFER";
+      source?: string;
     }> = [];
 
     const processedIds = new Set<string>();
+    const categoryMap = new Map(categories.map((c) => [c.name, c.type]));
 
     for (let i = 0; i < rawTransactions.length; i++) {
       const tx = rawTransactions[i];
@@ -56,35 +66,42 @@ export default function TransactionsPage() {
         processedIds.add(tx.id);
         processedIds.add(partner.id);
 
+        const sourceCatName = (tx.flowType === "DEBIT" ? tx.categoryName : partner.categoryName) || "Source Pool";
+        const destCatName = (tx.flowType === "CREDIT" ? tx.categoryName : partner.categoryName) || "Destination Pool";
+
         result.push({
           id: tx.id,
           date: tx.recordedAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(tx.recordedAt)) : "N/A",
-          description: tx.note || "Internal Transfer",
-          categoryName: "Internal Transfer",
+          description: tx.note || "Transfer between categories",
+          categoryName: `${sourceCatName} ➔ ${destCatName}`,
           amount: tx.amount,
           type: "TRANSFER",
+          source: tx.source || "MANUAL",
         });
       } else {
         processedIds.add(tx.id);
+        const catName = tx.categoryName || "Uncategorized";
         result.push({
           id: tx.id,
           date: tx.recordedAt ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(tx.recordedAt)) : "N/A",
-          description: tx.note || `Transaction (${tx.source})`,
-          categoryName: tx.categoryName || "Uncategorized",
+          description: tx.note || `Transaction (${tx.source || 'MANUAL'})`,
+          categoryName: catName,
+          categoryType: categoryMap.get(catName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,
           amount: tx.amount,
           type: tx.flowType as "DEBIT" | "CREDIT",
+          source: tx.source || "MANUAL",
         });
       }
     }
 
     return result;
-  }, [transactionsQuery.data]);
+  }, [transactionsQuery.data, categories]);
 
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
       if (filterType !== "ALL" && tx.type !== filterType) return false;
 
-      if (selectedCategory !== "ALL" && tx.categoryName !== selectedCategory) return false;
+      if (selectedPool !== "ALL" && tx.categoryType !== selectedPool) return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -96,7 +113,7 @@ export default function TransactionsPage() {
 
       return true;
     });
-  }, [allTransactions, filterType, selectedCategory, searchQuery]);
+  }, [allTransactions, filterType, selectedPool, searchQuery]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
@@ -112,16 +129,44 @@ export default function TransactionsPage() {
     });
   }, [filteredTransactions, sortColumn, sortDirection]);
 
+  const totalPages = Math.ceil(sortedTransactions.length / pageSize) || 1;
+  const paginatedTransactions = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedTransactions.slice(start, start + pageSize);
+  }, [sortedTransactions, page, pageSize]);
+
+  const handleExportCSV = () => {
+    if (sortedTransactions.length === 0) return;
+    const headers = ["Date", "Description", "Category / Pool", "Type", "Source", "Amount (AUD)"];
+    const rows = sortedTransactions.map((tx) => [
+      `"${tx.date}"`,
+      `"${tx.description.replace(/"/g, '""')}"`,
+      `"${tx.categoryName.replace(/"/g, '""')}"`,
+      `"${tx.type === 'TRANSFER' ? 'Transfer' : tx.type === 'CREDIT' ? 'Income' : 'Expense'}"`,
+      `"${tx.source || 'MANUAL'}"`,
+      `"${tx.amount}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `transactions_export_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-6xl pb-16 animate-in fade-in duration-200">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold" style={{ color: "var(--dash-text)" }}>
             {t("transactions.title") || "Transactions History"}
           </h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-1">
-            {t("transactions.subtitle") || "Complete itemized ledger of income allocations, bill payments, and spend transactions."}
-          </p>
+          <InfoTooltip
+            title="About Transactions History"
+            content="A complete record of all your earnings, bill payments, and everyday spending. Use filters or search to quickly find any past transaction."
+          />
         </div>
 
         {/* Permanent 3-Way Segmented Control */}
@@ -137,36 +182,42 @@ export default function TransactionsPage() {
                   : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
-              {tType === "ALL" ? (t("transactions.filterAll") || "All") : tType === "DEBIT" ? (t("transactions.filterDebit") || "Debits (-)") : tType === "CREDIT" ? (t("transactions.filterCredit") || "Credits (+)") : (t("transactions.filterTransfer") || "Transfers")}
+              {tType === "ALL" ? "All" : tType === "DEBIT" ? "Expense" : tType === "CREDIT" ? "Income" : "Transfers"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
-        <div className="relative flex-1 w-full">
-          <input
-            type="text"
-            placeholder={t("transactions.searchPlaceholder") || "Search description or category..."}
+      {/* Filter Bar & Export */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
+        <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
+          <SearchInput
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={setSearchQuery}
+            placeholder={t("transactions.searchPlaceholder") || "Search description or category name..."}
           />
+
+          <select
+            value={selectedPool}
+            onChange={(e) => setSelectedPool(e.target.value)}
+            className="w-full sm:w-56 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
+          >
+            <option value="ALL">All Pools</option>
+            <option value="EVERYDAY">Everyday Spending Pool</option>
+            <option value="REGULAR">Regular Bills Pool</option>
+            <option value="GOAL">Savings &amp; Future Goals Pool</option>
+          </select>
         </div>
 
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="w-full sm:w-48 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
+        <button
+          type="button"
+          onClick={handleExportCSV}
+          disabled={sortedTransactions.length === 0}
+          className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
         >
-          <option value="ALL">{t("transactions.allCategories") || "All Categories"}</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.name}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          <span>📥</span>
+          <span>Export CSV</span>
+        </button>
       </div>
 
       {/* Transactions Table */}
@@ -199,6 +250,7 @@ export default function TransactionsPage() {
                     {t("transactions.description") || "Description"} {sortColumn === 'description' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                   </th>
                   <th className="py-3 px-4">{t("transactions.category") || "Category"}</th>
+                  <th className="py-3 px-4">Origin / Source</th>
                   <th 
                     className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
                     onClick={() => {
@@ -211,7 +263,7 @@ export default function TransactionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 text-xs">
-                {sortedTransactions.map((tx) => (
+                {paginatedTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-3 px-4 font-mono text-zinc-500">{tx.date}</td>
                     <td className="py-3 px-4 font-semibold text-[#1B2B4B]">{tx.description}</td>
@@ -220,6 +272,11 @@ export default function TransactionsPage() {
                         tx.type === 'TRANSFER' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-100 text-zinc-700'
                       }`}>
                         {tx.categoryName}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">
+                        {tx.source || "MANUAL"}
                       </span>
                     </td>
                     <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
@@ -234,6 +291,19 @@ export default function TransactionsPage() {
           </div>
         )}
       </div>
+
+      <PaginationBar
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={sortedTransactions.length}
+        pageSizeOptions={[10, 25, 50, 100]}
+        onPageChange={setPage}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+      />
     </div>
   );
 }

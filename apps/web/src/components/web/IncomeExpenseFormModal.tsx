@@ -26,6 +26,7 @@ export interface IncomeExpenseFormModalProps {
     startDate?: string | null;
   } | null;
   onSuccess?: () => void;
+  onArchive?: (item: { id: string; name: string }) => void;
 }
 
 export function IncomeExpenseFormModal({
@@ -34,6 +35,7 @@ export function IncomeExpenseFormModal({
   mode,
   sourceToEdit,
   onSuccess,
+  onArchive,
 }: IncomeExpenseFormModalProps) {
   const utils = trpc.useUtils();
   const categoriesQuery = trpc.listCategories.useQuery();
@@ -325,22 +327,40 @@ export function IncomeExpenseFormModal({
         />
 
         {/* Form Actions */}
-        <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-zinc-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-800 transition-all"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2"
-          >
-            {submitting && <Spinner size="sm" />}
-            {isEdit ? "Save Changes" : `Create ${mode === "INCOME" ? "Income" : "Expense"}`}
-          </button>
+        <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-zinc-100">
+          <div>
+            {isEdit && onArchive && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`Are you sure you want to archive "${sourceToEdit?.name}"?`)) {
+                    onArchive(sourceToEdit);
+                    onClose();
+                  }
+                }}
+                className="text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors"
+              >
+                Archive Schedule
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-800 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2"
+            >
+              {submitting && <Spinner size="sm" />}
+              {isEdit ? "Save Changes" : `Create ${mode === "INCOME" ? "Income" : "Expense"}`}
+            </button>
+          </div>
         </div>
       </form>
     </ModalDialog>

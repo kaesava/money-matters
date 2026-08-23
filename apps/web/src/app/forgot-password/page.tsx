@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
               We&apos;ve sent a password reset link to <strong className="text-zinc-800">{email}</strong> if an account exists under that address.
             </p>
             <Link
-              href="/login"
+              href="/sign-in"
               className="mt-2 inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white bg-[#2563eb] rounded-xl hover:bg-blue-700 transition-colors"
             >
               Back to Sign In
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
             </button>
 
             <div className="text-center mt-2">
-              <Link href="/login" className="text-xs text-[#2563eb] hover:underline font-semibold">
+              <Link href="/sign-in" className="text-xs text-[#2563eb] hover:underline font-semibold">
                 ← Back to Sign In
               </Link>
             </div>

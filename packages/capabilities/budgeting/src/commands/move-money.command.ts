@@ -44,7 +44,7 @@ export async function moveMoneyCommand(
       throw new Error("Destination category invalid or access unauthorized.");
     }
 
-    const note = `Transferred ${input.amount} from ${sourceCat.name} to ${destCat.name}`;
+    const note = input.note || `Transferred ${input.amount} from ${sourceCat.name} to ${destCat.name}`;
     const timestamp = new Date();
     const commonId = randomUUID();
 

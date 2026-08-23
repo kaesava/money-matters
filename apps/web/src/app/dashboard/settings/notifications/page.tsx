@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import { t } from "@money-matters/i18n";
+import { InfoTooltip } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import posthog from "../../../../lib/posthog-client";
 
@@ -36,12 +38,14 @@ export default function NotificationSettingsPage() {
         >
           ← Back
         </button>
-        <h1 className="text-2xl font-black text-[#1B2B4B]">Notification Preferences</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-black text-[#1B2B4B]">Notification Preferences</h1>
+          <InfoTooltip
+            title={t("tooltips.notifications.title")}
+            content={t("tooltips.notifications.content")}
+          />
+        </div>
       </div>
-
-      <p className="text-xs text-zinc-500 font-semibold">
-        Control how and when you receive push notifications and alerts across your devices.
-      </p>
 
       {userPrefQuery.isLoading ? (
         <div className="py-8 text-center text-xs font-bold text-zinc-400 animate-pulse">

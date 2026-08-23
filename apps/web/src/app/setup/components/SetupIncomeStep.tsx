@@ -10,6 +10,7 @@ interface SetupIncomeStepProps {
   onUpdateIncome: <K extends keyof IncomeItem>(id: string, field: K, value: IncomeItem[K]) => void;
   onRemoveIncome: (id: string) => void;
   onNext: () => void;
+  showIcons?: boolean;
 }
 
 export function SetupIncomeStep({
@@ -18,6 +19,7 @@ export function SetupIncomeStep({
   onUpdateIncome,
   onRemoveIncome,
   onNext,
+  showIcons = true,
 }: SetupIncomeStepProps) {
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
@@ -30,7 +32,7 @@ export function SetupIncomeStep({
           <span className="text-xs font-bold text-slate-300">Step 1 of 3</span>
         </div>
         <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
-          Let&apos;s get your setup sorted in no time ✨
+          Let&apos;s get your setup sorted in no time {showIcons ? "✨" : ""}
         </h2>
         <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
           Tell us what you&apos;re saving for, answer a few simple lifestyle questions, and we&apos;ll estimate your bills &amp; everyday spending. You&apos;ll be ready to go in under 2 minutes.
@@ -39,7 +41,7 @@ export function SetupIncomeStep({
 
       <div>
         <div className="flex items-center gap-1.5">
-          <h3 className="text-lg font-black text-[#1B2B4B]">💰 Take-Home Pay & Income</h3>
+          <h3 className="text-lg font-black text-[#1B2B4B]">{showIcons ? "💰 " : ""}Take-Home Pay &amp; Income</h3>
           <InfoTooltip
             title="Why we collect take-home pay"
             content="Knowing your net take-home earnings allows us to calculate how much surplus cash you generate each month, funding your savings goals and protecting you against bill shortfalls before you spend."

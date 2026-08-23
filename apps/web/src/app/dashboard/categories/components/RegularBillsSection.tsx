@@ -14,9 +14,9 @@ interface RegularBillsSectionProps {
   elapsedPct: number;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  onSelectCategory: (id: string) => void;
+  onSelectCategory?: (id: string) => void;
   onEditCategory: (cat: CategorySummaryItem) => void;
-  onArchiveCategory: (cat: CategorySummaryItem) => void;
+  onArchiveCategory?: (cat: CategorySummaryItem) => void;
 }
 
 function fmt(val: string | number | null | undefined) {
@@ -34,9 +34,9 @@ export function RegularBillsSection({
   elapsedPct,
   isCollapsed,
   onToggleCollapse,
-  onSelectCategory,
+  onSelectCategory: _onSelectCategory,
   onEditCategory,
-  onArchiveCategory,
+  onArchiveCategory: _onArchiveCategory,
 }: RegularBillsSectionProps) {
   const { showIcons } = useIconVisibility();
 
@@ -89,15 +89,14 @@ export function RegularBillsSection({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-              <th className="px-6 py-3">Bill Name</th>
-              <th className="px-6 py-3">Monthly Bill Target</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-6 py-3">Category Name</th>
+              <th className="px-6 py-3 text-right">Monthly Budget Target</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {categories.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-6 text-center text-xs text-zinc-400 font-medium">
+                <td colSpan={2} className="px-6 py-6 text-center text-xs text-zinc-400 font-medium">
                   No regular bills matched filters.
                 </td>
               </tr>
@@ -107,31 +106,13 @@ export function RegularBillsSection({
                   <td className="px-6 py-3.5">
                     <button
                       type="button"
-                      onClick={() => onSelectCategory(cat.id)}
-                      className="text-[#2563eb] hover:underline font-bold text-left"
+                      onClick={() => onEditCategory(cat)}
+                      className="text-[#2563eb] hover:underline font-bold text-left cursor-pointer"
                     >
                       {cat.name}
                     </button>
                   </td>
-                  <td className="px-6 py-3.5 font-mono font-bold text-zinc-700">{fmt(cat.monthlyAmount)}</td>
-                  <td className="px-6 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onEditCategory(cat)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onArchiveCategory(cat)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
-                      >
-                        Archive
-                      </button>
-                    </div>
-                  </td>
+                  <td className="px-6 py-3.5 font-mono font-bold text-zinc-700 text-right">{fmt(cat.monthlyAmount)}</td>
                 </tr>
               ))
             )}

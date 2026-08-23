@@ -26,9 +26,9 @@ interface QuickExpenseModalProps {
 
 export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onIncomeSuccess }: QuickExpenseModalProps) {
   const [type, setType] = useState<"DEBIT" | "CREDIT">(initialType);
+  const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,6 +48,10 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
   const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
 
   const handleRecord = async () => {
+    if (!name.trim()) {
+      Alert.alert(t("common.error"), isIncome ? "Please enter an income source name." : "Please enter an expense name.");
+      return;
+    }
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       Alert.alert(t("common.error"), "Please enter a valid amount.");
       return;
@@ -61,19 +65,19 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
     try {
       if (isIncome) {
         const created = await createUpcomingIncomeMutation.mutateAsync({
-          name: note.trim() || "Quick Income Deposit",
+          name: name.trim(),
           amount: parseFloat(amount).toFixed(2),
           expectedDate: date || new Date().toISOString().slice(0, 10),
-          note: note.trim() || undefined,
+          note: name.trim(),
         });
 
         posthog.capture('income_recorded', {
           amount: parseFloat(amount),
         });
 
+        setName("");
         setAmount("");
         setSelectedCategoryId("");
-        setNote("");
         onClose();
 
         if (onIncomeSuccess) {
@@ -84,7 +88,7 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
           categoryId: selectedCategoryId,
           amount: parseFloat(amount).toFixed(2),
           flowType: type,
-          note: note.trim() || undefined,
+          note: name.trim(),
           date: date ? new Date(date).toISOString() : undefined,
           idempotencyKey: (typeof crypto !== 'undefined' && crypto.randomUUID) 
             ? crypto.randomUUID() 
@@ -96,9 +100,9 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
           category_id: selectedCategoryId,
         });
 
+        setName("");
         setAmount("");
         setSelectedCategoryId("");
-        setNote("");
         onClose();
 
         Alert.alert("Success", "Expense recorded successfully!");
@@ -226,18 +230,14 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
                 />
               </View>
 
-              {/* Note Input */}
+              {/* Name Input */}
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t("transactions.newExpense.noteLabel")}</Text>
+                <Text style={styles.label}>{isIncome ? "Income Source Name" : "Expense Name"}</Text>
                 <TextInput
                   style={styles.noteInput}
-                  placeholder={
-                    isIncome
-                      ? t("transactions.newExpense.incomeNotePlaceholder")
-                      : t("transactions.newExpense.notePlaceholder")
-                  }
-                  value={note}
-                  onChangeText={setNote}
+                  placeholder={isIncome ? "e.g. Salary, Client Pay" : "e.g. Groceries, Coffee, Electric Bill"}
+                  value={name}
+                  onChangeText={setName}
                   placeholderTextColor={D.colors.textMuted}
                 />
               </View>

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
+import { SearchInput } from "@money-matters/ui/web";
 import { useIconVisibility } from "@money-matters/ui";
 
 export interface FilterOption {
@@ -50,31 +51,12 @@ export function FilterBar({
     <div className="flex flex-col gap-3 bg-white p-3 rounded-2xl border border-zinc-200/80 shadow-sm transition-all">
       {/* Top Bar: Search Input + Collapsible Filter Toggle */}
       <div className="flex items-center justify-between gap-3">
-        <div className="relative flex-1">
-          {showIcons && (
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm select-none">
-              🔍
-            </span>
-          )}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={searchPlaceholder}
-            className={`w-full ${
-              showIcons ? "pl-9" : "pl-4"
-            } pr-8 py-2 text-xs font-medium rounded-xl bg-zinc-50 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] focus:bg-white transition-all text-zinc-900 placeholder-zinc-400`}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 text-xs font-bold"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder={searchPlaceholder}
+          showIcon={showIcons}
+        />
 
         {filterGroups.length > 0 && (
           <button

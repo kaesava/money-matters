@@ -6,10 +6,13 @@ type DeepStringRecord<T> = {
 
 export const ja: DeepStringRecord<typeof en> = {
   "app": {
-    "title": "MoneyMatters",
-    "description": "家計のお金をスマートに管理。オーストラリアのリアルな生活にフィット。"
+    "title": "Money Matters by Kaesava",
+    "tagline": "シンプルで誠実な家計管理",
+    "fullTitle": "Money Matters by Kaesava — シンプルで誠実な家計管理",
+    "description": "シンプルで誠実な家計管理。請求分を確保し、貯蓄目標を積み立て、毎日の支出ペースを可視化します。"
   },
   "nav": {
+    "dashboard": "ダッシュボード",
     "home": "ホーム",
     "accounts": "口座",
     "categories": "お金の管理",
@@ -134,6 +137,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "confirmPasswordLabel": "新しいパスワード（確認）",
     "passwordTooShort": "8文字以上で入力してください。",
     "confirmPasswordPlaceholder": "パスワード再入力",
+    "mustAgreeToTerms": "利用規約とプライバシーポリシーに同意する必要があります。",
     "emailNotVerified": "メールアドレスがまだ確認されていません。受信トレイを確認するか、以下のリンクから再送信してください。",
     "fillAllFields": "すべての項目を入力してください。",
     "userAlreadyExists": "このメールアドレスは既に登録されています。ログインしてください。",
@@ -188,7 +192,6 @@ export const ja: DeepStringRecord<typeof en> = {
     "typeExpense": "支出",
     "typeIncome": "収入",
     "newExpense": {
-      "title": "使ったお金の記録",
       "submitting": "記録中...",
       "submitCta": "記録する",
       "submitIncomeCta": "収入を記録",
@@ -203,21 +206,10 @@ export const ja: DeepStringRecord<typeof en> = {
       "recurringCheck": "定期的な支出",
       "successMessage": "記録しました！ 👍",
       "incomeSuccessMessage": "収入を記録しました 🙌"
-    },
-    "subtitle": "Subtitle",
-    "filterAll": "All",
-    "filterDebit": "Debit",
-    "filterCredit": "Credit",
-    "filterTransfer": "Transfer",
-    "searchPlaceholder": "Search...",
-    "allCategories": "All Categories",
-    "noTransactionsFound": "No transactions found",
-    "date": "Date",
-    "description": "Description",
-    "category": "Category",
-    "amount": "Amount"
+    }
   },
   "categories": {
+    "viewArchived": "アーカイブを表示",
     "title": "マネープール",
     "subtitle": "生活費と固定費はプール単位で管理し、貯金目標は個別に追跡します。",
     "addCategory": "新規プール",
@@ -279,18 +271,17 @@ export const ja: DeepStringRecord<typeof en> = {
     },
     "actions": {
       "moveMoney": "資金を移動"
-    },
-    "viewArchived": "View Archived"
+    }
   },
   "landing": {
     "getStartedFree": "60日間無料体験を始める",
     "badge": "🇦🇺 オーストラリアの家庭向け家計管理",
-    "heroTitle": "給料日に、完璧な計画を。",
-    "heroTitlePart1": "給料日に、",
-    "heroTitleSpan": "完璧な計画",
-    "heroTitlePart2": "を。",
-    "heroSubtitle": "スプレッドシートや手計算は一切不要。給料が振り込まれた瞬間に、固定費・貯蓄目標・生活費へ自動で仕分けされます。",
-    "descriptionExtra": "スプレッドシートや手計算は一切不要。給料が振り込まれた瞬間に、固定費・貯蓄目標・生活費へ自動で仕分けされます。",
+    "heroTitle": "支払いも貯蓄も準備完了。",
+    "heroTitlePart1": "支払いも貯蓄も準備完了。",
+    "heroTitleSpan": "残りは自由に使える。",
+    "heroTitlePart2": "",
+    "heroSubtitle": "スプレッドシートや毎日の細かい記録は不要。給料日に固定費と貯蓄目標を自動で確保。残りの生活費は罪悪感ゼロで自由に使えます。",
+    "descriptionExtra": "スプレッドシートや毎日の細かい記録は不要。給料日に固定費と貯蓄目標を自動で確保。残りの生活費は罪悪感ゼロで自由に使えます。",
     "createAccount": "60日間無料体験を始める",
     "trySimulator": "シミュレーターを試す",
     "simTitle": "お給料の自動分配を体験",
@@ -323,6 +314,28 @@ export const ja: DeepStringRecord<typeof en> = {
     "presetTight": "少額 ($1,200)",
     "presetStandard": "Standard ($2,500)",
     "presetBonus": "高額・賞与 ($4,200)",
+    
+    // Problem Section
+    "problemSectionBadge": "家計簿アプリが失敗する理由",
+    "problemSectionTitle": "従来の家計簿アプリは管理の手間がかかりすぎる",
+    "problemSectionSubtitle": "毎日の細かい記録を求められる従来のアプリは、忙しくなると長続きせず罪悪感を生みます。もっと良い方法があります。",
+    "problem1Title": "毎日の記録による燃え尽き",
+    "problem1Body": "レシートやコーヒー1杯ごとに分類を続けるのは疲れます。お金を管理するために副業のような手間をかける必要はありません。",
+    "problem2Title": "スプレッドシートの脆さ",
+    "problem2Body": "手動のスプレッドシートは支払日のズレやパートナー間の給与周期の違いですぐ壊れます。毎週末のメンテナンスから解放されましょう。",
+    "problem3Title": "突然の支払いに対する不安",
+    "problem3Body": "銀行残高を見るだけでは、来週の家賃や光熱費が安全かわかりません。常に先行きが見えない不安を感じながら使うことになります。",
+
+    // How It Works
+    "howItWorksBadge": "仕組み",
+    "howItWorksTitle": "キャッシュフローの安心感を生む3つのステップ",
+    "howStep1Title": "1. 給料日の到来",
+    "howStep1Body": "給与が口座に入金された瞬間、5段階ウォーターフォールエンジンが正確な配分額を瞬時に計算します。",
+    "howStep2Title": "2. 固定費と目標の自動保護",
+    "howStep2Body": "次の給与日までに必要な支払いを事前に取り置きし、設定した貯蓄目標も自動で積み立てられます。",
+    "howStep3Title": "3. 残りの生活費を自由に使用",
+    "howStep3Body": "日常生活費プールには今自由に使える金額がはっきり表示されます。計算不要・罪悪感ゼロで買い物を楽しめます。",
+
     "featureTitle": "現代の家庭に、確かなマネー管理を。",
     "featureSubtitle": "Money Mattersに凝縮された、家計のキャッシュフローを安定させるための機能群。",
     "featuresHeading": "現代の家庭に、確かなマネー管理を。",
@@ -330,7 +343,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "feature1Title": "5段階セルフヒーリング・ウォーターフォール",
     "feature1Desc": "給料が入った瞬間、自動ウォーターフォールが赤字を修復し、固定費プールを満たし、貯蓄目標を積み立て、余剰金をスイープします。",
     "feature2Title": "5段階「これ買える？」判定エンジン",
-    "feature2Desc": "購入前にリアルタイム判定。 upcomingの支払いを考慮し、1日あたりの使用可能ペース（$/日）を瞬時に算出します。",
+    "feature2Desc": "購入前にリアルタイム判定。 upcomingの支払いをあらかじめ確保し、残りの生活費を安心して使えるか瞬時に判定します。",
     "feature3Title": "豪州大手銀行 CSVインポート",
     "feature3Desc": "CBA、Westpac、ANZ、NAB、ING、Macquarieの利用明細CSVに対応。自動カテゴリ分類と重複排除を行います。",
     "feature4Title": "60秒ベンチマーク設定ウィザード",
@@ -338,11 +351,11 @@ export const ja: DeepStringRecord<typeof en> = {
     "feature5Title": "スマート通知ハビットループ",
     "feature5Desc": "支払い3日前の残高不足アラート、週次サマリー、貯蓄目標達成マイルストーンなど、必要なタイミングで通知します。",
     "feature6Title": "パートナー共有 & 給与日送金チェックリスト",
-    "feature6Desc": "パートナーを招待して全データを共有。給与日にはネットバンキングで使える金額コピー機能付き送金リストを生成。",
+    "feature6Desc": "パートナーを招待して全データを共有。給料日にはネットバンキングで使える金額コピー機能付き送金リストを生成。",
     "card1Title": "5段階セルフヒーリング・ウォーターフォール",
     "card1Desc": "給料が入った瞬間、自動ウォーターフォールが赤字を修復し、固定費プールを満たし、貯蓄目標を積み立て、余剰金をスイープします。",
     "card2Title": "5段階「これ買える？」判定エンジン",
-    "card2Desc": "購入前にリアルタイム判定。 upcomingの支払いを考慮し、1日あたりの使用可能ペース（$/日）を瞬時に算出します。",
+    "card2Desc": "購入前にリアルタイム判定。 upcomingの支払いをあらかじめ確保し、残りの生活費を安心して使えるか瞬時に判定します。",
     "card3Title": "豪州大手銀行 CSVインポート",
     "card3Desc": "CBA、Westpac、ANZ、NAB、ING、Macquarieの利用明細CSVに対応。自動カテゴリ分類と重複排除を行います。",
     "trustTitle": "信頼とセキュリティを最優先にした設計",
@@ -397,9 +410,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "advantage1Detail4": "Step 4 — 余剰スイープ: 残った資金はオフセット準備金へ自動移動",
     "advantage2Label": "ENGINE 02",
     "advantage2Title": "5段階「これ買える？」判定エンジン",
-    "advantage2Body": "支出前にエンジンに確認。次の給与日までに支払う請求書をあらかじめ自動確保し、1日あたりの使用可能ペース（$/日）を算出します。1日あたり$15未満になる場合は警告を表示します。",
-    "advantage2Verdict1": "🟢 SAFE YES — 購入後も健全なペースを維持",
-    "advantage2Verdict2": "🟡 PACING WARNING — 資金はあるものの1日の許容量がタイト",
+    "advantage2Body": "支出前にエンジンに確認。次の給与日までに支払う請求書をあらかじめ自動確保し、残りの生活費プールから支払えるか評価します。無理な支出を避けられる5段階の判定で迷いをゼロに。",
+    "advantage2Verdict1": "🟢 SAFE YES — 購入後も健全な残高を維持",
+    "advantage2Verdict2": "🟡 PACING WARNING — 資金はあるものの生活費残高が少なめ",
     "advantage2Verdict3": "🟠 IMPACT GOALS — 目標貯蓄の余剰分を取り崩し",
     "advantage2Verdict4": "🔵 WAIT FOR PAYDAY — 14日以内の給与でカバー可能",
     "advantage2Verdict5": "🔴 HARD NO — 請求書の滞納や赤字が発生",
@@ -410,10 +423,25 @@ export const ja: DeepStringRecord<typeof en> = {
     "pricingDataSovereigntyBadge": "データを人質にしません",
     "pricingDataSovereigntyNote": "CSVデータエクスポートは永久無料です。トライアル終了後もデータへのアクセスやバックアップは制限されません。",
     "pricingAnnualNote": "または 年間 $89 AUD（25%お得）",
-    "copyright": "© 2026 {appName}. Built in Melbourne.",
+    "copyright": "© 2026 {appName} — シンプルで誠実な家計管理",
     "footerPrivacy": "Privacy Policy",
     "footerTerms": "Terms of Service",
     "privacyPolicy": "Privacy Policy",
+
+    "faq1Title": "給料日の5段階ウォーターフォール仕分けはどのように動作しますか？",
+    "faq1Body": "給与口座に振り込まれた瞬間、マイナス残高の補填、 upcomingの請求書バッファー確保、貯蓄目標の積立、そして日常生活費の補充を自動的に実行します。残った余剰金は住宅ローンオフセット準備金へと移動します。",
+    "faq2Title": "3つの専用口座ではなく、1つの銀行口座ですべて管理している場合はどうなりますか？",
+    "faq2Body": "請求書用・貯蓄用・日常生活費用の口座を分けて管理するのが最も見通しが良いですが、1つの口座にまとめている場合でも、Money Mattersがアプリ内で仮想プールとして各割り当てを厳格に管理するため、請求書用の資金が誤って使われる心配はありません。",
+    "faq3Title": "毎日の買い物やレシートを毎回入力・分類する必要がありますか？",
+    "faq3Body": "いいえ！従来の家計簿アプリと異なり、Money Mattersは給料日に重要なお金を事前に保護することに集中します。日常生活費プールがプラスである限り、すべての買い物を1つずつ記録・分類しなくても安心して支出できます。",
+    "faq4Title": "オーストラリアの住宅ローンオフセット口座の最適化に役立ちますか？",
+    "faq4Body": "はい！ウォーターフォールの最後で発生した余剰資金は、住宅ローンのオフセット準備金へ自動で振り向けられ、流動性を100%保ったまま、毎日の住宅ローン金利の負担を最小限に抑えます。",
+    "faq5Title": "パートナーとの共有や家庭内での共同管理はどのように機能しますか？",
+    "faq5Body": "パートナーを世帯に招待することで、家計全体のキャッシュフローをリアルタイムで共同管理できます。個人専用のプールや非公開口座がある場合は、PostgreSQLのRow-Level Security（RLS）により、データベースレベルで完全に非公開が保たれます。",
+    "faq6Title": "家計データは安全でプライベートに保護されていますか？",
+    "faq6Body": "セキュリティとプライバシーは私たちの設計の中核です。PostgreSQL Row Level Security (RLS)、マルチテナントデータ隔離、厳格なHTTPS暗号化、オーストラリア・プライバシー法準拠、個人情報の非ログ化を徹底しています。",
+    "faqSectionBadge": "よくある質問",
+    "faqSectionTitle": "Money Mattersについてのよくある質問",
     "termsOfService": "Terms of Service"
   },
   "paychecks": {
@@ -983,6 +1011,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "noUpcomingBills": "予定されている請求はありません。"
   },
   "bankAccounts": {
+    "title": "銀行口座",
     "privatePersonalAccount": "🔒 Private Personal Account (Hidden from other users)",
     "upgradeToPrivate": "Upgrade to Premium to mark accounts as private"
   },
@@ -1021,5 +1050,43 @@ export const ja: DeepStringRecord<typeof en> = {
       "critical": "緊急 — アプリのクラッシュ / 進行不可"
     },
     "closeBtn": "閉じる"
+  },
+  "tooltips": {
+    "dashboard": {
+      "title": "ダッシュボードについて",
+      "content": "家計管理の司令塔です。プール残高、次回の給料日、予算の健全性を一目で確認できます。"
+    },
+    "categories": {
+      "title": "プールについて",
+      "content": "生活費プールと貯蓄目標を管理します。生活費と定期請求はプール単位で管理し、貯蓄目標は個別目標を追跡します。"
+    },
+    "incomeBills": {
+      "title": "収入・請求について",
+      "content": "定期的な給与と請求スケジュールを設定します。給料日にはMoney Mattersが自動的に請求分を確保し、残りを生活費プールへ配分します。"
+    },
+    "cascade": {
+      "title": "配分シミュレーターについて",
+      "content": "収入が生活費プールと請求配分へステップバイステップでどのように流れるかをシミュレートします。"
+    },
+    "transactions": {
+      "title": "取引履歴について",
+      "content": "すべての収入、請求支払い、生活費の完全な記録です。フィルターや検索を使用して過去の取引をすばやく検索できます。"
+    },
+    "bankAccounts": {
+      "title": "銀行口座について",
+      "content": "実際の銀行口座を連携・管理します。予想残高と実際の口座残高を照合して台帳を正確に保ちます。"
+    },
+    "settings": {
+      "title": "設定について",
+      "content": "世帯プロフィール、環境設定、アカウント設定を管理します。"
+    },
+    "archived": {
+      "title": "アーカイブについて",
+      "content": "過去にアーカイブされたプール、定期請求、銀行口座を確認・復元できます。"
+    },
+    "notifications": {
+      "title": "通知設定について",
+      "content": "請求や給料日の自動リマインダー通知を設定します。"
+    }
   }
 } as const;

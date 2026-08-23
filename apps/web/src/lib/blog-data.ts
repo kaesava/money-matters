@@ -45,18 +45,18 @@ export const BLOG_POSTS: BlogPost[] = [
     publishedAt: "August 10, 2026",
     authorName: "Kesh",
     authorRole: "Principal Software Architect & Founder",
-    excerpt: "Discover how a self-healing 5-step waterfall prioritizes bill buffers and target goals before calculating your safe daily allowance.",
+    excerpt: "Discover how a self-healing 5-step waterfall ring-fences bill buffers and target goals so you can spend what's left with zero guilt.",
     paragraphs: [
       "Traditional budgeting asks you to track every cup of coffee after you've spent the money. Backward-looking tracking creates guilt without offering proactive direction.",
       "The 5-Step Cashflow Waterfall flips this paradigm. The moment income lands in your bank account, funds flow automatically through five sequential priorities.",
       "First, any negative category deficits are repaired. Second, your unified Bills Pool is topped up to cover upcoming fixed commitments. Third, committed savings goals are funded.",
-      "Fourth, your Everyday discretionary allowance is calculated as a safe daily velocity ($/day). Finally, any residual surplus is automatically swept into your Offset Reserve.",
+      "Fourth, your Everyday discretionary allowance is allocated for safe spending. Finally, any residual surplus is automatically swept into your Offset Reserve.",
       "By ring-fencing bills and savings first, you can spend your Everyday allowance with 100% confidence, knowing every obligation is already taken care of."
     ],
     keyTakeaways: [
       "Proactive allocation beats reactive expense tracking every single time.",
       "Prorating bills across pay periods ensures zero payday surprises.",
-      "Knowing your exact Daily Pacing Velocity ($/day) eliminates spending anxiety."
+      "Ring-fencing fixed commitments on payday eliminates spending anxiety and daily friction."
     ]
   },
   {

@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { monthProgress } from "@money-matters/ui";
+import { InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
-import { MoveMoneyModal } from "../../../components/web/MoveMoneyModal";
+import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { FilterBar } from "../../../components/web/FilterBar";
 import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
 import { EverydayPoolSection, CategorySummaryItem } from "./components/EverydayPoolSection";
@@ -127,17 +128,20 @@ function CategoriesPageContent() {
       {/* Header & Main Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("categories.title")}</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-            {t("categories.subtitle")}
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("categories.title")}</h1>
+            <InfoTooltip
+              title={t("tooltips.categories.title")}
+              content={t("tooltips.categories.content")}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setIsMoveMoneyOpen(true)}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-teal-50 text-[#00B4A6] hover:bg-teal-100 border border-teal-200 transition-all flex items-center gap-2 shadow-sm"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs"
           >
             <span>↔️</span>
             <span>Move Money</span>
@@ -148,7 +152,7 @@ function CategoriesPageContent() {
               setCategoryToEdit(null);
               setIsFormModalOpen(true);
             }}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
           >
             <span>➕</span>
             <span>{t("categories.addCategory")}</span>
@@ -224,11 +228,15 @@ function CategoriesPageContent() {
       )}
 
       {/* Shared Modals & Drawers */}
-      <MoveMoneyModal
-        isOpen={isMoveMoneyOpen}
-        onClose={() => setIsMoveMoneyOpen(false)}
-        onSuccess={() => utils.listCategories.invalidate()}
-      />
+      {isMoveMoneyOpen && (
+        <QuickActionDrawer
+          onClose={() => {
+            setIsMoveMoneyOpen(false);
+            utils.listCategories.invalidate();
+          }}
+          initialTab="TRANSFER"
+        />
+      )}
 
       <CategoryFormModal
         isOpen={isFormModalOpen}

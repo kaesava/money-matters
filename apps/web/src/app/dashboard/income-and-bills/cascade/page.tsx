@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
+import { t } from "@money-matters/i18n";
 import { DashboardError } from "../../../../components/web/DashboardError";
 import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 
@@ -103,7 +104,10 @@ export default function CascadePage() {
           <h1 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
             Cascade Allocation Override
           </h1>
-          <InfoTooltip content="Review and override the paycheck waterfall cascade before confirming." />
+          <InfoTooltip
+            title={t("tooltips.cascade.title")}
+            content={t("tooltips.cascade.content")}
+          />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-16  
+> **Last updated:** 2026-08-23  
 > **Status:** 100% production-ready standard. Fully executed and synchronized across all 11 Master Plan phases: Phase 1 (Security Blockers & CSRF/XSS/R2 IDOR Guards), Phase 2 (Database 14 Indexes & RLS Policy), Phase 3 (Financial Burst/Allocation/Can-Afford Engines & CSV Chunking), Phase 4 (Functional Web Routes /reset-password, /forgot-password, Due-Date Guardrail, Catch-Up Sweep, Payday Cards), Phase 5 (Serene Finance Design Tokens #2563eb, #1B2B4B, #F7F8FA & React.useId Accessibility), Phase 6 (Monorepo Decoupling & Shared Core ensurePremiumAccess Guard), Phase 7 (Zero `any` & Monorepo Code Quality), Phase 8 (Structured Audit Event Logging & Observability), Phase 9 (Bulk Operations & Tenant Caching), Phase 10 (Synchronized System Specs), Phase 11 (Vitest E2E Suite).
 
 ---
@@ -101,7 +101,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
   ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id [nullable for PENDING], role: OWNER|MEMBER, inviteEmail, inviteToken, inviteStatus: PENDING|ACCEPTED|REVOKED, invitedAt)
   ├── bank_accounts (lastKnownBalance, unbudgetedBuffer, isPrivate, userId)
   ├── user_preferences (Global 1:1 per userId: userId UNIQUE, timezone, locale, theme, showIcons)
-  ├── tenant_user_preferences (Scoped to userId, tenantId, appId: paydayAlertsEnabled, shortfallAlertsEnabled, billRemindersEnabled, weeklyDigestEnabled, appPreferences: JSONB)
+  ├── tenant_user_preferences (Scoped to userId, tenantId, appId: appPreferences: JSONB including alert toggles, UI flags, setup_completed state)
   ├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
   ├── categories (tenantId, appId, name, type: REGULAR|GOAL|EVERYDAY, isPrivate, userId, monthlyAmount, rolloverRule, isCommitted)
   │   ├── category_schedules (targetAmount, targetDate, dueDate)

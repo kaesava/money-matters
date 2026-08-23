@@ -49,6 +49,7 @@ interface SetupLifestyleStepProps {
   setWeeklyPersonal: (val: number) => void;
   onBack: () => void;
   onNext: () => void;
+  showIcons?: boolean;
 }
 
 export function SetupLifestyleStep({
@@ -96,13 +97,16 @@ export function SetupLifestyleStep({
   setWeeklyPersonal,
   onBack,
   onNext,
+  showIcons = true,
 }: SetupLifestyleStepProps) {
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200 max-h-[60vh] overflow-y-auto pr-1">
       <div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-black text-[#1B2B4B]">🏡 Lifestyle Setup</h2>
+            <h2 className="text-2xl font-black text-[#1B2B4B]">
+              {showIcons ? "🏡 " : ""}Lifestyle Setup
+            </h2>
             <InfoTooltip
               title="Australian Lifestyle Benchmarks"
               content="We use official 2025/2026 Australian Bureau of Statistics (ABS) & RACQ benchmark statistics to calculate initial bill estimates tailored specifically for your lifestyle."

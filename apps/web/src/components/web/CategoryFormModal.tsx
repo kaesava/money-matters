@@ -1,8 +1,7 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
-import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { Spinner } from "@money-matters/ui/web";
 import { InfoTooltip } from "@money-matters/ui";
@@ -43,8 +42,27 @@ export function CategoryFormModal({
 
   const createCategoryMut = trpc.createCategory.useMutation();
   const updateCategoryMut = trpc.updateCategory.useMutation();
+  const archiveCategoryMut = trpc.archiveCategory.useMutation();
+
+  const handleArchive = async () => {
+    if (!categoryToEdit?.id) return;
+    if (window.confirm(`Are you sure you want to archive "${categoryToEdit.name}"?`)) {
+      try {
+        setSubmitting(true);
+        await archiveCategoryMut.mutateAsync({ categoryId: categoryToEdit.id });
+        await utils.listCategories.invalidate();
+        onSuccess?.();
+        onClose();
+      } catch (err: unknown) {
+        alert((err as Error).message || "Failed to archive pool");
+      } finally {
+        setSubmitting(false);
+      }
+    }
+  };
 
   const isEdit = !!categoryToEdit;
+  const isReadOnly = isEdit && Boolean(categoryToEdit?.isPrivate) && Boolean(categoryToEdit?.userId) && session?.user?.id !== categoryToEdit?.userId;
 
   const [name, setName] = useState("");
   const [type, setType] = useState<"REGULAR" | "GOAL" | "EVERYDAY">("REGULAR");
@@ -85,66 +103,74 @@ export function CategoryFormModal({
       setIsEssential(false);
       setIsSurplusTarget(false);
     }
-    setErrorMsg("");
   }, [categoryToEdit, isOpen]);
 
-  const isDirty = isEdit
-    ? name !== (categoryToEdit?.name || "") ||
+  const isGoalPastDate = type === "GOAL" && targetDate && new Date(targetDate) < new Date(new Date().setHours(0, 0, 0, 0));
+
+  const isDirty = useMemo(() => {
+    if (!isEdit) {
+      return Boolean(
+        name.trim() ||
+          monthlyAmount ||
+          targetAmount ||
+          targetDate ||
+          everydayTargetKeepAmount ||
+          isPrivate ||
+          isEssential ||
+          isSurplusTarget
+      );
+    }
+    return (
+      name !== (categoryToEdit?.name || "") ||
+      type !== (categoryToEdit?.type || "REGULAR") ||
       isPrivate !== Boolean(categoryToEdit?.isPrivate) ||
       monthlyAmount !== (categoryToEdit?.monthlyAmount || "") ||
+      budgetFrequency !== (categoryToEdit?.budgetFrequency || "MONTHLY") ||
       targetAmount !== (categoryToEdit?.targetAmount || "") ||
-      targetDate !== (categoryToEdit?.targetDate || "")
-    : name.trim().length > 0 ||
-      monthlyAmount.length > 0 ||
-      targetAmount.length > 0 ||
-      targetDate.length > 0;
-
-  const isGoalPastDate = React.useMemo(() => {
-    if (type !== "GOAL" || !targetDate) return false;
-    const dateObj = new Date(targetDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return dateObj < today;
-  }, [type, targetDate]);
+      targetDate !== (categoryToEdit?.targetDate || "") ||
+      everydayTargetKeepAmount !== (categoryToEdit?.everydayTargetKeepAmount || "") ||
+      isEssential !== Boolean(categoryToEdit?.isEssential) ||
+      isSurplusTarget !== Boolean(categoryToEdit?.isSurplusTarget)
+    );
+  }, [
+    isEdit,
+    categoryToEdit,
+    name,
+    type,
+    isPrivate,
+    monthlyAmount,
+    budgetFrequency,
+    targetAmount,
+    targetDate,
+    everydayTargetKeepAmount,
+    isEssential,
+    isSurplusTarget,
+  ]);
 
   const handleSave = async () => {
     if (!name.trim()) {
       setErrorMsg(t("categories.nameRequired"));
       return;
     }
+    setErrorMsg("");
 
-    const numMonthly = parseFloat(monthlyAmount);
-    const numTarget = parseFloat(targetAmount);
-    const numAllowance = parseFloat(everydayTargetKeepAmount);
-
-    if (
-      (monthlyAmount && (isNaN(numMonthly) || numMonthly < 0)) ||
-      (targetAmount && (isNaN(numTarget) || numTarget < 0)) ||
-      (everydayTargetKeepAmount && (isNaN(numAllowance) || numAllowance < 0))
-    ) {
-      setErrorMsg("Amount figures cannot be negative or invalid numbers.");
-      return;
-    }
-
-    // Privacy confirmation warning on edit
+    // Confirmation if converting to or from private pool
     if (isEdit && categoryToEdit && Boolean(categoryToEdit.isPrivate) !== isPrivate) {
       const confirmMsg = isPrivate
-        ? t("categories.privateTogglePrivateWarning")
-        : t("categories.privateToggleSharedWarning");
+        ? "Making this pool PRIVATE will hide it and all its transactions from your partner. Continue?"
+        : "Making this pool PUBLIC will make it visible to your household partner. Continue?";
       if (!window.confirm(confirmMsg)) {
         return;
       }
     }
 
     setSubmitting(true);
-    setErrorMsg("");
-
     try {
       if (isEdit && categoryToEdit) {
         await updateCategoryMut.mutateAsync({
           categoryId: categoryToEdit.id,
           data: {
-            name,
+            name: name.trim(),
             type,
             isPrivate,
             monthlyAmount: type === "REGULAR" ? monthlyAmount : undefined,
@@ -152,13 +178,13 @@ export function CategoryFormModal({
             targetAmount: type === "GOAL" ? targetAmount : undefined,
             targetDate: type === "GOAL" ? targetDate : undefined,
             everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
-            isEssential: type === "REGULAR" ? isEssential : false,
-            isSurplusTarget: type === "GOAL" ? isSurplusTarget : false,
+            isEssential: type === "REGULAR" ? isEssential : undefined,
+            isSurplusTarget: type === "GOAL" ? isSurplusTarget : undefined,
           },
         });
       } else {
         await createCategoryMut.mutateAsync({
-          name,
+          name: name.trim(),
           type,
           isPrivate,
           monthlyAmount: type === "REGULAR" ? monthlyAmount : undefined,
@@ -166,21 +192,16 @@ export function CategoryFormModal({
           targetAmount: type === "GOAL" ? targetAmount : undefined,
           targetDate: type === "GOAL" ? targetDate : undefined,
           everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
-          isEssential: type === "REGULAR" ? isEssential : false,
-          isSurplusTarget: type === "GOAL" ? isSurplusTarget : false,
+          isEssential: type === "REGULAR" ? isEssential : undefined,
+          isSurplusTarget: type === "GOAL" ? isSurplusTarget : undefined,
         });
       }
-
+      
       await utils.listCategories.invalidate();
-      posthog.capture(isEdit ? "category_updated" : "category_created", {
-        category_type: type,
-        is_private: isPrivate,
-      });
-      if (onSuccess) onSuccess();
+      onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t("categories.saveFailed");
-      setErrorMsg(message);
+      setErrorMsg((err as Error).message || "Failed to save category");
     } finally {
       setSubmitting(false);
     }
@@ -191,7 +212,7 @@ export function CategoryFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? t("categories.editTitle", { name: categoryToEdit.name }) : t("categories.createTitle")}
-      subtitle={isEdit && session?.user?.id !== categoryToEdit.userId ? "Read-only. Only the owner can edit this pool." : (isEdit ? t("categories.updateSubtitle") : t("categories.createSubtitle"))}
+      subtitle={isReadOnly ? "Read-only. Only the owner can edit this private pool." : (isEdit ? t("categories.updateSubtitle") : t("categories.createSubtitle"))}
       isDirty={isDirty}
       onSave={handleSave}
     >
@@ -208,9 +229,9 @@ export function CategoryFormModal({
           </div>
         )}
 
-        {isEdit && session?.user?.id !== categoryToEdit.userId && (
+        {isReadOnly && (
           <div className="p-3 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl">
-            You are not the owner of this pool. You cannot modify its details or privacy settings.
+            You are not the owner of this private pool. You cannot modify its details or privacy settings.
           </div>
         )}
 
@@ -223,7 +244,7 @@ export function CategoryFormModal({
             type="text"
             placeholder={t("categories.namePlaceholder")}
             value={name}
-            disabled={(type === "EVERYDAY" && name === "Everyday Incidental Buffer") || (isEdit && session?.user?.id !== categoryToEdit.userId)}
+            disabled={(type === "EVERYDAY" && name === "Everyday Incidental Buffer") || isReadOnly}
             onChange={(e) => setName(e.target.value)}
             className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
           />
@@ -236,7 +257,7 @@ export function CategoryFormModal({
           </label>
           <select
             value={type}
-            disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+            disabled={isReadOnly}
             onChange={(e) => setType(e.target.value as "REGULAR" | "GOAL" | "EVERYDAY")}
             className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
           >
@@ -252,7 +273,7 @@ export function CategoryFormModal({
             <input
               type="checkbox"
               checked={isPrivate}
-              disabled={(isTrialExpired && !isPrivate) || (isEdit && session?.user?.id !== categoryToEdit.userId)}
+              disabled={(isTrialExpired && !isPrivate) || isReadOnly}
               onChange={(e) => setIsPrivate(e.target.checked)}
               className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 disabled:opacity-75"
             />
@@ -279,7 +300,7 @@ export function CategoryFormModal({
                   step="0.01"
                   placeholder="0.00"
                   value={monthlyAmount}
-                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+                  disabled={isReadOnly}
                   onChange={(e) => setMonthlyAmount(e.target.value)}
                   className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 />
@@ -290,7 +311,7 @@ export function CategoryFormModal({
                 </label>
                 <select
                   value={budgetFrequency}
-                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+                  disabled={isReadOnly}
                   onChange={(e) =>
                     setBudgetFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY")
                   }
@@ -308,7 +329,7 @@ export function CategoryFormModal({
               <input
                 type="checkbox"
                 checked={isEssential}
-                disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+                disabled={isReadOnly}
                 onChange={(e) => setIsEssential(e.target.checked)}
                 className="w-4 h-4 text-[#2563eb] rounded disabled:opacity-75"
               />
@@ -329,7 +350,7 @@ export function CategoryFormModal({
                   step="0.01"
                   placeholder="0.00"
                   value={targetAmount}
-                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+                  disabled={isReadOnly}
                   onChange={(e) => setTargetAmount(e.target.value)}
                   className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 />
@@ -341,7 +362,7 @@ export function CategoryFormModal({
                 <input
                   type="date"
                   value={targetDate}
-                  disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+                  disabled={isReadOnly}
                   onChange={(e) => setTargetDate(e.target.value)}
                   className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
                 />
@@ -358,7 +379,7 @@ export function CategoryFormModal({
               <input
                 type="checkbox"
                 checked={isSurplusTarget}
-                disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+                disabled={isReadOnly}
                 onChange={(e) => setIsSurplusTarget(e.target.checked)}
                 className="w-4 h-4 text-emerald-600 rounded disabled:opacity-75"
               />
@@ -377,7 +398,7 @@ export function CategoryFormModal({
               step="0.01"
               placeholder="e.g. 500.00"
               value={everydayTargetKeepAmount}
-              disabled={isEdit && session?.user?.id !== categoryToEdit.userId}
+              disabled={isReadOnly}
               onChange={(e) => setEverydayTargetKeepAmount(e.target.value)}
               className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] disabled:bg-zinc-100 disabled:opacity-75 text-zinc-900"
             />
@@ -385,22 +406,34 @@ export function CategoryFormModal({
         )}
 
         {/* Form Actions */}
-        <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-zinc-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-800 transition-all"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            type="submit"
-            disabled={submitting || (isEdit && session?.user?.id !== categoryToEdit.userId)}
-            className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 disabled:bg-zinc-400 disabled:opacity-75"
-          >
-            {submitting && <Spinner size="sm" />}
-            {isEdit ? t("common.saveChanges") : t("categories.createButton")}
-          </button>
+        <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-zinc-100">
+          {isEdit && !isReadOnly && (
+            <button
+              type="button"
+              onClick={handleArchive}
+              disabled={submitting}
+              className="text-xs font-semibold text-zinc-400 hover:text-red-600 transition-colors py-1 px-2 rounded-lg"
+            >
+              Archive Pool
+            </button>
+          )}
+          <div className="flex items-center gap-3 ml-auto">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-800 transition-all"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || isReadOnly}
+              className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 disabled:bg-zinc-400 disabled:opacity-75"
+            >
+              {submitting && <Spinner size="sm" />}
+              {isEdit ? t("common.saveChanges") : t("categories.createButton")}
+            </button>
+          </div>
         </div>
       </form>
     </ModalDialog>

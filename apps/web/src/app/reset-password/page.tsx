@@ -41,6 +41,7 @@ function ResetPasswordForm() {
     try {
       const res = await authClient.resetPassword({
         newPassword: password,
+        token,
       });
 
       if (res.error) {
@@ -49,7 +50,7 @@ function ResetPasswordForm() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push("/login");
+        router.push("/sign-in");
       }, 3000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred.");
@@ -69,7 +70,7 @@ function ResetPasswordForm() {
           {t("auth.passwordResetSuccessDesc")} Redirecting to sign in...
         </p>
         <Link
-          href="/login"
+          href="/sign-in"
           className="mt-2 inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white bg-[#2563eb] rounded-xl hover:bg-blue-700 transition-colors"
         >
           {t("auth.signIn")}
@@ -126,7 +127,7 @@ function ResetPasswordForm() {
       </button>
 
       <div className="text-center mt-2">
-        <Link href="/login" className="text-xs text-[#2563eb] hover:underline font-semibold">
+        <Link href="/sign-in" className="text-xs text-[#2563eb] hover:underline font-semibold">
           ← Back to Sign In
         </Link>
       </div>

@@ -9,7 +9,7 @@ export default function NotFoundPage() {
       <header className="border-b border-slate-200 bg-white sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center w-full">
           <Link href="/" className="flex items-center gap-2 font-extrabold text-xl text-[#1B2B4B]">
-            <Logo size="sm" /> Money Matters
+            <Logo size="sm" /> {t("app.title")}
           </Link>
         </div>
       </header>

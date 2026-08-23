@@ -28,25 +28,25 @@ const baseUrl = "https://moneymatters.kaesava.au";
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "Money Matters | Smart Household Budgeting & Mortgage Offset Optimizer",
-    template: "%s | Money Matters",
+    default: "Money Matters by Kaesava — Simple, honest household budgeting.",
+    template: "%s | Money Matters by Kaesava",
   },
   description:
-    "The #1 automated 5-step payday waterfall budget app for Australian households. Ring-fence bills on payday, optimize mortgage offset accounts, and track safe daily spending velocity with 100% financial calm.",
+    "Simple, honest household budgeting. Ring-fence bills on payday, fund savings goals, and spend what's left with total peace of mind.",
   keywords: [
     "household budgeting Australia",
     "Australian budget planner",
     "5-step waterfall budget",
     "mortgage offset account optimizer",
-    "safe daily spend velocity",
+    "forward looking paycheck allocation",
     "zero based budget app",
     "Serene Finance",
-    "money matters australia",
+    "money matters kaesava",
     "automated paycheck allocation",
     "payday cashflow management",
   ],
   authors: [{ name: "Kesh", url: "https://kaesava.au" }],
-  creator: "Money Matters Australia",
+  creator: "Money Matters by Kaesava",
   publisher: "Kaesava",
   formatDetection: {
     email: false,
@@ -72,11 +72,11 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   openGraph: {
-    title: "Money Matters | Smart Household Budgeting & Mortgage Offset Optimizer",
+    title: "Money Matters by Kaesava — Simple, honest household budgeting.",
     description:
-      "Automate cashflow calm with a 5-step payday waterfall engine. Ring-fence bills, fund savings goals, and track daily spending velocity.",
+      "Simple, honest household budgeting. Ring-fence bills on payday, fund savings goals, and spend what's left with total peace of mind.",
     url: baseUrl,
-    siteName: "Money Matters",
+    siteName: "Money Matters by Kaesava",
     locale: "en_AU",
     type: "website",
     images: [
@@ -84,14 +84,14 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Money Matters — Automated Household Budget Engine",
+        alt: "Money Matters by Kaesava — Simple, honest household budgeting.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Money Matters | Smart Household Budgeting",
-    description: "Automate cashflow calm with a 5-step payday waterfall engine for Aussie families.",
+    title: "Money Matters by Kaesava — Simple, honest household budgeting.",
+    description: "Simple, honest household budgeting for Aussie families.",
     images: ["/og-image.png"],
     creator: "@money_matters",
   },
@@ -112,7 +112,7 @@ export const metadata: Metadata = {
 const webAppJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Money Matters",
+  "name": "Money Matters by Kaesava — Simple, honest household budgeting.",
   "operatingSystem": "Web, iOS, Android",
   "applicationCategory": "FinanceApplication",
   "offers": {
@@ -122,11 +122,11 @@ const webAppJsonLd = {
     "availability": "https://schema.org/InStock",
   },
   "description":
-    "Automated 5-step cashflow waterfall budget engine for Australian households. Ring-fences bills, funds savings goals, and calculates safe daily spending velocity.",
+    "Simple, honest household budgeting. Ring-fences bills on payday and funds savings goals so you can spend what's left with zero guilt.",
   "url": baseUrl,
   "author": {
     "@type": "Organization",
-    "name": "Money Matters Australia",
+    "name": "Money Matters by Kaesava",
     "url": "https://moneymatters.kaesava.au",
   },
 };

@@ -94,8 +94,11 @@ All tables MUST include:
 - MUST use SQLite with transactions for local caching.
 - MUST avoid blocking the main JS UI thread.
 
-## 13. UI / i18n / Design Tokens
+## 13. UI / i18n / Design Tokens / Product Philosophy
 - ALL user-facing strings via `@money-matters/i18n` (zero hardcoded text literals in components/views/modals).
+- **i18n Structural Parity & Synchronization**: `packages/i18n/src/dictionaries/en.ts` and `ja.ts` MUST be kept in 100% 1:1 structural key synchronization. Any key added, updated, or deleted in `en.ts` MUST be updated in `ja.ts` at the exact same location. Run `pnpm check-i18n` to validate parity.
+- **Product Core Philosophy (Zero Friction)**: Money Matters automates forward-looking payday allocation (ring-fencing bills and committed savings) so users can spend their remaining Everyday pool freely with zero friction and zero guilt. NEVER describe the product as requiring "daily tracking", "micro-managing every dollar", or "tracking daily spending velocity".
+- **Modal Dialog & Drawer Behavior**: All modal dialogs and slide-over drawers MUST support `Escape` key dismissal when form state is clean.
 - MUST use `React.useId()` for generating unique component/input HTML IDs. `Math.random()` for element IDs is strictly banned.
 - Dates stored in UTC; rendered in timezone-aware AEST/en-AU format. NEVER use raw `new Date().toISOString().split('T')[0]` (causes off-by-one date errors in Australian UTC+10/11 timezones); format using `new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`.
 - Next.js App Router prerendering: pages/components using `useSearchParams()` MUST be wrapped in a `<Suspense>` boundary to prevent build errors during production export.

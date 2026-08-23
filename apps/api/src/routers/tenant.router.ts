@@ -157,11 +157,14 @@ export const tenantRouter = {
         locale: globalPref?.locale ?? "en-AU",
         theme: globalPref?.theme ?? "system",
         showIcons: globalPref?.showIcons ?? appBlob?.show_icons ?? true,
-        // Tenant / Cashflow Alert Preferences (Tenant Scoped)
-        paydayAlertsEnabled: tenantPref?.paydayAlertsEnabled ?? true,
-        shortfallAlertsEnabled: tenantPref?.shortfallAlertsEnabled ?? true,
-        billRemindersEnabled: tenantPref?.billRemindersEnabled ?? true,
-        weeklyDigestEnabled: tenantPref?.weeklyDigestEnabled ?? false,
+        // Tenant / Cashflow Alert Preferences (Tenant Scoped, stored in appPreferences JSONB)
+        paydayAlertsEnabled: appBlob?.payday_alerts_enabled ?? true,
+        shortfallAlertsEnabled: appBlob?.shortfall_alerts_enabled ?? true,
+        billRemindersEnabled: appBlob?.bill_reminders_enabled ?? true,
+        weeklyDigestEnabled: appBlob?.weekly_digest_enabled ?? false,
+        // Onboarding Setup State
+        setupCompleted: appBlob?.setup_completed ?? false,
+        setupCompletedAt: appBlob?.setup_completed_at ?? null,
         // App UI Blob
         appPreferences: tenantPref?.appPreferences ?? {},
         quickActionsCollapsed: appBlob?.quick_actions_collapsed ?? false,
@@ -180,6 +183,7 @@ export const tenantRouter = {
         shortfallAlertsEnabled: z.boolean().optional(),
         billRemindersEnabled: z.boolean().optional(),
         weeklyDigestEnabled: z.boolean().optional(),
+        setupCompleted: z.boolean().optional(),
         appPreferences: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
       }).strict()
     )
@@ -233,8 +237,20 @@ export const tenantRouter = {
 
       const updatedAppBlob: AppPreferencesBlob = {
         ...currentAppBlob,
+        ...(input.paydayAlertsEnabled !== undefined ? { payday_alerts_enabled: input.paydayAlertsEnabled } : {}),
+        ...(input.shortfallAlertsEnabled !== undefined ? { shortfall_alerts_enabled: input.shortfallAlertsEnabled } : {}),
+        ...(input.billRemindersEnabled !== undefined ? { bill_reminders_enabled: input.billRemindersEnabled } : {}),
+        ...(input.weeklyDigestEnabled !== undefined ? { weekly_digest_enabled: input.weeklyDigestEnabled } : {}),
         ...(input.quickActionsCollapsed !== undefined ? { quick_actions_collapsed: input.quickActionsCollapsed } : {}),
         ...(input.showIcons !== undefined ? { show_icons: input.showIcons } : {}),
+        ...(input.setupCompleted !== undefined
+          ? {
+              setup_completed: input.setupCompleted,
+              setup_completed_at: input.setupCompleted
+                ? currentAppBlob.setup_completed_at || new Date().toISOString()
+                : undefined,
+            }
+          : {}),
         ...(input.appPreferences?.[appId] ? input.appPreferences[appId] : {}),
       };
 
@@ -249,10 +265,6 @@ export const tenantRouter = {
           .update(tenantUserPreferences)
           .set({
             appPreferences: updatedAppPrefs,
-            paydayAlertsEnabled: input.paydayAlertsEnabled ?? existingTenantPref.paydayAlertsEnabled,
-            shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? existingTenantPref.shortfallAlertsEnabled,
-            billRemindersEnabled: input.billRemindersEnabled ?? existingTenantPref.billRemindersEnabled,
-            weeklyDigestEnabled: input.weeklyDigestEnabled ?? existingTenantPref.weeklyDigestEnabled,
             updatedAt: new Date(),
           })
           .where(eq(tenantUserPreferences.id, existingTenantPref.id));
@@ -264,10 +276,6 @@ export const tenantRouter = {
             tenantId: ctx.tenantId!,
             appId,
             appPreferences: updatedAppPrefs,
-            paydayAlertsEnabled: input.paydayAlertsEnabled ?? true,
-            shortfallAlertsEnabled: input.shortfallAlertsEnabled ?? true,
-            billRemindersEnabled: input.billRemindersEnabled ?? true,
-            weeklyDigestEnabled: input.weeklyDigestEnabled ?? false,
           });
       }
 

@@ -10,11 +10,14 @@ import { trpc } from "../../lib/trpc";
 function SignUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+  const rawRedirect = searchParams.get("redirect") || "/dashboard";
+  const redirectUrl = (rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")) ? rawRedirect : "/dashboard";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needVerification, setNeedVerification] = useState(false);
@@ -55,6 +58,11 @@ function SignUpContent() {
 
     if (password !== confirmPassword) {
       setError(t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." }));
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setError(t("auth.mustAgreeToTerms", { defaultValue: "You must accept the Terms of Service and Privacy Policy to create an account." }));
       return;
     }
 
@@ -276,8 +284,8 @@ function SignUpContent() {
       <main className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg border border-zinc-100 flex flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <Logo size="xl" />
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B2B4B]">{t("auth.signUp")}</h1>
-          <p className="text-sm text-zinc-500">{t("app.description")}</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#1B2B4B]">{t("app.title")}</h1>
+          <p className="text-sm font-medium text-zinc-500">{t("app.tagline")}</p>
         </div>
 
         {error && (
@@ -312,18 +320,25 @@ function SignUpContent() {
             disabled={loading}
           />
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 relative">
             <Input
               label={t("auth.passwordLabel")}
               placeholder={t("auth.passwordPlaceholder")}
               value={password}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="signup-user-password"
               autoComplete="new-password"
               required
               disabled={loading}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-8 text-xs font-semibold text-zinc-500 hover:text-zinc-800"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
             {password && (
               <div className="text-xs font-semibold flex items-center gap-1 mt-1">
                 <div className={`h-1.5 flex-1 rounded-full ${password.length < 6 ? 'bg-[#ba1a1a]' : password.length < 10 ? 'bg-amber-500' : 'bg-[#22c55e]'}`} />
@@ -336,17 +351,41 @@ function SignUpContent() {
             )}
           </div>
 
-          <Input
-            label={t("auth.confirmPasswordLabel")}
-            placeholder={t("auth.confirmPasswordPlaceholder")}
-            value={confirmPassword}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-            type="password"
-            name="signup-user-confirm-password"
-            autoComplete="new-password"
-            required
-            disabled={loading}
-          />
+          <div className="relative">
+            <Input
+              label={t("auth.confirmPasswordLabel")}
+              placeholder={t("auth.confirmPasswordPlaceholder")}
+              value={confirmPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              name="signup-user-confirm-password"
+              autoComplete="new-password"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-start gap-2.5 pt-1">
+            <input
+              type="checkbox"
+              id="signup-terms-checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 rounded border-zinc-300 text-[#2563eb] focus:ring-[#2563eb] cursor-pointer"
+              required
+            />
+            <label htmlFor="signup-terms-checkbox" className="text-xs text-zinc-600 leading-normal select-none cursor-pointer">
+              I agree to the{" "}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#2563eb] font-bold hover:underline">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#2563eb] font-bold hover:underline">
+                Privacy Policy
+              </a>
+              .
+            </label>
+          </div>
 
           <Button type="submit" className="w-full mt-2" loading={loading}>
             {t("auth.signUpCta")}

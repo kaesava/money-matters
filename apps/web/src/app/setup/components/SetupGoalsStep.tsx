@@ -20,6 +20,7 @@ interface SetupGoalsStepProps {
   onRemoveGoal: (id: string) => void;
   onBack: () => void;
   onNext: () => void;
+  showIcons?: boolean;
 }
 
 const getFutureDate = (months: number) => {
@@ -52,11 +53,11 @@ export function SetupGoalsStep({
   onRemoveGoal,
   onBack,
   onNext,
+  showIcons = true,
 }: SetupGoalsStepProps) {
   const [customName, setCustomName] = useState("");
   const [customTarget, setCustomTarget] = useState("5000");
   const [customDate, setCustomDate] = useState("");
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
   const isPresetActive = (name: string) => goals.some((g) => g.name.trim().toLowerCase() === name.trim().toLowerCase());
 
@@ -78,13 +79,14 @@ export function SetupGoalsStep({
   };
 
   const handleAddCustom = () => {
-    if (!customName.trim() || !customDate) return;
+    if (!customName.trim()) return;
     const targetAmount = parseFloat(customTarget) || 1000;
-    const months = getMonthsDiff(customDate);
+    const dueDate = customDate || getFutureDate(12);
+    const months = getMonthsDiff(dueDate);
     onAddGoal({
       name: customName.trim(),
       targetAmount,
-      dueDate: customDate,
+      dueDate,
       monthlyAmount: Math.round(targetAmount / months),
       icon: "🎯",
     });
@@ -93,13 +95,16 @@ export function SetupGoalsStep({
     setCustomDate("");
   };
 
+  const isCustomPastDate = customDate && new Date(customDate) < new Date(new Date().setHours(0, 0, 0, 0));
   const totalTargetGoals = goals.reduce((sum, g) => sum + (g.targetAmount || 0), 0);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-200">
       <div>
         <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-black text-[#1B2B4B]">🎯 Savings &amp; Future Goals</h2>
+          <h2 className="text-2xl font-black text-[#1B2B4B]">
+            {showIcons ? "🎯 " : ""}Savings &amp; Future Goals
+          </h2>
           <InfoTooltip
             title="Sinking Funds & Goals"
             content="Setting target amounts and target dates for your goals allows the waterfall engine to automatically reserve funds every payday. The actual amount allocated will depend on paydays, etc. and this is a guide only."
@@ -130,7 +135,7 @@ export function SetupGoalsStep({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xl">{preset.icon}</span>
+                  {showIcons ? <span className="text-xl">{preset.icon}</span> : <span />}
                   <span
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${
                       active ? "bg-[#00B4A6] text-white" : "bg-slate-100 text-slate-400"
@@ -165,13 +170,15 @@ export function SetupGoalsStep({
             {goals.map((g) => {
               const months = getMonthsDiff(g.dueDate);
               const estMonthly = Math.round((g.targetAmount || 0) / months);
+              const isPast = g.dueDate && new Date(g.dueDate) < new Date(new Date().setHours(0, 0, 0, 0));
+
               return (
                 <div
                   key={g.id}
                   className="p-3 bg-white rounded-xl border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-lg">{g.icon || "🎯"}</span>
+                    {showIcons && <span className="text-lg">{g.icon || "🎯"}</span>}
                     <div>
                       <input
                         type="text"
@@ -179,6 +186,11 @@ export function SetupGoalsStep({
                         onChange={(e) => onUpdateGoal(g.id, "name", e.target.value)}
                         className="text-xs font-bold text-[#1B2B4B] bg-transparent border-b border-transparent hover:border-zinc-300 focus:border-[#2563eb] outline-none"
                       />
+                      {isPast && (
+                        <span className="block text-[10px] font-bold text-amber-700">
+                          ⚠️ Target date is in the past
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -202,7 +214,6 @@ export function SetupGoalsStep({
                       <span className="text-[11px] font-bold text-zinc-400">By</span>
                       <input
                         type="date"
-                        min={todayStr}
                         value={g.dueDate || ""}
                         onChange={(e) => {
                           const dateVal = e.target.value;
@@ -257,7 +268,6 @@ export function SetupGoalsStep({
           />
           <input
             type="date"
-            min={todayStr}
             value={customDate}
             onChange={(e) => setCustomDate(e.target.value)}
             className="w-36 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
@@ -265,12 +275,17 @@ export function SetupGoalsStep({
           <button
             type="button"
             onClick={handleAddCustom}
-            disabled={!customName.trim() || !customDate}
+            disabled={!customName.trim()}
             className="px-4 py-2 bg-teal-50 border border-teal-200 text-[#00B4A6] text-xs font-bold rounded-xl hover:bg-teal-100 transition-colors disabled:opacity-50"
           >
             + Add Goal
           </button>
         </div>
+        {isCustomPastDate && (
+          <p className="text-[11px] font-bold text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+            ⚠️ Target date is in the past. Allocations will calculate as due immediately.
+          </p>
+        )}
       </div>
 
       <div className="flex justify-between items-center pt-4 border-t border-zinc-100">

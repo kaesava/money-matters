@@ -1,25 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { InfoTooltip, PaginationBar } from "@money-matters/ui/web";
+import { InfoTooltip } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
-import { CsvImportModal } from "../../../components/CsvImportModal";
+import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./components/BankAccountTable";
+import { TransferConflictModal } from "./components/TransferConflictModal";
 import { BankAccountFormModal } from "./components/BankAccountFormModal";
-
-type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
-type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
-
-interface BankAccountItem {
-  id: string;
-  name: string;
-  bankProvider?: BankName;
-  lastKnownBalance?: string;
-  unbudgetedBuffer?: string;
-  isPrivate?: boolean;
-  categoryTypes: CategoryType[];
-  updatedAt?: string | Date;
-}
+import { CsvImportModal } from "../../../components/CsvImportModal";
 
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
   { key: "CBA", label: "Commonwealth Bank (CBA)", logoBg: "bg-amber-400", textColor: "text-zinc-950" },
@@ -176,7 +165,11 @@ export default function BankAccountsDashboardPage() {
   const openEditModal = (acc: BankAccountItem) => {
     setEditingAccount(acc);
     setAccName(acc.name);
-    setAccBankProvider(acc.bankProvider || "CBA");
+    setAccBankProvider(
+      acc.bankProvider && (BANK_OPTIONS.some(b => b.key === acc.bankProvider))
+        ? (acc.bankProvider as BankName)
+        : "CBA"
+    );
     setAccBalance(acc.lastKnownBalance || "0.00");
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(acc.isPrivate ?? false);
@@ -319,11 +312,12 @@ export default function BankAccountsDashboardPage() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-[#1B2B4B] flex items-center gap-2">
             <span>🏦</span>
-            <span>Bank Accounts & Pools</span>
+            <span>{t("bankAccounts.title") || "Bank Accounts"}</span>
+            <InfoTooltip
+              title={t("tooltips.bankAccounts.title")}
+              content={t("tooltips.bankAccounts.content")}
+            />
           </h1>
-          <p className="text-xs text-zinc-500 font-medium mt-1">
-            Connect and map your bank accounts directly to target liquidity pools (Everyday, Bills, Savings).
-          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -338,7 +332,7 @@ export default function BankAccountsDashboardPage() {
           <button
             type="button"
             onClick={openAddModal}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
           >
             <span>➕</span>
             <span>Add Bank Account</span>
@@ -419,144 +413,21 @@ export default function BankAccountsDashboardPage() {
       </div>
 
       {/* Primary Bank Accounts Table */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/70 text-zinc-500 font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors" onClick={() => toggleSort("name")}>
-                  <div className="flex items-center gap-1">
-                    <span>Account Details</span>
-                    {sortField === "name" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
-                  </div>
-                </th>
-                <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors" onClick={() => toggleSort("lastKnownBalance")}>
-                  <div className="flex items-center gap-1">
-                    <span>Available Balance</span>
-                    <InfoTooltip content="Amount available to budget (Actual Balance minus Earmarked/Unbudgeted Buffer)." />
-                    {sortField === "lastKnownBalance" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
-                  </div>
-                </th>
-                <th className="py-3.5 px-4">
-                  <div className="flex items-center gap-1">
-                    <span>Linked Category Types</span>
-                    <InfoTooltip content="Category pools linked to this bank account for waterfall payday distribution." />
-                  </div>
-                </th>
-                <th className="py-3.5 px-4">Account Type</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
-              {paginated.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-zinc-400">
-                    No bank accounts found matching your search.
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((acc) => {
-                  const actualBal = parseFloat(acc.lastKnownBalance || "0");
-                  const buf = parseFloat(acc.unbudgetedBuffer || "0");
-                  const availBal = Math.max(0, actualBal - buf);
-
-                  return (
-                    <tr key={acc.id} className="hover:bg-zinc-50/80 transition-colors group">
-                      <td className="py-4 px-4 font-bold text-[#1B2B4B]">
-                        <p className="text-sm font-bold text-[#1B2B4B]">{acc.name}</p>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-black text-emerald-600">{fmtMoney(availBal)}</span>
-                          <span className="text-[10px] text-zinc-400 font-medium">
-                            Actual Balance: {fmtMoney(actualBal)}
-                            {buf > 0 && ` (Earmarked: ${fmtMoney(buf)})`}
-                          </span>
-                        </div>
-                      </td>
-                    <td className="py-4 px-4">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {acc.categoryTypes.length === 0 ? (
-                          <span className="text-[10px] font-semibold text-zinc-400 italic">None linked</span>
-                        ) : (
-                          acc.categoryTypes.map((type) => {
-                            const badgeStyle =
-                              type === "EVERYDAY"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : type === "REGULAR"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-indigo-50 text-indigo-700 border-indigo-200";
-                            return (
-                              <span
-                                key={type}
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${badgeStyle}`}
-                              >
-                                {type === "EVERYDAY" ? "Everyday" : type === "REGULAR" ? "Bills" : "Goal"}
-                              </span>
-                            );
-                          })
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      {acc.isPrivate ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                          🔒 Private
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-teal-50 text-[#00B4A6] border border-teal-200">
-                          👥 Household
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(acc)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
-                          title="Edit Account Details"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openImportModal(acc)}
-                          className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 transition-colors flex items-center gap-1"
-                          title="Import CSV Statement for this account"
-                        >
-                          <span>📄</span>
-                          <span>Import CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleArchive(acc)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
-                          title={acc.categoryTypes.length > 0 ? "Cannot archive (category types linked)" : "Archive Account"}
-                        >
-                          Archive
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Bar */}
-        <PaginationBar
-          page={page}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalItems={sorted.length}
-          pageSizeOptions={[10, 25, 50]}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
-      </div>
+      <BankAccountTable
+        accounts={paginated}
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={sorted.length}
+        sortField={sortField}
+        sortDir={sortDir}
+        toggleSort={toggleSort}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        openEditModal={openEditModal}
+        openImportModal={openImportModal}
+        fmtMoney={fmtMoney}
+      />
 
       {/* Add / Edit Account Modal */}
       {isModalOpen && (
@@ -582,44 +453,17 @@ export default function BankAccountsDashboardPage() {
           onSubmit={handleSaveAccount}
           onCategoryTypeToggle={handleCategoryTypeToggle}
           fmtMoney={fmtMoney}
+          onArchive={() => editingAccount && handleArchive(editingAccount)}
         />
       )}
 
       {/* Conflict Transfer Warning Modal */}
-      {conflictModalInfo && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-amber-200 shadow-xl space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl">
-              ⚠️
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-[#1B2B4B]">Link Category Transfer Warning</h4>
-              <p className="text-xs text-zinc-600 leading-relaxed">
-                <strong>{conflictModalInfo.typeLabel}</strong> is currently linked to <strong>{conflictModalInfo.previousOwnerName}</strong>.
-              </p>
-              <p className="text-xs text-zinc-600 leading-relaxed">
-                Linking it to <strong>{accName || "this account"}</strong> will automatically unlink it from <strong>{conflictModalInfo.previousOwnerName}</strong> when you save.
-              </p>
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
-              <button
-                type="button"
-                onClick={() => setConflictModalInfo(null)}
-                className="px-3.5 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmConflictTransfer}
-                className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition-colors"
-              >
-                Confirm Transfer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TransferConflictModal
+        conflictModalInfo={conflictModalInfo}
+        accName={accName}
+        onCancel={() => setConflictModalInfo(null)}
+        onConfirm={confirmConflictTransfer}
+      />
 
       {/* Bank Account Selected CSV Import Modal */}
       {selectedAccountForImport && (

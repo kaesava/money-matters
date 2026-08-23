@@ -115,8 +115,9 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.execute(sql`DROP TABLE IF EXISTS income_source_schedules CASCADE`);
   await db.execute(sql`ALTER TABLE income_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
   await db.execute(sql`ALTER TABLE expense_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
-  await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS everyday_allowance_amount NUMERIC(12,2)`);
+  await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS everyday_allowance_amount NUMERIC(12,2), ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false NOT NULL`);
   await db.execute(sql`ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false NOT NULL, ADD COLUMN IF NOT EXISTS user_id UUID`);
+  await db.execute(sql`ALTER TABLE tenant_user_preferences DROP COLUMN IF EXISTS payday_alerts_enabled, DROP COLUMN IF EXISTS shortfall_alerts_enabled, DROP COLUMN IF EXISTS bill_reminders_enabled, DROP COLUMN IF EXISTS weekly_digest_enabled`);
 
   // Clean all application tables in strict dependency order
   await db.delete(fileNotes);
@@ -306,13 +307,18 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       userId,
       tenantId,
       appId,
-      paydayAlertsEnabled: true,
-      shortfallAlertsEnabled: true,
-      billRemindersEnabled: true,
-      weeklyDigestEnabled: true,
       appPreferences: {
         [appId]: {
+          payday_alerts_enabled: true,
+          shortfall_alerts_enabled: true,
+          bill_reminders_enabled: true,
+          weekly_digest_enabled: true,
           quick_actions_collapsed: false,
+          show_icons: true,
+          filters_expanded: false,
+          skip_pool_adjustment_confirmation: false,
+          setup_completed: true,
+          setup_completed_at: now.toISOString(),
         },
       },
       createdBy: userId,
@@ -322,13 +328,18 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       userId: raehanUserId,
       tenantId: raehanTenantId,
       appId,
-      paydayAlertsEnabled: true,
-      shortfallAlertsEnabled: true,
-      billRemindersEnabled: true,
-      weeklyDigestEnabled: true,
       appPreferences: {
         [appId]: {
+          payday_alerts_enabled: true,
+          shortfall_alerts_enabled: true,
+          bill_reminders_enabled: true,
+          weekly_digest_enabled: true,
           quick_actions_collapsed: false,
+          show_icons: true,
+          filters_expanded: false,
+          skip_pool_adjustment_confirmation: false,
+          setup_completed: true,
+          setup_completed_at: now.toISOString(),
         },
       },
       createdBy: raehanUserId,
@@ -338,13 +349,18 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       userId: testerUserId,
       tenantId: testerTenantId,
       appId,
-      paydayAlertsEnabled: true,
-      shortfallAlertsEnabled: true,
-      billRemindersEnabled: true,
-      weeklyDigestEnabled: true,
       appPreferences: {
         [appId]: {
+          payday_alerts_enabled: true,
+          shortfall_alerts_enabled: true,
+          bill_reminders_enabled: true,
+          weekly_digest_enabled: true,
           quick_actions_collapsed: false,
+          show_icons: true,
+          filters_expanded: false,
+          skip_pool_adjustment_confirmation: false,
+          setup_completed: true,
+          setup_completed_at: now.toISOString(),
         },
       },
       createdBy: testerUserId,

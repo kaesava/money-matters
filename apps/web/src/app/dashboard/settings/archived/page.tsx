@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 
-import { PaginationBar, Spinner } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
+import { PaginationBar, Spinner, InfoTooltip, SearchInput } from "@money-matters/ui/web";
 
 export default function ArchivedItemsPage() {
   const router = useRouter();
@@ -45,27 +46,23 @@ export default function ArchivedItemsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div>
+        <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold text-[#1B2B4B]">Archived Items</h1>
-          <p className="text-xs text-zinc-500">Restore archived categories, income sources, or bank accounts.</p>
+          <InfoTooltip
+            title={t("tooltips.archived.title")}
+            content={t("tooltips.archived.content")}
+          />
         </div>
       </div>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         {/* Search */}
-        <div className="relative flex-1">
-          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search archived items..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-zinc-200 bg-white text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[--dash-teal]"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search archived items..."
+        />
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">

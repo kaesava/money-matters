@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
+import { InfoTooltip } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import { FilterBar } from "../../../../components/web/FilterBar";
 import { PaginationBar } from "@money-matters/ui/web";
@@ -126,10 +127,13 @@ export default function HistoryPage() {
             </svg>
             Back to Settings
           </button>
-          <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("transactions.title")}</h1>
-          <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-            Everything you&apos;ve recorded — spending and income.
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-[#1B2B4B] tracking-tight">{t("transactions.title")}</h1>
+            <InfoTooltip
+              title={t("tooltips.transactions.title")}
+              content={t("tooltips.transactions.content")}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-3">

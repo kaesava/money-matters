@@ -2,18 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { trpc } from "../lib/trpc";
-import { Spinner } from "@money-matters/ui/web";
-
-interface ParsedTx {
-  date: string;
-  description: string;
-  amount: string;
-  flowType: "CREDIT" | "DEBIT";
-  suggestedCategoryName?: string | null;
-  idempotencyKey: string;
-  rawBank: string;
-  isDuplicate?: boolean;
-}
+import { CsvStepUpload } from "./csv-import/CsvStepUpload";
+import { CsvStepReview, ParsedTx } from "./csv-import/CsvStepReview";
+import { CsvStepComplete } from "./csv-import/CsvStepComplete";
 
 interface CsvImportModalProps {
   isOpen: boolean;
@@ -35,7 +26,6 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const [fileName, setFileName] = useState<string>("");
   const [targetBankAccountId, setTargetBankAccountId] = useState<string>(initialBankAccountId || "");
   const [isDragging, setIsDragging] = useState(false);
-  const [hideDuplicates, setHideDuplicates] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Search & Filter state
@@ -179,71 +169,70 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     },
   });
 
-  const transactions = useMemo(() => parsedData?.transactions ?? [], [parsedData]);
-
-  // Running Financial Summary Math
-  const { selectedExpenses, selectedIncome, netImpact, selectedCount, duplicateCount } = useMemo(() => {
-    let expSum = 0;
-    let incSum = 0;
-    let selCount = 0;
-    let dupCount = 0;
-
-    transactions.forEach((tx, idx) => {
-      if (tx.isDuplicate) dupCount++;
-      if (selectedMap[idx]) {
-        selCount++;
-        const amt = parseFloat(tx.amount) || 0;
-        if (getFlowType(tx) === "DEBIT") {
-          expSum += amt;
-        } else {
-          incSum += amt;
-        }
-      }
-    });
-
-    return {
-      selectedExpenses: expSum,
-      selectedIncome: incSum,
-      netImpact: incSum - expSum,
-      selectedCount: selCount,
-      duplicateCount: dupCount,
-    };
-  }, [transactions, selectedMap, getFlowType]);
-
-  // Filtered rows for Step 2
-  const filteredRows = useMemo(() => {
-    return transactions
+  // Filtered transactions for Step 2
+  const filteredTransactions = useMemo(() => {
+    if (!parsedData) return [];
+    return parsedData.transactions
       .map((tx, idx) => ({ tx, idx }))
-      .filter(({ tx, idx }) => {
-        if (hideDuplicates && tx.isDuplicate) return false;
-        if (filterType === "DEBIT" && getFlowType(tx) !== "DEBIT") return false;
-        if (filterType === "CREDIT" && getFlowType(tx) !== "CREDIT") return false;
+      .filter(({ tx }) => {
+        const flow = getFlowType(tx);
+        if (filterType === "DEBIT" && flow !== "DEBIT") return false;
+        if (filterType === "CREDIT" && flow !== "CREDIT") return false;
         if (filterType === "DUPLICATES" && !tx.isDuplicate) return false;
-        if (searchQuery) {
+        if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchDesc = tx.description.toLowerCase().includes(q);
           const matchAmt = tx.amount.includes(q);
-          const catId = categoryMap[idx];
-          const catName = catId ? categories.find((c) => c.id === catId)?.name.toLowerCase() : "";
-          const matchCat = catName ? catName.includes(q) : false;
-          if (!matchDesc && !matchAmt && !matchCat) return false;
+          if (!matchDesc && !matchAmt) return false;
         }
         return true;
       });
-  }, [transactions, hideDuplicates, filterType, searchQuery, categoryMap, categories, getFlowType]);
+  }, [parsedData, filterType, searchQuery, getFlowType]);
 
-  if (!isOpen) return null;
+  const selectedCount = useMemo(() => {
+    return Object.values(selectedMap).filter(Boolean).length;
+  }, [selectedMap]);
+
+  const selectedExpenses = useMemo(() => {
+    if (!parsedData) return 0;
+    return parsedData.transactions.reduce((acc, tx, idx) => {
+      if (selectedMap[idx] && getFlowType(tx) === "DEBIT") {
+        return acc + parseFloat(tx.amount || "0");
+      }
+      return acc;
+    }, 0);
+  }, [parsedData, selectedMap, getFlowType]);
+
+  const selectedIncome = useMemo(() => {
+    if (!parsedData) return 0;
+    return parsedData.transactions.reduce((acc, tx, idx) => {
+      if (selectedMap[idx] && getFlowType(tx) === "CREDIT") {
+        return acc + parseFloat(tx.amount || "0");
+      }
+      return acc;
+    }, 0);
+  }, [parsedData, selectedMap, getFlowType]);
+
+  const netImpact = selectedIncome - selectedExpenses;
+
+  const allSelected = useMemo(() => {
+    if (filteredTransactions.length === 0) return false;
+    return filteredTransactions.every(({ idx }) => selectedMap[idx]);
+  }, [filteredTransactions, selectedMap]);
 
   const processFile = (file: File) => {
-    if (!file) return;
     setFileName(file.name);
     setErrorMessage(null);
-
     const reader = new FileReader();
     reader.onload = (evt) => {
       const text = evt.target?.result as string;
-      setRawTextContent(text);
-      parseCsvMutation.mutate({ csvText: text, bankAccountId: targetBankAccountId });
+      if (text) {
+        setRawTextContent(text);
+        parseCsvMutation.mutate({
+          csvText: text,
+          bankAccountId: targetBankAccountId,
+        });
+      }
     };
     reader.readAsText(file);
   };
@@ -292,7 +281,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     if (!parsedData) return;
     const next: Record<number, boolean> = {};
     parsedData.transactions.forEach((tx, idx) => {
-      if (hideDuplicates && tx.isDuplicate) return;
+      if (filterType !== "DUPLICATES" && tx.isDuplicate) return;
       next[idx] = checked;
     });
     setSelectedMap((prev) => ({ ...prev, ...next }));
@@ -347,6 +336,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     });
   };
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
@@ -358,16 +349,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               <span>Bank Statement CSV Import Wizard</span>
             </h3>
             <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 mt-1">
-              <span className={step === 1 ? "text-[#00B4A6] font-bold" : ""}>1. Upload Statement</span>
+              <span className={step === 1 ? "text-[#2563eb] font-bold" : ""}>1. Upload Statement</span>
               <span>→</span>
-              <span className={step === 2 ? "text-[#00B4A6] font-bold" : ""}>2. Review & Map</span>
+              <span className={step === 2 ? "text-[#2563eb] font-bold" : ""}>2. Review & Map</span>
               <span>→</span>
-              <span className={step === 3 ? "text-[#00B4A6] font-bold" : ""}>3. Complete</span>
+              <span className={step === 3 ? "text-[#2563eb] font-bold" : ""}>3. Complete</span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors font-bold text-lg"
+            className="text-slate-400 hover:text-slate-600 transition-colors font-bold text-lg cursor-pointer"
           >
             ✕
           </button>
@@ -385,440 +376,67 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
         {/* Body Content */}
         <div className="p-6 overflow-y-auto space-y-5 flex-1">
-          {/* STEP 1: UPLOAD */}
           {step === 1 && (
-            <div className="space-y-6">
-              {/* Target Bank Account Selection */}
-              <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <label className="text-xs font-bold text-[#1B2B4B]">Target Bank Account for Import:</label>
-                <select
-                  value={targetBankAccountId}
-                  onChange={(e) => setTargetBankAccountId(e.target.value)}
-                  className="px-3 py-2 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-[#00B4A6]"
-                >
-                  {bankAccounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.categoryTypes.join(", ") || "Unlinked"})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {parseCsvMutation.isPending ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Spinner size="lg" className="text-[#00B4A6]" />
-                  <span className="text-sm font-bold text-slate-600">Parsing statement & checking duplicates...</span>
-                </div>
-              ) : (
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
-                    isDragging
-                      ? "border-[#00B4A6] bg-teal-50/50 scale-[1.01]"
-                      : "border-slate-300 hover:border-[#00B4A6] bg-slate-50/50"
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="csv-file-input-modal"
-                  />
-                  <label htmlFor="csv-file-input-modal" className="cursor-pointer flex flex-col items-center gap-3">
-                    <span className="text-4xl">{isDragging ? "📥" : "📄"}</span>
-                    <div>
-                      <p className="font-extrabold text-slate-800 text-sm">
-                        {fileName ? fileName : "Click to select or drag & drop CSV statement"}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Supports statement CSV exports from CBA, Westpac, ANZ, NAB, ING, Macquarie
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              )}
-
-              {/* Custom Column Mapper (Fallback) */}
-              {showCustomMapper && (
-                <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
-                  <h4 className="text-xs font-bold text-amber-900">Custom Column Mapping</h4>
-                  <p className="text-xs text-amber-800">
-                    Specify which columns match Date, Description, and Amount in your CSV file:
-                  </p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600">Date Column:</label>
-                      <select
-                        value={dateColIndex}
-                        onChange={(e) => setDateColIndex(Number(e.target.value))}
-                        className="w-full p-2 text-xs border rounded-lg bg-white"
-                      >
-                        {rawHeaders.map((h, i) => (
-                          <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600">Description Column:</label>
-                      <select
-                        value={descColIndex}
-                        onChange={(e) => setDescColIndex(Number(e.target.value))}
-                        className="w-full p-2 text-xs border rounded-lg bg-white"
-                      >
-                        {rawHeaders.map((h, i) => (
-                          <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600">Amount Column:</label>
-                      <select
-                        value={amountColIndex}
-                        onChange={(e) => setAmountColIndex(Number(e.target.value))}
-                        className="w-full p-2 text-xs border rounded-lg bg-white"
-                      >
-                        {rawHeaders.map((h, i) => (
-                          <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleApplyCustomMapping}
-                      className="px-4 py-2 text-xs font-bold text-white bg-[#00B4A6] hover:bg-[#009b8f] rounded-lg shadow-xs"
-                    >
-                      Apply Column Mapping & Parse
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <CsvStepUpload
+              bankAccounts={bankAccounts}
+              targetBankAccountId={targetBankAccountId}
+              setTargetBankAccountId={setTargetBankAccountId}
+              isParsing={parseCsvMutation.isPending}
+              isDragging={isDragging}
+              fileName={fileName}
+              showCustomMapper={showCustomMapper}
+              rawHeaders={rawHeaders}
+              dateColIndex={dateColIndex}
+              setDateColIndex={setDateColIndex}
+              descColIndex={descColIndex}
+              setDescColIndex={setDescColIndex}
+              amountColIndex={amountColIndex}
+              setAmountColIndex={setAmountColIndex}
+              handleFileUpload={handleFileUpload}
+              handleDragOver={handleDragOver}
+              handleDragLeave={handleDragLeave}
+              handleDrop={handleDrop}
+              handleApplyCustomMapping={handleApplyCustomMapping}
+            />
           )}
 
-          {/* STEP 2: REVIEW & MAP */}
           {step === 2 && parsedData && (
-            <div className="space-y-4">
-              {/* Statement Coverage & Financial Totals Metrics Banner */}
-              <div className="space-y-2">
-                {parsedData.statementStartDate && parsedData.statementEndDate && (
-                  <div className="flex items-center justify-between text-xs font-bold bg-teal-50 border border-teal-200 text-teal-900 px-3.5 py-2 rounded-xl">
-                    <span className="flex items-center gap-1.5">
-                      <span>📅</span>
-                      <span>Statement Period: {parsedData.statementStartDate} — {parsedData.statementEndDate}</span>
-                    </span>
-                    <span className="text-teal-700 text-[11px]">
-                      Bank: {parsedData.bank} ({parsedData.transactions.length} rows)
-                    </span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-900 rounded-2xl text-white shadow-xs">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Expenses</span>
-                    <span className="text-base font-black text-rose-400 tabular-nums">
-                      -${selectedExpenses.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Income</span>
-                    <span className="text-base font-black text-emerald-400 tabular-nums">
-                      +${selectedIncome.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Net Impact</span>
-                    <span className={`text-base font-black tabular-nums ${netImpact >= 0 ? "text-teal-400" : "text-rose-400"}`}>
-                      {netImpact >= 0 ? "+" : ""}${netImpact.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Search & Filter Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search description or amount..."
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleFlipPolarity}
-                    title="Invert expense/income polarity if bank CSV exports credits as debits"
-                    className="px-2.5 py-1.5 text-xs font-bold bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 rounded-lg flex items-center gap-1"
-                  >
-                    <span>🔄</span>
-                    <span>Flip Debit/Credit</span>
-                  </button>
-
-                  <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-0.5">
-                    {(["ALL", "DEBIT", "CREDIT", "DUPLICATES"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setFilterType(t)}
-                        className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${
-                          filterType === t ? "bg-[#00B4A6] text-white" : "text-slate-600 hover:bg-slate-100"
-                        }`}
-                      >
-                        {t === "ALL" ? "All" : t === "DEBIT" ? "Debits" : t === "CREDIT" ? "Credits" : "Duplicates"}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAddCategoryInline(!showAddCategoryInline)}
-                    className="px-3 py-1.5 text-xs font-bold bg-teal-50 border border-teal-200 text-[#00B4A6] hover:bg-teal-100 rounded-lg flex items-center gap-1"
-                  >
-                    <span>➕</span>
-                    <span>Add Category</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Inline Add Category Form */}
-              {showAddCategoryInline && (
-                <form onSubmit={handleCreateInlineCategory} className="p-3 bg-teal-50/60 border border-teal-200 rounded-xl flex items-center gap-3 animate-in fade-in duration-150">
-                  <input
-                    type="text"
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    placeholder="New category name (e.g. Pet Care)..."
-                    className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white font-semibold"
-                    required
-                  />
-                  <select
-                    value={newCatType}
-                    onChange={(e) => setNewCatType(e.target.value as "EVERYDAY" | "REGULAR" | "GOAL")}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white font-bold text-slate-700"
-                  >
-                    <option value="EVERYDAY">Everyday Pool</option>
-                    <option value="REGULAR">Bills Pool</option>
-                    <option value="GOAL">Savings Pool</option>
-                  </select>
-                  <button
-                    type="submit"
-                    disabled={createCategoryMut.isPending}
-                    className="px-3 py-1.5 text-xs font-bold text-white bg-[#00B4A6] hover:bg-[#009b8f] rounded-lg shadow-xs"
-                  >
-                    {createCategoryMut.isPending ? "Creating..." : "Save Category"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddCategoryInline(false)}
-                    className="text-xs font-bold text-slate-400 hover:text-slate-600"
-                  >
-                    Cancel
-                  </button>
-                </form>
-              )}
-
-              {/* Summary Controls Bar */}
-              <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-1">
-                <div className="flex items-center gap-3">
-                  <span>
-                    Showing {filteredRows.length} of {transactions.length} rows ({selectedCount} selected)
-                  </span>
-                  {duplicateCount > 0 && (
-                    <span className="text-amber-700 font-extrabold">
-                      ⚠️ {duplicateCount} Duplicates Pre-Unchecked
-                    </span>
-                  )}
-                  <label className="flex items-center gap-1.5 cursor-pointer text-[#00B4A6]">
-                    <input
-                      type="checkbox"
-                      checked={hideDuplicates}
-                      onChange={(e) => setHideDuplicates(e.target.checked)}
-                      className="rounded text-[#00B4A6] focus:ring-[#00B4A6]"
-                    />
-                    <span>Hide Duplicates</span>
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Bulk Category:</span>
-                  <select
-                    onChange={(e) => handleBulkCategoryChange(e.target.value)}
-                    defaultValue=""
-                    className="px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-700"
-                  >
-                    <option value="" disabled>
-                      Apply to checked DEBITs...
-                    </option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Transactions Data Table */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden max-h-80 overflow-y-auto text-xs">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-100 text-slate-600 font-bold uppercase sticky top-0 z-10 border-b border-slate-200">
-                    <tr>
-                      <th className="p-3 w-10 text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedCount > 0 && selectedCount === transactions.length}
-                          onChange={(e) => handleToggleSelectAll(e.target.checked)}
-                          className="rounded text-[#00B4A6] focus:ring-[#00B4A6]"
-                        />
-                      </th>
-                      <th className="p-3">Date</th>
-                      <th className="p-3">Description</th>
-                      <th className="p-3">Type</th>
-                      <th className="p-3">Category / Income Target</th>
-                      <th className="p-3 text-right">Amount</th>
-                      <th className="p-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                    {filteredRows.map(({ tx, idx }) => {
-                      const isChecked = !!selectedMap[idx];
-
-                      return (
-                        <tr
-                          key={idx}
-                          className={`hover:bg-slate-50 transition-colors ${
-                            tx.isDuplicate ? "bg-amber-50/40" : ""
-                          }`}
-                        >
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={(e) =>
-                                setSelectedMap((prev) => ({ ...prev, [idx]: e.target.checked }))
-                              }
-                              className="rounded text-[#00B4A6] focus:ring-[#00B4A6]"
-                            />
-                          </td>
-                          <td className="p-3 whitespace-nowrap text-slate-500 font-mono">{tx.date}</td>
-                          <td className="p-3 font-semibold text-slate-800 max-w-xs truncate" title={tx.description}>
-                            {tx.description}
-                          </td>
-                          <td className="p-3">
-                            <span
-                              className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                getFlowType(tx) === "CREDIT"
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : "bg-slate-100 text-slate-700"
-                              }`}
-                            >
-                              {getFlowType(tx)}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            {getFlowType(tx) === "DEBIT" ? (
-                              <select
-                                value={categoryMap[idx] || ""}
-                                onChange={(e) =>
-                                  setCategoryMap((prev) => ({ ...prev, [idx]: e.target.value }))
-                                }
-                                className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg bg-white font-bold text-slate-700"
-                              >
-                                {categories.map((c) => (
-                                  <option key={c.id} value={c.id}>
-                                    {c.name}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <select
-                                value={incomeSourceMap[idx] || categoryMap[idx] || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  if (incomeSources.some((inc) => inc.id === val)) {
-                                    setIncomeSourceMap((prev) => ({ ...prev, [idx]: val }));
-                                  } else {
-                                    setCategoryMap((prev) => ({ ...prev, [idx]: val }));
-                                  }
-                                }}
-                                className="w-full px-2 py-1 text-xs border border-emerald-300 bg-emerald-50/50 rounded-lg font-bold text-emerald-900"
-                              >
-                                <optgroup label="Income Sources">
-                                  {incomeSources.map((inc) => (
-                                    <option key={inc.id} value={inc.id}>
-                                      💰 {inc.name}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Category Pool Target">
-                                  {categories.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                      📂 {c.name}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              </select>
-                            )}
-                          </td>
-                          <td
-                            className={`p-3 text-right font-mono font-bold tabular-nums ${
-                              getFlowType(tx) === "CREDIT" ? "text-emerald-600" : "text-slate-900"
-                            }`}
-                          >
-                            {getFlowType(tx) === "CREDIT" ? "+" : "-"}${tx.amount}
-                          </td>
-                          <td className="p-3 text-center">
-                            {tx.isDuplicate ? (
-                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                                ⚠️ Duplicate
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                Ready
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <CsvStepReview
+              parsedData={parsedData}
+              selectedExpenses={selectedExpenses}
+              selectedIncome={selectedIncome}
+              netImpact={netImpact}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              filterType={filterType}
+              setFilterType={setFilterType}
+              showAddCategoryInline={showAddCategoryInline}
+              setShowAddCategoryInline={setShowAddCategoryInline}
+              newCatName={newCatName}
+              setNewCatName={setNewCatName}
+              newCatType={newCatType}
+              setNewCatType={setNewCatType}
+              isCreatingCategory={createCategoryMut.isPending}
+              handleCreateInlineCategory={handleCreateInlineCategory}
+              handleFlipPolarity={handleFlipPolarity}
+              getFlowType={getFlowType}
+              filteredTransactions={filteredTransactions}
+              allSelected={allSelected}
+              handleToggleSelectAll={handleToggleSelectAll}
+              categories={categories}
+              incomeSources={incomeSources}
+              selectedMap={selectedMap}
+              setSelectedMap={setSelectedMap}
+              categoryMap={categoryMap}
+              setCategoryMap={setCategoryMap}
+              incomeSourceMap={incomeSourceMap}
+              setIncomeSourceMap={setIncomeSourceMap}
+              handleBulkCategoryChange={handleBulkCategoryChange}
+            />
           )}
 
-          {/* STEP 3: COMPLETE */}
           {step === 3 && commitResult && (
-            <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl">
-                ✓
-              </div>
-              <h4 className="text-xl font-extrabold text-[#1B2B4B]">Statement Import Complete!</h4>
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs font-semibold text-slate-700 max-w-sm w-full">
-                <p className="text-emerald-700 font-bold text-sm">
-                  {commitResult.importedCount} Transactions Imported
-                </p>
-                {commitResult.skippedDuplicatesCount > 0 && (
-                  <p className="text-amber-700">
-                    ({commitResult.skippedDuplicatesCount} duplicate records skipped)
-                  </p>
-                )}
-                {commitResult.batchId && (
-                  <p className="text-[10px] text-slate-400 font-mono pt-1">
-                    Batch ID: {commitResult.batchId}
-                  </p>
-                )}
-                <p className="text-slate-500 pt-1">Your ledger and available balances have been updated.</p>
-              </div>
-            </div>
+            <CsvStepComplete commitResult={commitResult} />
           )}
         </div>
 
@@ -829,7 +447,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900"
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
               >
                 ← Back to Upload
               </button>
@@ -840,7 +458,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-200"
+              className="px-4 py-2 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-200 cursor-pointer"
             >
               {step === 3 ? "Done" : "Cancel"}
             </button>
@@ -850,7 +468,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                 type="button"
                 onClick={handleConfirmImport}
                 disabled={commitCsvMutation.isPending || selectedCount === 0}
-                className="px-6 py-2 text-xs font-bold bg-[#00B4A6] hover:bg-[#009b8f] text-white rounded-xl shadow-xs transition-colors disabled:opacity-50"
+                className="px-6 py-2 text-xs font-bold bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {commitCsvMutation.isPending
                   ? "Importing Transactions..."

@@ -1,0 +1,62 @@
+"use client";
+
+import React from "react";
+import { useIconVisibility } from "../hooks/IconVisibilityContext";
+
+export interface SearchInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  className?: string;
+  showIcon?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+  autoFocus?: boolean;
+}
+
+export function SearchInput({
+  value,
+  onChange,
+  placeholder = "Search...",
+  className = "",
+  showIcon = true,
+  inputRef,
+  onKeyDown,
+  autoFocus = false,
+}: SearchInputProps) {
+  const { showIcons } = useIconVisibility();
+  const displayIcon = showIcon && showIcons;
+
+  return (
+    <div className={`relative flex-1 ${className}`}>
+      {displayIcon && (
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm select-none pointer-events-none">
+          🔍
+        </span>
+      )}
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        autoFocus={autoFocus}
+        placeholder={placeholder}
+        className={`w-full ${
+          displayIcon ? "pl-9" : "pl-3.5"
+        } pr-8 py-2 text-xs font-medium rounded-xl bg-white border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] transition-all text-zinc-900 placeholder-zinc-400`}
+      />
+      {value.trim().length > 0 && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 text-xs font-bold p-1 cursor-pointer"
+          title="Clear search"
+          aria-label="Clear search"
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}

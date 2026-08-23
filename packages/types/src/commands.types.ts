@@ -119,6 +119,7 @@ export const MoveMoneyCommand = z.object({
   sourceCategoryId: z.string().uuid(),
   destinationCategoryId: z.string().uuid(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  note: z.string().optional(),
 }).strict();
 
 export const OverrideEventCommand = z.object({

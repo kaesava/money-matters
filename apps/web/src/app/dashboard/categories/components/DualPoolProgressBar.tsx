@@ -15,7 +15,7 @@ export function DualPoolProgressBar({ elapsedPct, consumedPct }: DualPoolProgres
   return (
     <div className="w-full mt-3 space-y-1">
       <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500">
-        <span>Pacing Progress</span>
+        <span title="Visual indicator showing how your pool spending tracks against elapsed days in the month">Monthly Budget Pacing</span>
         <span>Spent: {consumedPct}% | Month: {elapsedPct}%</span>
       </div>
       <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden flex flex-col gap-0.5">

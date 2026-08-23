@@ -1,4 +1,5 @@
-import React from 'react';
+"use client";
+import React, { useEffect } from 'react';
 import { t } from '@money-matters/i18n';
 
 interface SlideOverDrawerProps {
@@ -11,12 +12,6 @@ interface SlideOverDrawerProps {
   widthClass?: string; // e.g. "max-w-md", "max-w-lg"
 }
 
-/**
- * A slide-over drawer component for web applications.
- * Typically used for "vertical slice" detail views or create/edit forms.
- *
- * @param props - Component props including title, onClose, and children.
- */
 export function SlideOverDrawer({
   title,
   subtitle,
@@ -26,6 +21,16 @@ export function SlideOverDrawer({
   headerActions,
   widthClass = 'max-w-md',
 }: SlideOverDrawerProps) {
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       {/* Backdrop */}

@@ -1,85 +1,22 @@
 "use client";
 import React, { useState, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
 import { t, setLanguage } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
 import posthog from "../../lib/posthog-client";
 import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
-import { SidebarTrialNavItem } from "../../components/TrialStatusBadge";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
-import { Logo, Spinner } from "@money-matters/ui/web";
+import { Spinner } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
-import { TenantSwitcher } from "../../components/TenantSwitcher";
+import { SidebarContent } from "./components/SidebarContent";
+import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
+import { QuickActionFab } from "./components/QuickActionFab";
+import { NAV_ITEMS } from "./components/navItems";
 
 const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
-
-const NAV_ITEMS = [
-  {
-    key: "home",
-    label: () => t("nav.home"),
-    href: "/dashboard",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
-  },
-  {
-    key: "categories",
-    label: () => t("nav.myMoney"),
-    href: "/dashboard/categories",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-      </svg>
-    ),
-  },
-  {
-    key: "paychecks",
-    label: () => t("nav.payday"),
-    href: "/dashboard/income-and-bills",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-  },
-  {
-    key: "bank-accounts",
-    label: () => t("nav.accounts"),
-    href: "/dashboard/bank-accounts",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
-  {
-    key: "transactions",
-    label: () => t("nav.transactions", { defaultValue: "Transactions" }),
-    href: "/dashboard/transactions",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-      </svg>
-    ),
-  },
-  {
-    key: "settings",
-    label: () => t("nav.settings"),
-    href: "/dashboard/settings",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
-  },
-] as const;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -128,19 +65,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Zero-Categories Guard: redirect to setup wizard if user has 0 categories and hasn't explicitly cancelled/completed setup
   useEffect(() => {
-    const isSkipped = typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true";
+    const isSkippedOrCompleted =
+      Boolean(userPrefQuery.data?.setupCompleted) ||
+      (typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true");
     if (
       !isPending &&
       session?.user &&
       !categoriesQuery.isLoading &&
       categoriesQuery.data &&
       categoriesQuery.data.length === 0 &&
-      !isSkipped &&
+      !isSkippedOrCompleted &&
       !pathname.startsWith("/setup")
     ) {
       router.replace("/setup");
     }
-  }, [isPending, session, categoriesQuery.isLoading, categoriesQuery.data, pathname, router]);
+  }, [isPending, session, categoriesQuery.isLoading, categoriesQuery.data, userPrefQuery.data, pathname, router]);
 
   // Exchange neon_auth_session_verifier for session token cookie
   useEffect(() => {
@@ -178,13 +117,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
+  // Unified Keyboard Shortcuts Hook
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        (e.target as HTMLElement).isContentEditable
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        (document.activeElement as HTMLElement)?.isContentEditable
       ) {
+        if (e.key === "Escape") {
+          (document.activeElement as HTMLElement).blur();
+        }
         return;
       }
 
@@ -193,7 +136,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       } else if (e.key === "Escape") {
         setShowShortcutsModal(false);
       } else if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
         setQuickExpenseOpen(true);
+      } else if (e.key === "/") {
+        e.preventDefault();
+        const searchInput =
+          document.querySelector<HTMLInputElement>('[data-search-input]') ||
+          document.querySelector<HTMLInputElement>('input[type="search"]') ||
+          document.querySelector<HTMLInputElement>('input[placeholder*="Search"]');
+        if (searchInput) {
+          searchInput.focus();
+        }
       }
     };
 
@@ -220,37 +173,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace("/sign-in");
     }
   }, [isPending, session, router, isExchanging]);
-
-  // Keyboard Shortcuts Hook
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      // Ignore shortcuts if user is typing in form inputs
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA" ||
-        (document.activeElement as HTMLElement)?.isContentEditable
-      ) {
-        if (e.key === "Escape") {
-          (document.activeElement as HTMLElement).blur();
-        }
-        return;
-      }
-
-      if (e.key === "n" || e.key === "N") {
-        e.preventDefault();
-        setQuickExpenseOpen(true);
-      } else if (e.key === "/") {
-        e.preventDefault();
-        const searchInput = document.querySelector<HTMLInputElement>('[data-search-input]') || document.querySelector<HTMLInputElement>('input[type="search"]') || document.querySelector<HTMLInputElement>('input[placeholder*="Search"]');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const isAuthenticating = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("neon_auth_session_verifier");
 
@@ -281,99 +203,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-64";
 
-  const renderSidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Brand Logo header */}
-      <div className={`h-16 flex items-center px-6 gap-3 border-b border-white/10 shrink-0 ${sidebarCollapsed ? "justify-center" : ""}`}>
-        <Logo size="md" />
-        {!sidebarCollapsed && (
-          <div className="flex items-center justify-between flex-1">
-            <span className="text-lg font-extrabold tracking-tight text-white select-none">
-              {t("app.title")}
-            </span>
-          </div>
-        )}
-      </div>
-      
-      {hasMultipleTenants && !sidebarCollapsed && (
-        <div className="px-4 py-3 border-b border-white/10 shrink-0">
-          <TenantSwitcher />
-        </div>
-      )}
-
-      {/* Navigation items */}
-      <nav className="flex-1 px-4 py-6 flex flex-col justify-between overflow-y-auto">
-        <div className="flex flex-col gap-2">
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              item.href === "/dashboard"
-                ? pathname === "/dashboard"
-                : item.href === "/dashboard/settings"
-                ? pathname === "/dashboard/settings" || (pathname.startsWith("/dashboard/settings/") && !pathname.startsWith("/dashboard/settings/bank-accounts"))
-                : pathname.startsWith(item.href);
-
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3.5 px-3 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative ${
-                  isActive
-                    ? "text-white shadow-lg shadow-black/10"
-                    : "text-[#9EACC7] hover:text-white hover:bg-white/5"
-                }`}
-                style={{
-                  backgroundColor: isActive ? "var(--dash-teal)" : "transparent",
-                }}
-                title={sidebarCollapsed ? item.label() : undefined}
-              >
-                {item.icon(isActive)}
-                {!sidebarCollapsed && <span>{item.label()}</span>}
-                {sidebarCollapsed && (
-                  <div className="absolute left-full ml-3 px-2 py-1 bg-zinc-900 text-white text-xs font-semibold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-md">
-                    {item.label()}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Free trial / Upgrade item at bottom of nav list above user box */}
-        <div className="pt-4 border-t border-white/10 mt-auto">
-          <SidebarTrialNavItem collapsed={sidebarCollapsed} onNavigate={() => setMobileMenuOpen(false)} />
-        </div>
-      </nav>
-
-      {/* User profile section at the bottom */}
-      <div className="p-4 border-t border-white/10 shrink-0">
-        <div
-          onClick={() => router.push("/dashboard/settings")}
-          className={`flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors ${sidebarCollapsed ? "justify-center" : ""}`}
-          title="View User Profile in Settings"
-        >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15" style={{ backgroundColor: "var(--dash-teal)" }}>
-            {initials}
-          </div>
-          {!sidebarCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-extrabold text-white truncate">{session?.user?.name}</p>
-              <p className="text-[10px] text-[#9EACC7] truncate">{session?.user?.email}</p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSignOut();
-                }}
-                className="text-[10px] font-semibold text-[#9EACC7] hover:text-rose-400 transition-colors mt-1 block text-left"
-              >
-                {t("settings.signOut")} →
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+  const renderSidebar = () => (
+    <SidebarContent
+      sidebarCollapsed={sidebarCollapsed}
+      hasMultipleTenants={hasMultipleTenants}
+      navItems={NAV_ITEMS}
+      pathname={pathname}
+      setMobileMenuOpen={setMobileMenuOpen}
+      sessionUser={session?.user}
+      initials={initials}
+      onNavigateToSettings={() => router.push("/dashboard/settings")}
+      onSignOut={handleSignOut}
+    />
   );
 
   return (
@@ -384,7 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           style={{ backgroundColor: "var(--dash-navy)" }}
           className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
         >
-          {renderSidebarContent()}
+          {renderSidebar()}
 
           {/* Sidebar Collapse Toggle Button */}
           <button
@@ -421,7 +262,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               style={{ backgroundColor: "var(--dash-navy)" }}
               className="relative w-72 max-w-[85vw] h-full flex flex-col z-10 shadow-2xl transition-transform animate-slide-in"
             >
-              {renderSidebarContent()}
+              {renderSidebar()}
             </div>
           </div>
         )}
@@ -466,27 +307,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
           </div>
 
-          {/* Global Quick Action Floating Button (Hidden on Income & Bills, and Bank Accounts pages) */}
-          {!pathname.startsWith("/dashboard/income-and-bills") && !pathname.startsWith("/dashboard/bank-accounts") && (
-            <button
-              id="global-quick-add-btn"
-              onClick={() => {
-                if (pathname.startsWith("/dashboard/categories")) {
-                  window.dispatchEvent(new CustomEvent("open-create-category-modal"));
-                } else {
-                  setQuickExpenseOpen(true);
-                }
-              }}
-              style={{ backgroundColor: "var(--dash-teal)", boxShadow: "0 6px 20px rgba(0,180,166,0.3)" }}
-              className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-lg group"
-              title={pathname.startsWith("/dashboard/categories") ? "Add New Category" : "Quick Record Expense (Shortcut: n)"}
-              aria-label={pathname.startsWith("/dashboard/categories") ? "Add Category" : t("transactions.addExpense")}
-            >
-              <svg className="w-5 h-5 transition-transform group-hover:rotate-90 duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-          )}
+          <QuickActionFab
+            pathname={pathname}
+            onOpenModal={() => setQuickExpenseOpen(true)}
+          />
 
           {quickExpenseOpen && (
             <QuickExpenseDrawer
@@ -494,41 +318,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
           )}
 
-          {showShortcutsModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
-                <button
-                  onClick={() => setShowShortcutsModal(false)}
-                  className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <h2 className="text-xl font-bold text-[#1B2B4B] mb-6 flex items-center gap-2">
-                  <span className="text-[#2563eb]">⌘</span> {t("keyboardShortcuts.title")}
-                </h2>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.quickExpense")}</span>
-                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">N</kbd>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.search")}</span>
-                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">/</kbd>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.shortcuts")}</span>
-                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">?</kbd>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-zinc-700">{t("keyboardShortcuts.close")}</span>
-                    <kbd className="px-2 py-1 bg-zinc-100 border border-zinc-200 rounded text-xs font-mono font-bold text-zinc-600">Esc</kbd>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <KeyboardShortcutsModal
+            isOpen={showShortcutsModal}
+            onClose={() => setShowShortcutsModal(false)}
+          />
         </div>
       </div>
     </IconVisibilityProvider>

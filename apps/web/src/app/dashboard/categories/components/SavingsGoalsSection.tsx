@@ -6,9 +6,9 @@ import { CategorySummaryItem } from "./EverydayPoolSection";
 
 interface SavingsGoalsSectionProps {
   categories: CategorySummaryItem[];
-  onSelectCategory: (id: string) => void;
+  onSelectCategory?: (id: string) => void;
   onEditCategory: (cat: CategorySummaryItem) => void;
-  onArchiveCategory: (cat: CategorySummaryItem) => void;
+  onArchiveCategory?: (cat: CategorySummaryItem) => void;
   onOpenCreateModal?: (type?: "REGULAR" | "GOAL" | "EVERYDAY") => void;
 }
 
@@ -21,9 +21,9 @@ function fmt(val: string | number | null | undefined) {
 
 export function SavingsGoalsSection({
   categories,
-  onSelectCategory,
+  onSelectCategory: _onSelectCategory,
   onEditCategory,
-  onArchiveCategory,
+  onArchiveCategory: _onArchiveCategory,
   onOpenCreateModal,
 }: SavingsGoalsSectionProps) {
   const { showIcons } = useIconVisibility();
@@ -63,18 +63,17 @@ export function SavingsGoalsSection({
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-            <th className="px-6 py-4">Goal Name</th>
-            <th className="px-6 py-4">Current Pool Balance</th>
-            <th className="px-6 py-4">Target Amount</th>
-            <th className="px-6 py-4">Target Date</th>
-            <th className="px-6 py-4">Savings Progress</th>
-            <th className="px-6 py-4 text-right">Actions</th>
+            <th className="px-6 py-3.5">Goal Name</th>
+            <th className="px-6 py-3.5">Current Balance</th>
+            <th className="px-6 py-3.5">Target Goal</th>
+            <th className="px-6 py-3.5">Target Date</th>
+            <th className="px-6 py-3.5">Pacing &amp; Health</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-100">
           {categories.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-6 py-8 text-center text-xs text-zinc-400 font-medium">
+              <td colSpan={5} className="px-6 py-8 text-center text-xs text-zinc-400 font-medium">
                 No savings goals matched filters.
               </td>
             </tr>
@@ -106,8 +105,8 @@ export function SavingsGoalsSection({
                   <td className="px-6 py-4">
                     <button
                       type="button"
-                      onClick={() => onSelectCategory(cat.id)}
-                      className="text-[#2563eb] hover:underline font-bold text-left flex items-center gap-1.5"
+                      onClick={() => onEditCategory(cat)}
+                      className="text-[#2563eb] hover:underline font-bold text-left flex items-center gap-1.5 cursor-pointer"
                     >
                       <span>{cat.name}</span>
                       {cat.isPrivate && (
@@ -151,24 +150,6 @@ export function SavingsGoalsSection({
                           {reqMonthlyText}
                         </span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onEditCategory(cat)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onArchiveCategory(cat)}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
-                      >
-                        Archive
-                      </button>
                     </div>
                   </td>
                 </tr>

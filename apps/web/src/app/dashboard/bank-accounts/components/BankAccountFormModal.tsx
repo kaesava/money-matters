@@ -29,6 +29,7 @@ export interface BankAccountFormModalProps {
   readonly onSubmit: (e: React.FormEvent) => void;
   readonly onCategoryTypeToggle: (type: CategoryType) => void;
   readonly fmtMoney: (val: number | string | undefined) => string;
+  readonly onArchive?: () => void;
 }
 
 export function BankAccountFormModal({
@@ -53,6 +54,7 @@ export function BankAccountFormModal({
   onSubmit,
   onCategoryTypeToggle,
   fmtMoney,
+  onArchive,
 }: BankAccountFormModalProps) {
   const modalId = useId();
   const bankSelectId = useId();
@@ -215,21 +217,39 @@ export function BankAccountFormModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="px-4 py-2 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 rounded-xl shadow-xs transition-colors"
-          >
-            {isSaving ? "Saving..." : editingAccount ? "Save Changes" : "Create Account"}
-          </button>
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100">
+          <div>
+            {editingAccount && onArchive && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`Are you sure you want to archive "${editingAccount.name}"?`)) {
+                    onArchive();
+                    onClose();
+                  }
+                }}
+                className="text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors"
+              >
+                Archive Account
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-4 py-2 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 rounded-xl shadow-xs transition-colors"
+            >
+              {isSaving ? "Saving..." : editingAccount ? "Save Changes" : "Create Account"}
+            </button>
+          </div>
         </div>
       </form>
     </div>

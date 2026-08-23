@@ -9,9 +9,11 @@ import { authClient } from "../../lib/auth";
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+  const rawRedirect = searchParams.get("redirect") || "/dashboard";
+  const redirectUrl = (rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")) ? rawRedirect : "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -193,7 +195,7 @@ function SignInContent() {
         <div className="flex flex-col items-center gap-3 text-center">
           <Logo size="xl" />
           <h1 className="text-3xl font-bold tracking-tight text-[#1B2B4B]">{t("app.title")}</h1>
-          <p className="text-sm text-zinc-500">{t("auth.hint")}</p>
+          <p className="text-sm font-medium text-zinc-500">{t("app.tagline")}</p>
         </div>
 
         {error && (
@@ -252,23 +254,30 @@ function SignInContent() {
             disabled={loading}
           />
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 relative">
             <Input
               label={t("auth.passwordLabel")}
               placeholder={t("auth.passwordPlaceholder")}
               value={password}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="signin-user-password"
               autoComplete="current-password"
               required
               disabled={loading}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-8 text-xs font-semibold text-zinc-500 hover:text-zinc-800 cursor-pointer"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
             <div className="flex justify-end mt-1">
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-xs font-semibold text-[#00B4A6] hover:underline"
+                className="text-xs font-semibold text-[#2563eb] hover:underline cursor-pointer"
                 disabled={loading}
               >
                 {t("auth.forgotPassword")}

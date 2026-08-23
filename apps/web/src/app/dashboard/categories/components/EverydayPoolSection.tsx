@@ -29,7 +29,7 @@ interface EverydayPoolSectionProps {
   elapsedPct: number;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  onSelectCategory: (id: string) => void;
+  onSelectCategory?: (id: string) => void;
   onEditCategory: (cat: CategorySummaryItem) => void;
 }
 
@@ -48,7 +48,7 @@ export function EverydayPoolSection({
   elapsedPct,
   isCollapsed,
   onToggleCollapse,
-  onSelectCategory,
+  onSelectCategory: _onSelectCategory,
   onEditCategory,
 }: EverydayPoolSectionProps) {
   const { showIcons } = useIconVisibility();
@@ -103,14 +103,13 @@ export function EverydayPoolSection({
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
               <th className="px-6 py-3">Category Name</th>
-              <th className="px-6 py-3">Monthly Target Budget</th>
-              <th className="px-6 py-3 text-right">Actions</th>
+              <th className="px-6 py-3 text-right">Monthly Target Budget</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {categories.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-6 text-center text-xs text-zinc-400 font-medium">
+                <td colSpan={2} className="px-6 py-6 text-center text-xs text-zinc-400 font-medium">
                   No everyday categories matched filters.
                 </td>
               </tr>
@@ -120,23 +119,14 @@ export function EverydayPoolSection({
                   <td className="px-6 py-3.5">
                     <button
                       type="button"
-                      onClick={() => onSelectCategory(cat.id)}
-                      className="text-[#00B4A6] hover:underline font-bold text-left"
+                      onClick={() => onEditCategory(cat)}
+                      className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
                     >
                       {cat.name}
                     </button>
                   </td>
-                  <td className="px-6 py-3.5 font-mono font-bold text-zinc-700">
+                  <td className="px-6 py-3.5 font-mono font-bold text-zinc-700 text-right">
                     {fmt(cat.everydayAllowanceAmount || cat.monthlyAmount)}
-                  </td>
-                  <td className="px-6 py-3.5 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onEditCategory(cat)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all"
-                    >
-                      Edit
-                    </button>
                   </td>
                 </tr>
               ))

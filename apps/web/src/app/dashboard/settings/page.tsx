@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
+import { InfoTooltip } from "@money-matters/ui/web";
 import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
@@ -32,9 +33,15 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-lg pb-16 animate-in fade-in duration-200">
-      <h1 className="text-2xl font-bold" style={{ color: "var(--dash-text)" }}>
-        {t("settings.title")}
-      </h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-bold" style={{ color: "var(--dash-text)" }}>
+          {t("settings.title")}
+        </h1>
+        <InfoTooltip
+          title={t("tooltips.settings.title")}
+          content={t("tooltips.settings.content")}
+        />
+      </div>
 
       {/* Composable Vertical Slices */}
       <ProfileSection user={session?.user} />

@@ -2,13 +2,17 @@ import { Inngest } from 'inngest';
 import { db, incomeEvents, incomeSources, expenseEvents, categories, userPreferences, tenantUserPreferences, transactionLedger, users } from '@money-matters/db';
 import { eq, and, lte, gte, sql } from 'drizzle-orm';
 
+function getAestDateString(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(date);
+}
+
 export function createScheduledNotificationFunctions(inngest: Inngest) {
   // 1. Payday Incoming
   const notifyPaydayIncoming = inngest.createFunction(
     { id: 'notify-payday-incoming' },
     { cron: '0 8 * * *' }, // 6pm AEST
     async ({ step }) => {
-      const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      const tomorrowStr = getAestDateString(new Date(Date.now() + 86400000));
 
       const upcomingPaydays = await step.run('fetch-paydays-tomorrow', async () => {
         return await db
@@ -34,7 +38,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
               eq(incomeEvents.expectedDate, tomorrowStr),
               sql`${incomeEvents.archivedAt} IS NULL`,
               sql`${incomeSources.archivedAt} IS NULL`,
-              sql`(${tenantUserPreferences.paydayAlertsEnabled} IS NULL OR ${tenantUserPreferences.paydayAlertsEnabled} = true)`
+              sql`(${tenantUserPreferences.appPreferences} IS NULL OR (${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'payday_alerts_enabled')::boolean IS NOT FALSE)`
             )
           );
       });
@@ -62,8 +66,8 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     { cron: '0 23 * * *' }, // 9am AEST
     async ({ step }) => {
       const today = new Date();
-      const threeDaysLaterStr = new Date(today.getTime() + 3 * 86400000).toISOString().split('T')[0];
-      const todayStr = today.toISOString().split('T')[0];
+      const threeDaysLaterStr = getAestDateString(new Date(today.getTime() + 3 * 86400000));
+      const todayStr = getAestDateString(today);
 
       const bills = await step.run('fetch-upcoming-bills', async () => {
         return await db
@@ -92,7 +96,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
               gte(expenseEvents.expectedDate, todayStr),
               lte(expenseEvents.expectedDate, threeDaysLaterStr),
               sql`${expenseEvents.archivedAt} IS NULL`,
-              sql`(${tenantUserPreferences.billRemindersEnabled} IS NULL OR ${tenantUserPreferences.billRemindersEnabled} = true)`
+              sql`(${tenantUserPreferences.appPreferences} IS NULL OR (${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'bill_reminders_enabled')::boolean IS NOT FALSE)`
             )
           );
       });
@@ -119,7 +123,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     { id: 'notify-bill-overdue' },
     { cron: '0 0 * * *' }, // 10am AEST
     async ({ step }) => {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getAestDateString();
 
       const overdueBills = await step.run('fetch-overdue-bills', async () => {
         return await db
@@ -137,7 +141,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
               eq(expenseEvents.status, 'UPCOMING'),
               lte(expenseEvents.expectedDate, todayStr),
               sql`${expenseEvents.archivedAt} IS NULL`,
-              sql`(${tenantUserPreferences.billRemindersEnabled} IS NULL OR ${tenantUserPreferences.billRemindersEnabled} = true)`
+              sql`(${tenantUserPreferences.appPreferences} IS NULL OR (${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'bill_reminders_enabled')::boolean IS NOT FALSE)`
             )
           );
       });
@@ -175,7 +179,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
           })
           .from(tenantUserPreferences)
           .leftJoin(users, eq(tenantUserPreferences.userId, users.id))
-          .where(eq(tenantUserPreferences.weeklyDigestEnabled, true));
+          .where(sql`(${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'weekly_digest_enabled')::boolean IS TRUE`);
       });
 
       for (const pref of allPrefs) {
