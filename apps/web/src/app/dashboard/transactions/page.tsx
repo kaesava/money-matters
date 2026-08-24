@@ -42,6 +42,7 @@ export default function TransactionsPage() {
     const rawTransactions = transactionsQuery.data ?? [];
     const result: Array<{
       id: string;
+      recordedAt: string | Date;
       date: string;
       description: string;
       categoryName: string;
@@ -79,6 +80,7 @@ export default function TransactionsPage() {
 
         result.push({
           id: tx.id,
+          recordedAt: tx.recordedAt,
           date: fmtDate(tx.recordedAt),
           description: tx.note || "Transfer between categories",
           categoryName: `${sourceCatName} ➔ ${destCatName}`,
@@ -91,6 +93,7 @@ export default function TransactionsPage() {
         const catName = tx.categoryName || "Uncategorized";
         result.push({
           id: tx.id,
+          recordedAt: tx.recordedAt,
           date: fmtDate(tx.recordedAt),
           description: tx.note || `Transaction (${tx.source || 'MANUAL'})`,
           categoryName: catName,
@@ -127,7 +130,7 @@ export default function TransactionsPage() {
     return [...filteredTransactions].sort((a, b) => {
       let cmp = 0;
       if (sortColumn === "recordedAt") {
-        cmp = a.date.localeCompare(b.date);
+        cmp = new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime();
       } else if (sortColumn === "description") {
         cmp = a.description.localeCompare(b.description);
       } else if (sortColumn === "amount") {
