@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { fmtDate } from "@money-matters/ui/web";
+import { fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 
 export interface ParsedTx {
   date: string;
@@ -71,6 +71,14 @@ export function CsvStepReview({
   // Bulk Action Local Tool States
   const [bulkPoolTarget, setBulkPoolTarget] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("EVERYDAY");
   const [bulkStatusTarget, setBulkStatusTarget] = useState<boolean>(true);
+
+  const { widths, onMouseDown } = useResizableColumns({
+    date: 120,
+    desc: 260,
+    target: 220,
+    amount: 120,
+    status: 140,
+  });
 
   const selectedIndices = Object.keys(selectedMap)
     .map(Number)
@@ -270,11 +278,11 @@ export function CsvStepReview({
                   title="Select all visible filtered transactions"
                 />
               </th>
-              <th className="p-3 w-28">Date</th>
-              <th className="p-3">Description</th>
-              <th className="p-3 w-56">Mapped Target</th>
-              <th className="p-3 w-28 text-right">Amount</th>
-              <th className="p-3 w-32 text-center">Action / Status</th>
+              <ResizableTh width={widths.date} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)} className="p-3">Date</ResizableTh>
+              <ResizableTh width={widths.desc} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("desc", e)} className="p-3">Description</ResizableTh>
+              <ResizableTh width={widths.target} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("target", e)} className="p-3">Mapped Target</ResizableTh>
+              <ResizableTh width={widths.amount} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)} className="p-3 text-right">Amount</ResizableTh>
+              <ResizableTh width={widths.status} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("status", e)} className="p-3 text-center">Action / Status</ResizableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium">

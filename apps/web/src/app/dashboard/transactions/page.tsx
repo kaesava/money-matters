@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, SearchInput, PaginationBar, fmtDate } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 
 const formatAUD = (val: number | string): string => {
   const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -19,6 +19,14 @@ export default function TransactionsPage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  const { widths, onMouseDown } = useResizableColumns({
+    date: 140,
+    description: 280,
+    category: 180,
+    source: 140,
+    amount: 140,
+  });
 
   const categoriesQuery = trpc.listCategories.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500, offset: 0 });
@@ -220,27 +228,31 @@ export default function TransactionsPage() {
         </button>
       </div>
 
-      {/* Transactions Table */}
-      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-2xs">
+      {/* Transactions History Table */}
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
         {sortedTransactions.length === 0 ? (
-          <div className="p-12 text-center text-xs font-semibold text-zinc-400">
-            {t("transactions.noTransactionsFound") || "No transactions found matching the selected filters."}
+          <div className="py-16 text-center text-zinc-400 text-xs font-semibold">
+            No transaction records found matching your filters.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                  <th 
-                    className="py-3 px-4 cursor-pointer hover:bg-slate-100" 
+                  <ResizableTh
+                    width={widths.date}
+                    onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)}
+                    className="py-3 px-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => {
                       if (sortColumn === 'recordedAt') setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
                       else { setSortColumn('recordedAt'); setSortDirection('desc'); }
                     }}
                   >
                     {t("transactions.date") || "Date"} {sortColumn === 'recordedAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                  </th>
-                  <th 
+                  </ResizableTh>
+                  <ResizableTh
+                    width={widths.description}
+                    onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("description", e)}
                     className="py-3 px-4 cursor-pointer hover:bg-slate-100"
                     onClick={() => {
                       if (sortColumn === 'description') setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -248,10 +260,12 @@ export default function TransactionsPage() {
                     }}
                   >
                     {t("transactions.description") || "Description"} {sortColumn === 'description' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                  </th>
-                  <th className="py-3 px-4">{t("transactions.category") || "Category"}</th>
-                  <th className="py-3 px-4">Origin / Source</th>
-                  <th 
+                  </ResizableTh>
+                  <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4">{t("transactions.category") || "Category"}</ResizableTh>
+                  <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="py-3 px-4">Origin / Source</ResizableTh>
+                  <ResizableTh
+                    width={widths.amount}
+                    onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)}
                     className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
                     onClick={() => {
                       if (sortColumn === 'amount') setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -259,13 +273,13 @@ export default function TransactionsPage() {
                     }}
                   >
                     {t("transactions.amount") || "Amount"} {sortColumn === 'amount' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                  </th>
+                  </ResizableTh>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 text-xs">
                 {paginatedTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3 px-4 font-mono text-zinc-500">{tx.date}</td>
+                    <td className="py-3 px-4 font-mono text-zinc-500">{fmtDate(tx.date)}</td>
                     <td className="py-3 px-4 font-semibold text-[#1B2B4B]">{tx.description}</td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${

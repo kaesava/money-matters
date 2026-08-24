@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import { FilterBar } from "../../../../components/web/FilterBar";
 import { PaginationBar } from "@money-matters/ui/web";
@@ -53,6 +53,14 @@ export default function HistoryPage() {
 
   const [sortField, setSortField] = useState<SortField>("recordedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const { widths, onMouseDown } = useResizableColumns({
+    date: 160,
+    bucket: 200,
+    amount: 140,
+    source: 120,
+    note: 240,
+  });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -115,8 +123,8 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 max-w-6xl pb-16 animate-in fade-in duration-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <button
             onClick={() => router.back()}
@@ -170,12 +178,12 @@ export default function HistoryPage() {
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search note, bucket, amount..."
+        searchPlaceholder="Search history notes or category names..."
         filterGroups={[
           {
-            label: "Bucket type",
+            label: "Pool Type",
             value: categoryTypeFilter,
-            onChange: setCategoryTypeFilter,
+            onChange: (val: string) => setCategoryTypeFilter(val),
             defaultValue: "ALL",
             options: [
               { id: "ALL", label: "All" },
@@ -197,17 +205,17 @@ export default function HistoryPage() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
-              <th onClick={() => toggleSort("recordedAt")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+              <ResizableTh width={widths.date} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)} onClick={() => toggleSort("recordedAt")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Date {sortField === "recordedAt" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => toggleSort("categoryName")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+              </ResizableTh>
+              <ResizableTh width={widths.bucket} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("bucket", e)} onClick={() => toggleSort("categoryName")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Bucket {sortField === "categoryName" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-              <th onClick={() => toggleSort("amount")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+              </ResizableTh>
+              <ResizableTh width={widths.amount} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)} onClick={() => toggleSort("amount")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
                 Amount {sortField === "amount" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-              <th className="px-6 py-4">Source</th>
-              <th className="px-6 py-4">What for</th>
+              </ResizableTh>
+              <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="px-6 py-4">Source</ResizableTh>
+              <ResizableTh width={widths.note} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("note", e)} className="px-6 py-4">What for</ResizableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -221,7 +229,7 @@ export default function HistoryPage() {
                 return (
                   <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
                     <td className="px-6 py-4 text-zinc-500 font-medium">
-                      {new Date(tx.recordedAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}
+                      {fmtDate(tx.recordedAt)}
                     </td>
                     <td className="px-6 py-4">
                       <Link href={`/dashboard/categories?search=${encodeURIComponent(tx.categoryName || "")}`} className="font-bold text-[#00B4A6] hover:underline cursor-pointer">

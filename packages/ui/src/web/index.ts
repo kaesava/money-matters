@@ -35,6 +35,7 @@ export * from '../hooks/IconVisibilityContext';
 export * from '../utils/formatDate';
 export * from './useResizableColumns';
 export * from './ResizableTh';
+export * from './FormattedDate';
 
 
 
