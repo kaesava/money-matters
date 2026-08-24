@@ -54,11 +54,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const [creditActionMap, setCreditActionMap] = useState<Record<number, "BANK_DEPOSIT" | "PAYDAY_ALLOCATION">>({});
   const [includedMap, setIncludedMap] = useState<Record<number, boolean>>({});
   const [flowTypeOverrideMap, setFlowTypeOverrideMap] = useState<Record<number, "DEBIT" | "CREDIT">>({});
+  const [noteMap, setNoteMap] = useState<Record<number, string>>({});
+  const [categoryMapState, setCategoryMapState] = useState<Record<number, string>>({});
   const [commitResult, setCommitResult] = useState<{ importedCount: number; skippedDuplicatesCount: number; batchId?: string } | null>(null);
 
   // Queries
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
   const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
+
+  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   // Handle Escape key to cancel/close modal
   useEffect(() => {
@@ -135,17 +140,21 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       const initialPools: Record<number, "EVERYDAY" | "REGULAR" | "GOAL"> = {};
       const initialCreditActions: Record<number, "BANK_DEPOSIT" | "PAYDAY_ALLOCATION"> = {};
       const initialIncluded: Record<number, boolean> = {};
+      const initialNotes: Record<number, string> = {};
 
       data.transactions.forEach((tx, idx) => {
         initialIncluded[idx] = !tx.isDuplicate;
         initialPools[idx] = "EVERYDAY";
         initialCreditActions[idx] = "BANK_DEPOSIT";
+        initialNotes[idx] = tx.description;
       });
 
       setSelectedMap({});
       setIncludedMap(initialIncluded);
       setPoolMap(initialPools);
       setCreditActionMap(initialCreditActions);
+      setNoteMap(initialNotes);
+      setCategoryMapState({});
       setFlowTypeOverrideMap({});
       setStep(2);
     },
@@ -303,13 +312,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
     const payloadTransactions = parsedData.transactions.map((tx, idx) => ({
       date: tx.date,
-      description: tx.description,
+      description: noteMap[idx] !== undefined ? noteMap[idx] : tx.description,
       amount: tx.amount,
       flowType: getEffectiveFlowType(tx, idx),
       targetPool: poolMap[idx] || "EVERYDAY",
+      categoryId: categoryMapState[idx] || undefined,
       creditAction: creditActionMap[idx] || "BANK_DEPOSIT",
       idempotencyKey: tx.idempotencyKey,
-      note: tx.description,
+      note: noteMap[idx] !== undefined ? noteMap[idx] : tx.description,
       isIncluded: includedMap[idx] !== false,
     }));
 
@@ -318,6 +328,11 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       transactions: payloadTransactions,
     });
   };
+
+  const selectedBankAccount = bankAccounts.find((acc) => acc.id === targetBankAccountId);
+  const targetBankAccountName = selectedBankAccount
+    ? `${selectedBankAccount.name} (${selectedBankAccount.categoryTypes.join(", ") || "Unlinked"})`
+    : undefined;
 
   if (!isOpen) return null;
 
@@ -340,8 +355,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
-            title="Cancel (Esc)"
+            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg text-lg font-bold transition-colors cursor-pointer"
           >
             ✕
           </button>
@@ -350,12 +364,12 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
         {/* Content Body */}
         <div className="p-6 overflow-y-auto flex-1">
           {errorMessage && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl flex items-center justify-between">
-              <span>{errorMessage}</span>
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between">
+              <span>⚠️ {errorMessage}</span>
               <button
                 type="button"
                 onClick={() => setErrorMessage(null)}
-                className="text-rose-500 hover:text-rose-800 font-bold ml-2 cursor-pointer"
+                className="text-rose-500 hover:text-rose-700 font-extrabold cursor-pointer"
               >
                 ✕
               </button>
@@ -389,6 +403,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
           {step === 2 && parsedData && (
             <CsvStepReview
               parsedData={parsedData}
+              targetBankAccountName={targetBankAccountName}
               selectedExpenses={selectedExpenses}
               selectedIncome={selectedIncome}
               netImpact={netImpact}
@@ -407,6 +422,11 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               setCreditActionMap={setCreditActionMap}
               includedMap={includedMap}
               setIncludedMap={setIncludedMap}
+              noteMap={noteMap}
+              setNoteMap={setNoteMap}
+              categoryMapState={categoryMapState}
+              setCategoryMapState={setCategoryMapState}
+              categories={categories}
               flowTypeOverrideMap={flowTypeOverrideMap}
               setFlowTypeOverrideMap={setFlowTypeOverrideMap}
               getEffectiveFlowType={getEffectiveFlowType}

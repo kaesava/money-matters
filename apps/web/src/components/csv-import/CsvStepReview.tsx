@@ -15,6 +15,12 @@ export interface ParsedTx {
   isDuplicate?: boolean;
 }
 
+export interface CategoryItem {
+  id: string;
+  name: string;
+  type: "EVERYDAY" | "REGULAR" | "GOAL";
+}
+
 export interface CsvStepReviewProps {
   parsedData: {
     bank: string;
@@ -22,6 +28,7 @@ export interface CsvStepReviewProps {
     statementStartDate?: string | null;
     statementEndDate?: string | null;
   };
+  targetBankAccountName?: string;
   selectedExpenses: number;
   selectedIncome: number;
   netImpact: number;
@@ -40,6 +47,11 @@ export interface CsvStepReviewProps {
   setCreditActionMap: React.Dispatch<React.SetStateAction<Record<number, "BANK_DEPOSIT" | "PAYDAY_ALLOCATION">>>;
   includedMap: Record<number, boolean>;
   setIncludedMap: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  noteMap: Record<number, string>;
+  setNoteMap: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+  categoryMapState: Record<number, string>;
+  setCategoryMapState: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+  categories: CategoryItem[];
   flowTypeOverrideMap: Record<number, "DEBIT" | "CREDIT">;
   setFlowTypeOverrideMap: React.Dispatch<React.SetStateAction<Record<number, "DEBIT" | "CREDIT">>>;
   getEffectiveFlowType: (tx: ParsedTx, idx: number) => "DEBIT" | "CREDIT";
@@ -47,6 +59,7 @@ export interface CsvStepReviewProps {
 
 export function CsvStepReview({
   parsedData,
+  targetBankAccountName,
   selectedExpenses,
   selectedIncome,
   netImpact,
@@ -65,6 +78,12 @@ export function CsvStepReview({
   setCreditActionMap,
   includedMap,
   setIncludedMap,
+  noteMap,
+  setNoteMap,
+  categoryMapState,
+  setCategoryMapState,
+  categories,
+  flowTypeOverrideMap: _flowTypeOverrideMap,
   setFlowTypeOverrideMap,
   getEffectiveFlowType,
 }: CsvStepReviewProps) {
@@ -138,8 +157,8 @@ export function CsvStepReview({
                 Statement Period: {fmtDate(parsedData.statementStartDate)} — {fmtDate(parsedData.statementEndDate)}
               </span>
             </span>
-            <span className="text-[#2563eb] text-[11px]">
-              Bank: {parsedData.bank} ({parsedData.transactions.length} rows)
+            <span className="text-[#2563eb] text-[11px] font-bold">
+              Target Account: {targetBankAccountName || parsedData.bank} ({parsedData.transactions.length} rows)
             </span>
           </div>
         )}
@@ -299,6 +318,7 @@ export function CsvStepReview({
                 const flow = getEffectiveFlowType(tx, idx);
                 const currentPool = poolMap[idx] || "EVERYDAY";
                 const currentCreditAction = creditActionMap[idx] || "BANK_DEPOSIT";
+                const goalCategories = categories.filter((c) => c.type === "GOAL");
 
                 return (
                   <tr
@@ -311,51 +331,89 @@ export function CsvStepReview({
                       <input
                         type="checkbox"
                         checked={isSelected}
+                        disabled={!isIncluded}
                         onChange={(e) =>
                           setSelectedMap((prev) => ({ ...prev, [idx]: e.target.checked }))
                         }
-                        className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb] cursor-pointer"
+                        className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb] cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">
                       {fmtDate(tx.date)}
                     </td>
-                    <td className="p-3 font-semibold text-slate-800">
-                      <div className="flex flex-col">
-                        <span>{tx.description}</span>
+                    <td className="p-3">
+                      <div className="flex flex-col gap-1">
+                        <input
+                          type="text"
+                          value={noteMap[idx] !== undefined ? noteMap[idx] : tx.description}
+                          disabled={!isIncluded}
+                          onChange={(e) =>
+                            setNoteMap((prev) => ({
+                              ...prev,
+                              [idx]: e.target.value,
+                            }))
+                          }
+                          className={`w-full px-2 py-1 text-xs border rounded-lg font-semibold transition-all ${
+                            !isIncluded
+                              ? "bg-slate-100/70 border-slate-200 text-slate-400 line-through cursor-not-allowed"
+                              : "bg-white border-slate-300 text-slate-900 focus:ring-2 focus:ring-[#2563eb]"
+                          }`}
+                        />
                         {tx.isDuplicate && (
                           <span className="text-[10px] text-amber-700 font-bold">
-                            ⚠️ Exact duplicate detected
+                            ⚠️ Duplicate detected
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="p-3">
                       {flow === "DEBIT" ? (
-                        <select
-                          value={currentPool}
-                          onChange={(e) =>
-                            setPoolMap((prev) => ({
-                              ...prev,
-                              [idx]: e.target.value as "EVERYDAY" | "REGULAR" | "GOAL",
-                            }))
-                          }
-                          className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg font-semibold bg-white cursor-pointer"
-                        >
-                          <option value="EVERYDAY">💳 Everyday Pool</option>
-                          <option value="REGULAR">🗓️ Bills Pool</option>
-                          <option value="GOAL">🎯 Savings Pool</option>
-                        </select>
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={currentPool}
+                            disabled={!isIncluded}
+                            onChange={(e) =>
+                              setPoolMap((prev) => ({
+                                ...prev,
+                                [idx]: e.target.value as "EVERYDAY" | "REGULAR" | "GOAL",
+                              }))
+                            }
+                            className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg font-semibold bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="EVERYDAY">💳 Everyday Pool</option>
+                            <option value="REGULAR">🗓️ Bills Pool</option>
+                            <option value="GOAL">🎯 Savings Goals Pool</option>
+                          </select>
+
+                          {currentPool === "GOAL" && goalCategories.length > 0 && (
+                            <select
+                              value={categoryMapState[idx] || ""}
+                              disabled={!isIncluded}
+                              onChange={(e) =>
+                                setCategoryMapState((prev) => ({ ...prev, [idx]: e.target.value }))
+                              }
+                              className="w-full px-2 py-1 text-[11px] border border-blue-300 bg-blue-50/70 rounded-lg font-bold text-blue-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <option value="">(Default Goal Pool)</option>
+                              {goalCategories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                  🎯 {cat.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
                       ) : (
                         <select
                           value={currentCreditAction}
+                          disabled={!isIncluded}
                           onChange={(e) =>
                             setCreditActionMap((prev) => ({
                               ...prev,
                               [idx]: e.target.value as "BANK_DEPOSIT" | "PAYDAY_ALLOCATION",
                             }))
                           }
-                          className="w-full px-2 py-1 text-xs border border-emerald-300 bg-emerald-50/60 rounded-lg font-bold text-emerald-900 cursor-pointer"
+                          className="w-full px-2 py-1 text-xs border border-emerald-300 bg-emerald-50/60 rounded-lg font-bold text-emerald-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="BANK_DEPOSIT">💰 Direct Bank Deposit</option>
                           <option value="PAYDAY_ALLOCATION">🌊 Payday Income (Waterfall)</option>

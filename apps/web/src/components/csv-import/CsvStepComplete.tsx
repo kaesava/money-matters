@@ -25,15 +25,10 @@ export function CsvStepComplete({ commitResult }: CsvStepCompleteProps) {
         </p>
         {commitResult.skippedDuplicatesCount > 0 && (
           <p className="text-amber-700">
-            ({commitResult.skippedDuplicatesCount} duplicate records skipped)
+            ({commitResult.skippedDuplicatesCount} records skipped)
           </p>
         )}
-        {commitResult.batchId && (
-          <p className="text-[10px] text-slate-400 font-mono pt-1">
-            Batch ID: {commitResult.batchId}
-          </p>
-        )}
-        <p className="text-slate-500 pt-1">Your ledger and available balances have been updated.</p>
+        <p className="text-slate-500 pt-1">Your transaction history and category pools have been updated.</p>
       </div>
     </div>
   );

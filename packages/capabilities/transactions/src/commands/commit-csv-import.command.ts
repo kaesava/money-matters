@@ -96,12 +96,12 @@ export async function commitCsvImportCommand(
 
     const insertValues = newTransactions.map((t) => {
       let targetCatId = everydayCat.id;
-      if (t.targetPool === "REGULAR") {
+      if (t.categoryId && validCatIds.has(t.categoryId)) {
+        targetCatId = t.categoryId;
+      } else if (t.targetPool === "REGULAR") {
         targetCatId = regularCat.id;
       } else if (t.targetPool === "GOAL") {
         targetCatId = goalCat.id;
-      } else if (t.categoryId && validCatIds.has(t.categoryId)) {
-        targetCatId = t.categoryId;
       }
 
       const recordedAt = t.date ? new Date(t.date) : new Date();
