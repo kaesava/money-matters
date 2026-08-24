@@ -88,12 +88,39 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     [flowTypeOverrideMap]
   );
 
+  const detectColumnCandidates = useCallback((headers: string[]) => {
+    const dateIdx = headers.findIndex((h) => {
+      const l = (h || "").toLowerCase();
+      return l.includes("date") || l.includes("time") || l.includes("day");
+    });
+
+    const descIdx = headers.findIndex((h) => {
+      const l = (h || "").toLowerCase();
+      return l.includes("desc") || l.includes("narrative") || l.includes("memo") || l.includes("detail") || l.includes("payee");
+    });
+
+    const amtIdx = headers.findIndex((h) => {
+      const l = (h || "").toLowerCase();
+      return l.includes("amount") || l.includes("debit") || l.includes("credit") || l.includes("sum") || l.includes("val");
+    });
+
+    return {
+      dateCol: dateIdx !== -1 ? dateIdx : 0,
+      descCol: descIdx !== -1 ? descIdx : (headers.length > 1 ? 1 : 0),
+      amtCol: amtIdx !== -1 ? amtIdx : (headers.length > 2 ? 2 : 0),
+    };
+  }, []);
+
   // Mutations
   const parseCsvMutation = trpc.parseCsv.useMutation({
     onSuccess: (data) => {
       if (data.transactions.length === 0) {
         if (data.headers && data.headers.length > 0 && !showCustomMapper) {
           setRawHeaders(data.headers);
+          const candidates = detectColumnCandidates(data.headers);
+          setDateColIndex(candidates.dateCol);
+          setDescColIndex(candidates.descCol);
+          setAmountColIndex(candidates.amtCol);
           setShowCustomMapper(true);
           setErrorMessage("Unrecognised bank CSV format. Please map the columns manually below.");
         } else {
@@ -202,6 +229,18 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
       const text = evt.target?.result as string;
       if (text) {
         setRawTextContent(text);
+
+        // Pre-detect headers & candidate columns
+        const firstLine = text.split(/\r?\n/).find((l) => l.trim().length > 0) || "";
+        const headers = firstLine.split(/,|\t|;/).map((h) => h.replace(/^["']|["']$/g, "").trim());
+        if (headers.length > 0) {
+          setRawHeaders(headers);
+          const candidates = detectColumnCandidates(headers);
+          setDateColIndex(candidates.dateCol);
+          setDescColIndex(candidates.descCol);
+          setAmountColIndex(candidates.amtCol);
+        }
+
         parseCsvMutation.mutate({
           csvText: text,
           bankAccountId: targetBankAccountId,

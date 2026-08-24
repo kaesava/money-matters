@@ -107,6 +107,20 @@ export function CsvStepUpload({
         </div>
       )}
 
+      {/* CSV Format Assumptions Card */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 space-y-1.5">
+        <div className="font-bold text-slate-800 flex items-center gap-1.5">
+          <span>💡</span>
+          <span>CSV Statement Requirements & Assumptions:</span>
+        </div>
+        <ul className="list-disc list-inside text-[11px] text-slate-500 space-y-1 pl-1">
+          <li>First row must contain column headers (e.g., Date, Description, Amount).</li>
+          <li>Standard comma-separated (<code>.csv</code>) exports from Australian financial institutions.</li>
+          <li>Dates formatted as <code>DD/MM/YYYY</code> or <code>YYYY-MM-DD</code>.</li>
+          <li>Amounts as numbers (e.g. <code>-42.50</code> for debits, <code>1500.00</code> for credits).</li>
+        </ul>
+      </div>
+
       {/* Custom Column Mapper (Fallback) */}
       {showCustomMapper && (
         <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
@@ -125,9 +139,11 @@ export function CsvStepUpload({
                 {rawHeaders.map((h, i) => {
                   const lower = (h || "").toLowerCase();
                   const isDateCand = lower.includes("date") || lower.includes("time") || lower.includes("day");
+                  const isSelected = i === dateColIndex;
                   return (
                     <option key={i} value={i}>
-                      {isDateCand ? "📅 " : ""}{h || `Col ${i + 1}`}{isDateCand ? " (Recommended)" : ""}
+                      {isDateCand ? "📅 " : ""}{h || `Col ${i + 1}`}
+                      {isSelected ? " (Selected Default)" : isDateCand ? " (Recommended Date)" : ""}
                     </option>
                   );
                 })}
@@ -143,9 +159,11 @@ export function CsvStepUpload({
                 {rawHeaders.map((h, i) => {
                   const lower = (h || "").toLowerCase();
                   const isDescCand = lower.includes("desc") || lower.includes("narrative") || lower.includes("memo") || lower.includes("detail") || lower.includes("payee");
+                  const isSelected = i === descColIndex;
                   return (
                     <option key={i} value={i}>
-                      {isDescCand ? "📝 " : ""}{h || `Col ${i + 1}`}{isDescCand ? " (Recommended)" : ""}
+                      {isDescCand ? "📝 " : ""}{h || `Col ${i + 1}`}
+                      {isSelected ? " (Selected Default)" : isDescCand ? " (Recommended Text)" : ""}
                     </option>
                   );
                 })}
@@ -161,9 +179,11 @@ export function CsvStepUpload({
                 {rawHeaders.map((h, i) => {
                   const lower = (h || "").toLowerCase();
                   const isAmountCand = lower.includes("amount") || lower.includes("debit") || lower.includes("credit") || lower.includes("sum") || lower.includes("val");
+                  const isSelected = i === amountColIndex;
                   return (
                     <option key={i} value={i}>
-                      {isAmountCand ? "💲 " : ""}{h || `Col ${i + 1}`}{isAmountCand ? " (Recommended)" : ""}
+                      {isAmountCand ? "💲 " : ""}{h || `Col ${i + 1}`}
+                      {isSelected ? " (Selected Default)" : isAmountCand ? " (Recommended Numeric)" : ""}
                     </option>
                   );
                 })}

@@ -302,7 +302,7 @@ export function CsvStepReview({
 
                 return (
                   <tr
-                    key={tx.idempotencyKey || idx}
+                    key={`${tx.idempotencyKey || "row"}-${idx}`}
                     className={`hover:bg-slate-50 transition-colors ${
                       tx.isDuplicate ? "bg-amber-50/40" : ""
                     } ${!isIncluded ? "opacity-40 bg-slate-50/50 line-through" : ""}`}
