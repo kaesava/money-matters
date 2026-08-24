@@ -45,7 +45,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   const sortedItems = [...items].sort((a, b) => {
     if (a.isOverdue && !b.isOverdue) return -1;
     if (!a.isOverdue && b.isOverdue) return 1;
-    return a.expectedDate.localeCompare(b.expectedDate);
+    return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
   });
 
   return (
