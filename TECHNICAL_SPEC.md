@@ -152,7 +152,12 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 
 ### 5.3 Bank CSV Import Engine & Import Log (`@money-matters/capability-transactions`)
 - Interactive 3-Step Import Wizard on Web Dashboard (`Upload` $\rightarrow$ `Review & Map` $\rightarrow$ `Complete & Commit`).
-- Visual **CSV Imports Log** on Bank Accounts page powered by `listCsvImportBatchesQuery` displaying import date (`26 Aug 2026`), bank account name, row count, net amount, and a 1-click **Archive Batch** button.
+- **CSV Statement Import Engine**:
+  - **Parsing & Format Detection**: Automatically recognizes Australian bank CSV formats (CBA, Westpac, ANZ, NAB, ING, Macquarie) and supports interactive custom column mapping with smart candidate hints (`📅 Date`, `💲 Amount`, `📝 Description`).
+  - **Zero Keyword Rules & Frictionless Pool Mapping**: Text keyword rules (`CATEGORY_KEYWORD_MAP`) and merchant rule learning are completely removed. Debits map directly to core Pools (`Everyday Pool`, `Bills Pool`, `Savings Pool`). Credits map to Aussie-functional options: `Direct Bank Deposit (No waterfall allocation)` or `Payday Income (Schedule for Waterfall Allocation)`.
+  - **Deduplication Hash**: Deterministic idempotency key: `csv-import-${date}-${flowType}-${amount}-${cleanDesc}` matching exact date, amount, description, and flow type.
+  - **Include/Exclude Action Controls & Bulk Toolbar**: Row-level action selector (`✅ Include` vs `🚫 Exclude`). Checkboxes are reserved for bulk batch actions (Apply Pool + Go, Flip Selected Polarity, Set Status + Go). Prevents Step 2 transition if parsing yields 0 records and clears errors on step change.
+  - **Batch Audit Log**: Statement imports generate unique `batchId` GUIDs tagged as `transferGroupId` on `transaction_ledger` entries, enabling 1-click batch rollback & archiving on the Bank Accounts screen.
 - Archiving a batch soft-deletes (`archivedAt = now()`) all transactions in that batch via `rollbackCsvImportBatchCommand`.
 - Server-side deduplication via idempotency keys (`csv-import-${date}-${flowType}-${amount}-${cleanDesc}`) pre-flagged as `⚠️ Duplicate` and pre-unchecked in the preview table.
 - Bulk atomic insertion into `transactionLedger` via `commitCsvImportCommand` (Rule #6 compliant single-query insert).

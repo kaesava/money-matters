@@ -12,7 +12,9 @@ export interface ParsedCsvTransaction {
   description: string;
   amount: string; // positive string e.g. "45.20"
   flowType: "DEBIT" | "CREDIT";
-  suggestedCategoryName: string | null;
+  targetPool?: "EVERYDAY" | "REGULAR" | "GOAL";
+  creditAction?: "BANK_DEPOSIT" | "PAYDAY_ALLOCATION";
+  suggestedCategoryName?: string | null;
   suggestedIncomeSourceId?: string | null;
   idempotencyKey: string;
   rawBank: string;
@@ -41,20 +43,6 @@ export const BankCsvImportInputSchema = z.object({
 }).strict();
 
 export type BankCsvImportInput = z.infer<typeof BankCsvImportInputSchema>;
-
-/**
- * Keyword-to-category name auto-matching dictionary for Australian merchants.
- */
-const CATEGORY_KEYWORD_MAP: Array<{ keywords: string[]; categoryName: string }> = [
-  { keywords: ["woolworths", "coles", "aldi", "iga", "harris farm", "costco", "spudshed"], categoryName: "Groceries & Food Supplies" },
-  { keywords: ["agl", "origin", "energyaustralia", "red energy", "sydney water", "yarra valley"], categoryName: "Electricity & Gas (AGL)" },
-  { keywords: ["aussie broadband", "telstra", "optus", "belong", "tpg", "vodafone", "aussiebb"], categoryName: "NBN Broadband (Aussie Broadband)" },
-  { keywords: ["bupa", "medibank", "hcf", "nib", "allianz", "qbe", "nrma", "racq", "racv"], categoryName: "Private Health Insurance (Bupa)" },
-  { keywords: ["netflix", "spotify", "disney", "youtube", "apple.com/bill", "prime video", "kayo", "stan"], categoryName: "Streaming & Subscriptions" },
-  { keywords: ["ampol", "bp ", "caltex", "7-eleven", "shell", "united petrol", "liberty petrol"], categoryName: "Everyday Spending & Discretionary" },
-  { keywords: ["uber", "didi", "transport for nsw", "opal", "myki", "gocard", "linkt", "translink"], categoryName: "Everyday Spending & Discretionary" },
-  { keywords: ["mcdonalds", "maccas", "kfc", "hungry jacks", "domino", "uber eats", "doordash", "menulog"], categoryName: "Everyday Spending & Discretionary" },
-];
 
 /**
  * Generates a deterministic hash string from transaction parameters for deduplication.
@@ -253,28 +241,6 @@ export function parseBankCsv(
     const cleanDesc = rawDesc.replace(/^"|"$/g, "").trim() || "Imported Transaction";
     const amountVal = parseFloat(rawAmount).toFixed(2);
 
-    // Auto-match category keyword (giving priority to tenant learned rules)
-    let suggestedCategoryName: string | null = null;
-    const lowerDesc = cleanDesc.toLowerCase();
-
-    if (merchantRules) {
-      for (const [kw, categoryName] of Object.entries(merchantRules)) {
-        if (lowerDesc.includes(kw.toLowerCase())) {
-          suggestedCategoryName = categoryName;
-          break;
-        }
-      }
-    }
-
-    if (!suggestedCategoryName) {
-      for (const item of CATEGORY_KEYWORD_MAP) {
-        if (item.keywords.some((kw) => lowerDesc.includes(kw))) {
-          suggestedCategoryName = item.categoryName;
-          break;
-        }
-      }
-    }
-
     const idempotencyKey = generateTransactionHash(formattedDate, amountVal, cleanDesc, flowType);
 
     transactions.push({
@@ -282,7 +248,8 @@ export function parseBankCsv(
       description: cleanDesc,
       amount: amountVal,
       flowType,
-      suggestedCategoryName,
+      targetPool: "EVERYDAY",
+      creditAction: "BANK_DEPOSIT",
       idempotencyKey,
       rawBank: bankName,
     });

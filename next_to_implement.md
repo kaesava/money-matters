@@ -4,24 +4,36 @@
 
 Setup does not include bank accounts - ok?
 
-# WEB
+# Rules
+* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, vertical slice architecture, test cases coverage, Remove redundant code, etc.
+* Ignore mobile app for now
 
 ## General
 * I'm still seeing dates like 2026-12-31 (for example: Pools > Savings > Target date). Ensure that across the app and all screens, modals, etc. dates are shown like 31 Dec 2026. Update any md file you need to so this is adhered to.
+* On All tables in the app, allow the user to resize column widths. Start with reasonable relative widths for all of them - applies to all tables across all screens. Ensure code is written once and re-used.
+* In the Quick Add "last 3" Pickers, don't include Payday allocations and Everyday/Bill Adjustments (when users directly updated balance).
+
 ## "Pools"
 * PENDING - Upcoming Coverae
 ### Activity
-PENDING
 ### New/Edit of Everday/Bills
-### Move Money
 
 ## "History"
 DONE
-## Accounts
+
+## Bank Accounts
+* In the Income & Bills search bar and History search bar, when you type, an x appears for the user to clear the search. Good. However, this is not happening with Bank Accounts search bar. Ensure this is built once and used consistently across the app - including icons, functionality, look and feel, etc. 
+* Remove the (i) from the column headers - they don't look good and aren't adding value
+* Instead of "Each category pool (Everyday, Bills, Goals) must be linked to a bank account for waterfall payday routing.", make it more functional on why we are asking the user to do this. That is, it will make it easier to reconcile to ensure the app is accurately tracking to reality - of course, use language consistent with the app and targeted to Aussie audience, and not necessarily the tone/language I'm using here with you.
+
+
 ### Adding/Editing Modal:
-DONE
 ### Import CSV
-PENDING
+* Don't allow creation of new Categories from here. Remove all redundant code.
+* When I enter a filter amount and search, then select All, it should only select all among the filtered list. Make sure the Select All and unselect All works intuitively.
+* I understand there are rules to map items to specific categories based on text. Remove this capability entirely as it will only produce friction and hardcode when we don't actually know if the user will change category names, etc. Also, don't need to assign to specific categories. Allow assignment to Pools instead. Ensure the Flip Debit/Credit works only on selected items (so no selection means can't flip).
+* Review how duplicates are managed - they need to be same date, same amount, same description.
+* What does Status mean?
 
 ## "Income & Bills"
 * Once a Bill is marked Paid (whether one-off or one of the burst items in a recurring series), it cannot be edited; similar with one-off Income Allocated.

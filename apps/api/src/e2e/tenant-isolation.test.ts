@@ -63,7 +63,7 @@ describe("E2E Core Monorepo Integration & Multi-Tenant Isolation Suite", () => {
     const debitTx = parsed.transactions.find((t) => t.flowType === "DEBIT");
     expect(debitTx).toBeDefined();
     expect(debitTx?.amount).toBe("45.20");
-    expect(debitTx?.suggestedCategoryName).toContain("Groceries");
+    expect(debitTx?.targetPool).toBe("EVERYDAY");
 
     const creditTx = parsed.transactions.find((t) => t.flowType === "CREDIT");
     expect(creditTx).toBeDefined();

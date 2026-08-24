@@ -1,27 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { fmtDate } from "@money-matters/ui/web";
 
 export interface ParsedTx {
   date: string;
   description: string;
   amount: string;
-  flowType: "CREDIT" | "DEBIT";
-  suggestedCategoryName?: string | null;
+  flowType: "DEBIT" | "CREDIT";
+  targetPool?: "EVERYDAY" | "REGULAR" | "GOAL";
+  creditAction?: "BANK_DEPOSIT" | "PAYDAY_ALLOCATION";
   idempotencyKey: string;
   rawBank: string;
   isDuplicate?: boolean;
-}
-
-export interface CategoryOption {
-  id: string;
-  name: string;
-  type?: string;
-}
-
-export interface IncomeSourceOption {
-  id: string;
-  name: string;
 }
 
 export interface CsvStepReviewProps {
@@ -38,28 +29,20 @@ export interface CsvStepReviewProps {
   setSearchQuery: (q: string) => void;
   filterType: "ALL" | "DEBIT" | "CREDIT" | "DUPLICATES";
   setFilterType: (t: "ALL" | "DEBIT" | "CREDIT" | "DUPLICATES") => void;
-  showAddCategoryInline: boolean;
-  setShowAddCategoryInline: (show: boolean) => void;
-  newCatName: string;
-  setNewCatName: (name: string) => void;
-  newCatType: "EVERYDAY" | "REGULAR" | "GOAL";
-  setNewCatType: (t: "EVERYDAY" | "REGULAR" | "GOAL") => void;
-  isCreatingCategory: boolean;
-  handleCreateInlineCategory: (e: React.FormEvent) => void;
-  handleFlipPolarity: () => void;
-  getFlowType: (tx: ParsedTx) => "CREDIT" | "DEBIT";
   filteredTransactions: Array<{ tx: ParsedTx; idx: number }>;
   allSelected: boolean;
   handleToggleSelectAll: (checked: boolean) => void;
-  categories: CategoryOption[];
-  incomeSources: IncomeSourceOption[];
   selectedMap: Record<number, boolean>;
   setSelectedMap: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
-  categoryMap: Record<number, string>;
-  setCategoryMap: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-  incomeSourceMap: Record<number, string>;
-  setIncomeSourceMap: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-  handleBulkCategoryChange: (catId: string) => void;
+  poolMap: Record<number, "EVERYDAY" | "REGULAR" | "GOAL">;
+  setPoolMap: React.Dispatch<React.SetStateAction<Record<number, "EVERYDAY" | "REGULAR" | "GOAL">>>;
+  creditActionMap: Record<number, "BANK_DEPOSIT" | "PAYDAY_ALLOCATION">;
+  setCreditActionMap: React.Dispatch<React.SetStateAction<Record<number, "BANK_DEPOSIT" | "PAYDAY_ALLOCATION">>>;
+  includedMap: Record<number, boolean>;
+  setIncludedMap: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+  flowTypeOverrideMap: Record<number, "DEBIT" | "CREDIT">;
+  setFlowTypeOverrideMap: React.Dispatch<React.SetStateAction<Record<number, "DEBIT" | "CREDIT">>>;
+  getEffectiveFlowType: (tx: ParsedTx, idx: number) => "DEBIT" | "CREDIT";
 }
 
 export function CsvStepReview({
@@ -71,29 +54,70 @@ export function CsvStepReview({
   setSearchQuery,
   filterType,
   setFilterType,
-  showAddCategoryInline,
-  setShowAddCategoryInline,
-  newCatName,
-  setNewCatName,
-  newCatType,
-  setNewCatType,
-  isCreatingCategory,
-  handleCreateInlineCategory,
-  handleFlipPolarity,
-  getFlowType,
   filteredTransactions,
   allSelected,
   handleToggleSelectAll,
-  categories,
-  incomeSources,
   selectedMap,
   setSelectedMap,
-  categoryMap,
-  setCategoryMap,
-  incomeSourceMap,
-  setIncomeSourceMap,
-  handleBulkCategoryChange,
+  poolMap,
+  setPoolMap,
+  creditActionMap,
+  setCreditActionMap,
+  includedMap,
+  setIncludedMap,
+  setFlowTypeOverrideMap,
+  getEffectiveFlowType,
 }: CsvStepReviewProps) {
+  // Bulk Action Local Tool States
+  const [bulkPoolTarget, setBulkPoolTarget] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("EVERYDAY");
+  const [bulkStatusTarget, setBulkStatusTarget] = useState<boolean>(true);
+
+  const selectedIndices = Object.keys(selectedMap)
+    .map(Number)
+    .filter((idx) => selectedMap[idx]);
+
+  const hasSelection = selectedIndices.length > 0;
+
+  const handleApplyBulkPool = () => {
+    if (!hasSelection) return;
+    setPoolMap((prev) => {
+      const next = { ...prev };
+      selectedIndices.forEach((idx) => {
+        const tx = parsedData.transactions[idx];
+        if (tx && getEffectiveFlowType(tx, idx) === "DEBIT") {
+          next[idx] = bulkPoolTarget;
+        }
+      });
+      return next;
+    });
+  };
+
+  const handleFlipSelectedPolarity = () => {
+    if (!hasSelection) return;
+    setFlowTypeOverrideMap((prev) => {
+      const next = { ...prev };
+      selectedIndices.forEach((idx) => {
+        const tx = parsedData.transactions[idx];
+        if (tx) {
+          const currentFlow = getEffectiveFlowType(tx, idx);
+          next[idx] = currentFlow === "DEBIT" ? "CREDIT" : "DEBIT";
+        }
+      });
+      return next;
+    });
+  };
+
+  const handleApplyBulkStatus = () => {
+    if (!hasSelection) return;
+    setIncludedMap((prev) => {
+      const next = { ...prev };
+      selectedIndices.forEach((idx) => {
+        next[idx] = bulkStatusTarget;
+      });
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Statement Coverage & Financial Totals Metrics Banner */}
@@ -102,7 +126,9 @@ export function CsvStepReview({
           <div className="flex items-center justify-between text-xs font-bold bg-blue-50 border border-blue-200 text-blue-900 px-3.5 py-2 rounded-xl">
             <span className="flex items-center gap-1.5">
               <span>📅</span>
-              <span>Statement Period: {parsedData.statementStartDate} — {parsedData.statementEndDate}</span>
+              <span>
+                Statement Period: {fmtDate(parsedData.statementStartDate)} — {fmtDate(parsedData.statementEndDate)}
+              </span>
             </span>
             <span className="text-[#2563eb] text-[11px]">
               Bank: {parsedData.bank} ({parsedData.transactions.length} rows)
@@ -112,19 +138,25 @@ export function CsvStepReview({
 
         <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-900 rounded-2xl text-white shadow-xs">
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Expenses</span>
+            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
+              Included Expenses
+            </span>
             <span className="text-base font-black text-rose-400 tabular-nums">
               -${selectedExpenses.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Selected Income</span>
+            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
+              Included Income
+            </span>
             <span className="text-base font-black text-emerald-400 tabular-nums">
               +${selectedIncome.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">Net Impact</span>
+            <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
+              Net Impact
+            </span>
             <span className={`text-base font-black tabular-nums ${netImpact >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
               {netImpact >= 0 ? "+" : ""}${netImpact.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
@@ -133,7 +165,7 @@ export function CsvStepReview({
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
           <input
             type="text"
@@ -144,126 +176,128 @@ export function CsvStepReview({
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleFlipPolarity}
-            title="Invert expense/income polarity if bank CSV exports credits as debits"
-            className="px-2.5 py-1.5 text-xs font-bold bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 rounded-lg flex items-center gap-1"
-          >
-            <span>🔄</span>
-            <span>Flip Debit/Credit</span>
-          </button>
-
-          <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-0.5">
-            {(["ALL", "DEBIT", "CREDIT", "DUPLICATES"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setFilterType(t)}
-                className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${
-                  filterType === t ? "bg-[#2563eb] text-white" : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                {t === "ALL" ? "All" : t === "DEBIT" ? "Debits" : t === "CREDIT" ? "Credits" : "Duplicates"}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowAddCategoryInline(!showAddCategoryInline)}
-            className="px-3 py-1.5 text-xs font-bold bg-blue-50 border border-blue-200 text-[#2563eb] hover:bg-blue-100 rounded-lg flex items-center gap-1"
-          >
-            <span>➕</span>
-            <span>Add Category</span>
-          </button>
+        <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-0.5">
+          {(["ALL", "DEBIT", "CREDIT", "DUPLICATES"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setFilterType(t)}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors cursor-pointer ${
+                filterType === t ? "bg-[#2563eb] text-white" : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {t === "ALL" ? "All" : t === "DEBIT" ? "Debits" : t === "CREDIT" ? "Credits" : "Duplicates"}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Inline Add Category Form */}
-      {showAddCategoryInline && (
-        <form onSubmit={handleCreateInlineCategory} className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl flex items-center gap-3 animate-in fade-in duration-150">
-          <input
-            type="text"
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-            placeholder="New category name (e.g. Pet Care)..."
-            className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white font-semibold"
-            required
-          />
-          <select
-            value={newCatType}
-            onChange={(e) => setNewCatType(e.target.value as "EVERYDAY" | "REGULAR" | "GOAL")}
-            className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-800"
-          >
-            <option value="EVERYDAY">Everyday Pool</option>
-            <option value="REGULAR">Bills Pool</option>
-            <option value="GOAL">Savings Pool</option>
-          </select>
-          <button
-            type="submit"
-            disabled={isCreatingCategory}
-            className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 rounded-lg shadow-xs"
-          >
-            {isCreatingCategory ? "Saving..." : "Save Category"}
-          </button>
-        </form>
-      )}
+      {/* Bulk Action Controls Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 bg-slate-100/90 rounded-xl text-xs border border-slate-200">
+        <div className="flex items-center gap-2">
+          <span className="font-extrabold text-slate-700">Selected: {selectedIndices.length}</span>
+        </div>
 
-      {/* Bulk Category Selector */}
-      <div className="flex items-center justify-between p-2.5 bg-slate-100 rounded-xl text-xs font-bold text-slate-700">
-        <span>Apply Category to Selected Debits:</span>
-        <select
-          onChange={(e) => handleBulkCategoryChange(e.target.value)}
-          defaultValue=""
-          className="px-3 py-1 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-800"
-        >
-          <option value="" disabled>Choose bulk category...</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Flip Polarity */}
+          <button
+            type="button"
+            disabled={!hasSelection}
+            onClick={handleFlipSelectedPolarity}
+            title="Invert expense/income polarity for selected rows"
+            className="px-2.5 py-1 text-xs font-bold bg-amber-50 border border-amber-300 text-amber-900 hover:bg-amber-100 rounded-lg disabled:opacity-40 transition-all flex items-center gap-1 cursor-pointer"
+          >
+            <span>🔄</span>
+            <span>Flip Selected</span>
+          </button>
+
+          {/* Bulk Pool Selector */}
+          <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-1">
+            <select
+              value={bulkPoolTarget}
+              onChange={(e) => setBulkPoolTarget(e.target.value as "EVERYDAY" | "REGULAR" | "GOAL")}
+              disabled={!hasSelection}
+              className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none disabled:opacity-40"
+            >
+              <option value="EVERYDAY">💳 Everyday Pool</option>
+              <option value="REGULAR">🗓️ Bills Pool</option>
+              <option value="GOAL">🎯 Savings Pool</option>
+            </select>
+            <button
+              type="button"
+              disabled={!hasSelection}
+              onClick={handleApplyBulkPool}
+              className="px-2 py-0.5 text-[10px] font-extrabold bg-[#2563eb] text-white rounded hover:bg-blue-700 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              Go
+            </button>
+          </div>
+
+          {/* Bulk Status Selector */}
+          <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-1">
+            <select
+              value={bulkStatusTarget ? "INCLUDE" : "EXCLUDE"}
+              onChange={(e) => setBulkStatusTarget(e.target.value === "INCLUDE")}
+              disabled={!hasSelection}
+              className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none disabled:opacity-40"
+            >
+              <option value="INCLUDE">✅ Include</option>
+              <option value="EXCLUDE">🚫 Exclude</option>
+            </select>
+            <button
+              type="button"
+              disabled={!hasSelection}
+              onClick={handleApplyBulkStatus}
+              className="px-2 py-0.5 text-[10px] font-extrabold bg-slate-800 text-white rounded hover:bg-slate-900 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              Go
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Transactions Review Table */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden max-h-[380px] overflow-y-auto">
+      <div className="border border-slate-200 rounded-xl overflow-hidden max-h-[380px] overflow-y-auto bg-white shadow-2xs">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider">
+          <thead className="sticky top-0 bg-slate-100 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider z-10">
             <tr>
               <th className="p-3 w-10 text-center">
                 <input
                   type="checkbox"
                   checked={allSelected}
                   onChange={(e) => handleToggleSelectAll(e.target.checked)}
-                  className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb]"
+                  className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb] cursor-pointer"
+                  title="Select all visible filtered transactions"
                 />
               </th>
-              <th className="p-3 w-24">Date</th>
+              <th className="p-3 w-28">Date</th>
               <th className="p-3">Description</th>
-              <th className="p-3 w-48">Mapped Target</th>
+              <th className="p-3 w-56">Mapped Target</th>
               <th className="p-3 w-28 text-right">Amount</th>
-              <th className="p-3 w-24 text-center">Status</th>
+              <th className="p-3 w-32 text-center">Action / Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium">
             {filteredTransactions.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-400">
+                <td colSpan={6} className="p-8 text-center text-slate-400 italic">
                   No statement transactions found matching your filter/search.
                 </td>
               </tr>
             ) : (
               filteredTransactions.map(({ tx, idx }) => {
                 const isSelected = !!selectedMap[idx];
+                const isIncluded = includedMap[idx] !== false;
+                const flow = getEffectiveFlowType(tx, idx);
+                const currentPool = poolMap[idx] || "EVERYDAY";
+                const currentCreditAction = creditActionMap[idx] || "BANK_DEPOSIT";
+
                 return (
                   <tr
                     key={tx.idempotencyKey || idx}
                     className={`hover:bg-slate-50 transition-colors ${
                       tx.isDuplicate ? "bg-amber-50/40" : ""
-                    } ${!isSelected ? "opacity-50 bg-slate-50/50" : ""}`}
+                    } ${!isIncluded ? "opacity-40 bg-slate-50/50 line-through" : ""}`}
                   >
                     <td className="p-3 text-center">
                       <input
@@ -272,94 +306,81 @@ export function CsvStepReview({
                         onChange={(e) =>
                           setSelectedMap((prev) => ({ ...prev, [idx]: e.target.checked }))
                         }
-                        className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb]"
+                        className="rounded border-slate-300 text-[#2563eb] focus:ring-[#2563eb] cursor-pointer"
                       />
                     </td>
-                    <td className="p-3 text-slate-500 font-mono text-[11px]">{tx.date}</td>
+                    <td className="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                      {fmtDate(tx.date)}
+                    </td>
                     <td className="p-3 font-semibold text-slate-800">
                       <div className="flex flex-col">
                         <span>{tx.description}</span>
-                        {tx.suggestedCategoryName && (
-                          <span className="text-[10px] text-blue-600 font-normal">
-                            Auto-matched: {tx.suggestedCategoryName}
+                        {tx.isDuplicate && (
+                          <span className="text-[10px] text-amber-700 font-bold">
+                            ⚠️ Exact duplicate detected
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="p-3">
-                      {getFlowType(tx) === "DEBIT" ? (
+                      {flow === "DEBIT" ? (
                         <select
-                          value={categoryMap[idx] || ""}
+                          value={currentPool}
                           onChange={(e) =>
-                            setCategoryMap((prev) => ({ ...prev, [idx]: e.target.value }))
+                            setPoolMap((prev) => ({
+                              ...prev,
+                              [idx]: e.target.value as "EVERYDAY" | "REGULAR" | "GOAL",
+                            }))
                           }
-                          className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg font-semibold bg-white"
+                          className="w-full px-2 py-1 text-xs border border-slate-300 rounded-lg font-semibold bg-white cursor-pointer"
                         >
-                          <option value="" disabled>Select category...</option>
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
+                          <option value="EVERYDAY">💳 Everyday Pool</option>
+                          <option value="REGULAR">🗓️ Bills Pool</option>
+                          <option value="GOAL">🎯 Savings Pool</option>
                         </select>
                       ) : (
                         <select
-                          value={incomeSourceMap[idx] || categoryMap[idx] || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const isInc = incomeSources.some((inc) => inc.id === val);
-                            if (isInc) {
-                              setIncomeSourceMap((prev) => ({ ...prev, [idx]: val }));
-                              setCategoryMap((prev) => {
-                                const next = { ...prev };
-                                delete next[idx];
-                                return next;
-                              });
-                            } else {
-                              setCategoryMap((prev) => ({ ...prev, [idx]: val }));
-                              setIncomeSourceMap((prev) => {
-                                const next = { ...prev };
-                                delete next[idx];
-                                return next;
-                              });
-                            }
-                          }}
-                          className="w-full px-2 py-1 text-xs border border-emerald-300 bg-emerald-50/50 rounded-lg font-bold text-emerald-900"
+                          value={currentCreditAction}
+                          onChange={(e) =>
+                            setCreditActionMap((prev) => ({
+                              ...prev,
+                              [idx]: e.target.value as "BANK_DEPOSIT" | "PAYDAY_ALLOCATION",
+                            }))
+                          }
+                          className="w-full px-2 py-1 text-xs border border-emerald-300 bg-emerald-50/60 rounded-lg font-bold text-emerald-900 cursor-pointer"
                         >
-                          <optgroup label="Income Sources">
-                            {incomeSources.map((inc) => (
-                              <option key={inc.id} value={inc.id}>
-                                💰 {inc.name}
-                              </option>
-                            ))}
-                          </optgroup>
-                          <optgroup label="Category Pool Target">
-                            {categories.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                📂 {c.name}
-                              </option>
-                            ))}
-                          </optgroup>
+                          <option value="BANK_DEPOSIT">💰 Direct Bank Deposit</option>
+                          <option value="PAYDAY_ALLOCATION">🌊 Payday Income (Waterfall)</option>
                         </select>
                       )}
                     </td>
                     <td
-                      className={`p-3 text-right font-mono font-bold tabular-nums ${
-                        getFlowType(tx) === "CREDIT" ? "text-emerald-600" : "text-slate-900"
+                      className={`p-3 text-right font-mono font-bold tabular-nums whitespace-nowrap ${
+                        flow === "CREDIT" ? "text-emerald-600" : "text-slate-900"
                       }`}
                     >
-                      {getFlowType(tx) === "CREDIT" ? "+" : "-"}${tx.amount}
+                      {flow === "CREDIT" ? "+" : "−"}${tx.amount}
                     </td>
                     <td className="p-3 text-center">
-                      {tx.isDuplicate ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                          ⚠️ Duplicate
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Ready
-                        </span>
-                      )}
+                      <select
+                        value={isIncluded ? "INCLUDE" : "EXCLUDE"}
+                        onChange={(e) =>
+                          setIncludedMap((prev) => ({
+                            ...prev,
+                            [idx]: e.target.value === "INCLUDE",
+                          }))
+                        }
+                        className={`w-full px-2 py-1 text-[11px] font-bold rounded-lg border transition-colors cursor-pointer ${
+                          isIncluded
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                            : "bg-slate-100 text-slate-600 border-slate-300"
+                        }`}
+                      >
+                        <option value="INCLUDE">✅ Include</option>
+                        <option value="EXCLUDE">
+                          {tx.isDuplicate ? "🚫 Exclude (Duplicate)" : "🚫 Exclude"}
+                        </option>
+                      </select>
                     </td>
                   </tr>
                 );

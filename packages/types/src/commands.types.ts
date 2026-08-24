@@ -202,10 +202,13 @@ export const CsvImportItemSchema = z.object({
   description: z.string(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   flowType: z.enum(["DEBIT", "CREDIT"]),
+  targetPool: z.enum(["EVERYDAY", "REGULAR", "GOAL"]).optional().nullable(),
+  creditAction: z.enum(["BANK_DEPOSIT", "PAYDAY_ALLOCATION"]).optional().nullable(),
   categoryId: z.string().uuid().optional().nullable(),
   incomeSourceId: z.string().uuid().optional().nullable(),
   idempotencyKey: z.string().min(1),
   note: z.string().optional().nullable(),
+  isIncluded: z.boolean().optional().default(true),
 }).strict();
 
 export const CommitCsvImportCommand = z.object({

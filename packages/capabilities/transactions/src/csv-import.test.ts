@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parseBankCsv } from "./csv-import";
 
-describe("Bank CSV Parser & Auto-Categorization Engine", () => {
+describe("Bank CSV Parser Engine", () => {
   it("parses CBA single-amount CSV format correctly", () => {
     const csv = `Date,Amount,Description,Balance
 01/08/2026,-270.50,WOOLWORTHS BONDI JUNCTION NSW,5230.10
@@ -14,7 +14,6 @@ describe("Bank CSV Parser & Auto-Categorization Engine", () => {
     expect(result.transactions[0].date).toBe("2026-08-01");
     expect(result.transactions[0].amount).toBe("270.50");
     expect(result.transactions[0].flowType).toBe("DEBIT");
-    expect(result.transactions[0].suggestedCategoryName).toBe("Groceries & Food Supplies");
 
     expect(result.transactions[1].date).toBe("2026-08-02");
     expect(result.transactions[1].amount).toBe("3500.00");
@@ -32,7 +31,6 @@ describe("Bank CSV Parser & Auto-Categorization Engine", () => {
 
     expect(result.transactions[0].amount).toBe("145.20");
     expect(result.transactions[0].flowType).toBe("DEBIT");
-    expect(result.transactions[0].suggestedCategoryName).toBe("Electricity & Gas (AGL)");
 
     expect(result.transactions[1].amount).toBe("500.00");
     expect(result.transactions[1].flowType).toBe("CREDIT");
@@ -47,20 +45,13 @@ describe("Bank CSV Parser & Auto-Categorization Engine", () => {
     expect(res1.transactions[0].idempotencyKey).toContain("csv-import-2026-08-01-DEBIT-50.00");
   });
 
-  it("calculates statement date ranges and respects tenant-learned merchant rules", () => {
+  it("calculates statement date ranges correctly", () => {
     const csv = `Date,Amount,Description
 01/08/2026,-120.00,MY CUSTOM HARDWARE STORE
 15/08/2026,-45.00,LOCAL CAFE BONDI`;
 
-    const merchantRules = {
-      "hardware": "Home Maintenance & Hardware",
-      "cafe": "Dining Out & Takeaway"
-    };
-
-    const result = parseBankCsv(csv, undefined, merchantRules);
+    const result = parseBankCsv(csv);
     expect(result.statementStartDate).toBe("2026-08-01");
     expect(result.statementEndDate).toBe("2026-08-15");
-    expect(result.transactions[0].suggestedCategoryName).toBe("Home Maintenance & Hardware");
-    expect(result.transactions[1].suggestedCategoryName).toBe("Dining Out & Takeaway");
   });
 });

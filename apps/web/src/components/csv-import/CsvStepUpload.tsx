@@ -120,11 +120,17 @@ export function CsvStepUpload({
               <select
                 value={dateColIndex}
                 onChange={(e) => setDateColIndex(Number(e.target.value))}
-                className="w-full p-2 text-xs border rounded-lg bg-white"
+                className="w-full p-2 text-xs border rounded-lg bg-white font-semibold"
               >
-                {rawHeaders.map((h, i) => (
-                  <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                ))}
+                {rawHeaders.map((h, i) => {
+                  const lower = (h || "").toLowerCase();
+                  const isDateCand = lower.includes("date") || lower.includes("time") || lower.includes("day");
+                  return (
+                    <option key={i} value={i}>
+                      {isDateCand ? "📅 " : ""}{h || `Col ${i + 1}`}{isDateCand ? " (Recommended)" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
@@ -132,11 +138,17 @@ export function CsvStepUpload({
               <select
                 value={descColIndex}
                 onChange={(e) => setDescColIndex(Number(e.target.value))}
-                className="w-full p-2 text-xs border rounded-lg bg-white"
+                className="w-full p-2 text-xs border rounded-lg bg-white font-semibold"
               >
-                {rawHeaders.map((h, i) => (
-                  <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                ))}
+                {rawHeaders.map((h, i) => {
+                  const lower = (h || "").toLowerCase();
+                  const isDescCand = lower.includes("desc") || lower.includes("narrative") || lower.includes("memo") || lower.includes("detail") || lower.includes("payee");
+                  return (
+                    <option key={i} value={i}>
+                      {isDescCand ? "📝 " : ""}{h || `Col ${i + 1}`}{isDescCand ? " (Recommended)" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
@@ -144,11 +156,17 @@ export function CsvStepUpload({
               <select
                 value={amountColIndex}
                 onChange={(e) => setAmountColIndex(Number(e.target.value))}
-                className="w-full p-2 text-xs border rounded-lg bg-white"
+                className="w-full p-2 text-xs border rounded-lg bg-white font-semibold"
               >
-                {rawHeaders.map((h, i) => (
-                  <option key={i} value={i}>{h || `Col ${i + 1}`}</option>
-                ))}
+                {rawHeaders.map((h, i) => {
+                  const lower = (h || "").toLowerCase();
+                  const isAmountCand = lower.includes("amount") || lower.includes("debit") || lower.includes("credit") || lower.includes("sum") || lower.includes("val");
+                  return (
+                    <option key={i} value={i}>
+                      {isAmountCand ? "💲 " : ""}{h || `Col ${i + 1}`}{isAmountCand ? " (Recommended)" : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

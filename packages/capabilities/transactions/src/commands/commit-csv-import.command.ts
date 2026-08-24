@@ -1,4 +1,4 @@
-import { transactionLedger, categories, tenants, DbOrTx } from "@money-matters/db";
+import { transactionLedger, categories, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { CommitCsvImportCommand } from "@money-matters/types";
@@ -18,7 +18,7 @@ export async function commitCsvImportCommand(
   }
 
   return await dbClient.transaction(async (tx) => {
-    // 1. Fetch default Everyday Pool category for fallback
+    // 1. Fetch tenant budget categories and income sources
     const tenantCategories = await tx
       .select({ id: categories.id, name: categories.name, type: categories.type })
       .from(categories)
@@ -29,13 +29,25 @@ export async function commitCsvImportCommand(
         )
       );
 
-    const categoryMap = new Map(tenantCategories.map((c) => [c.id, c]));
     const validCatIds = new Set(tenantCategories.map((c) => c.id));
     const everydayCat = tenantCategories.find((c) => c.type === "EVERYDAY") || tenantCategories[0];
+    const regularCat = tenantCategories.find((c) => c.type === "REGULAR") || everydayCat;
+    const goalCat = tenantCategories.find((c) => c.type === "GOAL") || everydayCat;
 
     if (!everydayCat) {
       throw new Error("No valid budget category found for this tenant.");
     }
+
+    const tenantIncomeSources = await tx
+      .select({ id: incomeSources.id })
+      .from(incomeSources)
+      .where(
+        and(
+          eq(incomeSources.tenantId, tenantId),
+          eq(incomeSources.appId, appId)
+        )
+      );
+    const primaryIncomeSource = tenantIncomeSources[0];
 
     // 2. Query existing idempotency keys in chunks of 200 to avoid parameter limits
     const idempotencyKeys = input.transactions.map((t) => t.idempotencyKey);
@@ -59,9 +71,9 @@ export async function commitCsvImportCommand(
       }
     }
 
-    // 3. Filter out existing duplicates
+    // 3. Filter out items excluded by user or already imported duplicates
     const newTransactions = input.transactions.filter(
-      (t) => !existingKeysSet.has(t.idempotencyKey)
+      (t) => t.isIncluded !== false && !existingKeysSet.has(t.idempotencyKey)
     );
 
     const skippedDuplicatesCount = input.transactions.length - newTransactions.length;
@@ -70,25 +82,42 @@ export async function commitCsvImportCommand(
       return { importedCount: 0, skippedDuplicatesCount, batchId };
     }
 
-    // 4. Construct bulk values & learn merchant rules
-    const learnedRules: Record<string, string> = {};
+    // 4. Construct bulk values
+    const paydayIncomeEventsToInsert: Array<{
+      incomeSourceId: string;
+      expectedDate: string;
+      expectedAmount: string;
+      note: string;
+      tenantId: string;
+      appId: string;
+      createdBy: string;
+      updatedBy: string;
+    }> = [];
 
     const insertValues = newTransactions.map((t) => {
-      const targetCatId = t.categoryId && validCatIds.has(t.categoryId) ? t.categoryId : everydayCat.id;
+      let targetCatId = everydayCat.id;
+      if (t.targetPool === "REGULAR") {
+        targetCatId = regularCat.id;
+      } else if (t.targetPool === "GOAL") {
+        targetCatId = goalCat.id;
+      } else if (t.categoryId && validCatIds.has(t.categoryId)) {
+        targetCatId = t.categoryId;
+      }
+
       const recordedAt = t.date ? new Date(t.date) : new Date();
-      const matchedCat = categoryMap.get(targetCatId);
 
-      // Learn merchant keyword rule if user mapped DEBIT to a non-default category
-      if (t.flowType === "DEBIT" && matchedCat && t.description) {
-        const cleanKeyword = t.description
-          .toLowerCase()
-          .replace(/[^a-z\s]/g, "")
-          .trim()
-          .split(/\s+/)[0]; // Extract primary merchant word
-
-        if (cleanKeyword && cleanKeyword.length >= 3) {
-          learnedRules[cleanKeyword] = matchedCat.name;
-        }
+      // If user flagged credit row as Payday Income for waterfall allocation, queue income event creation
+      if (t.flowType === "CREDIT" && t.creditAction === "PAYDAY_ALLOCATION" && primaryIncomeSource) {
+        paydayIncomeEventsToInsert.push({
+          incomeSourceId: primaryIncomeSource.id,
+          expectedDate: t.date,
+          expectedAmount: t.amount,
+          note: t.note || t.description,
+          tenantId,
+          appId,
+          createdBy: userId,
+          updatedBy: userId,
+        });
       }
 
       return {
@@ -108,27 +137,18 @@ export async function commitCsvImportCommand(
       };
     });
 
-    // 5. Bulk insert in chunks of 200 to enforce Rule #6 without parameter overflow
+    // 5. Bulk insert ledger entries in chunks of 200
     for (let i = 0; i < insertValues.length; i += CHUNK_SIZE) {
       const valueChunk = insertValues.slice(i, i + CHUNK_SIZE);
       await tx.insert(transactionLedger).values(valueChunk);
     }
 
-    // 6. Update tenant merchantRules in DB if new rules learned
-    if (Object.keys(learnedRules).length > 0) {
-      const tenantRow = await tx
-        .select({ merchantRules: tenants.merchantRules })
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1);
-
-      const existingRules = tenantRow[0]?.merchantRules || {};
-      const updatedRules = { ...existingRules, ...learnedRules };
-
-      await tx
-        .update(tenants)
-        .set({ merchantRules: updatedRules })
-        .where(eq(tenants.id, tenantId));
+    // 6. Bulk insert queued payday income events if any
+    if (paydayIncomeEventsToInsert.length > 0) {
+      for (let i = 0; i < paydayIncomeEventsToInsert.length; i += CHUNK_SIZE) {
+        const eventChunk = paydayIncomeEventsToInsert.slice(i, i + CHUNK_SIZE);
+        await tx.insert(incomeEvents).values(eventChunk);
+      }
     }
 
     return {
