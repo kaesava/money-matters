@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useIconVisibility, InfoTooltip } from "@money-matters/ui/web";
+import { useIconVisibility, InfoTooltip, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 import { DualPoolProgressBar } from "./DualPoolProgressBar";
 
 export interface CategorySummaryItem {
@@ -55,14 +55,19 @@ export function EverydayPoolSection({
 }: EverydayPoolSectionProps) {
   const { showIcons } = useIconVisibility();
 
+  const { widths, onMouseDown } = useResizableColumns({
+    name: 320,
+    target: 200,
+  });
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
-      {/* Header Summary Banner */}
-      <div className="p-5 bg-gradient-to-r from-teal-50/60 to-white border-b border-zinc-100 flex flex-col gap-3">
+      {/* Pool Header Hero */}
+      <div className="p-5 bg-gradient-to-r from-emerald-50/60 to-white border-b border-zinc-100 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {showIcons && (
-              <div className="w-10 h-10 rounded-xl bg-[#00B4A6]/10 text-[#00B4A6] flex items-center justify-center text-xl font-bold">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl font-bold">
                 💳
               </div>
             )}
@@ -104,8 +109,8 @@ export function EverydayPoolSection({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-              <th className="px-6 py-3">Category Name</th>
-              <th className="px-6 py-3 text-right">Monthly Target Budget</th>
+              <ResizableTh width={widths.name} onResizeMouseDown={(e) => onMouseDown("name", e)} className="px-6 py-3">Category Name</ResizableTh>
+              <ResizableTh width={widths.target} onResizeMouseDown={(e) => onMouseDown("target", e)} className="px-6 py-3 text-right">Monthly Target Budget</ResizableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">

@@ -1182,7 +1182,7 @@ export const en = {
     },
     bankAccounts: {
       title: "About Bank Accounts",
-      content: "Link your bank accounts. You don't need 3 separate bank accounts — Money Matters automatically tracks virtual Bills, Savings, and Everyday pools inside your accounts.",
+      content: "Linking your pools (Everyday, Bills, Savings) to your actual bank accounts ensures your payday waterfall matches your real-world bank balances for effortless 1-tap reconciliation.",
     },
     settings: {
       title: "About Settings",

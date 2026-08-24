@@ -1102,7 +1102,7 @@ export const ja: DeepStringRecord<typeof en> = {
     },
     "bankAccounts": {
       "title": "銀行口座について",
-      "content": "実際の銀行口座を連携・管理します。予想残高と実際の口座残高を照合して台帳を正確に保ちます。"
+      "content": "プール（生活費、請求、貯蓄）を実際の銀行口座に連携することで、給与受取・分配と実残高を正確に照合できます。"
     },
     "settings": {
       "title": "設定について",

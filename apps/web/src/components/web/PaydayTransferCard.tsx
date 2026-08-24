@@ -1,6 +1,5 @@
-"use client";
-
 import React, { useState } from "react";
+import { fmtDate } from "@money-matters/ui/web";
 
 export interface PaydayTransferLine {
   categoryName: string;
@@ -44,7 +43,7 @@ export function PaydayTransferCard({
             1-Tap Payday Transfer Plan
           </span>
           <h3 className="text-sm font-extrabold text-[#1B2B4B] mt-1">
-            Allocate {fmt(paycheckAmount)} Received on {paycheckDate}
+            Allocate {fmt(paycheckAmount)} Received on {fmtDate(paycheckDate)}
           </h3>
         </div>
         {onDismiss && (

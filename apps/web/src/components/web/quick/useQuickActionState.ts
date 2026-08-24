@@ -53,12 +53,24 @@ export function useQuickActionState(
     setSuccess(false);
   }
 
+  const isPaydayOrAdjustment = (note?: string | null) => {
+    if (!note) return false;
+    const lower = note.toLowerCase();
+    return (
+      lower.includes("payday") ||
+      lower.includes("waterfall") ||
+      lower.includes("adjustment") ||
+      lower.includes("pool balance") ||
+      lower.includes("reconcil")
+    );
+  };
+
   // Derive last 3 Expense presets from actual transactions
   const quickExpensePresets = useMemo(() => {
     const presets: QuickPresetItem[] = [];
     const seen = new Set<string>();
     for (const tx of txList) {
-      if (tx.flowType === "DEBIT" && !tx.transferGroupId && tx.note) {
+      if (tx.flowType === "DEBIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)) {
         const cleanNote = tx.note.trim();
         const key = cleanNote.toLowerCase();
         if (!seen.has(key)) {
@@ -80,7 +92,7 @@ export function useQuickActionState(
     const presets: QuickPresetItem[] = [];
     const seen = new Set<string>();
     for (const tx of txList) {
-      if (tx.flowType === "CREDIT" && !tx.transferGroupId && tx.note) {
+      if (tx.flowType === "CREDIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)) {
         const cleanNote = tx.note.trim();
         const key = cleanNote.toLowerCase();
         if (!seen.has(key)) {
@@ -109,7 +121,7 @@ export function useQuickActionState(
 
     for (const tx of txList) {
       const groupKey = tx.transferGroupId || (tx.note?.startsWith("Transferred") ? tx.note : null);
-      if (groupKey) {
+      if (groupKey && !isPaydayOrAdjustment(tx.note)) {
         const existing = transferMap.get(groupKey) || {
           note: tx.note || "Transfer",
           amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : "0.00",
@@ -134,7 +146,7 @@ export function useQuickActionState(
       }
 
       const key = `${transfer.sourceCatId || ""}->${transfer.destCatId || ""}:${transfer.amount}:${displayName.toLowerCase()}`;
-      if (!seen.has(key)) {
+      if (!seen.has(key) && !isPaydayOrAdjustment(displayName)) {
         seen.add(key);
         presets.push({
           name: displayName,

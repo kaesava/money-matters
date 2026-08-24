@@ -1,7 +1,7 @@
 "use client";
 
 import { t } from "@money-matters/i18n";
-import { useIconVisibility } from "@money-matters/ui/web";
+import { useIconVisibility, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
 interface SavingsGoalsSectionProps {
@@ -29,6 +29,13 @@ export function SavingsGoalsSection({
   onOpenActivity,
 }: SavingsGoalsSectionProps) {
   const { showIcons } = useIconVisibility();
+  const { widths, onMouseDown } = useResizableColumns({
+    name: 240,
+    balance: 160,
+    target: 160,
+    targetDate: 180,
+    health: 200,
+  });
 
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
@@ -65,11 +72,11 @@ export function SavingsGoalsSection({
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-            <th className="px-6 py-3.5">Goal Name</th>
-            <th className="px-6 py-3.5">Current Balance</th>
-            <th className="px-6 py-3.5">Target Goal</th>
-            <th className="px-6 py-3.5">Target Date</th>
-            <th className="px-6 py-3.5">Pacing &amp; Health</th>
+            <ResizableTh width={widths.name} onResizeMouseDown={(e) => onMouseDown("name", e)} className="px-6 py-3.5">Goal Name</ResizableTh>
+            <ResizableTh width={widths.balance} onResizeMouseDown={(e) => onMouseDown("balance", e)} className="px-6 py-3.5">Current Balance</ResizableTh>
+            <ResizableTh width={widths.target} onResizeMouseDown={(e) => onMouseDown("target", e)} className="px-6 py-3.5">Target Goal</ResizableTh>
+            <ResizableTh width={widths.targetDate} onResizeMouseDown={(e) => onMouseDown("targetDate", e)} className="px-6 py-3.5">Target Date</ResizableTh>
+            <ResizableTh width={widths.health} onResizeMouseDown={(e) => onMouseDown("health", e)} className="px-6 py-3.5">Pacing &amp; Health</ResizableTh>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-100">
@@ -135,7 +142,7 @@ export function SavingsGoalsSection({
                   <td className="px-6 py-4 font-mono text-zinc-700">{fmt(cat.targetAmount)}</td>
                   <td className="px-6 py-4 text-zinc-500 font-medium">
                     <div>
-                      {cat.targetDate ? cat.targetDate : "—"}
+                      {cat.targetDate ? fmtDate(cat.targetDate) : "—"}
                       {daysLeftText && (
                         <span className="block text-[10px] font-bold text-purple-600 mt-0.5">{daysLeftText}</span>
                       )}

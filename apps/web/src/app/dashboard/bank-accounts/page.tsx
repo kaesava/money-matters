@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { InfoTooltip, fmtDate } from "@money-matters/ui/web";
+import { InfoTooltip, fmtDate, SearchInput } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./components/BankAccountTable";
 import { TransferConflictModal } from "./components/TransferConflictModal";
@@ -403,18 +403,11 @@ export default function BankAccountsDashboardPage() {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-zinc-200 shadow-xs">
-        <div className="flex-1 min-w-[240px] relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search bank accounts by name..."
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-zinc-50/50"
-          />
-          <svg className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search bank accounts by name..."
+        />
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-zinc-400">Linked Pool:</span>

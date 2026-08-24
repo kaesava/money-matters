@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { InfoTooltip, PaginationBar } from "@money-matters/ui/web";
+import { PaginationBar } from "@money-matters/ui/web";
 
 export type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 export type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
@@ -63,15 +63,11 @@ export function BankAccountTable({
               <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors" onClick={() => toggleSort("lastKnownBalance")}>
                 <div className="flex items-center gap-1">
                   <span>Available Balance</span>
-                  <InfoTooltip content="Amount available to budget (Actual Balance minus Reserved Funds)." />
                   {sortField === "lastKnownBalance" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </th>
               <th className="py-3.5 px-4">
-                <div className="flex items-center gap-1">
-                  <span>Linked Pools</span>
-                  <InfoTooltip content="Category pools linked to this bank account for waterfall payday distribution." />
-                </div>
+                <span>Linked Pools</span>
               </th>
               <th className="py-3.5 px-4">Account Type</th>
               <th className="py-3.5 px-4 text-right">Actions</th>

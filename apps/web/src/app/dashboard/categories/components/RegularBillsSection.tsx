@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useIconVisibility, InfoTooltip } from "@money-matters/ui/web";
+import { useIconVisibility, InfoTooltip, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 import { DualPoolProgressBar } from "./DualPoolProgressBar";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
@@ -46,6 +46,12 @@ export function RegularBillsSection({
 }: RegularBillsSectionProps) {
   const { showIcons } = useIconVisibility();
   const coverageMap = new Map(billCoverageItems.map((item) => [item.categoryId, item]));
+  const { widths, onMouseDown } = useResizableColumns({
+    name: 240,
+    dueDate: 200,
+    coverage: 180,
+    target: 180,
+  });
 
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden flex flex-col">
@@ -96,10 +102,10 @@ export function RegularBillsSection({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-              <th className="px-6 py-3">Category Name</th>
-              <th className="px-6 py-3">Next Due Date</th>
-              <th className="px-6 py-3 text-center">Upcoming Coverage</th>
-              <th className="px-6 py-3 text-right">Monthly Target Budget</th>
+              <ResizableTh width={widths.name} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("name", e)} className="px-6 py-3">Category Name</ResizableTh>
+              <ResizableTh width={widths.dueDate} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("dueDate", e)} className="px-6 py-3">Next Due Date</ResizableTh>
+              <ResizableTh width={widths.coverage} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("coverage", e)} className="px-6 py-3 text-center">Upcoming Coverage</ResizableTh>
+              <ResizableTh width={widths.target} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("target", e)} className="px-6 py-3 text-right">Monthly Target Budget</ResizableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -139,7 +145,7 @@ export function RegularBillsSection({
                     <td className="px-6 py-3.5 font-mono text-zinc-600">
                       {cov && cov.nextDueDate ? (
                         <span>
-                          {cov.nextDueDate} ({fmt(cov.nextDueAmount)})
+                          {fmtDate(cov.nextDueDate)} ({fmt(cov.nextDueAmount)})
                         </span>
                       ) : (
                         <span className="text-zinc-400 italic text-[11px]">{t("categories.sections.billCoverageNoUpcoming")}</span>

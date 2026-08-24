@@ -1,5 +1,5 @@
 import React from 'react';
-import { Spinner } from "@money-matters/ui/web";
+import { Spinner, fmtDate } from "@money-matters/ui/web";
 import { useIconVisibility } from '@money-matters/ui';
 
 export interface WebAttentionItem {
@@ -112,7 +112,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                     />
                   ) : (
                     <span className={`text-xs font-medium ${isOverdue ? "text-rose-700 font-bold" : "text-zinc-500"}`}>
-                      Due: {item.expectedDate}
+                      Due: {fmtDate(item.expectedDate)}
                     </span>
                   )}
                 </div>

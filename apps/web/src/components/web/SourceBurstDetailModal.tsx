@@ -2,6 +2,7 @@
 import React from "react";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
+import { fmtDate } from "@money-matters/ui/web";
 
 export interface SourceBurstDetailModalProps {
   isOpen: boolean;
@@ -92,7 +93,7 @@ export function SourceBurstDetailModal({
                       <span className="text-base">{isPaid ? "✅" : isOverdue ? "⚠️" : "📅"}</span>
                       <div>
                         <p className="font-bold text-[#1B2B4B]">
-                          {evt.expectedDate} {isOverdue && <span className="text-rose-500 font-bold ml-1">(Overdue)</span>}
+                          {fmtDate(evt.expectedDate)} {isOverdue && <span className="text-rose-500 font-bold ml-1">(Overdue)</span>}
                         </p>
                         <p className="text-[10px] text-zinc-400 font-medium">Status: {evt.status}</p>
                       </div>

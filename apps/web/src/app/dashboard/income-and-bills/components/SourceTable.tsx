@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PaginationBar, useIconVisibility, fmtDate } from "@money-matters/ui/web";
+import { PaginationBar, useIconVisibility, useResizableColumns, ResizableTh, fmtDate } from "@money-matters/ui/web";
 import { BurstModal, SourceItem, EventItem } from "./BurstModal";
 
 function fmt(val: string | number) {
@@ -106,6 +106,13 @@ export function SourceTable({
   const allEvents = mode === "INCOME" ? allIncomeEvents : allExpenseEvents;
   const isIncome = mode === "INCOME";
 
+  const { widths, onMouseDown } = useResizableColumns({
+    name: 240,
+    schedule: 220,
+    bucket: 200,
+    amount: 140,
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -123,10 +130,10 @@ export function SourceTable({
         <table className="w-full text-left border-collapse text-xs font-semibold">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/80">
-              <th className="px-5 py-3.5"><SortHeader label="Name" sortKey="name" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></th>
-              <th className="px-5 py-3.5"><SortHeader label="Schedule" sortKey="schedule" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></th>
-              <th className="px-5 py-3.5"><SortHeader label={bucketHeader} sortKey="bucket" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></th>
-              <th className="px-5 py-3.5 text-right"><SortHeader label="Amount" sortKey="amount" currentKey={sortKey} dir={sortDir} onSort={handleSort} align="right" /></th>
+              <ResizableTh width={widths.name} onResizeMouseDown={(e) => onMouseDown("name", e)} className="px-5 py-3.5"><SortHeader label="Name" sortKey="name" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></ResizableTh>
+              <ResizableTh width={widths.schedule} onResizeMouseDown={(e) => onMouseDown("schedule", e)} className="px-5 py-3.5"><SortHeader label="Schedule" sortKey="schedule" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></ResizableTh>
+              <ResizableTh width={widths.bucket} onResizeMouseDown={(e) => onMouseDown("bucket", e)} className="px-5 py-3.5"><SortHeader label={bucketHeader} sortKey="bucket" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></ResizableTh>
+              <ResizableTh width={widths.amount} onResizeMouseDown={(e) => onMouseDown("amount", e)} className="px-5 py-3.5 text-right"><SortHeader label="Amount" sortKey="amount" currentKey={sortKey} dir={sortDir} onSort={handleSort} align="right" /></ResizableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">

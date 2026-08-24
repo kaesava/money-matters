@@ -34,6 +34,10 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 - **Settings Re-Run Budget Setup Workflow**: Preservative budget adjustment accessible via `Settings → Re-run Budget Setup`. Pre-fills current config into the wizard and presents a final **Budget Impact Review Panel** showing net monthly cap diffs (+/- $), sub-category changes, next-payday effective date notice, and Apply/Cancel controls (0 DB changes on cancel).
 - **Actionable Bank Transfer Guidance**: Actionable bank transfer prompt cards with 1-tap `[Copy Amount]` buttons when changing pool bank account links in Settings, plus a 1-tap **Payday Transfer Plan Card** post-allocation for Osko/PayID mobile banking transfers.
 - **Partner Collaboration**: Shared household context (`tenantId`) giving partners full read/write visibility.
+- **Date Formatting Standard**: All dates rendered in UI views, modals, cards, and tables are formatted in timezone-aware Australian English format (`31 Dec 2026`) via `fmtDate`. Raw ISO date strings (`2026-12-31`) are strictly prohibited in user-facing components.
+- **Resizable Table Columns**: All data tables across the app feature interactive draggable column resizing dividers (`<ResizableTh>` & `useResizableColumns`) with clean, sensible default relative widths.
+- **Quick Action Suggestion Filters**: The Quick Action "Last 3" recent suggestion pickers automatically filter out system Payday waterfall allocations, category transfers, and manual pool balance adjustments.
+- **Paid Bill & Allocated Income Lock**: Once a bill is marked `PAID` or income allocated, core fields are strictly locked from editing with a `🔒 Paid` / `🔒 Allocated` status badge to prevent ledger drift. Undo/reopening is deferred to V2 scope (`FEAT-V2-005`).
 
 ---
 
