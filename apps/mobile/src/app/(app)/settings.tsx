@@ -12,10 +12,24 @@ import { HouseholdPartnerInviteSection } from '../../components/settings/Househo
 import { SubscriptionPlanSection } from '../../components/settings/SubscriptionPlanSection';
 import { PrivacyGovernanceSection } from '../../components/settings/PrivacyGovernanceSection';
 
+import { getMobileVersionInfo } from '../../lib/version';
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const versionInfo = getMobileVersionInfo();
+
+  const handleCopyDiagnostics = () => {
+    setCopied(true);
+    Alert.alert(
+      'App Diagnostics',
+      `Money Matters ${versionInfo.formattedVersion}\nPlatform: ${versionInfo.platform}\nChannel: ${versionInfo.channel}\nGit Commit: ${versionInfo.gitCommit}`,
+      [{ text: 'OK', onPress: () => setCopied(false) }]
+    );
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -105,7 +119,20 @@ export default function SettingsScreen() {
             >
               <Text style={styles.navLinkText}>🔔 Push Notifications</Text>
             </TouchableOpacity>
+          </View>
 
+          {/* Composable Vertical Slice Sections */}
+          <PreferencesSection />
+          <HouseholdPartnerInviteSection />
+          <SubscriptionPlanSection />
+          <PrivacyGovernanceSection />
+
+          {/* Help & Support Section */}
+          <View style={styles.helpCard}>
+            <Text style={styles.helpCardTitle}>{t('settings.helpTitle', { defaultValue: 'Help & Support' })}</Text>
+            <Text style={styles.helpCardBody}>
+              {t('settings.helpDesc', { defaultValue: 'Need assistance or found an issue? Submit a bug report or reach support.' })}
+            </Text>
             <TouchableOpacity
               style={styles.navLink}
               onPress={() => router.push('/(app)/settings/bug-report' as Href)}
@@ -114,12 +141,6 @@ export default function SettingsScreen() {
               <Text style={styles.navLinkText}>🐛 {t('settings.reportBugLink', { defaultValue: 'Report a Bug' })}</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Composable Vertical Slice Sections */}
-          <PreferencesSection />
-          <HouseholdPartnerInviteSection />
-          <SubscriptionPlanSection />
-          <PrivacyGovernanceSection />
 
           {/* Sign Out Button */}
           <TouchableOpacity
@@ -130,6 +151,17 @@ export default function SettingsScreen() {
           >
             <Text style={styles.signOutBtnText}>
               {loading ? 'Signing out...' : t('settings.signOut', { defaultValue: 'Sign Out' })}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Inconspicuous Version Footer */}
+          <TouchableOpacity
+            onPress={handleCopyDiagnostics}
+            activeOpacity={0.7}
+            style={{ paddingVertical: 12, alignItems: 'center' }}
+          >
+            <Text style={{ fontSize: 11, fontWeight: '500', color: '#64748B' }}>
+              Money Matters {versionInfo.formattedVersion} • {versionInfo.channel} channel
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -190,5 +222,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#E11D48',
+  },
+  helpCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: DESIGN_TOKENS.radius.md,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+  },
+  helpCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: DESIGN_TOKENS.colors.primary,
+  },
+  helpCardBody: {
+    fontSize: 12,
+    color: DESIGN_TOKENS.colors.textMuted,
+    lineHeight: 16,
   },
 });

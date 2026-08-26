@@ -25,6 +25,7 @@
     "@hookform/resolvers": "^3.3.4",
     "@money-matters/i18n": "workspace:*",
     "@money-matters/types": "workspace:*",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.470.0",
     "react-hook-form": "^7.51.0",
     "react-native": "0.81.5",
@@ -32,13 +33,14 @@
     "zod": "^3.22.4"
   },
   "peerDependencies": {
+    "@expo/vector-icons": "^14.0.0 || ^13.0.0",
     "react": "^19.0.0 || ^18.0.0",
-    "react-dom": "^19.0.0 || ^18.0.0",
-    "@expo/vector-icons": "^14.0.0 || ^13.0.0"
+    "react-dom": "^19.0.0 || ^18.0.0"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0",
     "@expo/vector-icons": "^14.0.2",
+    "@types/jszip": "^3.4.1",
+    "@types/react": "^19.1.0",
     "typescript": "^6.0.3"
   },
   "scripts": {

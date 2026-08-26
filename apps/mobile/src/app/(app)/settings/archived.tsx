@@ -10,11 +10,12 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { DESIGN_TOKENS, MobilePaginationBar } from "@money-matters/ui/mobile";
+import { DESIGN_TOKENS, MobilePaginationBar, useMobileToast } from "@money-matters/ui/mobile";
 import { trpc } from "../../../lib/trpc";
 
 export default function MobileArchivedItemsScreen() {
   const router = useRouter();
+  const toast = useMobileToast();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
 
@@ -26,9 +27,10 @@ export default function MobileArchivedItemsScreen() {
   const restoreMutation = trpc.restoreItem.useMutation({
     onSuccess: () => {
       archivedQuery.refetch();
+      toast.success("Item restored successfully");
     },
     onError: (err) => {
-      Alert.alert("Error", err.message);
+      toast.error(err.message);
     },
   });
 

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobilePaginationBar } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobilePaginationBar, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 
 const INCOME_TYPES = ['SALARY', 'FREELANCE', 'OTHER'] as const;
@@ -34,6 +34,7 @@ const FREQ_LABELS: Record<Frequency, string> = {
 
 export default function SettingsIncomeScreen() {
   const router = useRouter();
+  const toast = useMobileToast();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<IncomeType>('SALARY');
@@ -54,7 +55,7 @@ export default function SettingsIncomeScreen() {
     if (!name.trim() || !amount.trim()) return;
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount < 0) {
-      Alert.alert("Invalid Amount", "Please enter a valid numeric amount.");
+      toast.warning("Please enter a valid numeric amount.");
       return;
     }
     setAdding(true);
@@ -70,9 +71,9 @@ export default function SettingsIncomeScreen() {
       setName('');
       setAmount('');
       refetch();
-      Alert.alert("Success", "Income stream added successfully.");
+      toast.success("Income stream added successfully.");
     } catch (err) {
-      Alert.alert("Error", err instanceof Error ? err.message : "Failed to add income stream.");
+      toast.error(err instanceof Error ? err.message : "Failed to add income stream.");
     } finally {
       setAdding(false);
     }
@@ -91,9 +92,9 @@ export default function SettingsIncomeScreen() {
             try {
               await archiveSource.mutateAsync({ id });
               refetch();
-              Alert.alert("Success", "Income stream archived.");
+              toast.success("Income stream archived.");
             } catch (err) {
-              Alert.alert("Error", err instanceof Error ? err.message : "Failed to archive.");
+              toast.error(err instanceof Error ? err.message : "Failed to archive.");
             }
           }
         }

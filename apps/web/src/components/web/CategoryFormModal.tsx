@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
-import { Spinner } from "@money-matters/ui/web";
+import { Spinner, useToast } from "@money-matters/ui/web";
 import { InfoTooltip } from "@money-matters/ui";
 import { authClient } from "../../lib/auth";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
@@ -35,6 +35,7 @@ export function CategoryFormModal({
   categoryToEdit,
   onSuccess,
 }: CategoryFormModalProps) {
+  const toast = useToast();
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
   const { status } = useSubscriptionStatus();
@@ -51,10 +52,11 @@ export function CategoryFormModal({
         setSubmitting(true);
         await archiveCategoryMut.mutateAsync({ categoryId: categoryToEdit.id });
         await utils.listCategories.invalidate();
+        toast.success(t("toasts.archived"));
         onSuccess?.();
         onClose();
       } catch (err: unknown) {
-        alert((err as Error).message || "Failed to archive pool");
+        toast.error((err as Error).message || "Failed to archive pool");
       } finally {
         setSubmitting(false);
       }

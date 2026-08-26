@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, useToast } from "@money-matters/ui/web";
 import posthog from "../../lib/posthog-client";
 
 import { DashboardHeroCard } from "./components/DashboardHeroCard";
@@ -31,6 +31,7 @@ interface AppPreferencesBlob {
 type AppPreferencesMap = Record<string, AppPreferencesBlob>;
 
 export default function DashboardPage() {
+  const toast = useToast();
   const {
     router,
     todayStr,
@@ -96,7 +97,7 @@ export default function DashboardPage() {
 
     const targetCat = categories.find((c) => c.type === poolType) || categories[0];
     if (!targetCat) {
-      alert(`No category found of type ${poolType} to post the adjustment transaction.`);
+      toast.error(`No category found of type ${poolType} to post the adjustment transaction.`);
       return;
     }
 

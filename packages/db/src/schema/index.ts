@@ -22,4 +22,6 @@ export * from "./app_category.js";
 export * from "./early_access.js";
 export * from "./processed_webhooks.js";
 export * from "./bug_report.js";
+export * from "./app_version.js";
+
 

@@ -1,130 +1,152 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import JSZip from "jszip";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner } from "@money-matters/ui";
+import { Spinner, useToast } from "@money-matters/ui/web";
 
-export function PrivacySection() {
+export function PrivacySection({ onOpenBugReport }: { onOpenBugReport?: () => void }) {
+  const toast = useToast();
   const [exporting, setExporting] = useState(false);
   const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
 
-  const handleDownloadData = async (format: "csv" | "json" = "csv") => {
+  const handleDownloadZippedCsv = async () => {
+    setExporting(true);
+    try {
+      const { data } = await exportQuery.refetch();
+      if (data && data.csvFiles) {
+        const zip = new JSZip();
+        Object.entries(data.csvFiles).forEach(([fileName, content]) => {
+          if (content) {
+            zip.file(fileName, content as string);
+          }
+        });
+        const blob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.download = `money-matters-export-${dateStr}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(t("toasts.exportSuccess"));
+      } else {
+        toast.error("No export data returned.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate zip export");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadJson = async () => {
     setExporting(true);
     try {
       const { data } = await exportQuery.refetch();
       if (data) {
-        if (format === "csv") {
-          let csvContent = "";
-          if (data.csvFiles) {
-            Object.entries(data.csvFiles).forEach(([fileName, content]) => {
-              if (content) {
-                const blob = new Blob([content as string], { type: "text/csv;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `money-matters-${fileName}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-              }
-            });
-            return;
-          }
-
-          // Fallback: convert JSON data object to CSV rows
-          const rows = [
-            ["Type", "Name", "Amount", "Created At"],
-            ...((data.categories as Array<{ type: string; name: string; monthlyAmount?: string; createdAt?: string }>) || []).map((c) => [
-              c.type || "CATEGORY",
-              `"${(c.name || "").replace(/"/g, '""')}"`,
-              c.monthlyAmount || "0",
-              c.createdAt || "",
-            ]),
-          ];
-          csvContent = rows.map((r) => r.join(",")).join("\n");
-          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `money-matters-export-${new Date().toISOString().slice(0, 10)}.csv`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        } else {
-          const jsonStr = JSON.stringify(data, null, 2);
-          const blob = new Blob([jsonStr], { type: "application/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `money-matters-export-${new Date().toISOString().slice(0, 10)}.json`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.download = `money-matters-export-${dateStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(t("toasts.exportSuccess"));
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to export data");
+      toast.error(err instanceof Error ? err.message : "Failed to export JSON data");
     } finally {
       setExporting(false);
     }
   };
 
   return (
-    <section className="flex flex-col gap-2">
-      <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-        {t("privacy.title")}
-      </p>
-      <div
-        className="p-4 rounded-xl flex flex-col gap-3"
-        style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
-      >
-        <p className="text-xs text-zinc-500">
-          🔒 <strong>Privacy & Security:</strong> Money Matters enforces strict multi-tenant Row-Level Security (RLS). Your financial data is encrypted at rest (AES-256) and in transit (TLS 1.3). We never sell or share your personal transaction data.
+    <div className="flex flex-col gap-6">
+      {/* Aussie Security & Privacy Card */}
+      <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3">
+        <h2 className="text-base font-bold text-[#1B2B4B]">
+          {t("privacy.aussiePrivacyGuarantee")}
+        </h2>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          {t("privacy.aussiePrivacyDetail")}
         </p>
+      </section>
 
-        <div className="flex items-center justify-between pt-1">
+      {/* Data Sovereignty & Zipped CSV Backup Card */}
+      <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-[#1B2B4B]">{t("privacy.exportDataTitle")}</p>
-            <p className="text-[11px] text-zinc-500">Download formatted CSV files (Excel/Numbers) or raw JSON</p>
+            <h2 className="text-base font-bold text-[#1B2B4B]">{t("privacy.exportDataTitle")}</h2>
+            <p className="text-xs text-slate-500">{t("privacy.exportDataSubtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => handleDownloadData("csv")}
+              onClick={handleDownloadZippedCsv}
               disabled={exporting}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#00B4A6] hover:bg-[#00B4A6]/90 text-white transition-all flex items-center gap-1.5 shadow-xs"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#00B4A6] hover:bg-[#00B4A6]/90 text-white transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
               {exporting && <Spinner size="sm" />}
-              <span>Download CSVs</span>
+              <span>{exporting ? t("privacy.exportingZip") : t("privacy.exportZipButton")}</span>
             </button>
             <button
               type="button"
-              onClick={() => handleDownloadData("json")}
+              onClick={handleDownloadJson}
               disabled={exporting}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-all"
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all disabled:opacity-50"
             >
               JSON
             </button>
           </div>
         </div>
+      </section>
 
-        <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-rose-700">{t("privacy.deleteAccountTitle")}</p>
-            <p className="text-[11px] text-zinc-500">{t("privacy.deleteAccountSubtitle")}</p>
-          </div>
-          <a
-            href="/privacy/delete-account"
-            className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-all"
+      {/* Archived Items & Bug Report Quick Links */}
+      <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3">
+        <h2 className="text-base font-bold text-[#1B2B4B]">{t("settings.managementTitle")}</h2>
+        <div className="flex flex-col gap-2 divide-y divide-slate-100">
+          <Link
+            href="/dashboard/settings/archived"
+            className="pt-2 first:pt-0 flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline"
           >
-            Manage Erasure
-          </a>
+            <span>📦 {t("settings.archivedLink")}</span>
+            <span>→</span>
+          </Link>
+          {onOpenBugReport && (
+            <button
+              type="button"
+              onClick={onOpenBugReport}
+              className="pt-2.5 flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline w-full text-left"
+            >
+              <span>🐛 {t("settings.reportBugLink")}</span>
+              <span>→</span>
+            </button>
+          )}
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Household Governance & Deletion Link */}
+      <section className="p-6 bg-white border border-red-200 rounded-2xl shadow-xs flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-red-700">{t("privacy.manageGovernance")}</h2>
+          <p className="text-xs text-slate-500">{t("privacy.manageGovernanceSub")}</p>
+        </div>
+        <Link
+          href="/dashboard/settings/delete-account"
+          className="px-3.5 py-2 rounded-xl text-xs font-bold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-all shadow-xs"
+        >
+          Manage Governance
+        </Link>
+      </section>
+    </div>
   );
 }

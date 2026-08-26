@@ -72,8 +72,11 @@ All tables MUST include:
 
 ## 9. API & Versioning
 - tRPC is primary API.
-- MUST version external APIs.
-- Breaking changes REQUIRE new version.
+- **Independent App SemVer**: Apps (`apps/web`, `apps/mobile`) follow independent Semantic Versioning (`MAJOR.MINOR.PATCH-PRERELEASE`) managed automatically via `pnpm version:bump`.
+- **App Version Capture & Diagnostics**: Web and Mobile clients dynamically resolve `AppVersionInfo` via `@money-matters/config` and display an inconspicuous version footer in the Settings view (`Money Matters v1.0.0-beta.1 (#42)`). Tapping/clicking copies JSON diagnostics.
+- **Bug Report Diagnostics**: All user bug reports automatically capture app version, build number, channel, platform, and device metadata.
+- **Database Tracking**: `app_versions` schema tracks active releases, build numbers, and `min_supported_api_version` compatibility rules.
+- Breaking changes REQUIRE new major version.
 - MUST maintain backward compatibility.
 
 ## 10. Security

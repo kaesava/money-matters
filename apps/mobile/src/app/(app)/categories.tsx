@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'rea
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobileSpinner } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileScreenWrapper, MobileFilterBar, MobileSpinner, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 
@@ -15,6 +15,7 @@ import { MobileSavingsGoalsSection } from '../../components/categories/MobileSav
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const toast = useMobileToast();
   const posthog = usePostHog();
   const params = useLocalSearchParams<{ health?: string; search?: string }>();
 
@@ -55,7 +56,7 @@ export default function CategoriesScreen() {
 
   const handleArchive = (cat: MobileCategoryItem) => {
     if (cat.type === 'EVERYDAY') {
-      Alert.alert('Archive Locked', 'The Everyday category cannot be archived or deleted.');
+      toast.warning('The Everyday category cannot be archived or deleted.');
       return;
     }
     Alert.alert('Archive Category', `Are you sure you want to archive "${cat.name}"?`, [
@@ -67,8 +68,9 @@ export default function CategoriesScreen() {
           try {
             await archiveMut.mutateAsync({ categoryId: cat.id });
             posthog.capture('category_archived', { category_type: cat.type });
+            toast.success(t('toasts.archived'));
           } catch (err) {
-            Alert.alert('Error', err instanceof Error ? err.message : String(err));
+            toast.error(err instanceof Error ? err.message : String(err));
           }
         },
       },

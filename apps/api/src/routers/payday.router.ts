@@ -1,6 +1,6 @@
 import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { allocationPlans, allocationPlanLines, categories } from "@money-matters/db";
-import { and, eq, sql, desc } from "drizzle-orm";
+import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { posthog } from '../lib/posthog.js';
 import {
   runAllocationCommand,
@@ -114,6 +114,44 @@ export const paydayRouter = {
         ...plan,
         lines: lines.map(l => ({ ...l, categoryName: l.categoryName ?? "Unknown" })),
       };
+    }),
+
+  listAllAllocationPlans: tenantProcedure
+    .query(async ({ ctx }) => {
+      const plans = await ctx.db
+        .select()
+        .from(allocationPlans)
+        .where(
+          and(
+            eq(allocationPlans.tenantId, ctx.tenantId!),
+            eq(allocationPlans.appId, ctx.appId!),
+            sql`${allocationPlans.archivedAt} IS NULL`
+          )
+        )
+        .orderBy(desc(allocationPlans.createdAt))
+        .limit(50);
+
+      const planIds = plans.map(p => p.id);
+      let lines: Array<{ planId: string; categoryId: string; proposedAmount: string; confirmedAmount: string | null; reasoning: string | null; categoryName: string | null }> = [];
+      if (planIds.length > 0) {
+        lines = await ctx.db
+          .select({
+            planId: allocationPlanLines.planId,
+            categoryId: allocationPlanLines.categoryId,
+            proposedAmount: allocationPlanLines.proposedAmount,
+            confirmedAmount: allocationPlanLines.confirmedAmount,
+            reasoning: allocationPlanLines.reasoning,
+            categoryName: categories.name,
+          })
+          .from(allocationPlanLines)
+          .leftJoin(categories, eq(categories.id, allocationPlanLines.categoryId))
+          .where(inArray(allocationPlanLines.planId, planIds));
+      }
+
+      return plans.map((plan) => ({
+        ...plan,
+        lines: lines.filter((l) => l.planId === plan.id),
+      }));
     }),
 
   runAllocation: tenantProcedure

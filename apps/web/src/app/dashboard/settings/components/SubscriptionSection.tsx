@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner } from "@money-matters/ui";
-
+import { Spinner, useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 interface SubscriptionSectionProps {
@@ -17,6 +16,7 @@ interface SubscriptionSectionProps {
 }
 
 export function SubscriptionSection({ status }: SubscriptionSectionProps) {
+  const toast = useToast();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const portalMut = trpc.createCustomerPortalSession.useMutation();
 
@@ -30,7 +30,7 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
         window.location.href = res.url;
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : t("subscription.portalError"));
+      toast.error(err instanceof Error ? err.message : t("subscription.portalError"));
     } finally {
       setLoadingPortal(false);
     }

@@ -91,6 +91,26 @@ export const ja: DeepStringRecord<typeof en> = {
     "filter": "フィルター",
     "clearAllFilters": "すべてのフィルターを解除"
   },
+  "toasts": {
+    "saved": "正常に保存されました",
+    "updated": "正常に更新されました",
+    "archived": "正常にアーカイブされました",
+    "deleted": "正常に削除されました",
+    "error": "エラーが発生しました。もう一度お試しください。",
+    "copied": "クリップボードにコピーしました",
+    "linkCopied": "リンクをクリップボードにコピーしました",
+    "inviteSent": "パートナー招待を送信しました",
+    "noteAdded": "メモを追加しました",
+    "noteUpdated": "メモを更新しました",
+    "noteArchived": "メモをアーカイブしました",
+    "noteDeleted": "メモを完全に削除しました",
+    "accountCreated": "銀行口座を作成しました",
+    "accountUpdated": "銀行口座を更新しました",
+    "accountArchived": "銀行口座をアーカイブしました",
+    "csvImported": "CSV明細を正常にインポートしました",
+    "exportSuccess": "データを正常にエクスポートしました",
+    "bugReportSuccess": "バグ報告を送信しました。ご協力ありがとうございます。"
+  },
   "auth": {
     "cta": "ログイン / 登録",
     "hint": "給料が振り込まれた瞬間に、お金の流れをコントロール。",
@@ -183,6 +203,10 @@ export const ja: DeepStringRecord<typeof en> = {
     "title": "ホーム"
   },
   "transactions": {
+    "tabs": {
+      "transactions": "取引履歴",
+      "paydayAllocations": "給与日配分"
+    },
     "title": "履歴",
     "empty": "履歴はありません",
     "emptySubtitle": "支出や収入を記録すると、ここに表示されます。",
@@ -686,6 +710,22 @@ export const ja: DeepStringRecord<typeof en> = {
   },
   "settings": {
     "title": "設定",
+    "tabs": {
+      "profile": "プロフィール",
+      "household": "世帯",
+      "accountData": "アカウントとデータ"
+    },
+    "profileTitle": "プロフィールと設定",
+    "displayNameLabel": "表示名",
+    "displayNamePlaceholder": "例: 山田 太郎",
+    "loginEmailLabel": "ログインメール（主認証）",
+    "notificationEmailLabel": "通知用メールアドレス（任意）",
+    "notificationEmailHint": "アラートや給料日サマリーの送信先。空欄の場合はログインメールに送信されます。",
+    "phoneNumberLabel": "携帯電話番号（任意）",
+    "phoneNumberHint": "SMS通知用の番号。",
+    "phoneCountryCodeLabel": "国番号",
+    "saveProfileCta": "プロフィールを保存",
+    "profileSaved": "プロフィールを更新しました。",
     "household": "世帯",
     "accounts": "銀行口座",
     "categories": "お金の管理",
@@ -704,6 +744,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "archivedLink": "アーカイブされたカテゴリと請求書",
     "notificationsLink": "通知設定",
     "reportBugLink": "バグを報告する",
+    "helpTitle": "ヘルプとサポート",
+    "helpDesc": "お困りの際や不具合のご報告はこちらから。",
     "bankAccounts": {
       "title": "銀行口座",
       "addAccount": "銀行口座を追加",
@@ -859,10 +901,30 @@ export const ja: DeepStringRecord<typeof en> = {
     "mismatchedEmail": "招待されたメールアドレスと現在のアカウントが一致しません。",
     "goToDashboard": "ダッシュボードへ",
     "invalidEmailAlertTitle": "メールアドレスの確認",
-    "invalidEmailAlertBody": "正しいメールアドレスを入力してください。"
+    "invalidEmailAlertBody": "正しいメールアドレスを入力してください。",
+    "ownerOnlyNotice": "世帯の所有者 ({email}) のみが新しいメンバーを招待できます。"
   },
   "privacy": {
     "title": "プライバシーとデータセキュリティ",
+    "aussiePrivacyGuarantee": "🔒 お客様の財務データは厳重に保護されています",
+    "aussiePrivacyDetail": "ご家庭の財務データは完全に保護されます。銀行レベルの暗号化（AES-256 / TLS 1.3）およびオーストラリアプライバシー法（1988年Cth）に準拠しています。データを販売・貸与・共有することは一切ありません。",
+    "exportZipButton": "ZIP圧縮バックアップをダウンロード",
+    "exportingZip": "ZIPバックアップを作成中...",
+    "manageGovernance": "世帯管理とアカウント消去",
+    "manageGovernanceSub": "所有権の譲渡、世帯の脱退、またはアカウントと世帯データの永久消去を行えます。",
+    "deleteHouseholdTitle": "世帯を永久に削除",
+    "leaveHouseholdTitle": "世帯を脱退",
+    "deleteHouseholdNotice": "この操作は取り消せません。この世帯のすべての共有カテゴリー、口座マッピング、配分計画、取引履歴が永久に消去されます。",
+    "deletePartnerWarning": "削除を実行する前に、パートナー ({email}) にメール通知が送信されます。",
+    "leaveOwnerWarning": "脱退すると世帯の所有権がパートナー ({email}) に譲渡され、非公開プール/口座が削除されます。",
+    "leaveMemberWarning": "脱退すると {householdName} からの参加権限が削除され、非公開プール/口座が消去されます。共有予算は所有者 ({email}) のもとで引き続き維持されます。",
+    "ownerOnlyDeleteNotice": "世帯の所有者 ({email}) のみが世帯全体を削除できます。削除をご希望の場合は所有者にお問い合わせください。",
+    "typeHouseholdNameToConfirm": "確認のため世帯名 ({name}) を入力してください:",
+    "typeLeaveHouseholdToConfirm": "確認のため「LEAVE HOUSEHOLD」と入力してください:",
+    "confirmLeaveCta": "世帯を脱退する",
+    "confirmDeleteHouseholdCta": "世帯を永久削除する",
+    "leftHouseholdSuccess": "世帯を脱退しました。",
+    "webAndMobileNotice": "本ページは、Webおよびモバイルアプリ（Google Play & App Store）におけるプライバシーおよびアカウント削除要件を満たしています。",
     "subtitle": "データの管理と削除に関するプライバシー設定。",
     "dataMinimizationTitle": "データの最小化と保持方針",
     "dataMinimizationBody": "家計管理サービスに必要な最小限のデータのみを収集し、通信中・保存時の暗号化を徹底しています。",
@@ -1050,26 +1112,43 @@ export const ja: DeepStringRecord<typeof en> = {
     "betaNoticeBody": "Money Mattersは現在ベータテスト中です。皆様からのご報告がアプリの安定性とパフォーマンス向上に直結します。",
     "formTitleLabel": "不具合の概要",
     "formTitlePlaceholder": "発生した問題の簡単な概要...",
-    "formCategoryLabel": "カテゴリー",
-    "formSeverityLabel": "深刻度",
+    "formCategoryLabel": "ワークフローカテゴリー",
+    "formSeverityLabel": "フラストレーションレベル",
     "formDescriptionLabel": "詳細と再現手順",
     "formDescriptionPlaceholder": "何が発生したか、期待していた動作、再現手順を入力してください...",
-    "environmentSectionTitle": "取得されたシステム情報",
+    "environmentSectionTitle": "システム情報",
     "platform": "プラットフォーム",
     "appVersion": "アプリバージョン",
     "pageUrl": "ページルート",
     "deviceInfo": "デバイス / OS情報",
+    "contactConsentLabel": "このチケットに関する進捗をメールで受け取る",
+    "ticketRef": "チケット番号: #BUG-{{ref}}",
     "submitBtn": "バグ報告を送信",
     "submitting": "送信中...",
-    "successMsg": "バグ報告が正常に送信されました。ご協力ありがとうございます！",
+    "successMsg": "バグ報告が送信されました！チケット #BUG-{{ref}} を作成しました。",
     "errorMsg": "バグ報告の送信に失敗しました。入力内容をご確認ください。",
     "categories": {
+      "setup": "初期設定と給料日セットアップ",
+      "waterfall": "給料配分とウォーターフォール",
+      "transactions_sync": "銀行同期と明細インポート",
+      "categories_bills": "カテゴリーと請求書管理",
+      "ui_ux": "アプリ表示とナビゲーション",
+      "account_auth": "アカウントと認証",
+      "other": "その他",
       "budgeting": "予算と計算",
       "transactions": "取引と明細インポート",
       "bank_accounts": "銀行口座と同期",
-      "ui_ux": "UIと表示",
-      "auth": "アカウントと認証",
-      "other": "その他"
+      "auth": "アカウントと認証"
+    },
+    "frustrations": {
+      "level1": "直ると嬉しい",
+      "level1Subtitle": "軽微な表示の乱れなど",
+      "level2": "少し気になる",
+      "level2Subtitle": "小さな不便（回避策あり）",
+      "level3": "困っている",
+      "level3Subtitle": "機能が期待通りに動作しない",
+      "level4": "かなり腹立たしい！",
+      "level4Subtitle": "アプリのクラッシュや進行不可"
     },
     "severities": {
       "low": "低 — 軽微な表示上の問題",
@@ -1077,7 +1156,9 @@ export const ja: DeepStringRecord<typeof en> = {
       "high": "高 — 機能が正常動作しない",
       "critical": "緊急 — アプリのクラッシュ / 進行不可"
     },
-    "closeBtn": "閉じる"
+    "closeBtn": "閉じる",
+    "helpSectionTitle": "ヘルプとサポート",
+    "helpSectionSubtitle": "お困りの際や不具合のご報告はこちらから。"
   },
   "tooltips": {
     "dashboard": {

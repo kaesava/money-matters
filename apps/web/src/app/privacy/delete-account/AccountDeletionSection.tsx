@@ -1,139 +1,52 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { trpc } from "../../../lib/trpc";
 import { authClient } from "../../../lib/auth";
-import { Spinner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 export function AccountDeletionSection() {
   const { data: session } = authClient.useSession();
-  const [downloaded, setDownloaded] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
-  const [typedConfirmation, setTypedConfirmation] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
-  const deleteMutation = trpc.deleteMyAccount.useMutation();
 
   if (!session?.user) {
-    return null;
+    return (
+      <div className="p-6 bg-blue-50 border border-blue-200 rounded-2xl shadow-xs space-y-3">
+        <h2 className="text-base font-extrabold text-[#1B2B4B]">Instant Self-Service Account & Household Erasure</h2>
+        <p className="text-xs text-slate-600 leading-relaxed">
+          If you currently have access to your Money Matters account, you can sign in to execute instant account deletion and data erasure without waiting for manual processing.
+        </p>
+        <Link
+          href="/sign-in?redirect=/dashboard/settings/delete-account"
+          className="inline-flex items-center px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+        >
+          Sign In to Delete Household
+        </Link>
+      </div>
+    );
   }
 
-  const handleDownload = async () => {
-    const { data } = await exportQuery.refetch();
-    if (data) {
-      const jsonStr = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `money-matters-export-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setDownloaded(true);
-    }
-  };
-
-  const isInputValid = confirmed && typedConfirmation.trim().toUpperCase() === "DELETE MY HOUSEHOLD";
-
-  const handleDelete = async () => {
-    if (!isInputValid) return;
-    setIsDeleting(true);
-    setMessage(null);
-    try {
-      await deleteMutation.mutateAsync();
-      setMessage(t("privacy.deletionSuccess"));
-      setTimeout(async () => {
-        await authClient.signOut();
-        window.location.href = "/";
-      }, 2000);
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to delete account. Please try again.";
-      setMessage(errorMsg);
-      setIsDeleting(false);
-    }
-  };
-
   return (
-    <section className="p-6 bg-white border border-red-200 rounded-2xl shadow-sm space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-[#ba1a1a]">{t("privacy.instantErasure")}</h2>
+    <section className="p-6 bg-white border border-blue-200 rounded-2xl shadow-xs space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-extrabold text-[#1B2B4B]">{t("privacy.instantErasure")}</h2>
         <Link
-          href="/dashboard/settings"
+          href="/dashboard/settings/delete-account"
           className="text-xs font-bold text-[#2563eb] hover:underline"
         >
           {t("privacy.backToSettings")}
         </Link>
       </div>
-      <p className="text-sm text-slate-600">
-        {t("privacy.signedInAs")}<strong>{session.user.email}</strong>{t("privacy.signedInAsEnd")}
+      <p className="text-xs text-slate-600">
+        {t("privacy.signedInAs")}<strong>{session.user.email}</strong>. You can export your data and manage household deletion directly inside your signed-in Settings area.
       </p>
 
-      {/* Step 1: Download data */}
-      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-        <h3 className="text-sm font-bold text-[#1B2B4B]">{t("privacy.step1ExportTitle")}</h3>
-        <p className="text-xs text-slate-600">
-          {t("privacy.step1ExportBody")}
-        </p>
-        <button
-          onClick={handleDownload}
-          disabled={exportQuery.isFetching}
-          className="px-4 py-2 bg-[#2563eb] text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-1.5"
+      <div className="pt-2">
+        <Link
+          href="/dashboard/settings/delete-account"
+          className="inline-flex items-center px-4 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs gap-1.5"
         >
-          {exportQuery.isFetching && <Spinner size="sm" />}
-          {downloaded ? t("privacy.dataDownloaded") : t("privacy.exportMyData")}
-        </button>
-      </div>
-
-      {/* Step 2: Confirm & Delete */}
-      <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-3">
-        <h3 className="text-sm font-bold text-[#ba1a1a]">{t("privacy.step2ConfirmTitle")}</h3>
-        <label className="flex items-start gap-2 cursor-pointer text-xs text-slate-700 font-medium">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(e) => setConfirmed(e.target.checked)}
-            className="mt-0.5 rounded text-red-600 focus:ring-red-500"
-          />
-          <span>
-            {t("privacy.understandErasure")}
-          </span>
-        </label>
-
-        {confirmed && (
-          <div className="space-y-1.5 pt-1">
-            <p className="text-xs font-bold text-slate-700">
-              {t("privacy.typeToConfirm", { phrase: "" })} <code className="bg-red-100 px-1 py-0.5 rounded text-red-800 font-mono">{t("privacy.deleteMyHousehold")}</code>
-            </p>
-            <input
-              type="text"
-              value={typedConfirmation}
-              onChange={(e) => setTypedConfirmation(e.target.value)}
-              placeholder={t("privacy.deleteMyHousehold")}
-              className="w-full px-3 py-2 text-xs font-mono border border-red-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-        )}
-
-        {message && (
-          <div className="p-3 bg-white border border-red-300 text-red-800 text-xs font-semibold rounded-lg">
-            {message}
-          </div>
-        )}
-
-        <button
-          onClick={handleDelete}
-          disabled={!isInputValid || isDeleting}
-          className="w-full py-2.5 bg-[#ba1a1a] text-white text-xs font-bold rounded-lg hover:bg-red-800 transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center gap-1.5"
-        >
-          {isDeleting && <Spinner size="sm" />}
-          {t("privacy.deleteAccountNow")}
-        </button>
+          <span>Go to Dashboard Governance Settings →</span>
+        </Link>
       </div>
     </section>
   );

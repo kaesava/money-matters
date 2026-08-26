@@ -27,7 +27,7 @@
 | Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking, feature flags, session replays |
 | Crash & APM | Sentry | Sentry SaaS | Production exception reporting & symbolicated stack traces |
 | Mobile Framework | React Native / Expo | Expo SDK 54 / RN 0.81.5 | Android native app |
-| Styling & UI | Serene Finance Tokens | `packages/ui` & `apps/web` | Standardized tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`), JetBrains Mono via `next/font/google`, and responsive viewport (`width=device-width`) |
+| Styling & UI | Serene Finance Tokens & Toast/Alert System | `packages/ui` & `apps/web` | Standardized tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`), JetBrains Mono via `next/font/google`, non-blocking Toast feedback system (`ToastProvider`/`useToast`/`MobileToastProvider`/`useMobileToast`), inline `AlertBanner` primitives, and responsive viewport (`width=device-width`) |
 | CI/CD Pipeline | GitHub Actions | GitHub & Cloudflare | Lint, typecheck, test, and `wrangler deploy` on push to `main` |
 
 ---
@@ -48,7 +48,7 @@ money-matters/
 │   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator & spending velocity
 │   │   ├── notifications/   # Expo push + 6 scheduled Inngest functions (payday, bill, overdue, digest, goal, velocity)
 │   │   ├── file-notes/      # Notes, comments, attachments via Cloudflare R2
-│   │   └── bug-reports/     # In-app Beta bug report persistence, diagnostic metadata capture, tenant-isolated bugReports schema
+│   │   └── bug-reports/     # In-app bug report persistence, Frustration scale & workflow category capture, tenant-isolated bugReports schema, Resend receipt/alert dispatches
 │   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags
 │   ├── db/            # Drizzle schemas (`app_categories`, `user_preferences` JSONB), migrations & seeds
@@ -207,7 +207,9 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 
 - **Timezone-Aware Formatting**: All dates are stored in UTC within the database. The presentation layer strictly uses `Intl.DateTimeFormat` configured with AEST/en-AU to ensure timezone-aware formatting across all transaction ledgers and reports.
 - **tRPC/Auth Proxy Logging Guards**: Client & Server Log Scrubbing is strictly enforced. Auth tokens, JWT credentials, and PII must never be emitted to stdout/stderr via `console.log`. Logger abstractions automatically sanitize sensitive fields in the tRPC and auth proxy paths.
-- **Data Export Details**: The `exportTenantData` capability securely generates a CSV bundle including complete transaction ledgers, allocation plans, and historical allocation configurations, supporting the tenant's right to data sovereignty.
+- **Zipped CSV Data Export Engine**: The `exportTenantData` capability securely generates all entity CSV files (`categories.csv`, `income_sources.csv`, `expense_sources.csv`, `transaction_ledger.csv`, `bank_accounts.csv`, `allocation_plans.csv`, `file_notes.csv`). On the web client, files are bundled using `JSZip` into a single `.zip` archive (`money-matters-export-YYYY-MM-DD.zip`), preventing browser multi-download blocking while enforcing stealth privacy (only shared data + current user's private records exported).
+- **Household Governance & Account Erasure**: Signed-in Household Governance page at `/dashboard/settings/delete-account` and public `/privacy/delete-account` page meet Apple App Store Guidelines Section 5.1.1(v), Google Play Data Safety Policy, and Australian Privacy Act 1988 (Cth) APP 12/13. Provides role-aware controls: Sole Owners delete household (requires typing exact Household Name), Owners with partners can delete (notifies partner via Resend) or leave (transfers ownership to partner, deletes private pools/accounts), Partners can leave (notifies owner) or are instructed to ask owner for tenant deletion.
+- **Settings & History Tabbed Navigation**: Settings is organized into a 3-tab layout (`Profile`, `Household`, `Account & Data`) with container width expanded to `max-w-5xl`. History (`/dashboard/transactions`) is organized into a 2-tab layout (`Transactions` ledger & `Payday Allocations` audit history).
 - **Bulk Database Operations (Anti-N+1)**: All database writes and queries must be batched. Individual inserts or queries in loops are forbidden. Plan lines and ledger entries are prepared in-memory and written in bulk. Deletions and status transitions must use `inArray` operators (e.g. archiving category arrays or deleting account relations) to prevent query waterfalls.
 - **Parallelized Network Operations**: Onboarding configurations (e.g., category setup or schedule target insertions) and `reSetupBudget` category updates execute mutations concurrently using batch wrappers (`Promise.all`), preventing sequential async waterfalls.
 - **Strict Whitelisted CORS**: Cross-origin resource sharing (CORS) is restricted to whitelisted domains (`*.kaesava.au` and dev `localhost`). Global wildcards (`origin: true`) are explicitly banned.
@@ -217,6 +219,13 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 ### 5.9 Typed Feature Flags, Kill Switches & Strict DB Typing Standards
 - **Typed Feature Flags (`@money-matters/config`)**: All feature flags implement `FeatureFlag` with typed expiry, owner, tenant scoping, and mandatory `killSwitchEnabled: boolean`. When `killSwitchEnabled === true`, `isFeatureEnabled()` immediately disables the capability globally regardless of user rollout percentages.
 - **Strict Database Typing (`DbOrTx`)**: Zero `any` policy enforced across all capability command and query signatures. All capability handlers receive strict `DbOrTx` (`DbClient | DbTransaction`) without default client injection parameters, guaranteeing deterministic transactional boundaries and full type safety.
+
+### 5.10 App Versioning Architecture, Database Schema & Diagnostics
+- **Independent App SemVer**: Apps (`apps/web`, `apps/mobile`) follow independent Semantic Versioning (`MAJOR.MINOR.PATCH-PRERELEASE`) managed automatically via `pnpm version:bump`.
+- **Version Diagnostics Resolver**: `getWebVersionInfo()` (`apps/web/src/lib/version.ts`) and `getMobileVersionInfo()` (`apps/mobile/src/lib/version.ts`) construct `AppVersionInfo` DTOs containing version string, build number, channel (`development` | `preview` | `beta` | `production`), git commit hash, and target platform.
+- **`app_versions` Schema (`packages/db/src/schema/app_version.ts`)**: Database table tracking releases per `appId`, version string, build number, release channel, `minSupportedApiVersion`, release notes, mandatory update flags, and release timestamps.
+- **Bug Report Diagnostics Integration**: Bug report creation capability (`createBugReportHandler`) logs and stores dynamic app version strings and client environment metadata for rapid support debugging.
+- **Automated Release Script (`scripts/version-bump.mjs`)**: CLI script callable via `pnpm version:bump` allowing automated version bumping (`patch`, `minor`, `major`, `beta`) across package manifests and Expo configs, staging standard Git release commits.
 
 
 ---

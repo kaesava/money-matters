@@ -16,6 +16,7 @@ import {
   acceptInviteHandler,
   exportMyDataHandler,
   deleteMyAccountHandler,
+  leaveTenantHandler,
 } from "@money-matters/capability-tenant";
 import {
   listCategoriesQuery,
@@ -157,6 +158,9 @@ export const tenantRouter = {
         locale: globalPref?.locale ?? "en-AU",
         theme: globalPref?.theme ?? "system",
         showIcons: globalPref?.showIcons ?? appBlob?.show_icons ?? true,
+        notificationEmail: globalPref?.notificationEmail ?? null,
+        phoneCountryCode: globalPref?.phoneCountryCode ?? "+61",
+        phoneNumber: globalPref?.phoneNumber ?? null,
         // Tenant / Cashflow Alert Preferences (Tenant Scoped, stored in appPreferences JSONB)
         paydayAlertsEnabled: appBlob?.payday_alerts_enabled ?? true,
         shortfallAlertsEnabled: appBlob?.shortfall_alerts_enabled ?? true,
@@ -469,6 +473,87 @@ export const tenantRouter = {
       }).catch(() => {});
 
       return result;
+    }),
+
+  leaveMyHousehold: authenticatedProcedure
+    .mutation(async ({ ctx }) => {
+      const handler = leaveTenantHandler(ctx.db);
+      return await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);
+    }),
+
+  getHouseholdGovernanceInfo: tenantProcedure
+    .query(async ({ ctx }) => {
+      const { tenants, tenantUsers } = await import('@money-matters/db');
+      const [tenant] = await ctx.db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, ctx.tenantId!))
+        .limit(1);
+
+      const members = await ctx.db
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), sql`${tenantUsers.archivedAt} IS NULL`));
+
+      const myMember = members.find((m) => m.userId === ctx.userId);
+      const partnerMember = members.find((m) => m.userId !== ctx.userId);
+
+      return {
+        householdId: ctx.tenantId!,
+        householdName: tenant?.name ?? "Household",
+        userRole: myMember?.role ?? "MEMBER",
+        isOwner: myMember?.role === "OWNER",
+        isSoleOwner: myMember?.role === "OWNER" && members.length <= 1,
+        memberCount: members.length,
+        partnerEmail: partnerMember?.inviteEmail ?? null,
+      };
+    }),
+
+  updateUserProfile: authenticatedProcedure
+    .input(
+      z.object({
+        displayName: z.string().min(1).optional(),
+        notificationEmail: z.string().email().or(z.literal("")).optional(),
+        phoneCountryCode: z.string().optional(),
+        phoneNumber: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { users, userPreferences } = await import('@money-matters/db');
+      if (input.displayName) {
+        await ctx.db
+          .update(users)
+          .set({ displayName: input.displayName, updatedAt: new Date() })
+          .where(eq(users.id, ctx.userId!));
+      }
+
+      const [existingPref] = await ctx.db
+        .select()
+        .from(userPreferences)
+        .where(eq(userPreferences.userId, ctx.userId!));
+
+      if (existingPref) {
+        await ctx.db
+          .update(userPreferences)
+          .set({
+            notificationEmail: input.notificationEmail !== undefined ? (input.notificationEmail || null) : existingPref.notificationEmail,
+            phoneCountryCode: input.phoneCountryCode ?? existingPref.phoneCountryCode,
+            phoneNumber: input.phoneNumber !== undefined ? (input.phoneNumber || null) : existingPref.phoneNumber,
+            updatedAt: new Date(),
+          })
+          .where(eq(userPreferences.id, existingPref.id));
+      } else {
+        await ctx.db
+          .insert(userPreferences)
+          .values({
+            userId: ctx.userId!,
+            notificationEmail: input.notificationEmail || null,
+            phoneCountryCode: input.phoneCountryCode || "+61",
+            phoneNumber: input.phoneNumber || null,
+          });
+      }
+
+      return { success: true };
     }),
 
   listUserTenants: authenticatedProcedure

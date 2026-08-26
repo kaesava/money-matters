@@ -11,11 +11,12 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileScreenWrapper } from "@money-matters/ui/mobile";
+import { DESIGN_TOKENS, MobileScreenWrapper, useMobileToast } from "@money-matters/ui/mobile";
 import { trpc } from "../../../lib/trpc";
 
 export default function BankAccountsScreen() {
   const router = useRouter();
+  const toast = useMobileToast();
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const updateMappingsMut = trpc.updateBankAccountMappings.useMutation({
     onSuccess: () => bankAccountsQuery.refetch(),
@@ -30,18 +31,18 @@ export default function BankAccountsScreen() {
   });
   const archiveAccountMut = trpc.archiveBankAccount.useMutation({
     onSuccess: () => bankAccountsQuery.refetch(),
-    onError: (err) => Alert.alert("Error", err.message),
+    onError: (err) => toast.error(err.message),
   });
 
   const importCsvMut = trpc.parseCsv.useMutation({
     onSuccess: (res: { transactions: Array<{ date: string; amount: string; description: string }> }) => {
       bankAccountsQuery.refetch();
-      Alert.alert(
-        "CSV Statement Parsed Successfully",
-        `Parsed ${res.transactions.length} transactions from bank statement.`
+      toast.success(
+        `Parsed ${res.transactions.length} transactions from bank statement.`,
+        "CSV Statement Parsed"
       );
     },
-    onError: (err: { message: string }) => Alert.alert("Import Failed", err.message),
+    onError: (err: { message: string }) => toast.error(err.message),
   });
 
 
@@ -66,7 +67,7 @@ export default function BankAccountsScreen() {
         const fileContent = await FileSystem.readAsStringAsync(file.uri);
         const targetAccountId = accounts[0]?.id;
         if (!targetAccountId) {
-          Alert.alert("Account Required", "Please create a bank account first before importing CSV statements.");
+          toast.warning("Please create a bank account first before importing CSV statements.");
           return;
         }
         await importCsvMut.mutateAsync({
@@ -75,7 +76,7 @@ export default function BankAccountsScreen() {
 
       }
     } catch (err) {
-      Alert.alert("File Selection Error", err instanceof Error ? err.message : "Failed to read CSV file.");
+      toast.error(err instanceof Error ? err.message : "Failed to read CSV file.");
     } finally {
       setImportingCsv(false);
     }

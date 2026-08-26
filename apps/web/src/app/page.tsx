@@ -17,15 +17,15 @@ import { TrustSection } from "../components/landing/TrustSection";
 import { FaqSection } from "../components/landing/FaqSection";
 import { LandingFooter } from "../components/landing/LandingFooter";
 
+import { useToast } from "@money-matters/ui/web";
+
 const ENABLE_AUTH = process.env.NEXT_PUBLIC_ENABLE_AUTH ? process.env.NEXT_PUBLIC_ENABLE_AUTH === "true" : process.env.NODE_ENV === "production" ? true : false;
 
 function EarlyAccessQueryWatcher({ onTrigger }: { onTrigger: () => void }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const earlyAccess = searchParams.get("early_access");
-    const authDisabled = searchParams.get("auth_disabled");
-    if (earlyAccess === "true" || authDisabled === "true") {
+    if (searchParams.get("early_access") === "true") {
       onTrigger();
     }
   }, [searchParams, onTrigger]);
@@ -35,10 +35,10 @@ function EarlyAccessQueryWatcher({ onTrigger }: { onTrigger: () => void }) {
 
 export default function Home() {
   const router = useRouter();
+  const toast = useToast();
   const [isClient, setIsClient] = useState(false);
   const [showEarlyAccessModal, setShowEarlyAccessModal] = useState(false);
   const [emailInput, setEmailInput] = useState("");
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const openEarlyAccessModal = useCallback(() => {
     setShowEarlyAccessModal(true);
@@ -48,8 +48,11 @@ export default function Home() {
     onSuccess: () => {
       setShowEarlyAccessModal(false);
       setEmailInput("");
-      setToastMessage("✓ Thank you! We've registered your email and will notify you as soon as Money Matters goes live.");
-      setTimeout(() => setToastMessage(null), 6000);
+      toast.success(
+        "Thank you! We've registered your email and will notify you as soon as Money Matters goes live.",
+        "Early Access Registered",
+        6000
+      );
     },
   });
 
@@ -89,21 +92,6 @@ export default function Home() {
       <Suspense fallback={null}>
         <EarlyAccessQueryWatcher onTrigger={openEarlyAccessModal} />
       </Suspense>
-
-      {/* Toast Notification Banner */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-[120] bg-[#1B2B4B] text-white border border-blue-400 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md animate-in slide-in-from-top-4 duration-200">
-          <span className="text-emerald-400 text-lg">🎉</span>
-          <p className="text-xs font-semibold leading-relaxed flex-1">{toastMessage}</p>
-          <button
-            type="button"
-            onClick={() => setToastMessage(null)}
-            className="text-zinc-400 hover:text-white font-bold text-xs cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       <EarlyAccessModal
         isOpen={showEarlyAccessModal}

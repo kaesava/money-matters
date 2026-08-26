@@ -45,6 +45,15 @@ export const baseEnvSchema = z
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
     // Feature flags
     NEXT_PUBLIC_ENABLE_AUTH: z.string().transform((v) => v === "true").default("true"),
+    // App Versioning metadata
+    NEXT_PUBLIC_APP_VERSION: z.string().default("1.0.0-beta.1"),
+    EXPO_PUBLIC_APP_VERSION: z.string().default("1.0.0-beta.1"),
+    NEXT_PUBLIC_BUILD_NUMBER: z.string().default("1"),
+    EXPO_PUBLIC_BUILD_NUMBER: z.string().default("1"),
+    NEXT_PUBLIC_RELEASE_CHANNEL: z.enum(["development", "preview", "beta", "production"]).default("development"),
+    EXPO_PUBLIC_RELEASE_CHANNEL: z.enum(["development", "preview", "beta", "production"]).default("development"),
+    NEXT_PUBLIC_GIT_COMMIT: z.string().default("dev"),
+    EXPO_PUBLIC_GIT_COMMIT: z.string().default("dev"),
   })
   .strict();
 

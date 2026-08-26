@@ -18,6 +18,7 @@
     "@money-matters/capability-billing": "workspace:*",
     "@money-matters/capability-budgeting": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",
+    "@money-matters/config": "workspace:*",
     "@money-matters/core": "workspace:*",
     "@money-matters/i18n": "workspace:^",
     "@money-matters/types": "workspace:*",

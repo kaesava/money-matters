@@ -1,85 +1,162 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { t } from "@money-matters/i18n";
+import { useToast } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
+import { getWebVersionInfo } from "../../../../lib/version";
 
 interface BugReportModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+export type WorkflowCategory =
+  | "setup"
+  | "waterfall"
+  | "transactions_sync"
+  | "categories_bills"
+  | "ui_ux"
+  | "account_auth"
+  | "other";
+
 export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
+  const toast = useToast();
+  const titleId = useId();
+  const categoryId = useId();
+  const descriptionId = useId();
+  const consentId = useId();
+
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<
-    "budgeting" | "transactions" | "bank_accounts" | "ui_ux" | "auth" | "other"
-  >("budgeting");
-  const [severity, setSeverity] = useState<"low" | "medium" | "high" | "critical">("medium");
+  const [category, setCategory] = useState<WorkflowCategory>("setup");
+  const [frustrationLevel, setFrustrationLevel] = useState<1 | 2 | 3 | 4>(2);
   const [description, setDescription] = useState("");
+  const [contactConsent, setContactConsent] = useState(true);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+
+  const versionInfo = getWebVersionInfo();
+  const createBugReportMutation = trpc.createBugReport.useMutation();
 
   // Environment diagnostics metadata
   const [envDetails, setEnvDetails] = useState({
     platform: "web" as const,
-    appVersion: "1.0.0-beta",
+    appVersion: versionInfo.formattedVersion,
     pageUrl: "",
     deviceInfo: "",
   });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setEnvDetails({
-        platform: "web",
-        appVersion: "1.0.0-beta",
-        pageUrl: window.location.href,
-        deviceInfo: navigator.userAgent,
-      });
-    }
-  }, [isOpen]);
-
-  const mutation = trpc.createBugReport.useMutation({
-    onSuccess: () => {
-      setSubmitted(true);
-      setErrorText(null);
-    },
-    onError: (err) => {
-      setErrorText(err.message || t("bugReport.errorMsg"));
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (title.trim().length < 3 || description.trim().length < 10) {
-      setErrorText(t("bugReport.errorMsg"));
-      return;
+    setErrorText(null);
+    try {
+      const res = await createBugReportMutation.mutateAsync({
+        title,
+        category,
+        frustrationLevel,
+        description,
+        contactConsent,
+        platform: "web",
+        appVersion: versionInfo.formattedVersion,
+        pageUrl: envDetails.pageUrl,
+        deviceInfo: envDetails.deviceInfo,
+      });
+      setSubmittedRef(res.id.slice(0, 8));
+      toast.success(t("toasts.bugReportSuccess"));
+    } catch (err) {
+      setErrorText(err instanceof Error ? err.message : "Failed to submit bug report");
     }
-
-    mutation.mutate({
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      severity,
-      platform: envDetails.platform,
-      appVersion: envDetails.appVersion,
-      pageUrl: envDetails.pageUrl,
-      deviceInfo: envDetails.deviceInfo,
-    });
   };
 
-  const handleClose = () => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ua = navigator.userAgent;
+      let browserOS = "Web Browser";
+      if (ua.includes("Chrome")) browserOS = "Chrome on macOS / Windows";
+      else if (ua.includes("Safari")) browserOS = "Safari on macOS / iOS";
+      else if (ua.includes("Firefox")) browserOS = "Firefox";
+
+      setEnvDetails({
+        platform: "web",
+        appVersion: versionInfo.formattedVersion,
+        pageUrl: window.location.href,
+        deviceInfo: `${browserOS} (${navigator.platform || "Desktop"})`,
+      });
+    }
+  }, [isOpen, versionInfo.formattedVersion]);
+
+  const handleClose = React.useCallback(() => {
     setTitle("");
     setDescription("");
-    setCategory("budgeting");
-    setSeverity("medium");
-    setSubmitted(false);
+    setCategory("setup");
+    setFrustrationLevel(2);
+    setContactConsent(true);
+    setSubmittedRef(null);
     setErrorText(null);
     setShowDiagnostics(false);
     onClose();
-  };
+  }, [onClose]);
+
+  // Handle Escape key dismissal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
+
+  const frustrations: Array<{
+    level: 1 | 2 | 3 | 4;
+    emoji: string;
+    label: string;
+    sub: string;
+    border: string;
+    bg: string;
+    text: string;
+  }> = [
+    {
+      level: 1,
+      emoji: "🟢",
+      label: t("bugReport.frustrations.level1", { defaultValue: "Nice to fix" }),
+      sub: t("bugReport.frustrations.level1Subtitle", { defaultValue: "Minor visual / cosmetic hiccup" }),
+      border: "border-emerald-300",
+      bg: "bg-emerald-50 text-emerald-900",
+      text: "text-emerald-700",
+    },
+    {
+      level: 2,
+      emoji: "🟡",
+      label: t("bugReport.frustrations.level2", { defaultValue: "Mild annoyance" }),
+      sub: t("bugReport.frustrations.level2Subtitle", { defaultValue: "Small inconvenience, workaround exists" }),
+      border: "border-amber-300",
+      bg: "bg-amber-50 text-amber-900",
+      text: "text-amber-700",
+    },
+    {
+      level: 3,
+      emoji: "🟠",
+      label: t("bugReport.frustrations.level3", { defaultValue: "Frustrating" }),
+      sub: t("bugReport.frustrations.level3Subtitle", { defaultValue: "Feature isn't working as expected" }),
+      border: "border-orange-300",
+      bg: "bg-orange-50 text-orange-900",
+      text: "text-orange-700",
+    },
+    {
+      level: 4,
+      emoji: "🔴",
+      label: t("bugReport.frustrations.level4", { defaultValue: "Pissed me off!" }),
+      sub: t("bugReport.frustrations.level4Subtitle", { defaultValue: "Complete blocker / major crash" }),
+      border: "border-rose-300",
+      bg: "bg-rose-50 text-rose-900",
+      text: "text-rose-700",
+    },
+  ];
 
   return (
     <div
@@ -113,27 +190,17 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto flex flex-col gap-5">
-          {/* Beta Callout Banner */}
-          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 flex items-start gap-3 text-amber-900">
-            <span className="text-lg leading-none mt-0.5">🧪</span>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-amber-900">
-                {t("bugReport.betaNoticeTitle")}
-              </span>
-              <span className="text-xs text-amber-800/90 font-normal leading-relaxed">
-                {t("bugReport.betaNoticeBody")}
-              </span>
-            </div>
-          </div>
-
-          {submitted ? (
+          {submittedRef ? (
             <div className="py-8 flex flex-col items-center justify-center text-center gap-3">
               <div className="w-12 h-12 rounded-full bg-emerald-100 text-[#22c55e] flex items-center justify-center text-2xl font-bold">
                 ✓
               </div>
               <h3 className="text-base font-extrabold text-[#1B2B4B]">
-                {t("bugReport.successMsg")}
+                {t("bugReport.successMsg", { defaultValue: `Bug report submitted! Ticket #BUG-${submittedRef} created.`, ref: submittedRef })}
               </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                {t("bugReport.ticketRef", { defaultValue: `Ticket Ref: #BUG-${submittedRef}`, ref: submittedRef })}
+              </p>
               <button
                 type="button"
                 onClick={handleClose}
@@ -152,10 +219,11 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
 
               {/* Title */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-[#1B2B4B]">
+                <label htmlFor={titleId} className="text-xs font-bold text-[#1B2B4B]">
                   {t("bugReport.formTitleLabel")} <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id={titleId}
                   type="text"
                   required
                   value={title}
@@ -165,65 +233,68 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                 />
               </div>
 
-              {/* Category & Severity Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-[#1B2B4B]">
-                    {t("bugReport.formCategoryLabel")}
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) =>
-                      setCategory(
-                        e.target.value as
-                          | "budgeting"
-                          | "transactions"
-                          | "bank_accounts"
-                          | "ui_ux"
-                          | "auth"
-                          | "other"
-                      )
-                    }
-                    className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                  >
-                    <option value="budgeting">{t("bugReport.categories.budgeting")}</option>
-                    <option value="transactions">{t("bugReport.categories.transactions")}</option>
-                    <option value="bank_accounts">{t("bugReport.categories.bank_accounts")}</option>
-                    <option value="ui_ux">{t("bugReport.categories.ui_ux")}</option>
-                    <option value="auth">{t("bugReport.categories.auth")}</option>
-                    <option value="other">{t("bugReport.categories.other")}</option>
-                  </select>
+              {/* Frustration Scale Pills */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-[#1B2B4B]">
+                  {t("bugReport.formSeverityLabel", { defaultValue: "Frustration Level" })}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {frustrations.map((item) => {
+                    const isSelected = frustrationLevel === item.level;
+                    return (
+                      <button
+                        key={item.level}
+                        type="button"
+                        onClick={() => setFrustrationLevel(item.level)}
+                        className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-all ${
+                          isSelected
+                            ? `${item.border} ${item.bg} ring-2 ring-offset-1 ring-blue-500`
+                            : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 font-bold text-xs">
+                          <span>{item.emoji}</span>
+                          <span>{item.label}</span>
+                        </div>
+                        <span className={`text-[10px] ${isSelected ? item.text : "text-slate-500"}`}>
+                          {item.sub}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-[#1B2B4B]">
-                    {t("bugReport.formSeverityLabel")}
-                  </label>
-                  <select
-                    value={severity}
-                    onChange={(e) =>
-                      setSeverity(
-                        e.target.value as "low" | "medium" | "high" | "critical"
-                      )
-                    }
-                    className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                  >
-                    <option value="low">{t("bugReport.severities.low")}</option>
-                    <option value="medium">{t("bugReport.severities.medium")}</option>
-                    <option value="high">{t("bugReport.severities.high")}</option>
-                    <option value="critical">{t("bugReport.severities.critical")}</option>
-                  </select>
-                </div>
+              {/* Workflow Category */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor={categoryId} className="text-xs font-bold text-[#1B2B4B]">
+                  {t("bugReport.formCategoryLabel")}
+                </label>
+                <select
+                  id={categoryId}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as WorkflowCategory)}
+                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                >
+                  <option value="setup">🚀 {t("bugReport.categories.setup")}</option>
+                  <option value="waterfall">💸 {t("bugReport.categories.waterfall")}</option>
+                  <option value="transactions_sync">💳 {t("bugReport.categories.transactions_sync")}</option>
+                  <option value="categories_bills">🏷️ {t("bugReport.categories.categories_bills")}</option>
+                  <option value="ui_ux">🎨 {t("bugReport.categories.ui_ux")}</option>
+                  <option value="account_auth">🔐 {t("bugReport.categories.account_auth")}</option>
+                  <option value="other">💬 {t("bugReport.categories.other")}</option>
+                </select>
               </div>
 
               {/* Description */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-[#1B2B4B]">
+                <label htmlFor={descriptionId} className="text-xs font-bold text-[#1B2B4B]">
                   {t("bugReport.formDescriptionLabel")} <span className="text-rose-500">*</span>
                 </label>
                 <textarea
+                  id={descriptionId}
                   required
-                  rows={4}
+                  rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={t("bugReport.formDescriptionPlaceholder")}
@@ -231,7 +302,21 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                 />
               </div>
 
-              {/* Environment Collapsible Section */}
+              {/* Contact Consent Checkbox */}
+              <div className="flex items-center gap-2.5 pt-1">
+                <input
+                  id={consentId}
+                  type="checkbox"
+                  checked={contactConsent}
+                  onChange={(e) => setContactConsent(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#2563eb] border-slate-300 focus:ring-[#2563eb]"
+                />
+                <label htmlFor={consentId} className="text-xs font-medium text-slate-700 cursor-pointer select-none">
+                  {t("bugReport.contactConsentLabel", { defaultValue: "Email me updates & receipt regarding this ticket" })}
+                </label>
+              </div>
+
+              {/* System Telemetry Collapsible Section */}
               <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3">
                 <button
                   type="button"
@@ -250,10 +335,6 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                     <div>
                       <strong className="font-semibold text-slate-700">{t("bugReport.appVersion")}:</strong>{" "}
                       {envDetails.appVersion}
-                    </div>
-                    <div>
-                      <strong className="font-semibold text-slate-700">{t("bugReport.pageUrl")}:</strong>{" "}
-                      {envDetails.pageUrl}
                     </div>
                     <div className="truncate">
                       <strong className="font-semibold text-slate-700">{t("bugReport.deviceInfo")}:</strong>{" "}
@@ -274,10 +355,10 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={mutation.isPending}
+                  disabled={createBugReportMutation.isPending}
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-xs"
                 >
-                  {mutation.isPending ? t("bugReport.submitting") : t("bugReport.submitBtn")}
+                  {createBugReportMutation.isPending ? t("bugReport.submitting") : t("bugReport.submitBtn")}
                 </button>
               </div>
             </form>

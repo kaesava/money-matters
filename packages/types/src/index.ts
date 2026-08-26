@@ -343,4 +343,21 @@ export type MonthlySummaryType = z.infer<typeof MonthlySummaryDto>;
 export type BillCoverageItem = z.infer<typeof BillCoverageItemSchema>;
 export type BillCoverageResult = z.infer<typeof BillCoverageResultSchema>;
 
+/**
+ * Application Version and Diagnostics DTO
+ */
+export const AppVersionInfoSchema = z.object({
+  appId: z.string().uuid(),
+  appName: z.string().min(1),
+  version: z.string().min(1),
+  buildNumber: z.string().min(1),
+  channel: z.enum(["development", "preview", "beta", "production"]),
+  gitCommit: z.string().min(1),
+  platform: z.enum(["web", "ios", "android"]),
+  formattedVersion: z.string().min(1),
+}).strict();
+
+export type AppVersionInfo = z.infer<typeof AppVersionInfoSchema>;
+
+
 

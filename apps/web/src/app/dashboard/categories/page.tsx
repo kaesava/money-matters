@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { monthProgress } from "@money-matters/ui";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
@@ -17,6 +17,7 @@ import { RegularBillsSection } from "./components/RegularBillsSection";
 import { SavingsGoalsSection } from "./components/SavingsGoalsSection";
 
 function CategoriesPageContent() {
+  const toast = useToast();
   const utils = trpc.useUtils();
   const searchParams = useSearchParams();
   const paramSearch = searchParams.get("search") || searchParams.get("name") || "";
@@ -82,16 +83,17 @@ function CategoriesPageContent() {
 
   const handleArchive = async (cat: CategorySummaryItem) => {
     if (cat.type === "EVERYDAY") {
-      alert("The Everyday category cannot be archived or deleted.");
+      toast.warning("The Everyday category cannot be archived or deleted.");
       return;
     }
     if (confirm(`Are you sure you want to archive "${cat.name}"?`)) {
       try {
         await archiveCategoryMut.mutateAsync({ categoryId: cat.id });
         posthog.capture("category_archived", { category_type: cat.type });
+        toast.success(t("toasts.archived"));
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to archive category.";
-        alert(message);
+        toast.error(message);
       }
     }
   };

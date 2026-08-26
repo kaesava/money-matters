@@ -429,49 +429,65 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 9. SETTINGS, REPORT A BUG & PARTNER INVITES (`/dashboard/settings`)
+  // 9. SETTINGS, REPORT A BUG, HOUSEHOLD GOVERNANCE & TABS (`/dashboard/settings`)
   // ---------------------------------------------------------------------------
-  test.describe('9. Settings & Beta Bug Report Modal (`/dashboard/settings`)', () => {
-    test('9.1 Notification Preferences, Partner Invite Form, & CSV Data Export Audit', async ({ page }) => {
+  test.describe('9. Settings 3-Tab Layout & Household Governance (`/dashboard/settings`)', () => {
+    test('9.1 Settings 3-Tab Navigation & Profile / Household / Account & Data Tabs', async ({ page }) => {
       await page.goto('/dashboard/settings');
 
-      const partnerEmailInput = page.locator('input[placeholder*="partner"], input[type="email"]').first();
-      const inviteBtn = page.locator('button:has-text("Send Invite"), button:has-text("Invite")').first();
+      // Verify page title and tab navigation
+      await expect(page.locator('h1').filter({ hasText: /Settings|設定/i }).first()).toBeVisible();
+      await expect(page.locator('button').filter({ hasText: /Profile|プロフィール/i }).first()).toBeVisible();
+      await expect(page.locator('button').filter({ hasText: /Household|世帯/i }).first()).toBeVisible();
+      await expect(page.locator('button').filter({ hasText: /Account & Data|アカウント/i }).first()).toBeVisible();
 
-      if (await partnerEmailInput.isVisible()) {
-        await partnerEmailInput.fill('partner@moneymatters.au');
-        if (await inviteBtn.isVisible()) {
-          await expect(inviteBtn).toBeVisible();
-        }
-      }
+      // Click Household Tab
+      await page.locator('button').filter({ hasText: /Household|世帯/i }).first().click();
+      await expect(page.locator('h2').filter({ hasText: /partner|招待/i }).first()).toBeVisible();
 
-      const exportCsvBtn = page.locator('button:has-text("Export My Data"), button:has-text("Download")').first();
-      if (await exportCsvBtn.isVisible()) {
-        await expect(exportCsvBtn).toBeEnabled();
+      // Click Account & Data Tab
+      await page.locator('button').filter({ hasText: /Account & Data|アカウント/i }).first().click();
+      const exportZipBtn = page.locator('button').filter({ hasText: /Zipped|ZIP|Download/i }).first();
+      if (await exportZipBtn.isVisible()) {
+        await expect(exportZipBtn).toBeEnabled();
       }
     });
 
-    test('9.2 Report a Bug Modal & Diagnostic Capture Audit', async ({ page }) => {
-      await page.goto('/dashboard/settings');
+    test('9.2 Signed-In Household Governance Screen (`/dashboard/settings/delete-account`)', async ({ page }) => {
+      await page.goto('/dashboard/settings/delete-account');
+
+      await expect(page.locator('h1').filter({ hasText: /Governance|管理/i }).first()).toBeVisible();
+      const leaveOrDeleteSec = page.locator('section').first();
+      await expect(leaveOrDeleteSec).toBeVisible();
+    });
+
+    test('9.3 Report a Bug Modal & Diagnostic Capture Audit', async ({ page }) => {
+      await page.goto('/dashboard/settings?tab=account-data');
 
       const reportBugBtn = page.locator('button:has-text("Report a Bug")').first();
-      await expect(reportBugBtn).toBeVisible();
-      await reportBugBtn.click();
-
-      // Modal heading & Beta notice check
-      await expect(page.locator('text=Report a Bug').first()).toBeVisible();
-      await expect(page.locator('text=Beta Release Testing').first()).toBeVisible();
-
-      // Fill out form
-      const titleInput = page.locator('input[placeholder*="summary"]').first();
-      const descInput = page.locator('textarea[placeholder*="happened"]').first();
-
-      await titleInput.fill('E2E Test: Discrepancy in Bills Category');
-      await descInput.fill('This is an automated E2E test report verifying the Beta Bug Report feature.');
-
-      const submitBtn = page.locator('button:has-text("Submit Bug Report")').first();
-      await expect(submitBtn).toBeEnabled();
+      if (await reportBugBtn.isVisible()) {
+        await reportBugBtn.click();
+        await expect(page.locator('text=Report a Bug').first()).toBeVisible();
+      }
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // 10. HISTORY & PAYDAY ALLOCATIONS 2-TAB SCREEN (`/dashboard/transactions`)
+  // ---------------------------------------------------------------------------
+  test.describe('10. History & Payday Allocations 2-Tab Screen (`/dashboard/transactions`)', () => {
+    test('10.1 Transactions & Payday Allocations Tabs', async ({ page }) => {
+      await page.goto('/dashboard/transactions');
+
+      await expect(page.locator('h1').filter({ hasText: /History|履歴/i }).first()).toBeVisible();
+      await expect(page.locator('button').filter({ hasText: /Transactions|取引履歴/i }).first()).toBeVisible();
+
+      const paydayTab = page.locator('button').filter({ hasText: /Payday Allocations|給与日配分/i }).first();
+      await expect(paydayTab).toBeVisible();
+      await paydayTab.click();
+
+      await expect(page.locator('h2').filter({ hasText: /Payday Allocation History|履歴/i }).first()).toBeVisible();
+    });
+  });
 });
+

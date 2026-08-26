@@ -6,48 +6,62 @@ import {
   TextInput,
   StyleSheet,
   ScrollView,
-  Alert,
   Platform,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileScreenWrapper, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { Feather } from '@expo/vector-icons';
+import { getMobileVersionInfo } from '../../../lib/version';
 
-type BugCategory = 'budgeting' | 'transactions' | 'bank_accounts' | 'ui_ux' | 'auth' | 'other';
-type BugSeverity = 'low' | 'medium' | 'high' | 'critical';
+type WorkflowCategory =
+  | 'setup'
+  | 'waterfall'
+  | 'transactions_sync'
+  | 'categories_bills'
+  | 'ui_ux'
+  | 'account_auth'
+  | 'other';
+
+type FrustrationLevel = 1 | 2 | 3 | 4;
 
 export default function MobileBugReportScreen() {
   const router = useRouter();
+  const toast = useMobileToast();
   const { data: session } = authClient.useSession();
 
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<BugCategory>('budgeting');
-  const [severity, setSeverity] = useState<BugSeverity>('medium');
+  const [category, setCategory] = useState<WorkflowCategory>('setup');
+  const [frustrationLevel, setFrustrationLevel] = useState<FrustrationLevel>(2);
   const [description, setDescription] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [contactConsent, setContactConsent] = useState(true);
+  const [submittedRef, setSubmittedRef] = useState<string | null>(null);
+
+  const versionInfo = getMobileVersionInfo();
 
   const mutation = trpc.createBugReport.useMutation({
-    onSuccess: () => {
-      setSubmitted(true);
+    onSuccess: (data) => {
+      const shortRef = data.id.slice(0, 8);
+      setSubmittedRef(shortRef);
+      toast.success(
+        t('bugReport.successMsg', { defaultValue: `Bug report submitted! Ticket #BUG-${shortRef} created.`, ref: shortRef })
+      );
+
+      setTimeout(() => {
+        router.back();
+      }, 3000);
     },
     onError: (err) => {
-      Alert.alert(
-        t('common.error', { defaultValue: 'Error' }),
-        err.message || t('bugReport.errorMsg')
-      );
+      toast.error(err.message || t('bugReport.errorMsg'));
     },
   });
 
   const handleSubmit = () => {
     if (title.trim().length < 3 || description.trim().length < 10) {
-      Alert.alert(
-        t('common.error', { defaultValue: 'Validation Error' }),
-        t('bugReport.errorMsg')
-      );
+      toast.warning(t('bugReport.errorMsg'));
       return;
     }
 
@@ -55,15 +69,33 @@ export default function MobileBugReportScreen() {
       title: title.trim(),
       description: description.trim(),
       category,
-      severity,
-      platform: Platform.OS === 'ios' ? 'ios' : 'android',
-      appVersion: '1.0.0-beta',
+      frustrationLevel,
+      contactConsent,
+      platform: versionInfo.platform,
+      appVersion: versionInfo.formattedVersion,
       pageUrl: '/(app)/settings/bug-report',
       deviceInfo: `${Platform.OS} ${Platform.Version}`,
     });
   };
 
   const D = DESIGN_TOKENS;
+
+  const frustrationOptions: Array<{ level: FrustrationLevel; emoji: string; key: 'level1' | 'level2' | 'level3' | 'level4' }> = [
+    { level: 1, emoji: '🟢', key: 'level1' },
+    { level: 2, emoji: '🟡', key: 'level2' },
+    { level: 3, emoji: '🟠', key: 'level3' },
+    { level: 4, emoji: '🔴', key: 'level4' },
+  ];
+
+  const categoryOptions: WorkflowCategory[] = [
+    'setup',
+    'waterfall',
+    'transactions_sync',
+    'categories_bills',
+    'ui_ux',
+    'account_auth',
+    'other',
+  ];
 
   return (
     <MobileScreenWrapper
@@ -84,16 +116,15 @@ export default function MobileBugReportScreen() {
           </View>
         </View>
 
-        {/* Beta Notice Callout Banner */}
-        <View style={styles.betaCard}>
-          <Text style={styles.betaTitle}>🧪 {t('bugReport.betaNoticeTitle')}</Text>
-          <Text style={styles.betaBody}>{t('bugReport.betaNoticeBody')}</Text>
-        </View>
-
-        {submitted ? (
+        {submittedRef ? (
           <View style={styles.successCard}>
             <Text style={styles.successIcon}>✓</Text>
-            <Text style={styles.successTitle}>{t('bugReport.successMsg')}</Text>
+            <Text style={styles.successTitle}>
+              {t('bugReport.successMsg', { defaultValue: `Bug report submitted! Ticket #BUG-${submittedRef} created.`, ref: submittedRef })}
+            </Text>
+            <Text style={styles.ticketRefText}>
+              {t('bugReport.ticketRef', { defaultValue: `Ticket Ref: #BUG-${submittedRef}`, ref: submittedRef })}
+            </Text>
             <TouchableOpacity
               style={styles.closeBtn}
               onPress={() => router.back()}
@@ -116,40 +147,41 @@ export default function MobileBugReportScreen() {
               />
             </View>
 
+            {/* Frustration Level */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t('bugReport.formSeverityLabel', { defaultValue: 'Frustration Level' })}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {frustrationOptions.map((item) => (
+                  <TouchableOpacity
+                    key={item.level}
+                    style={[
+                      styles.chip,
+                      frustrationLevel === item.level && styles.chipActive,
+                    ]}
+                    onPress={() => setFrustrationLevel(item.level)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipText, frustrationLevel === item.level && styles.chipTextActive]}>
+                      {item.emoji} {t(`bugReport.frustrations.${item.key}` as const)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
             {/* Category Selector */}
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>{t('bugReport.formCategoryLabel')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {(['budgeting', 'transactions', 'bank_accounts', 'ui_ux', 'auth', 'other'] as BugCategory[]).map(
-                  (cat) => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[styles.chip, category === cat && styles.chipActive]}
-                      onPress={() => setCategory(cat)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>
-                        {t(`bugReport.categories.${cat}` as const)}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                )}
-              </ScrollView>
-            </View>
-
-            {/* Severity Selector */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t('bugReport.formSeverityLabel')}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {(['low', 'medium', 'high', 'critical'] as BugSeverity[]).map((sev) => (
+                {categoryOptions.map((cat) => (
                   <TouchableOpacity
-                    key={sev}
-                    style={[styles.chip, severity === sev && styles.chipActive]}
-                    onPress={() => setSeverity(sev)}
+                    key={cat}
+                    style={[styles.chip, category === cat && styles.chipActive]}
+                    onPress={() => setCategory(cat)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.chipText, severity === sev && styles.chipTextActive]}>
-                      {t(`bugReport.severities.${sev}` as const)}
+                    <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>
+                      {t(`bugReport.categories.${cat}` as const)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -169,6 +201,20 @@ export default function MobileBugReportScreen() {
                 style={[styles.input, styles.textArea]}
               />
             </View>
+
+            {/* Contact Consent */}
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setContactConsent(!contactConsent)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, contactConsent && styles.checkboxChecked]}>
+                {contactConsent && <Feather name="check" size={12} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                {t('bugReport.contactConsentLabel', { defaultValue: 'Email me updates & receipt regarding this ticket' })}
+              </Text>
+            </TouchableOpacity>
 
             {/* Submit Button */}
             <TouchableOpacity
@@ -196,16 +242,6 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 20, fontWeight: '900', color: D.colors.primary },
   headerSubtitle: { fontSize: 12, color: D.colors.textMuted },
-  betaCard: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: D.radius.md,
-    padding: 14,
-    gap: 4,
-  },
-  betaTitle: { fontSize: 13, fontWeight: '800', color: '#92400E' },
-  betaBody: { fontSize: 12, color: '#B45309', lineHeight: 18 },
   formContainer: { gap: 16 },
   fieldGroup: { gap: 6 },
   label: { fontSize: 12, fontWeight: '800', color: D.colors.primary },
@@ -237,6 +273,22 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
   chipTextActive: { color: '#FFFFFF' },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  checkboxChecked: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  checkboxLabel: { fontSize: 12, fontWeight: '600', color: '#334155', flex: 1 },
   submitBtn: {
     backgroundColor: '#2563eb',
     borderRadius: 14,
@@ -266,6 +318,7 @@ const styles = StyleSheet.create({
     lineHeight: 52,
   },
   successTitle: { fontSize: 14, fontWeight: '800', color: D.colors.primary, textAlign: 'center' },
+  ticketRefText: { fontSize: 12, fontWeight: '600', color: '#64748B' },
   closeBtn: {
     backgroundColor: '#2563eb',
     borderRadius: 12,

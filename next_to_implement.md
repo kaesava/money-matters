@@ -7,7 +7,6 @@
 * Ignore mobile app for now
 
 ## General
-
 ## "Pools"
 * PENDING - Upcoming Coverage
 ### Activity
@@ -22,6 +21,11 @@ DONE
 ## "Income & Bills"
 
 ## "Settings"
+
+## Settings
+### Report a bug
+
+## Delete account page - http://localhost:3000/privacy/delete-account
 
 ## "Main Dashboard"
 

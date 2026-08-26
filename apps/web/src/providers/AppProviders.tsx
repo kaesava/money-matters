@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, buildTrpcClient } from "../lib/trpc";
 import { authClient } from "../lib/auth";
 import posthog from "../lib/posthog-client";
+import { ToastProvider, ToastContainer } from "@money-matters/ui/web";
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -69,9 +70,12 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <SessionSyncTracker>
-          {children}
-        </SessionSyncTracker>
+        <ToastProvider>
+          <SessionSyncTracker>
+            {children}
+            <ToastContainer />
+          </SessionSyncTracker>
+        </ToastProvider>
       </QueryClientProvider>
     </trpc.Provider>
   );

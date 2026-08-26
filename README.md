@@ -57,6 +57,9 @@ pnpm typecheck
 
 # Run Vitest unit tests
 pnpm test
+
+# Run automated version bump CLI (major | minor | patch | beta)
+pnpm version:bump --type=patch --app=all
 ```
 
 ### Running Local Development Servers

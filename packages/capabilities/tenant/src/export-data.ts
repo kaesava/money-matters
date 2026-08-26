@@ -33,11 +33,15 @@ function arrayToCsv(data: Record<string, unknown>[]): string {
 
 export function exportMyDataHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, appId: string) => {
-    // 1. Fetch user categories
-    const userCategories = await db
+    // 1. Fetch user categories (Shared OR Private owned by current user)
+    const rawCategories = await db
       .select()
       .from(categories)
       .where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
+
+    const userCategories = rawCategories.filter(
+      (c) => !c.isPrivate || c.userId === userId
+    );
 
     // 2. Fetch income sources & events
     const userIncomeSources = await db
@@ -61,17 +65,27 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(expenseEvents)
       .where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
 
-    // 4. Fetch transaction ledger
-    const userLedger = await db
+    // 4. Fetch bank accounts (Shared OR Private owned by current user)
+    const rawBankAccounts = await db
+      .select()
+      .from(bankAccounts)
+      .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
+
+    const userBankAccounts = rawBankAccounts.filter(
+      (b) => !b.isPrivate || b.userId === userId
+    );
+
+    const allowedCategoryIds = new Set(userCategories.map((c) => c.id));
+
+    // 5. Fetch transaction ledger (filtered to allowed categories)
+    const rawLedger = await db
       .select()
       .from(transactionLedger)
       .where(and(eq(transactionLedger.tenantId, tenantId), eq(transactionLedger.appId, appId)));
 
-    // 5. Fetch bank accounts
-    const userBankAccounts = await db
-      .select()
-      .from(bankAccounts)
-      .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
+    const userLedger = rawLedger.filter(
+      (t) => !t.categoryId || allowedCategoryIds.has(t.categoryId)
+    );
 
     // 6. Fetch file notes metadata
     const userFileNotes = await db

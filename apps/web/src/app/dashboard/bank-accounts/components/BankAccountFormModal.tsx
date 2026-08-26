@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useEffect, useState } from "react";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
@@ -56,6 +56,7 @@ export function BankAccountFormModal({
   fmtMoney,
   onArchive,
 }: BankAccountFormModalProps) {
+  const toast = useToast();
   const modalId = useId();
   const bankSelectId = useId();
   const nameInputId = useId();
@@ -84,7 +85,7 @@ export function BankAccountFormModal({
   const handlePoolCheckboxClick = (typeKey: CategoryType) => {
     const isCurrentlyChecked = accSelectedTypes.includes(typeKey);
     if (isCurrentlyChecked) {
-      alert("Every pool must be linked to a bank account. To move this pool to a different bank account, edit the bank account that you want to link it to.");
+      toast.warning("Every pool must be linked to a bank account. To move this pool to a different bank account, edit the bank account that you want to link it to.");
       return;
     }
     onCategoryTypeToggle(typeKey);

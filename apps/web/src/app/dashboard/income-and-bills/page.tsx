@@ -6,12 +6,11 @@ import posthog from "../../../lib/posthog-client";
 import { SourceTable } from "./components/SourceTable";
 import { SourceItem, EventItem } from "./components/BurstModal";
 import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
-import { InfoTooltip, SearchInput } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput, useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
-
-
 export default function IncomeAndExpensesPage() {
+  const toast = useToast();
   const utils = trpc.useUtils();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
@@ -61,8 +60,9 @@ export default function IncomeAndExpensesPage() {
     try {
       if (mode === "INCOME") { await archiveIncomeMut.mutateAsync({ id: item.id }); posthog.capture("income_source_archived"); }
       else { await archiveExpenseMut.mutateAsync({ id: item.id }); posthog.capture("expense_source_archived"); }
-    } catch (err) { alert(err instanceof Error ? err.message : "Failed to archive."); }
-  }, [archiveIncomeMut, archiveExpenseMut]);
+      toast.success(t("toasts.archived"));
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to archive."); }
+  }, [archiveIncomeMut, archiveExpenseMut, toast]);
 
   const handleEdit = useCallback((item: SourceItem, mode: "INCOME" | "EXPENSE") => {
     setModalMode(mode);

@@ -19,6 +19,7 @@
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "validate": "pnpm install && pnpm typecheck && pnpm test:coverage && pnpm test && pnpm check-i18n && pnpm lint && pnpm build",
+    "version:bump": "node scripts/version-bump.mjs",
     "seed": "pnpm --filter @money-matters/db seed"
   },
   "devDependencies": {

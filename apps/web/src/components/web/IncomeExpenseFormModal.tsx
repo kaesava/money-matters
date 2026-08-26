@@ -4,7 +4,7 @@ import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
 import { ModalDialog } from "./ModalDialog";
 import { RecurrenceFields } from "./forms/RecurrenceFields";
-import { InfoTooltip, Spinner } from "@money-matters/ui/web";
+import { InfoTooltip, Spinner, useToast } from "@money-matters/ui/web";
 
 function cleanAmount(raw: string): string {
   const cleaned = raw.replace(/[^0-9.]/g, "");
@@ -37,6 +37,7 @@ export function IncomeExpenseFormModal({
   onSuccess,
   onArchive,
 }: IncomeExpenseFormModalProps) {
+  const toast = useToast();
   const utils = trpc.useUtils();
   const categoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
@@ -140,7 +141,7 @@ export function IncomeExpenseFormModal({
           });
 
           if (res?.hasConfirmedHistory) {
-            alert("Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.");
+            toast.info("Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.");
           }
         } else {
           await createIncomeMut.mutateAsync({
@@ -169,7 +170,7 @@ export function IncomeExpenseFormModal({
           });
 
           if (res?.hasPaidHistory) {
-            alert("Note: Bills that have already been marked as paid won't be changed. Only unperformed future occurrences have been updated.");
+            toast.info("Note: Bills that have already been marked as paid won't be changed. Only unperformed future occurrences have been updated.");
           }
         } else {
           await createExpenseMut.mutateAsync({

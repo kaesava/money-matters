@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-08-23  
-> **Status:** Fully synchronized with 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, 100% Vitest unit test coverage, Commercial Model (60-Day Free Trial with Hard Paywall Lockdown on Day 61, $9.95 AUD/mo or $89/yr, $69/yr founding member launch price), Orthogonal Stealth Privacy (`isPrivate: boolean` flag across `EVERYDAY`, `REGULAR`, `GOAL` pools) with Postgres RLS, 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, 3-Step Interactive Setup Wizard across Web & Mobile, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
+> **Status:** Fully synchronized with 100% i18n externalization & Japanese localization (`ja.ts`), AST-based `check-i18n` validator, 100% Vitest unit test coverage, Commercial Model (60-Day Free Trial with Hard Paywall Lockdown on Day 61, $9.95 AUD/mo or $89/yr, $69/yr founding member launch price), Orthogonal Stealth Privacy (`isPrivate: boolean` flag across `EVERYDAY`, `REGULAR`, `GOAL` pools) with Postgres RLS, 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, 3-Step Interactive Setup Wizard across Web & Mobile, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System with Unified Web & Mobile Toast/Alert Feedback Infrastructure, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 
@@ -112,7 +112,8 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - **Bank Reconciliation (`BankReconcileCard` & `BankReconcileModal`)**: Static status indicators with direct wiring to the `reconcileBankBalance` tRPC mutation.
   - **Deduplicated & Streamlined Filter Surfaces**: Counter-card health filter integration on Categories screen; permanent 3-way (`All / Debits / Credits`) segmented control on Transaction History screen.
   - **Collapsible Sections & Minimalist View Mode**: Quick Actions, All Upcoming Payments, and Category Health can be collapsed. Users can toggle "Show Decorative Icons" in Settings to switch between iconified vs minimalist typographic UI layouts across Web and Mobile apps.
-  - **In-App Beta Bug Reporting**: "Report a Bug" feature accessible from Settings on Web and Mobile. Displays a prominent **Beta Release Testing** callout banner, captures issue title, category, severity, description/steps to reproduce, and auto-attached environment diagnostics (`platform`, `appVersion`, `pageUrl`, `deviceInfo`), persisting directly to PostgreSQL (`bug_reports` table) with strict multi-tenant isolation.
+  - **In-App Bug Reporting & App Versioning**: "Report a Bug" feature accessible from a dedicated "Help & Support" section in Settings on Web and Mobile. Captures issue title, workflow category (`setup`, `waterfall`, `transactions_sync`, `categories_bills`, `ui_ux`, `account_auth`, `other`), 4-level Frustration scale (`Nice to fix` to `Pissed me off!`), description/steps to reproduce, contact consent opt-in, auto-derived system telemetry (`platform`, `appVersion`, `deviceInfo`), auto-dispatches email receipts (`[Ref: BUG-#id]`) & admin notifications (`support@moneymatters.kaesava.au`), and persists directly to PostgreSQL (`bug_reports` table) with strict multi-tenant isolation.
+  - **Inconspicuous App Version Footer**: An understated version footer (`Money Matters v1.0.0-beta.1 (#42) • beta channel`) displayed at the bottom of the Settings view on Web and Mobile. Tapping/clicking copies complete environment diagnostics JSON to the clipboard for support troubleshooting.
 
 
 ---
@@ -136,6 +137,17 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 2. **Income & Expense Source Management**:
    - Amount changes cascade to unperformed upcoming occurrences (`status === 'UPCOMING'`).
    - Archival deletes unperformed future occurrences while retaining historical paid ledger entries.
-3. **i18n Externalization**:
+3. **Household Governance & Account Erasure**:
+   - Role-aware household deletion and leave controls (`/dashboard/settings/delete-account` and public `/privacy/delete-account`).
+   - Sole Owners delete household with exact Household Name typing requirement.
+   - Owners with partners can delete (notifies partner by email) or leave (transfers ownership to partner, deletes owner's private pools/accounts, notifies partner).
+   - Partners can leave (deletes partner's private pools/accounts, notifies owner).
+4. **Data Sovereignty & Zipped CSV Backup**:
+   - Users can export a single `.zip` archive containing all entity CSV files (`categories.csv`, `income_sources.csv`, `expense_sources.csv`, `transaction_ledger.csv`, `bank_accounts.csv`, `allocation_plans.csv`, `file_notes.csv`).
+   - Enforces multi-tenant RLS and stealth privacy (partner's private pools/bank accounts are never included in export).
+5. **Redesigned 3-Tab Settings & 2-Tab History Layout**:
+   - Settings page expanded to `max-w-5xl` container width with 3 sleek tabs (`Profile`, `Household`, `Account & Data`).
+   - History page organized into 2 tabs (`Transactions` ledger & `Payday Allocations` audit history).
+6. **i18n Externalization & Parity**:
    - 100% of user-facing UI labels, error messages, headings, modal prompts, placeholders, and tooltips are externalized in `@money-matters/i18n`.
-   - Verified via `pnpm lint` (`check-i18n`).
+   - Structural parity between `en.ts` and `ja.ts` is strictly enforced and verified via `pnpm check-i18n`.
