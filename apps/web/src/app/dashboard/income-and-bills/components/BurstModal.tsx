@@ -44,6 +44,9 @@ export interface EventItem {
   id: string;
   incomeSourceId?: string | null;
   expenseSourceId?: string | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  accountName?: string | null;
   status: string;
   expectedDate: string;
   expectedAmount: string;

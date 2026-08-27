@@ -16,6 +16,7 @@ export interface EngineBucket {
   id: string;
   name: string;
   type: BucketType;
+  userId?: string;
   isPrivate?: boolean;
   isEssential?: boolean;
   isCommitted?: boolean;
@@ -40,6 +41,7 @@ export interface AllocationEngineInput {
   buckets: EngineBucket[];
   paycheckDate: Date;
   paycheckFrequencyDays: number; // 7 = weekly, 14 = fortnightly, 30 = monthly
+  daysUntilNextIncome?: number; // Optional Time-Based Accumulation gap in days until next income event
 }
 
 export interface AllocationEngineOutput {
@@ -62,6 +64,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   let remainingCents = toCents(Math.max(0, input.incomeAmount || 0));
   const linesMap = new Map<string, { bucketName: string; amountCents: number; reasonings: string[] }>();
 
+  const daysGap = input.daysUntilNextIncome ?? input.paycheckFrequencyDays;
   const paychecksPerYear = Math.max(1, Math.round(365 / input.paycheckFrequencyDays));
 
   // Step 0: DEFICIT REPAIR — Priority First for any negative bucket balances
@@ -81,7 +84,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   }
 
-  // Helper to allocate REGULAR bills (Balance-Aware & Capped)
+  // Helper to allocate REGULAR bills (Time-Based Accumulation)
   const fundRegularBills = (bucketsList: EngineBucket[]) => {
     const sorted = [...bucketsList].sort((a, b) => {
       if (!a.dueDate) return 1;
@@ -91,32 +94,16 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
     for (const bucket of sorted) {
       const monthlyCents = toCents(bucket.monthlyAmount ?? 0);
-      const currentCents = Math.max(0, toCents(bucket.currentBalance));
       
-      // Prorated tranche required for this paycheck cycle
-      const proratedCents = Math.round((monthlyCents * 12) / paychecksPerYear);
-      
-      // Bill Urgency Acceleration: If due date falls within current pay cycle (due within frequencyDays), accelerate required allocation
-      let isUrgentDue = false;
-      if (bucket.dueDate) {
-        const dueD = new Date(bucket.dueDate);
-        const cutoffD = new Date(input.paycheckDate.getTime() + input.paycheckFrequencyDays * 24 * 60 * 60 * 1000);
-        if (dueD <= cutoffD) {
-          isUrgentDue = true;
-        }
-      }
-
-      // Balance-Aware Capping & Urgency Acceleration:
-      const fullDeficitCents = Math.max(0, monthlyCents - currentCents);
-      const targetNeededCents = isUrgentDue ? fullDeficitCents : Math.min(proratedCents, fullDeficitCents);
+      // Time-based accumulation using 364 payroll days per year (52 weeks * 7 days)
+      const targetNeededCents = Math.round((monthlyCents * 12 * daysGap) / 364);
       
       const allocatedCents = Math.min(remainingCents, targetNeededCents);
       remainingCents -= allocatedCents;
 
-
-      if (allocatedCents > 0 || proratedCents > 0) {
+      if (allocatedCents > 0 || targetNeededCents > 0) {
         const existing = linesMap.get(bucket.id);
-        const reasoningMsg = `Prorated bill target ($${toDollars(monthlyCents).toFixed(2)}/mo): $${toDollars(allocatedCents).toFixed(2)} allocated (due ${bucket.dueDate ?? "recurring"}).`;
+        const reasoningMsg = `Time-based bill target ($${toDollars(monthlyCents).toFixed(2)}/mo across ${daysGap} days): $${toDollars(allocatedCents).toFixed(2)} allocated.`;
         
         if (existing) {
           existing.amountCents += allocatedCents;
@@ -190,18 +177,18 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   const goalCommitted = input.buckets.filter((b) => b.type === "GOAL" && b.isCommitted);
   fundGoals(goalCommitted);
 
-  // Step 4: EVERYDAY Top-Up Cap
+  // Step 4: EVERYDAY Time-Based Allocation
   const everydayBuckets = input.buckets.filter((b) => b.type === "EVERYDAY");
   for (const bucket of everydayBuckets) {
-    const targetCapCents = toCents(bucket.targetAmount ?? bucket.monthlyAmount ?? 0);
-    const currentPositiveCents = Math.max(0, toCents(bucket.currentBalance));
-    const topUpNeededCents = Math.max(0, targetCapCents - currentPositiveCents);
-    const allocatedCents = Math.min(remainingCents, topUpNeededCents);
+    const monthlyAllowanceCents = toCents(bucket.everydayAllowanceAmount ?? bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
+    const targetNeededCents = Math.round((monthlyAllowanceCents * 12 * daysGap) / 364);
+
+    const allocatedCents = Math.min(remainingCents, targetNeededCents);
     remainingCents -= allocatedCents;
 
-    if (allocatedCents > 0 || topUpNeededCents > 0) {
+    if (allocatedCents > 0 || targetNeededCents > 0) {
       const existing = linesMap.get(bucket.id);
-      const reasoningMsg = `Everyday top-up allocation of $${toDollars(allocatedCents).toFixed(2)} (target cap $${toDollars(targetCapCents).toFixed(2)}).`;
+      const reasoningMsg = `Everyday time-based allowance ($${toDollars(monthlyAllowanceCents).toFixed(2)}/mo across ${daysGap} days): $${toDollars(allocatedCents).toFixed(2)} allocated.`;
       
       if (existing) {
         existing.amountCents += allocatedCents;

@@ -3,9 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
 import posthog from "../../lib/posthog-client";
-import { ModalDialog } from "./ModalDialog";
 import { Spinner, InfoTooltip } from "@money-matters/ui/web";
-import { SeriesNoticeBanner } from "./upcoming/SeriesNoticeBanner";
 import { PaydayReasonModal } from "./upcoming/PaydayReasonModal";
 import { PaydayDepositTab } from "./upcoming/PaydayDepositTab";
 import { PaydayWaterfallTab } from "./upcoming/PaydayWaterfallTab";
@@ -234,19 +232,38 @@ export default function PaydayPreviewModal({
 
   return (
     <>
-      <ModalDialog
-        isOpen={isOpen}
-        onClose={onClose}
-        title={activeEventId ? "Execute Payday Split Plan" : "Log New Income Deposit"}
-      >
-        <div className="space-y-4">
-          <SeriesNoticeBanner eventType="INCOME" eventName={sourceName || "Paycheck"} />
-
-          {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-              ⚠️ {errorMsg}
+      {/* Slide-over Drawer Overlay */}
+      <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs transition-opacity">
+        <div className="relative w-full max-w-xl h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-200">
+          {/* Drawer Header */}
+          <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white dark:bg-zinc-900 z-10">
+            <div>
+              <h3 className="text-base font-bold text-[#1B2B4B] dark:text-white">
+                {activeEventId ? "Execute Payday Split Plan" : "Log New Income Deposit"}
+              </h3>
+              <a
+                href="/dashboard/income-and-bills?tab=setup"
+                className="text-xs text-[#2563eb] hover:underline font-bold mt-0.5 inline-block"
+              >
+                ⚙️ Edit recurring rule in Setup
+              </a>
             </div>
-          )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white flex items-center justify-center font-bold text-sm transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4 flex-1">
+            {errorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+                ⚠️ {errorMsg}
+              </div>
+            )}
 
           {/* TAB HEADER */}
           <div className="flex border-b border-zinc-200">
@@ -311,13 +328,14 @@ export default function PaydayPreviewModal({
               isFutureDate={isFutureDate}
             />
           )}
+          </div>
 
           {/* STREAMLINED FOOTER */}
-          <div className="flex items-center justify-between gap-3 pt-3 border-t border-zinc-100">
+          <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 sticky bottom-0 bg-white dark:bg-zinc-900 z-10 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors cursor-pointer"
+              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -337,7 +355,7 @@ export default function PaydayPreviewModal({
             </button>
           </div>
         </div>
-      </ModalDialog>
+      </div>
 
       <PaydayReasonModal
         isOpen={reasonModal.open}

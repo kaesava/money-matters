@@ -44,31 +44,31 @@ export function LandingHero({ onAuthClick }: LandingHeroProps) {
       {/* Hero Interactive UI Preview Mock */}
       <div className="w-full max-w-4xl mt-6 rounded-2xl bg-white border border-[#e2e4e0] p-6 shadow-xl text-left grid md:grid-cols-3 gap-6 items-center">
         <div className="bg-[#F7F8FA] p-5 rounded-xl border border-zinc-200 flex flex-col items-center text-center gap-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Everyday Discretionary</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">{t("landing.heroCardEverydayTitle")}</span>
           <DonutRing
             size={130}
             strokeWidth={10}
             timeElapsedPct={45}
             consumedPct={32}
             centerLabel="$485.50"
-            subLabel="Everyday"
+            subLabel={t("landing.heroCardEverydaySub")}
           />
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full w-fit">
-            🟢 SAFE YES ($34.60/day)
+            {t("landing.heroCardEverydaySafe")}
           </div>
         </div>
         <div className="bg-[#F7F8FA] p-5 rounded-xl border border-zinc-200 flex flex-col gap-2 h-full justify-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Unified Bills Pool</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">{t("landing.heroCardBillsTitle")}</span>
           <div className="text-2xl font-extrabold font-mono text-[#2563eb]">$1,840.00</div>
-          <div className="text-xs text-zinc-500 font-medium">All upcoming bills fully funded ✓</div>
+          <div className="text-xs text-zinc-500 font-medium">{t("landing.heroCardBillsSub")}</div>
           <div className="w-full bg-blue-100 h-2 rounded-full overflow-hidden mt-1">
             <div className="bg-[#2563eb] h-full w-full rounded-full" />
           </div>
         </div>
         <div className="bg-[#F7F8FA] p-5 rounded-xl border border-zinc-200 flex flex-col gap-2 h-full justify-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Surplus Sweep Target</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">{t("landing.heroCardSurplusTitle")}</span>
           <div className="text-2xl font-extrabold font-mono text-emerald-700">$3,250.00</div>
-          <div className="text-xs text-zinc-500 font-medium">Offset Reserve growing automatically</div>
+          <div className="text-xs text-zinc-500 font-medium">{t("landing.heroCardSurplusSub")}</div>
           <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden mt-1">
             <div className="bg-emerald-600 h-full w-[78%] rounded-full" />
           </div>

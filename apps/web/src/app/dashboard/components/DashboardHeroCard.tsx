@@ -295,7 +295,7 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
           </button>
 
           <Link
-            href="/dashboard/categories"
+            href="/dashboard/pools"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 ml-1"
           >
             View Pools →

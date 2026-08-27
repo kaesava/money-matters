@@ -52,13 +52,21 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
           </p>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => onPressNextPay(nextPayday.id)}
-        className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shrink-0 shadow-2xs cursor-pointer w-full sm:w-auto text-center"
-      >
-        {t('dashboard.nextPay.process') || 'Process Pay →'}
-      </button>
+      <div className="flex items-center gap-3 w-full sm:w-auto">
+        <a
+          href="/dashboard/income-and-bills?tab=matrix-plan"
+          className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline transition-colors"
+        >
+          Bulk Log Paydays
+        </a>
+        <button
+          type="button"
+          onClick={() => onPressNextPay(nextPayday.id)}
+          className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shrink-0 shadow-2xs cursor-pointer w-full sm:w-auto text-center"
+        >
+          Log Payday →
+        </button>
+      </div>
     </div>
   );
 };

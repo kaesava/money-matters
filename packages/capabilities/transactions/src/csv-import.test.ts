@@ -43,6 +43,7 @@ describe("Bank CSV Parser Engine", () => {
 
     expect(res1.transactions[0].idempotencyKey).toBe(res2.transactions[0].idempotencyKey);
     expect(res1.transactions[0].idempotencyKey).toContain("csv-import-2026-08-01-DEBIT-50.00");
+    expect(res1.transactions[0].idempotencyKey).toContain("-1");
   });
 
   it("calculates statement date ranges correctly", () => {

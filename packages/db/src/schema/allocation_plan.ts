@@ -6,7 +6,7 @@ export const allocationPlanStatusEnum = pgEnum("allocation_plan_status_enum", ["
 
 export const allocationPlans = pgTable("allocation_plans", {
   id: uuid("id").primaryKey().defaultRandom(),
-  incomeEventId: uuid("income_event_id").references(() => incomeEvents.id).notNull(),
+  incomeEventId: uuid("income_event_id").references(() => incomeEvents.id, { onDelete: "cascade" }).notNull(),
   status: allocationPlanStatusEnum("status").notNull().default("PENDING"),
   totalIncomeAmount: numeric("total_income_amount", { precision: 12, scale: 2 }).notNull(),
   confirmedAt: timestamp("confirmed_at", { withTimezone: true }),

@@ -1,6 +1,6 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-23  
+> **Last updated:** 2026-08-27  
 > **Status:** 100% production-ready standard. Fully executed and synchronized across all 11 Master Plan phases: Phase 1 (Security Blockers & CSRF/XSS/R2 IDOR Guards), Phase 2 (Database 14 Indexes & RLS Policy), Phase 3 (Financial Burst/Allocation/Can-Afford Engines & CSV Chunking), Phase 4 (Functional Web Routes /reset-password, /forgot-password, Due-Date Guardrail, Catch-Up Sweep, Payday Cards), Phase 5 (Serene Finance Design Tokens #2563eb, #1B2B4B, #F7F8FA & React.useId Accessibility), Phase 6 (Monorepo Decoupling & Shared Core ensurePremiumAccess Guard), Phase 7 (Zero `any` & Monorepo Code Quality), Phase 8 (Structured Audit Event Logging & Observability), Phase 9 (Bulk Operations & Tenant Caching), Phase 10 (Synchronized System Specs), Phase 11 (Vitest E2E Suite).
 
 ---
@@ -22,7 +22,7 @@
 | Auth | Neon Auth (Better Auth) | Neon Auth Service | JWT & session cookie verification |
 | Rate Limiting | Upstash Redis | Serverless Redis (ap-southeast-1) | REST API sliding-window rate limiter |
 | File Storage | Cloudflare R2 | Cloudflare R2 | Attachments & file notes (`money-matters-production`) |
-| Async Workflows | Inngest | Inngest Cloud | 6 scheduled notification crons & non-blocking background event dispatch (`transaction/recorded`) via `/api/inngest` webhook |
+| Async Workflows | Inngest | Inngest Cloud | Release 1 active background cron (`notifyWeeklyDigest` Sunday 7pm AEST via Resend) & async dispatches; mobile push crons staged for Release 2 via `/api/inngest` webhook |
 | Email Service | Resend | Resend API | Transactional emails & partner invites |
 | Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking, feature flags, session replays |
 | Crash & APM | Sentry | Sentry SaaS | Production exception reporting & symbolicated stack traces |
@@ -44,7 +44,7 @@ money-matters/
 │   ├── capabilities/
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD
-│   │   ├── budgeting/       # 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus)
+│   │   ├── budgeting/       # 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), Time-Based Accumulation engine, multi-payday matrix projection simulation engine (`matrix-projection-engine.ts`) with stealth privacy math balancing (`hiddenAllocationsTotal`) and intra-cycle lowest watermark validation
 │   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator & spending velocity
 │   │   ├── notifications/   # Expo push + 6 scheduled Inngest functions (payday, bill, overdue, digest, goal, velocity)
 │   │   ├── file-notes/      # Notes, comments, attachments via Cloudflare R2
@@ -144,10 +144,20 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 - **Pool Balance Adjustment Safeguards**: Pool balance adjustment modal in `DashboardHeroCard.tsx` enforces `isAdjusting` loading state and button lockout to prevent duplicate transactions from rapid double-clicking.
 - **Application-wide Date Standardisation (`fmtDate`)**: Centralized date utility in `@money-matters/ui` (`fmtDate`) formatting all date strings into standard Australian format (`26 Aug 2026`) across Web and Mobile tables.
 1. **`DEFICIT REPAIR` (Step 0)**: Priority 1 restoring negative category balances (`currentBalance < 0`) to $0.
-2. **`REGULAR` (Bills)**: Prorates monthly bill targets by dynamic paycheck frequency (`targetMonthly * (paycheckFrequencyDays / 30)`).
-3. **`GOAL` committed**: Allocates target monthly contribution.
-4. **`EVERYDAY` top-up cap**: Tops up pooled Everyday balance to target cap.
-5. **`GOAL` uncommitted / Surplus sweep**: Sweeps residual income strictly into the category where `isSurplusTarget === true` (default: *"Surplus & Offset Reserve"*).
+2. **`ESSENTIAL REGULAR` (Step 1)**: Priority bills (`isEssential: true`) ordered by due date, capped by current balance deficit.
+3. **`STANDARD REGULAR` (Step 2)**: Other bills prorated by dynamic paycheck frequency (`targetMonthly * (paycheckFrequencyDays / 30)`).
+4. **`GOAL` committed (Step 3)**: Priority target savings allocations.
+5. **`EVERYDAY` top-up cap (Step 4)**: Tops up pooled Everyday balance to target cap.
+6. **`GOAL` uncommitted / Surplus sweep (Step 5)**: Sweeps residual income strictly into the single designated category where `isSurplusTarget === true` (default: *"Surplus & Offset Reserve"*).
+
+### 5.2.1 Payday Preview, Rolling Window & Persistence Resolution Hierarchy (`previewPaydayQuery`)
+- **12-Month Materialized Rolling Window (`maintainRollingWindow`)**: On login and event creation, `maintainRollingWindow` materializes 12 months of `UPCOMING` `income_events` using AEST timezone normalization (`Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`) to prevent off-by-one calendar bugs.
+- **Schema Cascade Constraint**: `allocation_plans.incomeEventId` and `allocation_plan_lines.planId` enforce `.onDelete("cascade")`. Changing an income schedule in Setup cascade-deletes obsolete `allocation_plans` and `allocation_plan_lines` without manual script intervention. Restricts `DELETE` operations strictly to `WHERE status = 'UPCOMING'` to prevent destroying historical confirmed paydays.
+- **Two-Tier Resolution Sequence**:
+  1. *Priority 1 (Saved Plan)*: `previewPaydayQuery` queries `allocation_plans` for `incomeEventId`. If a saved plan exists (created via 12-Month Grid *"Save Changes"*), it returns the saved `allocation_plan_lines` from the database.
+  2. *Priority 2 (Dynamic Engine Fallback)*: If no saved plan exists (e.g. fresh income events or un-edited paydays), `previewPaydayQuery` executes `runAllocationEngine` on-the-fly.
+- **Bulk Allocate Persistence & Concurrency (`saveBulkAllocations`)**: Custom grid edits write directly to `allocation_plans` (status: `PENDING`) and `allocation_plan_lines`. Editing a cell auto-sweeps the difference into the designated Surplus Target cell to force unallocated cash to $0. Enforces a strict status check (`income_event.status === 'UPCOMING'`) to reject race conditions if an event was confirmed in another session.
+- **Revert to Automatic Waterfall (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **↺ Auto** in the grid column header prompts for confirmation and deletes the `allocation_plan` row, restoring dynamic waterfall calculation.
 
 
 ### 5.3 Bank CSV Import Engine & Import Log (`@money-matters/capability-transactions`)
@@ -257,7 +267,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 | **Neon Auth (Better Auth)** | User Auth & Google OAuth 2.0 | `.env` (`NEXT_PUBLIC_NEON_AUTH_URL`, `NEON_AUTH_JWKS_URL`) | **READY** (JWKS verification & Whitelisted OAuth redirect URIs) | Dev Neon Auth instance |
 | **Upstash Redis** | Sliding-Window API Rate Limiting | `.env` / Cloudflare Secrets (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) | **READY** (REST pipeline sliding window) | In-process sliding window fallback map |
 | **Resend** | Transactional Email & Partner Invites | `.env` (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) | **READY** (`notifications@moneymatters.kaesava.au`) | Console simulation mode when key absent |
-| **Inngest Cloud** | Async Workflows & 6 Scheduled Crons | `.env` (`INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`), `/api/inngest` | **READY** (Production signing key & background event dispatch) | Local Inngest CLI (`pnpm run dev:inngest`) |
+| **Inngest Cloud** | Async Workflows & Release 1 Weekly Email Cron | `.env` (`INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`), `/api/inngest` | **READY** (Production signing key & background event dispatch; mobile push crons staged for Release 2) | Local Inngest CLI (`pnpm run dev:inngest`) |
 | **Stripe API** | Subscriptions, Billing & Webhooks | `.env` / Platform Secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs) | **READY** (Raw signature validation & 7-day read-only grace period) | Vitest mock handlers / Test mode price IDs |
 | **Sentry SaaS** | APM & Exception Tracking | `.env` (`SENTRY_DSN`), `next.config.ts`, `sentry.*.config.ts` | **READY** (Integrated across Fastify API, Next.js Web, Expo Mobile) | Gated to production builds (`NODE_ENV === 'production'`) |
 | **PostHog SaaS** | Product Analytics & Feature Flags | `.env` (`POSTHOG_API_KEY`, `POSTHOG_HOST`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`) | **READY** (Integrated across Fastify API, Next.js Web, Expo Mobile) | Safe null-logger fallback in development |

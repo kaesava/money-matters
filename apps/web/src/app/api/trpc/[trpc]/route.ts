@@ -78,6 +78,7 @@ function isValidOrigin(req: NextRequest): boolean {
 }
 
 async function handleProxy(req: NextRequest) {
+  let targetUrl = "";
   try {
     const isStateChanging = !["GET", "HEAD", "OPTIONS"].includes(req.method.toUpperCase());
     if (isStateChanging && !isValidOrigin(req)) {
@@ -90,7 +91,7 @@ async function handleProxy(req: NextRequest) {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/api\/trpc/, "");
     const apiBase = await resolveApiBase();
-    const targetUrl = `${apiBase}/trpc${path}${url.search}`;
+    targetUrl = `${apiBase}/trpc${path}${url.search}`;
 
     if (process.env.NODE_ENV === "development") {
       if (process.env.NODE_ENV === "development") console.log(`[DEBUG tRPC Proxy] Forwarding ${req.method} to ${targetUrl} (Cookie present: ${req.headers.has("cookie")})`);
@@ -160,9 +161,14 @@ async function handleProxy(req: NextRequest) {
       status: response.status,
       headers: responseHeaders,
     });
-  } catch (err) {
-    console.error("[tRPC Proxy Error]:", err);
-    return new Response(JSON.stringify({ error: "Failed to connect to backend service" }), {
+  } catch (err: unknown) {
+    const isConnRefused = err && typeof err === "object" && "cause" in err && (err as { cause?: { code?: string } }).cause?.code === "ECONNREFUSED";
+    if (isConnRefused) {
+      console.warn(`[tRPC Proxy] Backend API server unavailable at ${targetUrl.split("/trpc")[0]} (ECONNREFUSED). Make sure apps/api is running.`);
+    } else {
+      console.error("[tRPC Proxy Error]:", err);
+    }
+    return new Response(JSON.stringify({ error: "Backend service unavailable" }), {
       status: 502,
       headers: {
         "Content-Type": "application/json",

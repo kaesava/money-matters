@@ -42,6 +42,11 @@ export default function DeleteAccountPage() {
           </p>
         </div>
 
+        {/* Tab Notice for users coming from Settings */}
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-[#1B2B4B] flex items-center justify-between gap-4 font-medium">
+          <span>ℹ️ {t("privacy.closeTabNotice")}</span>
+        </div>
+
         {/* Self-service authenticated deletion section */}
         <AccountDeletionSection />
 

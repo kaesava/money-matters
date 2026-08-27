@@ -46,7 +46,8 @@ MUST use stable versions. MUST document version constraints.
 - Tenant isolation is CRITICAL.
 - All data MUST be scoped by `tenantId`.
 - NEVER trust client-provided tenant/user IDs.
-- Use `tenantProcedure` for all tenant logic.
+- Use `tenantProcedure` for standard tenant logic.
+- MUST use `privateTenantProcedure` for any route reading/writing sensitive data (`categories`, `bank_accounts`, `transaction_ledger`) to inject both `app.current_tenant_id` and `app.current_user_id` into PostgreSQL RLS session context for 100% stealth privacy isolation.
 - Enforce PostgreSQL RLS (integrating with Neon DB Auth) at the database layer.
 
 ## 6. Database Standards
@@ -125,6 +126,7 @@ All tables MUST include:
 - MUST cache safely (tenant-aware).
 - MUST prevent N+1 queries, N+1 inserts, and sequential async waterfalls.
 - MUST NOT execute sequential API mutations inside loops during setups or onboarding flows; batch mutations concurrently using `Promise.all` wrappers.
+- **Forbidden Client-Side Maintenance Mutations**: Backend database maintenance, rolling window materialization, cache warmups, and system sync tasks MUST NEVER be triggered via client-side UI mounts (`useEffect` + `useMutation`). Doing so creates multi-tab race conditions, network failures, and rate-limit cascades. Maintenance tasks MUST live in backend query handlers (lazy materialization) or scheduled background workflows (Inngest cron triggers).
 - MUST use async processing for heavy tasks.
 
 ## 17. Feature Flags

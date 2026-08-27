@@ -280,6 +280,9 @@ export function CategoryFormModal({
               onChange={(e) => {
                 const targetVal = e.target.checked;
                 if (targetVal !== isPrivate) {
+                  if (targetVal && isSurplusTarget) {
+                    setIsSurplusTarget(false);
+                  }
                   setCatPrivacyWarningTarget(targetVal);
                 }
               }}
@@ -412,8 +415,24 @@ export function CategoryFormModal({
               <input
                 type="checkbox"
                 checked={isSurplusTarget}
-                disabled={isReadOnly}
-                onChange={(e) => setIsSurplusTarget(e.target.checked)}
+                disabled={isReadOnly || isPrivate}
+                onChange={(e) => {
+                  const checking = e.target.checked;
+                  if (!checking && categoryToEdit?.isSurplusTarget) {
+                    setErrorMsg("A sweep target is required. To remove this, edit another Goal and set it as the new sweep target.");
+                    return;
+                  }
+                  if (checking) {
+                    if (!window.confirm("This will remove the sweep target from your existing designated category. Continue?")) {
+                      return;
+                    }
+                    if (isPrivate) {
+                      setIsPrivate(false);
+                    }
+                  }
+                  setErrorMsg("");
+                  setIsSurplusTarget(checking);
+                }}
                 className="w-4 h-4 text-emerald-600 rounded disabled:opacity-75"
               />
               🏦 Surplus Sweep Target (Sweeps leftover everyday spending cash into this pool on payday)

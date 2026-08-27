@@ -39,7 +39,7 @@ export function useSetupWizardState() {
       monthlyAmount: 300,
       icon: "🛡️",
       targetAmount: 10000,
-      dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      dueDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
     },
     {
       id: "g-2",
@@ -47,7 +47,7 @@ export function useSetupWizardState() {
       monthlyAmount: 250,
       icon: "✈️",
       targetAmount: 5000,
-      dueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      dueDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
     },
   ]);
 

@@ -26,7 +26,7 @@ interface SetupGoalsStepProps {
 const getFutureDate = (months: number) => {
   const d = new Date();
   d.setMonth(d.getMonth() + months);
-  return d.toISOString().split("T")[0];
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
 };
 
 const PRESET_GOALS = [

@@ -237,7 +237,7 @@ function TransactionHistory({
 
       <div className="pt-2 text-right">
         <Link
-          href={`/dashboard/transactions?search=${encodeURIComponent(categoryName || "")}`}
+          href={`/dashboard/history?search=${encodeURIComponent(categoryName || "")}`}
           onClick={() => onClose?.()}
           className="text-xs font-bold text-[#00B4A6] hover:underline inline-flex items-center gap-1 cursor-pointer"
         >

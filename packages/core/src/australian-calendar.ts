@@ -21,6 +21,10 @@ const AU_NATIONAL_HOLIDAYS = new Set<string>([
   "2027-01-26", // Australia Day
 ]);
 
+export function getAestIsoDate(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(date);
+}
+
 /**
  * Checks whether a given Date is a weekend or an Australian banking public holiday.
  *
@@ -31,7 +35,7 @@ export function isNonBankingDay(date: Date): boolean {
   const dayOfWeek = date.getUTCDay();
   if (dayOfWeek === 0 || dayOfWeek === 6) return true; // Sunday = 0, Saturday = 6
 
-  const isoDate = date.toISOString().split("T")[0];
+  const isoDate = getAestIsoDate(date);
   return isoDate ? AU_NATIONAL_HOLIDAYS.has(isoDate) : false;
 }
 

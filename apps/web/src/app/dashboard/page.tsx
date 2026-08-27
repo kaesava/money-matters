@@ -251,7 +251,7 @@ export default function DashboardPage() {
         behindCount={behindCount}
         onTrackCount={onTrackCount}
         onOpenCanAfford={() => setCanAffordModalOpen(true)}
-        onSelectFilter={(health) => router.push(`/dashboard/categories?health=${health}`)}
+        onSelectFilter={(health) => router.push(`/dashboard/pools?health=${health}`)}
         formatAUD={fmt}
         onUpdatePoolBalance={handleUpdatePoolBalance}
         skipConfirmation={skipConfirmation}
@@ -279,7 +279,7 @@ export default function DashboardPage() {
         onSave={handleSaveItem}
         formatAUD={fmt}
         markingPaidId={markPaidMutation.isPending ? markPaidMutation.variables?.eventId : null}
-        onNavigateCategory={(catName) => router.push(`/dashboard/categories?search=${encodeURIComponent(catName)}`)}
+        onNavigateCategory={(catName) => router.push(`/dashboard/pools?search=${encodeURIComponent(catName)}`)}
       />
 
       {/* 7. Bank Balances Compact Row */}

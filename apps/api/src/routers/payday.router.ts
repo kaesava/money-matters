@@ -1,5 +1,5 @@
 import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { allocationPlans, allocationPlanLines, categories } from "@money-matters/db";
+import { allocationPlans, allocationPlanLines, categories, incomeEvents } from "@money-matters/db";
 import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { posthog } from '../lib/posthog.js';
 import {
@@ -118,9 +118,26 @@ export const paydayRouter = {
 
   listAllAllocationPlans: tenantProcedure
     .query(async ({ ctx }) => {
+      const { incomeEvents, incomeSources, bankAccounts } = await import("@money-matters/db");
+      
       const plans = await ctx.db
-        .select()
+        .select({
+          id: allocationPlans.id,
+          tenantId: allocationPlans.tenantId,
+          appId: allocationPlans.appId,
+          incomeEventId: allocationPlans.incomeEventId,
+          totalIncomeAmount: allocationPlans.totalIncomeAmount,
+          status: allocationPlans.status,
+          createdAt: allocationPlans.createdAt,
+          updatedAt: allocationPlans.updatedAt,
+          incomeName: incomeSources.name,
+          receivingAccountName: bankAccounts.name,
+          expectedDate: incomeEvents.expectedDate,
+        })
         .from(allocationPlans)
+        .leftJoin(incomeEvents, eq(incomeEvents.id, allocationPlans.incomeEventId))
+        .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
+        .leftJoin(bankAccounts, eq(bankAccounts.id, incomeSources.receivingAccountId))
         .where(
           and(
             eq(allocationPlans.tenantId, ctx.tenantId!),
@@ -201,5 +218,116 @@ export const paydayRouter = {
         ctx.userId!,
         ctx.db
       );
+    }),
+
+  saveBulkAllocations: tenantProcedure
+    .input(
+      z.object({
+        incomeEventId: z.string().uuid(),
+        totalIncomeAmount: z.string(),
+        lines: z.array(z.object({
+          categoryId: z.string().uuid(),
+          proposedAmount: z.string(),
+        })),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      
+      return await ctx.db.transaction(async (tx) => {
+        const [incomeEvt] = await tx
+          .select()
+          .from(incomeEvents)
+          .where(
+            and(
+              eq(incomeEvents.id, input.incomeEventId),
+              eq(incomeEvents.tenantId, ctx.tenantId!)
+            )
+          )
+          .limit(1);
+
+        if (!incomeEvt || incomeEvt.status !== "UPCOMING") {
+          throw new Error("Cannot save allocations for a payday that is no longer upcoming or has been processed.");
+        }
+
+        let [plan] = await tx
+          .select()
+          .from(allocationPlans)
+          .where(
+            and(
+              eq(allocationPlans.incomeEventId, input.incomeEventId),
+              eq(allocationPlans.status, "PENDING")
+            )
+          )
+          .limit(1);
+          
+        if (!plan) {
+          const [newPlan] = await tx
+            .insert(allocationPlans)
+            .values({
+              incomeEventId: input.incomeEventId,
+              totalIncomeAmount: input.totalIncomeAmount,
+              status: "PENDING",
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            })
+            .returning();
+          plan = newPlan;
+        } else {
+          await tx
+            .update(allocationPlans)
+            .set({ totalIncomeAmount: input.totalIncomeAmount, updatedAt: new Date(), updatedBy: ctx.userId! })
+            .where(eq(allocationPlans.id, plan.id));
+        }
+
+        await tx.delete(allocationPlanLines).where(eq(allocationPlanLines.planId, plan.id));
+
+        if (input.lines.length > 0) {
+          await tx.insert(allocationPlanLines).values(
+            input.lines.map((l) => ({
+              planId: plan.id,
+              categoryId: l.categoryId,
+              proposedAmount: l.proposedAmount,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
+          );
+        }
+        
+        return { success: true, planId: plan.id };
+      });
+    }),
+
+  revertAllocationPlan: tenantProcedure
+    .input(
+      z.object({
+        incomeEventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+
+      const [plan] = await ctx.db
+        .select()
+        .from(allocationPlans)
+        .where(
+          and(
+            eq(allocationPlans.incomeEventId, input.incomeEventId),
+            eq(allocationPlans.tenantId, ctx.tenantId!)
+          )
+        )
+        .limit(1);
+
+      if (plan) {
+        await ctx.db
+          .delete(allocationPlans)
+          .where(eq(allocationPlans.id, plan.id));
+      }
+
+      return { success: true };
     }),
 };

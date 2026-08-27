@@ -94,7 +94,7 @@ export default function HouseholdGovernancePage() {
       {/* Context Badge */}
       <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs text-slate-400 font-medium">Current Workspace Household</p>
+          <p className="text-xs text-slate-400 font-medium">{t("privacy.currentHouseholdLabel")}</p>
           <p className="text-base font-extrabold text-[#1B2B4B]">{gov.householdName}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -110,16 +110,21 @@ export default function HouseholdGovernancePage() {
       {/* Leave Household Card */}
       {(!gov.isSoleOwner || !gov.isOwner) && (
         <section className="p-6 bg-white border border-amber-200 rounded-2xl shadow-xs space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-base font-bold text-amber-900">{t("privacy.leaveHouseholdTitle")}</h2>
-            <p className="text-xs text-amber-800 leading-relaxed">
+          <h2 className="text-base font-bold text-amber-900">{t("privacy.leaveHouseholdTitle")}</h2>
+
+          {/* Prominent Warning Callout */}
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-xl space-y-1 text-amber-950 font-medium">
+            <div className="flex items-center gap-2 font-extrabold text-amber-900 text-xs uppercase tracking-wider">
+              <span>⚠️</span> Household Ownership & Private Pools Notice
+            </div>
+            <p className="text-xs leading-relaxed font-semibold">
               {gov.isOwner
                 ? t("privacy.leaveOwnerWarning", { email: gov.partnerEmail || "your partner" })
                 : t("privacy.leaveMemberWarning", { householdName: gov.householdName, email: gov.partnerEmail || "the owner" })}
             </p>
           </div>
 
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+          <div className="p-3 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2">
             <p className="text-xs font-bold text-amber-900">
               {t("privacy.typeLeaveHouseholdToConfirm")}
             </p>
@@ -128,7 +133,7 @@ export default function HouseholdGovernancePage() {
               value={leaveTypedText}
               onChange={(e) => setLeaveTypedText(e.target.value)}
               placeholder="LEAVE HOUSEHOLD"
-              className="w-full px-3 py-2 text-xs font-mono border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 text-xs font-mono border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold"
             />
           </div>
 
@@ -146,13 +151,18 @@ export default function HouseholdGovernancePage() {
 
       {/* Delete Household Card (Owners Only) */}
       <section className="p-6 bg-white border border-red-200 rounded-2xl shadow-xs space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-base font-bold text-[#ba1a1a]">{t("privacy.deleteHouseholdTitle")}</h2>
-          <p className="text-xs text-slate-600 leading-relaxed">
+        <h2 className="text-base font-bold text-[#ba1a1a]">{t("privacy.deleteHouseholdTitle")}</h2>
+
+        {/* Prominent Irreversible Warning Callout */}
+        <div className="p-4 bg-red-50 border-2 border-red-300 rounded-xl space-y-1.5 text-red-950 font-medium">
+          <div className="flex items-center gap-2 font-extrabold text-red-900 text-xs uppercase tracking-wider">
+            <span>🛑</span> Irreversible Permanent Erasure Warning
+          </div>
+          <p className="text-xs leading-relaxed font-bold text-red-900">
             {t("privacy.deleteHouseholdNotice")}
           </p>
           {gov.partnerEmail && gov.isOwner && (
-            <p className="text-xs font-bold text-red-700 pt-1">
+            <p className="text-xs font-semibold text-red-800 pt-1.5 border-t border-red-200">
               ⚠️ {t("privacy.deletePartnerWarning", { email: gov.partnerEmail })}
             </p>
           )}
@@ -164,7 +174,7 @@ export default function HouseholdGovernancePage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-2">
+            <div className="p-3 bg-red-50/50 border border-red-200 rounded-xl space-y-2">
               <p className="text-xs font-bold text-red-900">
                 {t("privacy.typeHouseholdNameToConfirm", { name: gov.householdName })}
               </p>
@@ -173,7 +183,7 @@ export default function HouseholdGovernancePage() {
                 value={deleteTypedName}
                 onChange={(e) => setDeleteTypedName(e.target.value)}
                 placeholder={gov.householdName}
-                className="w-full px-3 py-2 text-xs font-mono border border-red-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-2 text-xs font-mono border border-red-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500 font-bold"
               />
             </div>
 

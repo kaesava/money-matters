@@ -144,6 +144,7 @@ export function createTenantHandler(db: DbOrTx) {
           budgetFrequency: "MONTHLY",
           rolloverRule: "ROLLOVER" as const,
           isCommitted: false,
+          isSurplusTarget: template.name === "Emergency Reserve",
           createdBy: userId,
           updatedBy: userId,
         };

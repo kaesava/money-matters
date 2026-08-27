@@ -11,6 +11,20 @@ export async function createCategoryCommand(
 ) {
 
   return await dbClient.transaction(async (tx) => {
+    if (input.isSurplusTarget === true) {
+      const { and, eq } = await import("drizzle-orm");
+      await tx
+        .update(categories)
+        .set({ isSurplusTarget: false })
+        .where(
+          and(
+            eq(categories.tenantId, tenantId),
+            eq(categories.appId, appId),
+            eq(categories.isSurplusTarget, true)
+          )
+        );
+    }
+
     // 1. Insert category
     const [cat] = await tx
       .insert(categories)

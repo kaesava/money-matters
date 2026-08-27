@@ -232,7 +232,7 @@ export default function HistoryPage() {
                       {fmtDate(tx.recordedAt)}
                     </td>
                     <td className="px-6 py-4">
-                      <Link href={`/dashboard/categories?search=${encodeURIComponent(tx.categoryName || "")}`} className="font-bold text-[#00B4A6] hover:underline cursor-pointer">
+                      <Link href={`/dashboard/pools?search=${encodeURIComponent(tx.categoryName || "")}`} className="font-bold text-[#00B4A6] hover:underline cursor-pointer">
                         {tx.categoryName || "Uncategorized"}
                       </Link>
                     </td>

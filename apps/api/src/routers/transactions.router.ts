@@ -1,4 +1,4 @@
-import { tenantProcedure, requiresWriteAccess, requiresPaidTier } from '../trpc/trpc.js';
+import { privateTenantProcedure, requiresWriteAccess, requiresPaidTier } from '../trpc/trpc.js';
 import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
 import { tenants } from "@money-matters/db";
@@ -26,7 +26,7 @@ import {
 } from "@money-matters/types";
 
 export const transactionsRouter = {
-  recordExpense: tenantProcedure
+  recordExpense: privateTenantProcedure
     .input(RecordExpenseCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -64,26 +64,26 @@ export const transactionsRouter = {
       return result;
     }),
 
-  listTransactions: tenantProcedure
+  listTransactions: privateTenantProcedure
     .input(ListTransactionsQuery)
     .query(async ({ input, ctx }) => {
       return await listTransactionsQuery(ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db, input.categoryId);
     }),
 
-  listCategoryTransactions: tenantProcedure
+  listCategoryTransactions: privateTenantProcedure
     .input(ListCategoryTransactionsQuery)
     .query(async ({ input, ctx }) => {
       return await listCategoryTransactionsQuery(input.categoryId, ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
     }),
 
-  canAfford: tenantProcedure
+  canAfford: privateTenantProcedure
     .input(CanAffordQuery)
     .query(async ({ input, ctx }) => {
       const amt = parseFloat(input.amount);
       return await canAffordQuery(amt, ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
-  parseCsv: tenantProcedure
+  parseCsv: privateTenantProcedure
     .input(BankCsvImportInputSchema)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -122,7 +122,7 @@ export const transactionsRouter = {
       return result;
     }),
 
-  commitCsvImport: tenantProcedure
+  commitCsvImport: privateTenantProcedure
     .input(CommitCsvImportCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -144,7 +144,7 @@ export const transactionsRouter = {
       return result;
     }),
 
-  rollbackCsvBatch: tenantProcedure
+  rollbackCsvBatch: privateTenantProcedure
     .input(RollbackCsvImportBatchInputSchema)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -152,11 +152,11 @@ export const transactionsRouter = {
       return await rollbackCsvImportBatchCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  spendingVelocity: tenantProcedure.query(async ({ ctx }) => {
+  spendingVelocity: privateTenantProcedure.query(async ({ ctx }) => {
     return await getSpendingVelocityQuery(ctx.tenantId!, ctx.appId!, ctx.db);
   }),
 
-  listCsvImportBatches: tenantProcedure.query(async ({ ctx }) => {
+  listCsvImportBatches: privateTenantProcedure.query(async ({ ctx }) => {
     return await listCsvImportBatchesQuery(ctx.tenantId!, ctx.appId!, ctx.db);
   }),
 };

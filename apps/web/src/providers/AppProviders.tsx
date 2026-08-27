@@ -1,10 +1,26 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, buildTrpcClient } from "../lib/trpc";
 import { authClient } from "../lib/auth";
 import posthog from "../lib/posthog-client";
 import { ToastProvider, ToastContainer } from "@money-matters/ui/web";
+
+interface NetworkStatusContextType {
+  isGlobalError: boolean;
+  clearGlobalError: () => void;
+  lastErrorMessage: string | null;
+}
+
+const NetworkStatusContext = createContext<NetworkStatusContextType>({
+  isGlobalError: false,
+  clearGlobalError: () => {},
+  lastErrorMessage: null,
+});
+
+export function useNetworkStatus() {
+  return useContext(NetworkStatusContext);
+}
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -13,8 +29,6 @@ interface AppProvidersProps {
 function SessionSyncTracker({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = authClient.useSession();
   const identifiedDistinctId = useRef<string | null>(null);
-
-
 
   useEffect(() => {
     if (isPending) return;
@@ -49,9 +63,28 @@ function SessionSyncTracker({ children }: { children: React.ReactNode }) {
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
+  const [isGlobalError, setIsGlobalError] = useState(false);
+  const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error) => {
+            const errStr = String((error as Error)?.message || error);
+            if (
+              errStr.includes("fetch failed") ||
+              errStr.includes("ECONNREFUSED") ||
+              errStr.includes("502") ||
+              errStr.includes("NetworkError") ||
+              errStr.includes("Failed to fetch") ||
+              errStr.includes("Unable to transform response")
+            ) {
+              setIsGlobalError(true);
+              setLastErrorMessage(errStr);
+            }
+          },
+        }),
         defaultOptions: {
           queries: {
             retry: 1,
@@ -67,16 +100,23 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   const [trpcClient] = useState(() => buildTrpcClient());
 
+  const clearGlobalError = () => {
+    setIsGlobalError(false);
+    setLastErrorMessage(null);
+  };
+
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <SessionSyncTracker>
-            {children}
-            <ToastContainer />
-          </SessionSyncTracker>
-        </ToastProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <NetworkStatusContext.Provider value={{ isGlobalError, clearGlobalError, lastErrorMessage }}>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <SessionSyncTracker>
+              {children}
+              <ToastContainer />
+            </SessionSyncTracker>
+          </ToastProvider>
+        </QueryClientProvider>
+      </trpc.Provider>
+    </NetworkStatusContext.Provider>
   );
 }

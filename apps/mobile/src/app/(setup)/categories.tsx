@@ -28,7 +28,7 @@ export default function SetupCategoriesScreen() {
   const createIncomeSource = trpc.createIncomeSource.useMutation();
   const createCategory = trpc.createCategory.useMutation();
   const createCategorySchedule = trpc.createCategorySchedule.useMutation();
-  const generateEvents = trpc.generateNextIncomeEvents.useMutation();
+  const generateEvents = trpc.maintainRollingWindow.useMutation();
   const reSetupBudget = trpc.reSetupBudget.useMutation();
 
   const allPresets = [...AUSTRALIAN_FAMILY_PRESETS, ...customPresets];

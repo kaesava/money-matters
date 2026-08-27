@@ -71,7 +71,7 @@ export async function updateCategoryCommand(
         await tx
           .update(categorySchedules)
           .set({
-            targetAmount: input.targetAmount,
+            targetAmount: input.targetAmount ? input.targetAmount : sched.targetAmount,
             targetDate: input.targetDate !== undefined ? input.targetDate : sched.targetDate,
             updatedBy: userId,
             updatedAt: new Date(),
@@ -80,7 +80,7 @@ export async function updateCategoryCommand(
       } else {
         await tx.insert(categorySchedules).values({
           categoryId,
-          targetAmount: input.targetAmount,
+          targetAmount: input.targetAmount || "0.00",
           targetDate: input.targetDate || null,
           tenantId,
           appId,

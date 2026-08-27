@@ -5,12 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner } from "@money-matters/ui/web";
+import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
 
 const formatAUD = (val: number | string): string => {
   const num = typeof val === "string" ? parseFloat(val) : val;
   if (isNaN(num)) return "$0.00";
   return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(num);
 };
+
+
 
 function TransactionsPageContent() {
   const router = useRouter();
@@ -26,6 +29,7 @@ function TransactionsPageContent() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [activePlanForDrawer, setActivePlanForDrawer] = useState<PaydayPlanRecord | null>(null);
 
   const { widths, onMouseDown } = useResizableColumns({
     date: 140,
@@ -47,7 +51,7 @@ function TransactionsPageContent() {
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    router.replace(`/dashboard/transactions?tab=${tabId}`, { scroll: false });
+    router.replace(`/dashboard/history?tab=${tabId}`, { scroll: false });
   };
 
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
@@ -173,7 +177,8 @@ function TransactionsPageContent() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `transactions_export_${new Date().toISOString().split("T")[0]}.csv`);
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+    link.setAttribute("download", `transactions_export_${todayStr}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -350,13 +355,57 @@ function TransactionsPageContent() {
       {/* Tab 2: Payday Waterfall Allocation History */}
       {activeTab === "payday-allocations" && (
         <div className="space-y-6">
-          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
-            <h2 className="text-base font-extrabold text-[#1B2B4B] mb-1">
-              Payday Allocation History
-            </h2>
-            <p className="text-xs text-slate-500">
-              Audit log of all 5-step waterfall allocations executed when income landed.
-            </p>
+          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-extrabold text-[#1B2B4B] mb-1">
+                Payday Allocation History
+              </h2>
+              <p className="text-xs text-slate-500">
+                Audit log of all 5-step waterfall allocations executed when income landed.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                if (!paydayPlansQuery.data) return;
+                const headers = ["Date", "Income Source", "Receiving Bank Account", "Total Income Amount", "Pool/Category", "Allocated Amount", "Reasoning"];
+                const rows: string[][] = [];
+
+                for (const plan of (paydayPlansQuery.data as unknown as PaydayPlanRecord[])) {
+                  const dateStr = fmtDate(plan.expectedDate || plan.createdAt);
+                  const incName = plan.incomeName || "Income Deposit";
+                  const bankName = plan.receivingAccountName || "Main Account";
+                  const totalAmt = plan.totalIncomeAmount;
+
+                  for (const line of plan.lines) {
+                    rows.push([
+                      dateStr,
+                      `"${incName.replace(/"/g, '""')}"`,
+                      `"${bankName.replace(/"/g, '""')}"`,
+                      totalAmt,
+                      `"${(line.categoryName || "Unknown").replace(/"/g, '""')}"`,
+                      line.confirmedAmount || line.proposedAmount,
+                      `"${(line.reasoning || "").replace(/"/g, '""')}"`,
+                    ]);
+                  }
+                }
+
+                const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+                link.setAttribute("download", `money_matters_payday_allocations_${todayStr}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <span>📥</span>
+              <span>Export Allocations CSV</span>
+            </button>
           </div>
 
           {paydayPlansQuery.isLoading ? (
@@ -368,47 +417,54 @@ function TransactionsPageContent() {
               No payday allocation plans recorded yet. Allocations will appear here when you process your pay.
             </div>
           ) : (
-            <div className="space-y-4">
-              {paydayPlansQuery.data.map((plan) => (
-                <div key={plan.id} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3">
-                  <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
-                    <div>
-                      <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-full">
-                        {plan.status || "CONFIRMED"}
-                      </span>
-                      <p className="text-xs text-slate-400 font-mono pt-1">
-                        {fmtDate(plan.createdAt)}
-                      </p>
+            <div className="space-y-3">
+              {(paydayPlansQuery.data as unknown as PaydayPlanRecord[]).map((plan) => (
+                <div key={plan.id} className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 font-bold flex items-center justify-center text-lg shrink-0">
+                      💰
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-400 font-bold uppercase">Income Net Total</p>
-                      <p className="text-base font-extrabold font-mono text-[#1B2B4B]">
-                        {formatAUD(plan.totalIncomeAmount)}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-full">
+                          {plan.status || "CONFIRMED"}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-zinc-600">
+                          📅 {fmtDate(plan.expectedDate || plan.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-[#1B2B4B] mt-1">
+                        {plan.incomeName || "Income Deposit"} → <span className="font-medium text-zinc-500">{plan.receivingAccountName || "Main Account"}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-slate-700">Waterfall Split Breakdown</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                      {plan.lines.map((line) => (
-                        <div key={line.planId + line.categoryId} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                          <p className="font-bold text-[#1B2B4B] truncate">{line.categoryName}</p>
-                          <div className="flex justify-between items-center pt-1 font-mono">
-                            <span className="text-[11px] text-slate-500">Allocated:</span>
-                            <span className="font-bold text-emerald-700">{formatAUD(line.confirmedAmount || line.proposedAmount)}</span>
-                          </div>
-                          {line.reasoning && (
-                            <p className="text-[10px] text-slate-400 pt-1 italic truncate">{line.reasoning}</p>
-                          )}
-                        </div>
-                      ))}
+                  <div className="flex items-center gap-4 ml-auto sm:ml-0">
+                    <div className="text-right">
+                      <p className="text-[10px] text-zinc-400 font-bold uppercase">Total Income</p>
+                      <p className="text-sm font-extrabold font-mono text-[#2563eb]">
+                        {formatAUD(plan.totalIncomeAmount)}
+                      </p>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActivePlanForDrawer(plan)}
+                      className="px-3.5 py-2 text-xs font-bold text-[#2563eb] hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors shrink-0"
+                    >
+                      View Allocation Details
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
+
+          <SlideOverAllocationDrawer
+            isOpen={!!activePlanForDrawer}
+            onClose={() => setActivePlanForDrawer(null)}
+            plan={activePlanForDrawer}
+          />
         </div>
       )}
     </div>

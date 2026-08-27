@@ -35,6 +35,25 @@ function CategoriesPageContent() {
   // Filter States
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [healthFilter, setHealthFilter] = useState(paramHealth);
+  const [projectionMonths, setProjectionMonths] = useState(0);
+
+  const formatProjectionDate = (months: number) => {
+    if (months <= 0.05) return "Today";
+    const d = new Date();
+    d.setDate(d.getDate() + Math.round(months * 30.4375));
+    return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" }).format(d);
+  };
+
+  const projectionTargetDate = React.useMemo(() => formatProjectionDate(projectionMonths), [projectionMonths]);
+
+  const axisDates = React.useMemo(() => {
+    return [0, 3, 6, 9, 12].map((m) => {
+      if (m === 0) return "Today";
+      const d = new Date();
+      d.setMonth(d.getMonth() + m);
+      return new Intl.DateTimeFormat("en-AU", { month: "short", year: "2-digit", timeZone: "Australia/Sydney" }).format(d);
+    });
+  }, []);
 
   // Section Collapse States (Collapsed by default, expanded if filtered)
   const isFiltered = Boolean(paramSearch || searchQuery.trim() || (paramHealth && paramHealth !== "ALL") || (healthFilter && healthFilter !== "ALL"));
@@ -166,6 +185,85 @@ function CategoriesPageContent() {
             <span>{t("categories.addCategory")}</span>
           </button>
         </div>
+      </div>
+
+      {/* Timeline Projection Slider (Today -> +12 Months) */}
+      <div className="p-5 bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-purple-50/90 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl shadow-xs relative overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📅</span>
+            <span className="text-xs font-black uppercase text-[#1B2B4B] dark:text-blue-200 tracking-wider">
+              {t("incomeBillsTabs.timelineSliderLabel")}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {projectionMonths > 0.05 && (
+              <button
+                type="button"
+                onClick={() => setProjectionMonths(0)}
+                className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg shadow-xs transition-all animate-in fade-in flex items-center gap-1"
+              >
+                <span>⏱️</span>
+                <span>Snap to Today</span>
+              </button>
+            )}
+            <span className="text-xs font-bold font-mono text-[#2563eb] bg-white dark:bg-zinc-900 border border-blue-200 dark:border-blue-800 px-3 py-1 rounded-xl shadow-2xs">
+              {projectionMonths <= 0.05 ? "Today (Actuals)" : projectionTargetDate}
+            </span>
+          </div>
+        </div>
+
+        {/* Floating Tooltip displaying target date at slider thumb position */}
+        <div className="relative pt-6 pb-2">
+          <div
+            className="absolute top-0 text-[11px] font-black font-mono bg-[#2563eb] text-white px-2.5 py-0.5 rounded-md shadow-md pointer-events-none transition-all"
+            style={{
+              left: `${Math.min(94, Math.max(6, (projectionMonths / 12) * 100))}%`,
+              transform: "translateX(-50%)",
+            }}
+          >
+            {projectionTargetDate}
+          </div>
+
+          <input
+            type="range"
+            min={0}
+            max={12}
+            step={0.1}
+            value={projectionMonths}
+            onChange={(e) => setProjectionMonths(parseFloat(e.target.value))}
+            className="w-full h-2.5 bg-blue-200/80 dark:bg-blue-900 rounded-lg appearance-none cursor-pointer accent-[#2563eb] focus:outline-none"
+          />
+        </div>
+
+        {/* Axis Labels showing actual calculated dates */}
+        <div className="flex justify-between text-[10px] font-bold text-zinc-400 font-mono mt-1 px-1">
+          {axisDates.map((label: string, idx: number) => (
+            <span key={idx} className={idx === 0 && projectionMonths <= 0.05 ? "text-[#2563eb] font-extrabold" : ""}>
+              {label}
+            </span>
+          ))}
+        </div>
+
+        {/* Visual Indicator Banner when in Projection Mode */}
+        {projectionMonths > 0.05 && (
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 rounded-xl flex items-center justify-between text-xs animate-in slide-in-from-top-2 duration-150">
+            <div className="flex items-center gap-2">
+              <span className="animate-pulse text-base">🔮</span>
+              <span className="font-bold text-amber-900 dark:text-amber-200">
+                PROJECTION MODE: Showing estimated category balances as of <strong>{projectionTargetDate}</strong>.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setProjectionMonths(0)}
+              className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline"
+            >
+              Reset to Today →
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filter Bar */}

@@ -325,11 +325,11 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 6. CATEGORY POOLS & MOVE MONEY (`/dashboard/categories`)
+  // 6. CATEGORY POOLS & MOVE MONEY (`/dashboard/pools`)
   // ---------------------------------------------------------------------------
-  test.describe('6. Category Pools & Move Money (`/dashboard/categories`)', () => {
+  test.describe('6. Category Pools & Move Money (`/dashboard/pools`)', () => {
     test('6.1 Category Search Filter, Restore Hint & Move Money Modal Audit', async ({ page }) => {
-      await page.goto('/dashboard/categories');
+      await page.goto('/dashboard/pools');
 
       // Search Filter Input
       const searchInput = page.locator('input[placeholder*="Search"]');
@@ -354,7 +354,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
     });
 
     test('6.2 New Category Button Terminology & Bill Coverage Table Audit', async ({ page }) => {
-      await page.goto('/dashboard/categories');
+      await page.goto('/dashboard/pools');
 
       // Check New Category CTA Button Terminology
       const addCategoryBtn = page.locator('button:has-text("New Category")').first();
@@ -371,31 +371,59 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 7. INCOME & BILLS SCHEDULE (`/dashboard/income-and-bills`)
+  // 7. INCOME & BILLS SCHEDULE & 3-TAB COMMAND CENTER (`/dashboard/income-and-bills`)
   // ---------------------------------------------------------------------------
-  test.describe('7. Income & Bills Schedule Screen (`/dashboard/income-and-bills`)', () => {
-    test('7.1 Income/Expense Tables & Calendar Status Toggles', async ({ page }) => {
+  test.describe('7. Income & Bills 3-Tab Command Center (`/dashboard/income-and-bills`)', () => {
+    test('7.1 3-Tab Navigation, Matrix 10-Payday Horizon & Slide-Over Drawer Audit', async ({ page }) => {
       await page.goto('/dashboard/income-and-bills');
       await expect(page.locator('main')).toBeVisible();
 
-      const addIncomeBtn = page.locator('button:has-text("Add Income")').first();
-      const addBillBtn = page.locator('button:has-text("Add Bill"), button:has-text("Add Expense")').first();
+      // Verify 3-Tab Buttons
+      const timelineTab = page.locator('button:has-text("Upcoming Timeline")').first();
+      const matrixTab = page.locator('button:has-text("12-Mo Matrix Plan")').first();
+      const setupTab = page.locator('button:has-text("Setup & Sources")').first();
 
-      if (await addIncomeBtn.isVisible()) {
-        await expect(addIncomeBtn).toBeVisible();
+      if (await timelineTab.isVisible()) {
+        await expect(timelineTab).toBeVisible();
       }
-      if (await addBillBtn.isVisible()) {
-        await expect(addBillBtn).toBeVisible();
+
+      // Switch to Tab 2: 12-Mo Matrix Plan
+      if (await matrixTab.isVisible()) {
+        await matrixTab.click();
+
+        // Check Show Full 12 Months Expansion Button
+        const expandBtn = page.locator('button:has-text("Show Full 12 Months"), button:has-text("Show Next 10 Paydays")').first();
+        if (await expandBtn.isVisible()) {
+          await expect(expandBtn).toBeVisible();
+          await expandBtn.click();
+        }
+
+        // Check Category Click to open Slide-Over Drawer
+        const categoryHeader = page.locator('td:has-text("Rent"), td:has-text("Everyday"), td:has-text("Goal")').first();
+        if (await categoryHeader.isVisible()) {
+          await categoryHeader.click();
+          // Escape key dismissal for slide-over drawer
+          await page.keyboard.press('Escape');
+        }
+      }
+
+      // Switch to Tab 3: Setup & Sources
+      if (await setupTab.isVisible()) {
+        await setupTab.click();
+        const addIncomeBtn = page.locator('button:has-text("Add Income")').first();
+        if (await addIncomeBtn.isVisible()) {
+          await expect(addIncomeBtn).toBeVisible();
+        }
       }
     });
   });
 
   // ---------------------------------------------------------------------------
-  // 8. TRANSACTION HISTORY, TABS & CSV IMPORT (`/dashboard/transactions`)
+  // 8. TRANSACTION HISTORY, TABS & CSV IMPORT (`/dashboard/history`)
   // ---------------------------------------------------------------------------
-  test.describe('8. Transaction History, Sorting & CsvImportModal (`/dashboard/transactions`)', () => {
+  test.describe('8. Transaction History, Sorting & CsvImportModal (`/dashboard/history`)', () => {
     test('8.1 Transaction Ledger Sorting & Transfers Tab Audit', async ({ page }) => {
-      await page.goto('/dashboard/transactions');
+      await page.goto('/dashboard/history');
 
       // Segmented Control Tabs (Debits, Credits, Transfers)
       const transfersTab = page.locator('button:has-text("Transfers"), button:has-text("Moves")').first();
@@ -411,7 +439,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
     });
 
     test('8.2 Interactive 3-Step CSV Import Modal Audit', async ({ page }) => {
-      await page.goto('/dashboard/transactions');
+      await page.goto('/dashboard/history');
 
       const importCsvBtn = page.locator('button:has-text("Import CSV"), button:has-text("Upload CSV")').first();
       if (await importCsvBtn.isVisible()) {
@@ -473,11 +501,11 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 10. HISTORY & PAYDAY ALLOCATIONS 2-TAB SCREEN (`/dashboard/transactions`)
+  // 10. HISTORY & PAYDAY ALLOCATIONS 2-TAB SCREEN (`/dashboard/history`)
   // ---------------------------------------------------------------------------
-  test.describe('10. History & Payday Allocations 2-Tab Screen (`/dashboard/transactions`)', () => {
+  test.describe('10. History & Payday Allocations 2-Tab Screen (`/dashboard/history`)', () => {
     test('10.1 Transactions & Payday Allocations Tabs', async ({ page }) => {
-      await page.goto('/dashboard/transactions');
+      await page.goto('/dashboard/history');
 
       await expect(page.locator('h1').filter({ hasText: /History|履歴/i }).first()).toBeVisible();
       await expect(page.locator('button').filter({ hasText: /Transactions|取引履歴/i }).first()).toBeVisible();

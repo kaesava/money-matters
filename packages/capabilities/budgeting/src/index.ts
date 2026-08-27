@@ -20,4 +20,5 @@ export * from "./engine/due-date-guardrail.js";
 export * from "./commands/re-setup-budget.command.js";
 export * from "./queries/preview-payday.query.js";
 export * from "./queries/list-bill-coverage.query.js";
+export * from "./engine/matrix-projection-engine.js";
 

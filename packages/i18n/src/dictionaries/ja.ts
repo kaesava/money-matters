@@ -347,7 +347,14 @@ export const ja: DeepStringRecord<typeof en> = {
     "surplusOffset": "住宅ローン相殺・資産運用スイープ",
     "presetTight": "少額 ($1,200)",
     "presetStandard": "Standard ($2,500)",
-    "presetBonus": "高額・賞与 ($4,200)",
+    "presetBonus": "高額・賞料 ($4,200)",
+    "heroCardEverydayTitle": "日常生活費",
+    "heroCardEverydaySub": "生活費",
+    "heroCardEverydaySafe": "🟢 安全使用可能 ($34.60/日)",
+    "heroCardBillsTitle": "固定費プール",
+    "heroCardBillsSub": "今後の支払い準備完了 ✓",
+    "heroCardSurplusTitle": "余剰資金スイープ目標",
+    "heroCardSurplusSub": "住宅ローン相殺積立が自動で増加中",
     
     // Problem Section
     "problemSectionBadge": "家計簿アプリが失敗する理由",
@@ -686,7 +693,7 @@ export const ja: DeepStringRecord<typeof en> = {
     },
     "bankAccountTip": {
       "title": "💡 ヒント: 口座の分離管理",
-      "description": "生活費、固定費、貯蓄を別々の銀行口座に分けることで、給与振分がスムーズになります。設定 > 銀行口座で設定を変更できます。",
+      "description": "生活費、固定費、貯蓄を別々の銀行口座に分けることで、給料日配分がスムーズになります。設定 > 銀行口座で設定を変更できます。",
       "action": "銀行口座を管理"
     },
     "goals": {
@@ -910,6 +917,10 @@ export const ja: DeepStringRecord<typeof en> = {
     "aussiePrivacyDetail": "ご家庭の財務データは完全に保護されます。銀行レベルの暗号化（AES-256 / TLS 1.3）およびオーストラリアプライバシー法（1988年Cth）に準拠しています。データを販売・貸与・共有することは一切ありません。",
     "exportZipButton": "ZIP圧縮バックアップをダウンロード",
     "exportingZip": "ZIPバックアップを作成中...",
+    "currentHouseholdLabel": "現在の世帯",
+    "viewPublicPrivacyPolicyLink": "📜 プライバシーポリシーを見る (新しいタブで開く)",
+    "viewPublicDeletionInfoLink": "ℹ️ 公開コンプライアンス方針を見る (新しいタブで開く)",
+    "closeTabNotice": "このコンプライアンスページは設定画面から開かれました。確認後はこのタブを閉じてダッシュボードにお戻りいただけます。",
     "manageGovernance": "世帯管理とアカウント消去",
     "manageGovernanceSub": "所有権の譲渡、世帯の脱退、またはアカウントと世帯データの永久消去を行えます。",
     "deleteHouseholdTitle": "世帯を永久に削除",
@@ -1090,6 +1101,21 @@ export const ja: DeepStringRecord<typeof en> = {
       "acceptInviteCta": "世帯予算への招待を承認",
       "deletionSubject": "アカウント削除手続き完了",
       "deletionBody": "アカウント削除リクエストの処理が完了しました。お客様のすべての個人データおよび世帯記録は完全に消去されました。"
+    },
+    "settings": {
+      "title": "通知設定",
+      "backCta": "← 戻る",
+      "loading": "通知設定を読み込み中...",
+      "weeklyDigestTitle": "📊 週次バランスダイジェスト",
+      "weeklyDigestDesc": "毎週日曜日の夕方に、貯蓄・支出の合計と翌週の予測をメールで受け取ります。",
+      "paydayTitle": "🎉 給料日配分アラート",
+      "paydayDesc": "予定された給料日の朝に1タップで配分できるアラートを受け取ります。",
+      "shortfallTitle": "⚠️ 残高不足・超過アラート",
+      "shortfallDesc": "請求書や取引によってカテゴリーがマイナスになった際に即座に警告を受け取ります。",
+      "billTitle": "⚡ 支払期日リマインダー",
+      "billDesc": "定期支払い（家賃、ローン、光熱費など）の3日前にリマインダーを受け取ります。",
+      "activeEmailBadge": "Release 1 有効 (メール)",
+      "release2MobileBadge": "Release 2 (モバイルPush)"
     }
   },
   "badges": {
@@ -1197,5 +1223,22 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "通知設定について",
       "content": "請求や給料日の自動リマインダー通知を設定します。"
     }
+  },
+  "incomeBillsTabs": {
+    "upcomingTimeline": "今後の予定",
+    "matrixPlan": "一括給与分配",
+    "setupSources": "設定",
+    "showFullHorizon": "全12ヶ月を表示",
+    "showNext10Paydays": "次の10回の給与日を表示",
+    "projectedBalanceAt": "{{date}} 時点の予測残高",
+    "timelineSliderLabel": "タイムライン予測スライダー",
+    "insufficientModalTitle": "プール残高不足",
+    "insufficientModalMessage": "この請求を支払済みにするには {{amount}} 不足しています。",
+    "fundingSourceSelectLabel": "不足分を補填する資金源を選択:",
+    "surplusBufferLabel": "余剰バッファー（推奨）",
+    "confirmTransferAndPay": "振替を確認して支払済みにする",
+    "drawerTitle": "カテゴリの予定支出",
+    "overrideBadge": "手動変更",
+    "projectionWarningTooltip": "警告: 次の給料日までに資金不足が発生する可能性があります。"
   }
 } as const;

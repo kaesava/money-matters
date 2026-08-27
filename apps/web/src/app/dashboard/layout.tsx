@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { t, setLanguage } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
@@ -10,6 +10,7 @@ import { TrialBanner } from "../../components/TrialBanner";
 import { TrialEndedModal } from "../../components/TrialEndedModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
 import { Spinner } from "@money-matters/ui/web";
+import { useNetworkStatus } from "../../providers/AppProviders";
 import { trpc } from "../../lib/trpc";
 import { SidebarContent } from "./components/SidebarContent";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
@@ -21,6 +22,8 @@ const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const utils = trpc.useUtils();
+  const { isGlobalError, clearGlobalError, lastErrorMessage } = useNetworkStatus();
   const { data: session, isPending } = authClient.useSession();
   const [isExchanging, setIsExchanging] = useState(false);
 
@@ -116,6 +119,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  // Anti-spam cooldown timer
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
+
+  const handleRetryConnection = useCallback(async () => {
+    if (cooldownSeconds > 0 || isRetrying) return;
+    setIsRetrying(true);
+    clearGlobalError();
+    try {
+      await Promise.all([
+        categoriesQuery.refetch(),
+        tenantsQuery.refetch(),
+        userPrefQuery.refetch(),
+        utils.invalidate(),
+      ]);
+    } catch (_e) {
+      // Graceful error handling
+    } finally {
+      setIsRetrying(false);
+      setCooldownSeconds(3); // 3s anti-spam throttle
+    }
+  }, [cooldownSeconds, isRetrying, clearGlobalError, categoriesQuery, tenantsQuery, userPrefQuery, utils]);
+
+  const isQueryFetching = categoriesQuery.isFetching || tenantsQuery.isFetching || userPrefQuery.isFetching || isRetrying;
+  const isQueryError = (isGlobalError || categoriesQuery.isError || tenantsQuery.isError || userPrefQuery.isError) && !isQueryFetching;
 
   // Unified Keyboard Shortcuts Hook
   useEffect(() => {
@@ -303,7 +339,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex-1 flex flex-col overflow-y-auto">
             {/* Main workspace */}
             <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
-              {children}
+              {isQueryFetching ? (
+                <div className="min-h-[60vh] flex items-center justify-center p-6 text-center">
+                  <Spinner size="lg" label="Reconnecting to Money Matters..." direction="col" />
+                </div>
+              ) : isQueryError ? (
+                <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+                  <div className="max-w-md w-full bg-white dark:bg-zinc-900 border border-amber-200/80 dark:border-amber-900/60 rounded-3xl p-8 shadow-xl space-y-5">
+                    <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-amber-200/80 dark:border-amber-900/60 font-bold shadow-xs">
+                      📡
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <h2 className="text-lg font-black text-[#1B2B4B] dark:text-white">
+                        We're having trouble connecting
+                      </h2>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
+                        Your money and budget data are 100% safe. We're just having a moment communicating with our servers.
+                      </p>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-center font-medium">
+                      💡 Please check your internet connection or tap retry below.
+                    </p>
+
+                    <button
+                      type="button"
+                      disabled={cooldownSeconds > 0 || isRetrying}
+                      onClick={handleRetryConnection}
+                      className="w-full py-3.5 px-6 bg-[#2563eb] hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-800 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {isRetrying ? (
+                        <Spinner size="sm" />
+                      ) : cooldownSeconds > 0 ? (
+                        <span>Wait {cooldownSeconds}s before retrying</span>
+                      ) : (
+                        <span>🔄 Try Reconnecting</span>
+                      )}
+                    </button>
+
+                    <details className="text-left text-[10px] text-zinc-400 dark:text-zinc-500 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                      <summary className="cursor-pointer font-bold hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+                        Technical details
+                      </summary>
+                      <div className="mt-2 p-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg font-mono break-all text-[10px]">
+                        {lastErrorMessage || (categoriesQuery.error || tenantsQuery.error || userPrefQuery.error)?.message || "Network unreachable / timeout"}
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              ) : (
+                children
+              )}
             </main>
           </div>
 

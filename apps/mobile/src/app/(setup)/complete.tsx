@@ -9,7 +9,7 @@ import { trpc } from '../../lib/trpc';
 export default function SetupCompleteScreen() {
   const router = useRouter();
   const posthog = usePostHog();
-  const generateEvents = trpc.generateNextIncomeEvents.useMutation();
+  const generateEvents = trpc.maintainRollingWindow.useMutation();
   const [loading, setLoading] = useState(false);
 
   const handleFinish = async () => {

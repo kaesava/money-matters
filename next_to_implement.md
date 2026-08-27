@@ -1,3 +1,4 @@
+
 # AGENT - In progress...
 
 ## Setup
@@ -7,25 +8,40 @@
 * Ignore mobile app for now
 
 ## General
-## "Pools"
-* PENDING - Upcoming Coverage
-### Activity
+* Screen names not reflective of titles (like /transactions instead of history and /categories instead of pools, etc. Refactor to make all the links and filenames consistent with user presentation. Be thorough across the app. Ensure you don't leave any redundant or dead code or files.
+
+## Home
 ### New/Edit of Everday/Bills
 
-## "History"
-DONE
+## "Pools"
+* PENDING - Upcoming Coverage
+
+## "History"###
+### Transactions
+### Allocation History
 
 ## Bank Accounts
 ### Adding/Editing Modal:
 
 ## "Income & Bills"
+### Upcoming
+### Bulk
+### Setup
 
 ## "Settings"
-
-## Settings
+* Do we need a Household set of fields to update (like Household name)? Should we capture anything else like postcode that can help us as developers (balance between usefulness and not creating friction)
+* Default the Notification Email (Optional) to the Login Email
+* Download Zipped CSV Backup --> "No Export Data Returned". Also, remove the JSON option and all related functionality (no dead code anywhere in the app)
+* Household Governance & Erasure & "Manage Governance" - please use Aussie approachable terminology - not just here but across the app
+### Profile
+### Subscription
+### Account
+### http://localhost:3000/subscription/upgrade
 ### Report a bug
-
-## Delete account page - http://localhost:3000/privacy/delete-account
+### Delete account page - http://localhost:3000/privacy/delete-account
+* Ensure features list is still accurate
+* No way of going back to the signed-in part of the app if I got here through the Settings page
+* 
 
 ## "Main Dashboard"
 

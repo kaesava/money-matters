@@ -8,6 +8,132 @@ import {
 } from "@money-matters/types";
 import { z } from 'zod';
 
+const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+
+export async function maintainRollingWindowInternal({
+  db,
+  tenantId,
+  appId,
+  userId,
+}: {
+  db: any;
+  tenantId: string;
+  appId: string;
+  userId: string;
+}) {
+  const { expenseSources, expenseEvents } = await import("@money-matters/db");
+  let newEventsCount = 0;
+  const todayStr = getAestDateString();
+
+  // 1. Sync Income Sources
+  const incomes = await db
+    .select()
+    .from(incomeSources)
+    .where(
+      and(
+        eq(incomeSources.tenantId, tenantId),
+        eq(incomeSources.appId, appId),
+        sql`${incomeSources.archivedAt} IS NULL`
+      )
+    );
+
+  for (const source of incomes) {
+    if (!source.rrule) continue;
+    
+    const existingEvents = await db
+      .select({ expectedDate: incomeEvents.expectedDate })
+      .from(incomeEvents)
+      .where(
+        and(
+          eq(incomeEvents.incomeSourceId, source.id),
+          eq(incomeEvents.status, "UPCOMING")
+        )
+      );
+      
+    const existingDates = new Set(existingEvents.map((e: { expectedDate: string }) => e.expectedDate));
+    
+    const startDate = source.startDate || todayStr;
+    const horizonDates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
+    
+    const datesToInsert = horizonDates.filter((d) => {
+       const dStr = getAestDateString(d);
+       return dStr >= todayStr && !existingDates.has(dStr);
+    });
+    
+    if (datesToInsert.length > 0) {
+       await db.insert(incomeEvents).values(
+         datesToInsert.map((d) => ({
+            incomeSourceId: source.id,
+            expectedDate: getAestDateString(d),
+            expectedAmount: source.amount,
+            status: "UPCOMING" as const,
+            tenantId: tenantId,
+            appId: appId,
+            createdBy: userId,
+            updatedBy: userId,
+         }))
+       );
+       newEventsCount += datesToInsert.length;
+    }
+  }
+
+  // 2. Sync Expense Sources
+  const expenses = await db
+    .select()
+    .from(expenseSources)
+    .where(
+      and(
+        eq(expenseSources.tenantId, tenantId),
+        eq(expenseSources.appId, appId),
+        sql`${expenseSources.archivedAt} IS NULL`
+      )
+    );
+
+  for (const source of expenses) {
+    if (!source.rrule) continue;
+    
+    const existingEvents = await db
+      .select({ expectedDate: expenseEvents.expectedDate })
+      .from(expenseEvents)
+      .where(
+        and(
+          eq(expenseEvents.expenseSourceId, source.id),
+          eq(expenseEvents.status, "UPCOMING")
+        )
+      );
+      
+    const existingDates = new Set(existingEvents.map((e: { expectedDate: string }) => e.expectedDate));
+    
+    const startDate = source.startDate || todayStr;
+    const horizonDates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
+    
+    const datesToInsert = horizonDates.filter((d) => {
+       const dStr = getAestDateString(d);
+       return dStr >= todayStr && !existingDates.has(dStr);
+    });
+    
+    if (datesToInsert.length > 0) {
+       await db.insert(expenseEvents).values(
+         datesToInsert.map((d) => ({
+            expenseSourceId: source.id,
+            categoryId: source.categoryId,
+            name: source.name,
+            expectedDate: getAestDateString(d),
+            expectedAmount: source.amount,
+            status: "UPCOMING" as const,
+            tenantId: tenantId,
+            appId: appId,
+            createdBy: userId,
+            updatedBy: userId,
+         }))
+       );
+       newEventsCount += datesToInsert.length;
+    }
+  }
+
+  return { success: true, newEventsCount };
+}
+
 export const incomeRouter = {
   createIncomeSource: tenantProcedure
     .input(
@@ -53,7 +179,7 @@ export const incomeRouter = {
           await ctx.db.insert(incomeEvents).values(
             dates.map((d) => ({
               incomeSourceId: source.id,
-              expectedDate: d.toISOString().split("T")[0],
+              expectedDate: getAestDateString(d),
               expectedAmount: input.amount,
               status: "UPCOMING" as const,
               tenantId: ctx.tenantId!,
@@ -146,7 +272,7 @@ export const incomeRouter = {
       if (!newStartDate) {
         if (source.startDate) newStartDate = source.startDate;
         else if (unperformedEvents.length > 0 && unperformedEvents[0].expectedDate) newStartDate = unperformedEvents[0].expectedDate;
-        else newStartDate = new Date().toISOString().split("T")[0];
+        else newStartDate = getAestDateString();
       }
 
       const newFreq = input.data.frequency;
@@ -179,7 +305,7 @@ export const incomeRouter = {
             await ctx.db.insert(incomeEvents).values(
               dates.map((d) => ({
                 incomeSourceId: source.id,
-                expectedDate: d.toISOString().split("T")[0],
+                expectedDate: getAestDateString(d),
                 expectedAmount: newAmount,
                 status: "UPCOMING" as const,
                 tenantId: ctx.tenantId!,
@@ -266,54 +392,62 @@ export const incomeRouter = {
       return event;
     }),
 
-  generateNextIncomeEvents: tenantProcedure
+  maintainRollingWindow: tenantProcedure
     .mutation(async ({ ctx }) => {
       requiresWriteAccess(ctx);
-      const sources = await ctx.db
-        .select()
-        .from(incomeSources)
-        .where(
-          and(
-            eq(incomeSources.tenantId, ctx.tenantId!),
-            eq(incomeSources.appId, ctx.appId!),
-            sql`${incomeSources.archivedAt} IS NULL`
-          )
-        );
+      return maintainRollingWindowInternal({
+        db: ctx.db,
+        tenantId: ctx.tenantId!,
+        appId: ctx.appId!,
+        userId: ctx.userId!,
+      });
+    }),
 
-      const todayStr = new Date().toISOString().split('T')[0];
-
-      const sourceIds = sources.map((s) => s.id);
-      const existingEvents = sourceIds.length > 0
-        ? await ctx.db
-            .select({ incomeSourceId: incomeEvents.incomeSourceId })
-            .from(incomeEvents)
-            .where(
-              and(
-                inArray(incomeEvents.incomeSourceId, sourceIds),
-                eq(incomeEvents.expectedDate, todayStr)
-              )
-            )
-        : [];
-
-      const existingSourceIdSet = new Set(existingEvents.map((e) => e.incomeSourceId));
-      const sourcesToInsert = sources.filter((s) => !existingSourceIdSet.has(s.id));
-
-      if (sourcesToInsert.length > 0) {
-        await ctx.db.insert(incomeEvents).values(
-          sourcesToInsert.map((source) => ({
-            incomeSourceId: source.id,
-            expectedAmount: source.amount,
-            expectedDate: todayStr,
-            status: "UPCOMING" as const,
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            createdBy: ctx.userId!,
-            updatedBy: ctx.userId!,
-          }))
-        );
+  listIncomeEvents: tenantProcedure
+    .query(async ({ ctx }) => {
+      // Lazy Materialization: Maintain rolling 12-month window on-the-fly before returning query
+      try {
+        await maintainRollingWindowInternal({
+          db: ctx.db,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          userId: ctx.userId!,
+        });
+      } catch (_err) {
+        // Safe fallback if maintenance fail-safe triggers
       }
 
-      return { success: true, generated: sources.length };
+      const events = await ctx.db
+        .select({
+          id: incomeEvents.id,
+          expectedDate: incomeEvents.expectedDate,
+          expectedAmount: incomeEvents.expectedAmount,
+          actualAmount: incomeEvents.actualAmount,
+          isOverridden: incomeEvents.isOverridden,
+          paymentMethod: incomeEvents.paymentMethod,
+          status: incomeEvents.status,
+          note: incomeEvents.note,
+          incomeSourceId: incomeEvents.incomeSourceId,
+          sourceName: incomeSources.name,
+        })
+        .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
+        .where(
+          and(
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!),
+            sql`${incomeEvents.archivedAt} IS NULL`
+          )
+        )
+        .orderBy(asc(incomeEvents.expectedDate));
+
+      const firstUpcoming = events.find((e) => e.status === "UPCOMING");
+      const nextId = firstUpcoming?.id;
+
+      return events.map((e) => ({
+        ...e,
+        isNextPayday: e.id === nextId,
+      }));
     }),
 
   listIncomeSources: tenantProcedure
@@ -382,41 +516,6 @@ export const incomeRouter = {
         deletedUnperformedCount: unperformedEvents.length,
         hasConfirmedHistory: confirmedEvents.length > 0,
       };
-    }),
-
-  listIncomeEvents: tenantProcedure
-    .query(async ({ ctx }) => {
-      const events = await ctx.db
-        .select({
-          id: incomeEvents.id,
-          expectedDate: incomeEvents.expectedDate,
-          expectedAmount: incomeEvents.expectedAmount,
-          actualAmount: incomeEvents.actualAmount,
-          isOverridden: incomeEvents.isOverridden,
-          paymentMethod: incomeEvents.paymentMethod,
-          status: incomeEvents.status,
-          note: incomeEvents.note,
-          incomeSourceId: incomeEvents.incomeSourceId,
-          sourceName: incomeSources.name,
-        })
-        .from(incomeEvents)
-        .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
-        .where(
-          and(
-            eq(incomeEvents.tenantId, ctx.tenantId!),
-            eq(incomeEvents.appId, ctx.appId!),
-            sql`${incomeEvents.archivedAt} IS NULL`
-          )
-        )
-        .orderBy(asc(incomeEvents.expectedDate));
-
-      const firstUpcoming = events.find((e) => e.status === "UPCOMING");
-      const nextId = firstUpcoming?.id;
-
-      return events.map((e) => ({
-        ...e,
-        isNextPayday: e.id === nextId,
-      }));
     }),
 
   createUpcomingIncome: tenantProcedure
@@ -632,13 +731,13 @@ export const incomeRouter = {
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
-      const startDate = source.startDate || new Date().toISOString().split("T")[0];
+      const startDate = source.startDate || getAestDateString();
       const dates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
       if (dates.length > 0) {
         await ctx.db.insert(incomeEvents).values(
           dates.map((d) => ({
             incomeSourceId: source.id,
-            expectedDate: d.toISOString().split("T")[0],
+            expectedDate: getAestDateString(d),
             expectedAmount: source.amount,
             status: "UPCOMING" as const,
             tenantId: ctx.tenantId!,

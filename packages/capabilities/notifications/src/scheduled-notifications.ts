@@ -312,12 +312,16 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
     }
   );
 
+  // Release 1 (Web): Retain Weekly Email Digest cron.
+  // Mobile push crons (notifyPaydayIncoming, notifyBillDueSoon, notifyBillOverdue, notifyGoalMilestone, notifySpendingVelocity)
+  // are retained in codebase and ready for activation in Release 2 (Mobile App target).
   return [
-    notifyPaydayIncoming,
-    notifyBillDueSoon,
-    notifyBillOverdue,
     notifyWeeklyDigest,
-    notifyGoalMilestone,
-    notifySpendingVelocity,
+    // Deactivated for Release 1 Web target; reserved for Release 2 Mobile App:
+    // notifyPaydayIncoming,
+    // notifyBillDueSoon,
+    // notifyBillOverdue,
+    // notifyGoalMilestone,
+    // notifySpendingVelocity,
   ];
 }

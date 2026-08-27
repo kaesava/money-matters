@@ -47,9 +47,9 @@ export type BankCsvImportInput = z.infer<typeof BankCsvImportInputSchema>;
 /**
  * Generates a deterministic hash string from transaction parameters for deduplication.
  */
-function generateTransactionHash(date: string, amount: string, description: string, flowType: string): string {
+function generateTransactionHash(date: string, amount: string, description: string, flowType: string, index: number = 1): string {
   const cleanDesc = description.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30);
-  return `csv-import-${date}-${flowType}-${amount}-${cleanDesc}`;
+  return `csv-import-${date}-${flowType}-${amount}-${cleanDesc}-${index}`;
 }
 
 /**
@@ -157,9 +157,13 @@ export function parseBankCsv(
 
   const transactions: ParsedCsvTransaction[] = [];
   const startRow = lines[0].includes("Date") || lines[0].includes("date") ? 1 : 0;
+  const occurrenceMap = new Map<string, number>();
 
   for (let i = startRow; i < lines.length; i++) {
-    const tokens = parseCsvLine(lines[i]);
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const tokens = parseCsvLine(line);
     if (tokens.length < 2) continue;
 
     let rawDate = "";
@@ -170,68 +174,92 @@ export function parseBankCsv(
     if (customMapping) {
       rawDate = tokens[customMapping.dateColIndex] || "";
       rawDesc = tokens[customMapping.descColIndex] || "";
-      
+
       if (customMapping.debitColIndex !== undefined && customMapping.creditColIndex !== undefined) {
-        const debit = (tokens[customMapping.debitColIndex] || "").replace(/[$,]/g, "");
+        const debit = (tokens[customMapping.debitColIndex] || "").replace(/[$,-]/g, "");
         const credit = (tokens[customMapping.creditColIndex] || "").replace(/[$,]/g, "");
         if (credit && parseFloat(credit) > 0) {
           flowType = "CREDIT";
           rawAmount = credit;
         } else {
           flowType = "DEBIT";
-          rawAmount = debit.replace("-", "");
+          rawAmount = debit;
         }
-      } else {
-        rawAmount = tokens[customMapping.amountColIndex] || "";
-        const numVal = parseFloat(rawAmount.replace(/[$,]/g, ""));
-        if (!isNaN(numVal)) {
-          flowType = numVal >= 0 ? "CREDIT" : "DEBIT";
-          rawAmount = Math.abs(numVal).toFixed(2);
-        }
+      } else if (customMapping.amountColIndex !== undefined) {
+        rawAmount = (tokens[customMapping.amountColIndex] || "").replace(/[$,]/g, "");
+        const numVal = parseFloat(rawAmount);
+        flowType = numVal >= 0 ? "CREDIT" : "DEBIT";
+        rawAmount = Math.abs(numVal).toFixed(2);
       }
-    } else if (tokens.length >= 3) {
+    } else if (bankName === "Commonwealth Bank (CBA)" || tokens.length === 3 || tokens.length === 4) {
       rawDate = tokens[0];
-      
-      if (bankName === "Westpac" && tokens.length >= 5) {
-        rawDate = tokens[1];
+      if (tokens.length === 4) {
+        rawAmount = tokens[1];
         rawDesc = tokens[2];
-        const debit = tokens[3].replace(/[$,]/g, "");
-        const credit = tokens[4].replace(/[$,]/g, "");
-        if (credit && parseFloat(credit) > 0) {
-          flowType = "CREDIT";
-          rawAmount = credit;
-        } else {
-          flowType = "DEBIT";
-          rawAmount = debit.replace("-", "");
-        }
-      } 
-      else if (bankName === "ING / ANZ" || (tokens.length >= 4 && !isNaN(parseFloat(tokens[2])) && !isNaN(parseFloat(tokens[3])))) {
-        rawDesc = tokens[1];
-        const credit = tokens[2].replace(/[$,]/g, "");
-        const debit = tokens[3].replace(/[$,]/g, "");
-        if (credit && parseFloat(credit) > 0) {
-          flowType = "CREDIT";
-          rawAmount = credit;
-        } else {
-          flowType = "DEBIT";
-          rawAmount = debit.replace("-", "");
-        }
-      }
-      else {
-        const secondIsNum = !isNaN(parseFloat(tokens[1].replace(/[$,-]/g, "")));
-        if (secondIsNum) {
+      } else {
+        const isSecondNum = !isNaN(parseFloat(tokens[1].replace(/[$,-]/g, "")));
+        if (isSecondNum) {
           rawAmount = tokens[1];
-          rawDesc = tokens.length === 4 && !isNaN(parseFloat(tokens[3].replace(/[$,-]/g, ""))) ? tokens[2] : tokens.slice(2).join(" ");
+          rawDesc = tokens[2];
         } else {
           rawDesc = tokens[1];
           rawAmount = tokens[2];
         }
+      }
+      const numVal = parseFloat(rawAmount.replace(/[$,]/g, ""));
+      flowType = numVal >= 0 ? "CREDIT" : "DEBIT";
+      rawAmount = Math.abs(numVal).toFixed(2);
+    } else if (bankName === "Westpac") {
+      rawDate = tokens[0];
+      rawDesc = tokens[2] || tokens[1];
+      const debit = (tokens[3] || "").replace(/[$,-]/g, "");
+      const credit = (tokens[4] || "").replace(/[$,]/g, "");
+      if (credit && parseFloat(credit) > 0) {
+        flowType = "CREDIT";
+        rawAmount = credit;
+      } else {
+        flowType = "DEBIT";
+        rawAmount = debit;
+      }
+    } else if (bankName === "NAB") {
+      rawDate = tokens[0];
+      rawDesc = tokens[1];
+      const debit = (tokens[2] || "").replace(/[$,-]/g, "");
+      const credit = (tokens[3] || "").replace(/[$,]/g, "");
+      if (credit && parseFloat(credit) > 0) {
+        flowType = "CREDIT";
+        rawAmount = credit;
+      } else {
+        flowType = "DEBIT";
+        rawAmount = debit.replace("-", "");
+      }
+    } else if (bankName === "ING / ANZ" || (tokens.length >= 4 && !isNaN(parseFloat(tokens[2])) && !isNaN(parseFloat(tokens[3])))) {
+      rawDate = tokens[0];
+      rawDesc = tokens[1];
+      const credit = tokens[2].replace(/[$,]/g, "");
+      const debit = tokens[3].replace(/[$,]/g, "");
+      if (credit && parseFloat(credit) > 0) {
+        flowType = "CREDIT";
+        rawAmount = credit;
+      } else {
+        flowType = "DEBIT";
+        rawAmount = debit.replace("-", "");
+      }
+    } else {
+      rawDate = tokens[0];
+      const secondIsNum = !isNaN(parseFloat(tokens[1].replace(/[$,-]/g, "")));
+      if (secondIsNum) {
+        rawAmount = tokens[1];
+        rawDesc = tokens.length === 4 && !isNaN(parseFloat(tokens[3].replace(/[$,-]/g, ""))) ? tokens[2] : tokens.slice(2).join(" ");
+      } else {
+        rawDesc = tokens[1];
+        rawAmount = tokens[2];
+      }
 
-        const numVal = parseFloat(rawAmount.replace(/[$,]/g, ""));
-        if (!isNaN(numVal)) {
-          flowType = numVal >= 0 ? "CREDIT" : "DEBIT";
-          rawAmount = Math.abs(numVal).toFixed(2);
-        }
+      const numVal = parseFloat(rawAmount.replace(/[$,]/g, ""));
+      if (!isNaN(numVal)) {
+        flowType = numVal >= 0 ? "CREDIT" : "DEBIT";
+        rawAmount = Math.abs(numVal).toFixed(2);
       }
     }
 
@@ -241,7 +269,11 @@ export function parseBankCsv(
     const cleanDesc = rawDesc.replace(/^"|"$/g, "").trim() || "Imported Transaction";
     const amountVal = parseFloat(rawAmount).toFixed(2);
 
-    const idempotencyKey = generateTransactionHash(formattedDate, amountVal, cleanDesc, flowType);
+    const baseKey = `${formattedDate}-${flowType}-${amountVal}-${cleanDesc.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 30)}`;
+    const currCount = (occurrenceMap.get(baseKey) || 0) + 1;
+    occurrenceMap.set(baseKey, currCount);
+
+    const idempotencyKey = generateTransactionHash(formattedDate, amountVal, cleanDesc, flowType, currCount);
 
     transactions.push({
       date: formattedDate,

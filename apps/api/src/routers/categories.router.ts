@@ -1,4 +1,4 @@
-import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
+import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import {
   createCategoryCommand,
   updateCategoryCommand,
@@ -26,7 +26,7 @@ import { posthog } from '../lib/posthog.js';
 import { ensurePremiumAccess } from '@money-matters/capability-billing';
 
 export const categoriesRouter = {
-  createCategory: tenantProcedure
+  createCategory: privateTenantProcedure
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -36,7 +36,7 @@ export const categoriesRouter = {
       return await createCategoryCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  updateCategory: tenantProcedure
+  updateCategory: privateTenantProcedure
     .input(z.object({
       categoryId: z.string().uuid(),
       data: UpdateCategoryCommand
@@ -46,14 +46,14 @@ export const categoriesRouter = {
       return await updateCategoryCommand(input.categoryId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  createCategorySchedule: tenantProcedure
+  createCategorySchedule: privateTenantProcedure
     .input(CreateCategoryScheduleCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       return await upsertCategoryScheduleCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  archiveCategory: tenantProcedure
+  archiveCategory: privateTenantProcedure
     .input(z.object({ categoryId: z.string().uuid() }).strict())
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -64,7 +64,7 @@ export const categoriesRouter = {
       return { success: true };
     }),
 
-  moveMoney: tenantProcedure
+  moveMoney: privateTenantProcedure
     .input(MoveMoneyCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -83,12 +83,12 @@ export const categoriesRouter = {
       return result;
     }),
 
-  listArchivedItems: tenantProcedure
+  listArchivedItems: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await listArchivedItemsQuery(ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
-  restoreItem: tenantProcedure
+  restoreItem: privateTenantProcedure
     .input(
       z.object({
         itemId: z.string().uuid(),
@@ -111,24 +111,24 @@ export const categoriesRouter = {
       return { success: true };
     }),
 
-  listCategories: tenantProcedure
+  listCategories: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
-  listBillCoverage: tenantProcedure
+  listBillCoverage: privateTenantProcedure
     .output(BillCoverageResultSchema)
     .query(async ({ ctx }) => {
       return await listBillCoverageQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
-  getMonthlySummary: tenantProcedure
+  getMonthlySummary: privateTenantProcedure
     .input(z.object({ year: z.number().int(), month: z.number().int().min(1).max(12) }).strict())
     .query(async ({ input, ctx }) => {
       return await getMonthlySummaryQuery(input.year, input.month, ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
-  reSetupBudget: tenantProcedure
+  reSetupBudget: privateTenantProcedure
     .input(z.object({
       everydayTargetCap: z.number().nonnegative(),
       billsTargetCap: z.number().nonnegative(),
@@ -152,7 +152,7 @@ export const categoriesRouter = {
       });
     }),
 
-  evaluateDueGuardrail: tenantProcedure
+  evaluateDueGuardrail: privateTenantProcedure
     .input(z.object({
       currentBillsPoolBalance: z.number().optional(),
       upcomingBills: z.array(z.object({

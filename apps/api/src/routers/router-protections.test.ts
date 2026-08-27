@@ -30,7 +30,7 @@ describe("Router Write Access & Protection Guards", () => {
     } catch (err: unknown) {
       expect(err).toBeInstanceOf(TRPCError);
       expect((err as TRPCError).code).toBe("FORBIDDEN");
-      expect((err as TRErrorLike).message).toContain("subscription_read_only");
+      expect((err as TRPCError).message).toContain("subscription_read_only");
     }
   });
 

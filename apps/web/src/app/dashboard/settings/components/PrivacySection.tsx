@@ -134,7 +134,32 @@ export function PrivacySection({ onOpenBugReport }: { onOpenBugReport?: () => vo
         </div>
       </section>
 
-      {/* Household Governance & Deletion Link */}
+      {/* Public Legal & Compliance Info Links (Opened in New Tab) */}
+      <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3">
+        <h2 className="text-base font-bold text-[#1B2B4B]">Legal & Compliance Documents</h2>
+        <div className="flex flex-col gap-2 divide-y divide-slate-100">
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pt-2 first:pt-0 flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline"
+          >
+            <span>{t("privacy.viewPublicPrivacyPolicyLink")}</span>
+            <span>↗</span>
+          </a>
+          <a
+            href="/privacy/delete-account"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pt-2.5 flex items-center justify-between text-xs font-bold text-[#2563eb] hover:underline"
+          >
+            <span>{t("privacy.viewPublicDeletionInfoLink")}</span>
+            <span>↗</span>
+          </a>
+        </div>
+      </section>
+
+      {/* Household Governance & Deletion Link (In-App Action) */}
       <section className="p-6 bg-white border border-red-200 rounded-2xl shadow-xs flex items-center justify-between">
         <div>
           <h2 className="text-sm font-bold text-red-700">{t("privacy.manageGovernance")}</h2>
