@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useFileNotesService } from '../context.js';
 import { useToast } from '@money-matters/ui/web';
+import { t } from '@money-matters/i18n';
 
 export function useFileNotes(entityType: string, entityId?: string) {
   const service = useFileNotesService();
   const [isUploadingNote, setIsUploadingNote] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   let toast: ReturnType<typeof useToast> | null = null;
   try {
@@ -14,15 +14,8 @@ export function useFileNotes(entityType: string, entityId?: string) {
     // Fallback if rendered outside ToastProvider
   }
 
-  const mappedType =
-    entityType.toUpperCase() === 'EXPENSES' || entityType.toUpperCase() === 'EXPENSE'
-      ? 'EXPENSE'
-      : entityType.toUpperCase() === 'CATEGORIES' || entityType.toUpperCase() === 'CATEGORY'
-      ? 'CATEGORY'
-      : entityType;
-
   const { data: notes, refetch: refetchNotes } = service.useListQuery({
-    entityType: mappedType,
+    entityType: entityType.toUpperCase(),
     entityId: entityId || '',
   });
 
@@ -46,7 +39,7 @@ export function useFileNotes(entityType: string, entityId?: string) {
 
       if (noteFile) {
         const presigned = await createPresignedUrlMutation.mutateAsync({
-          entityType: mappedType,
+          entityType: entityType.toUpperCase(),
           entityId: entityId,
           fileName: noteFile.name,
           fileMimeType: noteFile.type,
@@ -74,22 +67,18 @@ export function useFileNotes(entityType: string, entityId?: string) {
       }
 
       await createNoteMutation.mutateAsync({
-        entityType: mappedType,
+        entityType: entityType.toUpperCase(),
         entityId: entityId,
         comment: noteComment.trim() || undefined,
         attachment,
       });
 
       refetchNotes();
-      toast?.success('Note added successfully');
-      setToastMessage({ type: 'success', text: 'Note added successfully' });
-      setTimeout(() => setToastMessage(null), 3000);
+      toast?.success(t('fileNotes.noteAddedSuccess'));
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
-      const text = err instanceof Error ? err.message : 'Failed to create note';
+      const text = err instanceof Error ? err.message : t('common.error');
       toast?.error(text);
-      setToastMessage({ type: 'error', text });
-      setTimeout(() => setToastMessage(null), 4000);
     } finally {
       setIsUploadingNote(false);
     }
@@ -103,49 +92,34 @@ export function useFileNotes(entityType: string, entityId?: string) {
         comment: comment.trim(),
       });
       refetchNotes();
-      toast?.success('Note updated successfully');
-      setToastMessage({ type: 'success', text: 'Note updated successfully' });
-      setTimeout(() => setToastMessage(null), 3000);
+      toast?.success(t('fileNotes.noteUpdatedSuccess'));
     } catch (err: unknown) {
-      const text = err instanceof Error ? err.message : 'Failed to update note';
+      const text = err instanceof Error ? err.message : t('common.error');
       toast?.error(text);
-      setToastMessage({ type: 'error', text });
-      setTimeout(() => setToastMessage(null), 4000);
     }
   };
 
   const handleArchiveNote = async (noteId: string) => {
-    if (!confirm('Are you sure you want to archive this note?')) return;
     try {
       await archiveNoteMutation.mutateAsync({ id: noteId });
       refetchNotes();
-      toast?.success('Note archived successfully');
-      setToastMessage({ type: 'success', text: 'Note archived successfully' });
-      setTimeout(() => setToastMessage(null), 3000);
+      toast?.success(t('fileNotes.noteArchivedSuccess'));
     } catch (err: unknown) {
-      const text = err instanceof Error ? err.message : 'Failed to archive note';
+      const text = err instanceof Error ? err.message : t('common.error');
       toast?.error(text);
-      setToastMessage({ type: 'error', text });
-      setTimeout(() => setToastMessage(null), 4000);
     }
   };
 
   const handlePurgeNote = async (noteId: string) => {
-    if (!confirm('Are you sure you want to permanently delete this note and its file?')) return;
     try {
       await purgeNoteMutation.mutateAsync({ id: noteId });
       refetchNotes();
-      toast?.success('Note permanently deleted');
-      setToastMessage({ type: 'success', text: 'Note permanently deleted' });
-      setTimeout(() => setToastMessage(null), 3000);
+      toast?.success(t('fileNotes.noteDeletedSuccess'));
     } catch (err: unknown) {
-      const text = err instanceof Error ? err.message : 'Failed to purge note';
+      const text = err instanceof Error ? err.message : t('common.error');
       toast?.error(text);
-      setToastMessage({ type: 'error', text });
-      setTimeout(() => setToastMessage(null), 4000);
     }
   };
-
 
   const downloadNote = async (noteId: string) => {
     try {
@@ -159,7 +133,6 @@ export function useFileNotes(entityType: string, entityId?: string) {
   return {
     notes,
     isUploadingNote,
-    toastMessage,
     handleCreateNote,
     handleSaveCommentEdit,
     handleArchiveNote,

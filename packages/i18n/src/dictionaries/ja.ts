@@ -197,7 +197,16 @@ export const ja: DeepStringRecord<typeof en> = {
     "comment": "コメント",
     "attachment": "添付ファイル",
     "notesHistory": "メモの履歴",
-    "downloadAttachment": "添付ファイルをダウンロード"
+    "downloadAttachment": "添付ファイルをダウンロード",
+    "noteAddedSuccess": "メモを追加しました",
+    "noteUpdatedSuccess": "メモを更新しました",
+    "noteArchivedSuccess": "メモをアーカイブしました",
+    "noteDeletedSuccess": "メモを永久に削除しました",
+    "confirmArchiveTitle": "メモをアーカイブしますか？",
+    "confirmArchiveDesc": "本当にこのメモをアーカイブしますか？",
+    "confirmDeleteTitle": "メモを削除しますか？",
+    "confirmDeleteDesc": "本当にこのメモと添付ファイルを永久に削除しますか？",
+    "fileLimitNotice": "上限: 10MB (PDF, PNG, JPEG, GIF)"
   },
   "home": {
     "title": "ホーム"
@@ -1240,5 +1249,17 @@ export const ja: DeepStringRecord<typeof en> = {
     "drawerTitle": "カテゴリの予定支出",
     "overrideBadge": "手動変更",
     "projectionWarningTooltip": "警告: 次の給料日までに資金不足が発生する可能性があります。"
+  },
+  "billStatus": {
+    "upcomingLabel": "予定",
+    "upcomingDesc": "給与日のリングフェンスを待っている予定の請求",
+    "ringFencedLabel": "確保済み",
+    "ringFencedDesc": "給与日に仮想プールへ確保された資金",
+    "paidLabel": "支払済み",
+    "paidDesc": "銀行の取引履歴と照合済みの決済",
+    "overdueLabel": "期限切れ",
+    "overdueDesc": "支払いまたは割り当てなしで期日を過ぎた請求",
+    "skippedLabel": "スキップ",
+    "skippedDesc": "このサイクルでユーザーによりスキップされた請求"
   }
 } as const;
