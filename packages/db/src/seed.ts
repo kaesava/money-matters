@@ -174,6 +174,9 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .values({
       id: tenantId,
       name: "Kaesava Household",
+      country: "AU",
+      state: "NSW",
+      postcode: "2000",
       fyEndMonthDay: "06-30",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",
@@ -191,6 +194,9 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .values({
       id: raehanTenantId,
       name: "Raehan Household",
+      country: "AU",
+      state: "VIC",
+      postcode: "3000",
       fyEndMonthDay: "06-30",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",
@@ -208,6 +214,9 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .values({
       id: testerTenantId,
       name: "Play Store Tester Household",
+      country: "AU",
+      state: "QLD",
+      postcode: "4000",
       fyEndMonthDay: "06-30",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",

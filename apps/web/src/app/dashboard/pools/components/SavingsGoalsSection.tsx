@@ -124,6 +124,11 @@ export function SavingsGoalsSection({
                             🔒 Private
                           </span>
                         )}
+                        {cat.isSurplusTarget && (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" title="Sweep Target">
+                            🧲 Sweep Target
+                          </span>
+                        )}
                       </button>
                       {onOpenActivity && (
                         <button

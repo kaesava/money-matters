@@ -199,10 +199,11 @@ export function CategoryFormModal({
           isSurplusTarget: type === "GOAL" ? isSurplusTarget : undefined,
         });
       }
-      
       await utils.listCategories.invalidate();
       onSuccess?.();
       onClose();
+      // Reload page to reflect Sweep Target projection state change
+      window.location.reload();
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || "Failed to save category");
     } finally {

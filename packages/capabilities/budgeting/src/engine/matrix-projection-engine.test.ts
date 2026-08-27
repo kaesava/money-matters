@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeMatrixProjection, MatrixIncomeSource } from "./matrix-projection-engine.js";
+import { computeMatrixProjection, MatrixIncomeEvent } from "./matrix-projection-engine.js";
 import { EngineBucket } from "./allocation-engine.js";
 
 describe("matrix-projection-engine", () => {
@@ -46,22 +46,36 @@ describe("matrix-projection-engine", () => {
     },
   ];
 
-  const mockIncomeSources: MatrixIncomeSource[] = [
+  const mockIncomeEvents: MatrixIncomeEvent[] = [
     {
-      id: "inc-kesh",
-      name: "Kesh Primary Salary",
-      amount: 3000,
-      rrule: "FREQ=WEEKLY;INTERVAL=2", // Fortnightly
-      startDate: "2026-09-01",
+      id: "evt-kesh-1",
+      sourceName: "Kesh Primary Salary",
+      expectedAmount: 3000,
+      actualAmount: null,
+      expectedDate: "2026-09-01",
+      rrule: "FREQ=WEEKLY;INTERVAL=2",
+      status: "UPCOMING",
       userId: "user-kesh",
     },
     {
-      id: "inc-sneha",
-      name: "Sneha Primary Salary",
-      amount: 2000,
+      id: "evt-sneha-1",
+      sourceName: "Sneha Primary Salary",
+      expectedAmount: 2000,
+      actualAmount: null,
+      expectedDate: "2026-09-01",
       rrule: "FREQ=MONTHLY",
-      startDate: "2026-09-01",
+      status: "UPCOMING",
       userId: "user-sneha",
+    },
+    {
+      id: "evt-kesh-2",
+      sourceName: "Kesh Primary Salary",
+      expectedAmount: 3000,
+      actualAmount: null,
+      expectedDate: "2026-09-15",
+      rrule: "FREQ=WEEKLY;INTERVAL=2",
+      status: "UPCOMING",
+      userId: "user-kesh",
     },
   ];
 
@@ -70,11 +84,10 @@ describe("matrix-projection-engine", () => {
     const keshResult = computeMatrixProjection({
       currentUserId: "user-kesh",
       categories: mockCategories,
-      incomeSources: mockIncomeSources,
-      monthsAhead: 3,
+      incomeEvents: mockIncomeEvents,
     });
 
-    expect(keshResult.columns.length).toBeGreaterThan(0);
+    expect(keshResult.columns.length).toBe(3); // 3 events = 3 columns
     // Kesh sees 4 accordion groups
     expect(keshResult.groups.length).toBe(4);
     const goalsGroup = keshResult.groups.find((g) => g.id === "goals")!;
@@ -84,8 +97,7 @@ describe("matrix-projection-engine", () => {
     const snehaResult = computeMatrixProjection({
       currentUserId: "user-sneha",
       categories: mockCategories,
-      incomeSources: mockIncomeSources,
-      monthsAhead: 3,
+      incomeEvents: mockIncomeEvents,
     });
 
     const snehaGoalsGroup = snehaResult.groups.find((g) => g.id === "goals")!;
@@ -93,21 +105,20 @@ describe("matrix-projection-engine", () => {
     expect(snehaResult.columns[0].hiddenAllocationsTotal).toBeGreaterThanOrEqual(0);
   });
 
-  it("should handle cell overrides and update projected balances", () => {
-    const firstColDate = "2026-09-01";
+  it("should handle cell overrides based on incomeEventId and update projected balances", () => {
+    const firstColEventId = "evt-kesh-1";
     const result = computeMatrixProjection({
       currentUserId: "user-kesh",
       categories: mockCategories,
-      incomeSources: mockIncomeSources,
+      incomeEvents: mockIncomeEvents,
       cellOverrides: {
-        [`${firstColDate}_cat-holiday`]: 800, // Override holiday allocation to $800
+        [`${firstColEventId}_cat-holiday`]: 800, // Override holiday allocation to $800
       },
-      monthsAhead: 2,
     });
 
     const goalsGroup = result.groups.find((g) => g.id === "goals")!;
     const holidayRow = goalsGroup.rows.find((r) => r.categoryId === "cat-holiday")!;
-    const cell = holidayRow.cells[firstColDate];
+    const cell = holidayRow.cells[firstColEventId];
 
     expect(cell.isOverride).toBe(true);
     expect(cell.allocated).toBe(800);

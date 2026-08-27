@@ -506,7 +506,52 @@ export const tenantRouter = {
         isSoleOwner: myMember?.role === "OWNER" && members.length <= 1,
         memberCount: members.length,
         partnerEmail: partnerMember?.inviteEmail ?? null,
+        country: tenant?.country ?? "AU",
+        state: tenant?.state ?? null,
+        postcode: tenant?.postcode ?? null,
       };
+    }),
+
+  updateHousehold: tenantProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).optional(),
+        country: z.string().optional(),
+        state: z.string().optional(),
+        postcode: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { tenants, tenantUsers } = await import('@money-matters/db');
+      
+      const members = await ctx.db
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), eq(tenantUsers.userId, ctx.userId!), sql`${tenantUsers.archivedAt} IS NULL`));
+        
+      const myMember = members[0];
+      if (myMember?.role !== "OWNER") {
+        throw new Error("Only the owner can update household settings");
+      }
+
+      const updateData: any = {
+        updatedAt: new Date(),
+        updatedBy: ctx.userId,
+      };
+      
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.country !== undefined) updateData.country = input.country;
+      if (input.state !== undefined) updateData.state = input.state;
+      if (input.postcode !== undefined) updateData.postcode = input.postcode;
+
+      if (Object.keys(updateData).length > 2) {
+        await ctx.db
+          .update(tenants)
+          .set(updateData)
+          .where(eq(tenants.id, ctx.tenantId!));
+      }
+      
+      return { success: true };
     }),
 
   updateUserProfile: authenticatedProcedure

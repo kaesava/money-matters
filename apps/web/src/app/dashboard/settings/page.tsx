@@ -12,6 +12,7 @@ import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 import { ProfileSection } from "./components/ProfileSection";
 import { SubscriptionSection } from "./components/SubscriptionSection";
 import { PartnerInviteSection } from "./components/PartnerInviteSection";
+import { HouseholdDetailsSection } from "./components/HouseholdDetailsSection";
 import { PrivacySection } from "./components/PrivacySection";
 import { BugReportModal } from "./components/BugReportModal";
 import { getWebVersionInfo } from "../../../lib/version";
@@ -90,6 +91,7 @@ function SettingsPageContent() {
 
       {activeTab === "household" && (
         <div className="space-y-6">
+          <HouseholdDetailsSection />
           <PartnerInviteSection />
         </div>
       )}

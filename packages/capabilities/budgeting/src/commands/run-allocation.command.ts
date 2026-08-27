@@ -142,6 +142,8 @@ export async function runAllocationCommand(
 
   // 5. Execute DB write transaction
   const plan = await dbClient.transaction(async (tx) => {
+    await tx.delete(allocationPlans).where(and(eq(allocationPlans.incomeEventId, incomeEventId), eq(allocationPlans.tenantId, tenantId)));
+
     const [insertedPlan] = await tx
       .insert(allocationPlans)
       .values({

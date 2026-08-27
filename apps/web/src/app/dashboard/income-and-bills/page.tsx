@@ -10,7 +10,7 @@ import { SetupSourcesTab } from "./components/SetupSourcesTab";
 import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
 import { InfoTooltip, SearchInput, useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-import { MatrixIncomeSource } from "@money-matters/capability-budgeting";
+import { MatrixIncomeEvent } from "@money-matters/capability-budgeting";
 
 interface CategoryRecord {
   id: string;
@@ -68,19 +68,22 @@ export default function IncomeAndExpensesPage() {
     categoryName: categories.find((c) => c.id === exp.categoryId)?.name || "Uncategorized",
   }));
 
-  const matrixIncomeSources: MatrixIncomeSource[] = (incomeSourcesQuery.data ?? []).map((inc) => ({
+  const matrixIncomeEvents: MatrixIncomeEvent[] = incomeEvents.map((inc) => ({
     id: inc.id,
-    name: inc.name,
-    amount: parseFloat(inc.amount || "0"),
-    rrule: inc.rrule || "FREQ=WEEKLY;INTERVAL=2",
-    startDate: inc.startDate || new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()),
-    receivingAccountId: inc.receivingAccountId,
+    sourceName: inc.name || "",
+    expectedAmount: parseFloat(inc.expectedAmount || "0"),
+    actualAmount: inc.actualAmount ? parseFloat(inc.actualAmount) : null,
+    expectedDate: inc.expectedDate,
+    rrule: inc.rrule || null,
+    status: inc.status as "UPCOMING" | "SKIPPED" | "CONFIRMED" | "DRAFT" | "REVIEWED",
+    userId: inc.userId || undefined,
   }));
 
   const matrixExpenseEvents = expenseEvents.map((e) => ({
     categoryId: e.categoryId || "",
     amount: parseFloat(e.expectedAmount || "0"),
     dueDate: e.expectedDate,
+    status: e.status as "UPCOMING" | "PAID" | "SKIPPED",
   }));
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -372,7 +375,7 @@ export default function IncomeAndExpensesPage() {
             currentBalance: typeof c.currentBalance === "number" ? c.currentBalance : parseFloat(c.enteredAmount || "0"),
             userId: c.userId || undefined,
           }))}
-          incomeSources={matrixIncomeSources}
+          incomeEvents={matrixIncomeEvents}
           expenseEvents={matrixExpenseEvents}
           onMarkPaid={handleMarkPaid}
         />

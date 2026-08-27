@@ -53,6 +53,8 @@ export interface EventItem {
   actualAmount?: string | null;
   note?: string | null;
   name?: string | null;
+  rrule?: string | null;
+  userId?: string | null;
 }
 
 export interface BurstModalProps {

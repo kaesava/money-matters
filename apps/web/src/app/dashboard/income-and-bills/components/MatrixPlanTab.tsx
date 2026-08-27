@@ -1,17 +1,18 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { computeMatrixProjection, MatrixIncomeSource, ScheduledExpenseEvent } from "@money-matters/capability-budgeting";
+import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent } from "@money-matters/capability-budgeting";
 import { EngineBucket } from "@money-matters/capability-budgeting";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "@money-matters/ui/web";
+import PaydayPreviewModal from "../../../../components/web/PaydayPreviewModal";
 
 interface MatrixPlanTabProps {
   currentUserId: string;
   categories: EngineBucket[];
-  incomeSources: MatrixIncomeSource[];
+  incomeEvents: MatrixIncomeEvent[];
   expenseEvents: ScheduledExpenseEvent[];
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
 }
@@ -33,11 +34,14 @@ function MatrixCellInput({
   isOverride,
   onCommit,
 }: MatrixCellInputProps) {
+  const [isFocused, setIsFocused] = React.useState(false);
   const [valStr, setValStr] = React.useState(`$${value.toFixed(2)}`);
 
   React.useEffect(() => {
-    setValStr(`$${value.toFixed(2)}`);
-  }, [value]);
+    if (!isFocused) {
+      setValStr(`$${value.toFixed(2)}`);
+    }
+  }, [value, isFocused]);
 
   const isDeficit = Boolean(isSurplusTarget && value < 0);
 
@@ -64,8 +68,15 @@ function MatrixCellInput({
       value={valStr}
       disabled={isReadOnly}
       onClick={(e) => e.stopPropagation()}
+      onFocus={() => {
+        setIsFocused(true);
+        setValStr(value === 0 ? "" : value.toString());
+      }}
       onChange={(e) => setValStr(e.target.value)}
-      onBlur={() => onCommit(valStr)}
+      onBlur={() => {
+        setIsFocused(false);
+        onCommit(valStr);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.currentTarget.blur();
@@ -85,7 +96,7 @@ function MatrixCellInput({
 export function MatrixPlanTab({
   currentUserId,
   categories,
-  incomeSources,
+  incomeEvents,
   expenseEvents,
   onMarkPaid,
 }: MatrixPlanTabProps) {
@@ -104,6 +115,7 @@ export function MatrixPlanTab({
     id: string;
     name: string;
   } | null>(null);
+  const [activePaydayEventId, setActivePaydayEventId] = useState<string | null>(null);
 
   // Load saved allocation plans into initial overrides state
   React.useEffect(() => {
@@ -113,7 +125,7 @@ export function MatrixPlanTab({
         if (plan.expectedDate && plan.lines) {
           for (const line of plan.lines) {
             const amount = parseFloat(line.confirmedAmount || line.proposedAmount || "0");
-            savedMap[`${plan.expectedDate}_${line.categoryId}`] = amount;
+            savedMap[`${plan.incomeEventId}_${line.categoryId}`] = amount;
           }
         }
       }
@@ -159,12 +171,12 @@ export function MatrixPlanTab({
     return computeMatrixProjection({
       currentUserId,
       categories,
-      incomeSources,
+      incomeEvents,
       expenseEvents,
       cellOverrides,
       monthsAhead: 12,
     });
-  }, [currentUserId, categories, incomeSources, expenseEvents, cellOverrides]);
+  }, [currentUserId, categories, incomeEvents, expenseEvents, cellOverrides]);
 
   // Default view: Next 5 paydays (or full horizon if expanded)
   const visibleColumns = useMemo(() => {
@@ -180,8 +192,8 @@ export function MatrixPlanTab({
 
   const surplusCategory = categories.find((c) => c.isSurplusTarget);
 
-  const handleCellEdit = (colDate: string, categoryId: string, valueStr: string) => {
-    const key = `${colDate}_${categoryId}`;
+  const handleCellEdit = (colId: string, categoryId: string, valueStr: string) => {
+    const key = `${colId}_${categoryId}`;
     const cleaned = valueStr.replace(/[^0-9.]/g, "");
     const val = parseFloat(cleaned);
 
@@ -199,17 +211,17 @@ export function MatrixPlanTab({
 
       // Auto-sweep difference into designated Surplus Target category cell
       if (surplusCategory && categoryId !== surplusCategory.id) {
-        const col = projection.columns.find((c) => c.date === colDate);
+        const col = projection.columns.find((c) => c.id === colId);
         if (col) {
           let totalAllocated = 0;
           for (const cat of categories) {
             if (cat.id === surplusCategory.id) continue;
-            const catKey = `${colDate}_${cat.id}`;
+            const catKey = `${colId}_${cat.id}`;
             const catVal = typeof next[catKey] === "number" ? next[catKey] : 0;
             totalAllocated += catVal;
           }
           const surplusVal = Math.max(0, col.totalIncome - totalAllocated);
-          next[`${colDate}_${surplusCategory.id}`] = surplusVal;
+          next[`${colId}_${surplusCategory.id}`] = surplusVal;
         }
       }
       return next;
@@ -219,28 +231,24 @@ export function MatrixPlanTab({
   const handleSaveChanges = async () => {
     try {
       setIsSaving(true);
-      // Group cell overrides by colDate
-      const dateMap: Record<string, Array<{ categoryId: string; proposedAmount: string }>> = {};
+      // Group cell overrides by incomeEventId (colId)
+      const eventMap: Record<string, Array<{ categoryId: string; proposedAmount: string }>> = {};
       for (const [key, val] of Object.entries(cellOverrides)) {
         const parts = key.split("_");
-        const dateStr = parts[0];
+        const eventId = parts[0];
         const catId = parts.slice(1).join("_");
-        if (!dateMap[dateStr]) dateMap[dateStr] = [];
-        dateMap[dateStr].push({ categoryId: catId, proposedAmount: val.toFixed(2) });
+        if (!eventMap[eventId]) eventMap[eventId] = [];
+        eventMap[eventId].push({ categoryId: catId, proposedAmount: val.toFixed(2) });
       }
 
       for (const col of projection.columns) {
-        const lines = dateMap[col.date] || [];
+        const lines = eventMap[col.id] || [];
         if (lines.length > 0) {
-          // Find matching income event for date
-          const [event] = (await utils.listIncomeEvents.fetch()) ?? [];
-          if (event) {
-            await saveBulkAllocationsMut.mutateAsync({
-              incomeEventId: event.id,
-              totalIncomeAmount: col.totalIncome.toFixed(2),
-              lines,
-            });
-          }
+          await saveBulkAllocationsMut.mutateAsync({
+            incomeEventId: col.id,
+            totalIncomeAmount: col.totalIncome.toFixed(2),
+            lines,
+          });
         }
       }
 
@@ -306,21 +314,16 @@ export function MatrixPlanTab({
   }, [activeCategoryForDrawer, categories, expenseEvents]);
 
   const revertPlanMut = trpc.revertAllocationPlan.useMutation();
-  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
 
-  const handleRevertColumn = async (colDate: string) => {
-    const incomeEventsData = incomeEventsQuery.data || [];
-    const evt = incomeEventsData.find((e: { expectedDate?: string | null; id: string }) => e.expectedDate === colDate);
-    if (!evt) return;
-
-    if (window.confirm(`This will delete your custom overrides for ${colDate} and revert this payday to automatic calculations. Continue?`)) {
+  const handleRevertColumn = async (colId: string) => {
+    if (window.confirm(`This will delete your custom overrides and revert this payday to automatic calculations. Continue?`)) {
       try {
-        await revertPlanMut.mutateAsync({ incomeEventId: evt.id });
+        await revertPlanMut.mutateAsync({ incomeEventId: colId });
         await utils.listAllAllocationPlans.invalidate();
         setCellOverrides((prev) => {
           const next = { ...prev };
           for (const k of Object.keys(next)) {
-            if (k.startsWith(`${colDate}_`)) {
+            if (k.startsWith(`${colId}_`)) {
               delete next[k];
             }
           }
@@ -367,28 +370,40 @@ export function MatrixPlanTab({
                 Pools & Goal Categories
               </th>
               {visibleColumns.map((col) => {
-                const hasPlanOverride = Object.keys(cellOverrides).some((k) => k.startsWith(`${col.date}_`));
+                const hasPlanOverride = Object.keys(cellOverrides).some((k) => k.startsWith(`${col.id}_`));
                 return (
                   <th
-                    key={col.date}
-                    className="p-3 font-bold text-center border-r border-zinc-200 dark:border-zinc-800 min-w-[130px]"
+                    key={col.id}
+                    className="p-3 font-bold text-center border-r border-zinc-200 dark:border-zinc-800 min-w-[150px]"
                   >
-                    <div className="flex items-center justify-center gap-1">
+                    <div className="flex flex-col items-center justify-center gap-1.5">
                       <span className="text-sm font-black text-[#1B2B4B] dark:text-white font-mono">
                         {col.dateLabel}
                       </span>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                        {col.sourceName}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setActivePaydayEventId(col.id)}
+                        className="text-[10px] font-extrabold text-white bg-[#00B4A6] hover:bg-[#009b8f] px-2 py-1 rounded shadow-sm transition-colors"
+                      >
+                        Process
+                      </button>
                       {hasPlanOverride && (
                         <button
                           type="button"
-                          onClick={() => handleRevertColumn(col.date)}
-                          className="text-[10px] font-extrabold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200"
+                          onClick={() => handleRevertColumn(col.id)}
+                          className="text-[10px] font-extrabold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-1.5 py-1 rounded border border-blue-200"
                           title="Revert to Automatic Waterfall"
                         >
                           ↺ Auto
                         </button>
                       )}
                     </div>
-                    <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 font-mono">
+                    <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1.5 font-mono">
                       +${col.totalIncome.toFixed(2)}
                     </div>
                     {col.hiddenAllocationsTotal > 0 && (
@@ -448,7 +463,7 @@ export function MatrixPlanTab({
 
                         {/* Payday Allocation Cells */}
                         {visibleColumns.map((col) => {
-                          const cell = row.cells[col.date] || {
+                          const cell = row.cells[col.id] || {
                             allocated: 0,
                             projectedBalance: 0,
                             minProjectedBalance: 0,
@@ -458,7 +473,7 @@ export function MatrixPlanTab({
 
                           return (
                             <td
-                              key={col.date}
+                              key={col.id}
                               onClick={() => setActiveCategoryForDrawer({ id: row.categoryId, name: row.categoryName })}
                               className={`p-2 border-r border-zinc-200 dark:border-zinc-800 text-center transition-colors cursor-pointer ${
                                 cell.hasWarning
@@ -474,7 +489,7 @@ export function MatrixPlanTab({
                                   isSurplusTarget={row.isSurplusTarget}
                                   hasWarning={cell.hasWarning}
                                   isOverride={cell.isOverride}
-                                  onCommit={(valStr) => handleCellEdit(col.date, row.categoryId, valStr)}
+                                  onCommit={(valStr) => handleCellEdit(col.id, row.categoryId, valStr)}
                                 />
                                 <span className="text-[9px] font-mono text-zinc-400 mt-0.5">
                                   Bal: ${cell.projectedBalance.toFixed(2)}
@@ -532,6 +547,17 @@ export function MatrixPlanTab({
           </div>
         </div>
       )}
+
+      {/* Payday Wizard / Execution Modal */}
+      <PaydayPreviewModal
+        isOpen={!!activePaydayEventId}
+        onClose={() => setActivePaydayEventId(null)}
+        incomeEventId={activePaydayEventId}
+        onSuccess={() => {
+          utils.listAllAllocationPlans.invalidate();
+          utils.listIncomeEvents.invalidate();
+        }}
+      />
     </div>
   );
 }

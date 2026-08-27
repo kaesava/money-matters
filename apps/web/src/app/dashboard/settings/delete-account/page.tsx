@@ -79,9 +79,9 @@ export default function HouseholdGovernancePage() {
       <div className="flex flex-col gap-1">
         <Link
           href="/dashboard/settings?tab=account-data"
-          className="text-xs font-bold text-[#2563eb] hover:underline flex items-center gap-1"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-all shadow-xs w-max mb-4"
         >
-          {t("privacy.backToSettings")}
+          <span>←</span> {t("privacy.backToSettings")}
         </Link>
         <h1 className="text-2xl font-extrabold text-[#1B2B4B]">
           {t("privacy.manageGovernance")}

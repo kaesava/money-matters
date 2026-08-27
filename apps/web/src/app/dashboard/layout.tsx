@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { t, setLanguage } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
@@ -352,10 +352,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     <div className="space-y-1.5">
                       <h2 className="text-lg font-black text-[#1B2B4B] dark:text-white">
-                        We're having trouble connecting
+                        We&apos;re having trouble connecting
                       </h2>
                       <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
-                        Your money and budget data are 100% safe. We're just having a moment communicating with our servers.
+                        Your money and budget data are 100% safe. We&apos;re just having a moment communicating with our servers.
                       </p>
                     </div>
 

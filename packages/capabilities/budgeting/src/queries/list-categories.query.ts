@@ -154,6 +154,8 @@ export async function listCategoriesQuery(
       healthStatus: health,
       isPrivate: cat.isPrivate,
       userId: cat.userId,
+      isSurplusTarget: cat.isSurplusTarget,
+      isEssential: cat.isEssential,
     };
   });
 }

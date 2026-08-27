@@ -944,7 +944,7 @@ export const en = {
     viewPublicPrivacyPolicyLink: "📜 View Privacy Policy (Opens in new tab)",
     viewPublicDeletionInfoLink: "ℹ️ View Public Compliance & Manual Erasure Policy (Opens in new tab)",
     closeTabNotice: "You opened this compliance page from Settings. You can safely close this browser tab when finished to return to your dashboard.",
-    manageGovernance: "Household Governance & Erasure",
+    manageGovernance: "Household Shared Space & Data Control",
     manageGovernanceSub: "Transfer ownership, leave this household, or permanently purge your account and household data.",
     deleteHouseholdTitle: "Permanently Delete Household",
     leaveHouseholdTitle: "Leave Household",
