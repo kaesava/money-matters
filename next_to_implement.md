@@ -1,20 +1,73 @@
 
+
 # AGENT - In progress...
 
-## Setup
+
+Do a deep code review and make recommendations (and a detailed implementation plan) that addresses the revamp of the Settings > Account & Data screen in the web app. No coding - discussion only. [/grill-me](slashCommand;grill-me) instead of making assumptions.
+
+# Settings > Account & Data
+
+This screen is incredibly buggy, under-developed and flawed and needs a full re-think and re-architecture. I don't like the layout, wording, titles, etc.
+
+Here are just some issues with it. However, I want you to re-think this completely.
+
+* The "🔒 Your Money Data is Locked Down Tight" seems misplaced. Perhaps it should be in the Legal & Compliance Documents section?
+
+* The "Household Shared Space & Data Control" and "Manage Governance" phrases mean nothing! You don't need a whole new other page. You need to bring it into here, but make it far more succint and use Aussie terminology.
+
+* Legal & Compliance Documents section - most modern websites have a separate section accessible from the footer that covers this. Align with modern standards. Re-think this entirely. Use the right language.
+
+* Promote "📦 Archived Categories & Bills" (rename to "Archived Data") into its own tab between Household and "Account & Data".
+
+* Report a Bug - while we are in Beta, I want  this to be more prominent. Do you suggest we put it on the navigation bar and call it "Provide feedback", calling out that the app is in Beta?
+
+* When I click Download Zipped CSV Backup --> "No Export Data Returned". Also, remove the JSON option and all related functionality. Also ensure that all data stored for the user including profile is exported. Check that every table with the user/tenant id is exported. Use user-friendly names for filenames (like History instead of Transaction Ledger).
+
+
+# Rules
+
+* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, vertical slice architecture, test cases coverage, Remove redundant code, etc.
+
+* Ignore mobile app for now
+
+* NO hardcoding user facing literals
+
+* NO dead code or table fields or API code or repeated UI/capability code. MECE principle.
+
+
+
+
+
+
+
+
+
+
+
+
+# Random
+* Show the two Timeline & 12-Month view options on the left (instead of right) between the tab header and the explanation; being on the top right it gets missed. Change "Forward-looking payday planning matrix. Cell edits auto-sweep into the designated Surplus Target category." to something more functional and userfriendly and move to (i) icon.
+http://localhost:3000/subscription/upgrade
+* Ensure features list is still accurate
+* No way of going back to the signed-in part of the app if I got here through the Settings page
+* "This will remove the sweep target from your existing designated category. Continue?" - change to something more user-friendly and include the current category. In fact, even next to the checkbox itself, show the currently assigned category.
+
+
 
 # Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, vertical slice architecture, test cases coverage, Remove redundant code, etc.
 * Ignore mobile app for now
+* NO hardcoding user facing literals
+* NO dead code or table fields or API code or repeated UI/capability code. MECE principle.
 
-## General
-* Screen names not reflective of titles (like /transactions instead of history and /categories instead of pools, etc. Refactor to make all the links and filenames consistent with user presentation. Be thorough across the app. Ensure you don't leave any redundant or dead code or files.
+# General
 
 ## Home
+* Remove Re-run of setup button - I thought we took that off R1 scope.
+
 ### New/Edit of Everday/Bills
 
 ## "Pools"
-* PENDING - Upcoming Coverage
 
 ## "History"###
 ### Transactions
@@ -23,25 +76,22 @@
 ## Bank Accounts
 ### Adding/Editing Modal:
 
+## Pools
+* I setup a Category as the Sweep target. However, when I save, firstly, it should refresh the whole page instead of just the table. Secondly, when I open the same category again, it looks unchecked. I checked the DB and the field is set to TRUE (so it's been set in DB)
+* When I scrub, is it really actually updating any of the Pool balances? Check that this functionality works.
+
 ## "Income & Bills"
-### Upcoming
-### Bulk
-### Setup
+### Timeline & Grid
+* Grid view: I thought we allowed the user to edit the Income for that day (remembering that it could come from more than one source)? I suggest a hyperlink on the amount that pops up a modal that shows the different incomes that make up that number. Perhaps there we allow the user to mark specific ones to Skip too? Discuss 
+
 
 ## "Settings"
-* Do we need a Household set of fields to update (like Household name)? Should we capture anything else like postcode that can help us as developers (balance between usefulness and not creating friction)
-* Default the Notification Email (Optional) to the Login Email
-* Download Zipped CSV Backup --> "No Export Data Returned". Also, remove the JSON option and all related functionality (no dead code anywhere in the app)
-* Household Governance & Erasure & "Manage Governance" - please use Aussie approachable terminology - not just here but across the app
 ### Profile
+### Household
+### Account & Data
 ### Subscription
-### Account
-### http://localhost:3000/subscription/upgrade
-### Report a bug
-### Delete account page - http://localhost:3000/privacy/delete-account
-* Ensure features list is still accurate
-* No way of going back to the signed-in part of the app if I got here through the Settings page
-* 
+### Provide Feedback
+
 
 ## "Main Dashboard"
 

@@ -1,13 +1,11 @@
 "use client";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { trpc } from "../../../../lib/trpc";
 
+import React, { useState } from "react";
+import { trpc } from "../../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { PaginationBar, Spinner, InfoTooltip, SearchInput } from "@money-matters/ui/web";
 
-export default function ArchivedItemsPage() {
-  const router = useRouter();
+export function ArchivedSection() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
 
@@ -34,25 +32,13 @@ export default function ArchivedItemsPage() {
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
-      {/* Header with back button */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.push("/dashboard/settings")}
-          className="p-1.5 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition-colors"
-          aria-label="Back to Settings"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-[#1B2B4B]">Archived Items</h1>
-          <InfoTooltip
-            title={t("tooltips.archived.title")}
-            content={t("tooltips.archived.content")}
-          />
-        </div>
+    <div className="flex flex-col gap-6 max-w-4xl">
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-extrabold text-[#1B2B4B]">Archived Data</h2>
+        <InfoTooltip
+          title={t("tooltips.archived.title")}
+          content={t("tooltips.archived.content")}
+        />
       </div>
 
       {/* Filter and Search Bar */}
@@ -61,7 +47,7 @@ export default function ArchivedItemsPage() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Search archived items..."
+          placeholder="Search archived categories or bills..."
         />
 
         {/* Filter Pills */}
@@ -69,10 +55,11 @@ export default function ArchivedItemsPage() {
           {(["ALL", "CATEGORY", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
             <button
               key={type}
+              type="button"
               onClick={() => setFilterType(type)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 filterType === type
-                  ? "bg-white text-[#1B2B4B] shadow-sm"
+                  ? "bg-white text-[#1B2B4B] shadow-xs font-extrabold"
                   : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
@@ -90,17 +77,17 @@ export default function ArchivedItemsPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-zinc-100 shadow-sm gap-2">
+        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-zinc-200 shadow-xs gap-2">
           <span className="text-3xl">📦</span>
-          <p className="text-sm font-semibold text-zinc-700">No archived items found</p>
-          <p className="text-xs text-zinc-400">Items you soft-delete will appear here for restoration.</p>
+          <p className="text-sm font-bold text-[#1B2B4B]">No archived data found</p>
+          <p className="text-xs text-slate-500">Categories, bills, and accounts you soft-delete will appear here for restoration.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           {paginated.map((item) => (
             <div
               key={`${item.itemType}-${item.id}`}
-              className="flex items-center justify-between p-4 rounded-xl bg-white border border-zinc-100 shadow-sm"
+              className="flex items-center justify-between p-4 rounded-xl bg-white border border-zinc-200 shadow-xs"
             >
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2">
@@ -110,11 +97,12 @@ export default function ArchivedItemsPage() {
                   </span>
                 </div>
                 {item.subtitle && (
-                  <span className="text-xs text-zinc-400 font-medium">{item.subtitle}</span>
+                  <span className="text-xs text-slate-500 font-medium">{item.subtitle}</span>
                 )}
               </div>
 
               <button
+                type="button"
                 onClick={() =>
                   restoreMutation.mutate({
                     itemId: item.id,
@@ -122,7 +110,7 @@ export default function ArchivedItemsPage() {
                   })
                 }
                 disabled={restoreMutation.isPending}
-                className="px-3 py-1.5 rounded-lg border border-[#00B4A6] text-[#00B4A6] text-xs font-bold hover:bg-[#00B4A6]/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl border border-[#00B4A6] text-[#00B4A6] text-xs font-bold hover:bg-[#00B4A6]/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
               >
                 {restoreMutation.isPending && restoreMutation.variables?.itemId === item.id && (
                   <Spinner size="sm" />

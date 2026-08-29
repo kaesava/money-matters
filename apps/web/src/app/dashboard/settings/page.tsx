@@ -13,9 +13,9 @@ import { ProfileSection } from "./components/ProfileSection";
 import { SubscriptionSection } from "./components/SubscriptionSection";
 import { PartnerInviteSection } from "./components/PartnerInviteSection";
 import { HouseholdDetailsSection } from "./components/HouseholdDetailsSection";
+import { HouseholdDangerZoneSection } from "./components/HouseholdDangerZoneSection";
+import { ArchivedSection } from "./components/ArchivedSection";
 import { PrivacySection } from "./components/PrivacySection";
-import { BugReportModal } from "./components/BugReportModal";
-import { getWebVersionInfo } from "../../../lib/version";
 
 function SettingsPageContent() {
   const router = useRouter();
@@ -25,24 +25,13 @@ function SettingsPageContent() {
 
   const { data: session } = authClient.useSession();
   const { status } = useSubscriptionStatus();
-  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
-  const [copiedVersion, setCopiedVersion] = useState(false);
 
-  const versionInfo = getWebVersionInfo();
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const currentTimezone = userPrefQuery.data?.timezone || "Australia/Sydney";
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     router.replace(`/dashboard/settings?tab=${tabId}`, { scroll: false });
-  };
-
-  const handleCopyDiagnostics = () => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(JSON.stringify(versionInfo, null, 2));
-      setCopiedVersion(true);
-      setTimeout(() => setCopiedVersion(false), 2500);
-    }
   };
 
   const handleSignOut = async () => {
@@ -52,9 +41,10 @@ function SettingsPageContent() {
   };
 
   const tabsList = [
-    { id: "profile", label: t("settings.tabs.profile") },
-    { id: "household", label: t("settings.tabs.household") },
-    { id: "account-data", label: t("settings.tabs.accountData") },
+    { id: "profile", label: "My Details" },
+    { id: "household", label: "Household" },
+    { id: "archived", label: "Archived Data" },
+    { id: "account-data", label: "Data & Subscription" },
   ];
 
   return (
@@ -79,7 +69,7 @@ function SettingsPageContent() {
         </button>
       </div>
 
-      {/* 3-Tab Bar */}
+      {/* 4-Tab Bar */}
       <Tabs tabs={tabsList} activeTab={activeTab} onChange={handleTabChange} />
 
       {/* Tab Panels */}
@@ -93,38 +83,22 @@ function SettingsPageContent() {
         <div className="space-y-6">
           <HouseholdDetailsSection />
           <PartnerInviteSection />
+          <HouseholdDangerZoneSection />
+        </div>
+      )}
+
+      {activeTab === "archived" && (
+        <div className="space-y-6">
+          <ArchivedSection />
         </div>
       )}
 
       {activeTab === "account-data" && (
         <div className="space-y-6">
           <SubscriptionSection status={status} />
-          <PrivacySection onOpenBugReport={() => setIsBugReportOpen(true)} />
+          <PrivacySection />
         </div>
       )}
-
-      <BugReportModal
-        isOpen={isBugReportOpen}
-        onClose={() => setIsBugReportOpen(false)}
-      />
-
-      {/* App Version Footer */}
-      <footer className="pt-8 text-center border-t border-slate-200">
-        <button
-          type="button"
-          onClick={handleCopyDiagnostics}
-          title="Click to copy environment diagnostics JSON"
-          className="text-[11px] font-medium transition-colors text-slate-400 hover:text-slate-700 select-none cursor-pointer"
-        >
-          {copiedVersion ? (
-            <span className="text-emerald-600 font-bold">✓ Copied version diagnostics</span>
-          ) : (
-            <span>
-              Money Matters {versionInfo.formattedVersion} • {versionInfo.channel} channel
-            </span>
-          )}
-        </button>
-      </footer>
     </div>
   );
 }

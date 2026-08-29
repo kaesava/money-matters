@@ -24,6 +24,7 @@ export interface SidebarContentProps {
   initials: string;
   onNavigateToSettings: () => void;
   onSignOut: () => void;
+  onOpenFeedback?: () => void;
 }
 
 export function SidebarContent({
@@ -36,6 +37,7 @@ export function SidebarContent({
   initials,
   onNavigateToSettings,
   onSignOut,
+  onOpenFeedback,
 }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
@@ -44,9 +46,14 @@ export function SidebarContent({
         <Logo size="md" />
         {!sidebarCollapsed && (
           <div className="flex flex-col flex-1 justify-center min-w-0">
-            <span className="text-sm font-extrabold tracking-tight text-white select-none truncate">
-              {t("app.title")}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-extrabold tracking-tight text-white select-none truncate">
+                {t("app.title")}
+              </span>
+              <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-md">
+                BETA
+              </span>
+            </div>
             <span className="text-[10px] text-blue-200/80 font-medium truncate">
               {t("app.tagline")}
             </span>
@@ -98,8 +105,24 @@ export function SidebarContent({
           })}
         </div>
 
-        {/* Free trial / Upgrade item at bottom of nav list above user box */}
-        <div className="pt-4 border-t border-white/10 mt-auto">
+        {/* Free trial / Upgrade item + Feedback CTA at bottom of nav list above user box */}
+        <div className="pt-4 border-t border-white/10 mt-auto flex flex-col gap-2">
+          {onOpenFeedback && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenFeedback();
+              }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 transition-all cursor-pointer ${
+                sidebarCollapsed ? "justify-center" : ""
+              }`}
+              title="Provide Beta Feedback / Report Bug"
+            >
+              <span>💬</span>
+              {!sidebarCollapsed && <span>Provide Feedback</span>}
+            </button>
+          )}
           <SidebarTrialNavItem collapsed={sidebarCollapsed} onNavigate={() => setMobileMenuOpen(false)} />
         </div>
       </nav>

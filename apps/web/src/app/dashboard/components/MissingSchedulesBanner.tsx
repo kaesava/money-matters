@@ -40,13 +40,6 @@ export function MissingSchedulesBanner({ incomeCount, billsCount }: MissingSched
         >
           ➕ Add Schedules Now →
         </button>
-        <button
-          type="button"
-          onClick={() => router.push("/setup?mode=rerun")}
-          className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200/90 bg-white hover:bg-zinc-50 text-zinc-700 transition-colors text-center cursor-pointer"
-        >
-          ⚙️ Re-Run Setup
-        </button>
       </div>
     </div>
   );

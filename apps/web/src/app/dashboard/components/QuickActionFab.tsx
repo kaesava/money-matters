@@ -7,7 +7,12 @@ export interface QuickActionFabProps {
   onOpenModal: () => void;
 }
 
-export function QuickActionFab({ onOpenModal }: QuickActionFabProps) {
+export function QuickActionFab({ pathname, onOpenModal }: QuickActionFabProps) {
+  // Hide floating action button on Settings tabs
+  if (pathname?.startsWith("/dashboard/settings")) {
+    return null;
+  }
+
   return (
     <button
       id="global-quick-add-btn"

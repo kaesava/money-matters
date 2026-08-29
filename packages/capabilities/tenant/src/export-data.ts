@@ -11,12 +11,17 @@ import {
   tenantUserPreferences,
   allocationPlans,
   allocationPlanLines,
+  users,
+  tenants,
+  tenantUsers,
   DbOrTx
 } from "@money-matters/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
-function arrayToCsv(data: Record<string, unknown>[]): string {
-  if (!data || data.length === 0) return "";
+function arrayToCsv(data: Record<string, unknown>[], defaultHeaders: string[] = []): string {
+  if (!data || data.length === 0) {
+    return defaultHeaders.length > 0 ? defaultHeaders.join(",") + "\n" : "id\n";
+  }
   const headers = Object.keys(data[0]);
   const rows = data.map((row) =>
     headers
@@ -33,7 +38,33 @@ function arrayToCsv(data: Record<string, unknown>[]): string {
 
 export function exportMyDataHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, appId: string) => {
-    // 1. Fetch user categories (Shared OR Private owned by current user)
+    // 1. Fetch User Record & Preferences
+    const [userRecord] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const [globalPrefs] = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, userId))
+      .limit(1);
+
+    // 2. Fetch Household Tenant & User Preferences
+    const [tenantRecord] = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+
+    const [tenantPrefs] = await db
+      .select()
+      .from(tenantUserPreferences)
+      .where(and(eq(tenantUserPreferences.userId, userId), eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.appId, appId)))
+      .limit(1);
+
+    // 3. Fetch Categories (Shared OR Private owned by current user)
     const rawCategories = await db
       .select()
       .from(categories)
@@ -43,7 +74,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       (c) => !c.isPrivate || c.userId === userId
     );
 
-    // 2. Fetch income sources & events
+    // 4. Fetch Income Sources & Events
     const userIncomeSources = await db
       .select()
       .from(incomeSources)
@@ -54,7 +85,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(incomeEvents)
       .where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
 
-    // 3. Fetch expense sources & events
+    // 5. Fetch Expense Sources & Events
     const userExpenseSources = await db
       .select()
       .from(expenseSources)
@@ -65,7 +96,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(expenseEvents)
       .where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
 
-    // 4. Fetch bank accounts (Shared OR Private owned by current user)
+    // 6. Fetch Bank Accounts (Shared OR Private owned by current user)
     const rawBankAccounts = await db
       .select()
       .from(bankAccounts)
@@ -77,7 +108,7 @@ export function exportMyDataHandler(db: DbOrTx) {
 
     const allowedCategoryIds = new Set(userCategories.map((c) => c.id));
 
-    // 5. Fetch transaction ledger (filtered to allowed categories)
+    // 7. Fetch Transaction Ledger
     const rawLedger = await db
       .select()
       .from(transactionLedger)
@@ -87,7 +118,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       (t) => !t.categoryId || allowedCategoryIds.has(t.categoryId)
     );
 
-    // 6. Fetch file notes metadata
+    // 8. Fetch File Notes metadata
     const userFileNotes = await db
       .select({
         id: fileNotes.id,
@@ -100,7 +131,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(fileNotes)
       .where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
 
-    // 6.5 Fetch allocation plans
+    // 9. Fetch Allocation Plans & Lines
     const userAllocationPlans = await db
       .select()
       .from(allocationPlans)
@@ -111,51 +142,31 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(allocationPlanLines)
       .where(and(eq(allocationPlanLines.tenantId, tenantId), eq(allocationPlanLines.appId, appId)));
 
-    // 7. Fetch user preferences
-    const [globalPrefs] = await db
-      .select()
-      .from(userPreferences)
-      .where(eq(userPreferences.userId, userId))
-      .limit(1);
-
-    const [tenantPrefs] = await db
-      .select()
-      .from(tenantUserPreferences)
-      .where(and(eq(tenantUserPreferences.userId, userId), eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.appId, appId)))
-      .limit(1);
-
-    const jsonPayload = {
-      exportedAt: new Date().toISOString(),
-      userId,
-      tenantId,
-      preferences: {
-        global: globalPrefs || null,
-        tenant: tenantPrefs || null,
-      },
-      categories: userCategories,
-      incomeSources: userIncomeSources,
-      incomeEvents: userIncomeEvents,
-      expenseSources: userExpenseSources,
-      expenseEvents: userExpenseEvents,
-      transactionLedger: userLedger,
-      bankAccounts: userBankAccounts,
-      fileNotes: userFileNotes,
-      allocationPlans: userAllocationPlans,
-      allocationPlanLines: userAllocationPlanLines,
-    };
-
-    const csvFiles = {
-      "categories.csv": arrayToCsv(userCategories),
-      "income_sources.csv": arrayToCsv(userIncomeSources),
-      "expense_sources.csv": arrayToCsv(userExpenseSources),
-      "transaction_ledger.csv": arrayToCsv(userLedger),
-      "bank_accounts.csv": arrayToCsv(userBankAccounts),
-      "allocation_plans.csv": arrayToCsv(userAllocationPlans),
-      "allocation_plan_lines.csv": arrayToCsv(userAllocationPlanLines),
+    const csvFiles: Record<string, string> = {
+      "User_Profile.csv": arrayToCsv(
+        userRecord ? [{ ...userRecord, globalTimezone: globalPrefs?.timezone || "Australia/Sydney" }] : [],
+        ["id", "email", "displayName", "globalTimezone"]
+      ),
+      "Household_Profile.csv": arrayToCsv(
+        tenantRecord ? [{ ...tenantRecord, ...tenantPrefs }] : [],
+        ["id", "name", "country", "state", "postcode", "fyEndMonthDay", "subscriptionStatus"]
+      ),
+      "Categories.csv": arrayToCsv(userCategories, ["id", "name", "type", "monthlyAmount", "targetAmount", "isPrivate"]),
+      "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "institution", "accountType", "currentBalance", "isPrivate"]),
+      "Income_Sources.csv": arrayToCsv(userIncomeSources, ["id", "name", "amount", "rrule", "startDate", "receivingAccountId"]),
+      "Income_Events.csv": arrayToCsv(userIncomeEvents, ["id", "incomeSourceId", "expectedDate", "expectedAmount", "status"]),
+      "Bills_and_Expenses.csv": arrayToCsv(userExpenseSources, ["id", "name", "amount", "rrule", "startDate", "categoryId"]),
+      "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expenseSourceId", "expectedDate", "expectedAmount", "status"]),
+      "Transactions_Ledger.csv": arrayToCsv(userLedger, ["id", "date", "description", "amount", "flow", "categoryId", "bankAccountId"]),
+      "Payday_Allocation_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "planDate", "totalIncome", "status"]),
+      "Payday_Allocation_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "allocationPlanId", "categoryId", "allocatedAmount"]),
+      "Notes_and_Attachments.csv": arrayToCsv(userFileNotes, ["id", "fileName", "fileMimeType", "fileSize", "comment", "createdAt"]),
     };
 
     return {
-      ...jsonPayload,
+      exportedAt: new Date().toISOString(),
+      userId,
+      tenantId,
       csvFiles,
     };
   };
