@@ -216,6 +216,7 @@ export const ja: DeepStringRecord<typeof en> = {
       "transactions": "取引履歴",
       "paydayAllocations": "給与日配分"
     },
+    "historyTooltip": "世帯のすべての支出と給料日振分けの完全な記録。",
     "title": "履歴",
     "empty": "履歴はありません",
     "emptySubtitle": "支出や収入を記録すると、ここに表示されます。",
@@ -538,6 +539,17 @@ export const ja: DeepStringRecord<typeof en> = {
     "previousStep": "戻る",
     "stepOf": "ステップ {step} / {total}",
     "stepOfTwo": "ステップ {step} / 2",
+    "bankAccountsStep": {
+      "title": "銀行口座とプールルーティング",
+      "tooltip": "実際の銀行口座を予算プール（日常支出、固定費、貯蓄目標）にリンクします。各世帯には少なくとも1つのアクティブな銀行口座が必要です。",
+      "subtitle": "デフォルトの「メイン口座」を設定しました。追加の口座を登録するか、資金プールのルーティングを調整できます。",
+      "addAccount": "+ 銀行口座を追加",
+      "balance": "残高",
+      "edit": "編集",
+      "unlinked": "未リンク",
+      "backIncome": "← 戻る: 収入",
+      "nextGoals": "次へ: 貯蓄目標 →"
+    },
     "income": {
       "title": "収入・給与",
       "subtitle": "予算を作成するために、主な収入について教えてください。",
@@ -638,6 +650,11 @@ export const ja: DeepStringRecord<typeof en> = {
   "dashboard": {
     "title": "ホーム",
     "welcome": "こんにちは、{name} さん 👋",
+    "nextPaydayReady": "次回の給料日準備完了",
+    "quickApprove": "1タップクイック承認",
+    "editReviewSplit": "分割の編集・確認",
+    "iSpent": "支出...",
+    "iReceived": "収入...",
     "statusActiveLabel": "有効",
     "activeForTenant": "アクティブなワークスペース",
     "statusArchivedLabel": "アーカイブ済み",
@@ -742,6 +759,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "phoneCountryCodeLabel": "国番号",
     "avatarUploadLabel": "アバター画像",
     "avatarUploadHint": "PNG、JPG、またはWEBP（最大2MB）",
+    "positionZoomAvatar": "アバターの位置とズーム調整",
+    "cropInstruction": "ドラッグして写真を円の中に合わせ、下のスライダーでズーム調整してください。",
+    "saveAvatarPhoto": "アバター写真を保存",
     "addMemberTitle": "世帯メンバーの追加",
     "addMemberSubtitle": "家計簿を共有する家族や同居人を招待します。",
     "removeMemberTitle": "世帯メンバーの削除",
@@ -895,7 +915,48 @@ export const ja: DeepStringRecord<typeof en> = {
   },
   "payday": {
     "transferPlanTitle": "振込チェックリスト",
-    "transferPlanSubtitle": "移動する金額と口座の確認。"
+    "transferPlanSubtitle": "移動する金額と口座の確認。",
+    "allocationDetails": "給料日配分詳細",
+    "totalIncomeNet": "総収入純額",
+    "standardAmount": "基準額",
+    "assignedCategory": "割り当てカテゴリ",
+    "noEventsForSource": "このソースの予定イベントはありません",
+    "depositSourceName": "入金元名称",
+    "actualNetDeposit": "実際の受取手取り額 ($)",
+    "depositReceivedDate": "受取日",
+    "receivingBankAccount": "受取口座",
+    "currentBalance": "現在の残高:",
+    "afterPayday": "給料日後:",
+    "everydayPool": "生活費プール",
+    "savingsGoals": "貯蓄目標",
+    "categorySplitBreakdown": "カテゴリ分割内訳",
+    "allocating": "配分中",
+    "enterIncomeAmount": "入金詳細に収入額を入力してください"
+  },
+  "forms": {
+    "recurrenceSchedule": "繰り返しスケジュール",
+    "recurring": "定期",
+    "oneOff": "単発",
+    "frequency": "頻度",
+    "weekly": "毎週",
+    "fortnightly": "隔週",
+    "monthly": "毎月",
+    "firstDate": "初回日付",
+    "eventDate": "イベント日付"
+  },
+  "location": {
+    "selectState": "州を選択...",
+    "invalidPostcode": "郵便番号は4桁で入力してください"
+  },
+  "reconcile": {
+    "title": "銀行残高 & 照合"
+  },
+  "canAfford": {
+    "title": "購入可能判定"
+  },
+  "upcoming": {
+    "singleOccurrenceEdit": "単発変更",
+    "editMasterSeries": "マスターシリーズを編集"
   },
   "budget": {
     "reSetup": {
@@ -926,7 +987,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "goToDashboard": "ダッシュボードへ",
     "invalidEmailAlertTitle": "メールアドレスの確認",
     "invalidEmailAlertBody": "正しいメールアドレスを入力してください。",
-    "ownerOnlyNotice": "世帯の所有者 ({email}) のみが新しいメンバーを招待できます。"
+    "ownerOnlyNotice": "世帯の所有者 ({email}) のみが新しいメンバーを招待できます。",
+    "pendingAcceptance": "承認待ち",
+    "dangerZoneTooltip": "デンジャーゾーン：世帯からの脱退、または世帯の永久閉鎖および関連データの消去を管理します。"
   },
   "privacy": {
     "title": "プライバシーとデータセキュリティ",

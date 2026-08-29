@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { fmtDate } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export interface PaydayPlanLineRecord {
   planId: string;
@@ -75,7 +76,7 @@ export function SlideOverAllocationDrawer({
                 </span>
               </div>
               <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight mt-1">
-                Payday Allocation Details
+                {t("payday.allocationDetails")}
               </h2>
               <p className="text-xs text-zinc-500 font-medium mt-0.5">
                 💰 {plan.incomeName || "Income Deposit"} → 🏦 {plan.receivingAccountName || "Main Account"}
@@ -91,7 +92,7 @@ export function SlideOverAllocationDrawer({
 
           {/* Income Summary Banner */}
           <div className="p-6 bg-slate-50 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">Total Income Net Amount</span>
+            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{t("payday.totalIncomeNet")}</span>
             <span className="text-lg font-black font-mono text-[#2563eb]">
               {formatAUD(plan.totalIncomeAmount)}
             </span>
@@ -131,7 +132,7 @@ export function SlideOverAllocationDrawer({
               onClick={onClose}
               className="px-5 py-2 text-xs font-bold rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors"
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>

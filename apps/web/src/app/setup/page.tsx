@@ -3,6 +3,7 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
 import { SetupIncomeStep } from "./components/SetupIncomeStep";
+import { SetupBankAccountsStep } from "./components/SetupBankAccountsStep";
 import { SetupGoalsStep } from "./components/SetupGoalsStep";
 import { SetupLifestyleStep } from "./components/SetupLifestyleStep";
 import { SetupCategoriesStep } from "./components/SetupCategoriesStep";
@@ -107,6 +108,14 @@ function SetupWizardContent() {
         )}
 
         {step === 2 && (
+          <SetupBankAccountsStep
+            onBack={() => setStep(1)}
+            onNext={() => setStep(3)}
+            showIcons={showIcons}
+          />
+        )}
+
+        {step === 3 && (
           <SetupGoalsStep
             goals={goals}
             onAddGoal={(g) => {
@@ -117,13 +126,13 @@ function SetupWizardContent() {
               setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, [field]: value } : g)));
             }}
             onRemoveGoal={(id) => setGoals((prev) => prev.filter((g) => g.id !== id))}
-            onBack={() => setStep(1)}
-            onNext={() => setStep(3)}
+            onBack={() => setStep(2)}
+            onNext={() => setStep(4)}
             showIcons={showIcons}
           />
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <SetupLifestyleStep
             housingType={housingType}
             setHousingType={setHousingType}
@@ -177,13 +186,13 @@ function SetupWizardContent() {
             setWeeklyDining={setWeeklyDining}
             weeklyPersonal={weeklyPersonal}
             setWeeklyPersonal={setWeeklyPersonal}
-            onBack={() => setStep(2)}
-            onNext={() => setStep(4)}
+            onBack={() => setStep(3)}
+            onNext={() => setStep(5)}
             showIcons={showIcons}
           />
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <SetupCategoriesStep
             activeEveryday={activeEveryday}
             activeRegular={activeRegular}
@@ -222,7 +231,7 @@ function SetupWizardContent() {
             totalRegularMonthly={totalRegularMonthly}
             totalGoalMonthly={totalGoalMonthly}
             isSubmitting={isSubmitting}
-            onBack={() => setStep(3)}
+            onBack={() => setStep(4)}
             onFinish={handleFinish}
             showIcons={showIcons}
           />

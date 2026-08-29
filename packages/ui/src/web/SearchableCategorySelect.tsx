@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { SearchInput } from "./SearchInput";
 import { useIconVisibility } from "../hooks/IconVisibilityContext";
+import { t } from "@money-matters/i18n";
 
 export interface CategoryOption {
   id: string;
@@ -234,7 +235,7 @@ export function SearchableCategorySelect({
           <div className="overflow-y-auto max-h-48 flex flex-col gap-1 pr-0.5 w-full">
             {filteredCategories.length === 0 ? (
               <div className="py-4 text-center text-xs text-zinc-400 font-medium">
-                No matching categories found
+                {t("common.noMatchingOptions")}
               </div>
             ) : (
               filteredCategories.map((cat, idx) => {

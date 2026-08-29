@@ -1,36 +1,31 @@
 import React from "react";
 import { CountrySelect } from "./CountrySelect";
+import { t } from "@money-matters/i18n";
 
 export interface LocationFieldsProps {
   country: string;
-  onCountryChange: (val: string) => void;
+  onCountryChange: (country: string) => void;
   state: string;
-  onStateChange: (val: string) => void;
+  onStateChange: (state: string) => void;
   postcode: string;
-  onPostcodeChange: (val: string) => void;
+  onPostcodeChange: (postcode: string) => void;
   disabled?: boolean;
 }
 
-export const AU_STATES = [
+const AU_STATES = [
   { code: "NSW", name: "New South Wales (NSW)" },
   { code: "VIC", name: "Victoria (VIC)" },
   { code: "QLD", name: "Queensland (QLD)" },
-  { code: "SA", name: "South Australia (SA)" },
   { code: "WA", name: "Western Australia (WA)" },
+  { code: "SA", name: "South Australia (SA)" },
   { code: "TAS", name: "Tasmania (TAS)" },
-  { code: "NT", name: "Northern Territory (NT)" },
   { code: "ACT", name: "Australian Capital Territory (ACT)" },
+  { code: "NT", name: "Northern Territory (NT)" },
 ];
 
 export function validateAustralianPostcode(postcode: string): boolean {
-  if (!postcode.trim()) return true;
+  if (!postcode) return true;
   return /^\d{4}$/.test(postcode.trim());
-}
-
-export function validateAustralianMobile(phone: string): boolean {
-  if (!phone.trim()) return true;
-  const clean = phone.replace(/[\s\-()]/g, "");
-  return /^(\+614|04)\d{8}$/.test(clean);
 }
 
 export function LocationFields({
@@ -45,7 +40,7 @@ export function LocationFields({
   const isAustralia = country === "AU";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {/* Country Select */}
       <CountrySelect
         label="Country"
@@ -64,7 +59,7 @@ export function LocationFields({
             disabled={disabled}
             className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50 cursor-pointer"
           >
-            <option value="">Select State...</option>
+            <option value="">{t("location.selectState")}</option>
             {AU_STATES.map((s) => (
               <option key={s.code} value={s.code}>
                 {s.name}
@@ -96,7 +91,7 @@ export function LocationFields({
           className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
         />
         {isAustralia && postcode && !validateAustralianPostcode(postcode) && (
-          <p className="text-[11px] font-bold text-red-600">Postcode must be exactly 4 digits</p>
+          <p className="text-[11px] font-bold text-red-600">{t("location.invalidPostcode")}</p>
         )}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 interface PaydayLineRowProps {
   bucketId: string;
@@ -14,50 +14,44 @@ interface PaydayLineRowProps {
   isFutureDate: boolean;
 }
 
-function fmt(val: number) {
-  return `$${val.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export function PaydayLineRow({
-  bucketId: _bucketId,
   bucketName,
   categoryType = "REGULAR",
   reasoning,
   amountVal,
   onAmountChange,
-  onShowReasoning: _onShowReasoning,
+  onShowReasoning,
   categoryBalance = 0,
   healthStatus,
   isFutureDate,
 }: PaydayLineRowProps) {
-  const numericAdd = parseFloat(amountVal) || 0;
-  const projectedAfter = categoryBalance + numericAdd;
+  const currentVal = parseFloat(amountVal || "0");
+  const projectedAfter = categoryBalance + currentVal;
 
-  const badgeStyle =
-    categoryType === "EVERYDAY"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : categoryType === "GOAL"
-      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-      : "bg-blue-50 text-blue-700 border-blue-200";
-
-  const poolLabel =
-    categoryType === "EVERYDAY" ? "Everyday Pool" : categoryType === "GOAL" ? "Savings Goal" : "Bills Pool";
+  const fmt = (num: number) =>
+    `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="p-3.5 rounded-xl bg-white border border-zinc-200 flex flex-col gap-2.5 shadow-xs hover:border-zinc-300 transition-colors">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 flex items-center gap-2">
-          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 ${badgeStyle}`}>
-            {poolLabel}
+    <div className="p-3.5 rounded-xl border border-zinc-200/80 bg-white shadow-xs space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-black text-[#1B2B4B]">{bucketName}</span>
+          <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase">
+            {categoryType}
           </span>
-          <p className="text-xs font-bold truncate text-[#1B2B4B]">{bucketName}</p>
-          {reasoning && (
-            <InfoTooltip title="Allocation Rationale" content={reasoning} />
-          )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs font-bold text-zinc-400">$</span>
+        <div className="flex items-center gap-2">
+          {reasoning && (
+            <button
+              type="button"
+              onClick={() => onShowReasoning(bucketName, reasoning)}
+              className="p-1 text-zinc-400 hover:text-[#00B4A6] transition-colors cursor-pointer"
+              title="View system reasoning"
+            >
+              ℹ️
+            </button>
+          )}
           <input
             type="number"
             step="0.01"
@@ -69,8 +63,8 @@ export function PaydayLineRow({
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-zinc-500 bg-zinc-50/80 p-2 rounded-lg border border-zinc-100">
-        <span>Current Balance: <strong className="text-zinc-800 font-bold">{fmt(categoryBalance)}</strong></span>
-        <span>After Payday: <strong className="text-emerald-700 font-bold">{fmt(projectedAfter)}</strong></span>
+        <span>{t("payday.currentBalance")} <strong className="text-zinc-800 font-bold">{fmt(categoryBalance)}</strong></span>
+        <span>{t("payday.afterPayday")} <strong className="text-emerald-700 font-bold">{fmt(projectedAfter)}</strong></span>
         {isFutureDate && healthStatus && (
           <span
             className={`font-extrabold text-[10px] px-2 py-0.5 rounded-full ${

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
@@ -154,9 +155,12 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         <div className="flex items-center gap-4 border-b border-slate-100 pb-5">
           <div className="relative group shrink-0">
             {avatarUrl ? (
-              <img
+              <Image
+                unoptimized
                 src={avatarUrl}
                 alt={displayName}
+                width={56}
+                height={56}
                 className="w-14 h-14 rounded-full object-cover border-2 border-[#2563eb] shadow-xs"
               />
             ) : (

@@ -552,7 +552,12 @@ export const tenantRouter = {
     }),
 
   removeHouseholdMember: tenantProcedure
-    .input(z.object({ targetUserId: z.string().min(1) }).strict())
+    .input(
+      z.object({
+        targetUserId: z.string().optional(),
+        memberId: z.string().optional(),
+      }).strict()
+    )
     .mutation(async ({ ctx, input }) => {
       const { tenantUsers } = await import('@money-matters/db');
 
@@ -565,14 +570,24 @@ export const tenantRouter = {
         throw new Error("Only the household owner can remove members.");
       }
 
-      if (input.targetUserId === ctx.userId) {
+      if (input.targetUserId && input.targetUserId === ctx.userId) {
         throw new Error("You cannot remove yourself using member removal.");
+      }
+
+      const memberFilter = input.memberId
+        ? eq(tenantUsers.id, input.memberId)
+        : input.targetUserId
+        ? eq(tenantUsers.userId, input.targetUserId)
+        : null;
+
+      if (!memberFilter) {
+        throw new Error("Target member ID or User ID is required.");
       }
 
       await ctx.db
         .update(tenantUsers)
         .set({ archivedAt: new Date(), updatedAt: new Date() })
-        .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), eq(tenantUsers.userId, input.targetUserId)));
+        .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), memberFilter));
 
       return { success: true };
     }),

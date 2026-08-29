@@ -1,5 +1,6 @@
 import React from "react";
 import { ModalDialog } from "../ModalDialog";
+import { t } from "@money-matters/i18n";
 
 interface PaydayReasonModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ export function PaydayReasonModal({
             onClick={onClose}
             className="px-4 py-2 text-xs font-bold rounded-xl bg-[#00B4A6] text-white hover:bg-[#009b8f]"
           >
-            Close
+            {t("common.close")}
           </button>
         </div>
       </div>

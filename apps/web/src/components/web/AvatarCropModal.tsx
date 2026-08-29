@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { ModalDialog } from "./ModalDialog";
+import { t } from "@money-matters/i18n";
 
 export interface AvatarCropModalProps {
   isOpen: boolean;
@@ -19,10 +20,12 @@ export function AvatarCropModal({
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const isPointerDownRef = useRef(false);
+  const startPointerRef = useRef({ x: 0, y: 0 });
+  const startOffsetRef = useRef({ x: 0, y: 0 });
 
   const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -38,15 +41,16 @@ export function AvatarCropModal({
 
     ctx.clearRect(0, 0, size, size);
 
-    // Calculate dimensions
-    const scale = (size / Math.min(img.width, img.height)) * zoom;
+    // Compute image scale matching smaller dimension
+    const minDim = Math.min(img.width, img.height);
+    const scale = (size / minDim) * zoom;
     const drawW = img.width * scale;
     const drawH = img.height * scale;
 
     const drawX = (size - drawW) / 2 + offset.x;
     const drawY = (size - drawH) / 2 + offset.y;
 
-    // Draw background with Circular Clip Mask
+    // Draw image with circular clipping mask
     ctx.save();
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
@@ -56,6 +60,7 @@ export function AvatarCropModal({
     ctx.restore();
   }, [zoom, offset]);
 
+  // Load new image source once when imageSrc changes (DO NOT depend on drawCanvas/zoom/offset)
   useEffect(() => {
     if (imageSrc) {
       const img = new Image();
@@ -63,31 +68,52 @@ export function AvatarCropModal({
         imgRef.current = img;
         setZoom(1);
         setOffset({ x: 0, y: 0 });
-        drawCanvas();
       };
       img.src = imageSrc;
     }
-  }, [imageSrc, drawCanvas]);
+  }, [imageSrc]);
 
+  // Redraw canvas whenever zoom or offset updates
   useEffect(() => {
     drawCanvas();
   }, [drawCanvas]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Handle global pointer drag (mouse & touch)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    isPointerDownRef.current = true;
+    startPointerRef.current = { x: e.clientX, y: e.clientY };
+    startOffsetRef.current = { ...offset };
     setIsDragging(true);
-    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+
+    const onPointerMove = (moveEvt: PointerEvent) => {
+      if (!isPointerDownRef.current) return;
+      const dx = moveEvt.clientX - startPointerRef.current.x;
+      const dy = moveEvt.clientY - startPointerRef.current.y;
+      setOffset({
+        x: startOffsetRef.current.x + dx,
+        y: startOffsetRef.current.y + dy,
+      });
+    };
+
+    const onPointerUp = () => {
+      isPointerDownRef.current = false;
+      setIsDragging(false);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
+  // Optional mouse wheel zooming inside canvas container
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.05 : -0.05;
+    setZoom((prev) => Math.min(4, Math.max(0.2, +(prev + delta).toFixed(2))));
   };
 
   const handleApply = () => {
@@ -101,19 +127,20 @@ export function AvatarCropModal({
   if (!isOpen || !imageSrc) return null;
 
   return (
-    <ModalDialog isOpen={isOpen} onClose={onClose} title="Position & Zoom Avatar">
+    <ModalDialog isOpen={isOpen} onClose={onClose} title={t("settings.positionZoomAvatar")}>
       <div className="flex flex-col items-center gap-5 p-2">
         <p className="text-xs text-slate-500 font-medium text-center">
-          Drag to center your photo within the circle, and adjust zoom slider below.
+          {t("settings.cropInstruction")}
         </p>
 
         {/* Viewport Canvas with Circular Outline */}
         <div
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="relative w-64 h-64 rounded-full border-4 border-[#2563eb] shadow-xl overflow-hidden bg-slate-900 cursor-move select-none"
+          onPointerDown={handlePointerDown}
+          onWheel={handleWheel}
+          style={{ touchAction: "none" }}
+          className={`relative w-64 h-64 rounded-full border-4 border-[#2563eb] shadow-xl overflow-hidden bg-slate-900 select-none ${
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
         >
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
@@ -123,9 +150,9 @@ export function AvatarCropModal({
           <span className="text-xs font-bold text-slate-500">🔍 -</span>
           <input
             type="range"
-            min="1"
-            max="3"
-            step="0.05"
+            min="0.2"
+            max="4"
+            step="0.01"
             value={zoom}
             onChange={(e) => setZoom(parseFloat(e.target.value))}
             className="flex-1 accent-[#2563eb] cursor-pointer"
@@ -140,14 +167,14 @@ export function AvatarCropModal({
             onClick={onClose}
             className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl transition-colors cursor-pointer"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"
             onClick={handleApply}
             className="px-5 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md cursor-pointer"
           >
-            Save Avatar Photo
+            {t("settings.saveAvatarPhoto")}
           </button>
         </div>
       </div>

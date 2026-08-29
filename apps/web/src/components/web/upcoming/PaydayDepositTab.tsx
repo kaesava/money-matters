@@ -2,6 +2,7 @@
 
 import React from "react";
 import { InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export interface PaydayDepositTabProps {
   sourceName: string;
@@ -43,7 +44,7 @@ export function PaydayDepositTab({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-bold text-[#1B2B4B] mb-1.5 flex items-center gap-1">
-            Deposit Source Name
+            {t("payday.depositSourceName")}
             <InfoTooltip content="E.g. Primary Salary, Side Hustle, Tax Return, Client Invoice" />
           </label>
           <input
@@ -57,7 +58,7 @@ export function PaydayDepositTab({
 
         <div>
           <label className="text-xs font-bold text-[#1B2B4B] mb-1.5 flex items-center gap-1">
-            Actual Net Deposit ($)
+            {t("payday.actualNetDeposit")}
             <InfoTooltip content="The exact take-home amount hitting your bank account today." />
           </label>
           <input
@@ -74,7 +75,7 @@ export function PaydayDepositTab({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-xs font-bold text-[#1B2B4B] mb-1.5 flex items-center gap-1">
-            Deposit Received Date
+            {t("payday.depositReceivedDate")}
           </label>
           <input
             type="date"
@@ -86,7 +87,7 @@ export function PaydayDepositTab({
 
         <div>
           <label className="text-xs font-bold text-[#1B2B4B] mb-1.5 flex items-center gap-1">
-            Receiving Bank Account
+            {t("payday.receivingBankAccount")}
           </label>
           <select
             value={receivingAccountId}

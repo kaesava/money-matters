@@ -199,7 +199,7 @@ function TransactionsPageContent() {
           </h1>
           <InfoTooltip
             title="About History & Allocations"
-            content="A complete record of your itemized spending ledger and automated payday waterfall allocations."
+            content={t("transactions.historyTooltip")}
           />
         </div>
       </div>

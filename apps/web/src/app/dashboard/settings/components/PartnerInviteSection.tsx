@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
@@ -16,7 +17,7 @@ export function PartnerInviteSection() {
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
 
   // Member removal state
-  const [memberToRemove, setMemberToRemove] = useState<{ userId: string; name: string } | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string; userId?: string | null; name: string } | null>(null);
   const [confirmNameInput, setConfirmNameInput] = useState("");
   const [isRemoving, setIsRemoving] = useState(false);
 
@@ -63,7 +64,10 @@ export function PartnerInviteSection() {
 
     setIsRemoving(true);
     try {
-      await removeMemberMutation.mutateAsync({ targetUserId: memberToRemove.userId });
+      await removeMemberMutation.mutateAsync({
+        memberId: memberToRemove.id,
+        targetUserId: memberToRemove.userId || undefined,
+      });
       toast.success(`Removed ${memberToRemove.name} from household.`);
       setMemberToRemove(null);
       setConfirmNameInput("");
@@ -107,9 +111,12 @@ export function PartnerInviteSection() {
                 >
                   <div className="flex items-center gap-3">
                     {m.avatarUrl ? (
-                      <img
+                      <Image
                         src={m.avatarUrl}
                         alt={m.name}
+                        width={40}
+                        height={40}
+                        unoptimized
                         className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-xs"
                       />
                     ) : (
@@ -129,9 +136,9 @@ export function PartnerInviteSection() {
                             Member
                           </span>
                         )}
-                        {m.isPending && (
+                        {(m.isPending || m.inviteStatus === "PENDING") && (
                           <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 rounded-md">
-                            Pending Acceptance
+                            ⌛ {t("partner.pendingAcceptance")}
                           </span>
                         )}
                       </div>
@@ -139,14 +146,12 @@ export function PartnerInviteSection() {
                     </div>
                   </div>
 
-                  {isOwner && !m.isOwner && m.userId && (
+                  {isOwner && !m.isOwner && (
                     <button
                       type="button"
                       onClick={() => {
-                        if (m.userId) {
-                          setMemberToRemove({ userId: m.userId, name: m.name });
-                          setConfirmNameInput("");
-                        }
+                        setMemberToRemove({ id: m.id, userId: m.userId, name: m.name });
+                        setConfirmNameInput("");
                       }}
                       className="px-3 py-1 text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                     >

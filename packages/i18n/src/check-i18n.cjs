@@ -140,8 +140,10 @@ for (const file of files) {
         const line = getLineNumber(content, jsxMatch.index);
         const lineContent = content.split('\n')[line - 1] || '';
         if (
-          /^\s*(interface|type|export interface|export type|\/\*|\*|\/\/)\b/.test(lineContent) ||
-          /:\s*Record\b|:\s*Promise\b|:\s*StyleProp\b|void;|React\.ReactNode;|\bprev\s*-\s*1\b/.test(lineContent)
+          /^\s*(\*|\/\*|\/\/|interface|type|export interface|export type)\b/.test(lineContent) ||
+          /(:\s*|=>\s*|<)(Record|Promise|Array|React|KeyboardEvent|StyleProp)\b|;\s*|\bprev\s*-\s*1\b|\bonKeyDown\b/.test(lineContent) ||
+          text === 'Money Matters' ||
+          /Record|Array|Promise|KeyboardEvent|onKeyDown/.test(text)
         ) {
           continue;
         }

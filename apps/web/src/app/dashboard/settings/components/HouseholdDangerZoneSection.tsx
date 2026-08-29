@@ -65,7 +65,7 @@ export function HouseholdDangerZoneSection() {
         <h2 className="text-base font-extrabold text-red-700 tracking-wide uppercase">
           DANGER ZONE
         </h2>
-        <InfoTooltip content="Danger Zone: Manage departure from this household budget or permanent erasure of your household data." />
+        <InfoTooltip content={t("partner.dangerZoneTooltip")} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 pt-2">

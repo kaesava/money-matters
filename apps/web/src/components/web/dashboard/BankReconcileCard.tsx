@@ -1,4 +1,5 @@
 import React from "react";
+import { t } from "@money-matters/i18n";
 
 interface BankAccount {
   id: string;
@@ -23,7 +24,7 @@ export function BankReconcileCard({
   return (
     <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-[#1B2B4B]">Bank Balances & Reconcile</h3>
+        <h3 className="text-sm font-bold text-[#1B2B4B]">{t("reconcile.title")}</h3>
         <button
           onClick={onOpenSettings}
           className="text-xs font-bold text-[#00B4A6] hover:underline"

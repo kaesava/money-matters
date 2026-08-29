@@ -3,6 +3,7 @@ import React from "react";
 import { trpc } from "../../lib/trpc";
 import { ModalDialog } from "./ModalDialog";
 import { fmtDate } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export interface SourceBurstDetailModalProps {
   isOpen: boolean;
@@ -14,12 +15,7 @@ export interface SourceBurstDetailModalProps {
   categoryName?: string;
 }
 
-function fmt(val: string | number) {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-export function SourceBurstDetailModal({
+export const SourceBurstDetailModal: React.FC<SourceBurstDetailModalProps> = ({
   isOpen,
   onClose,
   mode,
@@ -27,21 +23,33 @@ export function SourceBurstDetailModal({
   sourceName,
   sourceAmount,
   categoryName,
-}: SourceBurstDetailModalProps) {
-  const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, { enabled: isOpen && mode === "INCOME" });
-  const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, { enabled: isOpen && mode === "EXPENSE" });
+}) => {
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, {
+    enabled: isOpen && !!sourceId && mode === "INCOME",
+  });
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, {
+    enabled: isOpen && !!sourceId && mode === "EXPENSE",
+  });
+
+  if (!isOpen || !sourceId) return null;
+
+  const fmt = (numStr?: string) => {
+    if (!numStr) return "$0.00";
+    const num = parseFloat(numStr);
+    return isNaN(num) ? "$0.00" : `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2 })}`;
+  };
 
   interface EventItem {
     id: string;
     incomeSourceId?: string | null;
     expenseSourceId?: string | null;
-    status: string;
     expectedDate: string;
-    expectedAmount: string;
+    status: string;
+    expectedAmount?: string;
     actualAmount?: string | null;
   }
 
-  const allEvents = (mode === "INCOME" ? (incomeEventsQuery.data ?? []) : (expenseEventsQuery.data ?? [])) as EventItem[];
+  const allEvents: EventItem[] = (mode === "INCOME" ? (incomeEventsQuery.data ?? []) : (expenseEventsQuery.data ?? [])) as unknown as EventItem[];
   const sourceEvents = allEvents.filter((e: EventItem) =>
     mode === "INCOME" ? e.incomeSourceId === sourceId : e.expenseSourceId === sourceId
   );
@@ -58,12 +66,12 @@ export function SourceBurstDetailModal({
         {/* Top Summary Banner */}
         <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-200 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-extrabold text-zinc-400 uppercase">Standard Amount</p>
+            <p className="text-[10px] font-extrabold text-zinc-400 uppercase">{t("payday.standardAmount")}</p>
             <p className="text-xl font-black text-[#1B2B4B]">{sourceAmount ? fmt(sourceAmount) : "—"}</p>
           </div>
           {categoryName && (
             <div className="text-right">
-              <p className="text-[10px] font-extrabold text-zinc-400 uppercase">Assigned Category</p>
+              <p className="text-[10px] font-extrabold text-zinc-400 uppercase">{t("payday.assignedCategory")}</p>
               <p className="text-xs font-extrabold text-[#00B4A6] bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 inline-block mt-0.5">
                 {categoryName}
               </p>
@@ -79,7 +87,7 @@ export function SourceBurstDetailModal({
 
           {sourceEvents.length === 0 ? (
             <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-50/50 rounded-xl border border-zinc-100">
-              No scheduled events found for this source.
+              {t("payday.noEventsForSource")}
             </div>
           ) : (
             <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-xl overflow-hidden bg-white">

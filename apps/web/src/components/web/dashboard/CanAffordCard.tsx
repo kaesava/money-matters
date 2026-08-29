@@ -1,6 +1,7 @@
 import React from "react";
 import { CanAffordVerdictType } from "@money-matters/types";
 import { InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 interface CanAffordCardProps {
   canAffordAmount: string;
@@ -18,7 +19,7 @@ export function CanAffordCard({
   return (
     <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-3">
       <div className="flex items-center gap-1.5">
-        <h3 className="text-sm font-bold text-[#1B2B4B]">Can We Afford This?</h3>
+        <h3 className="text-sm font-bold text-[#1B2B4B]">{t("canAfford.title")}</h3>
         <InfoTooltip
           title="Affordability Decision Engine"
           content="Evaluates spendable Everyday cash after reserving upcoming bills due before your next payday ($15/day safety pacing floor)."

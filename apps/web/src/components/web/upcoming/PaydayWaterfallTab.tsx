@@ -3,6 +3,7 @@
 import React from "react";
 import { InfoTooltip } from "@money-matters/ui/web";
 import { PaydayLineRow } from "./PaydayLineRow";
+import { t } from "@money-matters/i18n";
 
 export interface PaydayWaterfallTabProps {
   everydayAllocated: number;
@@ -42,7 +43,7 @@ export function PaydayWaterfallTab({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col gap-1">
           <div className="flex items-center gap-1">
-            <span className="text-[10px] font-black uppercase text-emerald-800">Everyday Pool</span>
+            <span className="text-[10px] font-black uppercase text-emerald-800">{t("payday.everydayPool")}</span>
             <InfoTooltip content="Discretionary cash for groceries, dining, and daily spending." />
           </div>
           <span className="text-base font-black text-[#1B2B4B]">
@@ -62,7 +63,7 @@ export function PaydayWaterfallTab({
 
         <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 flex flex-col gap-1">
           <div className="flex items-center gap-1">
-            <span className="text-[10px] font-black uppercase text-indigo-800">Savings Goals</span>
+            <span className="text-[10px] font-black uppercase text-indigo-800">{t("payday.savingsGoals")}</span>
             <InfoTooltip content="Allocations routed directly into your goal pools." />
           </div>
           <span className="text-base font-black text-[#1B2B4B]">
@@ -75,9 +76,9 @@ export function PaydayWaterfallTab({
       {lines.length > 0 ? (
         <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#1B2B4B]">Category Split Breakdown</span>
+            <span className="text-xs font-bold text-[#1B2B4B]">{t("payday.categorySplitBreakdown")}</span>
             <span className="text-[11px] font-semibold text-zinc-500">
-              Allocating <strong className="text-[#1B2B4B]">${totalAllocated.toFixed(2)}</strong> of ${numericActual.toFixed(2)}
+              {t("payday.allocating")} <strong className="text-[#1B2B4B]">${totalAllocated.toFixed(2)}</strong> of ${numericActual.toFixed(2)}
             </span>
           </div>
           {lines.map((line) => {
@@ -102,7 +103,7 @@ export function PaydayWaterfallTab({
         </div>
       ) : (
         <div className="p-6 text-center text-xs text-zinc-400 bg-zinc-50 rounded-2xl border border-zinc-200">
-          Enter an income amount in Deposit Details to preview your automated Payday Waterfall split.
+          {t("payday.enterIncomeAmount")}
         </div>
       )}
     </div>

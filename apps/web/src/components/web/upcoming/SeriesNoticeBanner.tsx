@@ -1,4 +1,5 @@
 import React from "react";
+import { t } from "@money-matters/i18n";
 
 interface SeriesNoticeBannerProps {
   eventType: "INCOME" | "EXPENSE";
@@ -14,7 +15,7 @@ export function SeriesNoticeBanner({ eventType, eventName }: SeriesNoticeBannerP
   return (
     <div className="p-3 rounded-xl bg-teal-50/80 border border-teal-200 flex items-center justify-between text-xs">
       <div className="flex flex-col gap-0.5">
-        <span className="font-extrabold text-[#1B2B4B]">Single Occurrence Edit</span>
+        <span className="font-extrabold text-[#1B2B4B]">{t("upcoming.singleOccurrenceEdit")}</span>
         <span className="text-[11px] text-zinc-600">
           Editing this specific {eventType === "INCOME" ? "income" : "expense"} date or amount.
         </span>
@@ -27,7 +28,7 @@ export function SeriesNoticeBanner({ eventType, eventName }: SeriesNoticeBannerP
         }}
         className="text-xs font-black text-[#00B4A6] hover:underline flex items-center gap-1 shrink-0 ml-2"
       >
-        <span>Edit Master Series</span>
+        <span>{t("upcoming.editMasterSeries")}</span>
         <span>→</span>
       </a>
     </div>

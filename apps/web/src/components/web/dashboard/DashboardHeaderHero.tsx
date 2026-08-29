@@ -1,4 +1,6 @@
 import React from "react";
+import { fmtDate } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 interface DashboardHeaderHeroProps {
   nextPaydayEvent: {
@@ -9,8 +11,6 @@ interface DashboardHeaderHeroProps {
     expectedDate: string;
   } | null;
   daysUntilPayday: number | null;
-  fmt: (val: string | number) => string;
-  fmtAUDate: (dStr: string) => string;
   onProcessPayday: (eventId: string) => void;
   onQuickApprovePayday?: (eventId: string, amount: string) => void;
 }
@@ -18,15 +18,18 @@ interface DashboardHeaderHeroProps {
 export function DashboardHeaderHero({
   nextPaydayEvent,
   daysUntilPayday,
-  fmt,
-  fmtAUDate,
   onProcessPayday,
   onQuickApprovePayday,
 }: DashboardHeaderHeroProps) {
   if (!nextPaydayEvent) return null;
 
+  const fmt = (val: string | number) => {
+    const num = typeof val === "string" ? parseFloat(val) : val;
+    return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   return (
-    <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#1B2B4B] to-[#2C426E] text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-700/50">
+    <div className="p-6 rounded-3xl bg-gradient-to-r from-[#1B2B4B] via-[#243B66] to-[#1B2B4B] text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-700/50">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-2xl bg-[#00B4A6]/20 border border-[#00B4A6]/40 flex items-center justify-center text-2xl flex-shrink-0">
           📅
@@ -34,7 +37,7 @@ export function DashboardHeaderHero({
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-wider text-[#00B4A6]">
-              Next Payday Ready
+              {t("dashboard.nextPaydayReady")}
             </span>
             <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
               {daysUntilPayday !== null && daysUntilPayday <= 0
@@ -46,7 +49,7 @@ export function DashboardHeaderHero({
             {nextPaydayEvent.sourceName || "Income Deposit"} — {fmt(nextPaydayEvent.actualAmount || nextPaydayEvent.expectedAmount)} AUD
           </h3>
           <p className="text-xs text-slate-300 font-semibold">
-            Scheduled for {fmtAUDate(nextPaydayEvent.expectedDate)}
+            Scheduled for {fmtDate(nextPaydayEvent.expectedDate)}
           </p>
         </div>
       </div>
@@ -57,7 +60,7 @@ export function DashboardHeaderHero({
             onClick={() => onQuickApprovePayday(nextPaydayEvent.id, nextPaydayEvent.expectedAmount)}
             className="px-4 py-2.5 rounded-2xl text-xs font-black text-white bg-slate-900/80 hover:bg-slate-900 active:scale-95 transition-all border border-slate-700 shadow-xs flex items-center gap-1.5 flex-shrink-0"
           >
-            <span>⚡ 1-Tap Quick Approve</span>
+            <span>⚡ {t("dashboard.quickApprove")}</span>
           </button>
         )}
 
@@ -65,7 +68,7 @@ export function DashboardHeaderHero({
           onClick={() => onProcessPayday(nextPaydayEvent.id)}
           className="px-5 py-2.5 rounded-2xl text-xs font-black text-white bg-[#00B4A6] hover:bg-[#009b8f] active:scale-95 transition-all shadow-md flex items-center gap-1.5 flex-shrink-0"
         >
-          <span>Edit & Review Split</span>
+          <span>{t("dashboard.editReviewSplit")}</span>
           <span>→</span>
         </button>
       </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from "react";
+import { t } from "@money-matters/i18n";
 
 interface Category {
   id: string;
@@ -110,7 +111,7 @@ export function QuickExpenseCard({
           }`}
         >
           <span>💸</span>
-          <span>I spent...</span>
+          <span>{t("dashboard.iSpent")}</span>
         </button>
         <button
           type="button"
@@ -125,7 +126,7 @@ export function QuickExpenseCard({
           }`}
         >
           <span>💰</span>
-          <span>I received...</span>
+          <span>{t("dashboard.iReceived")}</span>
         </button>
       </div>
 
