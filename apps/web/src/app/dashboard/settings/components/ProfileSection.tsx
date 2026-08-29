@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { PhoneInput, Spinner, useToast } from "@money-matters/ui/web";
@@ -9,18 +9,21 @@ interface ProfileSectionProps {
   user?: {
     name?: string | null;
     email?: string | null;
+    image?: string | null;
   } | null;
   currentTimezone: string;
 }
 
 export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const updateProfileMutation = trpc.updateUserProfile.useMutation();
   const updatePrefMutation = trpc.updateUserPreferences.useMutation();
 
   const [displayName, setDisplayName] = useState(user?.name || "");
-  const [notificationEmail, setNotificationEmail] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>(user?.image || "");
+  const [notificationEmail, setNotificationEmail] = useState(user?.email || "");
   const [phoneCountryCode, setPhoneCountryCode] = useState("+61");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [timezone, setTimezone] = useState(currentTimezone);
@@ -28,28 +31,84 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (user?.name) setDisplayName(user.name);
-  }, [user?.name]);
-
-  useEffect(() => {
     if (userPrefQuery.data) {
-      setNotificationEmail(userPrefQuery.data.notificationEmail || "");
+      setNotificationEmail(userPrefQuery.data.notificationEmail || user?.email || "");
       setPhoneCountryCode(userPrefQuery.data.phoneCountryCode || "+61");
       setPhoneNumber(userPrefQuery.data.phoneNumber || "");
       setTimezone(userPrefQuery.data.timezone || "Australia/Sydney");
       setShowIcons(userPrefQuery.data.showIcons ?? true);
     }
-  }, [userPrefQuery.data]);
+  }, [userPrefQuery.data, user?.email]);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Avatar image size must be under 2MB.");
+      return;
+    }
+
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      toast.error("Please upload a PNG, JPG, or WEBP image.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const maxDim = 256;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height *= maxDim / width;
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width *= maxDim / height;
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL("image/webp", 0.85);
+        setAvatarUrl(dataUrl);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!displayName.trim()) {
+      toast.error("Name is required.");
+      return;
+    }
+
+    if (!notificationEmail.trim()) {
+      toast.error("Notification email is required.");
+      return;
+    }
+
     setIsSaving(true);
     try {
       await updateProfileMutation.mutateAsync({
-        displayName,
-        notificationEmail,
+        displayName: displayName.trim(),
+        notificationEmail: notificationEmail.trim(),
         phoneCountryCode,
         phoneNumber,
+        avatarUrl,
       });
 
       await updatePrefMutation.mutateAsync({
@@ -77,22 +136,52 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
 
   return (
     <form onSubmit={handleSave} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-6">
+      {/* Header & Avatar Upload */}
       <div className="flex items-center gap-4 border-b border-slate-100 pb-5">
-        <div className="w-12 h-12 rounded-full bg-[#00B4A6] flex items-center justify-center text-white text-base font-extrabold shrink-0 shadow-xs">
-          {initials}
+        <div className="relative group shrink-0">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              className="w-14 h-14 rounded-full object-cover border-2 border-[#1B2B4B] shadow-xs"
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-[#1B2B4B] flex items-center justify-center text-white text-lg font-extrabold shadow-xs">
+              {initials}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs shadow-md hover:bg-blue-700 transition-colors cursor-pointer"
+            title={t("settings.avatarUploadLabel")}
+          >
+            📷
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png, image/jpeg, image/webp"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
         </div>
         <div>
           <h2 className="text-base font-extrabold text-[#1B2B4B]">{displayName || "User"}</h2>
           <p className="text-xs text-slate-500">{user?.email}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">{t("settings.avatarUploadHint")}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Display Name */}
+        {/* Name (Mandatory) */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-[#1B2B4B]">{t("settings.displayNameLabel")}</label>
+          <label className="text-xs font-bold text-[#1B2B4B]">
+            {t("settings.displayNameLabel")} <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
+            required
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder={t("settings.displayNamePlaceholder")}
@@ -111,20 +200,23 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
           />
         </div>
 
-        {/* Notification Email (Optional) */}
+        {/* Notification Email (Mandatory) */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-[#1B2B4B]">{t("settings.notificationEmailLabel")}</label>
+          <label className="text-xs font-bold text-[#1B2B4B]">
+            {t("settings.notificationEmailLabel")} <span className="text-red-500">*</span>
+          </label>
           <input
             type="email"
+            required
             value={notificationEmail}
             onChange={(e) => setNotificationEmail(e.target.value)}
-            placeholder="partner-alerts@example.com"
+            placeholder="alerts@example.com"
             className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           />
           <p className="text-[11px] text-slate-500">{t("settings.notificationEmailHint")}</p>
         </div>
 
-        {/* Mobile Phone Number (Optional) */}
+        {/* Mobile Phone Number */}
         <div>
           <PhoneInput
             countryCode={phoneCountryCode}
@@ -173,7 +265,7 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+          className="px-5 py-2.5 bg-[#1B2B4B] hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
         >
           {isSaving && <Spinner size="sm" />}
           <span>{t("settings.saveProfileCta")}</span>

@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-27  
-> **Status:** 100% production-ready standard. Fully executed and synchronized across all 11 Master Plan phases: Phase 1 (Security Blockers & CSRF/XSS/R2 IDOR Guards), Phase 2 (Database 14 Indexes & RLS Policy), Phase 3 (Financial Burst/Allocation/Can-Afford Engines & CSV Chunking), Phase 4 (Functional Web Routes /reset-password, /forgot-password, Due-Date Guardrail, Catch-Up Sweep, Payday Cards), Phase 5 (Serene Finance Design Tokens #2563eb, #1B2B4B, #F7F8FA & React.useId Accessibility), Phase 6 (Monorepo Decoupling & Shared Core ensurePremiumAccess Guard), Phase 7 (Zero `any` & Monorepo Code Quality), Phase 8 (Structured Audit Event Logging & Observability), Phase 9 (Bulk Operations & Tenant Caching), Phase 10 (Synchronized System Specs), Phase 11 (Vitest E2E Suite).
+> **Last updated:** 2026-08-29  
+> **Status:** 100% production-ready standard. Fully executed and synchronized across all Master Plan phases & capability enhancements: Profile & Household Settings 4-tab bar layout, mandatory Name & Notification Email validation, reusable `CountrySelect`, `LocationFields` & `PhoneInput` validation components, custom 256x256 WebP avatar photo uploads, owner-only household member removal with modal confirmation challenge, Pools Surplus Sweep Target assignment across GOAL and REGULAR categories, 12-table Zipped CSV Data Backup, left-aligned Income & Bills Timeline view switcher with `(i)` InfoTooltip, and active Neon PostgreSQL DB schema & seed dispatches.
 
 ---
 

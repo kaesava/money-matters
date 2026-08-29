@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner, InfoTooltip, useToast } from "@money-matters/ui/web";
+import { Spinner, InfoTooltip, useToast, LocationFields, validateAustralianPostcode } from "@money-matters/ui/web";
 
 export function HouseholdDetailsSection() {
   const toast = useToast();
@@ -39,6 +39,16 @@ export function HouseholdDetailsSection() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gov?.isOwner) return;
+
+    if (!householdName.trim()) {
+      toast.error("Household name cannot be blank.");
+      return;
+    }
+
+    if (country === "AU" && postcode.trim() && !validateAustralianPostcode(postcode)) {
+      toast.error("Australian postcode must be exactly 4 digits.");
+      return;
+    }
     
     setIsSubmitting(true);
     try {
@@ -56,82 +66,53 @@ export function HouseholdDetailsSection() {
   const isOwner = gov?.isOwner ?? false;
 
   return (
-    <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-4">
+    <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-5">
       <div className="flex items-center gap-2">
         <h2 className="text-base font-extrabold text-[#1B2B4B]">
-          Household Details
+          Household Profile & Location
         </h2>
-        <InfoTooltip content="Update your household name and location details." />
+        <InfoTooltip content="Update your household name and location details. Location is used to set public holiday calendars." />
       </div>
 
-      <p className="text-xs text-slate-500">
-        These details are shared with your partner if they join your household.
+      <p className="text-xs text-slate-500 font-medium">
+        These details are shared across your household members.
       </p>
 
-      <form onSubmit={handleSave} className="flex flex-col gap-4 max-w-md">
+      <form onSubmit={handleSave} className="flex flex-col gap-5 max-w-2xl">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-            Household Name
+          <label className="text-xs font-bold text-[#1B2B4B]">
+            Household Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
+            required
             value={householdName}
             onChange={(e) => setHouseholdName(e.target.value)}
             disabled={!isOwner}
+            placeholder="e.g. Smith Household"
             className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-slate-50 disabled:text-slate-400"
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-            Country
-          </label>
-          <input
-            type="text"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            disabled={!isOwner}
-            className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-slate-50 disabled:text-slate-400"
-          />
-        </div>
-
-        <div className="flex gap-4">
-          <div className="flex flex-col gap-1.5 flex-1">
-            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-              State
-            </label>
-            <input
-              type="text"
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              disabled={!isOwner}
-              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-slate-50 disabled:text-slate-400"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5 flex-1">
-            <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-              Postcode
-            </label>
-            <input
-              type="text"
-              value={postcode}
-              onChange={(e) => setPostcode(e.target.value)}
-              disabled={!isOwner}
-              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-slate-50 disabled:text-slate-400"
-            />
-          </div>
-        </div>
+        <LocationFields
+          country={country}
+          onCountryChange={setCountry}
+          state={state}
+          onStateChange={setState}
+          postcode={postcode}
+          onPostcodeChange={setPostcode}
+          disabled={!isOwner}
+        />
 
         {isOwner && (
-          <div className="pt-2">
+          <div className="pt-2 flex justify-end">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-bold bg-[#1B2B4B] hover:bg-[#1B2B4B]/90 text-white rounded-xl transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              className="px-5 py-2.5 text-xs font-bold bg-[#1B2B4B] hover:bg-slate-800 text-white rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting && <Spinner size="sm" className="text-white" />}
-              <span>Save Details</span>
+              <span>Save Household Details</span>
             </button>
           </div>
         )}

@@ -1,57 +1,37 @@
-
-
 # AGENT - In progress...
 
+### Setup
+## "Settings"
 
-Do a deep code review and make recommendations (and a detailed implementation plan) that addresses the revamp of the Settings > Account & Data screen in the web app. No coding - discussion only. [/grill-me](slashCommand;grill-me) instead of making assumptions.
+### Profile
+* I changed and saved Your Display Name - but it didn't seem to save it (reverted though it said it saved). Change the label to "Name". The field must be mandatory.
+* I changed left the Display Name blank and tried to save. It failed with weird error - show error message instead.
+* No validation on Mobile number - Validate Australian numbers only. Is there a standard function to validate numbers from any country? If so, based on country picked, include. Why are the mobile number prefix country drop-down options limited. Ensure standard best practice to include all countries.  Standardise this. For both, move to reusable UI/rules (component?). Use best practice.
+* If the User picks Australia, limit options for State and ensure Postcode format is correct. If they pick any other country, no need for validation, unless there is a standard function to validate state and postcode, If so, based on country picked, include. Standardise this. Move to resuable UI/rules (component?). Use best practice.
+* Default the Notification Email (Optional) to the Login Email when User record is created, but allow override after. And make it mandatory.
+* Be consistent with the Save button. Align with the look and feel in the Profile tab (colour and placement).
+* Instead of "Add your Partner", say "Add another Household member". This applies across the app. Ensure the language is household member, not partner as the app will also be used by housemates.
+* Critically review the Profile tab and ensure the data flows, UI is optimal, fields captured are correct, etc.
+* Allow the user to upload an avatar. Use best practice in terms of file size, file formats allowed, etc. We want to be functional but reasonable size.
+* If db changes are made, ensure seed is updated and db changes and seed are pushed to dev and prod database servers.
 
-# Settings > Account & Data
-
-This screen is incredibly buggy, under-developed and flawed and needs a full re-think and re-architecture. I don't like the layout, wording, titles, etc.
-
-Here are just some issues with it. However, I want you to re-think this completely.
-
-* The "🔒 Your Money Data is Locked Down Tight" seems misplaced. Perhaps it should be in the Legal & Compliance Documents section?
-
-* The "Household Shared Space & Data Control" and "Manage Governance" phrases mean nothing! You don't need a whole new other page. You need to bring it into here, but make it far more succint and use Aussie terminology.
-
-* Legal & Compliance Documents section - most modern websites have a separate section accessible from the footer that covers this. Align with modern standards. Re-think this entirely. Use the right language.
-
-* Promote "📦 Archived Categories & Bills" (rename to "Archived Data") into its own tab between Household and "Account & Data".
-
-* Report a Bug - while we are in Beta, I want  this to be more prominent. Do you suggest we put it on the navigation bar and call it "Provide feedback", calling out that the app is in Beta?
-
-* When I click Download Zipped CSV Backup --> "No Export Data Returned". Also, remove the JSON option and all related functionality. Also ensure that all data stored for the user including profile is exported. Check that every table with the user/tenant id is exported. Use user-friendly names for filenames (like History instead of Transaction Ledger).
-
-
-# Rules
-
-* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, vertical slice architecture, test cases coverage, Remove redundant code, etc.
-
-* Ignore mobile app for now
-
-* NO hardcoding user facing literals
-
-* NO dead code or table fields or API code or repeated UI/capability code. MECE principle.
+### Household
+* If I provide a blank Household name, it failed with weird error. Show error message instead.
+* Show Country as drop-down - start with Australia & New Zealand and then allow user to pick any coutrny. Standardise this. Move to reusable UI. Use best practice.
+* Show the list of household members  in a section next to the Add your Partner (now Add a Household Member) section. This list should show who the Ower is, and their email address and name.
+* The owner must be able to remove the household member. This would reuse the "Leave Household" functionality already built, but for the household member selected. The same confirmation challenge needs to apply. Non-owners will not see the functionality to remove household members. Users cannot remove themselves or shutdown the tenant from here - they will need to use the Account & Data screen.
 
 
-
-
-
-
-
-
-
-
-
-
-# Random
+## "Pools"
+* I setup a Category as the Sweep target. However, when I save, firstly, it should refresh the table and not the whole page. Secondly, when I open the same category again, it looks unchecked. I checked the DB and the field is set to TRUE (so it's been set in DB)
+* When I scrub, is it really actually updating any of the Pool balances? Check that this functionality works. Has this been built correctly?
+* "This will remove the sweep target from your existing designated category. Continue?" - change to something more user-friendly and include the current category. In fact, even next to the checkbox itself, show the currently assigned category.
 * Show the two Timeline & 12-Month view options on the left (instead of right) between the tab header and the explanation; being on the top right it gets missed. Change "Forward-looking payday planning matrix. Cell edits auto-sweep into the designated Surplus Target category." to something more functional and userfriendly and move to (i) icon.
 http://localhost:3000/subscription/upgrade
-* Ensure features list is still accurate
-* No way of going back to the signed-in part of the app if I got here through the Settings page
-* "This will remove the sweep target from your existing designated category. Continue?" - change to something more user-friendly and include the current category. In fact, even next to the checkbox itself, show the currently assigned category.
 
+
+
+_________
 
 
 # Rules
@@ -61,29 +41,25 @@ http://localhost:3000/subscription/upgrade
 * NO dead code or table fields or API code or repeated UI/capability code. MECE principle.
 
 # General
+## Landing
+* Ensure features list is still accurate
 
 ## Home
-* Remove Re-run of setup button - I thought we took that off R1 scope.
-
 ### New/Edit of Everday/Bills
 
 ## "Pools"
 
-## "History"###
-### Transactions
-### Allocation History
+## "Income & Bills"
+### List View
+### Timeline & Grid
+### Setup
 
 ## Bank Accounts
 ### Adding/Editing Modal:
 
-## Pools
-* I setup a Category as the Sweep target. However, when I save, firstly, it should refresh the whole page instead of just the table. Secondly, when I open the same category again, it looks unchecked. I checked the DB and the field is set to TRUE (so it's been set in DB)
-* When I scrub, is it really actually updating any of the Pool balances? Check that this functionality works.
-
-## "Income & Bills"
-### Timeline & Grid
-* Grid view: I thought we allowed the user to edit the Income for that day (remembering that it could come from more than one source)? I suggest a hyperlink on the amount that pops up a modal that shows the different incomes that make up that number. Perhaps there we allow the user to mark specific ones to Skip too? Discuss 
-
+## "History"###
+### Transactions
+### Allocation History
 
 ## "Settings"
 ### Profile
@@ -120,7 +96,13 @@ Does not include bank accounts - ok?
 ### Stripe Payment Readiness
 ### Apple Sign in Readiness
 ### Private Bank Accounts, Private Categories
-### Icon setting
+### Show/Hide Icon setting & implication
+### Profile upload of Avatar
+
+
+
+
+
 
 # TEST
 

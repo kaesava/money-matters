@@ -41,6 +41,9 @@ export function CategoryFormModal({
   const { status } = useSubscriptionStatus();
   const isTrialExpired = status?.isTrialExpired ?? false;
 
+  const categoriesQuery = trpc.listCategories.useQuery();
+  const currentSweepCategory = (categoriesQuery.data ?? []).find((c) => c.isSurplusTarget);
+
   const createCategoryMut = trpc.createCategory.useMutation();
   const updateCategoryMut = trpc.updateCategory.useMutation();
   const archiveCategoryMut = trpc.archiveCategory.useMutation();
@@ -182,7 +185,7 @@ export function CategoryFormModal({
             targetDate: type === "GOAL" ? targetDate : undefined,
             everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
             isEssential: type === "REGULAR" ? isEssential : undefined,
-            isSurplusTarget: type === "GOAL" ? isSurplusTarget : undefined,
+            isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
           },
         });
       } else {
@@ -196,14 +199,12 @@ export function CategoryFormModal({
           targetDate: type === "GOAL" ? targetDate : undefined,
           everydayAllowanceAmount: type === "EVERYDAY" ? everydayTargetKeepAmount : undefined,
           isEssential: type === "REGULAR" ? isEssential : undefined,
-          isSurplusTarget: type === "GOAL" ? isSurplusTarget : undefined,
+          isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
         });
       }
       await utils.listCategories.invalidate();
       onSuccess?.();
       onClose();
-      // Reload page to reflect Sweep Target projection state change
-      window.location.reload();
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || "Failed to save category");
     } finally {
@@ -412,7 +413,7 @@ export function CategoryFormModal({
               </div>
             )}
 
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+            <label className="flex items-start gap-2 cursor-pointer text-xs font-bold text-zinc-700 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
               <input
                 type="checkbox"
                 checked={isSurplusTarget}
@@ -420,11 +421,16 @@ export function CategoryFormModal({
                 onChange={(e) => {
                   const checking = e.target.checked;
                   if (!checking && categoryToEdit?.isSurplusTarget) {
-                    setErrorMsg("A sweep target is required. To remove this, edit another Goal and set it as the new sweep target.");
+                    setErrorMsg("A sweep target is required. To remove this, edit another pool and set it as the new sweep target.");
                     return;
                   }
                   if (checking) {
-                    if (!window.confirm("This will remove the sweep target from your existing designated category. Continue?")) {
+                    const currentTargetName = currentSweepCategory?.name ?? "None";
+                    const confirmMsg = t("settings.sweepTargetConfirm", {
+                      name: name.trim() || "this category",
+                      currentSweepTarget: currentTargetName,
+                    });
+                    if (!window.confirm(confirmMsg)) {
                       return;
                     }
                     if (isPrivate) {
@@ -434,9 +440,16 @@ export function CategoryFormModal({
                   setErrorMsg("");
                   setIsSurplusTarget(checking);
                 }}
-                className="w-4 h-4 text-emerald-600 rounded disabled:opacity-75"
+                className="w-4 h-4 text-emerald-600 rounded disabled:opacity-75 mt-0.5"
               />
-              🏦 Surplus Sweep Target (Sweeps leftover everyday spending cash into this pool on payday)
+              <div className="flex flex-col gap-0.5">
+                <span>🏦 Surplus Sweep Target (Sweeps leftover everyday spending cash into this pool on payday)</span>
+                {currentSweepCategory && (
+                  <span className="text-[11px] font-extrabold text-emerald-800">
+                    {t("settings.sweepTargetCurrent", { name: currentSweepCategory.name })}
+                  </span>
+                )}
+              </div>
             </label>
           </div>
         )}

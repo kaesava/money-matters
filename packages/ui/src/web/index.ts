@@ -4,6 +4,8 @@ export * from './Input';
 export * from './Badge';
 export * from './fields/EmailInput';
 export * from './fields/PhoneInput';
+export * from './fields/CountrySelect';
+export * from './fields/LocationFields';
 export * from './fields/DatePickerField';
 export * from './fields/AmountCentInput';
 export * from './fields/GenericSelectField';

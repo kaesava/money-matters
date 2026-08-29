@@ -6,7 +6,7 @@ import { EngineBucket } from "@money-matters/capability-budgeting";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { useToast } from "@money-matters/ui/web";
+import { useToast, InfoTooltip } from "@money-matters/ui/web";
 import PaydayPreviewModal from "../../../../components/web/PaydayPreviewModal";
 
 interface MatrixPlanTabProps {
@@ -340,13 +340,11 @@ export function MatrixPlanTab({
     <div className="flex flex-col gap-6">
       {/* Controls & Expansion Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white">
-            📊 12-Month Allocation Grid
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
+            <span>📊 12-Month Allocation Grid</span>
+            <InfoTooltip content="12-Month Payday Projection: See how income is automatically ring-fenced across upcoming paydays to cover bills and savings goals. Adjusting an allocation cell automatically sweeps remaining surplus into your designated Surplus Target pool." />
           </h2>
-          <p className="text-xs text-zinc-500 font-medium mt-0.5">
-            Forward-looking payday planning matrix. Cell edits auto-sweep into the designated Surplus Target category.
-          </p>
         </div>
 
         <button

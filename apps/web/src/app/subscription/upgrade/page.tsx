@@ -229,7 +229,7 @@ export default function UpgradePage() {
             <Button
               onClick={() => handleCheckout(billingCycle)}
               loading={loading}
-              className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl shadow-lg text-base transition-all active:scale-[0.99]"
+              className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl shadow-lg text-base transition-all active:scale-[0.99] cursor-pointer"
             >
               {billingCycle === "annual"
                 ? isFoundingOfferActive
@@ -237,6 +237,14 @@ export default function UpgradePage() {
                   : "Subscribe Annual ($89/yr) →"
                 : "Subscribe Monthly ($9.95/mo) →"}
             </Button>
+
+            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-slate-500 text-center">
+              <span>🔒 Cancel anytime in 1-click</span>
+              <span>•</span>
+              <span>🇦🇺 Australian Stealth Privacy Guarantee</span>
+              <span>•</span>
+              <span>⚡ Instant Household Access</span>
+            </div>
           </div>
         </div>
       </main>

@@ -19,14 +19,14 @@ money-matters/
 │   │   ├── bug-reports/     # In-app Beta bug report persistence & diagnostic metadata capture
 │   │   ├── file-notes/      # Notes & attachments via Cloudflare R2
 │   │   ├── notifications/   # Expo push & 6 scheduled Inngest background jobs
-│   │   ├── tenant/          # Household creation, partner invite, bank account CRUD
+│   │   ├── tenant/          # Household creation, partner invite, member removal, 12-table Zipped CSV data backup
 │   │   └── transactions/    # Ledger, Big 4 AU bank CSV statement parser, velocity check
 │   ├── config/        # Validated Zod environment configurations
 │   ├── core/          # Server infra (universal logger, rate limiter, auth context)
 │   ├── db/            # Drizzle PostgreSQL schemas, migrations, seeds, RLS
-│   ├── i18n/          # Centralized localization dictionary & t() helper
+│   ├── i18n/          # Centralized localization dictionary & t() helper (100% EN/JA 1:1 structural parity)
 │   ├── types/         # Pure domain contracts & Zod DTOs
-│   └── ui/            # Serene Finance UI components & design tokens
+│   └── ui/            # Serene Finance UI primitives, CountrySelect, LocationFields, PhoneInput & design tokens
 ```
 
 ---

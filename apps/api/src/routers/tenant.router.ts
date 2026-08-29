@@ -483,39 +483,83 @@ export const tenantRouter = {
 
   getHouseholdGovernanceInfo: tenantProcedure
     .query(async ({ ctx }) => {
-      const { tenants, tenantUsers } = await import('@money-matters/db');
+      const { tenants, tenantUsers, users } = await import('@money-matters/db');
       const [tenant] = await ctx.db
         .select()
         .from(tenants)
         .where(eq(tenants.id, ctx.tenantId!))
         .limit(1);
 
-      const members = await ctx.db
-        .select()
+      const dbMembers = await ctx.db
+        .select({
+          userId: tenantUsers.userId,
+          role: tenantUsers.role,
+          inviteEmail: tenantUsers.inviteEmail,
+          displayName: users.displayName,
+          email: users.email,
+          avatarUrl: users.avatarUrl,
+        })
         .from(tenantUsers)
+        .leftJoin(users, eq(tenantUsers.userId, users.id))
         .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), sql`${tenantUsers.archivedAt} IS NULL`));
 
-      const myMember = members.find((m) => m.userId === ctx.userId);
-      const partnerMember = members.find((m) => m.userId !== ctx.userId);
+      const myMember = dbMembers.find((m) => m.userId === ctx.userId);
+      const partnerMember = dbMembers.find((m) => m.userId !== ctx.userId);
+
+      const membersList = dbMembers.map((m) => ({
+        userId: m.userId,
+        name: m.displayName || m.email || m.inviteEmail || "Household Member",
+        email: m.email || m.inviteEmail || "",
+        avatarUrl: m.avatarUrl || null,
+        role: m.role || "MEMBER",
+        isOwner: m.role === "OWNER",
+      }));
 
       return {
         householdId: ctx.tenantId!,
         householdName: tenant?.name ?? "Household",
         userRole: myMember?.role ?? "MEMBER",
         isOwner: myMember?.role === "OWNER",
-        isSoleOwner: myMember?.role === "OWNER" && members.length <= 1,
-        memberCount: members.length,
-        partnerEmail: partnerMember?.inviteEmail ?? null,
+        isSoleOwner: myMember?.role === "OWNER" && dbMembers.length <= 1,
+        memberCount: dbMembers.length,
+        partnerEmail: partnerMember?.inviteEmail ?? partnerMember?.email ?? null,
         country: tenant?.country ?? "AU",
         state: tenant?.state ?? null,
         postcode: tenant?.postcode ?? null,
+        membersList,
       };
+    }),
+
+  removeHouseholdMember: tenantProcedure
+    .input(z.object({ targetUserId: z.string().min(1) }).strict())
+    .mutation(async ({ ctx, input }) => {
+      const { tenantUsers } = await import('@money-matters/db');
+
+      const [caller] = await ctx.db
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), eq(tenantUsers.userId, ctx.userId!), sql`${tenantUsers.archivedAt} IS NULL`));
+
+      if (caller?.role !== "OWNER") {
+        throw new Error("Only the household owner can remove members.");
+      }
+
+      if (input.targetUserId === ctx.userId) {
+        throw new Error("You cannot remove yourself using member removal.");
+      }
+
+      await ctx.db
+        .update(tenantUsers)
+        .set({ archivedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), eq(tenantUsers.userId, input.targetUserId)));
+
+      return { success: true };
     }),
 
   updateHousehold: tenantProcedure
     .input(
       z.object({
-        name: z.string().min(1).optional(),
+        name: z.string().min(1, "Household name is required"),
         country: z.string().optional(),
         state: z.string().optional(),
         postcode: z.string().optional(),
@@ -523,54 +567,52 @@ export const tenantRouter = {
     )
     .mutation(async ({ ctx, input }) => {
       const { tenants, tenantUsers } = await import('@money-matters/db');
-      
+
       const members = await ctx.db
         .select()
         .from(tenantUsers)
         .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), eq(tenantUsers.userId, ctx.userId!), sql`${tenantUsers.archivedAt} IS NULL`));
-        
+
       const myMember = members[0];
       if (myMember?.role !== "OWNER") {
         throw new Error("Only the owner can update household settings");
       }
 
-      const updateData: any = {
-        updatedAt: new Date(),
-        updatedBy: ctx.userId,
-      };
-      
-      if (input.name !== undefined) updateData.name = input.name;
-      if (input.country !== undefined) updateData.country = input.country;
-      if (input.state !== undefined) updateData.state = input.state;
-      if (input.postcode !== undefined) updateData.postcode = input.postcode;
+      await ctx.db
+        .update(tenants)
+        .set({
+          name: input.name,
+          country: input.country ?? "AU",
+          state: input.state || null,
+          postcode: input.postcode || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tenants.id, ctx.tenantId!));
 
-      if (Object.keys(updateData).length > 2) {
-        await ctx.db
-          .update(tenants)
-          .set(updateData)
-          .where(eq(tenants.id, ctx.tenantId!));
-      }
-      
       return { success: true };
     }),
 
   updateUserProfile: authenticatedProcedure
     .input(
       z.object({
-        displayName: z.string().min(1).optional(),
-        notificationEmail: z.string().email().or(z.literal("")).optional(),
+        displayName: z.string().min(1, "Name is required"),
+        notificationEmail: z.string().email("Invalid email address"),
         phoneCountryCode: z.string().optional(),
         phoneNumber: z.string().optional(),
+        avatarUrl: z.string().optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
       const { users, userPreferences } = await import('@money-matters/db');
-      if (input.displayName) {
-        await ctx.db
-          .update(users)
-          .set({ displayName: input.displayName, updatedAt: new Date() })
-          .where(eq(users.id, ctx.userId!));
-      }
+
+      await ctx.db
+        .update(users)
+        .set({
+          displayName: input.displayName,
+          avatarUrl: input.avatarUrl !== undefined ? input.avatarUrl : undefined,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, ctx.userId!));
 
       const [existingPref] = await ctx.db
         .select()
@@ -581,7 +623,7 @@ export const tenantRouter = {
         await ctx.db
           .update(userPreferences)
           .set({
-            notificationEmail: input.notificationEmail !== undefined ? (input.notificationEmail || null) : existingPref.notificationEmail,
+            notificationEmail: input.notificationEmail,
             phoneCountryCode: input.phoneCountryCode ?? existingPref.phoneCountryCode,
             phoneNumber: input.phoneNumber !== undefined ? (input.phoneNumber || null) : existingPref.phoneNumber,
             updatedAt: new Date(),
@@ -592,7 +634,7 @@ export const tenantRouter = {
           .insert(userPreferences)
           .values({
             userId: ctx.userId!,
-            notificationEmail: input.notificationEmail || null,
+            notificationEmail: input.notificationEmail,
             phoneCountryCode: input.phoneCountryCode || "+61",
             phoneNumber: input.phoneNumber || null,
           });

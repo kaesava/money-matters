@@ -280,7 +280,7 @@ export default function IncomeAndExpensesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab("SCHEDULE")}
-            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
+            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "SCHEDULE"
                 ? "bg-[#2563eb] text-white shadow-xs"
                 : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -290,7 +290,7 @@ export default function IncomeAndExpensesPage() {
           </button>
           <button
             onClick={() => setActiveTab("SETUP")}
-            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
+            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all cursor-pointer ${
               activeTab === "SETUP"
                 ? "bg-[#2563eb] text-white shadow-xs"
                 : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -300,11 +300,24 @@ export default function IncomeAndExpensesPage() {
           </button>
         </div>
 
-        {activeTab === "SCHEDULE" && (
-          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+        {activeTab === "SETUP" && (
+          <div className="max-w-xs">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Filter income & bills..."
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Sub-View Switcher for SCHEDULE tab on the left */}
+      {activeTab === "SCHEDULE" && (
+        <div className="flex items-center justify-start border-b border-zinc-100 dark:border-zinc-800 pb-3 -mt-3">
+          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80">
             <button
               onClick={() => setScheduleSubView("TIMELINE")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 scheduleSubView === "TIMELINE"
                   ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
@@ -314,7 +327,7 @@ export default function IncomeAndExpensesPage() {
             </button>
             <button
               onClick={() => setScheduleSubView("GRID")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 scheduleSubView === "GRID"
                   ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
@@ -323,18 +336,8 @@ export default function IncomeAndExpensesPage() {
               📊 12-Month Grid
             </button>
           </div>
-        )}
-
-        {activeTab === "SETUP" && (
-          <div className="max-w-xs">
-            <SearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search sources..."
-            />
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Tab Render */}
       {activeTab === "SCHEDULE" && scheduleSubView === "TIMELINE" && (
