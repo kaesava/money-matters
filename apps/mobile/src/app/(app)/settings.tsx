@@ -138,7 +138,7 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(app)/settings/bug-report' as Href)}
               activeOpacity={0.8}
             >
-              <Text style={styles.navLinkText}>🐛 {t('settings.reportBugLink', { defaultValue: 'Report a Bug' })}</Text>
+              <Text style={styles.navLinkText}>💬 {t('settings.reportBugLink')}</Text>
             </TouchableOpacity>
           </View>
 

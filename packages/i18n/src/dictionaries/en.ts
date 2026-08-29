@@ -108,7 +108,7 @@ export const en = {
     accountArchived: "Bank account archived successfully",
     csvImported: "CSV statement imported successfully",
     exportSuccess: "Data exported successfully",
-    bugReportSuccess: "Bug report submitted successfully! Thank you.",
+    bugReportSuccess: "Feedback sent successfully! Thank you.",
   },
   auth: {
     cta: "Sign In / Register",
@@ -802,9 +802,9 @@ export const en = {
     allocationHistoryLink: "Payday Allocation History",
     archivedLink: "Archived Categories & Bills",
     notificationsLink: "Notification Preferences",
-    reportBugLink: "Report a Bug",
+    reportBugLink: "Provide Feedback",
     helpTitle: "Help & Support",
-    helpDesc: "Need assistance or found an issue? Submit a bug report or reach support.",
+    helpDesc: "Need assistance or have a suggestion? Share your feedback or reach support.",
     bankAccounts: {
       title: "Bank accounts",
       addAccount: "Add Bank Account",

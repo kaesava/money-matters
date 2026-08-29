@@ -95,13 +95,13 @@ export interface BugReportEmailDetails {
 
 export async function sendBugReportReceiptEmail(to: string, details: BugReportEmailDetails) {
   const shortRef = details.ticketId.slice(0, 8);
-  const subject = `[Ref: BUG-${shortRef}] Money Matters Bug Report Received`;
+  const subject = `[Ref: BUG-${shortRef}] Money Matters Feedback Received`;
   
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
-      <h2 style="color: #1B2B4B; margin-top: 0; font-size: 20px;">🐛 Bug Report Received</h2>
+      <h2 style="color: #1B2B4B; margin-top: 0; font-size: 20px;">💬 Feedback Received</h2>
       <p style="color: #475569; font-size: 14px; line-height: 1.6;">
-        Thank you for submitting feedback to Money Matters! We have logged your bug report under reference <strong>#BUG-${shortRef}</strong>.
+        Thank you for taking the time to share your feedback with us! Your insights directly help us improve Money Matters. We have logged your submission under reference <strong>#BUG-${shortRef}</strong>.
       </p>
       <div style="background-color: #f8fafc; padding: 16px; border-radius: 12px; margin: 20px 0; border: 1px solid #cbd5e1;">
         <p style="margin: 6px 0; font-size: 13px; color: #1e293b;"><strong>Title:</strong> ${details.title}</p>
@@ -124,13 +124,13 @@ export async function sendBugReportReceiptEmail(to: string, details: BugReportEm
 }
 
 export async function sendBugReportAdminAlertEmail(details: BugReportEmailDetails) {
-  const adminEmail = process.env.BUG_REPORT_ADMIN_EMAIL || 'support@moneymatters.kaesava.au';
+  const adminEmail = process.env.BUG_REPORT_ADMIN_EMAIL || 'info@moneymatters.kaesava.au';
   const shortRef = details.ticketId.slice(0, 8);
-  const subject = `[NEW BUG] [Ref: BUG-${shortRef}] ${details.title}`;
+  const subject = `[FEEDBACK] [Ref: BUG-${shortRef}] ${details.title}`;
   
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #cbd5e1; border-radius: 16px; background-color: #ffffff;">
-      <h2 style="color: #ba1a1a; margin-top: 0; font-size: 18px;">🚨 New In-App Bug Report Submitted</h2>
+      <h2 style="color: #2563eb; margin-top: 0; font-size: 18px;">💬 New In-App Feedback Submitted</h2>
       <table style="width: 100%; font-size: 13px; color: #1e293b; border-collapse: collapse;">
         <tr><td style="padding: 6px 0; font-weight: bold; width: 140px;">Ticket Ref:</td><td>#BUG-${shortRef} (${details.ticketId})</td></tr>
         <tr><td style="padding: 6px 0; font-weight: bold;">Title:</td><td>${details.title}</td></tr>

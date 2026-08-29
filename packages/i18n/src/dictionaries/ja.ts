@@ -109,7 +109,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "accountArchived": "銀行口座をアーカイブしました",
     "csvImported": "CSV明細を正常にインポートしました",
     "exportSuccess": "データを正常にエクスポートしました",
-    "bugReportSuccess": "バグ報告を送信しました。ご協力ありがとうございます。"
+    "bugReportSuccess": "フィードバックを送信しました。ご協力ありがとうございます。"
   },
   "auth": {
     "cta": "ログイン / 登録",
@@ -788,9 +788,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "allocationHistoryLink": "給与日配分履歴",
     "archivedLink": "アーカイブされたカテゴリと請求書",
     "notificationsLink": "通知設定",
-    "reportBugLink": "バグを報告する",
+    "reportBugLink": "フィードバックを送信",
     "helpTitle": "ヘルプとサポート",
-    "helpDesc": "お困りの際や不具合のご報告はこちらから。",
+    "helpDesc": "お困りの際やフィードバックのご送信はこちらから。",
     "bankAccounts": {
       "title": "銀行口座",
       "addAccount": "銀行口座を追加",
