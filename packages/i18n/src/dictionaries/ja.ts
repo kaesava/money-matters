@@ -111,6 +111,14 @@ export const ja: DeepStringRecord<typeof en> = {
     "exportSuccess": "データを正常にエクスポートしました",
     "bugReportSuccess": "フィードバックを送信しました。ご協力ありがとうございます。"
   },
+  "networkError": {
+    "title": "接続が中断されました",
+    "badge": "サーバー / データベースに接続できません",
+    "defaultMessage": "Money Mattersサーバーに接続できません。データは保護されています。インターネット接続をご確認ください。",
+    "retryBtn": "再接続を試みる",
+    "retryBtnShort": "再試行",
+    "dismissBtn": "バナーを閉じる"
+  },
   "auth": {
     "cta": "ログイン / 登録",
     "hint": "給料が振り込まれた瞬間に、お金の流れをコントロール。",
@@ -380,6 +388,9 @@ export const ja: DeepStringRecord<typeof en> = {
     // How It Works
     "howItWorksBadge": "仕組み",
     "howItWorksTitle": "キャッシュフローの安心感を生む3つのステップ",
+    "step1Badge": "STEP 01",
+    "step2Badge": "STEP 02",
+    "step3Badge": "STEP 03",
     "howStep1Title": "1. 給料日の到来",
     "howStep1Body": "給与が口座に入金された瞬間、5段階ウォーターフォールエンジンが正確な配分額を瞬時に計算します。",
     "howStep2Title": "2. 固定費と目標の自動保護",
@@ -420,6 +431,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "pricingTitle": "シンプルで明瞭な世帯料金プラン",
     "pricingSubtitle": "60日間のフル機能Household体験からスタート（クレジットカード不要）。すべての機能を100%ご利用いただけます。",
     "pricingTrialBadge": "✨ 60日間無料体験（すべての機能をフル利用）",
+    "pricingFullAccessBadge": "FULL ACCESS",
     "pricingHouseholdTitle": "Household プラン",
     "pricingHouseholdPrice": "$9.95",
     "pricingHouseholdSub": "AUD / 月  または  $89 / 年",

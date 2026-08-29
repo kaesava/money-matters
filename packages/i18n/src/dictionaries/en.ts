@@ -110,6 +110,14 @@ export const en = {
     exportSuccess: "Data exported successfully",
     bugReportSuccess: "Feedback sent successfully! Thank you.",
   },
+  networkError: {
+    title: "Connection Interrupted",
+    badge: "Server / Database Unreachable",
+    defaultMessage: "We're having trouble reaching Money Matters servers. Your data is safe. Please check your internet connection.",
+    retryBtn: "Retry Connection",
+    retryBtnShort: "Retry",
+    dismissBtn: "Dismiss banner",
+  },
   auth: {
     cta: "Sign In / Register",
     hint: "Take control of your money the second your paycheck lands.",
@@ -393,6 +401,9 @@ export const en = {
     // How It Works
     howItWorksBadge: "How It Works",
     howItWorksTitle: "Three Steps to Cashflow Calm",
+    step1Badge: "STEP 01",
+    step2Badge: "STEP 02",
+    step3Badge: "STEP 03",
     howStep1Title: "1. Payday Arrives",
     howStep1Body: "Income lands in your account. The engine instantly calculates your allocation using exact 5-step waterfall math.",
     howStep2Title: "2. Bills & Goals Protected",
@@ -433,6 +444,7 @@ export const en = {
     pricingTitle: "Simple, transparent household pricing",
     pricingSubtitle: "Start with a 60-day full Household trial — no credit card required. Enjoy full access to all features.",
     pricingTrialBadge: "✨ 60-Day Free Trial (100% Full Access)",
+    pricingFullAccessBadge: "FULL ACCESS",
     pricingHouseholdTitle: "Household Plan",
     pricingHouseholdPrice: "$9.95",
     pricingHouseholdSub: "AUD / mo  or  $89 / yr",

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryCache, MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostHogProvider } from 'posthog-react-native';
 import { trpc, buildTrpcClient } from '../lib/trpc';
 import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
@@ -14,6 +14,27 @@ export function AppProviders({ children }: AppProvidersProps) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error) => {
+            const errStr = String((error as Error)?.message || error);
+            if (
+              errStr.includes("fetch failed") ||
+              errStr.includes("NetworkError") ||
+              errStr.includes("500") ||
+              errStr.includes("502") ||
+              errStr.includes("503") ||
+              errStr.includes("Database")
+            ) {
+              console.warn("[Mobile Query Error]: Server or database unreachable", errStr);
+            }
+          },
+        }),
+        mutationCache: new MutationCache({
+          onError: (error) => {
+            const errStr = String((error as Error)?.message || error);
+            console.warn("[Mobile Mutation Error]: Mutation failed", errStr);
+          },
+        }),
         defaultOptions: {
           queries: {
             retry: 1,

@@ -24,7 +24,7 @@ export function PricingSection({ onAuthClick }: PricingSectionProps) {
           {/* Single Unified Household Tier */}
           <div className="bg-white rounded-2xl p-8 border-2 border-[#2563eb] shadow-xl flex flex-col justify-between relative overflow-hidden">
             <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
-              FULL ACCESS
+              {t("landing.pricingFullAccessBadge", { defaultValue: "FULL ACCESS" })}
             </div>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">

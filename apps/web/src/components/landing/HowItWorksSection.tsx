@@ -18,7 +18,7 @@ export function HowItWorksSection() {
       <div className="grid md:grid-cols-3 gap-8 relative">
         <div className="p-6 rounded-2xl bg-white border border-[#e2e4e0] shadow-sm flex flex-col gap-4">
           <span className="text-xs font-mono font-bold text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100 w-fit">
-            STEP 01
+            {t("landing.step1Badge", { defaultValue: "STEP 01" })}
           </span>
           <h3 className="text-xl font-bold text-[#1B2B4B]">{t("landing.howStep1Title")}</h3>
           <p className="text-xs text-zinc-600 leading-relaxed">{t("landing.howStep1Body")}</p>
@@ -26,7 +26,7 @@ export function HowItWorksSection() {
 
         <div className="p-6 rounded-2xl bg-white border border-[#e2e4e0] shadow-sm flex flex-col gap-4">
           <span className="text-xs font-mono font-bold text-[#2563eb] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100 w-fit">
-            STEP 02
+            {t("landing.step2Badge", { defaultValue: "STEP 02" })}
           </span>
           <h3 className="text-xl font-bold text-[#1B2B4B]">{t("landing.howStep2Title")}</h3>
           <p className="text-xs text-zinc-600 leading-relaxed">{t("landing.howStep2Body")}</p>
@@ -34,7 +34,7 @@ export function HowItWorksSection() {
 
         <div className="p-6 rounded-2xl bg-white border border-[#e2e4e0] shadow-sm flex flex-col gap-4">
           <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100 w-fit">
-            STEP 03
+            {t("landing.step3Badge", { defaultValue: "STEP 03" })}
           </span>
           <h3 className="text-xl font-bold text-[#1B2B4B]">{t("landing.howStep3Title")}</h3>
           <p className="text-xs text-zinc-600 leading-relaxed">{t("landing.howStep3Body")}</p>
