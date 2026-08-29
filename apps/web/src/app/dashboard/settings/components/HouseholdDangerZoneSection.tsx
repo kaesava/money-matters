@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
-import { Spinner, useToast } from "@money-matters/ui/web";
+import { Spinner, useToast, InfoTooltip } from "@money-matters/ui/web";
 import { ModalDialog } from "../../../../components/web/ModalDialog";
 
 export function HouseholdDangerZoneSection() {
@@ -60,14 +60,12 @@ export function HouseholdDangerZoneSection() {
   };
 
   return (
-    <section className="p-6 bg-white border border-red-200 rounded-2xl shadow-xs space-y-4">
-      <div>
-        <h2 className="text-base font-extrabold text-red-900">
-          Household Exit & Danger Zone
+    <section className="p-6 bg-red-50/40 border border-red-200 rounded-2xl shadow-xs space-y-4">
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-extrabold text-red-700 tracking-wide uppercase">
+          DANGER ZONE
         </h2>
-        <p className="text-xs text-slate-500">
-          Manage member departure or permanent erasure of your household data.
-        </p>
+        <InfoTooltip content="Danger Zone: Manage departure from this household budget or permanent erasure of your household data." />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 pt-2">

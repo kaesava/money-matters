@@ -202,20 +202,9 @@ export function leaveTenantHandler(db: DbOrTx) {
 
     await db.delete(bankAccounts).where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.userId, userId), eq(bankAccounts.isPrivate, true)));
 
-    // 4. Delete user's preference rows & membership
-    await db.delete(deviceTokens).where(eq(deviceTokens.userId, userId));
-    await db.delete(userPreferences).where(eq(userPreferences.userId, userId));
-    await db.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
+    // 4. Delete tenant-scoped preferences and membership for this household only
+    await db.delete(tenantUserPreferences).where(and(eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.userId, userId)));
     await db.delete(tenantUsers).where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)));
-    await db.delete(users).where(eq(users.id, userId));
-
-    // Purge neon_auth
-    try {
-      await db.execute(sql`DELETE FROM neon_auth.session WHERE "userId" = ${userId}`);
-      await db.execute(sql`DELETE FROM neon_auth.user WHERE id = ${userId}`);
-    } catch (err) {
-      console.warn("Neon auth purge step skipped or failed:", err);
-    }
 
     return { success: true };
   };

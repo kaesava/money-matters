@@ -1,35 +1,20 @@
 # AGENT - In progress...
 
-### Setup
 ## "Settings"
+* I noticed there are a lot of "black background" button in Settings but not elsewhere. Unless there's an important reason (like the button is a deletion button), I want the look and feel of all buttons to be the same across the app (reuse UI where possible so less chance of definitions diverging).
 
 ### Profile
-* I changed and saved Your Display Name - but it didn't seem to save it (reverted though it said it saved). Change the label to "Name". The field must be mandatory.
-* I changed left the Display Name blank and tried to save. It failed with weird error - show error message instead.
-* No validation on Mobile number - Validate Australian numbers only. Is there a standard function to validate numbers from any country? If so, based on country picked, include. Why are the mobile number prefix country drop-down options limited. Ensure standard best practice to include all countries.  Standardise this. For both, move to reusable UI/rules (component?). Use best practice.
-* If the User picks Australia, limit options for State and ensure Postcode format is correct. If they pick any other country, no need for validation, unless there is a standard function to validate state and postcode, If so, based on country picked, include. Standardise this. Move to resuable UI/rules (component?). Use best practice.
-* Default the Notification Email (Optional) to the Login Email when User record is created, but allow override after. And make it mandatory.
-* Be consistent with the Save button. Align with the look and feel in the Profile tab (colour and placement).
-* Instead of "Add your Partner", say "Add another Household member". This applies across the app. Ensure the language is household member, not partner as the app will also be used by housemates.
-* Critically review the Profile tab and ensure the data flows, UI is optimal, fields captured are correct, etc.
-* Allow the user to upload an avatar. Use best practice in terms of file size, file formats allowed, etc. We want to be functional but reasonable size.
-* If db changes are made, ensure seed is updated and db changes and seed are pushed to dev and prod database servers.
-
+### My Details
+* For Country dropdown in Mobile number, move New Zealand to just like any other country. You don't need to section it like "Featured/Local", just start with "Australia (+61)" (default) and then list all others. Also, when I selected Canada, it default to the United States! Fix.
+* "Upload PNG, JPG, or WEBP up to 2MB": This will rarely apply - so don't include it here. If they try to upload a file that does not meet these requirements, you can shown an error around format and size.
+* Upload avatar - allow user to zoom and centre, as most modern apps allow you to do when uploading an avatar so the user can decide the content to go into the box
 ### Household
-* If I provide a blank Household name, it failed with weird error. Show error message instead.
-* Show Country as drop-down - start with Australia & New Zealand and then allow user to pick any coutrny. Standardise this. Move to reusable UI. Use best practice.
-* Show the list of household members  in a section next to the Add your Partner (now Add a Household Member) section. This list should show who the Ower is, and their email address and name.
-* The owner must be able to remove the household member. This would reuse the "Leave Household" functionality already built, but for the household member selected. The same confirmation challenge needs to apply. Non-owners will not see the functionality to remove household members. Users cannot remove themselves or shutdown the tenant from here - they will need to use the Account & Data screen.
-
-
-## "Pools"
-* I setup a Category as the Sweep target. However, when I save, firstly, it should refresh the table and not the whole page. Secondly, when I open the same category again, it looks unchecked. I checked the DB and the field is set to TRUE (so it's been set in DB)
-* When I scrub, is it really actually updating any of the Pool balances? Check that this functionality works. Has this been built correctly?
-* "This will remove the sweep target from your existing designated category. Continue?" - change to something more user-friendly and include the current category. In fact, even next to the checkbox itself, show the currently assigned category.
-* Show the two Timeline & 12-Month view options on the left (instead of right) between the tab header and the explanation; being on the top right it gets missed. Change "Forward-looking payday planning matrix. Cell edits auto-sweep into the designated Surplus Target category." to something more functional and userfriendly and move to (i) icon.
-http://localhost:3000/subscription/upgrade
-
-
+* Household Profile & Location - section seems oddly formatted - doesn't take up the full width nor half - design properly.
+* Country - move New Zealand like any other country ()
+* You already have (i) next to Add a "Household Member" and "Household Members". Remove the sub-titles. In the "Add a Household Member" (i) - ensure you reference "household members" as they maybe family but may also not be - they may be housemates. This applies across the app. Ensure this is the case across the app.
+* "Household Exit & Danger Zone" --> "DANGER ZONE" in RED with "Manager mem..." in (i) icon
+* When I removed a member, I got no confirmation.
+* When I tried to leave a Household - I got an obscure error - something about violating foreign keys. But when I attempted it again, it blew the user away from the users table instead of just removing their association. Please audit this code (to leave the household). This is incredibly important to get right.
 
 _________
 
@@ -62,8 +47,12 @@ _________
 ### Allocation History
 
 ## "Settings"
+
 ### Profile
+### My Details
 ### Household
+* When I invite a household member, it says "Invite link created! Share URL: http://localhost:3000/invite/46649913-1e1b-4c85-af7f-8dbd35216b82". It's not clear if the user will receive an email or if I need to share the link with the user. Preference is the former, don't provide the link here - let them know that an email has been sent. Also, it will be good to include in the Household members list which household members have not accepted. If accepted, don't add anything, if waiting, maybe a badge indicating that the user has not yet accepted their invite?
+
 ### Account & Data
 ### Subscription
 ### Provide Feedback

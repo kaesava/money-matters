@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-08-29  
-> **Status:** 100% production-ready standard. Fully executed and synchronized across all Master Plan phases & capability enhancements: Profile & Household Settings 4-tab bar layout, mandatory Name & Notification Email validation, reusable `CountrySelect`, `LocationFields` & `PhoneInput` validation components, custom 256x256 WebP avatar photo uploads, owner-only household member removal with modal confirmation challenge, Pools Surplus Sweep Target assignment across GOAL and REGULAR categories, 12-table Zipped CSV Data Backup, left-aligned Income & Bills Timeline view switcher with `(i)` InfoTooltip, and active Neon PostgreSQL DB schema & seed dispatches.
+> **Status:** 100% production-ready standard. Fully executed and synchronized across all Master Plan phases & capability enhancements: Profile & Household Settings 4-tab bar layout, mandatory Name & Notification Email validation, reusable `CountrySelect`, `LocationFields` & `PhoneInput` validation components with Canada prefix fix, interactive `AvatarCropModal` (zoom & pan cropper), owner-only household member removal with modal confirmation challenge, non-destructive `leaveMyHousehold` architecture (disassociates `tenant_users` membership without deleting `users` identity), Pools Surplus Sweep Target assignment across GOAL and REGULAR categories, 12-table Zipped CSV Data Backup, left-aligned Income & Bills Timeline view switcher with `(i)` InfoTooltip, and active Neon PostgreSQL DB schema & seed dispatches.
 
 ---
 

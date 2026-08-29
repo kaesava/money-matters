@@ -71,14 +71,10 @@ export function HouseholdDetailsSection() {
         <h2 className="text-base font-extrabold text-[#1B2B4B]">
           Household Profile & Location
         </h2>
-        <InfoTooltip content="Update your household name and location details. Location is used to set public holiday calendars." />
+        <InfoTooltip content="Update your household name and location details. Location details are shared across household members (family or housemates)." />
       </div>
 
-      <p className="text-xs text-slate-500 font-medium">
-        These details are shared across your household members.
-      </p>
-
-      <form onSubmit={handleSave} className="flex flex-col gap-5 max-w-2xl">
+      <form onSubmit={handleSave} className="flex flex-col gap-5 w-full">
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-bold text-[#1B2B4B]">
             Household Name <span className="text-red-500">*</span>
@@ -109,7 +105,7 @@ export function HouseholdDetailsSection() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2.5 text-xs font-bold bg-[#1B2B4B] hover:bg-slate-800 text-white rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              className="px-5 py-2.5 text-xs font-extrabold bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting && <Spinner size="sm" className="text-white" />}
               <span>Save Household Details</span>

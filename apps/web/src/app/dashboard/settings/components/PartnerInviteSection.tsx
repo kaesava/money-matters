@@ -77,20 +77,14 @@ export function PartnerInviteSection() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* LEFT COLUMN: Household Members List */}
+      {/* LEFT COLUMN: Household Members */}
       <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-extrabold text-[#1B2B4B]">
-              Household Members ({membersList.length})
-            </h2>
-            <InfoTooltip content="Active members with access to your household budget." />
-          </div>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-extrabold text-[#1B2B4B]">
+            Household Members
+          </h2>
+          <InfoTooltip content="People currently sharing access to your household budget (family members or housemates)." />
         </div>
-
-        <p className="text-xs text-slate-500 font-medium">
-          People currently sharing access to your household budget.
-        </p>
 
         <div className="space-y-3 pt-1">
           {membersList.length === 0 ? (
@@ -168,7 +162,7 @@ export function PartnerInviteSection() {
             <h2 className="text-base font-extrabold text-[#1B2B4B]">
               {t("settings.addMemberTitle")}
             </h2>
-            <InfoTooltip content={t("settings.addMemberSubtitle")} />
+            <InfoTooltip content="Invite a partner, family member, or housemate by email to collaborate on your household budget." />
           </div>
           {isTrialExpired && (
             <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 rounded-full">
@@ -176,8 +170,6 @@ export function PartnerInviteSection() {
             </span>
           )}
         </div>
-
-        <p className="text-xs text-slate-500 font-medium">{t("settings.addMemberSubtitle")}</p>
 
         {!isOwner ? (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-900">
@@ -210,7 +202,7 @@ export function PartnerInviteSection() {
               <button
                 type="submit"
                 disabled={partnerInviting}
-                className="px-4 py-2 text-xs font-bold bg-[#1B2B4B] hover:bg-slate-800 text-white rounded-xl transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="px-5 py-2.5 text-xs font-extrabold bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 {partnerInviting && <Spinner size="sm" className="text-white" />}
                 <span>Send Invitation →</span>

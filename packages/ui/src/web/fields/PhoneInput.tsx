@@ -47,36 +47,33 @@ export function validateMobileNumber(countryCode: string, phoneNumber: string): 
   return { isValid: true };
 }
 
-const FEATURED_COUNTRY_CODES = [
-  { code: "+61", flag: "🇦🇺", label: "Australia (+61)" },
-  { code: "+64", flag: "🇳🇿", label: "New Zealand (+64)" },
-];
-
-const OTHER_COUNTRY_CODES = [
-  { code: "+1", flag: "🇺🇸", label: "United States (+1)" },
-  { code: "+1-CA", flag: "🇨🇦", label: "Canada (+1)" },
-  { code: "+44", flag: "🇬🇧", label: "United Kingdom (+44)" },
-  { code: "+91", flag: "🇮🇳", label: "India (+91)" },
-  { code: "+81", flag: "🇯🇵", label: "Japan (+81)" },
-  { code: "+65", flag: "🇸🇬", label: "Singapore (+65)" },
-  { code: "+49", flag: "🇩🇪", label: "Germany (+49)" },
-  { code: "+33", flag: "🇫🇷", label: "France (+33)" },
-  { code: "+39", flag: "🇮🇹", label: "Italy (+39)" },
-  { code: "+34", flag: "🇪🇸", label: "Spain (+34)" },
-  { code: "+31", flag: "🇳🇱", label: "Netherlands (+31)" },
-  { code: "+55", flag: "🇧🇷", label: "Brazil (+55)" },
-  { code: "+52", flag: "🇲🇽", label: "Mexico (+52)" },
-  { code: "+27", flag: "🇿🇦", label: "South Africa (+27)" },
-  { code: "+852", flag: "🇭🇰", label: "Hong Kong (+852)" },
-  { code: "+886", flag: "🇹🇼", label: "Taiwan (+886)" },
-  { code: "+82", flag: "🇰🇷", label: "South Korea (+82)" },
-  { code: "+60", flag: "🇲🇾", label: "Malaysia (+60)" },
-  { code: "+63", flag: "🇵🇭", label: "Philippines (+63)" },
-  { code: "+62", flag: "🇮🇩", label: "Indonesia (+62)" },
-  { code: "+66", flag: "🇹🇭", label: "Thailand (+66)" },
-  { code: "+84", flag: "🇻🇳", label: "Vietnam (+84)" },
-  { code: "+971", flag: "🇦🇪", label: "UAE (+971)" },
-  { code: "+966", flag: "🇸🇦", label: "Saudi Arabia (+966)" },
+const COUNTRY_LIST = [
+  { id: "+61", dialCode: "+61", flag: "🇦🇺", label: "Australia (+61)" },
+  { id: "+64", dialCode: "+64", flag: "🇳🇿", label: "New Zealand (+64)" },
+  { id: "+1-US", dialCode: "+1", flag: "🇺🇸", label: "United States (+1)" },
+  { id: "+1-CA", dialCode: "+1", flag: "🇨🇦", label: "Canada (+1)" },
+  { id: "+44", dialCode: "+44", flag: "🇬🇧", label: "United Kingdom (+44)" },
+  { id: "+91", dialCode: "+91", flag: "🇮🇳", label: "India (+91)" },
+  { id: "+81", dialCode: "+81", flag: "🇯🇵", label: "Japan (+81)" },
+  { id: "+65", dialCode: "+65", flag: "🇸🇬", label: "Singapore (+65)" },
+  { id: "+49", dialCode: "+49", flag: "🇩🇪", label: "Germany (+49)" },
+  { id: "+33", dialCode: "+33", flag: "🇫🇷", label: "France (+33)" },
+  { id: "+39", dialCode: "+39", flag: "🇮🇹", label: "Italy (+39)" },
+  { id: "+34", dialCode: "+34", flag: "🇪🇸", label: "Spain (+34)" },
+  { id: "+31", dialCode: "+31", flag: "🇳🇱", label: "Netherlands (+31)" },
+  { id: "+55", dialCode: "+55", flag: "🇧🇷", label: "Brazil (+55)" },
+  { id: "+52", dialCode: "+52", flag: "🇲🇽", label: "Mexico (+52)" },
+  { id: "+27", dialCode: "+27", flag: "🇿🇦", label: "South Africa (+27)" },
+  { id: "+852", dialCode: "+852", flag: "🇭🇰", label: "Hong Kong (+852)" },
+  { id: "+886", dialCode: "+886", flag: "🇹🇼", label: "Taiwan (+886)" },
+  { id: "+82", dialCode: "+82", flag: "🇰🇷", label: "South Korea (+82)" },
+  { id: "+60", dialCode: "+60", flag: "🇲🇾", label: "Malaysia (+60)" },
+  { id: "+63", dialCode: "+63", flag: "🇵🇭", label: "Philippines (+63)" },
+  { id: "+62", dialCode: "+62", flag: "🇮🇩", label: "Indonesia (+62)" },
+  { id: "+66", dialCode: "+66", flag: "🇹🇭", label: "Thailand (+66)" },
+  { id: "+84", dialCode: "+84", flag: "🇻🇳", label: "Vietnam (+84)" },
+  { id: "+971", dialCode: "+971", flag: "🇦🇪", label: "UAE (+971)" },
+  { id: "+966", dialCode: "+966", flag: "🇸🇦", label: "Saudi Arabia (+966)" },
 ];
 
 export function PhoneInput({
@@ -90,6 +87,9 @@ export function PhoneInput({
 }: PhoneInputProps) {
   const inputId = useId();
 
+  // Find matching country item by dial code or id
+  const selectedItem = COUNTRY_LIST.find((c) => c.id === countryCode || c.dialCode === countryCode) || COUNTRY_LIST[0];
+
   return (
     <div className="flex flex-col gap-1.5 w-full">
       {label && (
@@ -99,25 +99,19 @@ export function PhoneInput({
       )}
       <div className="flex items-center gap-2">
         <select
-          value={countryCode}
-          onChange={(e) => onCountryCodeChange(e.target.value)}
+          value={selectedItem.id}
+          onChange={(e) => {
+            const found = COUNTRY_LIST.find((c) => c.id === e.target.value);
+            onCountryCodeChange(found ? found.dialCode : e.target.value);
+          }}
           disabled={disabled}
           className="px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
         >
-          <optgroup label="Featured / Local">
-            {FEATURED_COUNTRY_CODES.map((item) => (
-              <option key={item.code} value={item.code}>
-                {item.flag} {item.code}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="All International Codes">
-            {OTHER_COUNTRY_CODES.map((item) => (
-              <option key={item.code} value={item.code.split("-")[0]}>
-                {item.flag} {item.label}
-              </option>
-            ))}
-          </optgroup>
+          {COUNTRY_LIST.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.flag} {item.label}
+            </option>
+          ))}
         </select>
         <input
           id={inputId}
