@@ -41,7 +41,10 @@ export const tenantRouter = {
       const result = await handler(input, ctx.tenantId!, ctx.userId!);
 
       // Send transactional invitation email via Resend
-      const originUrl = process.env.APP_URL || "https://moneymatters.kaesava.au";
+      const isDev = process.env.NODE_ENV === "development";
+      const originUrl =
+        process.env.APP_URL ||
+        (isDev ? "http://localhost:3000" : "https://moneymatters.kaesava.au");
       const inviteUrl = `${originUrl}/invite/${result.inviteToken}`;
       await sendNotificationEmail(
         input.email,

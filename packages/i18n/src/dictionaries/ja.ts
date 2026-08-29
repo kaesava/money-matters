@@ -989,7 +989,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "invalidEmailAlertBody": "正しいメールアドレスを入力してください。",
     "ownerOnlyNotice": "世帯の所有者 ({email}) のみが新しいメンバーを招待できます。",
     "pendingAcceptance": "承認待ち",
-    "dangerZoneTooltip": "デンジャーゾーン：世帯からの脱退、または世帯の永久閉鎖および関連データの消去を管理します。"
+    "dangerZoneTooltip": "デンジャーゾーン：世帯からの脱退、または世帯の永久閉鎖および関連データの消去を管理します。",
+    "signOutSwitchAccount": "サインアウトしてアカウントを切り替える"
   },
   "privacy": {
     "title": "プライバシーとデータセキュリティ",

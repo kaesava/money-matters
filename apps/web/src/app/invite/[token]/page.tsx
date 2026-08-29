@@ -92,13 +92,25 @@ export default function AcceptInvitePage() {
             <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl mx-auto">⚠️</div>
             <h1 className="text-xl font-bold text-gray-900">{t("partner.acceptErrorTitle")}</h1>
             <p className="text-sm text-gray-500">{errorMsg || t("partner.invalidToken")}</p>
-            <button
-              type="button"
-              onClick={() => router.push('/dashboard')}
-              className="mt-2 bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
-            >
-              {t("partner.goToDashboard")}
-            </button>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  await authClient.signOut();
+                  router.push(`/sign-in?redirect=/invite/${token}`);
+                }}
+                className="bg-[#2563eb] text-white text-xs font-extrabold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors w-full cursor-pointer"
+              >
+                {t("partner.signOutSwitchAccount")}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard')}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900 px-4 py-2 rounded-xl transition-colors cursor-pointer"
+              >
+                {t("partner.goToDashboard")}
+              </button>
+            </div>
           </div>
         )}
       </div>

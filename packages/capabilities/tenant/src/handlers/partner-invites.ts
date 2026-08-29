@@ -74,7 +74,9 @@ export function acceptInviteHandler(db: DbOrTx) {
 
     if (invite.inviteEmail) {
       if (!userEmail || invite.inviteEmail.trim().toLowerCase() !== userEmail.trim().toLowerCase()) {
-        throw new Error("Invitation email does not match authenticated user email.");
+        throw new Error(
+          `Invitation email (${invite.inviteEmail}) does not match your active logged-in email (${userEmail || "unauthenticated"}). Please switch accounts or log out to accept this invitation.`
+        );
       }
     }
 

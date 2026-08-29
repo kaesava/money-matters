@@ -1004,6 +1004,7 @@ export const en = {
     ownerOnlyNotice: "Only the Household Owner ({email}) can invite new members to this household.",
     pendingAcceptance: "Pending Acceptance",
     dangerZoneTooltip: "Danger Zone: Manage exit from the household or permanent closure of household and erasure of related data.",
+    signOutSwitchAccount: "Sign Out & Switch Account",
   },
   privacy: {
     title: "Privacy & Data Security",
