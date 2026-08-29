@@ -120,10 +120,10 @@ export default function MobileBugReportScreen() {
           <View style={styles.successCard}>
             <Text style={styles.successIcon}>✓</Text>
             <Text style={styles.successTitle}>
-              {t('bugReport.successMsg', { defaultValue: `Bug report submitted! Ticket #BUG-${submittedRef} created.`, ref: submittedRef })}
+              {t('bugReport.successMsg')}
             </Text>
             <Text style={styles.ticketRefText}>
-              {t('bugReport.ticketRef', { defaultValue: `Ticket Ref: #BUG-${submittedRef}`, ref: submittedRef })}
+              {t('bugReport.ticketRef', { ref: submittedRef })}
             </Text>
             <TouchableOpacity
               style={styles.closeBtn}

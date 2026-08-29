@@ -4,6 +4,7 @@ import React, { useState, useEffect, useId } from "react";
 import { t } from "@money-matters/i18n";
 import { useToast } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
+import { authClient } from "../../../../lib/auth";
 import { getWebVersionInfo } from "../../../../lib/version";
 
 interface BugReportModalProps {
@@ -26,18 +27,31 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
   const categoryId = useId();
   const descriptionId = useId();
   const consentId = useId();
+  const emailInputId = useId();
+
+  const { data: session } = authClient.useSession();
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: isOpen });
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<WorkflowCategory>("setup");
   const [frustrationLevel, setFrustrationLevel] = useState<1 | 2 | 3 | 4>(2);
   const [description, setDescription] = useState("");
   const [contactConsent, setContactConsent] = useState(true);
+  const [contactEmail, setContactEmail] = useState("");
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const versionInfo = getWebVersionInfo();
   const createBugReportMutation = trpc.createBugReport.useMutation();
+
+  useEffect(() => {
+    if (isOpen) {
+      const prefEmail = userPrefQuery.data?.notificationEmail;
+      const sessEmail = session?.user?.email;
+      setContactEmail(prefEmail || sessEmail || "");
+    }
+  }, [isOpen, userPrefQuery.data?.notificationEmail, session?.user?.email]);
 
   // Environment diagnostics metadata
   const [envDetails, setEnvDetails] = useState({
@@ -57,6 +71,7 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
         frustrationLevel,
         description,
         contactConsent,
+        userEmail: contactConsent && contactEmail ? contactEmail : undefined,
         platform: "web",
         appVersion: versionInfo.formattedVersion,
         pageUrl: envDetails.pageUrl,
@@ -65,7 +80,7 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
       setSubmittedRef(res.id.slice(0, 8));
       toast.success(t("toasts.bugReportSuccess"));
     } catch (err) {
-      setErrorText(err instanceof Error ? err.message : "Failed to submit bug report");
+      setErrorText(err instanceof Error ? err.message : "Failed to submit feedback");
     }
   };
 
@@ -172,7 +187,7 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div>
             <h2 className="text-lg font-extrabold text-[#1B2B4B] flex items-center gap-2">
-              <span>🐛</span> {t("bugReport.title")}
+              <span>💬</span> {t("bugReport.title")}
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               {t("bugReport.subtitle")}
@@ -196,10 +211,10 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                 ✓
               </div>
               <h3 className="text-base font-extrabold text-[#1B2B4B]">
-                {t("bugReport.successMsg", { defaultValue: `Bug report submitted! Ticket #BUG-${submittedRef} created.`, ref: submittedRef })}
+                {t("bugReport.successMsg")}
               </h3>
               <p className="text-xs text-slate-500 font-medium">
-                {t("bugReport.ticketRef", { defaultValue: `Ticket Ref: #BUG-${submittedRef}`, ref: submittedRef })}
+                {t("bugReport.ticketRef", { ref: submittedRef })}
               </p>
               <button
                 type="button"
@@ -315,6 +330,24 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                   {t("bugReport.contactConsentLabel", { defaultValue: "Email me updates & receipt regarding this ticket" })}
                 </label>
               </div>
+
+              {/* Conditional Notification Email Field */}
+              {contactConsent && (
+                <div className="flex flex-col gap-1.5 animate-in fade-in duration-150">
+                  <label htmlFor={emailInputId} className="text-xs font-bold text-[#1B2B4B]">
+                    {t("bugReport.formEmailLabel")} <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    id={emailInputId}
+                    type="email"
+                    required={contactConsent}
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder={t("bugReport.formEmailPlaceholder")}
+                    className="w-full px-3.5 py-2 rounded-xl text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent transition-all"
+                  />
+                </div>
+              )}
 
               {/* System Telemetry Collapsible Section */}
               <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3">

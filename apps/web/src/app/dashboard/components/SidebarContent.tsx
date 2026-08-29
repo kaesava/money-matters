@@ -117,10 +117,10 @@ export function SidebarContent({
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 transition-all cursor-pointer ${
                 sidebarCollapsed ? "justify-center" : ""
               }`}
-              title="Provide Beta Feedback / Report Bug"
+              title={t("bugReport.title")}
             >
               <span>💬</span>
-              {!sidebarCollapsed && <span>Provide Feedback</span>}
+              {!sidebarCollapsed && <span>{t("bugReport.title")}</span>}
             </button>
           )}
           <SidebarTrialNavItem collapsed={sidebarCollapsed} onNavigate={() => setMobileMenuOpen(false)} />
