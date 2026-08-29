@@ -230,9 +230,19 @@ export function useSetupWizardState() {
     }
   };
 
-  const handleDiscard = () => {
+  const updatePrefMut = trpc.updateUserPreferences.useMutation();
+
+  const handleDiscard = async () => {
     setShowDiscardModal(false);
-    router.push("/dashboard");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("skip_setup_wizard", "true");
+    }
+    try {
+      await updatePrefMut.mutateAsync({ setupCompleted: true });
+    } catch (_e) {
+      // Ignore if preference update fails
+    }
+    router.replace("/dashboard");
   };
 
   return {

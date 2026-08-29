@@ -34,6 +34,7 @@ export function useDashboardData() {
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+  const userPrefQuery = trpc.getUserPreferences.useQuery();
   const canAffordQuery = trpc.canAfford.useQuery(
     { amount: canAffordAmount },
     { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
@@ -51,12 +52,21 @@ export function useDashboardData() {
     },
   });
 
-  // Redirect to setup wizard if user has no categories configured
+  // Redirect to setup wizard if user has no categories configured and setup not skipped/completed
   useEffect(() => {
-    if (categoriesQuery.isSuccess && categoriesQuery.data && categoriesQuery.data.length === 0) {
+    const isSkippedOrCompleted =
+      Boolean(userPrefQuery.data?.setupCompleted) ||
+      (typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true");
+
+    if (
+      categoriesQuery.isSuccess &&
+      categoriesQuery.data &&
+      categoriesQuery.data.length === 0 &&
+      !isSkippedOrCompleted
+    ) {
       router.push("/setup");
     }
-  }, [categoriesQuery.isSuccess, categoriesQuery.data, router]);
+  }, [categoriesQuery.isSuccess, categoriesQuery.data, userPrefQuery.data, router]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: (_, variables) => {
