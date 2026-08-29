@@ -88,6 +88,23 @@ function SetupWizardContent() {
   return (
     <div className="min-h-screen bg-[#F7F8FA] py-10 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black text-[#1B2B4B] tracking-tight">Money Matters</span>
+            <span className="text-xs font-bold text-slate-300">|</span>
+            <span className="text-xs font-bold text-slate-500">Setup Wizard (Step {step} of 5)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDiscardModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-extrabold text-slate-600 hover:text-red-700 bg-slate-100 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+            title="Cancel Setup (Esc)"
+          >
+            <span className="text-sm font-black leading-none">✕</span>
+            <span>{t("setup.cancelSetup")}</span>
+          </button>
+        </div>
+
         {step === 1 && (
           <SetupIncomeStep
             incomes={incomes}

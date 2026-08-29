@@ -31,11 +31,11 @@ export function HouseholdDangerZoneSection() {
     if (!isLeaveValid || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await leaveMutation.mutateAsync();
+      const res = await leaveMutation.mutateAsync();
       toast.success(t("privacy.leftHouseholdSuccess"));
       setTimeout(async () => {
         await authClient.signOut();
-        router.push("/");
+        router.push(res.hasOtherHousehold ? "/sign-in" : "/");
       }, 1500);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to leave household.");

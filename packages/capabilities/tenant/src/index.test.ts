@@ -154,6 +154,6 @@ describe('Capability Tenant Handlers', () => {
     const { acceptInviteHandler } = await import('./index.js');
     const handler = acceptInviteHandler(mockDb);
 
-    await expect(handler({ inviteToken: 'valid-token' }, userId, 'attacker@example.com')).rejects.toThrow('Invitation email does not match');
+    await expect(handler({ inviteToken: 'valid-token' }, userId, 'attacker@example.com')).rejects.toThrow(/Invitation email .* does not match/);
   });
 });

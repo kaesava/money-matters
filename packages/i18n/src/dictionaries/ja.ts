@@ -523,7 +523,8 @@ export const ja: DeepStringRecord<typeof en> = {
     }
   },
   "setup": {
-    "title": "初期設定を行いましょう",
+    "cancelSetup": "セットアップをキャンセル",
+    "title": "家計管理の初期設定",
     "wizardTitle": "家計の初期設定",
     "wizardSubtitle": "4つのステップで口座、収入、配分ルールを設定しましょう。",
     "step1Title": "銀行口座",

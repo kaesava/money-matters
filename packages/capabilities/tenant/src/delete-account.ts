@@ -206,6 +206,12 @@ export function leaveTenantHandler(db: DbOrTx) {
     await db.delete(tenantUserPreferences).where(and(eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.userId, userId)));
     await db.delete(tenantUsers).where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)));
 
-    return { success: true };
+    // 5. Check if user belongs to any remaining households
+    const remainingTenantUsers = await db
+      .select({ id: tenantUsers.id })
+      .from(tenantUsers)
+      .where(eq(tenantUsers.userId, userId));
+
+    return { success: true, hasOtherHousehold: remainingTenantUsers.length > 0 };
   };
 }

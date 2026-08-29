@@ -402,7 +402,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     },
   ]);
 
-  // 4. Bank Accounts
+  // 4. Bank Accounts for all Tenants
   const [primaryAccount] = await db
     .insert(bankAccounts)
     .values({
@@ -431,8 +431,37 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  // Link Category Types to Bank Accounts
+  const [raehanPrimaryAccount] = await db
+    .insert(bankAccounts)
+    .values({
+      name: "Primary Account",
+      bankProvider: "ANZ",
+      lastKnownBalance: "2500.00",
+      unbudgetedBuffer: "300.00",
+      tenantId: raehanTenantId,
+      appId,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    })
+    .returning();
+
+  const [testerPrimaryAccount] = await db
+    .insert(bankAccounts)
+    .values({
+      name: "Primary Account",
+      bankProvider: "NAB",
+      lastKnownBalance: "5000.00",
+      unbudgetedBuffer: "500.00",
+      tenantId: testerTenantId,
+      appId,
+      createdBy: testerUserId,
+      updatedBy: testerUserId,
+    })
+    .returning();
+
+  // Link Category Pool Types to Bank Accounts for EVERY Tenant
   await db.insert(bankAccountCategoryMappings).values([
+    // Primary Tenant Mappings
     {
       tenantId,
       appId,
@@ -456,6 +485,56 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       bankAccountId: primaryAccount.id,
       createdBy: userId,
       updatedBy: userId,
+    },
+    // Raehan Tenant Mappings
+    {
+      tenantId: raehanTenantId,
+      appId,
+      categoryType: "EVERYDAY" as const,
+      bankAccountId: raehanPrimaryAccount.id,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    {
+      tenantId: raehanTenantId,
+      appId,
+      categoryType: "REGULAR" as const,
+      bankAccountId: raehanPrimaryAccount.id,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    {
+      tenantId: raehanTenantId,
+      appId,
+      categoryType: "GOAL" as const,
+      bankAccountId: raehanPrimaryAccount.id,
+      createdBy: raehanUserId,
+      updatedBy: raehanUserId,
+    },
+    // Tester Tenant Mappings
+    {
+      tenantId: testerTenantId,
+      appId,
+      categoryType: "EVERYDAY" as const,
+      bankAccountId: testerPrimaryAccount.id,
+      createdBy: testerUserId,
+      updatedBy: testerUserId,
+    },
+    {
+      tenantId: testerTenantId,
+      appId,
+      categoryType: "REGULAR" as const,
+      bankAccountId: testerPrimaryAccount.id,
+      createdBy: testerUserId,
+      updatedBy: testerUserId,
+    },
+    {
+      tenantId: testerTenantId,
+      appId,
+      categoryType: "GOAL" as const,
+      bankAccountId: testerPrimaryAccount.id,
+      createdBy: testerUserId,
+      updatedBy: testerUserId,
     },
   ]);
 

@@ -537,6 +537,7 @@ export const en = {
     },
   },
   setup: {
+    cancelSetup: "Cancel Setup",
     title: "Let's get you sorted",
     wizardTitle: "Household Money Setup",
     wizardSubtitle: "Set up your accounts, income, and allocation waterfall in 4 simple steps.",
