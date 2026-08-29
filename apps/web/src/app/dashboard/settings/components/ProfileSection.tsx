@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { PhoneInput, Spinner, useToast } from "@money-matters/ui/web";
+import { authClient } from "../../../../lib/auth";
+import { PhoneInput, validateMobileNumber, Spinner, useToast } from "@money-matters/ui/web";
 
 interface ProfileSectionProps {
   user?: {
@@ -17,6 +18,7 @@ interface ProfileSectionProps {
 export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const userProfileQuery = trpc.getUserProfile.useQuery();
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const updateProfileMutation = trpc.updateUserProfile.useMutation();
   const updatePrefMutation = trpc.updateUserPreferences.useMutation();
@@ -26,19 +28,22 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
   const [notificationEmail, setNotificationEmail] = useState(user?.email || "");
   const [phoneCountryCode, setPhoneCountryCode] = useState("+61");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneError, setPhoneError] = useState<string | undefined>();
   const [timezone, setTimezone] = useState(currentTimezone);
   const [showIcons, setShowIcons] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (userPrefQuery.data) {
-      setNotificationEmail(userPrefQuery.data.notificationEmail || user?.email || "");
-      setPhoneCountryCode(userPrefQuery.data.phoneCountryCode || "+61");
-      setPhoneNumber(userPrefQuery.data.phoneNumber || "");
-      setTimezone(userPrefQuery.data.timezone || "Australia/Sydney");
-      setShowIcons(userPrefQuery.data.showIcons ?? true);
+    if (userProfileQuery.data) {
+      setDisplayName(userProfileQuery.data.displayName || user?.name || "");
+      setAvatarUrl(userProfileQuery.data.avatarUrl || user?.image || "");
+      setNotificationEmail(userProfileQuery.data.notificationEmail || user?.email || "");
+      setPhoneCountryCode(userProfileQuery.data.phoneCountryCode || "+61");
+      setPhoneNumber(userProfileQuery.data.phoneNumber || "");
+      setTimezone(userProfileQuery.data.timezone || "Australia/Sydney");
+      setShowIcons(userProfileQuery.data.showIcons ?? true);
     }
-  }, [userPrefQuery.data, user?.email]);
+  }, [userProfileQuery.data, user]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,13 +106,22 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
       return;
     }
 
+    // Validate phone number format
+    const phoneCheck = validateMobileNumber(phoneCountryCode, phoneNumber);
+    if (!phoneCheck.isValid) {
+      setPhoneError(phoneCheck.errorMessage);
+      toast.error(phoneCheck.errorMessage!);
+      return;
+    }
+    setPhoneError(undefined);
+
     setIsSaving(true);
     try {
       await updateProfileMutation.mutateAsync({
         displayName: displayName.trim(),
         notificationEmail: notificationEmail.trim(),
         phoneCountryCode,
-        phoneNumber,
+        phoneNumber: phoneNumber.trim(),
         avatarUrl,
       });
 
@@ -116,7 +130,17 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         showIcons,
       });
 
-      userPrefQuery.refetch();
+      try {
+        await authClient.updateUser({
+          name: displayName.trim(),
+          image: avatarUrl || undefined,
+        });
+      } catch (_e) {
+        // Better Auth update user silent fallback
+      }
+
+      await userProfileQuery.refetch();
+      await userPrefQuery.refetch();
       toast.success(t("settings.profileSaved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save profile.");
@@ -220,10 +244,17 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         <div>
           <PhoneInput
             countryCode={phoneCountryCode}
-            onCountryCodeChange={setPhoneCountryCode}
+            onCountryCodeChange={(code) => {
+              setPhoneCountryCode(code);
+              setPhoneError(undefined);
+            }}
             phoneNumber={phoneNumber}
-            onPhoneNumberChange={setPhoneNumber}
+            onPhoneNumberChange={(num) => {
+              setPhoneNumber(num);
+              setPhoneError(undefined);
+            }}
             label={t("settings.phoneNumberLabel")}
+            error={phoneError}
           />
           <p className="text-[11px] text-slate-500 pt-1">{t("settings.phoneNumberHint")}</p>
         </div>

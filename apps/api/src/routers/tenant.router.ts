@@ -592,6 +592,24 @@ export const tenantRouter = {
       return { success: true };
     }),
 
+  getUserProfile: authenticatedProcedure.query(async ({ ctx }) => {
+    const { users, userPreferences } = await import('@money-matters/db');
+    const [u] = await ctx.db.select().from(users).where(eq(users.id, ctx.userId!));
+    const [pref] = await ctx.db.select().from(userPreferences).where(eq(userPreferences.userId, ctx.userId!));
+
+    return {
+      id: ctx.userId!,
+      email: u?.email || "",
+      displayName: u?.displayName || "",
+      avatarUrl: u?.avatarUrl || null,
+      notificationEmail: pref?.notificationEmail || u?.email || "",
+      phoneCountryCode: pref?.phoneCountryCode || "+61",
+      phoneNumber: pref?.phoneNumber || "",
+      timezone: pref?.timezone || "Australia/Sydney",
+      showIcons: pref?.showIcons ?? true,
+    };
+  }),
+
   updateUserProfile: authenticatedProcedure
     .input(
       z.object({
@@ -613,6 +631,14 @@ export const tenantRouter = {
           updatedAt: new Date(),
         })
         .where(eq(users.id, ctx.userId!));
+
+      try {
+        await ctx.db.execute(
+          sql`UPDATE neon_auth.user SET name = ${input.displayName}, image = ${input.avatarUrl || null} WHERE id = ${ctx.userId}`
+        );
+      } catch (e) {
+        // Table neon_auth may not exist in lightweight mocks
+      }
 
       const [existingPref] = await ctx.db
         .select()
