@@ -44,32 +44,59 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   const authUrl = process.env.NEXT_PUBLIC_NEON_AUTH_URL || (isProd ? "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth" : "https://ep-icy-resonance-a7s94hg4.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth");
   const originUrl = isProd ? "https://moneymatters.kaesava.au" : "http://localhost:3000";
 
-  // Helper to ensure Neon Auth user is seeded with pre-verified status (no HTTP REST signup calls that trigger emails)
+  // Helper to ensure Neon Auth user is seeded with password account and pre-verified status
   async function ensureNeonAuthUser(_email: string, _pass: string, name: string, fallbackId: string) {
     const email = _email.trim().toLowerCase();
     let resolvedId = fallbackId;
 
     try {
+      // Check if user already exists in neon_auth.user
       const existingRes = await db.execute<{ id: string }>(
         sql`SELECT id FROM neon_auth.user WHERE email = ${email} LIMIT 1`
       );
       const rows = Array.isArray(existingRes) ? existingRes : (existingRes as any)?.rows ?? [];
+
       if (rows.length > 0) {
         resolvedId = rows[0].id;
-        await db.execute(sql`
-          UPDATE neon_auth.user 
-          SET "emailVerified" = true, name = COALESCE(${name}, name), role = COALESCE(role, 'user'), "updatedAt" = now()
-          WHERE id = ${resolvedId}
-        `);
       } else {
-        await db.execute(sql`
-          INSERT INTO neon_auth.user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-          VALUES (${resolvedId}, ${name}, ${email}, true, 'user', now(), now())
-        `);
+        // Sign up user via Neon Auth HTTP REST API so neon_auth.user & neon_auth.account (password hash) are created atomically
+        const signupUrl = `${authUrl}/sign-up/email`;
+        const response = await fetch(signupUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Origin": originUrl,
+          },
+          body: JSON.stringify({
+            email,
+            password: _pass,
+            name,
+          }),
+        });
+
+        if (response.ok) {
+          const resBody = (await response.json()) as any;
+          resolvedId = resBody.user?.id || resBody.id || fallbackId;
+        } else {
+          // If sign up endpoint returns error, insert into neon_auth.user fallback
+          await db.execute(sql`
+            INSERT INTO neon_auth.user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+            VALUES (${fallbackId}, ${name}, ${email}, true, 'user', now(), now())
+            ON CONFLICT (email) DO NOTHING
+          `);
+        }
       }
-      console.log(`Pre-verified ${email} (emailVerified = true) in neon_auth.user.`);
+
+      // Ensure neon_auth.user has emailVerified = true & correct name
+      await db.execute(sql`
+        UPDATE neon_auth.user 
+        SET "emailVerified" = true, name = COALESCE(${name}, name), role = COALESCE(role, 'user'), "updatedAt" = now()
+        WHERE id = ${resolvedId}
+      `);
+
+      console.log(`Pre-verified ${email} (emailVerified = true) in neon_auth.user (ID: ${resolvedId}).`);
     } catch (e) {
-      console.log(`neon_auth.user update/insert for ${email} skipped:`, e);
+      console.log(`neon_auth setup for ${email}:`, e instanceof Error ? e.message : e);
     }
 
     return resolvedId;
