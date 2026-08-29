@@ -8,8 +8,8 @@ export const bugReportRouter = {
     .input(
       z
         .object({
-          title: z.string().min(3, 'Title must be at least 3 characters').max(255),
-          description: z.string().min(10, 'Description must be at least 10 characters').max(5000),
+          title: z.string().min(1, 'Title is required').max(255),
+          description: z.string().min(1, 'Description is required').max(5000),
           category: z.enum([
             'setup',
             'waterfall',

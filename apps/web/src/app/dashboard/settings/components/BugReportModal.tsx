@@ -61,15 +61,46 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
     deviceInfo: "",
   });
 
+  function formatErrorMessage(err: unknown): string {
+    if (err instanceof Error) {
+      try {
+        const parsed = JSON.parse(err.message);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const messages = parsed
+            .map((item: { message?: string }) => item.message)
+            .filter(Boolean);
+          if (messages.length > 0) {
+            return messages.join(". ");
+          }
+        }
+      } catch (_e) {
+        // Not a JSON error string
+      }
+      return err.message;
+    }
+    return "Failed to submit feedback. Please check your inputs.";
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorText(null);
+
+    if (!title.trim()) {
+      setErrorText("Feedback Summary is required");
+      return;
+    }
+
+    if (!description.trim()) {
+      setErrorText("Description & Details is required");
+      return;
+    }
+
     try {
       const res = await createBugReportMutation.mutateAsync({
-        title,
+        title: title.trim(),
         category,
         frustrationLevel,
-        description,
+        description: description.trim(),
         contactConsent,
         userEmail: contactConsent && contactEmail ? contactEmail : undefined,
         platform: "web",
@@ -80,7 +111,7 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
       setSubmittedRef(res.id.slice(0, 8));
       toast.success(t("toasts.bugReportSuccess"));
     } catch (err) {
-      setErrorText(err instanceof Error ? err.message : "Failed to submit feedback");
+      setErrorText(formatErrorMessage(err));
     }
   };
 
