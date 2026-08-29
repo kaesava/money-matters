@@ -101,7 +101,23 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.execute(sql`ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false NOT NULL, ADD COLUMN IF NOT EXISTS user_id UUID`);
   await db.execute(sql`ALTER TABLE tenant_user_preferences DROP COLUMN IF EXISTS payday_alerts_enabled, DROP COLUMN IF EXISTS shortfall_alerts_enabled, DROP COLUMN IF EXISTS bill_reminders_enabled, DROP COLUMN IF EXISTS weekly_digest_enabled`);
 
-  // Clean all application tables in strict dependency order
+  // Clean all application and auth tables across neon_auth and public schemas (clean slate)
+  try {
+    await db.execute(sql`DELETE FROM neon_auth.session`);
+    await db.execute(sql`DELETE FROM neon_auth.verification`);
+    await db.execute(sql`DELETE FROM neon_auth.account WHERE "userId" NOT IN (${userId}, ${raehanUserId}, ${testerUserId})`);
+    await db.execute(sql`DELETE FROM neon_auth.user WHERE id NOT IN (${userId}, ${raehanUserId}, ${testerUserId})`);
+  } catch (err) {
+    console.log("neon_auth schema clean slate notice:", err instanceof Error ? err.message : err);
+  }
+
+  try {
+    await db.execute(sql`DELETE FROM public.sessions`);
+    await db.execute(sql`DELETE FROM public.verifications`);
+  } catch (_e) {
+    // Optional public auth session tables
+  }
+
   await db.delete(fileNotes);
   await db.delete(deviceTokens);
   await db.delete(transactionLedger);
@@ -122,7 +138,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(users);
   await db.delete(apps);
 
-  console.log("🧹 Cleaned database tables.");
+  console.log("🧹 Cleaned database tables across neon_auth and public schemas (clean slate).");
 
   // 0. App & User Records
   await db.insert(users).values([
