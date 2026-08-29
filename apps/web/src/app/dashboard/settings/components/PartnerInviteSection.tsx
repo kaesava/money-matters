@@ -43,12 +43,12 @@ export function PartnerInviteSection() {
     setInviteSuccessMsg(null);
     try {
       const res = await inviteMutation.mutateAsync({ email: partnerEmail.trim() });
-      setInviteSuccessMsg(`Invite link created! Share URL: ${window.location.origin}/invite/${res.inviteToken}`);
+      setInviteSuccessMsg(`✉️ Invitation email sent to ${res.email}. They will receive a link to join your household budget.`);
       setPartnerEmail("");
       govQuery.refetch();
-      toast.success("Household member invite generated successfully.");
+      toast.success(`Invitation email sent to ${res.email}.`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate invite.");
+      toast.error(err instanceof Error ? err.message : "Failed to send invitation email.");
     } finally {
       setPartnerInviting(false);
     }
@@ -102,7 +102,7 @@ export function PartnerInviteSection() {
 
               return (
                 <div
-                  key={m.userId}
+                  key={m.id || m.userId || m.email}
                   className="flex items-center justify-between p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-xl"
                 >
                   <div className="flex items-center gap-3">
@@ -118,7 +118,7 @@ export function PartnerInviteSection() {
                       </div>
                     )}
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-xs font-bold text-[#1B2B4B]">{m.name}</span>
                         {m.isOwner ? (
                           <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-blue-100 text-[#2563eb] rounded-md">
@@ -127,6 +127,11 @@ export function PartnerInviteSection() {
                         ) : (
                           <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-200 text-slate-700 rounded-md">
                             Member
+                          </span>
+                        )}
+                        {m.isPending && (
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 rounded-md">
+                            Pending Acceptance
                           </span>
                         )}
                       </div>

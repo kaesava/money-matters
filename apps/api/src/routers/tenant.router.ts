@@ -3,7 +3,7 @@ import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
 import { db, userPreferences, tenantUserPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or } from "drizzle-orm";
 import { inngest } from '../inngest/client.js';
-import { logAuditEvent } from '@money-matters/core';
+import { logAuditEvent, sendNotificationEmail } from '@money-matters/core';
 import { 
   createTenantHandler,
   createBankAccountHandler,
@@ -40,6 +40,15 @@ export const tenantRouter = {
       const handler = invitePartnerHandler(ctx.db);
       const result = await handler(input, ctx.tenantId!, ctx.userId!);
 
+      // Send transactional invitation email via Resend
+      const originUrl = process.env.APP_URL || "https://moneymatters.kaesava.au";
+      const inviteUrl = `${originUrl}/invite/${result.inviteToken}`;
+      await sendNotificationEmail(
+        input.email,
+        "Invitation to Join Household Budget — Money Matters",
+        `You have been invited to collaborate on a household budget on Money Matters.\n\nClick the link below to accept your invitation:\n${inviteUrl}\n\nThis invitation will expire in 48 hours.`
+      );
+
       // Dispatch non-blocking partner invite email trigger to Inngest
       inngest.send({
         name: 'partner/invited',
@@ -64,7 +73,14 @@ export const tenantRouter = {
         });
         await posthog.flush();
       }
-      return result;
+
+      return {
+        success: true,
+        email: input.email,
+        inviteEmail: input.email,
+        inviteToken: result.inviteToken,
+        expiresAt: result.expiresAt,
+      };
     }),
 
   acceptInvite: authenticatedProcedure
@@ -492,9 +508,11 @@ export const tenantRouter = {
 
       const dbMembers = await ctx.db
         .select({
+          id: tenantUsers.id,
           userId: tenantUsers.userId,
           role: tenantUsers.role,
           inviteEmail: tenantUsers.inviteEmail,
+          inviteStatus: tenantUsers.inviteStatus,
           displayName: users.displayName,
           email: users.email,
           avatarUrl: users.avatarUrl,
@@ -507,12 +525,15 @@ export const tenantRouter = {
       const partnerMember = dbMembers.find((m) => m.userId !== ctx.userId);
 
       const membersList = dbMembers.map((m) => ({
+        id: m.id,
         userId: m.userId,
         name: m.displayName || m.email || m.inviteEmail || "Household Member",
         email: m.email || m.inviteEmail || "",
         avatarUrl: m.avatarUrl || null,
         role: m.role || "MEMBER",
         isOwner: m.role === "OWNER",
+        inviteStatus: m.inviteStatus || "ACCEPTED",
+        isPending: m.inviteStatus === "PENDING",
       }));
 
       return {

@@ -1,20 +1,8 @@
 # AGENT - In progress...
 
-## "Settings"
-* I noticed there are a lot of "black background" button in Settings but not elsewhere. Unless there's an important reason (like the button is a deletion button), I want the look and feel of all buttons to be the same across the app (reuse UI where possible so less chance of definitions diverging).
-
-### Profile
-### My Details
-* For Country dropdown in Mobile number, move New Zealand to just like any other country. You don't need to section it like "Featured/Local", just start with "Australia (+61)" (default) and then list all others. Also, when I selected Canada, it default to the United States! Fix.
-* "Upload PNG, JPG, or WEBP up to 2MB": This will rarely apply - so don't include it here. If they try to upload a file that does not meet these requirements, you can shown an error around format and size.
-* Upload avatar - allow user to zoom and centre, as most modern apps allow you to do when uploading an avatar so the user can decide the content to go into the box
 ### Household
-* Household Profile & Location - section seems oddly formatted - doesn't take up the full width nor half - design properly.
-* Country - move New Zealand like any other country ()
-* You already have (i) next to Add a "Household Member" and "Household Members". Remove the sub-titles. In the "Add a Household Member" (i) - ensure you reference "household members" as they maybe family but may also not be - they may be housemates. This applies across the app. Ensure this is the case across the app.
-* "Household Exit & Danger Zone" --> "DANGER ZONE" in RED with "Manager mem..." in (i) icon
-* When I removed a member, I got no confirmation.
-* When I tried to leave a Household - I got an obscure error - something about violating foreign keys. But when I attempted it again, it blew the user away from the users table instead of just removing their association. Please audit this code (to leave the household). This is incredibly important to get right.
+* When I invite a household member, it says "Invite link created! Share URL: http://localhost:3000/invite/46649913-1e1b-4c85-af7f-8dbd35216b82". It's not clear if the user will receive an email or if I need to share the link with the user. Preference is the former (an email needs to be sent from the app to the user with the invite link), don't provide the link here - let them know that an email has been sent. Also, in the Household members list, markhousehold members that are yet to accept. If accepted, don't add anything, if waiting, maybe a badge indicating that the user has not yet accepted their invite?
+* I feel like Neon Auth triggers emails to users to validate their email address "Verify Your Email Address - money-matters" when the seed is triggered even though the seed (I hope) expects these users to have been marked as verified in Neon Auth tables. Check
 
 _________
 
@@ -51,7 +39,9 @@ _________
 ### Profile
 ### My Details
 ### Household
-* When I invite a household member, it says "Invite link created! Share URL: http://localhost:3000/invite/46649913-1e1b-4c85-af7f-8dbd35216b82". It's not clear if the user will receive an email or if I need to share the link with the user. Preference is the former, don't provide the link here - let them know that an email has been sent. Also, it will be good to include in the Household members list which household members have not accepted. If accepted, don't add anything, if waiting, maybe a badge indicating that the user has not yet accepted their invite?
+* When I invite a household member, it says "Invite link created! Share URL: http://localhost:3000/invite/46649913-1e1b-4c85-af7f-8dbd35216b82". It's not clear if the user will receive an email or if I need to share the link with the user. Preference is the former (an email needs to be sent from the app to the user with the invite link), don't provide the link here - let them know that an email has been sent. Also, in the Household members list, markhousehold members that are yet to accept. If accepted, don't add anything, if waiting, maybe a badge indicating that the user has not yet accepted their invite?
+* I feel like Neon Auth triggers emails to users to validate their email address "Verify Your Email Address - money-matters" when the seed is triggered even though the seed (I hope) expects these users to have been marked as verified in Neon Auth tables. Check
+
 
 ### Account & Data
 ### Subscription

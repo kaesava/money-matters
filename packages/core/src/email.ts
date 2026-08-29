@@ -54,3 +54,11 @@ export async function sendEmail(payload: SendEmailPayload): Promise<{ success: b
     return { success: false };
   }
 }
+
+/**
+ * High-level helper for simple plain-text / HTML notification emails.
+ */
+export async function sendNotificationEmail(to: string, subject: string, bodyText: string): Promise<{ success: boolean; id?: string }> {
+  const html = `<div style="font-family: sans-serif; padding: 20px; line-height: 1.6; color: #1B2B4B;">${bodyText.replace(/\n/g, "<br />")}</div>`;
+  return sendEmail({ to, subject, html, text: bodyText });
+}
