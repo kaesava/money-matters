@@ -13,7 +13,9 @@
  * @param monthsAhead - Projection window limit in months (defaults to 12)
  * @returns Array of Date instances for expected future occurrences
  */
-import { RRule } from "rrule";
+import * as rruleNs from "rrule";
+const rrulePkg: any = rruleNs;
+const RRule = (rrulePkg.RRule || rrulePkg["default"]?.RRule || rrulePkg["default"]) as typeof rruleNs.RRule;
 
 export function generateBurstDates(
   rruleStr: string,
