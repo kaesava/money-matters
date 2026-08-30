@@ -54,14 +54,15 @@ function SignInContent() {
         } else {
           setError(result.error.message || t("auth.signInFailed"));
         }
+        setLoading(false);
         return;
       }
 
       // Full browser redirect ensures session cookie is sent to middleware and server components
+      // Keep loading = true while full page navigation takes place
       window.location.href = redirectUrl;
     } catch (_err) {
       setError(t("auth.unexpectedError"));
-    } finally {
       setLoading(false);
     }
   };

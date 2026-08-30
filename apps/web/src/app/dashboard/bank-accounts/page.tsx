@@ -310,7 +310,6 @@ export default function BankAccountsDashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-[#1B2B4B] flex items-center gap-2">
-            <span>🏦</span>
             <span>{t("bankAccounts.title") || "Bank Accounts"}</span>
             <InfoTooltip
               title={t("tooltips.bankAccounts.title")}

@@ -179,7 +179,7 @@ export default function IncomeExpenseFormModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? `Edit ${mode === "INCOME" ? "Income Stream" : "Bill Schedule"}` : `Add ${mode === "INCOME" ? "Income Stream" : "Bill Schedule"}`}
+      title={isEdit ? `Edit ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}` : `Add ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}`}
       maxWidth="max-w-md"
     >
       <div className="space-y-4 text-xs font-medium text-zinc-700">

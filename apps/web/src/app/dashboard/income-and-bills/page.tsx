@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, Spinner } from "@money-matters/ui/web";
+import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 import posthog from "../../../lib/posthog-client";
@@ -75,10 +75,59 @@ export default function IncomeAndBillsPage() {
     return [...incs, ...exps].sort((a, b) => (a.expectedDate || "").localeCompare(b.expectedDate || ""));
   }, [incomeEvents, expenseEvents]);
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [sourceToEdit, setSourceToEdit] = useState<React.ComponentProps<typeof IncomeExpenseFormModal>["sourceToEdit"]>(undefined);
+
+  // Upcoming Events Table State
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [eventTypeFilter, setEventTypeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [eventStatusFilter, setEventStatusFilter] = useState<"ALL" | "UPCOMING" | "PAID" | "SKIPPED">("ALL");
+  const [eventSortColumn, setEventSortColumn] = useState<"type" | "name" | "expectedDate" | "expectedAmount" | "status">("expectedDate");
+  const [eventSortDirection, setEventSortDirection] = useState<"asc" | "desc">("asc");
+
+  const { widths, onMouseDown } = useResizableColumns({
+    type: 120,
+    name: 260,
+    expectedDate: 140,
+    expectedAmount: 140,
+    status: 140,
+  });
+
+  const filteredEvents = React.useMemo(() => {
+    return allEvents.filter((evt) => {
+      if (eventTypeFilter !== "ALL" && evt.type !== eventTypeFilter) return false;
+      if (eventStatusFilter !== "ALL") {
+        if (eventStatusFilter === "PAID" && evt.status !== "PAID" && evt.status !== "CONFIRMED") return false;
+        if (eventStatusFilter === "UPCOMING" && evt.status !== "UPCOMING") return false;
+        if (eventStatusFilter === "SKIPPED" && evt.status !== "SKIPPED") return false;
+      }
+      if (eventSearchQuery.trim()) {
+        const q = eventSearchQuery.toLowerCase().trim();
+        const amtStr = evt.expectedAmount.toFixed(2);
+        return evt.name.toLowerCase().includes(q) || amtStr.includes(q);
+      }
+      return true;
+    });
+  }, [allEvents, eventTypeFilter, eventStatusFilter, eventSearchQuery]);
+
+  const sortedEvents = React.useMemo(() => {
+    return [...filteredEvents].sort((a, b) => {
+      let cmp = 0;
+      if (eventSortColumn === "expectedDate") {
+        cmp = (a.expectedDate || "").localeCompare(b.expectedDate || "");
+      } else if (eventSortColumn === "name") {
+        cmp = a.name.localeCompare(b.name);
+      } else if (eventSortColumn === "type") {
+        cmp = a.type.localeCompare(b.type);
+      } else if (eventSortColumn === "expectedAmount") {
+        cmp = a.expectedAmount - b.expectedAmount;
+      } else if (eventSortColumn === "status") {
+        cmp = a.status.localeCompare(b.status);
+      }
+      return eventSortDirection === "asc" ? cmp : -cmp;
+    });
+  }, [filteredEvents, eventSortColumn, eventSortDirection]);
 
   const archiveIncomeMut = trpc.archiveIncomeSource.useMutation({
     onSuccess: () => {
@@ -89,7 +138,7 @@ export default function IncomeAndBillsPage() {
 
   const handleArchive = useCallback(
     async (item: { id: string; name?: string }, mode: "INCOME" | "EXPENSE") => {
-      const label = mode === "INCOME" ? "income stream" : "bill";
+      const label = mode === "INCOME" ? "income schedule" : "bill";
       if (!confirm(`Archiving this ${label} will cancel all future upcoming events. Continue?`)) return;
       try {
         if (mode === "INCOME") {
@@ -117,11 +166,12 @@ export default function IncomeAndBillsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="flex items-center gap-2">
           <h1 className="text-2xl font-black text-[#1B2B4B]">Income & Bill Management</h1>
-          <p className="text-sm font-medium text-zinc-500 mt-0.5">
-            Manage your recurring income schedules, bill commitments, and 12-month payday matrix.
-          </p>
+          <InfoTooltip
+            title="Income & Bill Management"
+            content="Manage your recurring income schedules, bill commitments, and 12-month payday matrix."
+          />
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -133,7 +183,7 @@ export default function IncomeAndBillsPage() {
             }}
             className="px-4 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-sm shadow-sm hover:bg-[#1d4ed8] transition-colors"
           >
-            + Add Income Stream
+            + Add Income Schedule
           </button>
           <button
             type="button"
@@ -149,15 +199,15 @@ export default function IncomeAndBillsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-zinc-200">
+      {/* 3-Tab Viewport Switcher */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-zinc-200/80 w-fit">
         <button
           type="button"
           onClick={() => setActiveTab("MATRIX")}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
+          className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
             activeTab === "MATRIX"
-              ? "border-[#2563eb] text-[#2563eb]"
-              : "border-transparent text-zinc-500 hover:text-zinc-700"
+              ? "bg-[#2563eb] text-white shadow-xs"
+              : "text-zinc-600 hover:text-zinc-900"
           }`}
         >
           Upcoming (Grid)
@@ -165,10 +215,10 @@ export default function IncomeAndBillsPage() {
         <button
           type="button"
           onClick={() => setActiveTab("EVENTS")}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
+          className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
             activeTab === "EVENTS"
-              ? "border-[#2563eb] text-[#2563eb]"
-              : "border-transparent text-zinc-500 hover:text-zinc-700"
+              ? "bg-[#2563eb] text-white shadow-xs"
+              : "text-zinc-600 hover:text-zinc-900"
           }`}
         >
           Upcoming (List) ({allEvents.length})
@@ -176,10 +226,10 @@ export default function IncomeAndBillsPage() {
         <button
           type="button"
           onClick={() => setActiveTab("STREAMS")}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
+          className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
             activeTab === "STREAMS"
-              ? "border-[#2563eb] text-[#2563eb]"
-              : "border-transparent text-zinc-500 hover:text-zinc-700"
+              ? "bg-[#2563eb] text-white shadow-xs"
+              : "text-zinc-600 hover:text-zinc-900"
           }`}
         >
           Setup ({incomeSources.length + expenseSources.length})
@@ -194,13 +244,7 @@ export default function IncomeAndBillsPage() {
             name: p.name,
             type: p.poolType,
             currentBalance: parseFloat(String(p.currentBalance || "0")),
-            monthlyAmount: parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"),
-            enteredAmount: parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"),
-            budgetFrequency: "MONTHLY",
-            isEssential: true,
-            isCommitted: p.isCommitted,
-            isSurplusTarget: p.isSurplusTarget,
-            waterfallPriority: (p as unknown as { waterfallPriority?: number }).waterfallPriority ?? 0,
+            targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : 0,
           }))}
           incomeEvents={matrixIncomeEvents}
           expenseEvents={matrixExpenseEvents}
@@ -208,23 +252,18 @@ export default function IncomeAndBillsPage() {
       )}
 
       {activeTab === "STREAMS" && (
-        <div className="flex flex-col gap-6">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            placeholder="Filter streams by name..."
-            className="w-full px-4 py-2 bg-white border border-zinc-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          />
+        <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
-              <h3 className="font-bold text-[#1B2B4B] text-base mb-2">{`Income Streams (${incomeSources.length})`}</h3>
+              <h3 className="font-bold text-[#1B2B4B] text-base mb-2">{`Income Schedules (${incomeSources.length})`}</h3>
               <div className="divide-y divide-zinc-100 mt-3">
                 {incomeSources.map((inc) => (
                   <div key={inc.id} className="py-3 flex justify-between items-center text-sm">
                     <div>
                       <span className="font-bold text-[#1B2B4B] block">{inc.name}</span>
-                      <span className="text-xs text-zinc-400 font-mono">${parseFloat(inc.amount).toFixed(2)}</span>
+                      <span className="text-xs text-zinc-400 font-mono">
+                        ${parseFloat(inc.amount).toFixed(2)}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -265,46 +304,153 @@ export default function IncomeAndBillsPage() {
       )}
 
       {activeTab === "EVENTS" && (
-        <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
-          <h3 className="font-bold text-[#1B2B4B] text-base mb-2">Upcoming Scheduled Events ({allEvents.length})</h3>
-          <div className="overflow-x-auto mt-4">
-            <table className="w-full text-left text-sm text-zinc-600">
-              <thead className="bg-zinc-50 text-xs font-bold text-zinc-400 uppercase">
-                <tr>
-                  <th className="px-4 py-2">Type</th>
-                  <th className="px-4 py-2">Event Name</th>
-                  <th className="px-4 py-2">Expected Date</th>
-                  <th className="px-4 py-2 text-right">Amount</th>
-                  <th className="px-4 py-2 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 font-medium">
-                {allEvents.map((evt) => (
-                  <tr key={evt.id + evt.type}>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                        evt.type === "INCOME" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                      }`}>
-                        {evt.type === "INCOME" ? "Income" : "Bill"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-bold text-[#1B2B4B]">{evt.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{evt.expectedDate}</td>
-                    <td className={`px-4 py-3 font-mono font-bold text-right ${
-                      evt.type === "INCOME" ? "text-emerald-600" : "text-zinc-900"
-                    }`}>
-                      {evt.type === "INCOME" ? "+" : "-"}${evt.expectedAmount.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-xs">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
-                        {evt.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="space-y-4 p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
+            <SearchInput
+              value={eventSearchQuery}
+              onChange={setEventSearchQuery}
+              placeholder="Search event name or amount..."
+            />
+
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <select
+                value={eventTypeFilter}
+                onChange={(e) => setEventTypeFilter(e.target.value as "ALL" | "INCOME" | "EXPENSE")}
+                className="px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
+              >
+                <option value="ALL">All Types</option>
+                <option value="INCOME">Income Only</option>
+                <option value="EXPENSE">Bills Only</option>
+              </select>
+
+              <select
+                value={eventStatusFilter}
+                onChange={(e) => setEventStatusFilter(e.target.value as "ALL" | "UPCOMING" | "PAID" | "SKIPPED")}
+                className="px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="UPCOMING">Upcoming</option>
+                <option value="PAID">Confirmed / Paid</option>
+                <option value="SKIPPED">Skipped</option>
+              </select>
+            </div>
           </div>
+
+          {sortedEvents.length === 0 ? (
+            <div className="py-12 text-center text-zinc-400 text-xs font-semibold">
+              No scheduled events found matching your filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                    <ResizableTh
+                      width={widths.type}
+                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("type", e)}
+                      className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
+                      onClick={() => {
+                        if (eventSortColumn === "type") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                        else { setEventSortColumn("type"); setEventSortDirection("asc"); }
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>Type</span>
+                        {eventSortColumn === "type" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
+                      </div>
+                    </ResizableTh>
+                    <ResizableTh
+                      width={widths.name}
+                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("name", e)}
+                      className="py-3 px-4 text-left cursor-pointer hover:bg-slate-100"
+                      onClick={() => {
+                        if (eventSortColumn === "name") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                        else { setEventSortColumn("name"); setEventSortDirection("asc"); }
+                      }}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Event Name</span>
+                        {eventSortColumn === "name" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
+                      </div>
+                    </ResizableTh>
+                    <ResizableTh
+                      width={widths.expectedDate}
+                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("expectedDate", e)}
+                      className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
+                      onClick={() => {
+                        if (eventSortColumn === "expectedDate") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                        else { setEventSortColumn("expectedDate"); setEventSortDirection("asc"); }
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>Expected Date</span>
+                        {eventSortColumn === "expectedDate" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
+                      </div>
+                    </ResizableTh>
+                    <ResizableTh
+                      width={widths.expectedAmount}
+                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("expectedAmount", e)}
+                      className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
+                      onClick={() => {
+                        if (eventSortColumn === "expectedAmount") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                        else { setEventSortColumn("expectedAmount"); setEventSortDirection("desc"); }
+                      }}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        <span>Amount</span>
+                        {eventSortColumn === "expectedAmount" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
+                      </div>
+                    </ResizableTh>
+                    <ResizableTh
+                      width={widths.status}
+                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("status", e)}
+                      className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
+                      onClick={() => {
+                        if (eventSortColumn === "status") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                        else { setEventSortColumn("status"); setEventSortDirection("asc"); }
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>Status</span>
+                        {eventSortColumn === "status" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
+                      </div>
+                    </ResizableTh>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 text-xs font-medium">
+                  {sortedEvents.map((evt) => (
+                    <tr key={evt.id + evt.type} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                          evt.type === "INCOME" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {evt.type === "INCOME" ? "Income" : "Bill"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-left font-bold text-[#1B2B4B]">{evt.name}</td>
+                      <td className="py-3 px-4 text-center font-mono text-zinc-500">{fmtDate(evt.expectedDate)}</td>
+                      <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
+                        evt.type === "INCOME" ? "text-emerald-600" : "text-zinc-900"
+                      }`}>
+                        {evt.type === "INCOME" ? "+" : "-"}${evt.expectedAmount.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${
+                          evt.status === "UPCOMING"
+                            ? "bg-amber-50 text-amber-800 border-amber-200"
+                            : evt.status === "CONFIRMED" || evt.status === "PAID"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                            : "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}>
+                          {evt.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

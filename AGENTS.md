@@ -110,6 +110,10 @@ All tables MUST include:
 - Dates stored in UTC; rendered in timezone-aware AEST/en-AU format. NEVER use raw `new Date().toISOString().split('T')[0]` (causes off-by-one date errors in Australian UTC+10/11 timezones); format using `new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`.
 - Next.js App Router prerendering: pages/components using `useSearchParams()` MUST be wrapped in a `<Suspense>` boundary to prevent build errors during production export.
 - Serene Finance visual identity: Serene Blue `#2563eb`, Navy `#1B2B4B`, Off-white `#F7F8FA`, Green `#22c55e`, Red `#ba1a1a`, JetBrains Mono for monetary metrics.
+- **Clean Page Title Headers (`<h1>`)**: Page title `<h1>` elements MUST NOT contain decorative inline emojis or icons. Page description subtitles MUST be rendered inside an `InfoTooltip` `(i)` icon placed directly beside the title.
+- **Universal Table Column & Header Alignment Parity**: Table header `<th>` alignment MUST 100% match data cell `<td>` alignment across every column in all tables across the monorepo: Left-aligned for text, names, categories, and accounts; Center-aligned for dates, actions, status badges, type tags, and triggers; Right-aligned for monetary amounts (`tabular-nums font-mono`).
+- **SearchInput Spacing & Padding**: SearchInput search icons MUST have `left-3.5` / `left-4` positioning, and input text MUST have `pl-10` padding to guarantee clean breathing room between icon, container border, and text.
+- **Consistent Terminology**: Always use "Income Schedule" / "Add Income Schedule" across all UI labels, buttons, tooltips, and i18n dictionaries (NEVER use "Income Stream").
 
 ## 14. Integrations
 - Neon DB Auth for authentication.

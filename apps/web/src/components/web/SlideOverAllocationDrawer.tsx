@@ -23,6 +23,7 @@ export interface PaydayPlanRecord {
   expectedDate?: string | null;
   incomeName?: string | null;
   receivingAccountName?: string | null;
+  isAutoTrigger?: boolean;
   lines: PaydayPlanLineRecord[];
 }
 

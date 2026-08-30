@@ -190,6 +190,69 @@ function TransactionsPageContent() {
     { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") || "Payday Allocations" },
   ];
 
+  // Payday Allocations Table State
+  const [planSearchQuery, setPlanSearchQuery] = useState("");
+  const [selectedBankFilter, setSelectedBankFilter] = useState("ALL");
+  const [planSortColumn, setPlanSortColumn] = useState<"date" | "incomeName" | "receivingAccount" | "trigger" | "amount">("date");
+  const [planSortDirection, setPlanSortDirection] = useState<"asc" | "desc">("desc");
+
+  const { widths: planWidths, onMouseDown: onPlanMouseDown } = useResizableColumns({
+    date: 140,
+    incomeName: 240,
+    receivingAccount: 220,
+    trigger: 110,
+    amount: 140,
+    actions: 140,
+  });
+
+  const paydayPlans = useMemo(() => {
+    return (paydayPlansQuery.data as unknown as PaydayPlanRecord[]) || [];
+  }, [paydayPlansQuery.data]);
+
+  const uniqueBankAccounts = useMemo(() => {
+    const banks = new Set<string>();
+    for (const p of paydayPlans) {
+      if (p.receivingAccountName) banks.add(p.receivingAccountName);
+    }
+    return Array.from(banks);
+  }, [paydayPlans]);
+
+  const filteredPaydayPlans = useMemo(() => {
+    return paydayPlans.filter((plan) => {
+      if (selectedBankFilter !== "ALL" && (plan.receivingAccountName || "Main Account") !== selectedBankFilter) {
+        return false;
+      }
+      if (planSearchQuery.trim()) {
+        const q = planSearchQuery.toLowerCase().trim();
+        const incName = (plan.incomeName || "Income Deposit").toLowerCase();
+        const bankName = (plan.receivingAccountName || "Main Account").toLowerCase();
+        const amtStr = String(plan.totalIncomeAmount);
+        return incName.includes(q) || bankName.includes(q) || amtStr.includes(q);
+      }
+      return true;
+    });
+  }, [paydayPlans, selectedBankFilter, planSearchQuery]);
+
+  const sortedPaydayPlans = useMemo(() => {
+    return [...filteredPaydayPlans].sort((a, b) => {
+      let cmp = 0;
+      if (planSortColumn === "date") {
+        const timeA = new Date(a.expectedDate || a.createdAt || 0).getTime();
+        const timeB = new Date(b.expectedDate || b.createdAt || 0).getTime();
+        cmp = timeA - timeB;
+      } else if (planSortColumn === "incomeName") {
+        cmp = (a.incomeName || "").localeCompare(b.incomeName || "");
+      } else if (planSortColumn === "receivingAccount") {
+        cmp = (a.receivingAccountName || "").localeCompare(b.receivingAccountName || "");
+      } else if (planSortColumn === "trigger") {
+        cmp = (a.isAutoTrigger ? "AUTO" : "MANUAL").localeCompare(b.isAutoTrigger ? "AUTO" : "MANUAL");
+      } else if (planSortColumn === "amount") {
+        cmp = parseFloat(String(a.totalIncomeAmount || 0)) - parseFloat(String(b.totalIncomeAmount || 0));
+      }
+      return planSortDirection === "asc" ? cmp : -cmp;
+    });
+  }, [filteredPaydayPlans, planSortColumn, planSortDirection]);
+
   return (
     <div className="flex flex-col gap-6 max-w-6xl pb-16 animate-in fade-in duration-200">
       {/* Page Header */}
@@ -285,13 +348,13 @@ function TransactionsPageContent() {
                       <ResizableTh
                         width={widths.date}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)}
-                        className="py-3 px-4 cursor-pointer hover:bg-slate-100 text-left"
+                        className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
                         onClick={() => {
                           if (sortColumn === "recordedAt") setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
                           else { setSortColumn("recordedAt"); setSortDirection("desc"); }
                         }}
                       >
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center justify-center gap-1">
                           <span>{t("transactions.date") || "Date"}</span>
                           {sortColumn === "recordedAt" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
@@ -299,7 +362,7 @@ function TransactionsPageContent() {
                       <ResizableTh
                         width={widths.description}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("description", e)}
-                        className="py-3 px-4 cursor-pointer hover:bg-slate-100 text-left"
+                        className="py-3 px-4 text-left cursor-pointer hover:bg-slate-100"
                         onClick={() => {
                           if (sortColumn === "description") setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
                           else { setSortColumn("description"); setSortDirection("asc"); }
@@ -331,7 +394,7 @@ function TransactionsPageContent() {
                   <tbody className="divide-y divide-zinc-100 text-xs">
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3 px-4 font-mono text-zinc-500 text-left">{fmtDate(tx.date)}</td>
+                        <td className="py-3 px-4 font-mono text-zinc-500 text-center">{fmtDate(tx.date)}</td>
                         <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">{tx.description}</td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
@@ -358,7 +421,6 @@ function TransactionsPageContent() {
             )}
           </div>
 
-
           <PaginationBar
             page={page}
             totalPages={totalPages}
@@ -377,23 +439,35 @@ function TransactionsPageContent() {
       {/* Tab 2: Payday Waterfall Allocation History */}
       {activeTab === "payday-allocations" && (
         <div className="space-y-6">
-          <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-base font-extrabold text-[#1B2B4B] mb-1">
-                Payday Allocation History
-              </h2>
-              <p className="text-xs text-slate-500">
-                Audit log of all 5-step waterfall allocations executed when income landed.
-              </p>
+          {/* Controls Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
+            <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
+              <SearchInput
+                value={planSearchQuery}
+                onChange={setPlanSearchQuery}
+                placeholder="Search income, bank account, or amount..."
+              />
+
+              <select
+                value={selectedBankFilter}
+                onChange={(e) => setSelectedBankFilter(e.target.value)}
+                className="w-full sm:w-56 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
+              >
+                <option value="ALL">All Bank Accounts</option>
+                {uniqueBankAccounts.map((bName) => (
+                  <option key={bName} value={bName}>{bName}</option>
+                ))}
+              </select>
             </div>
 
             <button
+              type="button"
               onClick={() => {
                 if (!paydayPlansQuery.data) return;
                 const headers = ["Date", "Income Source", "Receiving Bank Account", "Total Income Amount", "Pool/Category", "Allocated Amount", "Reasoning"];
                 const rows: string[][] = [];
 
-                for (const plan of (paydayPlansQuery.data as unknown as PaydayPlanRecord[])) {
+                for (const plan of paydayPlans) {
                   const dateStr = fmtDate(plan.expectedDate || plan.createdAt);
                   const incName = plan.incomeName || "Income Deposit";
                   const bankName = plan.receivingAccountName || "Main Account";
@@ -423,64 +497,149 @@ function TransactionsPageContent() {
                 link.click();
                 document.body.removeChild(link);
               }}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs"
+              disabled={sortedPaydayPlans.length === 0}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
               <span>📥</span>
               <span>Export Allocations CSV</span>
             </button>
           </div>
 
-          {paydayPlansQuery.isLoading ? (
-            <div className="p-12 flex justify-center items-center">
-              <Spinner size="lg" />
-            </div>
-          ) : !paydayPlansQuery.data || paydayPlansQuery.data.length === 0 ? (
-            <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl text-xs text-slate-400 font-semibold">
-              No payday allocation plans recorded yet. Allocations will appear here when you process your pay.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {(paydayPlansQuery.data as unknown as PaydayPlanRecord[]).map((plan) => (
-                <div key={plan.id} className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 font-bold flex items-center justify-center text-lg shrink-0">
-                      💰
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-full">
-                          {plan.status || "CONFIRMED"}
-                        </span>
-                        <span className="text-xs font-mono font-bold text-zinc-600">
-                          📅 {fmtDate(plan.expectedDate || plan.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-xs font-bold text-[#1B2B4B] mt-1">
-                        {plan.incomeName || "Income Deposit"} → <span className="font-medium text-zinc-500">{plan.receivingAccountName || "Main Account"}</span>
-                      </p>
-                    </div>
-                  </div>
+          {/* Payday Allocations Table */}
+          <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
+            {paydayPlansQuery.isLoading ? (
+              <div className="p-12 flex justify-center items-center">
+                <Spinner size="lg" />
+              </div>
+            ) : sortedPaydayPlans.length === 0 ? (
+              <div className="p-12 text-center text-xs text-zinc-400 font-semibold">
+                No payday allocation plans found matching your filters.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                      <ResizableTh
+                        width={planWidths.date}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("date", e)}
+                        className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
+                        onClick={() => {
+                          if (planSortColumn === "date") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setPlanSortColumn("date"); setPlanSortDirection("desc"); }
+                        }}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <span>Date</span>
+                          {planSortColumn === "date" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
+                      </ResizableTh>
 
-                  <div className="flex items-center gap-4 ml-auto sm:ml-0">
-                    <div className="text-right">
-                      <p className="text-[10px] text-zinc-400 font-bold uppercase">Total Income</p>
-                      <p className="text-sm font-extrabold font-mono text-[#2563eb]">
-                        {formatAUD(plan.totalIncomeAmount)}
-                      </p>
-                    </div>
+                      <ResizableTh
+                        width={planWidths.incomeName}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("incomeName", e)}
+                        className="py-3 px-4 text-left cursor-pointer hover:bg-slate-100"
+                        onClick={() => {
+                          if (planSortColumn === "incomeName") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setPlanSortColumn("incomeName"); setPlanSortDirection("asc"); }
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Description / Income</span>
+                          {planSortColumn === "incomeName" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
+                      </ResizableTh>
 
-                    <button
-                      type="button"
-                      onClick={() => setActivePlanForDrawer(plan)}
-                      className="px-3.5 py-2 text-xs font-bold text-[#2563eb] hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors shrink-0"
-                    >
-                      View Allocation Details
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                      <ResizableTh
+                        width={planWidths.receivingAccount}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("receivingAccount", e)}
+                        className="py-3 px-4 text-left cursor-pointer hover:bg-slate-100"
+                        onClick={() => {
+                          if (planSortColumn === "receivingAccount") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setPlanSortColumn("receivingAccount"); setPlanSortDirection("asc"); }
+                        }}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Bank Account</span>
+                          {planSortColumn === "receivingAccount" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
+                      </ResizableTh>
+
+                      <ResizableTh
+                        width={planWidths.trigger}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("trigger", e)}
+                        className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
+                        onClick={() => {
+                          if (planSortColumn === "trigger") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setPlanSortColumn("trigger"); setPlanSortDirection("asc"); }
+                        }}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <span>Trigger</span>
+                          {planSortColumn === "trigger" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
+                      </ResizableTh>
+
+                      <ResizableTh
+                        width={planWidths.amount}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("amount", e)}
+                        className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
+                        onClick={() => {
+                          if (planSortColumn === "amount") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setPlanSortColumn("amount"); setPlanSortDirection("desc"); }
+                        }}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          <span>Total Amount</span>
+                          {planSortColumn === "amount" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
+                      </ResizableTh>
+
+                      <ResizableTh
+                        width={planWidths.actions}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("actions", e)}
+                        className="py-3 px-4 text-center"
+                      >
+                        <span>Actions</span>
+                      </ResizableTh>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 text-xs">
+                    {sortedPaydayPlans.map((plan) => (
+                      <tr key={plan.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-4 text-center font-mono text-zinc-500">
+                          {fmtDate(plan.expectedDate || plan.createdAt)}
+                        </td>
+                        <td className="py-3 px-4 text-left font-bold text-[#1B2B4B]">
+                          {plan.incomeName || "Income Deposit"}
+                        </td>
+                        <td className="py-3 px-4 text-left text-zinc-600 font-semibold">
+                          {plan.receivingAccountName || "Main Account"}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                            {plan.isAutoTrigger ? "AUTO" : "MANUAL"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">
+                          {formatAUD(plan.totalIncomeAmount)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setActivePlanForDrawer(plan)}
+                            className="px-3 py-1 text-xs font-bold text-[#2563eb] hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
           <SlideOverAllocationDrawer
             isOpen={!!activePlanForDrawer}
