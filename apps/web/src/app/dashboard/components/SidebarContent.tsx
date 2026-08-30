@@ -24,7 +24,6 @@ export interface SidebarContentProps {
   initials: string;
   onNavigateToSettings: () => void;
   onSignOut: () => void;
-  onOpenFeedback?: () => void;
 }
 
 export function SidebarContent({
@@ -37,7 +36,6 @@ export function SidebarContent({
   initials,
   onNavigateToSettings,
   onSignOut,
-  onOpenFeedback,
 }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full">
@@ -105,24 +103,8 @@ export function SidebarContent({
           })}
         </div>
 
-        {/* Free trial / Upgrade item + Feedback CTA at bottom of nav list above user box */}
+        {/* Free trial / Upgrade item */}
         <div className="pt-4 border-t border-white/10 mt-auto flex flex-col gap-2">
-          {onOpenFeedback && (
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenFeedback();
-              }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 transition-all cursor-pointer ${
-                sidebarCollapsed ? "justify-center" : ""
-              }`}
-              title={t("bugReport.title")}
-            >
-              <span>💬</span>
-              {!sidebarCollapsed && <span>{t("bugReport.title")}</span>}
-            </button>
-          )}
           <SidebarTrialNavItem collapsed={sidebarCollapsed} onNavigate={() => setMobileMenuOpen(false)} />
         </div>
       </nav>

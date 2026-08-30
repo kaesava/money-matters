@@ -6,7 +6,6 @@ import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
 import { TransactionRow } from '../../../components/TransactionRow';
 import { formatAUD } from '../../../lib/format';
-import { FileNotesSection } from '../../../components/FileNotesSection';
 
 export default function CategoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -176,7 +175,6 @@ export default function CategoryDetailScreen() {
 
       <Text style={styles.sectionTitle}>{t('categories.detail.history')}</Text>
       <CategoryTransactionsList categoryId={id!} categoryName={cat.name} />
-      <FileNotesSection entityType="CATEGORY" entityId={id!} />
 
       {/* Edit Sheet Modal */}
       <Modal visible={editVisible} animationType="slide" transparent>

@@ -23,7 +23,6 @@ export default defineConfig({
   noExternal: [
     "@money-matters/capability-tenant",
     "@money-matters/capability-notifications",
-    "@money-matters/capability-file-notes",
     "@money-matters/capability-budgeting",
     "@money-matters/capability-transactions",
     "@money-matters/config",

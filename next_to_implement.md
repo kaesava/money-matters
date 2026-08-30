@@ -1,7 +1,5 @@
 # AGENT - In progress...
 
-
-
 _________
 
 
@@ -12,9 +10,12 @@ _________
 * NO dead code or table fields or API code or repeated UI/capability code. MECE principle.
 
 # General
-* When the API server is down or there is database is down, ensure that any error in retrieving or pushing data throught the API layer provides a graceful error message to the user. This applies across the web and mobile apps.
+
 ## Landing
-* Ensure the list of features and the page is still accurate. If you can make the page more compelling for the user to join without making it corny, do so.
+
+## Navigation
+### User and Sign out
+### Provide Feedback
 
 ## Home
 ### New/Edit of Everday/Bills
@@ -30,17 +31,14 @@ _________
 
 ## "History"###
 ### Transactions
-
 ### Allocation History
 
 ## "Settings"
-
-### Profile
 ### My Details
 ### Household
-### Account & Data
+### Archived Data
+### Data & Subscription
 ### Subscription
-### Provide Feedback
 
 
 ## "Main Dashboard"

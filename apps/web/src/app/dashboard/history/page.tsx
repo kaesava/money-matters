@@ -6,6 +6,7 @@ import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner } from "@money-matters/ui/web";
 import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
+import { getTenantDateString } from "@money-matters/core";
 
 const formatAUD = (val: number | string): string => {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -177,7 +178,7 @@ function TransactionsPageContent() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+    const todayStr = getTenantDateString(new Date());
     link.setAttribute("download", `transactions_export_${todayStr}.csv`);
     document.body.appendChild(link);
     link.click();
@@ -416,7 +417,7 @@ function TransactionsPageContent() {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.href = url;
-                const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+                const todayStr = getTenantDateString(new Date());
                 link.setAttribute("download", `money_matters_payday_allocations_${todayStr}.csv`);
                 document.body.appendChild(link);
                 link.click();
@@ -494,7 +495,7 @@ function TransactionsPageContent() {
 
 export default function TransactionsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-xs text-slate-500">Loading history...</div>}>
+    <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center"><Spinner size="lg" /></div>}>
       <TransactionsPageContent />
     </Suspense>
   );

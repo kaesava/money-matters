@@ -18,6 +18,7 @@ export const tenants = pgTable("tenants", {
   appId: uuid("app_id").notNull().references(() => apps.id),
   name: varchar("name", { length: 255 }).notNull(),
   country: varchar("country", { length: 2 }).notNull().default("AU"),
+  timezone: varchar("timezone", { length: 100 }).notNull().default("Australia/Sydney"),
   state: varchar("state", { length: 50 }),
   postcode: varchar("postcode", { length: 20 }),
   fyEndMonthDay: varchar("fy_end_month_day", { length: 5 }).notNull().default("06-30"),

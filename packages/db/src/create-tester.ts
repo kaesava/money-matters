@@ -108,6 +108,7 @@ async function main() {
         id: tenantId,
         name: `${name} Household`,
         fyEndMonthDay: "06-30",
+        timezone: "Australia/Sydney",
         premiumEnabled: true,
         subscriptionStatus: "TRIAL_ACTIVE",
         trialStartedAt: now,
@@ -133,8 +134,6 @@ async function main() {
       // 8. Ensure User Preferences exist
       await db.insert(userPreferences).values({
         userId: userId!,
-        timezone: "Australia/Sydney",
-        locale: "en-AU",
         theme: "system",
         showIcons: true,
         createdBy: userId!,

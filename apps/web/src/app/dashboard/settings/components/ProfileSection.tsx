@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
-import { PhoneInput, validateMobileNumber, Spinner, useToast } from "@money-matters/ui/web";
+import { PhoneInput, validateMobileNumber, Spinner, useToast, InfoTooltip } from "@money-matters/ui/web";
 import { AvatarCropModal } from "../../../../components/web/AvatarCropModal";
 
 interface ProfileSectionProps {
@@ -38,17 +38,54 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
   const [showIcons, setShowIcons] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const initialDataRef = useRef({
+    displayName: user?.name || "",
+    notificationEmail: user?.email || "",
+    phoneCountryCode: "+61",
+    phoneNumber: "",
+    timezone: currentTimezone,
+    showIcons: true,
+    avatarUrl: user?.image || "",
+  });
+
   useEffect(() => {
     if (userProfileQuery.data) {
-      setDisplayName(userProfileQuery.data.displayName || user?.name || "");
-      setAvatarUrl(userProfileQuery.data.avatarUrl || user?.image || "");
-      setNotificationEmail(userProfileQuery.data.notificationEmail || user?.email || "");
-      setPhoneCountryCode(userProfileQuery.data.phoneCountryCode || "+61");
-      setPhoneNumber(userProfileQuery.data.phoneNumber || "");
-      setTimezone(userProfileQuery.data.timezone || "Australia/Sydney");
-      setShowIcons(userProfileQuery.data.showIcons ?? true);
+      const dName = userProfileQuery.data.displayName || user?.name || "";
+      const aUrl = userProfileQuery.data.avatarUrl || user?.image || "";
+      const nEmail = userProfileQuery.data.notificationEmail || user?.email || "";
+      const pCode = userProfileQuery.data.phoneCountryCode || "+61";
+      const pNum = userProfileQuery.data.phoneNumber || "";
+      const tZone = userProfileQuery.data.timezone || "Australia/Sydney";
+      const sIcons = userProfileQuery.data.showIcons ?? true;
+
+      setDisplayName(dName);
+      setAvatarUrl(aUrl);
+      setNotificationEmail(nEmail);
+      setPhoneCountryCode(pCode);
+      setPhoneNumber(pNum);
+      setTimezone(tZone);
+      setShowIcons(sIcons);
+
+      initialDataRef.current = {
+        displayName: dName,
+        notificationEmail: nEmail,
+        phoneCountryCode: pCode,
+        phoneNumber: pNum,
+        timezone: tZone,
+        showIcons: sIcons,
+        avatarUrl: aUrl,
+      };
     }
   }, [userProfileQuery.data, user]);
+
+  const isDirty =
+    displayName !== initialDataRef.current.displayName ||
+    notificationEmail !== initialDataRef.current.notificationEmail ||
+    phoneCountryCode !== initialDataRef.current.phoneCountryCode ||
+    phoneNumber !== initialDataRef.current.phoneNumber ||
+    timezone !== initialDataRef.current.timezone ||
+    showIcons !== initialDataRef.current.showIcons ||
+    avatarUrl !== initialDataRef.current.avatarUrl;
 
   const handleAvatarFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -249,7 +286,6 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
               label={t("settings.phoneNumberLabel")}
               error={phoneError}
             />
-            <p className="text-[11px] text-slate-500 pt-1">{t("settings.phoneNumberHint")}</p>
           </div>
 
           {/* Timezone */}
@@ -270,11 +306,14 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
             </select>
           </div>
 
-          {/* Show Decorative Icons Toggle */}
+          {/* Show Icons Toggle */}
           <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50/50">
-            <div>
+            <div className="flex items-center gap-1.5">
               <p className="text-xs font-bold text-[#1B2B4B]">{t("settings.items.showIcons")}</p>
-              <p className="text-[11px] text-slate-500">{t("settings.items.showIconsHint")}</p>
+              <InfoTooltip
+                title={t("settings.items.showIcons")}
+                content={t("settings.items.showIconsHint")}
+              />
             </div>
             <input
               type="checkbox"
@@ -288,7 +327,7 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         <div className="pt-2 flex justify-end">
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || !isDirty}
             className="px-5 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
           >
             {isSaving && <Spinner size="sm" />}

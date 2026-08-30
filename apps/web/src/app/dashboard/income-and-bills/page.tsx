@@ -33,8 +33,11 @@ export default function IncomeAndBillsPage() {
   const pools = poolsQuery.data || [];
   const incomeSources = incomeSourcesQuery.data || [];
   const expenseSources = expenseSourcesQuery.data || [];
-  const incomeEvents = incomeEventsQuery.data || [];
-  const expenseEvents = expenseEventsQuery.data || [];
+  const rawIncomeEvents = incomeEventsQuery.data;
+  const rawExpenseEvents = expenseEventsQuery.data;
+
+  const incomeEvents = React.useMemo(() => rawIncomeEvents || [], [rawIncomeEvents]);
+  const expenseEvents = React.useMemo(() => rawExpenseEvents || [], [rawExpenseEvents]);
 
   const matrixIncomeEvents = incomeEvents.map((e) => ({
     id: e.id,
@@ -51,6 +54,26 @@ export default function IncomeAndBillsPage() {
     dueDate: e.expectedDate,
     status: e.status as "UPCOMING" | "PAID" | "SKIPPED",
   }));
+
+  const allEvents = React.useMemo(() => {
+    const incs = incomeEvents.map((e) => ({
+      id: e.id,
+      name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
+      expectedDate: e.expectedDate,
+      expectedAmount: parseFloat(e.expectedAmount || "0"),
+      status: e.status as string,
+      type: "INCOME" as const,
+    }));
+    const exps = expenseEvents.map((e) => ({
+      id: e.id,
+      name: e.name || "Scheduled Bill",
+      expectedDate: e.expectedDate,
+      expectedAmount: parseFloat(e.expectedAmount || "0"),
+      status: e.status as string,
+      type: "EXPENSE" as const,
+    }));
+    return [...incs, ...exps].sort((a, b) => (a.expectedDate || "").localeCompare(b.expectedDate || ""));
+  }, [incomeEvents, expenseEvents]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -137,18 +160,7 @@ export default function IncomeAndBillsPage() {
               : "border-transparent text-zinc-500 hover:text-zinc-700"
           }`}
         >
-          12-Month Cashflow Matrix
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("STREAMS")}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
-            activeTab === "STREAMS"
-              ? "border-[#2563eb] text-[#2563eb]"
-              : "border-transparent text-zinc-500 hover:text-zinc-700"
-          }`}
-        >
-          Income Streams & Bills ({incomeSources.length + expenseSources.length})
+          Upcoming (Grid)
         </button>
         <button
           type="button"
@@ -159,7 +171,18 @@ export default function IncomeAndBillsPage() {
               : "border-transparent text-zinc-500 hover:text-zinc-700"
           }`}
         >
-          Upcoming Event Ledger ({incomeEvents.length + expenseEvents.length})
+          Upcoming (List) ({allEvents.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("STREAMS")}
+          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
+            activeTab === "STREAMS"
+              ? "border-[#2563eb] text-[#2563eb]"
+              : "border-transparent text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          Setup ({incomeSources.length + expenseSources.length})
         </button>
       </div>
 
@@ -243,24 +266,40 @@ export default function IncomeAndBillsPage() {
 
       {activeTab === "EVENTS" && (
         <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
-          <h3 className="font-bold text-[#1B2B4B] text-base mb-2">Upcoming Scheduled Events</h3>
+          <h3 className="font-bold text-[#1B2B4B] text-base mb-2">Upcoming Scheduled Events ({allEvents.length})</h3>
           <div className="overflow-x-auto mt-4">
             <table className="w-full text-left text-sm text-zinc-600">
               <thead className="bg-zinc-50 text-xs font-bold text-zinc-400 uppercase">
                 <tr>
+                  <th className="px-4 py-2">Type</th>
                   <th className="px-4 py-2">Event Name</th>
                   <th className="px-4 py-2">Expected Date</th>
-                  <th className="px-4 py-2">Amount</th>
-                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2 text-right">Amount</th>
+                  <th className="px-4 py-2 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 font-medium">
-                {expenseEvents.map((evt) => (
-                  <tr key={evt.id}>
+                {allEvents.map((evt) => (
+                  <tr key={evt.id + evt.type}>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                        evt.type === "INCOME" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                      }`}>
+                        {evt.type === "INCOME" ? "Income" : "Bill"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 font-bold text-[#1B2B4B]">{evt.name}</td>
-                    <td className="px-4 py-3">{evt.expectedDate}</td>
-                    <td className="px-4 py-3 font-mono">${parseFloat(evt.expectedAmount).toFixed(2)}</td>
-                    <td className="px-4 py-3 font-bold text-xs">{evt.status}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{evt.expectedDate}</td>
+                    <td className={`px-4 py-3 font-mono font-bold text-right ${
+                      evt.type === "INCOME" ? "text-emerald-600" : "text-zinc-900"
+                    }`}>
+                      {evt.type === "INCOME" ? "+" : "-"}${evt.expectedAmount.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold text-xs">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
+                        {evt.status}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

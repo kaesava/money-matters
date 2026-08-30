@@ -4,7 +4,6 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { SlideOverDrawer } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
-import { FileNotesSection } from "./FileNotesSection";
 
 export interface CategoryDetailItem {
   id: string;
@@ -154,7 +153,6 @@ export function CategoryDetailDrawer({ categoryId, onClose, onEdit, onArchive }:
               {t("categories.detail.history")}
             </p>
             <TransactionHistory categoryId={categoryId} categoryName={cat.name} onClose={onClose} />
-            <FileNotesSection entityType="CATEGORY" entityId={categoryId} />
 
             {onArchive && cat.type !== "EVERYDAY" && (
               <div className="pt-4 border-t border-zinc-100 flex justify-end">

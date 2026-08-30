@@ -1,5 +1,6 @@
 import { categories, pools, bankAccounts, transactionLedger, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
+import { getTenantDateString } from "@money-matters/core";
 
 export async function listCategoriesQuery(
   tenantId: string,
@@ -39,7 +40,7 @@ export async function listCategoriesQuery(
     : dbCats;
 
   // 2. Compute current month's spent amount (debits) per categoryId in Australia/Sydney timezone
-  const aestDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+  const aestDateStr = getTenantDateString(new Date());
   const [yStr, mStr] = aestDateStr.split('-');
   const startOfMonthIso = new Date(`${yStr}-${mStr}-01T00:00:00+10:00`).toISOString();
 

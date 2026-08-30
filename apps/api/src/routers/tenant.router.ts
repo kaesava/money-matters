@@ -161,14 +161,18 @@ export const tenantRouter = {
         );
 
       const appBlob = tenantPref?.appPreferences?.[appId];
+      const { tenants } = await import("@money-matters/db");
+      const [currentTenant] = ctx.tenantId
+        ? await ctx.db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1)
+        : [null];
 
       return {
         id: globalPref?.id || tenantPref?.id,
         userId: ctx.userId!,
         tenantId: ctx.tenantId!,
         appId,
-        timezone: globalPref?.timezone ?? "Australia/Sydney",
-        locale: globalPref?.locale ?? "en-AU",
+        timezone: currentTenant?.timezone ?? "Australia/Sydney",
+        locale: currentTenant?.country ? `en-${currentTenant.country}` : "en-AU",
         theme: globalPref?.theme ?? "system",
         showIcons: globalPref?.showIcons ?? appBlob?.show_icons ?? true,
         notificationEmail: globalPref?.notificationEmail ?? null,
@@ -214,8 +218,6 @@ export const tenantRouter = {
         await ctx.db
           .update(userPreferences)
           .set({
-            timezone: input.timezone ?? existingGlobal.timezone,
-            locale: input.locale ?? existingGlobal.locale,
             theme: input.theme ?? existingGlobal.theme,
             showIcons: input.showIcons ?? existingGlobal.showIcons,
             updatedAt: new Date(),
@@ -226,8 +228,6 @@ export const tenantRouter = {
           .insert(userPreferences)
           .values({
             userId: ctx.userId!,
-            timezone: input.timezone ?? "Australia/Sydney",
-            locale: input.locale ?? "en-AU",
             theme: input.theme ?? "system",
             showIcons: input.showIcons ?? true,
           });
@@ -648,9 +648,10 @@ export const tenantRouter = {
     }),
 
   getUserProfile: authenticatedProcedure.query(async ({ ctx }) => {
-    const { users, userPreferences } = await import('@money-matters/db');
+    const { users, userPreferences, tenants } = await import('@money-matters/db');
     const [u] = await ctx.db.select().from(users).where(eq(users.id, ctx.userId!));
     const [pref] = await ctx.db.select().from(userPreferences).where(eq(userPreferences.userId, ctx.userId!));
+    const [tenantObj] = ctx.tenantId ? await ctx.db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1) : [null];
 
     return {
       id: ctx.userId!,
@@ -660,7 +661,7 @@ export const tenantRouter = {
       notificationEmail: pref?.notificationEmail || u?.email || "",
       phoneCountryCode: pref?.phoneCountryCode || "+61",
       phoneNumber: pref?.phoneNumber || "",
-      timezone: pref?.timezone || "Australia/Sydney",
+      timezone: tenantObj?.timezone || "Australia/Sydney",
       showIcons: pref?.showIcons ?? true,
     };
   }),

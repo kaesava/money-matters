@@ -127,21 +127,6 @@ export default function SettingsScreen() {
           <SubscriptionPlanSection />
           <PrivacyGovernanceSection />
 
-          {/* Help & Support Section */}
-          <View style={styles.helpCard}>
-            <Text style={styles.helpCardTitle}>{t('settings.helpTitle', { defaultValue: 'Help & Support' })}</Text>
-            <Text style={styles.helpCardBody}>
-              {t('settings.helpDesc', { defaultValue: 'Need assistance or found an issue? Submit a bug report or reach support.' })}
-            </Text>
-            <TouchableOpacity
-              style={styles.navLink}
-              onPress={() => router.push('/(app)/settings/bug-report' as Href)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.navLinkText}>💬 {t('settings.reportBugLink')}</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* Sign Out Button */}
           <TouchableOpacity
             style={[styles.signOutBtn, loading && { opacity: 0.7 }]}

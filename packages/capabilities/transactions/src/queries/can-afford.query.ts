@@ -3,7 +3,9 @@ import { eq, and, sql, desc } from "drizzle-orm";
 import { CanAffordVerdictType } from "@money-matters/types";
 
 
-const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+import { getTenantDateString } from "@money-matters/core";
+
+const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 export async function canAffordQuery(
   amount: number,

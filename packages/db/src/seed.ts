@@ -17,7 +17,6 @@ import {
   tenantUserPreferences,
   users,
   apps,
-  fileNotes,
   deviceTokens,
 } from "@money-matters/db";
 import { sql } from "drizzle-orm";
@@ -129,7 +128,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     // Ignored: legacy sessions/verifications tables may not exist in all DB environments
   }
 
-  await db.delete(fileNotes);
   await db.delete(deviceTokens);
   await db.delete(transactionLedger);
   await db.delete(allocationPlanLines);
@@ -172,6 +170,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       id: tenantId,
       name: "Kaesava Household",
       country: "AU",
+      timezone: "Australia/Sydney",
       state: "NSW",
       postcode: "2000",
       fyEndMonthDay: "06-30",
@@ -192,6 +191,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       id: raehanTenantId,
       name: "Raehan Household",
       country: "AU",
+      timezone: "Australia/Sydney",
       state: "VIC",
       postcode: "3000",
       fyEndMonthDay: "06-30",
@@ -212,6 +212,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       id: testerTenantId,
       name: "Play Store Tester Household",
       country: "AU",
+      timezone: "Australia/Sydney",
       state: "QLD",
       postcode: "4000",
       fyEndMonthDay: "06-30",
@@ -235,11 +236,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     { tenantId: testerHousehold.id, userId: testerUserId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
-  // 3. User Preferences
   await db.insert(userPreferences).values([
-    { userId, timezone: "Australia/Sydney", locale: "en-AU", theme: "system", showIcons: true, createdBy: userId, updatedBy: userId },
-    { userId: raehanUserId, timezone: "Australia/Sydney", locale: "en-AU", theme: "system", showIcons: true, createdBy: raehanUserId, updatedBy: raehanUserId },
-    { userId: testerUserId, timezone: "Australia/Sydney", locale: "en-AU", theme: "system", showIcons: true, createdBy: testerUserId, updatedBy: testerUserId },
+    { userId, theme: "system", showIcons: true, createdBy: userId, updatedBy: userId },
+    { userId: raehanUserId, theme: "system", showIcons: true, createdBy: raehanUserId, updatedBy: raehanUserId },
+    { userId: testerUserId, theme: "system", showIcons: true, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
   await db.insert(tenantUserPreferences).values([

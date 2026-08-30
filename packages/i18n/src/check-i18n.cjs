@@ -41,6 +41,50 @@ const jaKeys = getKeys(ja);
 const enKeySet = new Set(enKeys);
 const jaKeySet = new Set(jaKeys);
 
+// 1.5 Strict Banned Terminology & Tone Audit
+const BANNED_PATTERNS = [
+  { pattern: /\bLedger\b/i, reason: "Use 'History' or 'Transactions' instead of accounting jargon 'Ledger'." },
+  { pattern: /\bMatrix\b/i, reason: "Use 'Payday Split' instead of technical jargon 'Matrix'." },
+  { pattern: /\bAllocation Grid\b/i, reason: "Use 'Payday Split' instead of technical jargon 'Allocation Grid'." },
+  { pattern: /\bIncome Stream\b/i, reason: "Use 'Income Source' or 'Pay' instead of corporate speak 'Income Stream'." },
+  { pattern: /\bObligations\b/i, reason: "Use 'Bills' or 'Commitments' instead of 'Obligations'." },
+  { pattern: /\bDeficit Repair\b/i, reason: "Use 'Cover Shortfalls' or 'Fix Balances' instead of 'Deficit Repair'." },
+  { pattern: /\bSinking (Goals|Funds)\b/i, reason: "Use 'Savings Goals' or 'Future Goals' instead of 'Sinking Goals'." },
+  { pattern: /\bProrates\b/i, reason: "Use 'Calculates' or 'Works out' instead of math jargon 'Prorates'." },
+  { pattern: /\bDiscretionary\b/i, reason: "Use 'Everyday' or 'Spending Money' instead of 'Discretionary'." },
+  { pattern: /\bLumpy Expenses\b/i, reason: "Use 'Upcoming Bills' or 'Big Expenses' instead of 'Lumpy Expenses'." },
+  { pattern: /\bAccumulator\b/i, reason: "Use 'Savings' or 'Goal' instead of 'Accumulator'." },
+  { pattern: /\bToggle\b/i, reason: "Use 'Turn on/off' or 'Switch' instead of dev speak 'Toggle'." },
+  { pattern: /\bPrimary Auth\b/i, reason: "Use 'Login Email' instead of dev speak 'Primary Auth'." },
+  { pattern: /\b(Partner|Housemate)s?\b/i, reason: "Use 'Household member(s)' instead of 'Partner/Housemate'." },
+  { pattern: /\bReconcile\b/i, reason: "Use 'Check Balances' or 'Match Bank' instead of accounting jargon 'Reconcile'." },
+];
+
+const terminologyErrors = [];
+for (const key of enKeys) {
+  const value = getKeyValue(en, key);
+  if (typeof value === "string") {
+    for (const rule of BANNED_PATTERNS) {
+      if (rule.pattern.test(value)) {
+        terminologyErrors.push({ key, value, reason: rule.reason });
+      }
+    }
+  }
+}
+
+function getKeyValue(obj, pathStr) {
+  return pathStr.split('.').reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : undefined), obj);
+}
+
+if (terminologyErrors.length > 0) {
+  console.error(`\x1b[31m[Terminology Audit Failure] Found ${terminologyErrors.length} banned term(s) in en.ts:\x1b[0m\n`);
+  for (const err of terminologyErrors) {
+    console.error(`  \x1b[33mKey: "${err.key}"\x1b[0m -> \x1b[36m"${err.value}"\x1b[0m`);
+    console.error(`  \x1b[31mError:\x1b[0m ${err.reason}\n`);
+  }
+  process.exit(1);
+}
+
 const missingInJa = enKeys.filter(k => !jaKeySet.has(k));
 const missingInEn = jaKeys.filter(k => !enKeySet.has(k));
 

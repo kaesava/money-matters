@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
     "@money-matters/capability-budgeting",
     "@money-matters/capability-transactions",
     "@money-matters/capability-tenant",
-    "@money-matters/capability-file-notes",
     "@money-matters/capability-notifications",
   ],
   eslint: {

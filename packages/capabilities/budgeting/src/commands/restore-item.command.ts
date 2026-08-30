@@ -2,7 +2,9 @@ import { pools, categories, incomeSources, expenseSources, incomeEvents, expense
 import { eq, and } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
-const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+import { getTenantDateString } from "@money-matters/core";
+
+const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 export async function restoreItemCommand(
   itemId: string,

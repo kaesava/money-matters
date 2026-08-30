@@ -7,7 +7,6 @@ import {
   expenseEvents, 
   transactionLedger, 
   bankAccounts, 
-  fileNotes, 
   userPreferences,
   tenantUserPreferences,
   allocationPlans,
@@ -122,20 +121,7 @@ export function exportMyDataHandler(db: DbOrTx) {
 
     const userLedger = rawLedger.filter((t) => allowedPoolIds.has(t.poolId));
 
-    // 9. Fetch File Notes metadata
-    const userFileNotes = await db
-      .select({
-        id: fileNotes.id,
-        fileName: fileNotes.fileName,
-        fileMimeType: fileNotes.fileMimeType,
-        fileSize: fileNotes.fileSize,
-        comment: fileNotes.comment,
-        createdAt: fileNotes.createdAt,
-      })
-      .from(fileNotes)
-      .where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
-
-    // 10. Fetch Allocation Plans & Lines
+    // 9. Fetch Allocation Plans & Lines
     const userAllocationPlans = await db
       .select()
       .from(allocationPlans)
@@ -150,7 +136,7 @@ export function exportMyDataHandler(db: DbOrTx) {
 
     const csvFiles: Record<string, string> = {
       "User_Profile.csv": arrayToCsv(
-        userRecord ? [{ ...userRecord, globalTimezone: globalPrefs?.timezone || "Australia/Sydney" }] : [],
+        userRecord ? [{ ...userRecord, globalTimezone: tenantRecord?.timezone || "Australia/Sydney" }] : [],
         ["id", "email", "displayName", "globalTimezone"]
       ),
       "Household_Profile.csv": arrayToCsv(
@@ -167,7 +153,6 @@ export function exportMyDataHandler(db: DbOrTx) {
       "Transactions_Ledger.csv": arrayToCsv(userLedger, ["id", "recordedAt", "amount", "flowType", "poolId", "categoryId", "bankAccountId"]),
       "Payday_Allocation_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "totalIncomeAmount", "status"]),
       "Payday_Allocation_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "planId", "poolId", "proposedAmount", "confirmedAmount"]),
-      "Notes_and_Attachments.csv": arrayToCsv(userFileNotes, ["id", "fileName", "fileMimeType", "fileSize", "comment", "createdAt"]),
     };
 
     return {

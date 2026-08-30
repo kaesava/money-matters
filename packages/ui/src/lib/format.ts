@@ -2,29 +2,38 @@
  * Standardized Monetary & Date Formatting Utilities
  */
 
-export function formatCurrency(value: number | string | null | undefined): string {
+export function formatCurrency(
+  value: number | string | null | undefined,
+  locale: string = "en-AU",
+  currency: string = "AUD"
+): string {
   if (value === null || value === undefined) return '$0.00';
   const num = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(num)) return '$0.00';
   if (num < 0) {
-    return `-$${Math.abs(num).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `-$${Math.abs(num).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
-  return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function fmtBalance(value: number | string | null | undefined): string {
-  return formatCurrency(value);
+export function fmtBalance(
+  value: number | string | null | undefined,
+  locale: string = "en-AU",
+  currency: string = "AUD"
+): string {
+  return formatCurrency(value, locale, currency);
 }
 
 export function fmtTransactionAmount(
   value: number | string | null | undefined,
-  flowType?: 'CREDIT' | 'DEBIT'
+  flowType?: 'CREDIT' | 'DEBIT',
+  locale: string = "en-AU"
 ): string {
   if (value === null || value === undefined) return '$0.00';
   const num = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(num) || num === 0) return '$0.00';
 
-  const absStr = Math.abs(num).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const absStr = Math.abs(num).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (flowType === 'CREDIT' || num > 0) {
     return `+$${absStr}`;
   }
@@ -47,7 +56,10 @@ export function getAmountColorClass(
   return 'text-[#1B2B4B] dark:text-slate-100 font-bold';
 }
 
-export function fmtDateTime(input: string | Date | number | null | undefined): string {
+export function fmtDateTime(
+  input: string | Date | number | null | undefined,
+  timeZone: string = "Australia/Sydney"
+): string {
   if (!input) return "N/A";
   try {
     const d = new Date(input);
@@ -59,10 +71,9 @@ export function fmtDateTime(input: string | Date | number | null | undefined): s
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "Australia/Sydney",
+      timeZone,
     }).format(d);
   } catch {
     return "N/A";
   }
 }
-

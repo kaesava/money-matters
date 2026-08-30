@@ -3,7 +3,9 @@ import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { BillCoverageResult, BillCoverageItem } from "@money-matters/types";
 
 
-const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+import { getTenantDateString } from "@money-matters/core";
+
+const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 export async function listBillCoverageQuery(
   tenantId: string,

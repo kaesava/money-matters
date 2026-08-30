@@ -19,8 +19,6 @@
     "@fastify/helmet": "^11.1.1",
     "@money-matters/capability-billing": "workspace:*",
     "@money-matters/capability-budgeting": "workspace:*",
-    "@money-matters/capability-bug-reports": "workspace:*",
-    "@money-matters/capability-file-notes": "workspace:*",
     "@money-matters/capability-notifications": "workspace:*",
     "@money-matters/capability-tenant": "workspace:*",
     "@money-matters/capability-transactions": "workspace:*",

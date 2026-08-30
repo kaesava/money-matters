@@ -2,7 +2,9 @@ import { pools, categories, allocationPlans, allocationPlanLines, transactionLed
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 
-const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+import { getTenantDateString } from "@money-matters/core";
+
+const getAestDateString = (d: Date = new Date()) => getTenantDateString(d);
 
 /**
  * Resolves frequency interval in days from an RRULE recurrence string.

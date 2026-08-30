@@ -6,11 +6,13 @@ import { t } from "@money-matters/i18n";
 
 export interface PaydayPlanLineRecord {
   planId: string;
-  categoryId: string;
+  categoryId?: string | null;
+  poolId?: string | null;
   proposedAmount: string;
   confirmedAmount: string | null;
   reasoning: string | null;
-  categoryName: string | null;
+  poolName?: string | null;
+  categoryName?: string | null;
 }
 
 export interface PaydayPlanRecord {
@@ -101,16 +103,16 @@ export function SlideOverAllocationDrawer({
           {/* Waterfall Lines List */}
           <div className="flex-1 overflow-y-auto p-6 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              Waterfall Breakdown ({plan.lines.length} categories)
+              Waterfall Breakdown ({plan.lines.length} pools)
             </h3>
-            {plan.lines.map((line) => (
+            {plan.lines.map((line, idx) => (
               <div
-                key={line.planId + line.categoryId}
+                key={line.planId + (line.poolId || line.categoryId || idx)}
                 className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 rounded-xl space-y-1.5"
               >
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                    {line.categoryName || "Unknown Category"}
+                    {line.poolName || line.categoryName || "Pool Allocation"}
                   </h4>
                   <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
                     {formatAUD(line.confirmedAmount || line.proposedAmount)}

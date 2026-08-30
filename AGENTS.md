@@ -113,7 +113,7 @@ All tables MUST include:
 
 ## 14. Integrations
 - Neon DB Auth for authentication.
-- Stripe via verified webhooks ONLY (V2 scope, inactive in V1).
+- Stripe via verified webhooks ONLY (ACTIVE in V1 with 7-day read-only grace period & subscription checkout/portal management).
 - Resend via abstraction for transactional emails & partner invites.
 - Inngest Cloud for 6 scheduled background notification workflows.
 - Webhooks MUST be: verified, idempotent, async.

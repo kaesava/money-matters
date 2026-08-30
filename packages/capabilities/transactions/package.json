@@ -13,6 +13,7 @@
     }
   },
   "dependencies": {
+    "@money-matters/core": "workspace:*",
     "@money-matters/db": "workspace:*",
     "@money-matters/types": "workspace:*",
     "drizzle-orm": "^0.39.0",

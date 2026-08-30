@@ -16,7 +16,6 @@ import { SidebarContent } from "./components/SidebarContent";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
 import { QuickActionFab } from "./components/QuickActionFab";
 import { NAV_ITEMS } from "./components/navItems";
-import { BugReportModal } from "./settings/components/BugReportModal";
 import { getWebVersionInfo } from "../../lib/version";
 
 const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
@@ -121,7 +120,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
-  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
 
@@ -257,7 +255,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       initials={initials}
       onNavigateToSettings={() => router.push("/dashboard/settings")}
       onSignOut={handleSignOut}
-      onOpenFeedback={() => setIsBugReportOpen(true)}
     />
   );
 
@@ -336,13 +333,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </span>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsBugReportOpen(true)}
-                className="text-xs font-bold text-teal-300 bg-teal-500/20 px-2 py-1 rounded-lg border border-teal-500/30 flex items-center gap-1 cursor-pointer"
-              >
-                <span>💬</span> Feedback
-              </button>
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
                 style={{ backgroundColor: "var(--dash-teal)" }}
@@ -447,11 +437,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <KeyboardShortcutsModal
             isOpen={showShortcutsModal}
             onClose={() => setShowShortcutsModal(false)}
-          />
-
-          <BugReportModal
-            isOpen={isBugReportOpen}
-            onClose={() => setIsBugReportOpen(false)}
           />
         </div>
       </div>

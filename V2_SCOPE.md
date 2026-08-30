@@ -146,5 +146,55 @@ The following types were defined for V2 offline/sync or alternative pathways:
 - `SyncLedgerMutationCommand`: Offline mutation sync schema
 - `WaterfallExecutionPayload`: Background waterfall execution payload
 
+---
 
+## V2 Technical: Deferred Capabilities (Bug Reports & File Notes)
 
+The custom in-app PostgreSQL bug-reports triage pipeline and receipt/PDF attachment capability (`file-notes`) were pruned from V1 scope to reduce maintenance overhead on inactive code.
+
+### 1. Bug Reports Schema & Logic (`bug_reports` table)
+```ts
+// DB Table: bug_reports
+export const bugReports = pgTable("bug_reports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  category: varchar("category", { length: 50 }).notNull().default("other"),
+  severity: varchar("severity", { length: 20 }).notNull().default("medium"),
+  frustrationLevel: integer("frustration_level").notNull().default(2),
+  contactConsent: boolean("contact_consent").notNull().default(true),
+  status: varchar("status", { length: 20 }).notNull().default("open"),
+  appVersion: varchar("app_version", { length: 50 }).notNull().default("1.0.0-beta"),
+  platform: varchar("platform", { length: 20 }).notNull(),
+  pageUrl: varchar("page_url", { length: 512 }),
+  deviceInfo: text("device_info"),
+  ...tenantAndTimestamps,
+});
+
+// Category & Frustration mapping labels
+const CATEGORY_LABELS = {
+  setup: "Onboarding & Payday Setup",
+  waterfall: "Payday Allocation & Waterfalls",
+  transactions_sync: "Bank Sync & Statement Import",
+  categories_bills: "Category & Bill Management",
+  ui_ux: "App Display & Navigation",
+  account_auth: "Account & Authentication",
+  other: "Something Else",
+};
+```
+
+### 2. File Notes & Attachments Schema (`file_notes` table)
+```ts
+// DB Table: file_notes
+export const fileNotes = pgTable("file_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  entityType: varchar("entity_type", { length: 50 }).notNull(), // 'expenses' | 'categories' etc.
+  entityId: uuid("entity_id").notNull(),
+  comment: text("comment"),
+  fileKey: varchar("file_key", { length: 512 }),
+  fileName: varchar("file_name", { length: 255 }),
+  fileMimeType: varchar("file_mime_type", { length: 100 }),
+  fileSize: varchar("file_size", { length: 50 }),
+  ...tenantAndTimestamps
+});
+```

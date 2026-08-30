@@ -8,7 +8,6 @@ import {
   expenseEvents, 
   transactionLedger, 
   bankAccounts, 
-  fileNotes, 
   userPreferences,
   tenantUserPreferences,
   allocationPlans,
@@ -75,7 +74,6 @@ export function deleteMyAccountHandler(db: DbOrTx) {
       }
 
       // Hard delete all tenant records in FK-safe order
-      await tx.delete(fileNotes).where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
       if (allUserIdsToPurgeTokens.length > 0) {
         await tx.delete(deviceTokens).where(inArray(deviceTokens.userId, allUserIdsToPurgeTokens));
       }

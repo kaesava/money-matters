@@ -2,7 +2,10 @@
  * Formats a date string, Date object, or timestamp into standard Australian format: "26 Aug 2026".
  * Handles UTC ISO strings cleanly without timezone off-by-one errors in AEST/AEDT.
  */
-export function fmtDate(input: string | Date | number | null | undefined): string {
+export function fmtDate(
+  input: string | Date | number | null | undefined,
+  timeZone: string = "Australia/Sydney"
+): string {
   if (!input) return "N/A";
 
   try {
@@ -27,7 +30,7 @@ export function fmtDate(input: string | Date | number | null | undefined): strin
       day: "numeric",
       month: "short",
       year: "numeric",
-      timeZone: "Australia/Sydney",
+      timeZone,
     }).format(dateObj);
   } catch {
     return "N/A";

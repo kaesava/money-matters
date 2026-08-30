@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 
+import { getTenantDateString } from "@money-matters/core";
+
 export function useDashboardData() {
   const router = useRouter();
   const utils = trpc.useUtils();
   const todayYear = new Date().getFullYear();
   const todayMonth = new Date().getMonth() + 1;
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+  const todayStr = getTenantDateString(new Date());
 
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
   const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);

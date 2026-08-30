@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { budgetingRouter } from "./budgeting.router.js";
-import { bugReportRouter } from "./bug-report.router.js";
 
 describe("Router protections & procedure sanity checks", () => {
   it("exports budgetingRouter with required pool and category procedures", () => {
@@ -14,11 +13,6 @@ describe("Router protections & procedure sanity checks", () => {
     expect(budgetingRouter.updateCategory).toBeDefined();
     expect(budgetingRouter.archiveCategory).toBeDefined();
     expect(budgetingRouter.listCategories).toBeDefined();
-  });
-
-  it("exports bugReportRouter with createBugReport procedure", () => {
-    expect(bugReportRouter).toBeDefined();
-    expect(bugReportRouter.createBugReport).toBeDefined();
   });
 });
 

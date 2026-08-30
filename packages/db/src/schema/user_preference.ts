@@ -6,16 +6,12 @@ import { users } from "./user.js";
  * Scoped exclusively by `userId` (without tenantId or appId).
  *
  * Contains user-centric, app-agnostic settings:
- * - `timezone`: Physical time zone (default: "Australia/Sydney")
- * - `locale`: Language and regional formatting (default: "en-AU")
  * - `theme`: UI appearance theme (default: "system")
  * - `showIcons`: Global visual icon preference (default: true)
  */
 export const userPreferences = pgTable("user_preferences", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
-  timezone: varchar("timezone", { length: 100 }).notNull().default("Australia/Sydney"),
-  locale: varchar("locale", { length: 20 }).notNull().default("en-AU"),
   theme: varchar("theme", { length: 20 }).notNull().default("system"),
   showIcons: boolean("show_icons").notNull().default(true),
   notificationEmail: varchar("notification_email", { length: 255 }),
