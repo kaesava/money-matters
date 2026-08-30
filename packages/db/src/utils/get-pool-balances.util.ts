@@ -15,8 +15,6 @@ export async function getPoolBalancesMap(
   const query = dbClient
     .select({
       poolId: transactionLedger.poolId,
-      amount: transactionLedger.amount,
-      flowType: transactionLedger.flowType,
       balance: sql<string>`COALESCE(SUM(CASE WHEN ${transactionLedger.flowType} = 'CREDIT' THEN ${transactionLedger.amount}::numeric ELSE -${transactionLedger.amount}::numeric END), 0)::text`,
     })
     .from(transactionLedger)
@@ -34,15 +32,18 @@ export async function getPoolBalancesMap(
 
   const balancesMap: Record<string, number> = {};
   for (const r of (rows || [])) {
-    if (r.poolId) {
-      if (r.balance !== undefined && typeof r.balance === "string") {
-        balancesMap[r.poolId] = (balancesMap[r.poolId] || 0) + parseFloat(r.balance || "0");
+    if (r && r.poolId) {
+      if (r.balance !== undefined) {
+        const val = parseFloat(r.balance || "0");
+        balancesMap[r.poolId] = (balancesMap[r.poolId] || 0) + (isNaN(val) ? 0 : val);
       } else if (r.amount !== undefined) {
         const val = parseFloat(r.amount);
         const signed = r.flowType === "CREDIT" ? val : -val;
-        balancesMap[r.poolId] = (balancesMap[r.poolId] || 0) + signed;
+        balancesMap[r.poolId] = (balancesMap[r.poolId] || 0) + (isNaN(signed) ? 0 : signed);
       }
     }
   }
   return balancesMap;
 }
+
+

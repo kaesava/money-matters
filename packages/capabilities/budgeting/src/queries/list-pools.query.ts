@@ -31,12 +31,13 @@ export async function listPoolsQuery(
       bankAccountUserId: bankAccounts.userId,
     })
     .from(pools)
-    .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
+    .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
     .where(and(...poolFilters));
 
   const visiblePools = userId
     ? dbPools.filter((p) => !p.isPrivate || p.bankAccountUserId === userId)
     : dbPools;
+
 
   // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
   const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
