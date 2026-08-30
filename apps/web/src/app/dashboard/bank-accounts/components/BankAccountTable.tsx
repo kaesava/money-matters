@@ -72,7 +72,8 @@ export function BankAccountTable({
               <th className="py-3.5 px-4 text-center">
                 <span>Linked Pools</span>
               </th>
-              <th className="py-3.5 px-4 text-center">Account Type</th>
+              <th className="py-3.5 px-4 text-center">Access</th>
+
               <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
           </thead>

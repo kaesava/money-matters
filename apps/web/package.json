@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "next dev",
+    "dev": "next dev --turbo",
+
     "build": "next build",
     "cf-build": "opennextjs-cloudflare build",
     "preview": "pnpm opennextjs-cloudflare build && wrangler dev",

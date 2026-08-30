@@ -103,11 +103,12 @@ export function RegularBillsSection({
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
               <ResizableTh width={widths.name} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("name", e)} className="px-6 py-3">Category Name</ResizableTh>
-              <ResizableTh width={widths.dueDate} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("dueDate", e)} className="px-6 py-3">Next Due Date</ResizableTh>
+              <ResizableTh width={widths.dueDate} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("dueDate", e)} className="px-6 py-3 text-center">Next Due Date</ResizableTh>
               <ResizableTh width={widths.coverage} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("coverage", e)} className="px-6 py-3 text-center">Upcoming Coverage</ResizableTh>
               <ResizableTh width={widths.target} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("target", e)} className="px-6 py-3 text-right">Monthly Target Budget</ResizableTh>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-zinc-100">
             {categories.length === 0 ? (
               <tr>
@@ -142,7 +143,8 @@ export function RegularBillsSection({
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-3.5 font-mono text-zinc-600">
+                    <td className="px-6 py-3.5 font-mono text-zinc-600 text-center">
+
                       {cov && cov.nextDueDate ? (
                         <span>
                           {fmtDate(cov.nextDueDate)} ({fmt(cov.nextDueAmount)})

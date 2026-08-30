@@ -73,12 +73,13 @@ export function SavingsGoalsSection({
         <thead>
           <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
             <ResizableTh width={widths.name} onResizeMouseDown={(e) => onMouseDown("name", e)} className="px-6 py-3.5">Goal Name</ResizableTh>
-            <ResizableTh width={widths.balance} onResizeMouseDown={(e) => onMouseDown("balance", e)} className="px-6 py-3.5">Current Balance</ResizableTh>
-            <ResizableTh width={widths.target} onResizeMouseDown={(e) => onMouseDown("target", e)} className="px-6 py-3.5">Target Goal</ResizableTh>
-            <ResizableTh width={widths.targetDate} onResizeMouseDown={(e) => onMouseDown("targetDate", e)} className="px-6 py-3.5">Target Date</ResizableTh>
-            <ResizableTh width={widths.health} onResizeMouseDown={(e) => onMouseDown("health", e)} className="px-6 py-3.5">Pacing &amp; Health</ResizableTh>
+            <ResizableTh width={widths.balance} onResizeMouseDown={(e) => onMouseDown("balance", e)} className="px-6 py-3.5 text-right">Current Balance</ResizableTh>
+            <ResizableTh width={widths.target} onResizeMouseDown={(e) => onMouseDown("target", e)} className="px-6 py-3.5 text-right">Target Goal</ResizableTh>
+            <ResizableTh width={widths.targetDate} onResizeMouseDown={(e) => onMouseDown("targetDate", e)} className="px-6 py-3.5 text-center">Target Date</ResizableTh>
+            <ResizableTh width={widths.health} onResizeMouseDown={(e) => onMouseDown("health", e)} className="px-6 py-3.5 text-center">Pacing &amp; Health</ResizableTh>
           </tr>
         </thead>
+
         <tbody className="divide-y divide-zinc-100">
           {categories.length === 0 ? (
             <tr>
@@ -143,9 +144,9 @@ export function SavingsGoalsSection({
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-mono font-extrabold text-[#1B2B4B]">{fmt(balanceVal)}</td>
-                  <td className="px-6 py-4 font-mono text-zinc-700">{fmt(cat.targetAmount)}</td>
-                  <td className="px-6 py-4 text-zinc-500 font-medium">
+                  <td className="px-6 py-4 font-mono font-extrabold text-[#1B2B4B] text-right tabular-nums">{fmt(balanceVal)}</td>
+                  <td className="px-6 py-4 font-mono text-zinc-700 text-right tabular-nums">{fmt(cat.targetAmount)}</td>
+                  <td className="px-6 py-4 text-zinc-500 font-medium text-center">
                     <div>
                       {cat.targetDate ? fmtDate(cat.targetDate) : "—"}
                       {daysLeftText && (
@@ -153,8 +154,9 @@ export function SavingsGoalsSection({
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1.5 w-36">
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex flex-col gap-1.5 w-36 mx-auto">
+
                       <div className="h-2.5 w-full bg-zinc-100 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-300"

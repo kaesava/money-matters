@@ -14,7 +14,16 @@ const nextConfig: NextConfig = {
     "@money-matters/capability-tenant",
     "@money-matters/capability-notifications",
   ],
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "@money-matters/ui",
+      "@trpc/react-query",
+      "better-auth",
+    ],
+  },
   eslint: {
+
     ignoreDuringBuilds: true,
   },
   typescript: {

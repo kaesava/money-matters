@@ -118,7 +118,7 @@ export default function CascadePage() {
                 <tr>
                   <th className="px-6 py-3 rounded-l-lg">Pool Target</th>
                   <th className="px-6 py-3">Waterfall Priority / Reason</th>
-                  <th className="px-6 py-3">Engine Proposed</th>
+                  <th className="px-6 py-3 text-right">Engine Proposed</th>
                   <th className="px-6 py-3 text-right rounded-r-lg">Confirmed Split</th>
                 </tr>
               </thead>
@@ -136,9 +136,10 @@ export default function CascadePage() {
                           <InfoTooltip content={line.reasoning} />
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-zinc-500">
+                      <td className="px-6 py-4 text-right font-mono font-semibold text-zinc-500 tabular-nums">
                         {fmt(line.proposedAmount)}
                       </td>
+
                       <td className="px-6 py-4 text-right">
                         <input
                           type="number"

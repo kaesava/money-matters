@@ -207,17 +207,17 @@ export default function HistoryPage() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
-              <ResizableTh width={widths.date} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)} onClick={() => toggleSort("recordedAt")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+              <ResizableTh width={widths.date} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)} onClick={() => toggleSort("recordedAt")} className="px-6 py-4 cursor-pointer hover:text-zinc-700 text-center">
                 Date {sortField === "recordedAt" && (sortDir === "asc" ? "▲" : "▼")}
               </ResizableTh>
-              <ResizableTh width={widths.bucket} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("bucket", e)} onClick={() => toggleSort("categoryName")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+              <ResizableTh width={widths.bucket} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("bucket", e)} onClick={() => toggleSort("categoryName")} className="px-6 py-4 cursor-pointer hover:text-zinc-700 text-left">
                 Bucket {sortField === "categoryName" && (sortDir === "asc" ? "▲" : "▼")}
               </ResizableTh>
-              <ResizableTh width={widths.amount} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)} onClick={() => toggleSort("amount")} className="px-6 py-4 cursor-pointer hover:text-zinc-700">
+              <ResizableTh width={widths.amount} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)} onClick={() => toggleSort("amount")} className="px-6 py-4 cursor-pointer hover:text-zinc-700 text-right">
                 Amount {sortField === "amount" && (sortDir === "asc" ? "▲" : "▼")}
               </ResizableTh>
-              <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="px-6 py-4">Source</ResizableTh>
-              <ResizableTh width={widths.note} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("note", e)} className="px-6 py-4">What for</ResizableTh>
+              <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="px-6 py-4 text-center">Source</ResizableTh>
+              <ResizableTh width={widths.note} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("note", e)} className="px-6 py-4 text-left">What for</ResizableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -230,25 +230,26 @@ export default function HistoryPage() {
                 const isDebit = tx.flowType === "DEBIT";
                 return (
                   <tr key={tx.id} className="hover:bg-zinc-50/50 transition-colors text-xs font-semibold">
-                    <td className="px-6 py-4 text-zinc-500 font-medium">
+                    <td className="px-6 py-4 text-zinc-500 font-mono text-center">
                       {fmtDate(tx.recordedAt)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-left">
                       <Link href={`/dashboard/pools?search=${encodeURIComponent(tx.categoryName || "")}`} className="font-bold text-[#00B4A6] hover:underline cursor-pointer">
                         {tx.categoryName || "Uncategorized"}
                       </Link>
                     </td>
-                    <td className={`px-6 py-4 font-mono font-extrabold ${isDebit ? "text-rose-600" : "text-emerald-600"}`}>
+                    <td className={`px-6 py-4 font-mono font-extrabold text-right tabular-nums ${isDebit ? "text-rose-600" : "text-emerald-600"}`}>
                       {isDebit ? "-" : "+"}{fmt(tx.amount)}
                     </td>
-                    <td className="px-6 py-4 text-zinc-500">
+                    <td className="px-6 py-4 text-zinc-500 text-center">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.source === "AUTO" ? "bg-teal-50 text-[#00B4A6] border border-teal-200" : "bg-zinc-100 text-zinc-700 border border-zinc-200"}`}>
                         {tx.source || "MANUAL"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-zinc-600 max-w-[200px] truncate cursor-help" title={tx.note || undefined}>
+                    <td className="px-6 py-4 text-zinc-600 max-w-[200px] truncate text-left cursor-help" title={tx.note || undefined}>
                       {tx.note || "—"}
                     </td>
+
                   </tr>
                 );
               })
