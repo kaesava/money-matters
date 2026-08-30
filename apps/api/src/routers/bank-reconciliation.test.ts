@@ -69,7 +69,8 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     const archiveHandler = archiveBankAccountHandler(mockDb);
     await expect(
       archiveHandler("acc-1", "tenant-1", "app-1", "user-1")
-    ).rejects.toThrow("Cannot delete bank account because pool(s)");
+    ).rejects.toThrow("Cannot archive bank account because pool(s)");
+
   });
 
   it("should calculate expected bank balance correctly including unbudgeted buffer and linked pool balances", () => {

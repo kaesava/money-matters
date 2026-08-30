@@ -21,6 +21,13 @@ export function useQuickActionState(
   const [date, setDate] = useState(todayStr);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
+
 
   const utils = trpc.useUtils();
 
@@ -211,8 +218,7 @@ export function useQuickActionState(
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function executeSubmit(skipBalanceCheck = false) {
     setError(null);
 
     const amountNum = parseFloat(amount);
@@ -236,16 +242,19 @@ export function useQuickActionState(
         return;
       }
       const sourceCat = categories.find((c) => c.id === sourceCategoryId);
-      if (sourceCat) {
+      if (sourceCat && !skipBalanceCheck) {
         const catBal = parseFloat(String(sourceCat.currentBalance || "0"));
         if (amountNum > catBal) {
-          if (
-            !confirm(
-              `Warning: Transferring $${amountNum.toFixed(2)} exceeds "${sourceCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`
-            )
-          ) {
-            return;
-          }
+          setConfirmState({
+            isOpen: true,
+            title: "Insufficient Pool Balance",
+            description: `Warning: Transferring $${amountNum.toFixed(2)} exceeds "${sourceCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`,
+            onConfirm: () => {
+              setConfirmState(null);
+              executeSubmit(true);
+            },
+          });
+          return;
         }
       }
       moveMoneyMutation.mutate({
@@ -268,18 +277,23 @@ export function useQuickActionState(
         return;
       }
       const targetCat = categories.find((c) => c.id === categoryId);
-      if (targetCat && !isFutureDate) {
+      if (targetCat && !isFutureDate && !skipBalanceCheck) {
         const catBal = parseFloat(String(targetCat.currentBalance || "0"));
         if (amountNum > catBal) {
-          if (
-            !confirm(
-              `Warning: Expense of $${amountNum.toFixed(2)} exceeds available "${targetCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`
-            )
-          ) {
-            return;
-          }
+          setConfirmState({
+            isOpen: true,
+            title: "Insufficient Pool Balance",
+            description: `Warning: Expense of $${amountNum.toFixed(2)} exceeds available "${targetCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`,
+            onConfirm: () => {
+              setConfirmState(null);
+              executeSubmit(true);
+            },
+          });
+          return;
         }
       }
+
+
       if (isFutureDate) {
         createExpenseSourceMut.mutate({
           name,
@@ -323,6 +337,13 @@ export function useQuickActionState(
     }
   }
 
+
+  function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    executeSubmit(false);
+  }
+
+
   const isSubmitting =
     recordExpenseMutation.isPending ||
     moveMoneyMutation.isPending ||
@@ -357,8 +378,11 @@ export function useQuickActionState(
     isFutureDate,
     isSubmitting,
     isPending: isSubmitting,
+    confirmState,
+    setConfirmState,
     handleTabChange,
     handleSelectPreset,
     handleSubmit,
   };
 }
+

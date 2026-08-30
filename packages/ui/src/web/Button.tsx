@@ -2,14 +2,18 @@ import React from 'react';
 import { Spinner } from './Spinner';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   loading?: boolean;
   loadingText?: string;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = '', variant = 'primary', loading, loadingText, children, ...props }, ref) => {
-    const baseClass = variant === 'primary' ? 'ui-btn-primary' : 'ui-btn-secondary';
+    let baseClass = 'ui-btn-primary';
+    if (variant === 'secondary') baseClass = 'ui-btn-secondary';
+    else if (variant === 'danger') baseClass = 'bg-rose-600 hover:bg-rose-700 text-white font-medium px-4 py-2 rounded-xl transition-colors';
+    else if (variant === 'ghost') baseClass = 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium px-4 py-2 rounded-xl transition-colors';
+
     return (
       <button
         ref={ref}

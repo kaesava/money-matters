@@ -3,8 +3,9 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate, Tabs } from "@money-matters/ui/web";
+import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate, Tabs, ConfirmDialog } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
+
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 
 const getAestTodayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
@@ -141,24 +142,33 @@ export default function IncomeAndBillsPage() {
     [markIncomeReceivedMut, markExpensePaidMut, utils, toast]
   );
 
+  const [eventToSkip, setEventToSkip] = useState<{ id: string; type: "INCOME" | "EXPENSE"; name: string } | null>(null);
+
   const handleActionSkip = useCallback(
-    async (evt: { id: string; type: "INCOME" | "EXPENSE"; name: string }) => {
-      if (!confirm(`Skip scheduled ${evt.type.toLowerCase()} "${evt.name}"?`)) return;
-      try {
-        if (evt.type === "INCOME") {
-          await skipIncomeMut.mutateAsync({ eventId: evt.id });
-        } else {
-          await skipExpenseMut.mutateAsync({ eventId: evt.id });
-        }
-        toast.success(`Skipped "${evt.name}".`);
-        utils.listIncomeEvents.invalidate();
-        utils.listExpenseEvents.invalidate();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to skip event.");
-      }
+    (evt: { id: string; type: "INCOME" | "EXPENSE"; name: string }) => {
+      setEventToSkip(evt);
     },
-    [skipIncomeMut, skipExpenseMut, utils, toast]
+    []
   );
+
+  const confirmSkip = useCallback(async () => {
+    if (!eventToSkip) return;
+    try {
+      if (eventToSkip.type === "INCOME") {
+        await skipIncomeMut.mutateAsync({ eventId: eventToSkip.id });
+      } else {
+        await skipExpenseMut.mutateAsync({ eventId: eventToSkip.id });
+      }
+      toast.success(`Skipped "${eventToSkip.name}".`);
+      utils.listIncomeEvents.invalidate();
+      utils.listExpenseEvents.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to skip event.");
+    } finally {
+      setEventToSkip(null);
+    }
+  }, [eventToSkip, skipIncomeMut, skipExpenseMut, utils, toast]);
+
 
   // Setup Tab Filtered Schedules
   const filteredIncomeSources = useMemo(() => {
@@ -608,6 +618,17 @@ export default function IncomeAndBillsPage() {
           sourceToEdit={sourceToEdit}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!eventToSkip}
+        onClose={() => setEventToSkip(null)}
+        onConfirm={confirmSkip}
+        title={`Skip ${eventToSkip?.type === "INCOME" ? "Income" : "Bill"}`}
+        description={t("common.skipConfirmationText", { defaultValue: "Mark this as Skipped to ignore this record. You can Unskip it later if you need to." })}
+        confirmLabel="Skip Record"
+        variant="warning"
+      />
     </div>
   );
 }
+

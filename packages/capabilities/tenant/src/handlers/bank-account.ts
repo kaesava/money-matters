@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { bankAccounts, pools, DbOrTx } from "@money-matters/db";
+import { bankAccounts, pools, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
 import { eq, and, sql, or } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
@@ -139,9 +139,28 @@ export function archiveBankAccountHandler(db: DbOrTx) {
     if (activePools.length > 0) {
       const linkedNames = activePools.map((p) => p.name).join(", ");
       throw new Error(
-        `Cannot delete bank account because pool(s) [${linkedNames}] are linked to it. Please re-assign them to another bank account first.`
+        `Cannot archive bank account because pool(s) [${linkedNames}] are linked to it. Please re-assign them to another bank account first.`
       );
     }
+
+    const pendingIncomes = await db
+      .select({ id: incomeEvents.id })
+      .from(incomeEvents)
+      .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
+      .where(
+        and(
+          eq(incomeSources.receivingAccountId, accountId),
+          sql`${incomeEvents.status} IN ('UPCOMING', 'PENDING')`,
+          sql`${incomeEvents.archivedAt} IS NULL`
+        )
+      );
+
+    if (pendingIncomes.length > 0) {
+      throw new Error(
+        "Cannot archive bank account because there are upcoming or pending income records assigned to it."
+      );
+    }
+
 
     const [archived] = await db
       .update(bankAccounts)

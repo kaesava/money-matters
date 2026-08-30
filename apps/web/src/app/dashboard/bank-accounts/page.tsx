@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { InfoTooltip, fmtDate, SearchInput } from "@money-matters/ui/web";
+import { InfoTooltip, fmtDate, SearchInput, ConfirmDialog } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
+
 import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./components/BankAccountTable";
 import { TransferConflictModal } from "./components/TransferConflictModal";
 import { BankAccountFormModal } from "./components/BankAccountFormModal";
@@ -287,6 +288,9 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
+  const [accountToArchive, setAccountToArchive] = useState<BankAccountItem | null>(null);
+  const [batchToRollback, setBatchToRollback] = useState<{ batchId: string; rowCount: number } | null>(null);
+
   const handleArchive = (acc: BankAccountItem) => {
     const catTypes = acc.categoryTypes || [];
     if (catTypes.length > 0) {
@@ -295,11 +299,21 @@ export default function BankAccountsDashboardPage() {
       );
       return;
     }
-
-    if (confirm(`Are you sure you want to archive bank account "${acc.name}"?`)) {
-      archiveAccountMut.mutate({ accountId: acc.id });
-    }
+    setAccountToArchive(acc);
   };
+
+  const confirmArchiveAccount = () => {
+    if (!accountToArchive) return;
+    archiveAccountMut.mutate({ accountId: accountToArchive.id });
+    setAccountToArchive(null);
+  };
+
+  const confirmRollbackBatch = () => {
+    if (!batchToRollback) return;
+    rollbackBatchMut.mutate({ batchId: batchToRollback.batchId });
+    setBatchToRollback(null);
+  };
+
   const openImportModal = (acc: BankAccountItem) => {
     setSelectedAccountForImport(acc);
   };
@@ -378,15 +392,12 @@ export default function BankAccountsDashboardPage() {
                     <button
                       type="button"
                       disabled={rollbackBatchMut.isPending}
-                      onClick={() => {
-                        if (confirm(`Archive this CSV import batch (${batch.rowCount} transactions)?`)) {
-                          rollbackBatchMut.mutate({ batchId: batch.batchId });
-                        }
-                      }}
+                      onClick={() => setBatchToRollback({ batchId: batch.batchId, rowCount: batch.rowCount })}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shadow-2xs cursor-pointer"
                     >
                       Archive Batch
                     </button>
+
                   </div>
                 </div>
               ))}
@@ -492,6 +503,27 @@ export default function BankAccountsDashboardPage() {
           onSuccess={() => bankAccountsQuery.refetch()}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={!!accountToArchive}
+        onClose={() => setAccountToArchive(null)}
+        onConfirm={confirmArchiveAccount}
+        title="Archive Bank Account"
+        description={`Are you sure you want to archive bank account "${accountToArchive?.name || ""}"?`}
+        confirmLabel="Archive Account"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={!!batchToRollback}
+        onClose={() => setBatchToRollback(null)}
+        onConfirm={confirmRollbackBatch}
+        title="Archive CSV Import Batch"
+        description={`Are you sure you want to archive this CSV import batch (${batchToRollback?.rowCount || 0} transactions)?`}
+        confirmLabel="Archive Batch"
+        variant="warning"
+      />
     </div>
   );
 }
+

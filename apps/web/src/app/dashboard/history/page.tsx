@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner } from "@money-matters/ui/web";
@@ -613,17 +615,20 @@ function TransactionsPageContent() {
                         <td className="py-3 px-4 text-left font-bold text-[#1B2B4B]">
                           {plan.incomeName || "Income Deposit"}
                         </td>
-                        <td className="py-3 px-4 text-left text-zinc-600 font-semibold">
-                          {plan.receivingAccountName || "Main Account"}
+                        <td className="py-3 px-4 text-left font-semibold">
+                          <Link href="/dashboard/bank-accounts" className="text-[#2563eb] hover:underline">
+                            {plan.receivingAccountName || "Main Account"}
+                          </Link>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-zinc-100 text-zinc-600 border border-zinc-200">
                             {plan.isAutoTrigger ? "AUTO" : "MANUAL"}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">
                           {formatAUD(plan.totalIncomeAmount)}
                         </td>
+
                         <td className="py-3 px-4 text-center">
                           <button
                             type="button"

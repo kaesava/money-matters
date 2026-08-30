@@ -1,6 +1,6 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer, Spinner, SearchableCategorySelect, InfoTooltip, useIconVisibility } from "@money-matters/ui/web";
+import { SlideOverDrawer, Spinner, SearchableCategorySelect, InfoTooltip, useIconVisibility, ConfirmDialog } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 
@@ -39,7 +39,10 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     handleSelectPreset,
     handleSubmit,
     isPending,
+    confirmState,
+    setConfirmState,
   } = useQuickActionState(onClose, initialTab);
+
 
   const { showIcons } = useIconVisibility();
 
@@ -300,13 +303,27 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     : "Record Expense"}
                 </span>
               </button>
-
             </div>
+
           </>
         )}
       </form>
+
+
+      {confirmState && (
+        <ConfirmDialog
+          isOpen={confirmState.isOpen}
+          onClose={() => setConfirmState(null)}
+          onConfirm={confirmState.onConfirm}
+          title={confirmState.title}
+          description={confirmState.description}
+          confirmLabel="Proceed"
+          variant="warning"
+        />
+      )}
     </SlideOverDrawer>
   );
 }
+
 
 export { QuickActionDrawer as QuickExpenseDrawer };

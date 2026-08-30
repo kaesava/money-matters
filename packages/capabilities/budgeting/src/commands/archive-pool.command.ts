@@ -33,14 +33,15 @@ export async function archivePoolCommand(
     .where(
       and(
         eq(expenseEvents.poolId, poolId),
-        eq(expenseEvents.status, "UPCOMING"),
+        sql`${expenseEvents.status} IN ('UPCOMING', 'PENDING')`,
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );
 
   if (pendingEvents.length > 0) {
-    throw new Error("Cannot archive a pool that has upcoming expenses assigned to it.");
+    throw new Error("Cannot archive a pool that has upcoming or pending expenses assigned to it.");
   }
+
 
   const [archived] = await dbClient
     .update(pools)

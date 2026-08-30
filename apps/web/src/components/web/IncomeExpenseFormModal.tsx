@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
+
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 
@@ -50,7 +51,9 @@ export default function IncomeExpenseFormModal({
   const archiveIncomeMut = trpc.archiveIncomeSource.useMutation();
 
   const createExpenseMut = trpc.createExpenseSource.useMutation();
+  const updateExpenseMut = trpc.updateExpenseSource.useMutation();
   const archiveExpenseMut = trpc.archiveExpenseSource.useMutation();
+
 
   const isEdit = !!sourceToEdit;
 
@@ -114,10 +117,10 @@ export default function IncomeExpenseFormModal({
     setErrorMsg("");
   }, [sourceToEdit, isOpen, bankAccounts, pools, setEndDate, setFrequency, setInterval, setIsRecurring, setStartDate]);
 
-  const handleArchive = async () => {
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+
+  const confirmArchive = async () => {
     if (!sourceToEdit) return;
-    const label = mode === "INCOME" ? "income schedule" : "bill schedule";
-    if (!confirm(`Archiving this ${label} will cancel all future upcoming events. Continue?`)) return;
     setArchiving(true);
     try {
       if (mode === "INCOME") {
@@ -135,8 +138,14 @@ export default function IncomeExpenseFormModal({
       toast.error(err instanceof Error ? err.message : "Failed to archive.");
     } finally {
       setArchiving(false);
+      setShowArchiveConfirm(false);
     }
   };
+
+  const handleArchive = () => {
+    setShowArchiveConfirm(true);
+  };
+
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -187,18 +196,34 @@ export default function IncomeExpenseFormModal({
         await utils.listIncomeSources.invalidate();
         await utils.listIncomeEvents.invalidate();
       } else {
-        await createExpenseMut.mutateAsync({
-          name,
-          amount: formattedAmount,
-          poolId,
-          isRecurring,
-          frequency: isRecurring ? frequency : undefined,
-          startDate: startDate || undefined,
-          endDate: isRecurring && endDate ? endDate : undefined,
-        });
+        if (isEdit && sourceToEdit) {
+          await updateExpenseMut.mutateAsync({
+            id: sourceToEdit.id,
+            data: {
+              name,
+              amount: formattedAmount,
+              poolId,
+              isRecurring,
+              frequency: isRecurring ? frequency : undefined,
+              startDate: startDate || undefined,
+              endDate: isRecurring && endDate ? endDate : undefined,
+            },
+          });
+        } else {
+          await createExpenseMut.mutateAsync({
+            name,
+            amount: formattedAmount,
+            poolId,
+            isRecurring,
+            frequency: isRecurring ? frequency : undefined,
+            startDate: startDate || undefined,
+            endDate: isRecurring && endDate ? endDate : undefined,
+          });
+        }
         await utils.listExpenseSources.invalidate();
         await utils.listExpenseEvents.invalidate();
       }
+
 
       toast.success(t("toasts.saved"));
       onClose();
@@ -329,6 +354,18 @@ export default function IncomeExpenseFormModal({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showArchiveConfirm}
+        onClose={() => setShowArchiveConfirm(false)}
+        onConfirm={confirmArchive}
+        title={`Archive ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}`}
+        description={`Archiving this ${mode === "INCOME" ? "income schedule" : "bill schedule"} will cancel all future upcoming events. Continue?`}
+        confirmLabel="Archive Schedule"
+        variant="danger"
+        isLoading={archiving}
+      />
     </ModalDialog>
   );
 }
+

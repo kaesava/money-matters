@@ -80,7 +80,7 @@ export async function previewAllocationQuery(
     .where(eq(incomeEvents.id, incomeEventId));
 
   let freqDays = 14;
-  if (event) {
+  if (event && event.incomeSourceId) {
     const [source] = await dbClient
       .select()
       .from(incomeSources)
@@ -89,6 +89,7 @@ export async function previewAllocationQuery(
       freqDays = parseRruleFrequencyDays(source.rrule);
     }
   }
+
 
   const engineBuckets: EngineBucket[] = dbPools.map((pool) => {
     const balance = poolBalancesMap[pool.id] || 0;

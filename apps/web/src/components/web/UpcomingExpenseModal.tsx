@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, Spinner } from "@money-matters/ui/web";
+import { useToast, Spinner, ConfirmDialog } from "@money-matters/ui/web";
 
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+
 
 interface UpcomingExpenseModalProps {
   isOpen: boolean;
@@ -47,6 +48,8 @@ export default function UpcomingExpenseModal({
   const [note, setNote] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showNegativeConfirm, setShowNegativeConfirm] = useState(false);
+
 
   const overrideMut = trpc.overrideEvent.useMutation();
   const markPaidMut = trpc.overrideEvent.useMutation();
@@ -131,12 +134,11 @@ export default function UpcomingExpenseModal({
       return;
     }
 
-    if (isNegativeWarning && selectedPool) {
-      const confirmMsg = `Warning: Payment of ${fmt(numAmount)} exceeds "${selectedPool.name}" pool balance (${fmt(
-        currentPoolBalance
-      )}). Proceed?`;
-      if (!window.confirm(confirmMsg)) return;
+    if (isNegativeWarning && selectedPool && !showNegativeConfirm) {
+      setShowNegativeConfirm(true);
+      return;
     }
+
 
     setSubmitting(true);
     try {
@@ -285,6 +287,19 @@ export default function UpcomingExpenseModal({
         </div>
       </div>
 
+      <ConfirmDialog
+        isOpen={showNegativeConfirm}
+        onClose={() => setShowNegativeConfirm(false)}
+        onConfirm={() => {
+          setShowNegativeConfirm(false);
+          handleMarkPaid();
+        }}
+        title="Insufficient Pool Balance"
+        description={`Payment of ${fmt(parseFloat(amount || "0"))} exceeds "${selectedPool?.name || ""}" pool balance (${fmt(currentPoolBalance)}). Are you sure you want to proceed?`}
+        confirmLabel="Proceed & Mark Paid"
+        variant="warning"
+      />
     </ModalDialog>
   );
 }
+

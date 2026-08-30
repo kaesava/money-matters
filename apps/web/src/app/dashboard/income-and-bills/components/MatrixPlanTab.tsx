@@ -6,8 +6,9 @@ import { EngineBucket } from "@money-matters/capability-budgeting";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { useToast, InfoTooltip } from "@money-matters/ui/web";
+import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
 import PaydayPreviewModal from "../../../../components/web/PaydayPreviewModal";
+
 
 interface MatrixPlanTabProps {
   currentUserId: string;
@@ -315,24 +316,32 @@ export function MatrixPlanTab({
 
   const revertPlanMut = trpc.revertAllocationPlan.useMutation();
 
-  const handleRevertColumn = async (colId: string) => {
-    if (window.confirm(`This will delete your custom overrides and revert this payday to automatic calculations. Continue?`)) {
-      try {
-        await revertPlanMut.mutateAsync({ incomeEventId: colId });
-        await utils.listAllAllocationPlans.invalidate();
-        setCellOverrides((prev) => {
-          const next = { ...prev };
-          for (const k of Object.keys(next)) {
-            if (k.startsWith(`${colId}_`)) {
-              delete next[k];
-            }
+  const [colToRevert, setColToRevert] = useState<string | null>(null);
+
+  const handleRevertColumn = (colId: string) => {
+    setColToRevert(colId);
+  };
+
+  const confirmRevertColumn = async () => {
+    if (!colToRevert) return;
+    try {
+      await revertPlanMut.mutateAsync({ incomeEventId: colToRevert });
+      await utils.listAllAllocationPlans.invalidate();
+      setCellOverrides((prev) => {
+        const next = { ...prev };
+        for (const k of Object.keys(next)) {
+          if (k.startsWith(`${colToRevert}_`)) {
+            delete next[k];
           }
-          return next;
-        });
-        toast.success("Reverted to automatic waterfall allocations.");
-      } catch (_err) {
-        toast.error("Failed to revert payday.");
-      }
+        }
+        return next;
+      });
+      toast.success("Reverted to automatic waterfall allocations.");
+    } catch (_err: unknown) {
+      toast.error("Failed to revert payday.");
+    }
+ finally {
+      setColToRevert(null);
     }
   };
 
@@ -556,8 +565,19 @@ export function MatrixPlanTab({
           utils.listIncomeEvents.invalidate();
         }}
       />
+
+      <ConfirmDialog
+        isOpen={!!colToRevert}
+        onClose={() => setColToRevert(null)}
+        onConfirm={confirmRevertColumn}
+        title="Revert Payday Allocations"
+        description="This will delete your custom overrides and revert this payday to automatic calculations. Continue?"
+        confirmLabel="Revert Payday"
+        variant="warning"
+      />
     </div>
   );
 }
+
 
 export { MatrixPlanTab as BulkAllocateTab };

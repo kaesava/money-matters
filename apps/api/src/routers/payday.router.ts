@@ -136,9 +136,10 @@ export const paydayRouter = {
           incomeEventId: allocationPlans.incomeEventId,
           totalIncomeAmount: allocationPlans.totalIncomeAmount,
           status: allocationPlans.status,
+          isManual: allocationPlans.isManual,
           createdAt: allocationPlans.createdAt,
           updatedAt: allocationPlans.updatedAt,
-          incomeName: incomeSources.name,
+          incomeName: sql<string>`COALESCE(${incomeEvents.name}, ${incomeSources.name}, 'Income Deposit')`,
           receivingAccountName: bankAccounts.name,
           expectedDate: incomeEvents.expectedDate,
         })
@@ -176,9 +177,11 @@ export const paydayRouter = {
 
       return plans.map((plan) => ({
         ...plan,
+        isAutoTrigger: !plan.isManual,
         lines: lines.filter((l) => l.planId === plan.id),
       }));
     }),
+
 
   runAllocation: privateTenantProcedure
     .input(

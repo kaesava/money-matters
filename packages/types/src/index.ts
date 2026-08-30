@@ -161,11 +161,12 @@ export const IncomeSourceScheduleSchema = BaseSchema.extend({
  * Schema for concrete expected or confirmed income pay events.
  */
 export const IncomeEventSchema = BaseSchema.extend({
-  incomeSourceId: z.string().uuid(),
+  incomeSourceId: z.string().uuid().nullable().optional(),
+  name: z.string().nullable().optional(),
   expectedDate: z.string(),
   expectedAmount: z.string(),
   actualAmount: z.string().nullable(),
-  status: z.enum(["UPCOMING", "PENDING", "CONFIRMED"]),
+  status: z.enum(["UPCOMING", "PENDING", "SKIPPED", "CONFIRMED"]),
 }).strict();
 
 /**
@@ -174,9 +175,11 @@ export const IncomeEventSchema = BaseSchema.extend({
 export const AllocationPlanSchema = BaseSchema.extend({
   incomeEventId: z.string().uuid(),
   status: z.enum(["PENDING", "CONFIRMED"]),
+  isManual: z.boolean().default(false),
   totalIncomeAmount: z.string(),
   confirmedAt: z.date().nullable(),
 }).strict();
+
 
 /**
  * Schema for individual pool line-items within a paycheck allocation plan.

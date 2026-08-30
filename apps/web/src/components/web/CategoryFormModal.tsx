@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useToast } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
+
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 
@@ -72,22 +73,28 @@ export function CategoryFormModal({
     setErrorMsg(null);
   }, [categoryToEdit, isOpen]);
 
-  const handleArchive = async () => {
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+
+  const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
-    if (window.confirm(`Are you sure you want to archive "${categoryToEdit.name}"?`)) {
-      try {
-        setSubmitting(true);
-        await archivePoolMut.mutateAsync({ poolId: categoryToEdit.id });
-        await utils.listPools.invalidate();
-        toast.success(t("toasts.archived"));
-        onSuccess?.();
-        onClose();
-      } catch (err: unknown) {
-        toast.error((err as Error).message || "Failed to archive pool.");
-      } finally {
-        setSubmitting(false);
-      }
+    try {
+      setSubmitting(true);
+      await archivePoolMut.mutateAsync({ poolId: categoryToEdit.id });
+      await utils.listPools.invalidate();
+      toast.success(t("toasts.archived"));
+      onSuccess?.();
+      onClose();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to archive pool.";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+      setShowArchiveConfirm(false);
     }
+  };
+
+  const handleArchive = () => {
+    setShowArchiveConfirm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -245,10 +252,11 @@ export function CategoryFormModal({
               type="button"
               onClick={handleArchive}
               disabled={submitting}
-              className="px-3 py-2 text-xs font-bold text-red-600 hover:underline cursor-pointer"
+              className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline cursor-pointer"
             >
               {t("actions.archivePool", { defaultValue: "Archive Pool" })}
             </button>
+
           ) : <div />}
 
           <div className="flex gap-2">
@@ -269,6 +277,18 @@ export function CategoryFormModal({
           </div>
         </div>
       </form>
+
+      <ConfirmDialog
+        isOpen={showArchiveConfirm}
+        onClose={() => setShowArchiveConfirm(false)}
+        onConfirm={confirmArchive}
+        title="Archive Pool"
+        description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"?`}
+        confirmLabel="Archive Pool"
+        variant="danger"
+        isLoading={submitting}
+      />
     </ModalDialog>
   );
 }
+

@@ -3,8 +3,9 @@
 import React, { useState } from "react";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { BankAccountFormModal } from "../../dashboard/bank-accounts/components/BankAccountFormModal";
+
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
@@ -178,12 +179,18 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
     }
   };
 
-  const handleArchive = async () => {
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+
+  const confirmArchiveAccount = () => {
     if (!editingAccount) return;
-    if (confirm(`Remove bank account "${editingAccount.name}"?`)) {
-      archiveAccountMut.mutate({ accountId: editingAccount.id });
-    }
+    archiveAccountMut.mutate({ accountId: editingAccount.id });
+    setShowRemoveConfirm(false);
   };
+
+  const handleArchive = () => {
+    setShowRemoveConfirm(true);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -329,7 +336,18 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
         fmtMoney={fmtMoney}
         onArchive={editingAccount ? handleArchive : undefined}
       />
+
+      <ConfirmDialog
+        isOpen={showRemoveConfirm}
+        onClose={() => setShowRemoveConfirm(false)}
+        onConfirm={confirmArchiveAccount}
+        title="Remove Bank Account"
+        description={`Remove bank account "${editingAccount?.name || ""}"?`}
+        confirmLabel="Remove Account"
+        variant="danger"
+      />
     </div>
   );
 }
+
 

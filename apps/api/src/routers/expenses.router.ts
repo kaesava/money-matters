@@ -147,6 +147,110 @@ export const expensesRouter = {
       return source;
     }),
 
+  updateExpenseSource: privateTenantProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        data: z.object({
+          name: z.string().min(1).optional(),
+          amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+          poolId: z.string().uuid().optional(),
+          categoryId: z.string().uuid().optional(),
+          isRecurring: z.boolean().optional(),
+          startDate: z.string().optional(),
+          endDate: z.string().nullable().optional(),
+          frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+        }).strict(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const [source] = await ctx.db
+        .select()
+        .from(expenseSources)
+        .where(
+          and(
+            eq(expenseSources.id, input.id),
+            eq(expenseSources.tenantId, ctx.tenantId!),
+            eq(expenseSources.appId, ctx.appId!),
+            sql`${expenseSources.archivedAt} IS NULL`
+          )
+        );
+
+      if (!source) {
+        throw new Error("Expense source not found or unauthorized.");
+      }
+
+      const newName = input.data.name ?? source.name;
+      const newAmount = input.data.amount ?? source.amount;
+      const newPoolId = input.data.poolId ?? source.poolId;
+      const newCategoryId = input.data.categoryId !== undefined ? input.data.categoryId : source.categoryId;
+      const newEndDate = input.data.endDate !== undefined ? input.data.endDate : source.endDate;
+
+      const wasRecurring = !!source.rrule;
+      const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
+
+      const newFreq = input.data.frequency;
+      let rrule: string | null = isRecurring ? (source.rrule || "FREQ=MONTHLY") : null;
+      if (isRecurring && newFreq) {
+        if (newFreq === "WEEKLY") rrule = "FREQ=WEEKLY";
+        else if (newFreq === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
+        else if (newFreq === "MONTHLY") rrule = "FREQ=MONTHLY";
+        else if (newFreq === "ANNUALLY") rrule = "FREQ=YEARLY";
+      }
+
+      const [updated] = await ctx.db
+        .update(expenseSources)
+        .set({
+          name: newName,
+          amount: newAmount,
+          poolId: newPoolId,
+          categoryId: newCategoryId || null,
+          rrule,
+          startDate: input.data.startDate ?? source.startDate,
+          endDate: newEndDate,
+          updatedBy: ctx.userId!,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(expenseSources.id, input.id),
+            eq(expenseSources.tenantId, ctx.tenantId!),
+            eq(expenseSources.appId, ctx.appId!)
+          )
+        )
+        .returning();
+
+      // Update upcoming unperformed events
+      const events = await ctx.db
+        .select()
+        .from(expenseEvents)
+        .where(eq(expenseEvents.expenseSourceId, source.id));
+
+      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+      if (unperformedEvents.length > 0) {
+        await ctx.db
+          .update(expenseEvents)
+          .set({
+            name: newName,
+            expectedAmount: newAmount,
+            poolId: newPoolId,
+            categoryId: newCategoryId || null,
+            updatedBy: ctx.userId!,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(expenseEvents.expenseSourceId, source.id),
+              eq(expenseEvents.status, "UPCOMING")
+            )
+          );
+      }
+
+      return updated;
+    }),
+
+
   recordExpense: privateTenantProcedure
     .input(
       z.object({

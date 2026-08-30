@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { monthProgress } from "@money-matters/ui";
-import { InfoTooltip, useToast } from "@money-matters/ui/web";
+import { InfoTooltip, useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
@@ -109,22 +110,30 @@ function CategoriesPageContent() {
     },
   });
 
-  const handleArchive = async (cat: CategorySummaryItem) => {
+  const [poolToArchive, setPoolToArchive] = useState<CategorySummaryItem | null>(null);
+
+  const handleArchive = (cat: CategorySummaryItem) => {
     if (cat.type === "EVERYDAY") {
       toast.warning("The Everyday pool cannot be archived or deleted.");
       return;
     }
-    if (confirm(`Are you sure you want to archive "${cat.name}"?`)) {
-      try {
-        await archivePoolMut.mutateAsync({ poolId: cat.id });
-        posthog.capture("pool_archived", { pool_type: cat.type });
-        toast.success(t("toasts.archived"));
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to archive pool.";
-        toast.error(message);
-      }
+    setPoolToArchive(cat);
+  };
+
+  const confirmArchivePool = async () => {
+    if (!poolToArchive) return;
+    try {
+      await archivePoolMut.mutateAsync({ poolId: poolToArchive.id });
+      posthog.capture("pool_archived", { pool_type: poolToArchive.type });
+      toast.success(t("toasts.archived"));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to archive pool.";
+      toast.error(message);
+    } finally {
+      setPoolToArchive(null);
     }
   };
+
 
   const everydayCategories = categories.filter((c) => c.type === "EVERYDAY");
   const regularCategories = categories.filter((c) => c.type === "REGULAR");
@@ -375,9 +384,20 @@ function CategoriesPageContent() {
           }
         }}
       />
+
+      <ConfirmDialog
+        isOpen={!!poolToArchive}
+        onClose={() => setPoolToArchive(null)}
+        onConfirm={confirmArchivePool}
+        title="Archive Pool"
+        description={`Are you sure you want to archive "${poolToArchive?.name || ""}"?`}
+        confirmLabel="Archive Pool"
+        variant="danger"
+      />
     </div>
   );
 }
+
 
 export default function CategoriesPage() {
   return (

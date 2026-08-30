@@ -117,6 +117,12 @@ All tables MUST include:
 - **SearchInput Spacing & Padding**: SearchInput search icons MUST have `left-3.5` / `left-4` positioning, and input text MUST have `pl-10` padding to guarantee clean breathing room between icon, container border, and text.
 - **Single Source of Truth for UI Styling & Components**: All UI elements, look-and-feel, colors, typography, and UI styling MUST be defined ONCE in `@money-matters/ui` design tokens and reusable primitives, and reused universally across apps (web and mobile). Ad-hoc styling, duplicate UI declarations, and hardcoded hex colors are strictly forbidden.
 - **Consistent Terminology**: Always use "Income Schedule" / "Add Income Schedule" across all UI labels, buttons, tooltips, and i18n dictionaries (NEVER use "Income Stream").
+- **Standardized Confirmation Modals**: All user action confirmations (e.g. Skip, Mark Paid, Private Account, Archive) MUST use the reusable `<ConfirmDialog />` component from `@money-matters/ui`. Native browser `confirm()` popups and ad-hoc window alerts are strictly banned.
+- **Inconspicuous Archive Links**: All "Archive" action links/buttons inside form modals MUST be rendered inconspicuously in subtle grey (`text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400`), avoiding prominent red action buttons.
+- **Form Error Handling Parity**: Native browser HTML5 validation bubbles (`required` attribute) are strictly banned. All form validation MUST be driven by Zod schemas, with field errors rendered consistently as subtle red helper text directly below the corresponding input element (NEVER as generic red text at the top of the modal/form).
+- **Defensive Input Limits**: All text, numeric, and schedule frequency inputs MUST enforce defensive min/max boundaries centrally in Zod DTO schemas (`@money-matters/types`) to prevent database/overflow exceptions (e.g., `Every N (units)` capped at max 365; amounts capped at 12 digits).
+- **Universal Table Skeleton Loading**: Table loading and refresh states MUST use the universal `<SkeletonTable />` component from `@money-matters/ui` with a fading pulse animation, replacing generic plain "Loading..." text strings.
+
 
 ## 14. Integrations
 - Neon DB Auth for authentication.

@@ -218,9 +218,10 @@ export function BurstModal({
 
         {/* Footer */}
         <div className="p-4 border-t border-zinc-100 flex justify-between items-center bg-zinc-50/50 rounded-b-2xl">
-          <button type="button" onClick={onArchive} className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline transition-colors">
+          <button type="button" onClick={onArchive} className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline transition-colors">
             Archive {mode === "INCOME" ? "Income Source" : "Expense Bill"}
           </button>
+
           <button type="button" onClick={onClose} className="px-4 py-1.5 rounded-xl text-xs font-bold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors">
             Close
           </button>

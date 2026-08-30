@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useEffect, useState } from "react";
-import { InfoTooltip, useToast, isFormDirty } from "@money-matters/ui/web";
+import { InfoTooltip, useToast, isFormDirty, ConfirmDialog } from "@money-matters/ui/web";
 
 import { t } from "@money-matters/i18n";
 
@@ -66,6 +66,8 @@ export function BankAccountFormModal({
   const privateCheckId = useId();
 
   const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+
 
   // Escape key handler for modal dismissal
   useEffect(() => {
@@ -283,18 +285,14 @@ export function BankAccountFormModal({
             {editingAccount && onArchive && (
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm(`Are you sure you want to archive "${editingAccount.name}"?`)) {
-                    onArchive();
-                    onClose();
-                  }
-                }}
-                className="text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors"
+                onClick={() => setShowArchiveConfirm(true)}
+                className="text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition-colors"
               >
                 Archive Account
               </button>
             )}
           </div>
+
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -365,7 +363,22 @@ export function BankAccountFormModal({
           </div>
         )}
       </form>
+
+      <ConfirmDialog
+        isOpen={showArchiveConfirm}
+        onClose={() => setShowArchiveConfirm(false)}
+        onConfirm={() => {
+          setShowArchiveConfirm(false);
+          if (onArchive) onArchive();
+          onClose();
+        }}
+        title="Archive Bank Account"
+        description={`Are you sure you want to archive "${editingAccount?.name || ""}"?`}
+        confirmLabel="Archive Account"
+        variant="danger"
+      />
     </div>
   );
 }
+
 
