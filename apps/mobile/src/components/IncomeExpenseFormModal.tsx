@@ -33,7 +33,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   const [categoryId, setCategoryId] = useState('');
 
   const recurrenceBuilder = useRecurrenceBuilder();
-  const { rruleString, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
+  const { frequency, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
 
   useEffect(() => {
     if (sourceToEdit) {
@@ -125,7 +125,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
             name: name.trim(),
             amount: parseFloat(amount).toFixed(2),
             isRecurring,
-            rrule: isRecurring ? (rruleString || undefined) : undefined,
+            frequency: isRecurring ? frequency : undefined,
             startDate: startDate || undefined,
             endDate: isRecurring && endDate ? endDate : undefined,
           },
@@ -135,7 +135,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
           name: name.trim(),
           amount: parseFloat(amount).toFixed(2),
           isRecurring,
-          rrule: isRecurring ? (rruleString || undefined) : undefined,
+          frequency: isRecurring ? frequency : undefined,
           startDate: startDate || undefined,
           endDate: isRecurring && endDate ? endDate : undefined,
         });
