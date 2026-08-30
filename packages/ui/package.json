@@ -44,8 +44,7 @@
     "typescript": "^6.0.3"
   },
   "scripts": {
-    "build": "echo \"Primitive design build script complete\"",
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "test:coverage": "vitest run --passWithNoTests --coverage"

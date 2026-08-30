@@ -16,4 +16,5 @@ coverage/
 test_credentials.txt
 seed_credentials.local.md
 *.credentials.local.*
-
+.tsbuildinfo
+.eslintcache

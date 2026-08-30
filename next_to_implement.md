@@ -1,21 +1,18 @@
+
+
 # AGENT - In progress...
+
 
 _________
 
 
 # Rules
-* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, vertical slice architecture, test cases coverage, Remove redundant code, etc.
+* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
+* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
 * Ignore mobile app for now
-* NO hardcoding user facing literals
-* NO dead code or table fields or API code or repeated UI/capability code. MECE principle.
 
 # General
-* Remove the Icon next to Bank Accounts title - it's the only screen with an icon. I need consistency. This principle should apply across the app.
-* The search icon in the search bar is touhing the left, give it a little bit of padding on the left, and ensure it still provides padding between it and the placeholder text/text in the text box. Ensure things like this are in AGENTS.md so future builds dont diverge.
-* For some tables (like the Incoming & Bills > Upcming List), the header is aligned with the values (left/right/centre) but for others like History > Transactions, it is not. Also, I notied the font sizes/fonts across them is a bit off. Ensure that all tables in the app (don't guess, do a thorough check) are formatted consistently. Actions, Dates, tags/badges should be centre-justified. Amounts should be right justified. Most text should be left justified. Ensure consistent header formatting - define once and re-use across the app. Ensure no manual overrides across the app. Thhis kind of thing should be explicit inAGENTS.md so future builds don;t diverge.
-* Income & Bill Management title > move the subtitle to an (i) icon to be consisent with all other screens. This principle should apply across the app.
-* Sign-In > When I login, it seems to take a little bit of time for the Loading spinner to be shown - shouldn't it be shown as soon as I hit login?
-* History > Payday Allocations - Won't Payday Allocations only show Confirmed ones anway? If so, remove the Confirmed badge, if not, leave in there. Also show this as a table (re-use existing table conventions and practices including sort, search by key fields like Description, amount and bank account), headers, etc.) Show Date, Description, Bank Account, whether manual or auto? and Amount. Allow filter drop-down to show Bank Accounts.
+
 ## Landing
 
 ## Sign-Up
@@ -78,7 +75,7 @@ _________
 ### Private Bank Accounts, Private Categories
 ### Show/Hide Icon setting & implication
 ### Profile upload of Avatar
-
+### Weekly Digest Email
 
 
 

@@ -27,10 +27,9 @@
     "typescript": "^6.0.3"
   },
   "scripts": {
-    "build": "echo \"Package build complete\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --passWithNoTests --coverage",
-    "lint": "eslint ."
+    "lint": "eslint . --cache"
   }
 }

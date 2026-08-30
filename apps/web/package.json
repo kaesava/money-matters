@@ -9,7 +9,7 @@
     "cf-build": "opennextjs-cloudflare build",
     "preview": "pnpm opennextjs-cloudflare build && wrangler dev",
     "cf-deploy": "pnpm opennextjs-cloudflare build && wrangler deploy",
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "test": "vitest run --exclude='e2e/**' --passWithNoTests",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --exclude=\"e2e/**\" --passWithNoTests --coverage"

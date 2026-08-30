@@ -9,7 +9,7 @@
     "build": "tsup",
     "preview": "pnpm wrangler build && pnpm wrangler dev",
     "cf-deploy": "pnpm wrangler build && pnpm wrangler deploy",
-    "lint": "eslint \"**/*.ts\"",
+    "lint": "eslint \"**/*.ts\" --cache",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --passWithNoTests --coverage"

@@ -16,8 +16,7 @@
     "zod": "^3.23.8"
   },
   "scripts": {
-    "build": "echo \"Package build complete\"",
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "test:coverage": "vitest run --passWithNoTests --coverage"

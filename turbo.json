@@ -1,26 +1,35 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL"],
+  "globalEnv": ["DATABASE_URL", "NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["src/**", "public/**", "package.json", "tsconfig.json", "next.config.ts", "tsup.config.ts", "wrangler.jsonc", "wrangler.toml"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "inputs": ["src/**", "test/**", "e2e/**", "*.js", "*.mjs", "*.ts", "package.json", "eslint.config.*"],
+      "outputs": []
+    },
+    "typecheck": {
+      "inputs": ["src/**", "test/**", "e2e/**", "package.json", "tsconfig.json"],
+      "outputs": [".tsbuildinfo"]
+    },
+    "test": {
+      "inputs": ["src/**", "test/**", "package.json", "tsconfig.json", "vitest.config.*"],
+      "outputs": []
+    },
+    "test:coverage": {
+      "inputs": ["src/**", "test/**", "package.json", "tsconfig.json", "vitest.config.*"],
+      "outputs": ["coverage/**"]
+    },
+    "check-i18n": {
+      "inputs": ["src/dictionaries/**", "src/check-i18n.cjs", "package.json"],
+      "outputs": []
     },
     "dev": {
       "cache": false,
       "persistent": true
-    },
-    "test": {
-      "dependsOn": ["^test"]
-    },
-    "test:coverage": {
-      "dependsOn": ["^test:coverage"]
-    },
-    "typecheck": {
-      "dependsOn": ["^typecheck"]
     }
   }
 }

@@ -34,8 +34,7 @@
     "seed": "pnpm build && npx dotenv-cli -e ../../.env.development -- tsx src/seed.ts",
     "seed:prod": "pnpm build && npx dotenv-cli -e ../../.env -- tsx src/seed.ts",
     "typecheck": "tsc --noEmit",
-    "build": "echo \"Package build complete\"",
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "test": "vitest run --passWithNoTests",
     "studio": "npx dotenv-cli -e ../../.env.development -- drizzle-kit studio",
     "test:coverage": "vitest run --passWithNoTests --coverage"

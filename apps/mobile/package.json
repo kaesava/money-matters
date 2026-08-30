@@ -9,11 +9,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "test": "vitest run --passWithNoTests",
     "deploy": "eas build --platform android --profile production",
-    "test:coverage": "vitest run --passWithNoTests --coverage",
-    "build": "echo \"Mobile build complete\""
+    "test:coverage": "vitest run --passWithNoTests --coverage"
   },
   "dependencies": {
     "@better-auth/expo": "^1.6.23",
