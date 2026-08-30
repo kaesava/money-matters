@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useId, useEffect, useState } from "react";
-import { InfoTooltip, useToast } from "@money-matters/ui/web";
+import { InfoTooltip, useToast, isFormDirty } from "@money-matters/ui/web";
+
 import { t } from "@money-matters/i18n";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
@@ -78,18 +79,28 @@ export function BankAccountFormModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  const initialName = editingAccount?.name || "";
-  const initialBankProvider = accBankProvider;
-  const initialBalance = accBalance;
-  const initialBuffer = accBuffer;
-  const initialIsPrivate = accIsPrivate;
+  const initialPoolTypes = (editingAccount as unknown as { poolTypes?: CategoryType[]; categoryTypes?: CategoryType[] })?.poolTypes || (editingAccount as unknown as { poolTypes?: CategoryType[]; categoryTypes?: CategoryType[] })?.categoryTypes || [];
 
-  const isDirty = !editingAccount ||
-    accName.trim() !== initialName.trim() ||
-    accBankProvider !== initialBankProvider ||
-    parseFloat(accBalance || "0") !== parseFloat(initialBalance || "0") ||
-    parseFloat(accBuffer || "0") !== parseFloat(initialBuffer || "0") ||
-    accIsPrivate !== initialIsPrivate;
+  const initialState = editingAccount ? {
+    name: editingAccount.name,
+    bankProvider: (editingAccount as unknown as { bankProvider?: string }).bankProvider || "CBA",
+    balance: (editingAccount as unknown as { lastKnownBalance?: string }).lastKnownBalance || "0",
+    buffer: (editingAccount as unknown as { unbudgetedBuffer?: string }).unbudgetedBuffer || "0",
+    isPrivate: Boolean((editingAccount as unknown as { isPrivate?: boolean }).isPrivate),
+    selectedTypes: initialPoolTypes as CategoryType[],
+  } : null;
+
+  const currentState = {
+    name: accName,
+    bankProvider: accBankProvider,
+    balance: accBalance,
+    buffer: accBuffer,
+    isPrivate: accIsPrivate,
+    selectedTypes: accSelectedTypes,
+  };
+
+  const isDirty = isFormDirty(initialState, currentState);
+
 
   const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
 

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner, InfoTooltip, useToast, LocationFields, validateAustralianPostcode } from "@money-matters/ui/web";
+import { Spinner, InfoTooltip, useToast, LocationFields, validateAustralianPostcode, isFormDirty } from "@money-matters/ui/web";
+
 
 export function HouseholdDetailsSection() {
   const toast = useToast();
@@ -64,12 +65,20 @@ export function HouseholdDetailsSection() {
   };
 
   const isOwner = gov?.isOwner ?? false;
-  const isDirty = Boolean(gov) && (
-    householdName.trim() !== (gov?.householdName || "").trim() ||
-    country.trim() !== (gov?.country || "AU").trim() ||
-    state.trim() !== (gov?.state || "").trim() ||
-    postcode.trim() !== (gov?.postcode || "").trim()
-  );
+  const initialState = gov ? {
+    householdName: gov.householdName || "",
+    country: gov.country || "AU",
+    state: gov.state || "",
+    postcode: gov.postcode || "",
+  } : null;
+  const currentState = {
+    householdName,
+    country,
+    state,
+    postcode,
+  };
+  const isDirty = isFormDirty(initialState, currentState);
+
 
 
   return (
