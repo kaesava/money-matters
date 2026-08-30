@@ -22,7 +22,7 @@ describe('Capability Tenant Handlers', () => {
   });
 
   it('createTenantHandler creates tenant and owner member records', async () => {
-    const returningMock = vi.fn().mockResolvedValue([{ id: 'mock-account-id' }]);
+    const returningMock = vi.fn().mockResolvedValue([{ id: 'mock-account-id' }, { id: 'mock-bills-pool-id' }]);
     const valuesMock = vi.fn().mockImplementation(() => {
       const promiseObj = Promise.resolve([]);
       (promiseObj as any).returning = returningMock;

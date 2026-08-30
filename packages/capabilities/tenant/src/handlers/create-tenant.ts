@@ -141,7 +141,7 @@ export function createTenantHandler(db: DbOrTx) {
 
     await db.insert(categories).values(
       defaultTemplates.map((template) => {
-        const poolId = template.type === "EVERYDAY" ? everydayPool.id : billsPool.id;
+        const poolId = template.type === "EVERYDAY" ? everydayPool.id : (billsPool?.id || everydayPool.id);
         return {
           tenantId,
           appId,
