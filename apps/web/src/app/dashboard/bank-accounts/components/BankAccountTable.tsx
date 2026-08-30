@@ -16,6 +16,10 @@ export interface BankAccountItem {
   poolTypes?: CategoryType[];
   categoryTypes?: CategoryType[];
   updatedAt?: string | Date;
+  expectedBalance?: number;
+  hasDifference?: boolean;
+  differenceAmount?: number;
+  linkedPoolsCount?: number;
 }
 
 export interface BankAccountTableProps {
@@ -31,6 +35,7 @@ export interface BankAccountTableProps {
   onPageSizeChange: (s: number) => void;
   openEditModal: (acc: BankAccountItem) => void;
   openImportModal: (acc: BankAccountItem) => void;
+  openAlignmentModal?: (acc: BankAccountItem) => void;
   fmtMoney: (val: string | number | undefined) => string;
   isLoading?: boolean;
 }
@@ -48,6 +53,7 @@ export function BankAccountTable({
   onPageSizeChange,
   openEditModal,
   openImportModal,
+  openAlignmentModal,
   fmtMoney,
   isLoading,
 }: BankAccountTableProps) {
@@ -120,6 +126,25 @@ export function BankAccountTable({
                           Actual Balance: {fmtMoney(actualBal)}
                           {buf > 0 && ` (Reserved: ${fmtMoney(buf)})`}
                         </span>
+                        {(acc.linkedPoolsCount ?? 0) > 0 && acc.hasDifference && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openAlignmentModal?.(acc);
+                            }}
+                            className="mt-1 text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            <span>Needs Alignment ({acc.differenceAmount && acc.differenceAmount > 0 ? "+" : ""}{fmtMoney(acc.differenceAmount)})</span>
+                          </button>
+                        )}
+                        {(acc.linkedPoolsCount ?? 0) > 0 && !acc.hasDifference && (
+                          <span className="mt-0.5 text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>Balanced</span>
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">

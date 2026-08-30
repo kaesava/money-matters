@@ -3,18 +3,10 @@
 import React from "react";
 import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
 import PaydayPreviewModal from "@/components/web/PaydayPreviewModal";
-import { BankReconcileModal } from "@/components/web/dashboard/BankReconcileModal";
+import { BankReconcileModal, BankReconcileModalProps } from "@/components/web/dashboard/BankReconcileModal";
 
 export interface DashboardModalsProps {
-  reconcilingAccountId: string | null;
-  onCloseReconcile: () => void;
-  reconcileActualAmount: string;
-  setReconcileActualAmount: (val: string) => void;
-  reconcileTargetCategoryId: string;
-  setReconcileTargetCategoryId: (val: string) => void;
-  categories: Array<{ id: string; name: string; type?: string; currentBalance?: string }>;
-  isReconcilePending: boolean;
-  onSubmitReconcile: (e: React.FormEvent) => void;
+  reconciliationState?: BankReconcileModalProps | null;
   moveMoneyOpen: boolean;
   onCloseMoveMoney: () => void;
   paydayPreviewEventId: string | null;
@@ -23,15 +15,7 @@ export interface DashboardModalsProps {
 }
 
 export function DashboardModals({
-  reconcilingAccountId,
-  onCloseReconcile,
-  reconcileActualAmount,
-  setReconcileActualAmount,
-  reconcileTargetCategoryId,
-  setReconcileTargetCategoryId,
-  categories,
-  isReconcilePending,
-  onSubmitReconcile,
+  reconciliationState,
   moveMoneyOpen,
   onCloseMoveMoney,
   paydayPreviewEventId,
@@ -40,18 +24,8 @@ export function DashboardModals({
 }: DashboardModalsProps) {
   return (
     <>
-      {reconcilingAccountId && (
-        <BankReconcileModal
-          reconcilingAccountId={reconcilingAccountId}
-          onClose={onCloseReconcile}
-          reconcileActualAmount={reconcileActualAmount}
-          setReconcileActualAmount={setReconcileActualAmount}
-          reconcileTargetCategoryId={reconcileTargetCategoryId}
-          setReconcileTargetCategoryId={setReconcileTargetCategoryId}
-          categories={categories}
-          isPending={isReconcilePending}
-          onSubmit={onSubmitReconcile}
-        />
+      {reconciliationState && reconciliationState.reconcilingAccountId && (
+        <BankReconcileModal {...reconciliationState} />
       )}
 
       {moveMoneyOpen && (

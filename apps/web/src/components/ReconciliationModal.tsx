@@ -1,181 +1,261 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import { Spinner } from "@money-matters/ui/web";
 import posthog from "../lib/posthog-client";
 
+export interface PoolItem {
+  id: string;
+  name: string;
+  poolType: string;
+  currentBalance: number;
+  isSurplusTarget?: boolean;
+}
 
 export interface ReconciliationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  expectedBalance: number;
   accountName: string;
-  onConfirmReconcile: (actualBalance: number, absorptionMethod: "EVERYDAY" | "INCIDENTAL_BUFFER" | "UNBUDGETED_EXPENSE") => Promise<void>;
+  expectedBalance: number;
+  newBalance: number;
+  pools: PoolItem[];
+  onConfirm: (selectedPoolId: string) => Promise<void>;
+  onOpenTransferModal?: () => void;
+}
+
+function fmtMoney(num: number) {
+  return `$${Math.abs(num).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   isOpen,
   onClose,
-  expectedBalance,
   accountName,
-  onConfirmReconcile,
+  expectedBalance,
+  newBalance,
+  pools,
+  onConfirm,
+  onOpenTransferModal,
 }) => {
-  const [actualBalanceInput, setActualBalanceInput] = useState(expectedBalance.toString());
-  const [step, setStep] = useState<1 | 2>(1);
-  const [absorptionMethod, setAbsorptionMethod] = useState<"EVERYDAY" | "INCIDENTAL_BUFFER" | "UNBUDGETED_EXPENSE">("EVERYDAY");
+  const [selectedPoolId, setSelectedPoolId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const diff = Number((newBalance - expectedBalance).toFixed(2));
+  const isSurplus = diff > 0;
+  const absDiff = Math.abs(diff);
+
+  // Pre-selection & ESC listener
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSubmitting) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Determine initial selected pool
+    const surplusPool = pools.find((p) => p.isSurplusTarget);
+    if (isSurplus) {
+      if (surplusPool) {
+        setSelectedPoolId(surplusPool.id);
+      } else if (pools.length > 0) {
+        setSelectedPoolId(pools[0].id);
+      }
+    } else {
+      // Draw-down: check if surplus pool has sufficient funds
+      if (surplusPool && surplusPool.currentBalance >= absDiff) {
+        setSelectedPoolId(surplusPool.id);
+      } else {
+        const firstValidPool = pools.find((p) => p.currentBalance >= absDiff);
+        setSelectedPoolId(firstValidPool ? firstValidPool.id : "");
+      }
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, isSurplus, absDiff, pools, isSubmitting, onClose]);
 
   if (!isOpen) return null;
 
-  const actualNum = parseFloat(actualBalanceInput) || 0;
-  const delta = Number((actualNum - expectedBalance).toFixed(2));
-  const isDiscrepancy = Math.abs(delta) > 0.01;
+  const validPoolsExist = isSurplus || pools.some((p) => p.currentBalance >= absDiff);
 
-  const handleNextOrSubmit = async () => {
-    if (step === 1 && isDiscrepancy) {
-      setStep(2);
-      return;
-    }
-
+  const handleConfirmSubmit = async () => {
+    if (!selectedPoolId) return;
     setIsSubmitting(true);
     try {
-      await onConfirmReconcile(actualNum, absorptionMethod);
-      posthog.capture("bank_account_reconciled", {
-        has_discrepancy: isDiscrepancy,
-        absorption_method: isDiscrepancy ? absorptionMethod : "none",
+      await onConfirm(selectedPoolId);
+      posthog.capture("bank_account_aligned", {
+        account_name: accountName,
+        diff_amount: diff,
+        is_surplus: isSurplus,
       });
       onClose();
     } catch (err) {
-      console.error(err);
+      console.error("Failed to confirm balance alignment:", err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-6">
+    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        
+        {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-100 pb-4">
           <div>
-            <h3 className="font-extrabold text-lg text-[#1B2B4B]">{t('modals.reconciliation.title')}</h3>
-            <p className="text-xs text-slate-500">{accountName}</p>
+            <h3 className="font-extrabold text-lg text-[#1B2B4B]">
+              {t("modals.reconciliation.title", { defaultValue: "Bank Account Alignment" })}
+            </h3>
+            <p className="text-xs text-slate-500 font-medium">{accountName}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+          <button
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
 
-        {step === 1 ? (
-          <div className="space-y-4">
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
-              <span className="font-medium text-slate-600">{t('modals.reconciliation.accountBalance')}:</span>
-              <span className="font-mono font-bold text-slate-900 text-sm">
-                ${expectedBalance.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                {t('modals.reconciliation.actualBalance')}
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-slate-400 font-bold">$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={actualBalanceInput}
-                  onChange={(e) => setActualBalanceInput(e.target.value)}
-                  className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-300 font-mono font-bold text-lg text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            {isDiscrepancy && (
-              <div className={`p-3 rounded-xl text-xs font-semibold flex justify-between ${delta < 0 ? "bg-amber-50 text-amber-900 border border-amber-200" : "bg-emerald-50 text-emerald-900 border border-emerald-200"}`}>
-                <span>{t('modals.reconciliation.variance')}:</span>
-                <span className="font-mono font-bold">{delta > 0 ? `+$${delta}` : `-$${Math.abs(delta)}`}</span>
-              </div>
-            )}
+        {/* Read-Only Summary Metric Cards */}
+        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Expected</span>
+            <span className="font-mono font-bold text-slate-800 text-xs mt-0.5">{fmtMoney(expectedBalance)}</span>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 font-medium">
-              Discrepancy of <strong className="font-mono">{delta > 0 ? `+$${delta}` : `-$${Math.abs(delta)}`}</strong> detected. Select how to absorb this difference:
-            </div>
+          <div className="flex flex-col border-x border-slate-200 px-2">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Balance</span>
+            <span className="font-mono font-bold text-slate-900 text-xs mt-0.5">{fmtMoney(newBalance)}</span>
+          </div>
+          <div className="flex flex-col text-right">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Difference</span>
+            <span className={`font-mono font-bold text-xs mt-0.5 ${isSurplus ? "text-emerald-600" : "text-amber-600"}`}>
+              {isSurplus ? `+${fmtMoney(diff)}` : `-${fmtMoney(absDiff)}`}
+            </span>
+          </div>
+        </div>
 
-            <div className="space-y-2">
+        {/* Contextual Notice */}
+        <div className={`p-3.5 rounded-xl border text-xs leading-relaxed font-medium ${
+          isSurplus ? "bg-emerald-50/80 border-emerald-200 text-emerald-900" : "bg-amber-50/80 border-amber-200 text-amber-900"
+        }`}>
+          {isSurplus ? (
+            <p>
+              The bank account has <strong className="font-bold">{fmtMoney(diff)} more</strong> than expected. Select a pool to receive this surplus:
+            </p>
+          ) : (
+            <p>
+              The bank account has <strong className="font-bold">{fmtMoney(absDiff)} less</strong> than expected. Select a pool for this draw-down:
+            </p>
+          )}
+        </div>
+
+        {/* Pool Picker */}
+        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            Linked Pools Available
+          </label>
+          {pools.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-2">No pools currently linked to this bank account.</p>
+          ) : (
+            pools.map((pool) => {
+              const isDisabled = !isSurplus && pool.currentBalance < absDiff;
+              const isSelected = selectedPoolId === pool.id;
+
+              return (
+                <button
+                  key={pool.id}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => !isDisabled && setSelectedPoolId(pool.id)}
+                  className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
+                    isDisabled
+                      ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400"
+                      : isSelected
+                      ? "border-[#2563eb] bg-blue-50/70 text-[#1B2B4B] shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 cursor-pointer"
+                  }`}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{pool.name}</span>
+                      {pool.isSurplusTarget && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md">
+                          Sweep Goal
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-500">
+                      Available: {fmtMoney(pool.currentBalance)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {isDisabled && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
+                        Insufficient Funds
+                      </span>
+                    )}
+                    {isSelected && <span className="text-[#2563eb] font-bold text-sm">✓</span>}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Transfer Funds Hyperlink Prompt if all pools disabled for draw-down */}
+        {!validPoolsExist && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 space-y-1.5">
+            <p className="font-semibold">
+              No single linked pool has sufficient available funds ({fmtMoney(absDiff)}) for this draw-down.
+            </p>
+            {onOpenTransferModal && (
               <button
                 type="button"
-                onClick={() => setAbsorptionMethod("EVERYDAY")}
-                className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex justify-between items-center transition-all ${
-                  absorptionMethod === "EVERYDAY" ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                }`}
+                onClick={onOpenTransferModal}
+                className="text-red-700 font-bold hover:underline cursor-pointer flex items-center gap-1"
               >
-                <div>
-                  <p className="font-bold">Absorb from Everyday Pool</p>
-                  <p className="text-[10px] text-slate-500">Adjusts discretionary balance to match bank.</p>
-                </div>
-                {absorptionMethod === "EVERYDAY" && <span className="text-blue-600 font-bold">✓</span>}
+                <span>Transfer funds between pools →</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => setAbsorptionMethod("INCIDENTAL_BUFFER")}
-                className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex justify-between items-center transition-all ${
-                  absorptionMethod === "INCIDENTAL_BUFFER" ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                }`}
-              >
-                <div>
-                  <p className="font-bold">Absorb from Incidental Buffer ($M)</p>
-                  <p className="text-[10px] text-slate-500">Drains from unbudgeted float buffer.</p>
-                </div>
-                {absorptionMethod === "INCIDENTAL_BUFFER" && <span className="text-blue-600 font-bold">✓</span>}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAbsorptionMethod("UNBUDGETED_EXPENSE")}
-                className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex justify-between items-center transition-all ${
-                  absorptionMethod === "UNBUDGETED_EXPENSE" ? "border-blue-600 bg-blue-50 text-blue-900" : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                }`}
-              >
-                <div>
-                  <p className="font-bold">Log as Unbudgeted Expense</p>
-                  <p className="text-[10px] text-slate-500">Creates an explicit unbudgeted ledger transaction.</p>
-                </div>
-                {absorptionMethod === "UNBUDGETED_EXPENSE" && <span className="text-blue-600 font-bold">✓</span>}
-              </button>
-            </div>
+            )}
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
-          {step === 2 && (
-            <button
-              onClick={() => setStep(1)}
-              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
-            >
-              ← {t('common.back')}
-            </button>
-          )}
+        {/* Footer Actions */}
+        <div className="flex gap-3 pt-2 border-t border-slate-100">
           <button
-            onClick={handleNextOrSubmit}
+            type="button"
+            onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 py-3 bg-[#1B2B4B] hover:bg-blue-900 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+          >
+            {t("common.cancel", { defaultValue: "Cancel" })}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleConfirmSubmit}
+            disabled={!selectedPoolId || isSubmitting}
+            className="flex-1 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
                 <Spinner size="sm" className="text-white" />
-                <span>Submitting Reconciliation...</span>
+                <span>Saving...</span>
               </>
-            ) : step === 1 && isDiscrepancy ? (
-              `${t('common.next')} →`
             ) : (
-              t('modals.reconciliation.submit')
+              t("common.confirm", { defaultValue: "Confirm" })
             )}
           </button>
-
         </div>
+
       </div>
     </div>
   );

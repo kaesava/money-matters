@@ -2,7 +2,6 @@
 
 # AGENT - In progress...
 
-
 _________
 
 
@@ -83,7 +82,8 @@ XX
 
 ### Edit Modal 
 #### Reconciliation
-XX
+
+
 #### Private Bank Accounts
 
 ### Bank Account & Statement csv Import

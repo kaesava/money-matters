@@ -1,4 +1,4 @@
-import { runAllocationEngine, EngineBucket } from "./allocation-engine.js";
+import { runAllocationEngine, EngineBucket } from "./allocation-engine";
 export type { EngineBucket };
 
 export interface MatrixIncomeEvent {

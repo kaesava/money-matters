@@ -11,6 +11,7 @@ import { TransferConflictModal } from "./components/TransferConflictModal";
 import { BankAccountFormModal } from "./components/BankAccountFormModal";
 import { CsvImportModal } from "../../../components/CsvImportModal";
 import { ReconciliationModal } from "../../../components/ReconciliationModal";
+import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
   { key: "CBA", label: "Commonwealth Bank (CBA)", logoBg: "bg-amber-400", textColor: "text-zinc-950" },
@@ -115,16 +116,34 @@ export default function BankAccountsDashboardPage() {
     setPage(1);
   }, [searchQuery, typeFilter, sortField, sortDir, pageSize]);
 
-  const accounts: BankAccountItem[] = (bankAccountsQuery.data ?? []).map((acc: Record<string, unknown>) => ({
-    id: acc.id as string,
-    name: acc.name as string,
-    bankProvider: (acc.bankProvider as string) ?? undefined,
-    lastKnownBalance: (acc.lastKnownBalance as string) ?? "0.00",
-    unbudgetedBuffer: (acc.unbudgetedBuffer as string) ?? "0.00",
-    isPrivate: (acc.isPrivate as boolean) ?? false,
-    categoryTypes: ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]),
-    updatedAt: (acc.updatedAt as string) ?? undefined,
-  }));
+  const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
+  const pools = poolsQuery.data ?? [];
+
+  const accounts: BankAccountItem[] = (bankAccountsQuery.data ?? []).map((acc: Record<string, unknown>) => {
+    const accId = acc.id as string;
+    const linkedPools = pools.filter((p) => p.bankAccountId === accId);
+    const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+    const buf = parseFloat((acc.unbudgetedBuffer as string) || "0.00");
+    const expectedBalance = poolsTotal + buf;
+    const actualBal = parseFloat((acc.lastKnownBalance as string) || "0.00");
+    const diff = Number((actualBal - expectedBalance).toFixed(2));
+    const hasDifference = linkedPools.length > 0 && Math.abs(diff) > 0.009;
+
+    return {
+      id: accId,
+      name: acc.name as string,
+      bankProvider: (acc.bankProvider as string) ?? undefined,
+      lastKnownBalance: (acc.lastKnownBalance as string) ?? "0.00",
+      unbudgetedBuffer: (acc.unbudgetedBuffer as string) ?? "0.00",
+      isPrivate: (acc.isPrivate as boolean) ?? false,
+      categoryTypes: ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]),
+      updatedAt: (acc.updatedAt as string) ?? undefined,
+      expectedBalance,
+      hasDifference,
+      differenceAmount: diff,
+      linkedPoolsCount: linkedPools.length,
+    };
+  });
 
   // Filter accounts
   const filtered = accounts.filter((acc) => {
@@ -192,13 +211,30 @@ export default function BankAccountsDashboardPage() {
 
   const [reconcileState, setReconcileState] = useState<{
     account: BankAccountItem;
-    newBalance: string;
+    newBalance: number;
+    expectedBalance: number;
+    linkedPools: Array<{ id: string; name: string; poolType: string; currentBalance: number; isSurplusTarget?: boolean }>;
   } | null>(null);
 
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingAccount(null);
     setErrorMsg(null);
+  };
+
+  const handleDirectAlignment = (acc: BankAccountItem) => {
+    const linkedPools = pools.filter((p) => p.bankAccountId === acc.id);
+    const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+    const buf = parseFloat(acc.unbudgetedBuffer || "0.00");
+    const expectedBankBal = poolsTotal + buf;
+    const actualBal = parseFloat(acc.lastKnownBalance || "0.00");
+
+    setReconcileState({
+      account: acc,
+      newBalance: actualBal,
+      expectedBalance: expectedBankBal,
+      linkedPools,
+    });
   };
 
   const handleSaveAccount = (e: React.FormEvent) => {
@@ -214,14 +250,18 @@ export default function BankAccountsDashboardPage() {
     }
 
     if (editingAccount) {
-      const oldBal = parseFloat(editingAccount.lastKnownBalance || "0");
-      const newBal = parseFloat(accBalance) || 0;
-      const isBalanceChanged = Math.abs(newBal - oldBal) > 0.009;
+      const linkedPools = pools.filter((p) => p.bankAccountId === editingAccount.id);
+      const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+      const expectedBankBal = poolsTotal + bufNum;
 
-      if (isBalanceChanged) {
+      // RULE: If NO pools are linked to this bank account, skip modal completely!
+      if (linkedPools.length > 0 && Math.abs(balNum - expectedBankBal) > 0.009) {
+        setIsModalOpen(false); // Close edit form modal cleanly!
         setReconcileState({
           account: editingAccount,
-          newBalance: accBalance.trim() || "0.00",
+          newBalance: balNum,
+          expectedBalance: expectedBankBal,
+          linkedPools,
         });
         return;
       }
@@ -263,40 +303,47 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
-  const handleConfirmReconcile = async (actualBalance: number, _absorptionMethod: "EVERYDAY" | "INCIDENTAL_BUFFER" | "UNBUDGETED_EXPENSE") => {
-    if (!reconcileState || !editingAccount) return;
-    const targetAccount = reconcileState.account;
-    const pools = poolsQuery.data ?? [];
-    const targetPool = pools.find((p) => p.bankAccountId === targetAccount.id) || pools[0];
-    const oldBalNum = parseFloat(targetAccount.lastKnownBalance || "0");
-    const delta = (actualBalance - oldBalNum).toFixed(2);
+  const handleConfirmReconcile = async (selectedPoolId: string) => {
+    if (!reconcileState) return;
+    const { account, newBalance, expectedBalance } = reconcileState;
+    const diff = Number((newBalance - expectedBalance).toFixed(2));
 
-    if (targetPool && Math.abs(parseFloat(delta)) > 0.009) {
+    if (Math.abs(diff) > 0.009 && selectedPoolId) {
       await reconcileMut.mutateAsync({
-        accountId: targetAccount.id,
-        actualBalance: actualBalance.toFixed(2),
+        accountId: account.id,
+        actualBalance: newBalance.toFixed(2),
         clientIdempotencyToken: crypto.randomUUID(),
         splits: [
           {
-            poolId: targetPool.id,
-            adjustment: delta,
+            poolId: selectedPoolId,
+            adjustment: diff.toFixed(2),
           },
         ],
       });
     }
 
+    const currentAccName = editingAccount?.id === account.id ? accName.trim() : account.name;
+    const currentProvider = editingAccount?.id === account.id ? accBankProvider : (account.bankProvider as BankName);
+    const currentBuffer = editingAccount?.id === account.id ? (accBuffer.trim() || "0.00") : (account.unbudgetedBuffer || "0.00");
+    const currentIsPrivate = editingAccount?.id === account.id ? accIsPrivate : (account.isPrivate ?? false);
+
     await updateAccountMut.mutateAsync({
-      accountId: targetAccount.id,
+      accountId: account.id,
       data: {
-        name: accName.trim(),
-        bankProvider: accBankProvider,
-        lastKnownBalance: actualBalance.toFixed(2),
-        unbudgetedBuffer: accBuffer.trim() || "0.00",
-        isPrivate: accIsPrivate,
+        name: currentAccName,
+        bankProvider: currentProvider,
+        lastKnownBalance: newBalance.toFixed(2),
+        unbudgetedBuffer: currentBuffer,
+        isPrivate: currentIsPrivate,
       },
     });
 
-    await updateMappingsForAccount(targetAccount.id, accSelectedTypes);
+    if (editingAccount && editingAccount.id === account.id) {
+      await updateMappingsForAccount(account.id, accSelectedTypes);
+    }
+
+    utils.listPools.invalidate();
+    bankAccountsQuery.refetch();
     setReconcileState(null);
     closeModal();
   };
@@ -511,6 +558,7 @@ export default function BankAccountsDashboardPage() {
         onPageSizeChange={setPageSize}
         openEditModal={openEditModal}
         openImportModal={openImportModal}
+        openAlignmentModal={handleDirectAlignment}
         fmtMoney={fmtMoney}
         isLoading={bankAccountsQuery.isLoading}
       />
@@ -544,14 +592,28 @@ export default function BankAccountsDashboardPage() {
         />
       )}
 
-      {/* Balance Reconciliation Modal */}
+      {/* Balance Alignment Modal */}
       {reconcileState && (
         <ReconciliationModal
           isOpen={!!reconcileState}
           onClose={() => setReconcileState(null)}
-          expectedBalance={parseFloat(reconcileState.account.lastKnownBalance || "0")}
           accountName={reconcileState.account.name}
-          onConfirmReconcile={handleConfirmReconcile}
+          expectedBalance={reconcileState.expectedBalance}
+          newBalance={reconcileState.newBalance}
+          pools={reconcileState.linkedPools}
+          onConfirm={handleConfirmReconcile}
+          onOpenTransferModal={() => setMoveMoneyOpen(true)}
+        />
+      )}
+
+      {/* Quick Action Drawer for Transfer capability */}
+      {moveMoneyOpen && (
+        <QuickExpenseDrawer
+          onClose={() => {
+            setMoveMoneyOpen(false);
+            utils.listPools.invalidate();
+          }}
+          initialTab="TRANSFER"
         />
       )}
 

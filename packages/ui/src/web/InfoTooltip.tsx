@@ -23,7 +23,7 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, title, classN
   const handleOpen = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const isNearTop = rect.top < 160;
+      const isNearTop = rect.top < 220;
       const isNearLeft = rect.left < 140;
       const isNearRight = typeof window !== 'undefined' && window.innerWidth - rect.right < 140;
 
