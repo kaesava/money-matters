@@ -261,7 +261,18 @@ function TransactionsPageContent() {
 
           {/* Transactions Table */}
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
-            {sortedTransactions.length === 0 ? (
+            {transactionsQuery.isLoading ? (
+              <div className="p-6 divide-y divide-zinc-100">
+                {[1, 2, 3, 4, 5].map((idx) => (
+                  <div key={idx} className="py-3 px-4 flex items-center justify-between animate-pulse">
+                    <div className="h-4 bg-zinc-200 rounded-md w-24" />
+                    <div className="h-4 bg-zinc-200 rounded-md w-48" />
+                    <div className="h-4 bg-zinc-200 rounded-md w-24" />
+                    <div className="h-4 bg-zinc-200 rounded-md w-16 ml-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : sortedTransactions.length === 0 ? (
               <div className="py-16 text-center text-zinc-400 text-xs font-semibold">
                 No transaction records found matching your filters.
               </div>
@@ -273,27 +284,33 @@ function TransactionsPageContent() {
                       <ResizableTh
                         width={widths.date}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)}
-                        className="py-3 px-4 cursor-pointer hover:bg-slate-100"
+                        className="py-3 px-4 cursor-pointer hover:bg-slate-100 text-left"
                         onClick={() => {
                           if (sortColumn === "recordedAt") setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
                           else { setSortColumn("recordedAt"); setSortDirection("desc"); }
                         }}
                       >
-                        {t("transactions.date") || "Date"} {sortColumn === "recordedAt" ? (sortDirection === "asc" ? "↑" : "↓") : ""}
+                        <div className="flex items-center gap-1">
+                          <span>{t("transactions.date") || "Date"}</span>
+                          {sortColumn === "recordedAt" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
                       </ResizableTh>
                       <ResizableTh
                         width={widths.description}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("description", e)}
-                        className="py-3 px-4 cursor-pointer hover:bg-slate-100"
+                        className="py-3 px-4 cursor-pointer hover:bg-slate-100 text-left"
                         onClick={() => {
                           if (sortColumn === "description") setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
                           else { setSortColumn("description"); setSortDirection("asc"); }
                         }}
                       >
-                        {t("transactions.description") || "Description"} {sortColumn === "description" ? (sortDirection === "asc" ? "↑" : "↓") : ""}
+                        <div className="flex items-center gap-1">
+                          <span>{t("transactions.description") || "Description"}</span>
+                          {sortColumn === "description" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
                       </ResizableTh>
-                      <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4">{t("transactions.category") || "Category"}</ResizableTh>
-                      <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="py-3 px-4">Source</ResizableTh>
+                      <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4 text-center">{t("transactions.category") || "Category"}</ResizableTh>
+                      <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="py-3 px-4 text-center">Source</ResizableTh>
                       <ResizableTh
                         width={widths.amount}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)}
@@ -303,23 +320,26 @@ function TransactionsPageContent() {
                           else { setSortColumn("amount"); setSortDirection("desc"); }
                         }}
                       >
-                        {t("transactions.amount") || "Amount"} {sortColumn === "amount" ? (sortDirection === "asc" ? "↑" : "↓") : ""}
+                        <div className="flex items-center justify-end gap-1">
+                          <span>{t("transactions.amount") || "Amount"}</span>
+                          {sortColumn === "amount" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
                       </ResizableTh>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 text-xs">
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3 px-4 font-mono text-zinc-500">{fmtDate(tx.date)}</td>
-                        <td className="py-3 px-4 font-semibold text-[#1B2B4B]">{tx.description}</td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 font-mono text-zinc-500 text-left">{fmtDate(tx.date)}</td>
+                        <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">{tx.description}</td>
+                        <td className="py-3 px-4 text-center">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
                             tx.type === "TRANSFER" ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-slate-100 text-zinc-700"
                           }`}>
                             {tx.categoryName}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 text-center">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">
                             {tx.source || "MANUAL"}
                           </span>
@@ -336,6 +356,7 @@ function TransactionsPageContent() {
               </div>
             )}
           </div>
+
 
           <PaginationBar
             page={page}

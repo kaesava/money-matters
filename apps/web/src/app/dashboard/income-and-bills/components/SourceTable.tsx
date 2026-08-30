@@ -64,12 +64,13 @@ export interface SourceTableProps {
   onUpdateEvent: (eventId: string, amount: string, date: string) => void;
   isPendingMarkPaid: boolean;
   isPendingSkip: boolean;
+  isLoading?: boolean;
 }
 
 export function SourceTable({
   mode, items, bucketHeader, searchQuery, allIncomeEvents, allExpenseEvents,
   _categories, _bankAccounts, onAdd, onArchive, onEdit, onMarkPaid, onSkip, onUnskip, onUpdateEvent,
-  isPendingMarkPaid, isPendingSkip,
+  isPendingMarkPaid, isPendingSkip, isLoading,
 }: SourceTableProps) {
   const { showIcons } = useIconVisibility();
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -137,7 +138,16 @@ export function SourceTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {paginated.length === 0 ? (
+            {isLoading ? (
+              [1, 2, 3].map((idx) => (
+                <tr key={idx} className="animate-pulse">
+                  <td className="px-5 py-3.5"><div className="h-4 bg-zinc-200 rounded-md w-32" /></td>
+                  <td className="px-5 py-3.5"><div className="h-4 bg-zinc-200 rounded-md w-24" /></td>
+                  <td className="px-5 py-3.5"><div className="h-4 bg-zinc-200 rounded-md w-24" /></td>
+                  <td className="px-5 py-3.5 text-right"><div className="h-4 bg-zinc-200 rounded-md w-16 ml-auto" /></td>
+                </tr>
+              ))
+            ) : paginated.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-5 py-10 text-center text-xs text-zinc-400 font-medium">
                   {filtered.length === 0 && items.length > 0 ? "No matches found." : `No ${isIncome ? "income sources" : "expense bills"} set up yet.`}
@@ -171,7 +181,7 @@ export function SourceTable({
                     {showIcons && <span className="mr-1">{isIncome ? "🏦" : "📁"}</span>}
                     {bucket || (isIncome ? "Main Account" : "Uncategorized")}
                   </td>
-                  <td className={`px-5 py-3.5 text-right font-mono font-extrabold ${isIncome ? "text-emerald-600" : "text-rose-600"}`}>
+                  <td className={`px-5 py-3.5 text-right font-mono tabular-nums font-extrabold ${isIncome ? "text-emerald-600" : "text-rose-600"}`}>
                     {isIncome ? "+" : "−"}{fmt(item.amount)}
                   </td>
                 </tr>
@@ -180,6 +190,7 @@ export function SourceTable({
           </tbody>
         </table>
       </div>
+
 
       <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} totalItems={sorted.length} pageSizeOptions={[10, 25, 50]} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
 

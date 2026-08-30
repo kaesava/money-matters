@@ -78,9 +78,21 @@ export function BankAccountFormModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  const initialName = editingAccount?.name || "";
+  const initialBankProvider = accBankProvider;
+  const initialBalance = accBalance;
+  const initialBuffer = accBuffer;
+  const initialIsPrivate = accIsPrivate;
+
+  const isDirty = !editingAccount ||
+    accName.trim() !== initialName.trim() ||
+    accBankProvider !== initialBankProvider ||
+    parseFloat(accBalance || "0") !== parseFloat(initialBalance || "0") ||
+    parseFloat(accBuffer || "0") !== parseFloat(initialBuffer || "0") ||
+    accIsPrivate !== initialIsPrivate;
 
   const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
+
 
   const handlePoolCheckboxClick = (typeKey: CategoryType) => {
     const isCurrentlyChecked = accSelectedTypes.includes(typeKey);
@@ -282,12 +294,29 @@ export function BankAccountFormModal({
             </button>
             <button
               type="submit"
-              disabled={isSaving}
-              className="px-4 py-2 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 rounded-xl shadow-xs transition-colors"
+              disabled={isSaving || (!!editingAccount && !isDirty)}
+              onClick={(e) => {
+                if (editingAccount && !isDirty && !isSaving) {
+                  e.preventDefault();
+                  toast.info("No changes to save.");
+                }
+              }}
+              title={editingAccount && !isDirty ? "No changes to save" : undefined}
+              className={`px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
+                editingAccount && !isDirty ? "bg-zinc-300 opacity-60 cursor-not-allowed" : "bg-[#2563eb] hover:bg-blue-700"
+              }`}
             >
-              {isSaving ? "Saving..." : editingAccount ? "Save Changes" : "Create Account"}
+              {isSaving ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>{editingAccount ? "Saving Account..." : "Creating Account..."}</span>
+                </>
+              ) : (
+                <span>{editingAccount ? "Save Changes" : "Create Account"}</span>
+              )}
             </button>
           </div>
+
         </div>
 
         {/* Privacy Warning Confirmation Modal */}

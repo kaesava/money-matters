@@ -32,6 +32,7 @@ export interface BankAccountTableProps {
   openEditModal: (acc: BankAccountItem) => void;
   openImportModal: (acc: BankAccountItem) => void;
   fmtMoney: (val: string | number | undefined) => string;
+  isLoading?: boolean;
 }
 
 export function BankAccountTable({
@@ -48,6 +49,7 @@ export function BankAccountTable({
   openEditModal,
   openImportModal,
   fmtMoney,
+  isLoading,
 }: BankAccountTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
@@ -55,27 +57,37 @@ export function BankAccountTable({
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50/70 text-zinc-500 font-bold uppercase tracking-wider">
-              <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors" onClick={() => toggleSort("name")}>
+              <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-left" onClick={() => toggleSort("name")}>
                 <div className="flex items-center gap-1">
                   <span>Account Details</span>
                   {sortField === "name" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </th>
-              <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors" onClick={() => toggleSort("lastKnownBalance")}>
-                <div className="flex items-center gap-1">
+              <th className="py-3.5 px-4 cursor-pointer hover:text-zinc-800 transition-colors text-right" onClick={() => toggleSort("lastKnownBalance")}>
+                <div className="flex items-center justify-end gap-1">
                   <span>Available Balance</span>
                   {sortField === "lastKnownBalance" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                 </div>
               </th>
-              <th className="py-3.5 px-4">
+              <th className="py-3.5 px-4 text-center">
                 <span>Linked Pools</span>
               </th>
-              <th className="py-3.5 px-4">Account Type</th>
+              <th className="py-3.5 px-4 text-center">Account Type</th>
               <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
-            {accounts.length === 0 ? (
+            {isLoading ? (
+              [1, 2, 3].map((idx) => (
+                <tr key={idx} className="animate-pulse">
+                  <td className="py-4 px-4"><div className="h-4 bg-zinc-200 rounded-md w-32" /></td>
+                  <td className="py-4 px-4 text-right"><div className="h-4 bg-zinc-200 rounded-md w-24 ml-auto" /></td>
+                  <td className="py-4 px-4 text-center"><div className="h-4 bg-zinc-200 rounded-md w-20 mx-auto" /></td>
+                  <td className="py-4 px-4 text-center"><div className="h-4 bg-zinc-200 rounded-md w-16 mx-auto" /></td>
+                  <td className="py-4 px-4 text-right"><div className="h-7 bg-zinc-200 rounded-lg w-24 ml-auto" /></td>
+                </tr>
+              ))
+            ) : accounts.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-zinc-400">
                   No bank accounts found matching your search.
@@ -98,17 +110,19 @@ export function BankAccountTable({
                         {acc.name}
                       </button>
                     </td>
-                    <td className="py-4 px-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-black text-emerald-600">{fmtMoney(availBal)}</span>
+                    <td className="py-4 px-4 text-right font-mono tabular-nums">
+                      <div className="flex flex-col items-end">
+                        <span className={`text-sm font-black ${availBal < 0 ? "text-rose-600" : "text-[#1B2B4B]"}`}>
+                          {fmtMoney(availBal)}
+                        </span>
                         <span className="text-[10px] text-zinc-400 font-medium">
                           Actual Balance: {fmtMoney(actualBal)}
                           {buf > 0 && ` (Reserved: ${fmtMoney(buf)})`}
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-4">
-                      <div className="flex flex-wrap items-center gap-1.5">
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
                         {((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]).length === 0 ? (
                           <span className="text-[10px] font-semibold text-zinc-400 italic">None linked</span>
                         ) : (
@@ -131,13 +145,13 @@ export function BankAccountTable({
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 text-center">
                       {acc.isPrivate ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-block">
                           🔒 Private
                         </span>
                       ) : (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-[#2563eb] border border-blue-200">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-[#2563eb] border border-blue-200 inline-block">
                           👥 Household
                         </span>
                       )}
@@ -162,6 +176,7 @@ export function BankAccountTable({
           </tbody>
         </table>
       </div>
+
 
       <PaginationBar
         page={page}

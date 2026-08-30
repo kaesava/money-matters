@@ -64,6 +64,13 @@ export function HouseholdDetailsSection() {
   };
 
   const isOwner = gov?.isOwner ?? false;
+  const isDirty = Boolean(gov) && (
+    householdName.trim() !== (gov?.householdName || "").trim() ||
+    country.trim() !== (gov?.country || "AU").trim() ||
+    state.trim() !== (gov?.state || "").trim() ||
+    postcode.trim() !== (gov?.postcode || "").trim()
+  );
+
 
   return (
     <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-5">
@@ -104,15 +111,30 @@ export function HouseholdDetailsSection() {
           <div className="pt-2 flex justify-end">
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2.5 text-xs font-extrabold bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              disabled={isSubmitting || !isDirty}
+              onClick={(e) => {
+                if (!isDirty && !isSubmitting) {
+                  e.preventDefault();
+                  toast.info("No changes to save.");
+                }
+              }}
+              className={`px-5 py-2.5 text-xs font-extrabold text-white rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer ${
+                !isDirty ? "bg-zinc-300 opacity-60 cursor-not-allowed" : "bg-[#2563eb] hover:bg-blue-700"
+              }`}
             >
-              {isSubmitting && <Spinner size="sm" className="text-white" />}
-              <span>Save Household Details</span>
+              {isSubmitting ? (
+                <>
+                  <Spinner size="sm" className="text-white" />
+                  <span>Saving Changes...</span>
+                </>
+              ) : (
+                <span>Save Household Details</span>
+              )}
             </button>
           </div>
         )}
       </form>
     </section>
   );
+
 }

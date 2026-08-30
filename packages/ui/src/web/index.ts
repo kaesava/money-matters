@@ -35,6 +35,7 @@ export * from './SearchableCategorySelect';
 export * from './ListViewToolbar';
 export * from './StatCard';
 export * from '../hooks/IconVisibilityContext';
+export * from '../lib/format';
 export * from '../utils/formatDate';
 export * from './useResizableColumns';
 export * from './ResizableTh';
@@ -42,6 +43,8 @@ export * from './ToastContext';
 export * from './Toast';
 export * from './AlertBanner';
 export * from './NetworkErrorBanner';
+
+
 
 
 

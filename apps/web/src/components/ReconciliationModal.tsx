@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
+import { Spinner } from "@money-matters/ui/web";
 import posthog from "../lib/posthog-client";
+
 
 export interface ReconciliationModalProps {
   isOpen: boolean;
@@ -159,10 +161,20 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
           <button
             onClick={handleNextOrSubmit}
             disabled={isSubmitting}
-            className="flex-1 py-3 bg-[#1B2B4B] hover:bg-blue-900 text-white font-bold text-xs rounded-xl transition-all shadow-md"
+            className="flex-1 py-3 bg-[#1B2B4B] hover:bg-blue-900 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            {isSubmitting ? t('common.saving') : step === 1 && isDiscrepancy ? `${t('common.next')} →` : t('modals.reconciliation.submit')}
+            {isSubmitting ? (
+              <>
+                <Spinner size="sm" className="text-white" />
+                <span>Submitting Reconciliation...</span>
+              </>
+            ) : step === 1 && isDiscrepancy ? (
+              `${t('common.next')} →`
+            ) : (
+              t('modals.reconciliation.submit')
+            )}
           </button>
+
         </div>
       </div>
     </div>

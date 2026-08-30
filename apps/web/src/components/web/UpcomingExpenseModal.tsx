@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast } from "@money-matters/ui/web";
+import { useToast, Spinner } from "@money-matters/ui/web";
+
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -254,20 +255,36 @@ export default function UpcomingExpenseModal({
             type="button"
             onClick={handleSaveUpcoming}
             disabled={submitting}
-            className="px-4 py-2 border border-[#2563eb] text-[#2563eb] font-bold rounded-xl hover:bg-blue-50"
+            className="px-4 py-2 border border-[#2563eb] text-[#2563eb] font-bold rounded-xl hover:bg-blue-50 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            {t("modals.upcomingExpense.saveUpcoming", { defaultValue: "Save Upcoming" })}
+            {submitting ? (
+              <>
+                <Spinner size="sm" />
+                <span>{t("common.saving")}</span>
+              </>
+            ) : (
+              <span>{t("modals.upcomingExpense.saveUpcoming", { defaultValue: "Save Upcoming" })}</span>
+            )}
           </button>
           <button
             type="button"
             onClick={handleMarkPaid}
             disabled={submitting}
-            className="px-5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl shadow-md disabled:opacity-50"
+            className="px-5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            {t("actions.markPaid", { defaultValue: "Mark Paid" })}
+            {submitting ? (
+              <>
+                <Spinner size="sm" className="text-white" />
+                <span>{t("common.saving")}</span>
+              </>
+            ) : (
+              <span>{t("actions.markPaid", { defaultValue: "Mark Paid" })}</span>
+            )}
           </button>
+
         </div>
       </div>
+
     </ModalDialog>
   );
 }

@@ -155,8 +155,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [cooldownSeconds, isRetrying, clearGlobalError, categoriesQuery, tenantsQuery, userPrefQuery, utils]);
 
-  const isQueryFetching = categoriesQuery.isFetching || tenantsQuery.isFetching || userPrefQuery.isFetching || isRetrying;
-  const isQueryError = (isGlobalError || categoriesQuery.isError || tenantsQuery.isError || userPrefQuery.isError) && !isQueryFetching;
+  const isInitialLoading = (!categoriesQuery.data || !tenantsQuery.data) && (categoriesQuery.isLoading || tenantsQuery.isLoading || userPrefQuery.isLoading);
+  const isQueryFetching = isRetrying;
+  const isQueryError = (isGlobalError || categoriesQuery.isError || tenantsQuery.isError || userPrefQuery.isError) && !categoriesQuery.data && !tenantsQuery.data;
+
 
   // Unified Keyboard Shortcuts Hook
   useEffect(() => {
@@ -354,11 +356,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex-1 flex flex-col overflow-y-auto">
             {/* Main workspace */}
             <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
-              {isQueryFetching ? (
+              {(isInitialLoading || isQueryFetching) ? (
                 <div className="min-h-[60vh] flex items-center justify-center p-6 text-center">
-                  <Spinner size="lg" label="Reconnecting to Money Matters..." direction="col" />
+                  <Spinner size="lg" label={t("dashboard.loading") || "Loading workspace..."} direction="col" />
                 </div>
               ) : isQueryError ? (
+
                 <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
                   <div className="max-w-md w-full bg-white dark:bg-zinc-900 border border-amber-200/80 dark:border-amber-900/60 rounded-3xl p-8 shadow-xl space-y-5">
                     <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-amber-200/80 dark:border-amber-900/60 font-bold shadow-xs">

@@ -444,7 +444,9 @@ export default function BankAccountsDashboardPage() {
         openEditModal={openEditModal}
         openImportModal={openImportModal}
         fmtMoney={fmtMoney}
+        isLoading={bankAccountsQuery.isLoading}
       />
+
 
       {/* Add / Edit Account Modal */}
       {isModalOpen && (

@@ -292,7 +292,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 {isPending && <Spinner size="sm" color="white" />}
                 <span>
                   {isPending
-                    ? "Saving..."
+                    ? (isTransfer ? "Recording Transfer..." : isIncome ? "Recording Income..." : "Recording Expense...")
                     : isTransfer
                     ? "Submit Transfer"
                     : isIncome
@@ -300,6 +300,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     : "Record Expense"}
                 </span>
               </button>
+
             </div>
           </>
         )}

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useId } from "react";
 import { t } from "@money-matters/i18n";
-import { useToast } from "@money-matters/ui/web";
+import { useToast, Spinner } from "@money-matters/ui/web";
+
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
 import { getWebVersionInfo } from "../../../../lib/version";
@@ -420,10 +421,18 @@ export function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
                 <button
                   type="submit"
                   disabled={createBugReportMutation.isPending}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-xs"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 disabled:opacity-50 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  {createBugReportMutation.isPending ? t("bugReport.submitting") : t("bugReport.submitBtn")}
+                  {createBugReportMutation.isPending ? (
+                    <>
+                      <Spinner size="sm" className="text-white" />
+                      <span>Submitting Feedback...</span>
+                    </>
+                  ) : (
+                    <span>{t("bugReport.submitBtn")}</span>
+                  )}
                 </button>
+
               </div>
             </form>
           )}
