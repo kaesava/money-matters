@@ -35,10 +35,14 @@ export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
         )
       );
 
-    return accounts.map((acc) => ({
-      ...acc,
-      pools: tenantPools.filter((p) => p.bankAccountId === acc.id),
-    }));
+    return accounts.map((acc) => {
+      const linkedPools = tenantPools.filter((p) => p.bankAccountId === acc.id);
+      return {
+        ...acc,
+        pools: linkedPools,
+        poolTypes: Array.from(new Set(linkedPools.map((p) => p.poolType))),
+      };
+    });
   };
 }
 

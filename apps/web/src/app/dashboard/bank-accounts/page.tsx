@@ -10,6 +10,7 @@ import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./com
 import { TransferConflictModal } from "./components/TransferConflictModal";
 import { BankAccountFormModal } from "./components/BankAccountFormModal";
 import { CsvImportModal } from "../../../components/CsvImportModal";
+import { ReconciliationModal } from "../../../components/ReconciliationModal";
 
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
   { key: "CBA", label: "Commonwealth Bank (CBA)", logoBg: "bg-amber-400", textColor: "text-zinc-950" },
@@ -31,8 +32,12 @@ export default function BankAccountsDashboardPage() {
   const isTrialExpired = subStatus?.isTrialExpired ?? false;
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
+  const poolsQuery = trpc.listPools.useQuery();
   const csvBatchesQuery = trpc.listCsvImportBatches.useQuery();
   const csvBatches = csvBatchesQuery.data ?? [];
+
+  const updatePoolMut = trpc.updatePool.useMutation();
+  const reconcileMut = trpc.reconcileBankBalance.useMutation();
 
   const createAccountMut = trpc.createBankAccount.useMutation({
     onSuccess: () => {
@@ -185,6 +190,11 @@ export default function BankAccountsDashboardPage() {
     setIsModalOpen(true);
   };
 
+  const [reconcileState, setReconcileState] = useState<{
+    account: BankAccountItem;
+    newBalance: string;
+  } | null>(null);
+
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingAccount(null);
@@ -204,6 +214,18 @@ export default function BankAccountsDashboardPage() {
     }
 
     if (editingAccount) {
+      const oldBal = parseFloat(editingAccount.lastKnownBalance || "0");
+      const newBal = parseFloat(accBalance) || 0;
+      const isBalanceChanged = Math.abs(newBal - oldBal) > 0.009;
+
+      if (isBalanceChanged) {
+        setReconcileState({
+          account: editingAccount,
+          newBalance: accBalance.trim() || "0.00",
+        });
+        return;
+      }
+
       updateAccountMut.mutate(
         {
           accountId: editingAccount.id,
@@ -241,22 +263,58 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
-  const updateMappingsForAccount = (targetAccountId: string, selectedTypes: Array<"EVERYDAY" | "REGULAR" | "GOAL">) => {
-    const allTypes: Array<"EVERYDAY" | "REGULAR" | "GOAL"> = ["EVERYDAY", "REGULAR", "GOAL"];
-    const updatedMappings: Array<{ categoryType: "EVERYDAY" | "REGULAR" | "GOAL"; bankAccountId: string }> = [];
+  const handleConfirmReconcile = async (actualBalance: number, _absorptionMethod: "EVERYDAY" | "INCIDENTAL_BUFFER" | "UNBUDGETED_EXPENSE") => {
+    if (!reconcileState || !editingAccount) return;
+    const targetAccount = reconcileState.account;
+    const pools = poolsQuery.data ?? [];
+    const targetPool = pools.find((p) => p.bankAccountId === targetAccount.id) || pools[0];
+    const oldBalNum = parseFloat(targetAccount.lastKnownBalance || "0");
+    const delta = (actualBalance - oldBalNum).toFixed(2);
 
-    for (const tType of allTypes) {
-      if (selectedTypes.includes(tType)) {
-        updatedMappings.push({ categoryType: tType, bankAccountId: targetAccountId });
-      } else {
-        const existingOwner = accounts.find((a) => a.id !== targetAccountId && (a.categoryTypes || []).includes(tType));
-        if (existingOwner) {
-          updatedMappings.push({ categoryType: tType, bankAccountId: existingOwner.id });
-        }
-      }
+    if (targetPool && Math.abs(parseFloat(delta)) > 0.009) {
+      await reconcileMut.mutateAsync({
+        accountId: targetAccount.id,
+        actualBalance: actualBalance.toFixed(2),
+        clientIdempotencyToken: crypto.randomUUID(),
+        splits: [
+          {
+            poolId: targetPool.id,
+            adjustment: delta,
+          },
+        ],
+      });
     }
 
-    // pool types are updated during account creation/update
+    await updateAccountMut.mutateAsync({
+      accountId: targetAccount.id,
+      data: {
+        name: accName.trim(),
+        bankProvider: accBankProvider,
+        lastKnownBalance: actualBalance.toFixed(2),
+        unbudgetedBuffer: accBuffer.trim() || "0.00",
+        isPrivate: accIsPrivate,
+      },
+    });
+
+    await updateMappingsForAccount(targetAccount.id, accSelectedTypes);
+    setReconcileState(null);
+    closeModal();
+  };
+
+  const updateMappingsForAccount = async (targetAccountId: string, selectedTypes: Array<"EVERYDAY" | "REGULAR" | "GOAL">) => {
+    const pools = poolsQuery.data ?? [];
+
+    for (const tType of selectedTypes) {
+      const matchingPool = pools.find((p) => p.poolType === tType);
+      if (matchingPool && matchingPool.bankAccountId !== targetAccountId) {
+        await updatePoolMut.mutateAsync({
+          poolId: matchingPool.id,
+          data: { bankAccountId: targetAccountId },
+        });
+      }
+    }
+    utils.listPools.invalidate();
+    bankAccountsQuery.refetch();
   };
 
   const handleCategoryTypeToggle = (type: "EVERYDAY" | "REGULAR" | "GOAL") => {
@@ -483,6 +541,17 @@ export default function BankAccountsDashboardPage() {
           onCategoryTypeToggle={handleCategoryTypeToggle}
           fmtMoney={fmtMoney}
           onArchive={() => editingAccount && handleArchive(editingAccount)}
+        />
+      )}
+
+      {/* Balance Reconciliation Modal */}
+      {reconcileState && (
+        <ReconciliationModal
+          isOpen={!!reconcileState}
+          onClose={() => setReconcileState(null)}
+          expectedBalance={parseFloat(reconcileState.account.lastKnownBalance || "0")}
+          accountName={reconcileState.account.name}
+          onConfirmReconcile={handleConfirmReconcile}
         />
       )}
 

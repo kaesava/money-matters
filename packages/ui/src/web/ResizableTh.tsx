@@ -16,6 +16,12 @@ export function ResizableTh({
   style,
   ...props
 }: ResizableThProps) {
+  const justifyClass = className.includes("text-center")
+    ? "justify-center"
+    : className.includes("text-right")
+    ? "justify-end"
+    : "justify-start";
+
   return (
     <th
       {...props}
@@ -27,7 +33,7 @@ export function ResizableTh({
       }}
       className={`relative select-none group ${className}`}
     >
-      <div className="flex items-center justify-between overflow-hidden text-ellipsis">
+      <div className={`flex items-center ${justifyClass} overflow-hidden text-ellipsis`}>
         {children}
       </div>
       {onResizeMouseDown && (

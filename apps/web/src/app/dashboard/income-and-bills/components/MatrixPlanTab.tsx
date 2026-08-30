@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent } from "@money-matters/capability-budgeting";
-import { EngineBucket } from "@money-matters/capability-budgeting";
+import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent } from "@money-matters/capability-budgeting/engine";
+import { EngineBucket } from "@money-matters/capability-budgeting/engine";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";

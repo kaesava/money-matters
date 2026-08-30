@@ -21,6 +21,7 @@ export interface PaydayPlanRecord {
   status: string | null;
   createdAt: string | Date;
   expectedDate?: string | null;
+  incomeDate?: string | null;
   incomeName?: string | null;
   receivingAccountName?: string | null;
   isAutoTrigger?: boolean;
@@ -68,22 +69,30 @@ export function SlideOverAllocationDrawer({
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-lg bg-white dark:bg-zinc-900 shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-200">
           {/* Drawer Header */}
-          <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white dark:bg-zinc-900 z-10">
+          <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-start justify-between sticky top-0 bg-white dark:bg-zinc-900 z-10">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-full">
-                  {plan.status || "CONFIRMED"}
-                </span>
-                <span className="text-xs font-mono font-bold text-zinc-500">
-                  {fmtDate(plan.expectedDate || plan.createdAt)}
-                </span>
+              <div className="text-xs font-mono font-medium text-zinc-400">
+                Allocation Date: {fmtDate(plan.createdAt)}
               </div>
               <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight mt-1">
                 {t("payday.allocationDetails")}
               </h2>
-              <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                💰 {plan.incomeName || "Income Deposit"} → 🏦 {plan.receivingAccountName || "Main Account"}
-              </p>
+              <div className="mt-3 space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-zinc-400 w-28">Income Source:</span>
+                  <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.incomeName || "Income Deposit"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-zinc-400 w-28">Bank Account:</span>
+                  <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.receivingAccountName || "Main Account"}</span>
+                </div>
+                {(plan.expectedDate || plan.incomeDate) && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-zinc-400 w-28">Income Date:</span>
+                    <span className="font-mono text-zinc-700 dark:text-zinc-300">{fmtDate(plan.expectedDate || plan.incomeDate)}</span>
+                  </div>
+                )}
+              </div>
             </div>
             <button
               onClick={onClose}

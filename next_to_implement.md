@@ -58,7 +58,7 @@ _________
 
 
 ## "Income & Bill Management"
-
+XX
 ### Allocate Pending Income
 #### Payday allocation - bulk
 
@@ -82,8 +82,9 @@ _________
 ## Bank Accounts
 
 ### Edit Modal 
-
-### Private Bank Accounts
+#### Reconciliation
+XX
+#### Private Bank Accounts
 
 ### Bank Account & Statement csv Import
 #### CSV Import Log
@@ -93,6 +94,7 @@ _________
 ##### Step 3
 
 ## "History"###
+XX
 ### Transactions
 #### Export CSV
 ### Payday Allocations
