@@ -1263,6 +1263,10 @@ export const en = {
       recurringSchedule: "Recurring Schedule",
       frequency: "Frequency",
       firstDate: "First Date",
+      receivingBankAccount: "Receiving Bank Account",
+      defaultMainAccount: "Default Main Account",
+      assignedPool: "Assigned Pool",
+      selectTargetPool: "Select Target Pool...",
     },
     bankAccountForm: {
       titleNew: "Link Bank Account",

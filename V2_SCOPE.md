@@ -25,6 +25,7 @@
 | **Product Analytics (PostHog)** | **DELIVERED** | Integrated telemetry and telemetry context providers |
 | **Japanese Translation (ja.ts) Parity Check** | Deferred to Release 2 | `check-i18n.cjs` validates `en.ts` completeness and TSX string literal externalization in V1; full EN-JA dictionary key parity deferred to Release 2 |
 | **Category-Level Balance Management (Everyday & Bills)** | Deferred to Release 2 | Managed at pool level in V1; see detailed feature spec below |
+| **Upcoming Queue Multi-Selection & Batch Actioning** | Deferred to Release 2 | Single-row actioning (*Mark Received / Paid*, *Skip*) delivered in V1; batch checkboxes and bulk mark action bar deferred to V2 |
 
 ---
 

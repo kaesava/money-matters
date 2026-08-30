@@ -1242,6 +1242,16 @@ export const ja: DeepStringRecord<typeof en> = {
       "submitNew": "カテゴリーを作成",
       "submitEdit": "変更を保存"
     },
+    "incomeExpenseForm": {
+      "assignPool": "プールへの割り当て",
+      "recurringSchedule": "定期スケジュール",
+      "frequency": "頻度",
+      "firstDate": "初回日付",
+      "receivingBankAccount": "受取銀行口座",
+      "defaultMainAccount": "デフォルトメイン口座",
+      "assignedPool": "割り当てプール",
+      "selectTargetPool": "ターゲットプールを選択..."
+    },
     "bankAccountForm": {
       "titleNew": "銀行口座の連携",
       "titleEdit": "銀行口座の編集",

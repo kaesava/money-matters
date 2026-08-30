@@ -41,6 +41,8 @@ MUST use stable versions. MUST document version constraints.
 - MUST use dependency injection.
 - Business logic MUST live in command/query handlers.
 - UI MUST NOT contain business logic.
+- MUST adhere to MECE (Mutually Exclusive, Collectively Exhaustive) principle for high reuse of business logic, screens, modals, capabilities, and data models across the monorepo.
+- ZERO dead or redundant code: NEVER leave orphaned or unused database tables, table fields, API endpoints/code, UI components/code, capability logic, or package exports.
 
 ## 5. Multi-Tenancy & Data Isolation
 - Tenant isolation is CRITICAL.
@@ -113,6 +115,7 @@ All tables MUST include:
 - **Clean Page Title Headers (`<h1>`)**: Page title `<h1>` elements MUST NOT contain decorative inline emojis or icons. Page description subtitles MUST be rendered inside an `InfoTooltip` `(i)` icon placed directly beside the title.
 - **Universal Table Column & Header Alignment Parity**: Table header `<th>` alignment MUST 100% match data cell `<td>` alignment across every column in all tables across the monorepo: Left-aligned for text, names, categories, and accounts; Center-aligned for dates, actions, status badges, type tags, and triggers; Right-aligned for monetary amounts (`tabular-nums font-mono`).
 - **SearchInput Spacing & Padding**: SearchInput search icons MUST have `left-3.5` / `left-4` positioning, and input text MUST have `pl-10` padding to guarantee clean breathing room between icon, container border, and text.
+- **Single Source of Truth for UI Styling & Components**: All UI elements, look-and-feel, colors, typography, and UI styling MUST be defined ONCE in `@money-matters/ui` design tokens and reusable primitives, and reused universally across apps (web and mobile). Ad-hoc styling, duplicate UI declarations, and hardcoded hex colors are strictly forbidden.
 - **Consistent Terminology**: Always use "Income Schedule" / "Add Income Schedule" across all UI labels, buttons, tooltips, and i18n dictionaries (NEVER use "Income Stream").
 
 ## 14. Integrations
@@ -164,16 +167,22 @@ All tables MUST include:
 - **Unit Test Mock Safety**: When invoking raw SQL via `db.execute(sql\`...\`)` in domain handlers, always guard with `if (typeof db.execute === 'function')` to ensure compatibility with Vitest mock database objects.
 - **E2E & Capability Coverage**: When ANY new capability, screen, modal, or interactive control is built or modified, it MUST be explicitly added to and tested in the Playwright screen-by-screen spec (`apps/web/e2e/screen-by-screen.spec.ts`).
 
-## 22. Code Quality & Smart Commenting (MECE)
+## 22. Code Quality, MECE & Zero Redundancy
 - NO `utils.ts` or generic helper files.
 - Files >250 lines MUST be refactored.
 - Functions >30 lines MUST be split.
+- **Zero Dead/Redundant Code & MECE Principle**: Zero dead, redundant, or orphaned code across all layers (database tables, table fields, API procedures/handlers, UI components, capabilities, and package scripts). All refactors MUST prune obsolete code paths, schema columns, and unneeded dependencies. Reusable logic, screens, and dialogs MUST adhere to MECE principles to avoid duplication.
 - **Smart Commenting**: Prohibit trivial comments that restate what code does (e.g. `// increment count`). Mandate high-value "why" comments explaining complex business math (e.g. 5-step waterfall deficit repair steps), architectural decisions, concurrency locks, or edge-case handling.
 
-## 23. CI/CD Enforcement & Validation Shortcut
-- **Validation Shortcut**: After any significant coding session or refactor, you MUST execute `pnpm validate` to run the full verification pipeline (`pnpm install` → `pnpm typecheck` → `pnpm test:coverage` → `pnpm test` → `pnpm check-i18n` → `pnpm lint` → `pnpm build`).
-- CI MUST enforce: lint, typecheck, tests, build, security scan, i18n checks (`check-i18n`).
-Failures MUST block merge.
+## 23. CI/CD Enforcement, Validation Recovery Loop & Git Workflow
+- **Targeted Intermediate Checks**: As you build or modify code, you may execute specific validation commands (`pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:coverage`, `pnpm check-i18n`, `pnpm install`) for the targeted packages/modules as needed.
+- **Mandatory Final Validation (`pnpm validate`)**: Before completing any task, feature, or refactor, `pnpm validate` MUST run and pass completely.
+- **Iterative Fail-Safe Recovery Loop**: `pnpm validate` consists of multiple underlying commands (`install` → `typecheck` → `test:coverage` → `test` → `check-i18n` → `lint` → `build`). If `pnpm validate` fails:
+  1. Identify the specific sub-command(s) that failed.
+  2. Run ONLY the failed sub-command(s) sequentially while diagnosing and fixing the errors until they pass.
+  3. Re-run `pnpm validate`.
+  4. If `pnpm validate` fails again, repeat the iterative recovery loop (isolate failed sub-command → fix → verify sub-command → re-run `pnpm validate`) until `pnpm validate` passes 100% with exit code 0.
+- **Git Commit & Push Protocol**: Once `pnpm validate` passes cleanly, commit the code changes locally with a descriptive conventional commit message (`feat: ...`, `fix: ...`, `refactor: ...`). MUST ALWAYS ask for explicit user permission BEFORE running `git push`.
 
 ## 24. AI Behavior
 - MUST analyze code before changes.
@@ -197,5 +206,5 @@ Must include:
 A change is complete ONLY IF:
 - Tenant isolation enforced, Types strict, Validation strict, Tests passing, CI passing, No hardcoded strings, Observability in place, Security enforced, Documentation updated.
 
-## 27. Documentation Integrity
-- After any change (functional or technical), you MUST immediately update all relevant system markdown documents (`TECHNICAL_SPEC.md`, `FUNCTIONAL_SPEC.md`, `README.md`) to keep them completely synchronized with the codebase state.
+## 27. Documentation Integrity & Spec Synchronization
+- After any change (functional, technical, architectural, or schema), you MUST immediately update all relevant system markdown documents (`TECHNICAL_SPEC.md`, `FUNCTIONAL_SPEC.md`, `README.md`) to keep them 100% current and synchronized with the codebase state.

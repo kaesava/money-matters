@@ -16,11 +16,10 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 - **Everyday Pools**: Discretionary spending pools linked to transaction accounts.
 - **Regular Bills Pools**: Unified pools for recurring obligations. Sub-categories serve as expense sub-tags and monthly target benchmarks.
 - **Goal Pools**: Target sinking funds with target amounts and dates (Emergency Expenses buffer, vehicle maintenance, holidays). GOAL pools operate directly without sub-categories.
-- **2-Tab Income & Bills Command Center (`/dashboard/income-and-bills`)**:
-  1. *Tab 1: 🗓️ Schedule & Allocations*: Unified schedule tab featuring a segmented view toggle:
-     - **📅 Timeline View**: Chronological feed of upcoming salary deposits and bill events for the next 60 days with single-click inline actions and an **Operational Block** that intercepts `Mark Paid` on shortfall bills, prompting 1-click shortfall resolution from the pre-selected Surplus buffer. Enforces strict chronological order (earlier paydays must be resolved or skipped before logging later ones).
-     - **📊 12-Month Grid**: Interactive forward-looking 12-month spreadsheet grid for payday planning with explicit "Save Changes" and "Discard Changes" controls. Features read-only Surplus Target cells that automatically highlight in stark red during deficits, an inline **↺ Auto** column header action with confirmation prompt to revert manual paydays back to dynamic waterfall calculations, and `onBlur` cell input performance optimization.
-  2. *Tab 2: ⚙️ Setup*: Encapsulates recurring income sources and expense bill rules.
+- **3-Tab Income & Bills Command Center (`/dashboard/income-and-bills`)**:
+  1. *Tab 1: Upcoming (Grid)*: Interactive forward-looking 12-month spreadsheet grid for payday planning.
+  2. *Tab 2: Upcoming*: Pending/un-actioned scheduled events queue ordered by ascending date with subtle overdue highlighting, single-row actioning (*Mark Received*, *Mark Paid*, *Skip*), and 100% header-to-cell alignment parity.
+  3. *Tab 3: Setup*: Structured resizable tables for recurring Income Schedules and Bill Schedules with top unified search input, embedded "+ Add" buttons, clickable schedule name edit hyperlinks, and discreet modal archiving.
 - **Dynamic Waterfall Allocation Engine & Resolution Hierarchy**:
   - *5-Step Priority Waterfall*: Step 0 (Deficit Repair) $\rightarrow$ Step 1 (Essential Regular / Priority Bills) $\rightarrow$ Step 2 (Standard Regular Bills) $\rightarrow$ Step 3 (Committed Goals) $\rightarrow$ Step 4 (Everyday Allowance Top-Up) $\rightarrow$ Step 5 (Uncommitted Goals & Residual Surplus Sweep).
   - *Unified Resolution Hierarchy*: When evaluating any upcoming payday (via Home Screen "Log Payday" drawer, Timeline, or Bulk Allocate tab), the query checks for saved `allocation_plans` in the database first. If custom overrides exist, it returns the saved plan lines. If no saved plan exists, it dynamically computes the 5-step waterfall on-the-fly.

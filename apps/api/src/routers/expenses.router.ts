@@ -281,4 +281,125 @@ export const expensesRouter = {
 
       return { count: dates.length };
     }),
+
+  archiveExpenseSource: privateTenantProcedure
+    .input(z.object({ id: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const events = await ctx.db
+        .select()
+        .from(expenseEvents)
+        .where(eq(expenseEvents.expenseSourceId, input.id));
+
+      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+
+      if (unperformedEvents.length > 0) {
+        await ctx.db
+          .delete(expenseEvents)
+          .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
+      }
+
+      const [archived] = await ctx.db
+        .update(expenseSources)
+        .set({
+          archivedAt: new Date(),
+          updatedBy: ctx.userId!,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(expenseSources.id, input.id),
+            eq(expenseSources.tenantId, ctx.tenantId!),
+            eq(expenseSources.appId, ctx.appId!),
+            sql`${expenseSources.archivedAt} IS NULL`
+          )
+        )
+        .returning();
+
+      if (!archived) {
+        throw new Error("Expense source not found or access unauthorized.");
+      }
+
+      return {
+        success: true,
+        deletedUnperformedCount: unperformedEvents.length,
+      };
+    }),
+
+  skipExpenseEvent: privateTenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      await ctx.db
+        .update(expenseEvents)
+        .set({
+          status: "SKIPPED",
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
+
+  markExpensePaid: privateTenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        note: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const [evt] = await ctx.db
+        .select()
+        .from(expenseEvents)
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!)
+          )
+        );
+
+      if (!evt) throw new Error("Expense event not found.");
+
+      await ctx.db
+        .update(expenseEvents)
+        .set({
+          status: "PAID",
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
+        .where(eq(expenseEvents.id, input.eventId));
+
+      if (evt.poolId) {
+        await recordExpenseCommand(
+          {
+            poolId: evt.poolId,
+            categoryId: evt.categoryId || undefined,
+            flowType: "DEBIT",
+            amount: evt.expectedAmount,
+            source: "MANUAL",
+            note: input.note || `Paid scheduled bill: ${evt.name}`,
+            date: evt.expectedDate,
+          },
+          ctx.tenantId!,
+          ctx.appId!,
+          ctx.userId!,
+          ctx.db
+        );
+      }
+
+      return { success: true, message: "Bill marked as paid." };
+    }),
 };

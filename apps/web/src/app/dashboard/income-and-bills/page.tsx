@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { trpc } from "../../../lib/trpc";
-import { t } from "@money-matters/i18n";
 import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
-import posthog from "../../../lib/posthog-client";
 
 type ActiveTab = "STREAMS" | "EVENTS" | "MATRIX";
+
+const getAestTodayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
 export default function IncomeAndBillsPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("MATRIX");
@@ -30,14 +30,18 @@ export default function IncomeAndBillsPage() {
     incomeEventsQuery.isLoading ||
     expenseEventsQuery.isLoading;
 
-  const pools = poolsQuery.data || [];
-  const incomeSources = incomeSourcesQuery.data || [];
-  const expenseSources = expenseSourcesQuery.data || [];
+  const rawPools = poolsQuery.data;
+  const rawIncomeSources = incomeSourcesQuery.data;
+  const rawExpenseSources = expenseSourcesQuery.data;
+
+  const pools = useMemo(() => rawPools || [], [rawPools]);
+  const incomeSources = useMemo(() => rawIncomeSources || [], [rawIncomeSources]);
+  const expenseSources = useMemo(() => rawExpenseSources || [], [rawExpenseSources]);
   const rawIncomeEvents = incomeEventsQuery.data;
   const rawExpenseEvents = expenseEventsQuery.data;
 
-  const incomeEvents = React.useMemo(() => rawIncomeEvents || [], [rawIncomeEvents]);
-  const expenseEvents = React.useMemo(() => rawExpenseEvents || [], [rawExpenseEvents]);
+  const incomeEvents = useMemo(() => rawIncomeEvents || [], [rawIncomeEvents]);
+  const expenseEvents = useMemo(() => rawExpenseEvents || [], [rawExpenseEvents]);
 
   const matrixIncomeEvents = incomeEvents.map((e) => ({
     id: e.id,
@@ -55,53 +59,129 @@ export default function IncomeAndBillsPage() {
     status: e.status as "UPCOMING" | "PAID" | "SKIPPED",
   }));
 
-  const allEvents = React.useMemo(() => {
-    const incs = incomeEvents.map((e) => ({
-      id: e.id,
-      name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
-      expectedDate: e.expectedDate,
-      expectedAmount: parseFloat(e.expectedAmount || "0"),
-      status: e.status as string,
-      type: "INCOME" as const,
-    }));
-    const exps = expenseEvents.map((e) => ({
-      id: e.id,
-      name: e.name || "Scheduled Bill",
-      expectedDate: e.expectedDate,
-      expectedAmount: parseFloat(e.expectedAmount || "0"),
-      status: e.status as string,
-      type: "EXPENSE" as const,
-    }));
-    return [...incs, ...exps].sort((a, b) => (a.expectedDate || "").localeCompare(b.expectedDate || ""));
-  }, [incomeEvents, expenseEvents]);
+  const todayStr = useMemo(() => getAestTodayStr(), []);
 
+  // Filter Upcoming (Pending / Unaetioned) Events Only
+  const pendingEvents = useMemo(() => {
+    const incs = incomeEvents
+      .filter((e) => e.status !== "CONFIRMED" && e.status !== "SKIPPED")
+      .map((e) => ({
+        id: e.id,
+        name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
+        expectedDate: e.expectedDate,
+        expectedAmount: parseFloat(e.expectedAmount || "0"),
+        status: e.status as string,
+        type: "INCOME" as const,
+        isOverdue: e.expectedDate <= todayStr,
+      }));
+    const exps = expenseEvents
+      .filter((e) => e.status !== "PAID" && e.status !== "SKIPPED")
+      .map((e) => ({
+        id: e.id,
+        name: e.name || "Scheduled Bill",
+        expectedDate: e.expectedDate,
+        expectedAmount: parseFloat(e.expectedAmount || "0"),
+        status: e.status as string,
+        type: "EXPENSE" as const,
+        isOverdue: e.expectedDate <= todayStr,
+      }));
+    return [...incs, ...exps].sort((a, b) => (a.expectedDate || "").localeCompare(b.expectedDate || ""));
+  }, [incomeEvents, expenseEvents, todayStr]);
+
+  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [sourceToEdit, setSourceToEdit] = useState<React.ComponentProps<typeof IncomeExpenseFormModal>["sourceToEdit"]>(undefined);
 
-  // Upcoming Events Table State
+  // Setup Tab Search State
+  const [setupSearchQuery, setSetupSearchQuery] = useState("");
+
+  // Upcoming Table State & Sorting
   const [eventSearchQuery, setEventSearchQuery] = useState("");
   const [eventTypeFilter, setEventTypeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
-  const [eventStatusFilter, setEventStatusFilter] = useState<"ALL" | "UPCOMING" | "PAID" | "SKIPPED">("ALL");
-  const [eventSortColumn, setEventSortColumn] = useState<"type" | "name" | "expectedDate" | "expectedAmount" | "status">("expectedDate");
+  const [eventSortColumn, setEventSortColumn] = useState<"type" | "name" | "expectedDate" | "expectedAmount">("expectedDate");
   const [eventSortDirection, setEventSortDirection] = useState<"asc" | "desc">("asc");
 
-  const { widths, onMouseDown } = useResizableColumns({
-    type: 120,
-    name: 260,
-    expectedDate: 140,
+  const { widths: eventWidths, onMouseDown: onEventMouseDown } = useResizableColumns({
+    type: 110,
+    name: 240,
+    expectedDate: 150,
     expectedAmount: 140,
-    status: 140,
+    actions: 180,
   });
 
-  const filteredEvents = React.useMemo(() => {
-    return allEvents.filter((evt) => {
-      if (eventTypeFilter !== "ALL" && evt.type !== eventTypeFilter) return false;
-      if (eventStatusFilter !== "ALL") {
-        if (eventStatusFilter === "PAID" && evt.status !== "PAID" && evt.status !== "CONFIRMED") return false;
-        if (eventStatusFilter === "UPCOMING" && evt.status !== "UPCOMING") return false;
-        if (eventStatusFilter === "SKIPPED" && evt.status !== "SKIPPED") return false;
+  const { widths: setupWidths, onMouseDown: onSetupMouseDown } = useResizableColumns({
+    name: 220,
+    frequency: 130,
+    accountOrPool: 180,
+    amount: 120,
+  });
+
+  // Action Mutations
+  const markIncomeReceivedMut = trpc.markIncomeReceived.useMutation();
+  const markExpensePaidMut = trpc.markExpensePaid.useMutation();
+  const skipIncomeMut = trpc.skipIncomeEvent.useMutation();
+  const skipExpenseMut = trpc.skipExpenseEvent.useMutation();
+
+  const handleActionReceivedOrPaid = useCallback(
+    async (evt: { id: string; type: "INCOME" | "EXPENSE"; name: string }) => {
+      try {
+        if (evt.type === "INCOME") {
+          await markIncomeReceivedMut.mutateAsync({ eventId: evt.id });
+          toast.success(`Marked "${evt.name}" as received.`);
+        } else {
+          await markExpensePaidMut.mutateAsync({ eventId: evt.id });
+          toast.success(`Marked "${evt.name}" as paid.`);
+        }
+        utils.listIncomeEvents.invalidate();
+        utils.listExpenseEvents.invalidate();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to process event.");
       }
+    },
+    [markIncomeReceivedMut, markExpensePaidMut, utils, toast]
+  );
+
+  const handleActionSkip = useCallback(
+    async (evt: { id: string; type: "INCOME" | "EXPENSE"; name: string }) => {
+      if (!confirm(`Skip scheduled ${evt.type.toLowerCase()} "${evt.name}"?`)) return;
+      try {
+        if (evt.type === "INCOME") {
+          await skipIncomeMut.mutateAsync({ eventId: evt.id });
+        } else {
+          await skipExpenseMut.mutateAsync({ eventId: evt.id });
+        }
+        toast.success(`Skipped "${evt.name}".`);
+        utils.listIncomeEvents.invalidate();
+        utils.listExpenseEvents.invalidate();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to skip event.");
+      }
+    },
+    [skipIncomeMut, skipExpenseMut, utils, toast]
+  );
+
+  // Setup Tab Filtered Schedules
+  const filteredIncomeSources = useMemo(() => {
+    if (!setupSearchQuery.trim()) return incomeSources;
+    const q = setupSearchQuery.toLowerCase().trim();
+    return incomeSources.filter(
+      (inc) => inc.name.toLowerCase().includes(q) || String(inc.amount).includes(q)
+    );
+  }, [incomeSources, setupSearchQuery]);
+
+  const filteredExpenseSources = useMemo(() => {
+    if (!setupSearchQuery.trim()) return expenseSources;
+    const q = setupSearchQuery.toLowerCase().trim();
+    return expenseSources.filter(
+      (exp) => exp.name.toLowerCase().includes(q) || String(exp.amount).includes(q) || (exp.poolName || "").toLowerCase().includes(q)
+    );
+  }, [expenseSources, setupSearchQuery]);
+
+  // Upcoming Filtered & Sorted Events
+  const filteredEvents = useMemo(() => {
+    return pendingEvents.filter((evt) => {
+      if (eventTypeFilter !== "ALL" && evt.type !== eventTypeFilter) return false;
       if (eventSearchQuery.trim()) {
         const q = eventSearchQuery.toLowerCase().trim();
         const amtStr = evt.expectedAmount.toFixed(2);
@@ -109,9 +189,9 @@ export default function IncomeAndBillsPage() {
       }
       return true;
     });
-  }, [allEvents, eventTypeFilter, eventStatusFilter, eventSearchQuery]);
+  }, [pendingEvents, eventTypeFilter, eventSearchQuery]);
 
-  const sortedEvents = React.useMemo(() => {
+  const sortedEvents = useMemo(() => {
     return [...filteredEvents].sort((a, b) => {
       let cmp = 0;
       if (eventSortColumn === "expectedDate") {
@@ -122,36 +202,10 @@ export default function IncomeAndBillsPage() {
         cmp = a.type.localeCompare(b.type);
       } else if (eventSortColumn === "expectedAmount") {
         cmp = a.expectedAmount - b.expectedAmount;
-      } else if (eventSortColumn === "status") {
-        cmp = a.status.localeCompare(b.status);
       }
       return eventSortDirection === "asc" ? cmp : -cmp;
     });
   }, [filteredEvents, eventSortColumn, eventSortDirection]);
-
-  const archiveIncomeMut = trpc.archiveIncomeSource.useMutation({
-    onSuccess: () => {
-      utils.listIncomeSources.invalidate();
-      utils.listIncomeEvents.invalidate();
-    },
-  });
-
-  const handleArchive = useCallback(
-    async (item: { id: string; name?: string }, mode: "INCOME" | "EXPENSE") => {
-      const label = mode === "INCOME" ? "income schedule" : "bill";
-      if (!confirm(`Archiving this ${label} will cancel all future upcoming events. Continue?`)) return;
-      try {
-        if (mode === "INCOME") {
-          await archiveIncomeMut.mutateAsync({ id: item.id });
-          posthog.capture("income_source_archived");
-        }
-        toast.success(t("toasts.archived"));
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to archive.");
-      }
-    },
-    [archiveIncomeMut, toast]
-  );
 
   const currentUserId = pools[0]?.id || "default-user";
 
@@ -165,38 +219,13 @@ export default function IncomeAndBillsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-black text-[#1B2B4B]">Income & Bill Management</h1>
-          <InfoTooltip
-            title="Income & Bill Management"
-            content="Manage your recurring income schedules, bill commitments, and 12-month payday matrix."
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setModalMode("INCOME");
-              setSourceToEdit(undefined);
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-sm shadow-sm hover:bg-[#1d4ed8] transition-colors"
-          >
-            + Add Income Schedule
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setModalMode("EXPENSE");
-              setSourceToEdit(undefined);
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-[#1B2B4B] text-white rounded-xl font-bold text-sm shadow-sm hover:bg-slate-800 transition-colors"
-          >
-            + Add Bill Schedule
-          </button>
-        </div>
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-black text-[#1B2B4B]">Income & Bill Management</h1>
+        <InfoTooltip
+          title="Income & Bill Management"
+          content="Manage your recurring income schedules, bill commitments, and 12-month payday matrix."
+        />
       </div>
 
       {/* 3-Tab Viewport Switcher */}
@@ -221,7 +250,7 @@ export default function IncomeAndBillsPage() {
               : "text-zinc-600 hover:text-zinc-900"
           }`}
         >
-          Upcoming (List) ({allEvents.length})
+          Upcoming
         </button>
         <button
           type="button"
@@ -232,7 +261,7 @@ export default function IncomeAndBillsPage() {
               : "text-zinc-600 hover:text-zinc-900"
           }`}
         >
-          Setup ({incomeSources.length + expenseSources.length})
+          Setup
         </button>
       </div>
 
@@ -253,50 +282,189 @@ export default function IncomeAndBillsPage() {
 
       {activeTab === "STREAMS" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
-              <h3 className="font-bold text-[#1B2B4B] text-base mb-2">{`Income Schedules (${incomeSources.length})`}</h3>
-              <div className="divide-y divide-zinc-100 mt-3">
-                {incomeSources.map((inc) => (
-                  <div key={inc.id} className="py-3 flex justify-between items-center text-sm">
-                    <div>
-                      <span className="font-bold text-[#1B2B4B] block">{inc.name}</span>
-                      <span className="text-xs text-zinc-400 font-mono">
-                        ${parseFloat(inc.amount).toFixed(2)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleArchive(inc, "INCOME")}
-                      className="text-xs font-bold text-red-600 hover:underline"
-                    >
-                      Archive
-                    </button>
+          {/* Top Unified Search Input */}
+          <div className="p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl max-w-md">
+            <SearchInput
+              value={setupSearchQuery}
+              onChange={setSetupSearchQuery}
+              placeholder="Search income or bill schedules..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Income Schedules Card */}
+            <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="font-bold text-[#1B2B4B] text-base">Income Schedules</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalMode("INCOME");
+                      setSourceToEdit(undefined);
+                      setIsModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-xs hover:bg-[#1d4ed8] transition-colors"
+                  >
+                    + Add Income Schedule
+                  </button>
+                </div>
+
+                {filteredIncomeSources.length === 0 ? (
+                  <div className="py-8 text-center text-xs font-semibold text-zinc-400">
+                    No income schedules found.
                   </div>
-                ))}
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                          <ResizableTh
+                            width={setupWidths.name}
+                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("name", e)}
+                            className="py-2 px-3 text-left"
+                          >
+                            <span>Schedule Name</span>
+                          </ResizableTh>
+                          <ResizableTh
+                            width={setupWidths.frequency}
+                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("frequency", e)}
+                            className="py-2 px-3 text-center"
+                          >
+                            <span>Recurrence</span>
+                          </ResizableTh>
+                          <ResizableTh
+                            width={setupWidths.amount}
+                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("amount", e)}
+                            className="py-2 px-3 text-right"
+                          >
+                            <span>Amount</span>
+                          </ResizableTh>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 text-xs">
+                        {filteredIncomeSources.map((inc) => (
+                          <tr key={inc.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="py-2.5 px-3 text-left">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setModalMode("INCOME");
+                                  setSourceToEdit({
+                                    id: inc.id,
+                                    name: inc.name,
+                                    amount: inc.amount,
+                                    receivingAccountId: inc.receivingAccountId || undefined,
+                                    rrule: inc.rrule,
+                                    startDate: inc.startDate,
+                                  });
+                                  setIsModalOpen(true);
+                                }}
+                                className="font-bold text-[#2563eb] hover:underline text-left"
+                              >
+                                {inc.name}
+                              </button>
+                            </td>
+                            <td className="py-2.5 px-3 text-center text-zinc-500 font-semibold text-[11px]">
+                              {inc.rrule ? "Recurring" : "One-off"}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-zinc-900 tabular-nums">
+                              ${parseFloat(inc.amount).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
-              <h3 className="font-bold text-[#1B2B4B] text-base mb-2">{`Bill Schedules (${expenseSources.length})`}</h3>
-              <div className="divide-y divide-zinc-100 mt-3">
-                {expenseSources.map((exp) => (
-                  <div key={exp.id} className="py-3 flex justify-between items-center text-sm">
-                    <div>
-                      <span className="font-bold text-[#1B2B4B] block">{exp.name}</span>
-                      <span className="text-xs text-zinc-400 font-mono">
-                        ${parseFloat(exp.amount).toFixed(2)} • {exp.poolName || "Pool"}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleArchive(exp, "EXPENSE")}
-                      className="text-xs font-bold text-red-600 hover:underline"
-                    >
-                      Archive
-                    </button>
+            {/* Bill Schedules Card */}
+            <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <h3 className="font-bold text-[#1B2B4B] text-base">Bill Schedules</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalMode("EXPENSE");
+                      setSourceToEdit(undefined);
+                      setIsModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-[#1B2B4B] text-white rounded-xl font-bold text-xs shadow-xs hover:bg-slate-800 transition-colors"
+                  >
+                    + Add Bill Schedule
+                  </button>
+                </div>
+
+                {filteredExpenseSources.length === 0 ? (
+                  <div className="py-8 text-center text-xs font-semibold text-zinc-400">
+                    No bill schedules found.
                   </div>
-                ))}
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                          <ResizableTh
+                            width={setupWidths.name}
+                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("name", e)}
+                            className="py-2 px-3 text-left"
+                          >
+                            <span>Bill Name</span>
+                          </ResizableTh>
+                          <ResizableTh
+                            width={setupWidths.accountOrPool}
+                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("accountOrPool", e)}
+                            className="py-2 px-3 text-left"
+                          >
+                            <span>Assigned Pool</span>
+                          </ResizableTh>
+                          <ResizableTh
+                            width={setupWidths.amount}
+                            onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("amount", e)}
+                            className="py-2 px-3 text-right"
+                          >
+                            <span>Amount</span>
+                          </ResizableTh>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 text-xs">
+                        {filteredExpenseSources.map((exp) => (
+                          <tr key={exp.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="py-2.5 px-3 text-left">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setModalMode("EXPENSE");
+                                  setSourceToEdit({
+                                    id: exp.id,
+                                    name: exp.name,
+                                    amount: exp.amount,
+                                    poolId: exp.poolId || exp.categoryId || undefined,
+                                    rrule: exp.rrule,
+                                    startDate: exp.startDate,
+                                  });
+                                  setIsModalOpen(true);
+                                }}
+                                className="font-bold text-[#2563eb] hover:underline text-left"
+                              >
+                                {exp.name}
+                              </button>
+                            </td>
+                            <td className="py-2.5 px-3 text-left text-zinc-600 font-semibold text-[11px]">
+                              {exp.poolName || "Pool"}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-zinc-900 tabular-nums">
+                              ${parseFloat(exp.amount).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -312,7 +480,7 @@ export default function IncomeAndBillsPage() {
               placeholder="Search event name or amount..."
             />
 
-            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               <select
                 value={eventTypeFilter}
                 onChange={(e) => setEventTypeFilter(e.target.value as "ALL" | "INCOME" | "EXPENSE")}
@@ -322,23 +490,12 @@ export default function IncomeAndBillsPage() {
                 <option value="INCOME">Income Only</option>
                 <option value="EXPENSE">Bills Only</option>
               </select>
-
-              <select
-                value={eventStatusFilter}
-                onChange={(e) => setEventStatusFilter(e.target.value as "ALL" | "UPCOMING" | "PAID" | "SKIPPED")}
-                className="px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="UPCOMING">Upcoming</option>
-                <option value="PAID">Confirmed / Paid</option>
-                <option value="SKIPPED">Skipped</option>
-              </select>
             </div>
           </div>
 
           {sortedEvents.length === 0 ? (
             <div className="py-12 text-center text-zinc-400 text-xs font-semibold">
-              No scheduled events found matching your filters.
+              No pending scheduled events found matching your filters.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -346,8 +503,8 @@ export default function IncomeAndBillsPage() {
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                     <ResizableTh
-                      width={widths.type}
-                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("type", e)}
+                      width={eventWidths.type}
+                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("type", e)}
                       className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
                       onClick={() => {
                         if (eventSortColumn === "type") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -360,8 +517,8 @@ export default function IncomeAndBillsPage() {
                       </div>
                     </ResizableTh>
                     <ResizableTh
-                      width={widths.name}
-                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("name", e)}
+                      width={eventWidths.name}
+                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("name", e)}
                       className="py-3 px-4 text-left cursor-pointer hover:bg-slate-100"
                       onClick={() => {
                         if (eventSortColumn === "name") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -374,8 +531,8 @@ export default function IncomeAndBillsPage() {
                       </div>
                     </ResizableTh>
                     <ResizableTh
-                      width={widths.expectedDate}
-                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("expectedDate", e)}
+                      width={eventWidths.expectedDate}
+                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("expectedDate", e)}
                       className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
                       onClick={() => {
                         if (eventSortColumn === "expectedDate") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -388,8 +545,8 @@ export default function IncomeAndBillsPage() {
                       </div>
                     </ResizableTh>
                     <ResizableTh
-                      width={widths.expectedAmount}
-                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("expectedAmount", e)}
+                      width={eventWidths.expectedAmount}
+                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("expectedAmount", e)}
                       className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
                       onClick={() => {
                         if (eventSortColumn === "expectedAmount") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -402,24 +559,22 @@ export default function IncomeAndBillsPage() {
                       </div>
                     </ResizableTh>
                     <ResizableTh
-                      width={widths.status}
-                      onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("status", e)}
-                      className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
-                      onClick={() => {
-                        if (eventSortColumn === "status") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-                        else { setEventSortColumn("status"); setEventSortDirection("asc"); }
-                      }}
+                      width={eventWidths.actions}
+                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("actions", e)}
+                      className="py-3 px-4 text-center"
                     >
-                      <div className="flex items-center justify-center gap-1">
-                        <span>Status</span>
-                        {eventSortColumn === "status" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
-                      </div>
+                      <span>Actions</span>
                     </ResizableTh>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 text-xs font-medium">
                   {sortedEvents.map((evt) => (
-                    <tr key={evt.id + evt.type} className="hover:bg-slate-50/50 transition-colors">
+                    <tr
+                      key={evt.id + evt.type}
+                      className={`transition-colors ${
+                        evt.isOverdue ? "bg-rose-50/30 hover:bg-rose-50/60" : "hover:bg-slate-50/50"
+                      }`}
+                    >
                       <td className="py-3 px-4 text-center">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
                           evt.type === "INCOME" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
@@ -428,22 +583,38 @@ export default function IncomeAndBillsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-left font-bold text-[#1B2B4B]">{evt.name}</td>
-                      <td className="py-3 px-4 text-center font-mono text-zinc-500">{fmtDate(evt.expectedDate)}</td>
+                      <td className="py-3 px-4 text-center font-mono text-zinc-500">
+                        <div className="inline-flex items-center gap-1.5">
+                          <span>{fmtDate(evt.expectedDate)}</span>
+                          {evt.isOverdue && (
+                            <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 text-[9px] font-black uppercase rounded-md border border-rose-200/80">
+                              OVERDUE
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
                         evt.type === "INCOME" ? "text-emerald-600" : "text-zinc-900"
                       }`}>
                         {evt.type === "INCOME" ? "+" : "-"}${evt.expectedAmount.toFixed(2)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${
-                          evt.status === "UPCOMING"
-                            ? "bg-amber-50 text-amber-800 border-amber-200"
-                            : evt.status === "CONFIRMED" || evt.status === "PAID"
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                            : "bg-slate-100 text-slate-600 border-slate-200"
-                        }`}>
-                          {evt.status}
-                        </span>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleActionReceivedOrPaid(evt)}
+                            className="px-2.5 py-1 bg-[#2563eb] text-white hover:bg-[#1d4ed8] rounded-lg font-extrabold text-[10px] transition-colors shadow-xs"
+                          >
+                            {evt.type === "INCOME" ? "Mark Received" : "Mark Paid"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleActionSkip(evt)}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[10px] transition-colors border border-slate-200"
+                          >
+                            Skip
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
