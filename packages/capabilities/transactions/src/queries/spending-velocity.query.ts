@@ -1,4 +1,4 @@
-import { categories, transactionLedger, incomeEvents, DbOrTx } from "@money-matters/db";
+import { pools, transactionLedger, incomeEvents, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, gte } from "drizzle-orm";
 
 export interface SpendingVelocityResult {
@@ -18,21 +18,39 @@ export async function getSpendingVelocityQuery(
   appId: string,
   db: DbOrTx
 ): Promise<SpendingVelocityResult> {
-  // 1. Fetch Everyday category
-  const [everydayCat] = await db
+  // 1. Fetch Everyday pool
+  const [everydayPool] = await db
     .select()
-    .from(categories)
+    .from(pools)
     .where(
       and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        eq(categories.type, "EVERYDAY"),
-        sql`${categories.archivedAt} IS NULL`
+        eq(pools.tenantId, tenantId),
+        eq(pools.appId, appId),
+        eq(pools.poolType, "EVERYDAY"),
+        sql`${pools.archivedAt} IS NULL`
       )
     )
     .limit(1);
 
-  const balanceNum = everydayCat ? parseFloat(everydayCat.everydayAllowanceAmount || "0") : 0;
+  // Compute current ledger balance for Everyday pool
+  let balanceNum = 0;
+  if (everydayPool) {
+    const [balanceRes] = await db
+      .select({
+        balance: sql<string>`COALESCE(SUM(CASE WHEN ${transactionLedger.flowType} = 'CREDIT' THEN ${transactionLedger.amount} ELSE -${transactionLedger.amount} END), 0)::text`,
+      })
+      .from(transactionLedger)
+      .where(
+        and(
+          eq(transactionLedger.tenantId, tenantId),
+          eq(transactionLedger.appId, appId),
+          eq(transactionLedger.poolId, everydayPool.id),
+          sql`${transactionLedger.archivedAt} IS NULL`
+        )
+      );
+
+    balanceNum = parseFloat(balanceRes?.balance || everydayPool.everydayAllowanceAmount || "0");
+  }
 
   // 2. Fetch next upcoming income event
   const todayStr = new Date().toISOString().split("T")[0];
@@ -50,7 +68,7 @@ export async function getSpendingVelocityQuery(
     .orderBy(incomeEvents.expectedDate)
     .limit(1);
 
-  let daysUntilPayday = 14; // fallback default
+  let daysUntilPayday = 14;
   if (nextPayday && nextPayday.expectedDate) {
     const payDate = new Date(nextPayday.expectedDate);
     const today = new Date();
@@ -61,7 +79,6 @@ export async function getSpendingVelocityQuery(
   // 3. Daily velocity calculation
   const recommendedCap = (balanceNum / daysUntilPayday).toFixed(2);
   
-  // Calculate spend over last 7 days
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const [recentSpendRes] = await db
     .select({
@@ -73,6 +90,7 @@ export async function getSpendingVelocityQuery(
         eq(transactionLedger.tenantId, tenantId),
         eq(transactionLedger.appId, appId),
         eq(transactionLedger.flowType, "DEBIT"),
+        everydayPool ? eq(transactionLedger.poolId, everydayPool.id) : sql`1=1`,
         gte(transactionLedger.recordedAt, sevenDaysAgo)
       )
     );
@@ -81,14 +99,13 @@ export async function getSpendingVelocityQuery(
   const currentDailyPace = (sevenDaySpend / 7).toFixed(2);
   const currentDailyNum = parseFloat(currentDailyPace);
 
-  // Pace warning trigger: if current daily spend pace exceeds recommended cap by 15%
   const isPaceWarning = currentDailyNum > parseFloat(recommendedCap) * 1.15 && balanceNum > 0;
   const daysOfMoneyLeft = currentDailyNum > 0 ? Math.floor(balanceNum / currentDailyNum) : daysUntilPayday;
   const shortfallDays = daysUntilPayday - daysOfMoneyLeft;
 
   let warningMessage: string | null = null;
   if (isPaceWarning && shortfallDays > 0) {
-    warningMessage = `⚡ At your current spending pace ($${currentDailyPace}/day), your Everyday pool runs out ${shortfallDays} days before payday. Reduce daily spend to ~$${recommendedCap}/day to stay on track.`;
+    warningMessage = `At your current spending pace ($${currentDailyPace}/day), your Everyday pool runs out ${shortfallDays} days before payday. Reduce daily spend to ~$${recommendedCap}/day to stay on track.`;
   }
 
   return {

@@ -13,7 +13,7 @@ export default function CategoryDetailScreen() {
   const router = useRouter();
   
   // Implicit typing starts here from tRPC
-  const { data: categories, isLoading, refetch } = trpc.listCategories.useQuery();
+  const { data: categories, isLoading, refetch } = trpc.listPools.useQuery();
   const cat = categories?.find((c) => c?.id === id);
 
   const [editVisible, setEditVisible] = useState(false);
@@ -24,14 +24,14 @@ export default function CategoryDetailScreen() {
   const [everydayAllowanceAmount, setEverydayAllowanceAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const updateMutation = trpc.updateCategory.useMutation({
+  const updateMutation = trpc.updatePool.useMutation({
     onSuccess: () => {
       setEditVisible(false);
       refetch();
     },
   });
 
-  const archiveMutation = trpc.archiveCategory.useMutation({
+  const archiveMutation = trpc.archivePool.useMutation({
     onSuccess: () => {
       setEditVisible(false);
       router.back();
@@ -57,7 +57,7 @@ export default function CategoryDetailScreen() {
     );
   }
 
-  const currentBalanceNum = parseFloat(cat.currentBalance);
+  const currentBalanceNum = typeof cat.currentBalance === 'number' ? cat.currentBalance : parseFloat(cat.currentBalance);
   const targetAmountNum = cat.targetAmount ? parseFloat(cat.targetAmount) : null;
 
   const pct = targetAmountNum && targetAmountNum > 0
@@ -85,11 +85,11 @@ export default function CategoryDetailScreen() {
     setSaving(true);
     try {
       await updateMutation.mutateAsync({
-        categoryId: cat.id,
+        poolId: cat.id,
         data: {
           name: name.trim(),
           rolloverRule,
-          everydayAllowanceAmount: cat.type === 'EVERYDAY' && everydayAllowanceAmount ? parseFloat(everydayAllowanceAmount).toFixed(2) : undefined,
+          everydayAllowanceAmount: cat.poolType === 'EVERYDAY' && everydayAllowanceAmount ? parseFloat(everydayAllowanceAmount).toFixed(2) : undefined,
         },
       });
     } catch (err) {
@@ -110,7 +110,7 @@ export default function CategoryDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await archiveMutation.mutateAsync({ categoryId: cat.id });
+              await archiveMutation.mutateAsync({ poolId: cat.id });
             } catch (err) {
               Alert.alert('Error', err instanceof Error ? err.message : String(err));
             }
@@ -199,7 +199,7 @@ export default function CategoryDetailScreen() {
                 />
               </View>
 
-              {cat.type === 'EVERYDAY' ? (
+              {cat.poolType === 'EVERYDAY' ? (
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Paycheck Target Allowance ($)</Text>
                   <TextInput
@@ -249,7 +249,7 @@ export default function CategoryDetailScreen() {
                   <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
                 </TouchableOpacity>
 
-                {cat.type !== 'EVERYDAY' && (
+                {cat.poolType !== 'EVERYDAY' && (
                   <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
                     <Text style={styles.deleteBtnText}>Archive Category</Text>
                   </TouchableOpacity>

@@ -3,9 +3,8 @@ export * from "./user.js";
 export * from "./tenant.js";
 export * from "./tenant_user.js";
 export * from "./bank_account.js";
-export * from "./bank_account_category_mapping.js";
+export * from "./pool.js";
 export * from "./category.js";
-export * from "./category_schedule.js";
 export * from "./income.js";
 export * from "./income_event.js";
 export * from "./allocation_plan.js";
@@ -23,5 +22,3 @@ export * from "./early_access.js";
 export * from "./processed_webhooks.js";
 export * from "./bug_report.js";
 export * from "./app_version.js";
-
-

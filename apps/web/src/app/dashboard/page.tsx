@@ -1,76 +1,62 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, useToast } from "@money-matters/ui/web";
-import posthog from "../../lib/posthog-client";
-
+import { useToast, InfoTooltip } from "@money-matters/ui/web";
 import { DashboardHeroCard } from "./components/DashboardHeroCard";
+import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
+import { NextPaydayCard } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
 import { ShortfallAlertCard } from "./components/ShortfallAlertCard";
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
-import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
-import { NextPaydayCard } from "./components/NextPaydayCard";
-import { BankBalancesRow } from "./components/BankBalancesRow";
+import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
+import PaydayPreviewModal from "../../components/web/PaydayPreviewModal";
 import { CanAffordModal } from "./components/CanAffordModal";
-import { DashboardModals } from "./components/DashboardModals";
-
 import { useDashboardData } from "./hooks/useDashboardData";
+import posthog from "../../lib/posthog-client";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-interface AppPreferencesBlob {
-  skip_pool_adjustment_confirmation?: boolean;
-  quick_actions_collapsed?: boolean;
+interface AppPreferencesMap {
+  [appId: string]: {
+    skip_pool_adjustment_confirmation?: boolean;
+    [key: string]: unknown;
+  };
 }
 
-type AppPreferencesMap = Record<string, AppPreferencesBlob>;
-
 export default function DashboardPage() {
+  const router = useRouter();
   const toast = useToast();
+
+  const poolsQuery = trpc.listPools.useQuery();
+  const pools = poolsQuery.data ?? [];
+
   const {
-    router,
     todayStr,
-    moveMoneyOpen,
-    setMoveMoneyOpen,
-    paydayPreviewEventId,
-    setPaydayPreviewEventId,
-    canAffordAmount,
-    setCanAffordAmount,
-    reconcilingAccountId,
-    setReconcilingAccountId,
-    reconcileActualAmount,
-    setReconcileActualAmount,
-    reconcileTargetCategoryId,
-    setReconcileTargetCategoryId,
     summaryQuery,
-    categoriesQuery,
-    bankAccountsQuery,
     incomeEventsQuery,
     expenseEventsQuery,
-    canAffordQuery,
-    reconcileMutation,
     recordExpenseMutation,
-    markPaidMutation,
-    skipExpenseMutation,
+    skipUpcomingExpenseMutation,
     updateUpcomingExpenseMutation,
+    canAffordAmount,
+    setCanAffordAmount,
+    canAffordQuery,
   } = useDashboardData();
 
-  const [canAffordModalOpen, setCanAffordModalOpen] = useState(false);
-
-  const categories = categoriesQuery.data ?? [];
-  const goalCategories = categories.filter((c) => c.type === "GOAL");
-  const needsAttentionCount = categories.filter((c) => c.healthStatus === "AMBER").length;
-  const behindCount = categories.filter((c) => c.healthStatus === "RED").length;
-  const onTrackCount = categories.filter((c) => c.healthStatus === "GREEN").length;
+  const goalCategories = pools.filter((p) => p.poolType === "GOAL");
+  const needsAttentionCount = pools.filter((p) => p.healthStatus === "AMBER").length;
+  const behindCount = pools.filter((p) => p.healthStatus === "RED").length;
+  const onTrackCount = pools.filter((p) => p.healthStatus === "GREEN").length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || "0");
-  const everydayMonthlyBudget = categories
-    .filter((c) => c.type === "EVERYDAY")
-    .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || "0"), 0);
+  const everydayMonthlyBudget = pools
+    .filter((p) => p.poolType === "EVERYDAY")
+    .reduce((sum, p) => sum + parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"), 0);
 
   const userPreferencesQuery = trpc.getUserPreferences.useQuery();
   const appPrefs = userPreferencesQuery.data?.appPreferences as AppPreferencesMap | undefined;
@@ -95,15 +81,15 @@ export default function DashboardPage() {
     const diff = newAmount - currentBalance;
     if (Math.abs(diff) < 0.01) return;
 
-    const targetCat = categories.find((c) => c.type === poolType) || categories[0];
-    if (!targetCat) {
-      toast.error(`No category found of type ${poolType} to post the adjustment transaction.`);
+    const targetPool = pools.find((p) => p.poolType === poolType) || pools[0];
+    if (!targetPool) {
+      toast.error(`No pool found of type ${poolType} to post the adjustment transaction.`);
       return;
     }
 
     await recordExpenseMutation.mutateAsync({
       amount: Math.abs(diff).toFixed(2),
-      categoryId: targetCat.id,
+      poolId: targetPool.id,
       flowType: diff > 0 ? "CREDIT" : "DEBIT",
       note: `${poolType === "EVERYDAY" ? "Everyday" : "Bills"} Pool Adjustment`,
       recordedAt: todayStr,
@@ -111,9 +97,9 @@ export default function DashboardPage() {
   };
 
   const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || "0");
-  const billsMonthlyBudget = categories
-    .filter((c) => c.type === "REGULAR")
-    .reduce((sum, c) => sum + parseFloat(c.monthlyAmount || "0"), 0);
+  const billsMonthlyBudget = pools
+    .filter((p) => p.poolType === "REGULAR")
+    .reduce((sum, p) => sum + parseFloat(p.targetAmount || "0"), 0);
 
   const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === "UPCOMING");
   const nextPaydayEvent = upcomingIncomeList[0] ?? null;
@@ -135,65 +121,50 @@ export default function DashboardPage() {
     .filter((e) => e.status === "UPCOMING")
     .filter((e) => new Date(e.expectedDate) <= threeDaysLater)
     .map((e) => {
-      const cat = categories.find((c) => c.id === e.categoryId);
-      const catBal = cat ? parseFloat(cat.currentBalance) : 0;
+      const pool = pools.find((p) => p.id === e.poolId);
+      const catBal = pool ? parseFloat(String(pool.currentBalance)) : 0;
       const isOverdue = new Date(e.expectedDate) < todayObj;
+
       return {
         id: e.id,
         name: e.name,
         expectedAmount: parseFloat(e.expectedAmount),
         expectedDate: e.expectedDate,
-        categoryId: e.categoryId,
-        categoryName: cat?.name ?? null,
+        categoryId: pool?.id ?? null,
+        categoryName: pool?.name ?? "Regular Bill",
         isOverdue,
         categoryBalance: catBal,
       };
     });
 
-  const handleMarkPaidItem = (item: WebAttentionItem, amount: number, date: string) => {
-    markPaidMutation.mutate(
-      { eventId: item.id, actualAmount: amount.toFixed(2), recordedAt: date, note: `Paid ${item.name}` },
-      {
-        onSuccess: () => {
-          posthog.capture("expense_marked_paid", { source: "attention_item" });
-        },
-      }
-    );
+  const handleMarkPaidItem = async (item: WebAttentionItem, amount: number, date: string) => {
+    await recordExpenseMutation.mutateAsync({
+      poolId: item.categoryId || pools[0]?.id || "",
+      amount: amount.toFixed(2),
+      note: `Bill Paid: ${item.name}`,
+      recordedAt: date,
+    });
+    posthog.capture("bill_paid");
   };
 
-  const handleSkipItem = (item: WebAttentionItem) => {
-    skipExpenseMutation.mutate({ eventId: item.id });
+  const handleSkipItem = async (item: WebAttentionItem) => {
+    await skipUpcomingExpenseMutation.mutateAsync({ eventId: item.id, eventType: "EXPENSE", status: "SKIPPED" });
   };
 
-  const handleSaveItem = (item: WebAttentionItem, amount: number, date: string) => {
-    updateUpcomingExpenseMutation.mutate({
+  const handleSaveItem = async (item: WebAttentionItem, amount: number, date: string) => {
+    await updateUpcomingExpenseMutation.mutateAsync({
       eventId: item.id,
+      eventType: "EXPENSE",
       expectedAmount: amount.toFixed(2),
       expectedDate: date,
     });
   };
 
-  const bankAccountsMapped = (bankAccountsQuery.data ?? []).map((acc) => ({
-    id: acc.id,
-    name: acc.name,
-    lastKnownBalance: acc.lastKnownBalance,
-    expectedBalance: acc.expectedBalance,
-  }));
+  const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
+  const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
+  const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
+  const [isCanAffordModalOpen, setIsCanAffordModalOpen] = useState(false);
 
-  const handleInlineBankReconcile = (accountId: string, actualBalanceStr: string) => {
-    const targetCatId = categories.find((c) => c.type === "EVERYDAY")?.id || categories[0]?.id;
-    const acc = bankAccountsQuery.data?.find((a) => a.id === accountId);
-    const expected = parseFloat(acc?.expectedBalance || "0");
-    const actual = parseFloat(actualBalanceStr);
-    const diff = actual - expected;
-    reconcileMutation.mutate({
-      accountId,
-      actualBalance: actual.toFixed(2),
-      splits: targetCatId ? [{ categoryId: targetCatId, adjustment: diff.toFixed(2) }] : [],
-    });
-  };
-
-  // Due-Date Guardrail Evaluation for upcoming bills in 14 days
   const upcomingBillsList = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === "UPCOMING")
     .map((e) => ({
@@ -214,7 +185,6 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6 animate-in fade-in duration-200">
-      {/* Page Title */}
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-[#1B2B4B]">
           {t("nav.dashboard") || "Dashboard"}
@@ -225,23 +195,20 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* 1. Missing Schedules Banner (Contextual) */}
       <MissingSchedulesBanner
         incomeCount={incomeEventsQuery.data?.length ?? 0}
         billsCount={expenseEventsQuery.data?.length ?? 0}
       />
 
-      {/* 2. Shortfall Alert Card (Contextual) */}
       <ShortfallAlertCard
         billsShortfall={billsShortfall}
         billsDue14DaysCount={billsDue14Days.length}
         totalBillsDue14Days={totalBillsDue14Days}
         billsBalance={billsBalance}
         formatAUD={fmt}
-        onMoveMoney={() => setMoveMoneyOpen(true)}
+        onMoveMoney={() => setIsMoveMoneyOpen(true)}
       />
 
-      {/* 3. Hero Command Card */}
       <DashboardHeroCard
         everydayBalance={everydayBalance}
         everydayMonthlyBudget={everydayMonthlyBudget}
@@ -250,95 +217,97 @@ export default function DashboardPage() {
         needsAttentionCount={needsAttentionCount}
         behindCount={behindCount}
         onTrackCount={onTrackCount}
-        onOpenCanAfford={() => setCanAffordModalOpen(true)}
-        onSelectFilter={(health) => router.push(`/dashboard/pools?health=${health}`)}
+        onOpenCanAfford={() => setIsCanAffordModalOpen(true)}
+        onSelectFilter={(health: string) => router.push(`/dashboard/pools?health=${health}`)}
         formatAUD={fmt}
         onUpdatePoolBalance={handleUpdatePoolBalance}
         skipConfirmation={skipConfirmation}
         onSaveSkipConfirmation={handleSaveSkipConfirmation}
       />
 
-      {/* 4. Savings Goals Optimistic Strip */}
       <GoalsProgressStrip
-        goalCategories={goalCategories}
+        goalCategories={goalCategories.map((g) => ({
+          id: g.id,
+          name: g.name,
+          currentBalance: String(g.currentBalance || "0"),
+          healthStatus: g.healthStatus,
+        }))}
         formatAUD={fmt}
       />
 
-      {/* 5. Next Payday Card */}
       <NextPaydayCard
         nextPayday={nextPaydayData}
-        onPressNextPay={(id) => setPaydayPreviewEventId(id)}
+        onPressNextPay={(id: string) => setPaydayPreviewEventId(id)}
         formatAUD={fmt}
       />
 
-      {/* 6. Attention Items (Bills Overdue / Due Soon) */}
       <AttentionItemsList
         items={attentionItems}
         onMarkPaid={handleMarkPaidItem}
         onSkip={handleSkipItem}
         onSave={handleSaveItem}
         formatAUD={fmt}
-        markingPaidId={markPaidMutation.isPending ? markPaidMutation.variables?.eventId : null}
-        onNavigateCategory={(catName) => router.push(`/dashboard/pools?search=${encodeURIComponent(catName)}`)}
       />
 
-      {/* 7. Bank Balances Compact Row */}
-      <BankBalancesRow
-        accounts={bankAccountsMapped}
-        onReconcile={handleInlineBankReconcile}
-        formatAUD={fmt}
-      />
+      {/* Floating Action Bar */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-[#1B2B4B]/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-xl z-30 border border-slate-700/50">
+        <button
+          type="button"
+          onClick={() => setIsCanAffordModalOpen(true)}
+          className="px-4 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
+        >
+          <span>💡 Can I Afford It?</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setQuickDrawerOpen(true)}
+          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
+        >
+          <span>⚡ Quick Action</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsMoveMoneyOpen(true)}
+          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
+        >
+          <span>💸 Move Money</span>
+        </button>
+      </div>
 
-      {/* Can We Afford This? Modal */}
-      <CanAffordModal
-        isOpen={canAffordModalOpen}
-        onClose={() => setCanAffordModalOpen(false)}
-        canAffordAmount={canAffordAmount}
-        setCanAffordAmount={setCanAffordAmount}
-        canAffordData={canAffordQuery.data}
-      />
+      {paydayPreviewEventId && (
+        <PaydayPreviewModal
+          incomeEventId={paydayPreviewEventId}
+          isOpen={!!paydayPreviewEventId}
+          onClose={() => setPaydayPreviewEventId(null)}
+        />
+      )}
 
-      {/* Dashboard Global Modals & Drawers */}
-      <DashboardModals
-        reconcilingAccountId={reconcilingAccountId}
-        onCloseReconcile={() => {
-          setReconcilingAccountId(null);
-          setReconcileActualAmount("");
-          setReconcileTargetCategoryId("");
-        }}
-        reconcileActualAmount={reconcileActualAmount}
-        setReconcileActualAmount={setReconcileActualAmount}
-        reconcileTargetCategoryId={reconcileTargetCategoryId}
-        setReconcileTargetCategoryId={setReconcileTargetCategoryId}
-        categories={categories}
-        isReconcilePending={reconcileMutation.isPending}
-        onSubmitReconcile={(e) => {
-          e.preventDefault();
-          if (!reconcilingAccountId || !reconcileActualAmount) return;
-          const targetCatId = reconcileTargetCategoryId || categories.find((c) => c.type === "EVERYDAY")?.id || categories[0]?.id;
-          const acc = bankAccountsQuery.data?.find((a) => a.id === reconcilingAccountId);
-          const expected = parseFloat(acc?.expectedBalance || "0");
-          const actual = parseFloat(reconcileActualAmount);
-          const diff = actual - expected;
-          reconcileMutation.mutate({
-            accountId: reconcilingAccountId,
-            actualBalance: actual.toFixed(2),
-            splits: targetCatId ? [{ categoryId: targetCatId, adjustment: diff.toFixed(2) }] : [],
-          });
-        }}
-        moveMoneyOpen={moveMoneyOpen}
-        onCloseMoveMoney={() => {
-          setMoveMoneyOpen(false);
-          summaryQuery.refetch();
-        }}
-        paydayPreviewEventId={paydayPreviewEventId}
-        onClosePaydayPreview={() => setPaydayPreviewEventId(null)}
-        onSuccessPaydayPreview={() => {
-          setPaydayPreviewEventId(null);
-          incomeEventsQuery.refetch();
-          summaryQuery.refetch();
-        }}
-      />
+      {quickDrawerOpen && (
+        <QuickActionDrawer
+          onClose={() => setQuickDrawerOpen(false)}
+        />
+      )}
+
+      {isMoveMoneyOpen && (
+        <QuickActionDrawer
+          onClose={() => {
+            setIsMoveMoneyOpen(false);
+            poolsQuery.refetch();
+          }}
+          initialTab="TRANSFER"
+        />
+      )}
+
+      {isCanAffordModalOpen && (
+        <CanAffordModal
+          isOpen={isCanAffordModalOpen}
+          onClose={() => setIsCanAffordModalOpen(false)}
+          canAffordAmount={canAffordAmount}
+          setCanAffordAmount={setCanAffordAmount}
+          canAffordData={canAffordQuery.data}
+        />
+      )}
+
     </div>
   );
 }

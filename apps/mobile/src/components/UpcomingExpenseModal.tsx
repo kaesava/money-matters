@@ -22,6 +22,7 @@ interface UpcomingExpenseModalProps {
     name?: string | null;
     expectedDate?: string;
     expectedAmount?: string;
+    poolId?: string | null;
     categoryId?: string | null;
     categoryName?: string;
     note?: string | null;
@@ -46,7 +47,7 @@ export function UpcomingExpenseModal({
   const utils = trpc.useUtils();
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: visible });
+  const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const categories = categoriesQuery.data ?? [];
 
   const [name, setName] = useState('');
@@ -58,15 +59,14 @@ export function UpcomingExpenseModal({
   const [errorMsg, setErrorMsg] = useState('');
 
   const overrideMut = trpc.overrideEvent.useMutation();
-  const markPaidMut = trpc.markExpensePaid.useMutation();
   const deleteMut = trpc.deleteUpcomingEvent.useMutation();
-  const createUpcomingMut = trpc.createUpcomingExpense.useMutation();
+  const createExpenseMut = trpc.createExpenseSource.useMutation();
   const recordExpenseMut = trpc.recordExpense.useMutation();
 
   useEffect(() => {
     if (eventToEdit) {
       setName(eventToEdit.name || '');
-      setCategoryId(eventToEdit.categoryId || (categories[0]?.id ?? ''));
+      setCategoryId(eventToEdit.categoryId || eventToEdit.poolId || (categories[0]?.id ?? ''));
       setAmount(eventToEdit.expectedAmount || '');
       setExpectedDate(eventToEdit.expectedDate || todayStr);
       setNote(eventToEdit.note || '');
@@ -85,7 +85,7 @@ export function UpcomingExpenseModal({
   const numAmount = parseFloat(amount) || 0;
   const isFutureDate = expectedDate > todayStr;
   const selectedCat = categories.find((c) => c.id === categoryId);
-  const currentCatBal = selectedCat ? parseFloat(selectedCat.currentBalance || '0') : 0;
+  const currentCatBal = selectedCat ? (typeof selectedCat.currentBalance === 'number' ? selectedCat.currentBalance : parseFloat(selectedCat.currentBalance || '0')) : 0;
   const projectedBal = currentCatBal - numAmount;
   const isNegativeWarning = !isFutureDate && selectedCat && numAmount > currentCatBal;
 
@@ -115,22 +115,22 @@ export function UpcomingExpenseModal({
           eventId: eventToEdit.id,
           eventType: 'EXPENSE',
           name,
-          categoryId,
-          amount: numAmount.toFixed(2),
+          poolId: categoryId,
+          expectedAmount: numAmount.toFixed(2),
           expectedDate,
           note,
         });
       } else {
-        await createUpcomingMut.mutateAsync({
+        await createExpenseMut.mutateAsync({
           name,
           amount: numAmount.toFixed(2),
-          categoryId,
-          expectedDate,
-          note,
+          poolId: categoryId,
+          isRecurring: false,
+          startDate: expectedDate,
         });
       }
       await utils.listExpenseEvents.invalidate();
-      await utils.listCategories.invalidate();
+      await utils.listPools.invalidate();
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -163,22 +163,24 @@ export function UpcomingExpenseModal({
     setSubmitting(true);
     try {
       if (eventToEdit?.id) {
-        await markPaidMut.mutateAsync({
+        await overrideMut.mutateAsync({
           eventId: eventToEdit.id,
+          eventType: 'EXPENSE',
+          status: 'PAID',
           actualAmount: numAmount.toFixed(2),
           note: note || `Paid ${name}`,
         });
       } else {
         await recordExpenseMut.mutateAsync({
-          categoryId,
+          poolId: categoryId,
           amount: numAmount.toFixed(2),
           flowType: 'DEBIT',
           note: note || `Paid ${name}`,
-          recordedAt: new Date(expectedDate).toISOString(),
+          date: expectedDate,
         });
       }
       await utils.listExpenseEvents.invalidate();
-      await utils.listCategories.invalidate();
+      await utils.listPools.invalidate();
       await utils.listTransactions.invalidate();
       if (onSuccess) onSuccess();
       onClose();

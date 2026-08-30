@@ -104,7 +104,7 @@ export default function EventOverrideModal({
             }}
             className="text-xs font-black text-[#00B4A6] hover:underline flex items-center gap-1 shrink-0 ml-2"
           >
-            <span>Edit Master Series</span>
+            <span>{t("modals.eventOverride.editMasterSeries", { defaultValue: "Edit Master Series" })}</span>
             <span>→</span>
           </a>
         </div>

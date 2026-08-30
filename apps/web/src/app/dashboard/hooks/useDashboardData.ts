@@ -30,7 +30,7 @@ export function useDashboardData() {
   const [reconcileTargetCategoryId, setReconcileTargetCategoryId] = useState("");
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
-  const categoriesQuery = trpc.listCategories.useQuery();
+  const poolsQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
@@ -46,32 +46,31 @@ export function useDashboardData() {
       setReconcileActualAmount("");
       setReconcileTargetCategoryId("");
       bankAccountsQuery.refetch();
-      categoriesQuery.refetch();
+      poolsQuery.refetch();
       summaryQuery.refetch();
       posthog.capture("bank_account_reconciled");
     },
   });
 
-  // Redirect to setup wizard if user has no categories configured and setup not skipped/completed
   useEffect(() => {
     const isSkippedOrCompleted =
       Boolean(userPrefQuery.data?.setupCompleted) ||
       (typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true");
 
     if (
-      categoriesQuery.isSuccess &&
-      categoriesQuery.data &&
-      categoriesQuery.data.length === 0 &&
+      poolsQuery.isSuccess &&
+      poolsQuery.data &&
+      poolsQuery.data.length === 0 &&
       !isSkippedOrCompleted
     ) {
       router.push("/setup");
     }
-  }, [categoriesQuery.isSuccess, categoriesQuery.data, userPrefQuery.data, router]);
+  }, [poolsQuery.isSuccess, poolsQuery.data, userPrefQuery.data, router]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: (_, variables) => {
       utils.listTransactions.invalidate();
-      categoriesQuery.refetch();
+      poolsQuery.refetch();
       summaryQuery.refetch();
       setQuickName("");
       setQuickAmount("");
@@ -81,23 +80,19 @@ export function useDashboardData() {
     },
   });
 
-  const markPaidMutation = trpc.markExpensePaid.useMutation({
+  const markPaidMutation = trpc.overrideEvent.useMutation({
     onSuccess: () => {
       expenseEventsQuery.refetch();
-      categoriesQuery.refetch();
+      poolsQuery.refetch();
       summaryQuery.refetch();
     },
   });
 
-  const skipExpenseMutation = trpc.skipExpenseEvent.useMutation({
+  const overrideEventMutation = trpc.overrideEvent.useMutation({
     onSuccess: () => {
       expenseEventsQuery.refetch();
-    },
-  });
-
-  const updateUpcomingExpenseMutation = trpc.updateUpcomingExpense.useMutation({
-    onSuccess: () => {
-      expenseEventsQuery.refetch();
+      incomeEventsQuery.refetch();
+      poolsQuery.refetch();
     },
   });
 
@@ -132,7 +127,8 @@ export function useDashboardData() {
     reconcileTargetCategoryId,
     setReconcileTargetCategoryId,
     summaryQuery,
-    categoriesQuery,
+    categoriesQuery: poolsQuery,
+    poolsQuery,
     bankAccountsQuery,
     incomeEventsQuery,
     expenseEventsQuery,
@@ -140,7 +136,7 @@ export function useDashboardData() {
     reconcileMutation,
     recordExpenseMutation,
     markPaidMutation,
-    skipExpenseMutation,
-    updateUpcomingExpenseMutation,
+    skipUpcomingExpenseMutation: overrideEventMutation,
+    updateUpcomingExpenseMutation: overrideEventMutation,
   };
 }

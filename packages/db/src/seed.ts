@@ -4,9 +4,8 @@ import {
   tenants,
   tenantUsers,
   bankAccounts,
-  bankAccountCategoryMappings,
+  pools,
   categories,
-  categorySchedules,
   incomeSources,
   incomeEvents,
   allocationPlans,
@@ -22,7 +21,6 @@ import {
   deviceTokens,
 } from "@money-matters/db";
 import { sql } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import dotenv from "dotenv";
 
 if (!process.env.DATABASE_URL) {
@@ -44,13 +42,11 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   const authUrl = process.env.NEXT_PUBLIC_NEON_AUTH_URL || (isProd ? "https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth" : "https://ep-icy-resonance-a7s94hg4.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth");
   const originUrl = isProd ? "https://moneymatters.kaesava.au" : "http://localhost:3000";
 
-  // Helper to ensure Neon Auth user is seeded with password account and pre-verified status
   async function ensureNeonAuthUser(_email: string, _pass: string, name: string, fallbackId: string) {
     const email = _email.trim().toLowerCase();
     let resolvedId = fallbackId;
 
     try {
-      // Check if user already exists in neon_auth.user
       const existingRes = await db.execute<{ id: string }>(
         sql`SELECT id FROM neon_auth.user WHERE email = ${email} LIMIT 1`
       );
@@ -59,7 +55,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       if (rows.length > 0) {
         resolvedId = rows[0].id;
       } else {
-        // Sign up user via Neon Auth HTTP REST API so neon_auth.user & neon_auth.account (password hash) are created atomically
         const signupUrl = `${authUrl}/sign-up/email`;
         const response = await fetch(signupUrl, {
           method: "POST",
@@ -78,7 +73,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
           const resBody = (await response.json()) as any;
           resolvedId = resBody.user?.id || resBody.id || fallbackId;
         } else {
-          // If sign up endpoint returns error, insert into neon_auth.user fallback
           await db.execute(sql`
             INSERT INTO neon_auth.user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
             VALUES (${fallbackId}, ${name}, ${email}, true, 'user', now(), now())
@@ -87,7 +81,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
         }
       }
 
-      // Ensure neon_auth.user has emailVerified = true & correct name
       await db.execute(sql`
         UPDATE neon_auth.user 
         SET "emailVerified" = true, name = COALESCE(${name}, name), role = COALESCE(role, 'user'), "updatedAt" = now()
@@ -119,15 +112,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   const testerTenantId = "d3b07384-d113-4ec4-a5a4-000000000002";
   const testerUserId = await ensureNeonAuthUser(testerEmail, testerPassword, "Play Store Tester", "d3b07384-d113-4ec4-a5a4-000000000002");
 
-  // Ensure DB schema migrations/columns are present
-  await db.execute(sql`DROP TABLE IF EXISTS expense_source_schedules CASCADE`);
-  await db.execute(sql`DROP TABLE IF EXISTS income_source_schedules CASCADE`);
-  await db.execute(sql`ALTER TABLE income_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
-  await db.execute(sql`ALTER TABLE expense_sources ADD COLUMN IF NOT EXISTS rrule VARCHAR(255), ADD COLUMN IF NOT EXISTS start_date DATE, ADD COLUMN IF NOT EXISTS end_date DATE`);
-  await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS everyday_allowance_amount NUMERIC(12,2), ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false NOT NULL`);
-  await db.execute(sql`ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT false NOT NULL, ADD COLUMN IF NOT EXISTS user_id UUID`);
-  await db.execute(sql`ALTER TABLE tenant_user_preferences DROP COLUMN IF EXISTS payday_alerts_enabled, DROP COLUMN IF EXISTS shortfall_alerts_enabled, DROP COLUMN IF EXISTS bill_reminders_enabled, DROP COLUMN IF EXISTS weekly_digest_enabled`);
-
   // Clean all application and auth tables across neon_auth and public schemas (clean slate)
   try {
     await db.execute(sql`DELETE FROM neon_auth.session`);
@@ -142,7 +126,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     await db.execute(sql`DELETE FROM public.sessions`);
     await db.execute(sql`DELETE FROM public.verifications`);
   } catch (_e) {
-    // Optional public auth session tables
+    // Ignored: legacy sessions/verifications tables may not exist in all DB environments
   }
 
   await db.delete(fileNotes);
@@ -154,11 +138,11 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(expenseSources);
   await db.delete(incomeEvents);
   await db.delete(incomeSources);
-  await db.delete(categorySchedules);
+  await db.execute(sql`DELETE FROM public.category_schedules`).catch(() => {});
   await db.delete(categories);
+  await db.delete(pools);
   await db.delete(userPreferences);
   await db.delete(tenantUserPreferences);
-  await db.delete(bankAccountCategoryMappings);
   await db.delete(bankAccounts);
   await db.delete(tenantUsers);
   await db.delete(tenants);
@@ -169,21 +153,9 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   // 0. App & User Records
   await db.insert(users).values([
-    {
-      id: userId,
-      email: "kaesava@gmail.com",
-      displayName: "Kaesava",
-    },
-    {
-      id: raehanUserId,
-      email: raehanEmail,
-      displayName: "Raehan Kaesava",
-    },
-    {
-      id: testerUserId,
-      email: testerEmail,
-      displayName: "Play Store Tester",
-    },
+    { id: userId, email: "kaesava@gmail.com", displayName: "Kaesava" },
+    { id: raehanUserId, email: raehanEmail, displayName: "Raehan Kaesava" },
+    { id: testerUserId, email: testerEmail, displayName: "Play Store Tester" },
   ]);
 
   await db.insert(apps).values({
@@ -192,7 +164,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     slug: "money-matters",
   });
 
-  // 1. Tenants (Kaesava Household & Raehan Household)
+  // 1. Tenants
   const now = new Date();
   const [household] = await db
     .insert(tenants)
@@ -254,747 +226,129 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     })
     .returning();
 
-  // 2. Tenant Users (Multi-tenant memberships)
+  // 2. Tenant Users
   await db.insert(tenantUsers).values([
-    // Kaesava Household: kaesava (OWNER), raehan (MEMBER invited by kaesava)
-    {
-      tenantId: household.id,
-      userId,
-      role: "OWNER" as const,
-      inviteStatus: "ACCEPTED" as const,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      tenantId: household.id,
-      userId: raehanUserId,
-      inviteEmail: raehanEmail,
-      role: "MEMBER" as const,
-      inviteStatus: "ACCEPTED" as const,
-      invitedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Raehan Household: raehan (OWNER), kaesava (MEMBER invited by raehan)
-    {
-      tenantId: raehanHousehold.id,
-      userId: raehanUserId,
-      role: "OWNER" as const,
-      inviteStatus: "ACCEPTED" as const,
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    },
-    {
-      tenantId: raehanHousehold.id,
-      userId,
-      inviteEmail: "kaesava@gmail.com",
-      role: "MEMBER" as const,
-      inviteStatus: "ACCEPTED" as const,
-      invitedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    },
-    // Play Store Tester Household: tester (OWNER)
-    {
-      tenantId: testerHousehold.id,
-      userId: testerUserId,
-      role: "OWNER" as const,
-      inviteStatus: "ACCEPTED" as const,
-      createdBy: testerUserId,
-      updatedBy: testerUserId,
-    },
+    { tenantId: household.id, userId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: userId, updatedBy: userId },
+    { tenantId: household.id, userId: raehanUserId, inviteEmail: raehanEmail, role: "MEMBER" as const, inviteStatus: "ACCEPTED" as const, invitedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), createdBy: userId, updatedBy: userId },
+    { tenantId: raehanHousehold.id, userId: raehanUserId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: raehanUserId, updatedBy: raehanUserId },
+    { tenantId: raehanHousehold.id, userId, inviteEmail: "kaesava@gmail.com", role: "MEMBER" as const, inviteStatus: "ACCEPTED" as const, invitedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), createdBy: raehanUserId, updatedBy: raehanUserId },
+    { tenantId: testerHousehold.id, userId: testerUserId, role: "OWNER" as const, inviteStatus: "ACCEPTED" as const, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
-  // 3. User Preferences (Global User Preferences + Tenant-Scoped User Preferences)
+  // 3. User Preferences
   await db.insert(userPreferences).values([
-    {
-      userId,
-      timezone: "Australia/Sydney",
-      locale: "en-AU",
-      theme: "system",
-      showIcons: true,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      userId: raehanUserId,
-      timezone: "Australia/Sydney",
-      locale: "en-AU",
-      theme: "system",
-      showIcons: true,
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    },
-    {
-      userId: testerUserId,
-      timezone: "Australia/Sydney",
-      locale: "en-AU",
-      theme: "system",
-      showIcons: true,
-      createdBy: testerUserId,
-      updatedBy: testerUserId,
-    },
+    { userId, timezone: "Australia/Sydney", locale: "en-AU", theme: "system", showIcons: true, createdBy: userId, updatedBy: userId },
+    { userId: raehanUserId, timezone: "Australia/Sydney", locale: "en-AU", theme: "system", showIcons: true, createdBy: raehanUserId, updatedBy: raehanUserId },
+    { userId: testerUserId, timezone: "Australia/Sydney", locale: "en-AU", theme: "system", showIcons: true, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
   await db.insert(tenantUserPreferences).values([
-    {
-      userId,
-      tenantId,
-      appId,
-      appPreferences: {
-        [appId]: {
-          payday_alerts_enabled: true,
-          shortfall_alerts_enabled: true,
-          bill_reminders_enabled: true,
-          weekly_digest_enabled: true,
-          quick_actions_collapsed: false,
-          show_icons: true,
-          filters_expanded: false,
-          skip_pool_adjustment_confirmation: false,
-          setup_completed: true,
-          setup_completed_at: now.toISOString(),
-        },
-      },
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      userId: raehanUserId,
-      tenantId: raehanTenantId,
-      appId,
-      appPreferences: {
-        [appId]: {
-          payday_alerts_enabled: true,
-          shortfall_alerts_enabled: true,
-          bill_reminders_enabled: true,
-          weekly_digest_enabled: true,
-          quick_actions_collapsed: false,
-          show_icons: true,
-          filters_expanded: false,
-          skip_pool_adjustment_confirmation: false,
-          setup_completed: true,
-          setup_completed_at: now.toISOString(),
-        },
-      },
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    },
-    {
-      userId: testerUserId,
-      tenantId: testerTenantId,
-      appId,
-      appPreferences: {
-        [appId]: {
-          payday_alerts_enabled: true,
-          shortfall_alerts_enabled: true,
-          bill_reminders_enabled: true,
-          weekly_digest_enabled: true,
-          quick_actions_collapsed: false,
-          show_icons: true,
-          filters_expanded: false,
-          skip_pool_adjustment_confirmation: false,
-          setup_completed: true,
-          setup_completed_at: now.toISOString(),
-        },
-      },
-      createdBy: testerUserId,
-      updatedBy: testerUserId,
-    },
+    { userId, tenantId, appId, appPreferences: { [appId]: { setup_completed: true, setup_completed_at: now.toISOString() } }, createdBy: userId, updatedBy: userId },
+    { userId: raehanUserId, tenantId: raehanTenantId, appId, appPreferences: { [appId]: { setup_completed: true, setup_completed_at: now.toISOString() } }, createdBy: raehanUserId, updatedBy: raehanUserId },
+    { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: { setup_completed: true, setup_completed_at: now.toISOString() } }, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
-  // 4. Bank Accounts for all Tenants
+  // 4. Bank Accounts
   const [primaryAccount] = await db
     .insert(bankAccounts)
-    .values({
-      name: "Primary Account",
-      bankProvider: "CBA",
-      lastKnownBalance: "3450.00",
-      unbudgetedBuffer: "500.00",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
+    .values({ name: "Primary Account", bankProvider: "CBA", lastKnownBalance: "3450.00", unbudgetedBuffer: "500.00", tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   const [savingsAccount] = await db
     .insert(bankAccounts)
-    .values({
-      name: "High Interest Offset Saver",
-      bankProvider: "ING",
-      lastKnownBalance: "48500.00",
-      unbudgetedBuffer: "0.00",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
+    .values({ name: "High Interest Saver", bankProvider: "ING", lastKnownBalance: "48500.00", unbudgetedBuffer: "0.00", tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
-  const [raehanPrimaryAccount] = await db
+  const [kaesavaPrivateBank] = await db
     .insert(bankAccounts)
-    .values({
-      name: "Primary Account",
-      bankProvider: "ANZ",
-      lastKnownBalance: "2500.00",
-      unbudgetedBuffer: "300.00",
-      tenantId: raehanTenantId,
-      appId,
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    })
+    .values({ name: "Kaesava Personal Everyday", bankProvider: "CBA", lastKnownBalance: "850.00", isPrivate: true, userId, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
-  const [testerPrimaryAccount] = await db
-    .insert(bankAccounts)
-    .values({
-      name: "Primary Account",
-      bankProvider: "NAB",
-      lastKnownBalance: "5000.00",
-      unbudgetedBuffer: "500.00",
-      tenantId: testerTenantId,
-      appId,
-      createdBy: testerUserId,
-      updatedBy: testerUserId,
-    })
+  // 5. Pools
+  const [everydayPool] = await db
+    .insert(pools)
+    .values({ name: "Joint Everyday Pool", poolType: "EVERYDAY", bankAccountId: primaryAccount.id, everydayAllowanceAmount: "1200.00", waterfallPriority: 40, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
-  // Link Category Pool Types to Bank Accounts for EVERY Tenant
-  await db.insert(bankAccountCategoryMappings).values([
-    // Primary Tenant Mappings
-    {
-      tenantId,
-      appId,
-      categoryType: "EVERYDAY" as const,
-      bankAccountId: primaryAccount.id,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      tenantId,
-      appId,
-      categoryType: "REGULAR" as const,
-      bankAccountId: primaryAccount.id,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      tenantId,
-      appId,
-      categoryType: "GOAL" as const,
-      bankAccountId: primaryAccount.id,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    // Raehan Tenant Mappings
-    {
-      tenantId: raehanTenantId,
-      appId,
-      categoryType: "EVERYDAY" as const,
-      bankAccountId: raehanPrimaryAccount.id,
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    },
-    {
-      tenantId: raehanTenantId,
-      appId,
-      categoryType: "REGULAR" as const,
-      bankAccountId: raehanPrimaryAccount.id,
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    },
-    {
-      tenantId: raehanTenantId,
-      appId,
-      categoryType: "GOAL" as const,
-      bankAccountId: raehanPrimaryAccount.id,
-      createdBy: raehanUserId,
-      updatedBy: raehanUserId,
-    },
-    // Tester Tenant Mappings
-    {
-      tenantId: testerTenantId,
-      appId,
-      categoryType: "EVERYDAY" as const,
-      bankAccountId: testerPrimaryAccount.id,
-      createdBy: testerUserId,
-      updatedBy: testerUserId,
-    },
-    {
-      tenantId: testerTenantId,
-      appId,
-      categoryType: "REGULAR" as const,
-      bankAccountId: testerPrimaryAccount.id,
-      createdBy: testerUserId,
-      updatedBy: testerUserId,
-    },
-    {
-      tenantId: testerTenantId,
-      appId,
-      categoryType: "GOAL" as const,
-      bankAccountId: testerPrimaryAccount.id,
-      createdBy: testerUserId,
-      updatedBy: testerUserId,
-    },
-  ]);
+  const [billsPool] = await db
+    .insert(pools)
+    .values({ name: "Joint Bills Pool", poolType: "REGULAR", bankAccountId: primaryAccount.id, isCommitted: true, targetAmount: "3974.00", waterfallPriority: 10, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .returning();
 
-  // 5. Canonical Categories
-  const canonicalCategories = [
-    // EVERYDAY (Discretionary pooled spending)
-    {
-      key: "groceries",
-      name: "Groceries & Food Supplies",
-      type: "EVERYDAY" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "shopping-cart",
-      color: "#10B981",
-      monthlyAmount: "1170.00",
-    },
-    {
-      key: "dining",
-      name: "Dining Out & Coffee",
-      type: "EVERYDAY" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "coffee",
-      color: "#F59E0B",
-      monthlyAmount: "1040.00",
-    },
-    {
-      key: "petrol",
-      name: "Petrol & Fuel",
-      type: "EVERYDAY" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "navigation",
-      color: "#3B82F6",
-      monthlyAmount: "260.00",
-    },
-    {
-      key: "transport",
-      name: "Public Transport & Rideshare",
-      type: "EVERYDAY" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "truck",
-      color: "#8B5CF6",
-      monthlyAmount: "180.00",
-    },
-    {
-      key: "personal",
-      name: "Personal Care & Fun",
-      type: "EVERYDAY" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "smile",
-      color: "#EC4899",
-      monthlyAmount: "430.00",
-    },
-    {
-      key: "everyday",
-      name: "Everyday Incidental Buffer",
-      type: "EVERYDAY" as const,
-      isCommitted: false,
-      excess: true,
-      icon: "wallet",
-      color: "#00B4A6",
-      allowance: "300.00",
-    },
+  const [emergencyPool] = await db
+    .insert(pools)
+    .values({ name: "Emergency Reserve", poolType: "GOAL", bankAccountId: savingsAccount.id, isCommitted: true, targetAmount: "15000.00", targetDate: "2026-12-31", waterfallPriority: 20, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .returning();
 
-    // PRIVATE EVERYDAY POOLS (Stealth Privacy Personal Funds)
-    {
-      key: "kaesava_personal",
-      name: "Kaesava Private Pool",
-      type: "EVERYDAY" as const,
-      isPrivate: true,
-      isCommitted: false,
-      excess: false,
-      icon: "user",
-      color: "#3B82F6",
-      allowance: "300.00",
-    },
-    {
-      key: "raehan_personal",
-      name: "Raehan Private Pool",
-      type: "EVERYDAY" as const,
-      isPrivate: true,
-      isCommitted: false,
-      excess: false,
-      icon: "user-check",
-      color: "#EC4899",
-      allowance: "300.00",
-    },
+  const [surplusPool] = await db
+    .insert(pools)
+    .values({ name: "Surplus & Offset Reserve", poolType: "GOAL", bankAccountId: savingsAccount.id, isSurplusTarget: true, waterfallPriority: 99, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .returning();
 
-    // REGULAR (Fixed obligations / bills)
-    {
-      key: "mortgage",
-      name: "Mortgage / Rent Payment",
-      type: "REGULAR" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "home",
-      color: "#EF4444",
-      monthlyAmount: "3200.00",
-    },
-    {
-      key: "electricity",
-      name: "Electricity & Gas (AGL)",
-      type: "REGULAR" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "zap",
-      color: "#F59E0B",
-      monthlyAmount: "340.00",
-    },
-    {
-      key: "broadband",
-      name: "NBN Broadband (Aussie Broadband)",
-      type: "REGULAR" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "wifi",
-      color: "#22C55E",
-      monthlyAmount: "89.00",
-    },
-    {
-      key: "health",
-      name: "Private Health Insurance (Bupa)",
-      type: "REGULAR" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "heart-pulse",
-      color: "#EC4899",
-      monthlyAmount: "280.00",
-    },
-    {
-      key: "subscriptions",
-      name: "Streaming & Subscriptions",
-      type: "REGULAR" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "tv",
-      color: "#8B5CF6",
-      monthlyAmount: "65.00",
-    },
+  const [kaesavaPrivatePool] = await db
+    .insert(pools)
+    .values({ name: "Kaesava Personal Pool", poolType: "EVERYDAY", bankAccountId: kaesavaPrivateBank.id, everydayAllowanceAmount: "300.00", waterfallPriority: 45, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .returning();
 
-    // GOAL (Target Savings Pools)
-    {
-      key: "surplus_reserve",
-      name: "Surplus & Offset Reserve",
-      type: "GOAL" as const,
-      isCommitted: false,
-      isSurplusTarget: true,
-      icon: "bank",
-      color: "#00B4A6",
-      target: null,
-      due: null,
-    },
-    {
-      key: "emergency",
-      name: "Emergency Reserve (6 Mo Buffer)",
-      type: "GOAL" as const,
-      isCommitted: true,
-      excess: true,
-      icon: "shield",
-      color: "#EF4444",
-      target: "15000.00",
-      due: "2026-12-31",
-    },
-    {
-      key: "car",
-      name: "Car Rego, Service & Tyres",
-      type: "GOAL" as const,
-      isCommitted: true,
-      excess: false,
-      icon: "tool",
-      color: "#F59E0B",
-      target: "2400.00",
-      due: "2027-03-31",
-    },
-    {
-      key: "holiday",
-      name: "Annual Family Holiday (Japan 2026)",
-      type: "GOAL" as const,
-      isCommitted: false,
-      excess: false,
-      isSavingsDefault: false,
-      icon: "plane",
-      color: "#00B4A6",
-      target: "8500.00",
-      due: "2026-11-30",
-    },
-    {
-      key: "home_maint",
-      name: "Home Repairs & Appliance Fund",
-      type: "GOAL" as const,
-      isCommitted: false,
-      excess: false,
-      icon: "hammer",
-      color: "#6366F1",
-      target: "5000.00",
-      due: "2027-06-30",
-    },
+  // 6. Sub-tag Categories
+  const categoriesToInsert = [
+    { poolId: everydayPool.id, name: "Groceries & Food Supplies", monthlyAmount: "1170.00", icon: "shopping-cart", colour: "#10B981" },
+    { poolId: everydayPool.id, name: "Dining Out & Coffee", monthlyAmount: "1040.00", icon: "coffee", colour: "#F59E0B" },
+    { poolId: everydayPool.id, name: "Petrol & Fuel", monthlyAmount: "260.00", icon: "navigation", colour: "#3B82F6" },
+    { poolId: billsPool.id, name: "Mortgage / Rent Payment", monthlyAmount: "3200.00", isEssential: true, icon: "home", colour: "#EF4444" },
+    { poolId: billsPool.id, name: "Electricity & Gas (AGL)", monthlyAmount: "340.00", isEssential: true, icon: "zap", colour: "#F59E0B" },
+    { poolId: billsPool.id, name: "NBN Broadband (Aussie)", monthlyAmount: "89.00", isEssential: false, icon: "wifi", colour: "#22C55E" },
   ];
 
-  const insertedCatMap: Record<string, any> = {};
+  const insertedCats = await db.insert(categories).values(
+    categoriesToInsert.map((c) => ({
+      ...c,
+      tenantId,
+      appId,
+      createdBy: userId,
+      updatedBy: userId,
+    }))
+  ).returning();
 
-  for (const cat of canonicalCategories) {
-    const isEssential = cat.key === "mortgage" || cat.key === "electricity";
-    const isSurplusTarget = Boolean((cat as any).isSurplusTarget);
+  const groceriesCat = insertedCats.find((c) => c.name.includes("Groceries"))!;
+  const diningCat = insertedCats.find((c) => c.name.includes("Dining"))!;
+  const mortgageCat = insertedCats.find((c) => c.name.includes("Mortgage"))!;
 
-    const [inserted] = await db
-      .insert(categories)
-      .values({
-        name: cat.name,
-        type: cat.type,
-        isPrivate: Boolean((cat as any).isPrivate),
-        userId: (cat as any).isPrivate ? (cat.key === "kaesava_personal" ? userId : raehanUserId) : null,
-        isCommitted: cat.isCommitted ?? false,
-        isEssential,
-        isSurplusTarget,
-        monthlyAmount: cat.type === "REGULAR" ? cat.monthlyAmount : null,
-        everydayAllowanceAmount: cat.type === "EVERYDAY" ? (cat as any).allowance : null,
-        enteredAmount: cat.type === "REGULAR" ? cat.monthlyAmount : (cat.type === "EVERYDAY" ? (cat as any).allowance : null),
-        icon: cat.icon,
-        colour: cat.color,
-        tenantId,
-        appId,
-        createdBy: userId,
-        updatedBy: userId,
-      })
-      .returning();
-
-    insertedCatMap[cat.key] = inserted;
-
-    if (cat.type === "GOAL" && cat.target) {
-      await db.insert(categorySchedules).values({
-        categoryId: inserted.id,
-        targetAmount: cat.target,
-        targetDate: cat.due || null,
-        dueDate: cat.due || null,
-        tenantId,
-        appId,
-        createdBy: userId,
-        updatedBy: userId,
-      });
-    }
-
-  }
-
-  // Helper to burst dates from RRULE
-  function burstDates(rruleStr: string, startDateStr: string, monthsAhead = 12): string[] {
-    const dates: string[] = [];
-    const start = new Date(startDateStr);
-    if (isNaN(start.getTime())) return dates;
-    const now = new Date();
-    const cutOff = new Date(now.getFullYear(), now.getMonth() + monthsAhead, now.getDate());
-
-    let current = new Date(start.getTime());
-    const isWeekly = rruleStr.includes("FREQ=WEEKLY");
-    const isFortnightly = isWeekly && rruleStr.includes("INTERVAL=2");
-    const isMonthly = rruleStr.includes("FREQ=MONTHLY");
-    const isYearly = rruleStr.includes("FREQ=YEARLY");
-
-    let stepDays = 7;
-    if (isFortnightly) stepDays = 14;
-
-    let iterations = 0;
-    while (iterations < 100) {
-      iterations++;
-      if (current > cutOff) break;
-      dates.push(current.toISOString().split("T")[0]);
-
-      if (isMonthly) {
-        const targetYear = current.getFullYear() + Math.floor((current.getMonth() + 1) / 12);
-        const targetMonth = (current.getMonth() + 1) % 12;
-        const originalDay = start.getDate();
-        const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-        current = new Date(targetYear, targetMonth, Math.min(originalDay, daysInTargetMonth));
-      } else if (isYearly) {
-        const targetYear = current.getFullYear() + 1;
-        const originalMonth = start.getMonth();
-        const originalDay = start.getDate();
-        const daysInTargetMonth = new Date(targetYear, originalMonth + 1, 0).getDate();
-        current = new Date(targetYear, originalMonth, Math.min(originalDay, daysInTargetMonth));
-      } else {
-        current = new Date(current.getTime() + stepDays * 24 * 60 * 60 * 1000);
-      }
-    }
-
-    return dates;
-  }
-
-  // 6. Income Sources
+  // 7. Income Sources
   const [salarySource] = await db
     .insert(incomeSources)
-    .values({
-      name: "Primary Salary (Fortnightly)",
-      amount: "5200.00",
-      receivingAccountId: primaryAccount.id,
-      rrule: "FREQ=WEEKLY;INTERVAL=2",
-      startDate: "2026-07-01",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
+    .values({ name: "Primary Salary (Fortnightly)", amount: "5200.00", receivingAccountId: primaryAccount.id, rrule: "FREQ=WEEKLY;INTERVAL=2", startDate: "2026-07-01", tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
-  const [freelanceSource] = await db
-    .insert(incomeSources)
-    .values({
-      name: "Freelance & Consulting Work",
-      amount: "1500.00",
-      receivingAccountId: primaryAccount.id,
-      rrule: "FREQ=MONTHLY",
-      startDate: "2026-07-05",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
-    .returning();
-
-  // 7. Income Events (Bursted across 12 months)
-  const salaryDates = burstDates("FREQ=WEEKLY;INTERVAL=2", "2026-07-01", 12);
-  const freelanceDates = burstDates("FREQ=MONTHLY", "2026-07-05", 12);
+  // 8. Income Events
   const todayStr = new Date().toISOString().split("T")[0];
+  const [firstIncomeEvent] = await db
+    .insert(incomeEvents)
+    .values({ incomeSourceId: salarySource.id, expectedDate: "2026-07-01", expectedAmount: "5200.00", actualAmount: "5200.00", status: "CONFIRMED", tenantId, appId, createdBy: userId, updatedBy: userId })
+    .returning();
 
-  const incomeEventsToInsert = [
-    ...salaryDates.map((dateStr) => ({
-      incomeSourceId: salarySource.id,
-      expectedDate: dateStr,
-      expectedAmount: "5200.00",
-      actualAmount: dateStr < todayStr ? "5200.00" : null,
-      status: (dateStr < todayStr ? "CONFIRMED" : "UPCOMING") as "CONFIRMED" | "UPCOMING",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })),
-    ...freelanceDates.map((dateStr) => ({
-      incomeSourceId: freelanceSource.id,
-      expectedDate: dateStr,
-      expectedAmount: "1500.00",
-      actualAmount: dateStr < todayStr ? "1500.00" : null,
-      status: (dateStr < todayStr ? "CONFIRMED" : "UPCOMING") as "CONFIRMED" | "UPCOMING",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })),
-  ];
-
-  const insertedIncomeEvents = await db.insert(incomeEvents).values(incomeEventsToInsert).returning();
-  const firstIncomeEvent = insertedIncomeEvents[0];
-
-  // 9. Payday Allocation Plan & Credit Ledger Entries
+  // 9. Payday Allocation Plan
   const [allocationPlan] = await db
     .insert(allocationPlans)
-    .values({
-      incomeEventId: firstIncomeEvent.id,
-      totalIncomeAmount: "5200.00",
-      status: "CONFIRMED",
-      confirmedAt: new Date("2026-07-01T09:00:00Z"),
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    })
+    .values({ incomeEventId: firstIncomeEvent.id, totalIncomeAmount: "5200.00", status: "CONFIRMED", confirmedAt: new Date("2026-07-01T09:00:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   await db.insert(allocationPlanLines).values([
-    { planId: allocationPlan.id, categoryId: insertedCatMap.mortgage.id, proposedAmount: "1600.00", confirmedAmount: "1600.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.electricity.id, proposedAmount: "170.00", confirmedAmount: "170.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.broadband.id, proposedAmount: "44.50", confirmedAmount: "44.50", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.groceries.id, proposedAmount: "585.00", confirmedAmount: "585.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.dining.id, proposedAmount: "520.00", confirmedAmount: "520.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.petrol.id, proposedAmount: "130.00", confirmedAmount: "130.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.transport.id, proposedAmount: "90.00", confirmedAmount: "90.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.personal.id, proposedAmount: "215.00", confirmedAmount: "215.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.everyday.id, proposedAmount: "150.00", confirmedAmount: "150.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.kaesava_personal.id, proposedAmount: "150.00", confirmedAmount: "150.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.raehan_personal.id, proposedAmount: "150.00", confirmedAmount: "150.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.emergency.id, proposedAmount: "500.00", confirmedAmount: "500.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.holiday.id, proposedAmount: "400.00", confirmedAmount: "400.00", tenantId, appId, createdBy: userId, updatedBy: userId },
-    { planId: allocationPlan.id, categoryId: insertedCatMap.surplus_reserve.id, proposedAmount: "495.50", confirmedAmount: "495.50", tenantId, appId, createdBy: userId, updatedBy: userId },
+    { planId: allocationPlan.id, poolId: billsPool.id, proposedAmount: "1859.00", confirmedAmount: "1859.00", tenantId, appId, createdBy: userId, updatedBy: userId },
+    { planId: allocationPlan.id, poolId: everydayPool.id, proposedAmount: "1200.00", confirmedAmount: "1200.00", tenantId, appId, createdBy: userId, updatedBy: userId },
+    { planId: allocationPlan.id, poolId: emergencyPool.id, proposedAmount: "500.00", confirmedAmount: "500.00", tenantId, appId, createdBy: userId, updatedBy: userId },
+    { planId: allocationPlan.id, poolId: kaesavaPrivatePool.id, proposedAmount: "300.00", confirmedAmount: "300.00", tenantId, appId, createdBy: userId, updatedBy: userId },
+    { planId: allocationPlan.id, poolId: surplusPool.id, proposedAmount: "1341.00", confirmedAmount: "1341.00", tenantId, appId, createdBy: userId, updatedBy: userId },
   ]);
 
-  // 10. Transaction Ledger Entries (Initial Pool Allocations & Spend Debits)
+  // 10. Transaction Ledger
   await db.insert(transactionLedger).values([
-    // Payday Credit Allocations
-    { categoryId: insertedCatMap.groceries.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "585.00", idempotencyKey: "payday-alloc-groceries-2026-07-01", note: "Payday Allocation — Groceries", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.dining.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "520.00", idempotencyKey: "payday-alloc-dining-2026-07-01", note: "Payday Allocation — Dining", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.petrol.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "130.00", idempotencyKey: "payday-alloc-petrol-2026-07-01", note: "Payday Allocation — Petrol", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.transport.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "90.00", idempotencyKey: "payday-alloc-transport-2026-07-01", note: "Payday Allocation — Transport", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.personal.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "215.00", idempotencyKey: "payday-alloc-personal-2026-07-01", note: "Payday Allocation — Personal Care", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.everyday.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "150.00", idempotencyKey: "payday-alloc-everyday-2026-07-01", note: "Payday Allocation — Everyday Buffer", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-
-    { categoryId: insertedCatMap.mortgage.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "1600.00", idempotencyKey: "payday-alloc-mortgage-2026-07-01", note: "Payday Allocation — Mortgage Repayment", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.electricity.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "170.00", idempotencyKey: "payday-alloc-electricity-2026-07-01", note: "Payday Allocation — Electricity", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.broadband.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "44.50", idempotencyKey: "payday-alloc-broadband-2026-07-01", note: "Payday Allocation — Broadband", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-
-    // Initial Goal Savings Account Balances
-    { categoryId: insertedCatMap.emergency.id, bankAccountId: savingsAccount.id, flowType: "CREDIT", amount: "10000.00", idempotencyKey: "initial-goal-emergency-2026-07-01", note: "Initial Goal Balance — Emergency Reserve", source: "MANUAL", recordedAt: new Date("2026-07-01T09:00:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.holiday.id, bankAccountId: savingsAccount.id, flowType: "CREDIT", amount: "5000.00", idempotencyKey: "initial-goal-holiday-2026-07-01", note: "Initial Goal Balance — Japan Trip", source: "MANUAL", recordedAt: new Date("2026-07-01T09:00:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-
-    // Everyday Spend Debits
-    { categoryId: insertedCatMap.groceries.id, bankAccountId: primaryAccount.id, flowType: "DEBIT", amount: "142.50", idempotencyKey: "expense-groceries-debit-2026-07-02", note: "Woolworths Supermarket", source: "MANUAL", recordedAt: new Date("2026-07-02T10:30:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.dining.id, bankAccountId: primaryAccount.id, flowType: "DEBIT", amount: "48.00", idempotencyKey: "expense-dining-debit-2026-07-04", note: "Local Cafe Brunch", source: "MANUAL", recordedAt: new Date("2026-07-04T09:15:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-    { categoryId: insertedCatMap.broadband.id, bankAccountId: primaryAccount.id, flowType: "DEBIT", amount: "89.00", idempotencyKey: "expense-broadband-debit-2026-07-12", note: "Aussie Broadband Auto-Pay", source: "AUTO", recordedAt: new Date("2026-07-12T08:00:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
-  ]);
-
-  // 10. File Notes
-  await db.insert(fileNotes).values([
-    {
-      entityType: "categories",
-      entityId: insertedCatMap.car.id,
-      comment: "Annual Comprehensive Insurance Policy & NRMA Roadside Assistance Renewal Notice",
-      fileName: "NRMA_Insurance_Policy_2026.pdf",
-      fileMimeType: "application/pdf",
-      fileSize: "1.2 MB",
-      fileKey: "uploads/categories/nrma-policy.pdf",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      entityType: "categories",
-      entityId: insertedCatMap.holiday.id,
-      comment: "Flight estimate itinerary breakdown and hotel deposit confirmation for Tokyo & Kyoto",
-      fileName: "Japan_Trip_Itinerary_Estimate.pdf",
-      fileMimeType: "application/pdf",
-      fileSize: "2.4 MB",
-      fileKey: "uploads/categories/japan-trip.pdf",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-  ]);
-
-  // 11. Device Tokens
-  await db.insert(deviceTokens).values([
-    {
-      userId,
-      platform: "ios",
-      token: "ExponentPushToken[sample-ios-device-token-12345]",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
-    {
-      userId,
-      platform: "web",
-      token: "web-push-token-kaesava-dashboard-browser-67890",
-      tenantId,
-      appId,
-      createdBy: userId,
-      updatedBy: userId,
-    },
+    { poolId: everydayPool.id, categoryId: groceriesCat.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "1200.00", idempotencyKey: "payday-alloc-everyday-2026-07-01", note: "Payday Allocation — Everyday Pool", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
+    { poolId: billsPool.id, categoryId: mortgageCat.id, bankAccountId: primaryAccount.id, flowType: "CREDIT", amount: "1859.00", idempotencyKey: "payday-alloc-bills-2026-07-01", note: "Payday Allocation — Bills Pool", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
+    { poolId: emergencyPool.id, bankAccountId: savingsAccount.id, flowType: "CREDIT", amount: "10000.00", idempotencyKey: "initial-goal-emergency-2026-07-01", note: "Initial Reserve — Emergency Goal", source: "MANUAL", recordedAt: new Date("2026-07-01T09:00:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
+    { poolId: kaesavaPrivatePool.id, bankAccountId: kaesavaPrivateBank.id, flowType: "CREDIT", amount: "300.00", idempotencyKey: "payday-alloc-kaesava-2026-07-01", note: "Payday Allocation — Personal Pool", source: "AUTO", recordedAt: new Date("2026-07-01T09:05:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
+    { poolId: everydayPool.id, categoryId: groceriesCat.id, bankAccountId: primaryAccount.id, flowType: "DEBIT", amount: "142.50", idempotencyKey: "expense-groceries-debit-2026-07-02", note: "Woolworths Supermarket", source: "MANUAL", recordedAt: new Date("2026-07-02T10:30:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
+    { poolId: everydayPool.id, categoryId: diningCat.id, bankAccountId: primaryAccount.id, flowType: "DEBIT", amount: "48.00", idempotencyKey: "expense-dining-debit-2026-07-04", note: "Local Cafe Brunch", source: "MANUAL", recordedAt: new Date("2026-07-04T09:15:00Z"), tenantId, appId, createdBy: userId, updatedBy: userId },
   ]);
 
   console.log(`🎉 Seed data successfully populated for [${envLabel}] across all tables!`);

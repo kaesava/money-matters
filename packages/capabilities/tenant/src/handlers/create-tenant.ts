@@ -1,13 +1,10 @@
 import { z } from "zod";
-import { tenants, tenantUsers, appCategories, categories, bankAccounts, bankAccountCategoryMappings, apps, users, DbOrTx } from "@money-matters/db";
+import { tenants, tenantUsers, appCategories, pools, categories, bankAccounts, apps, users, DbOrTx } from "@money-matters/db";
 import { CreateTenantCommand } from "@money-matters/types";
 import { eq, and, isNull } from "drizzle-orm";
 
 /**
  * Creates a new tenant scope and assigns the creator user as OWNER.
- *
- * DESIGN: tenants.tenant_id no longer exists — the tenant IS its own isolation root.
- * tenant_users.app_id no longer exists — app context is derived from tenants.app_id.
  */
 export function createTenantHandler(db: DbOrTx) {
   return async (input: z.infer<typeof CreateTenantCommand>, appId: string, userId: string) => {
@@ -36,7 +33,7 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .onConflictDoNothing();
 
-    // 1. Insert the tenant — appId is a FK to apps.id, no self-referential tenantId
+    // 1. Insert the tenant
     await db
       .insert(tenants)
       .values({
@@ -51,7 +48,7 @@ export function createTenantHandler(db: DbOrTx) {
         updatedBy: userId,
       });
 
-    // 2. Add the owner record to tenant_users — no appId stored here; derived from tenant
+    // 2. Add the owner record to tenant_users
     await db
       .insert(tenantUsers)
       .values({
@@ -63,7 +60,7 @@ export function createTenantHandler(db: DbOrTx) {
         updatedBy: userId,
       });
 
-    // 3. Create default 'Primary Account' and link all three category types
+    // 3. Create default 'Primary Account'
     const [primaryAccount] = await db
       .insert(bankAccounts)
       .values({
@@ -77,34 +74,51 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .returning();
 
-    await db.insert(bankAccountCategoryMappings).values([
-      {
+    // 4. Create default Pools on Primary Account
+    const [everydayPool] = await db
+      .insert(pools)
+      .values({
         tenantId,
         appId,
-        categoryType: "EVERYDAY" as const,
+        name: "Everyday Spending",
+        poolType: "EVERYDAY",
         bankAccountId: primaryAccount.id,
+        everydayAllowanceAmount: "1000.00",
         createdBy: userId,
         updatedBy: userId,
-      },
-      {
-        tenantId,
-        appId,
-        categoryType: "REGULAR" as const,
-        bankAccountId: primaryAccount.id,
-        createdBy: userId,
-        updatedBy: userId,
-      },
-      {
-        tenantId,
-        appId,
-        categoryType: "GOAL" as const,
-        bankAccountId: primaryAccount.id,
-        createdBy: userId,
-        updatedBy: userId,
-      },
-    ]);
+      })
+      .returning();
 
-    // 4. Seed default categories from app_categories template
+    const [billsPool] = await db
+      .insert(pools)
+      .values({
+        tenantId,
+        appId,
+        name: "Regular Bills",
+        poolType: "REGULAR",
+        bankAccountId: primaryAccount.id,
+        rolloverRule: "ROLLOVER",
+        createdBy: userId,
+        updatedBy: userId,
+      })
+      .returning();
+
+    await db
+      .insert(pools)
+      .values({
+        tenantId,
+        appId,
+        name: "Emergency Reserve",
+        poolType: "GOAL",
+        bankAccountId: primaryAccount.id,
+        targetAmount: "10000.00",
+        isCommitted: true,
+        isSurplusTarget: true,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+
+    // 5. Seed default sub-tag categories into Everyday and Bills pools
     const templates = await db
       .select()
       .from(appCategories)
@@ -127,48 +141,27 @@ export function createTenantHandler(db: DbOrTx) {
           { name: "Everyday Incidental Buffer", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "300.00" },
           { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", colour: "#EF4444", monthlyAmount: "2400.00" },
           { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", colour: "#F59E0B", monthlyAmount: "300.00" },
-          { name: "Emergency Reserve", type: "GOAL" as const, icon: "shield", colour: "#6366F1", monthlyAmount: null },
         ];
 
     await db.insert(categories).values(
       defaultTemplates.map((template) => {
+        const poolId = template.type === "EVERYDAY" ? everydayPool.id : billsPool.id;
         return {
           tenantId,
           appId,
+          poolId,
           name: template.name,
-          type: template.type,
           icon: template.icon,
           colour: template.colour,
           monthlyAmount: template.monthlyAmount,
           enteredAmount: template.monthlyAmount,
           budgetFrequency: "MONTHLY",
-          rolloverRule: "ROLLOVER" as const,
-          isCommitted: false,
-          isSurplusTarget: template.name === "Emergency Reserve",
+          isEssential: template.name.includes("Rent") || template.name.includes("Electricity"),
           createdBy: userId,
           updatedBy: userId,
         };
       })
     );
-
-    // Seed default Personal Private category pool for tenant owner
-    await db.insert(categories).values({
-      tenantId,
-      appId,
-      name: "Personal Private Pool",
-      type: "EVERYDAY" as const,
-      isPrivate: true,
-      userId: userId,
-      icon: "user",
-      colour: "#EC4899",
-      monthlyAmount: "200.00",
-      enteredAmount: "200.00",
-      budgetFrequency: "MONTHLY",
-      rolloverRule: "ROLLOVER" as const,
-      isCommitted: false,
-      createdBy: userId,
-      updatedBy: userId,
-    });
 
     return {
       success: true,
@@ -178,11 +171,10 @@ export function createTenantHandler(db: DbOrTx) {
 }
 
 /**
- * Fetches tenant details, member users, and active bank accounts.
+ * Fetches tenant details, member users, active bank accounts, and pools.
  */
 export function getTenantHandler(db: DbOrTx) {
   return async (tenantId: string, appId: string) => {
-    // Query by PK directly — tenants.tenant_id column no longer exists
     const [tenant] = await db
       .select()
       .from(tenants)
@@ -197,7 +189,6 @@ export function getTenantHandler(db: DbOrTx) {
 
     if (!tenant) return null;
 
-    // No appId filter on tenantUsers — app context lives on the tenant row
     const tenantMemberList = await db
       .select()
       .from(tenantUsers)
@@ -219,10 +210,22 @@ export function getTenantHandler(db: DbOrTx) {
         )
       );
 
+    const tenantPools = await db
+      .select()
+      .from(pools)
+      .where(
+        and(
+          eq(pools.tenantId, tenant.id),
+          eq(pools.appId, appId),
+          isNull(pools.archivedAt)
+        )
+      );
+
     return {
       ...tenant,
       users: tenantMemberList,
       bankAccounts: accounts,
+      pools: tenantPools,
     };
   };
 }

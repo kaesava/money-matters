@@ -12,20 +12,24 @@ export async function overrideEventCommand(
 ) {
   return await dbClient.transaction(async (tx) => {
     if (input.eventType === "INCOME") {
-      const setPayload: {
-        expectedAmount: string;
-        expectedDate: string;
-        isOverridden: boolean;
-        updatedBy: string;
-        updatedAt: Date;
-        note?: string;
-      } = {
-        expectedAmount: input.amount,
-        expectedDate: input.expectedDate,
+      const setPayload: Record<string, unknown> = {
         isOverridden: true,
         updatedBy: userId,
         updatedAt: new Date(),
       };
+      if (input.amount || input.expectedAmount) {
+        setPayload.expectedAmount = input.expectedAmount || input.amount;
+      }
+      if (input.actualAmount) {
+        setPayload.actualAmount = input.actualAmount;
+      }
+      if (input.expectedDate) {
+        setPayload.expectedDate = input.expectedDate;
+      }
+      if (input.status) {
+        setPayload.status = input.status;
+      }
+      if (input.name) setPayload.name = input.name;
       if (input.note !== undefined) setPayload.note = input.note;
 
       const [updatedEvent] = await tx
@@ -42,14 +46,9 @@ export async function overrideEventCommand(
 
       if (!updatedEvent) throw new Error("Income event not found.");
 
-      if (input.updateSeries && updatedEvent.incomeSourceId) {
-        const sourcePayload: {
-          amount: string;
-          updatedBy: string;
-          updatedAt: Date;
-          name?: string;
-        } = {
-          amount: input.amount,
+      if (input.updateSeries && updatedEvent.incomeSourceId && (input.amount || input.expectedAmount)) {
+        const sourcePayload: Record<string, unknown> = {
+          amount: input.expectedAmount || input.amount,
           updatedBy: userId,
           updatedAt: new Date(),
         };
@@ -69,23 +68,25 @@ export async function overrideEventCommand(
 
       return updatedEvent;
     } else {
-      const setPayload: {
-        expectedAmount: string;
-        expectedDate: string;
-        isOverridden: boolean;
-        updatedBy: string;
-        updatedAt: Date;
-        name?: string;
-        categoryId?: string;
-        note?: string;
-      } = {
-        expectedAmount: input.amount,
-        expectedDate: input.expectedDate,
+      const setPayload: Record<string, unknown> = {
         isOverridden: true,
         updatedBy: userId,
         updatedAt: new Date(),
       };
+      if (input.amount || input.expectedAmount) {
+        setPayload.expectedAmount = input.expectedAmount || input.amount;
+      }
+      if (input.actualAmount) {
+        setPayload.actualAmount = input.actualAmount;
+      }
+      if (input.expectedDate) {
+        setPayload.expectedDate = input.expectedDate;
+      }
+      if (input.status) {
+        setPayload.status = input.status;
+      }
       if (input.name) setPayload.name = input.name;
+      if (input.poolId) setPayload.poolId = input.poolId;
       if (input.categoryId) setPayload.categoryId = input.categoryId;
       if (input.note !== undefined) setPayload.note = input.note;
 
@@ -103,19 +104,14 @@ export async function overrideEventCommand(
 
       if (!updatedEvent) throw new Error("Expense event not found.");
 
-      if (input.updateSeries && updatedEvent.expenseSourceId) {
-        const sourcePayload: {
-          amount: string;
-          updatedBy: string;
-          updatedAt: Date;
-          name?: string;
-          categoryId?: string;
-        } = {
-          amount: input.amount,
+      if (input.updateSeries && updatedEvent.expenseSourceId && (input.amount || input.expectedAmount)) {
+        const sourcePayload: Record<string, unknown> = {
+          amount: input.expectedAmount || input.amount,
           updatedBy: userId,
           updatedAt: new Date(),
         };
         if (input.name) sourcePayload.name = input.name;
+        if (input.poolId) sourcePayload.poolId = input.poolId;
         if (input.categoryId) sourcePayload.categoryId = input.categoryId;
 
         await tx

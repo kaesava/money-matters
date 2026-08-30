@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+import { t } from "@money-matters/i18n";
 
 export interface ModalDialogProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ export interface ModalDialogProps {
   onSave?: () => void | Promise<void>;
   children: React.ReactNode;
   maxWidthClass?: string;
+  maxWidth?: string;
 }
 
 export function ModalDialog({
@@ -20,8 +22,10 @@ export function ModalDialog({
   isDirty = false,
   onSave,
   children,
-  maxWidthClass = "max-w-lg",
+  maxWidthClass,
+  maxWidth = "max-w-lg",
 }: ModalDialogProps) {
+  const effectiveMaxWidth = maxWidthClass || maxWidth;
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -85,7 +89,7 @@ export function ModalDialog({
 
       {/* Modal Card */}
       <div
-        className={`relative z-10 w-full ${maxWidthClass} bg-white rounded-2xl shadow-2xl border border-zinc-200 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-150`}
+        className={`relative z-10 w-full ${effectiveMaxWidth} bg-white rounded-2xl shadow-2xl border border-zinc-200 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-150`}
       >
         {/* Header */}
         <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between gap-4">
@@ -116,9 +120,9 @@ export function ModalDialog({
               ⚠️
             </div>
             <div>
-              <h4 className="text-base font-extrabold text-[#1B2B4B]">Unsaved Changes</h4>
+              <h4 className="text-base font-extrabold text-[#1B2B4B]">{t("modals.unsavedChanges.title", { defaultValue: "Unsaved Changes" })}</h4>
               <p className="text-xs text-zinc-500 mt-1 font-medium">
-                You have unsaved changes in this form. Would you like to save them before leaving?
+                {t("modals.unsavedChanges.description", { defaultValue: "You have unsaved changes in this form. Would you like to save them before leaving?" })}
               </p>
             </div>
             <div className="flex flex-col gap-2 mt-2">
@@ -129,7 +133,7 @@ export function ModalDialog({
                   disabled={saving}
                   className="w-full py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-sm"
                 >
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? t("common.saving", { defaultValue: "Saving..." }) : t("common.save", { defaultValue: "Save Changes" })}
                 </button>
               )}
               <button
@@ -137,14 +141,14 @@ export function ModalDialog({
                 onClick={handleConfirmDiscard}
                 className="w-full py-2.5 rounded-xl font-bold text-xs text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all"
               >
-                Discard Changes
+                {t("modals.unsavedChanges.discard", { defaultValue: "Discard Changes" })}
               </button>
               <button
                 type="button"
                 onClick={() => setShowConfirm(false)}
                 className="w-full py-2 rounded-xl font-bold text-xs text-zinc-500 hover:text-zinc-800 transition-all"
               >
-                Keep Editing
+                {t("modals.unsavedChanges.keepEditing", { defaultValue: "Keep Editing" })}
               </button>
             </div>
           </div>

@@ -32,10 +32,6 @@ export default function BankAccountsDashboardPage() {
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const csvBatchesQuery = trpc.listCsvImportBatches.useQuery();
   const csvBatches = csvBatchesQuery.data ?? [];
-  
-  const updateMappingsMut = trpc.updateBankAccountMappings.useMutation({
-    onSuccess: () => bankAccountsQuery.refetch(),
-  });
 
   const createAccountMut = trpc.createBankAccount.useMutation({
     onSuccess: () => {
@@ -113,7 +109,16 @@ export default function BankAccountsDashboardPage() {
     setPage(1);
   }, [searchQuery, typeFilter, sortField, sortDir, pageSize]);
 
-  const accounts = (bankAccountsQuery.data as BankAccountItem[]) || [];
+  const accounts: BankAccountItem[] = (bankAccountsQuery.data ?? []).map((acc: Record<string, unknown>) => ({
+    id: acc.id as string,
+    name: acc.name as string,
+    bankProvider: (acc.bankProvider as string) ?? undefined,
+    lastKnownBalance: (acc.lastKnownBalance as string) ?? "0.00",
+    unbudgetedBuffer: (acc.unbudgetedBuffer as string) ?? "0.00",
+    isPrivate: (acc.isPrivate as boolean) ?? false,
+    categoryTypes: ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]),
+    updatedAt: (acc.updatedAt as string) ?? undefined,
+  }));
 
   // Filter accounts
   const filtered = accounts.filter((acc) => {
@@ -121,7 +126,7 @@ export default function BankAccountsDashboardPage() {
     const q = searchQuery.toLowerCase().trim();
     if (q && !acc.name.toLowerCase().includes(q)) return false;
     if (typeFilter !== "ALL") {
-      const catTypes = acc.categoryTypes || [];
+      const catTypes = acc.poolTypes || acc.categoryTypes || [];
       if (typeFilter === "UNLINKED" && catTypes.length > 0) return false;
       if (typeFilter !== "UNLINKED" && !catTypes.includes(typeFilter as CategoryType)) return false;
     }
@@ -174,7 +179,7 @@ export default function BankAccountsDashboardPage() {
     setAccBalance(acc.lastKnownBalance || "0.00");
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(acc.isPrivate ?? false);
-    setAccSelectedTypes(acc.categoryTypes);
+    setAccSelectedTypes(acc.categoryTypes || []);
     setErrorMsg(null);
     setIsModalOpen(true);
   };
@@ -243,23 +248,21 @@ export default function BankAccountsDashboardPage() {
       if (selectedTypes.includes(tType)) {
         updatedMappings.push({ categoryType: tType, bankAccountId: targetAccountId });
       } else {
-        const existingOwner = accounts.find((a) => a.id !== targetAccountId && a.categoryTypes.includes(tType));
+        const existingOwner = accounts.find((a) => a.id !== targetAccountId && (a.categoryTypes || []).includes(tType));
         if (existingOwner) {
           updatedMappings.push({ categoryType: tType, bankAccountId: existingOwner.id });
         }
       }
     }
 
-    if (updatedMappings.length > 0) {
-      updateMappingsMut.mutate({ mappings: updatedMappings });
-    }
+    // pool types are updated during account creation/update
   };
 
   const handleCategoryTypeToggle = (type: "EVERYDAY" | "REGULAR" | "GOAL") => {
     if (accSelectedTypes.includes(type)) {
       setAccSelectedTypes(accSelectedTypes.filter((t) => t !== type));
     } else {
-      const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && a.categoryTypes.includes(type));
+      const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && (a.categoryTypes || []).includes(type));
       if (currentOwner) {
         const labelMap: Record<"EVERYDAY" | "REGULAR" | "GOAL", string> = {
           EVERYDAY: "Everyday Pool",
@@ -285,9 +288,10 @@ export default function BankAccountsDashboardPage() {
   };
 
   const handleArchive = (acc: BankAccountItem) => {
-    if (acc.categoryTypes.length > 0) {
+    const catTypes = acc.categoryTypes || [];
+    if (catTypes.length > 0) {
       setErrorMsg(
-        `Cannot archive account "${acc.name}" because it has category type(s) linked to it (${acc.categoryTypes.join(", ")}). Re-assign these category types first.`
+        `Cannot archive account "${acc.name}" because it has category type(s) linked to it (${catTypes.join(", ")}). Re-assign these category types first.`
       );
       return;
     }

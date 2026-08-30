@@ -4,13 +4,17 @@ import { t } from "@money-matters/i18n";
 import { TRPCClientError } from "@trpc/client";
 
 interface DashboardErrorProps {
-  error: unknown;
+  error?: unknown;
+  message?: string;
   onRetry?: () => void;
   /** Compact mode — inline within a section rather than full-height */
   compact?: boolean;
 }
 
-function getErrorMessage(error: unknown): { title: string; detail: string; isApiDown: boolean } {
+function getErrorMessage(error?: unknown, message?: string): { title: string; detail: string; isApiDown: boolean } {
+  if (message) {
+    return { title: t("common.error"), detail: message, isApiDown: false };
+  }
   // Network / proxy failure — API server not running
   if (error instanceof TypeError && error.message.includes("fetch")) {
     return {
@@ -54,8 +58,8 @@ function getErrorMessage(error: unknown): { title: string; detail: string; isApi
 }
 
 /** Contextual error display for dashboard sections — never shows a generic "Something went wrong" */
-export function DashboardError({ error, onRetry, compact = false }: DashboardErrorProps) {
-  const { title, detail, isApiDown } = getErrorMessage(error);
+export function DashboardError({ error, message, onRetry, compact = false }: DashboardErrorProps) {
+  const { title, detail, isApiDown } = getErrorMessage(error, message);
 
   if (compact) {
     return (

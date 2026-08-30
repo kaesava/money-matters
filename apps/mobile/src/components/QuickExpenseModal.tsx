@@ -41,9 +41,9 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
   const isIncome = type === "CREDIT";
   const D = DESIGN_TOKENS;
 
-  // Fetch categories to populate dropdown
+  // Fetch categories/pools to populate dropdown
   const posthog = usePostHog();
-  const { data: categories, isLoading: categoriesLoading } = trpc.listCategories.useQuery();
+  const { data: categories, isLoading: categoriesLoading } = trpc.listPools.useQuery();
   const recordExpenseMutation = trpc.recordExpense.useMutation();
   const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
 
@@ -85,7 +85,7 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
         }
       } else {
         await recordExpenseMutation.mutateAsync({
-          categoryId: selectedCategoryId,
+          poolId: selectedCategoryId,
           amount: parseFloat(amount).toFixed(2),
           flowType: type,
           note: name.trim(),
@@ -210,7 +210,7 @@ export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onI
                           {cat.name}
                         </Text>
                         <Text style={styles.categoryBalance} numberOfLines={1}>
-                          ${parseFloat(cat.currentBalance).toFixed(0)}
+                          ${(typeof cat.currentBalance === 'number' ? cat.currentBalance : parseFloat(cat.currentBalance || '0')).toFixed(0)}
                         </Text>
                       </TouchableOpacity>
                     );

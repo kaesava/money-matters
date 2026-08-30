@@ -24,7 +24,7 @@ export default function IncomeAndExpensesScreen() {
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
-  const categoriesQuery = trpc.listCategories.useQuery();
+  const categoriesQuery = trpc.listPools.useQuery();
 
   const incomeSources = incomeSourcesQuery.data ?? [];
   const expenseSources = expenseSourcesQuery.data ?? [];
@@ -54,14 +54,14 @@ export default function IncomeAndExpensesScreen() {
     },
   });
 
-  const archiveExpenseMut = trpc.archiveExpenseSource.useMutation({
+  const deleteUpcomingMut = trpc.deleteUpcomingEvent.useMutation({
     onSuccess: () => {
       expenseSourcesQuery.refetch();
       expenseEventsQuery.refetch();
     },
   });
 
-  const markPaidMutation = trpc.markExpensePaid.useMutation({
+  const markPaidMutation = trpc.overrideEvent.useMutation({
     onSuccess: () => {
       expenseEventsQuery.refetch();
       categoriesQuery.refetch();
@@ -78,7 +78,7 @@ export default function IncomeAndExpensesScreen() {
   const handleArchiveExpense = (exp: ExpenseSourceItem) => {
     Alert.alert('Archive Expense Bill', `Archive "${exp.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Archive', style: 'destructive', onPress: () => archiveExpenseMut.mutate({ id: exp.id }) },
+      { text: 'Archive', style: 'destructive', onPress: () => deleteUpcomingMut.mutate({ eventId: exp.id, eventType: 'EXPENSE' }) },
     ]);
   };
 
@@ -121,7 +121,7 @@ export default function IncomeAndExpensesScreen() {
               expenseEvents={expenseEventsList}
               onOpenPaydayWizard={(eventId) => setPaydayWizardEventId(eventId)}
               onEditUpcomingExpense={(evt) => setUpcomingExpenseToEdit(evt)}
-              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ eventId, actualAmount: amt.toString() })}
+              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ eventId, eventType: 'EXPENSE', actualAmount: String(amt), status: 'PAID' })}
             />
           ) : (
             <View style={{ gap: 12 }}>

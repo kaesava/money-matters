@@ -100,17 +100,17 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
   │
   ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id [nullable for PENDING], role: OWNER|MEMBER, inviteEmail, inviteToken, inviteStatus: PENDING|ACCEPTED|REVOKED, invitedAt)
   ├── bank_accounts (lastKnownBalance, unbudgetedBuffer, isPrivate, userId)
+  │   └── pools (tenantId, appId, name, poolType: EVERYDAY|REGULAR|GOAL, bankAccountId, everydayAllowanceAmount, rolloverRule, targetAmount, targetDate, isCommitted, isSurplusTarget)
+  │       ├── categories (tenantId, appId, poolId, name, icon, colour, monthlyAmount, budgetFrequency, isEssential)
+  │       └── transaction_ledger (poolId, categoryId [nullable], flowType: DEBIT|CREDIT, source: MANUAL|IMPORT, recordedAt, note)
   ├── user_preferences (Global 1:1 per userId: userId UNIQUE, timezone, locale, theme, showIcons)
   ├── tenant_user_preferences (Scoped to userId, tenantId, appId: appPreferences: JSONB including alert toggles, UI flags, setup_completed state)
   ├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
-  ├── categories (tenantId, appId, name, type: REGULAR|GOAL|EVERYDAY, isPrivate, userId, monthlyAmount, rolloverRule, isCommitted)
-  │   ├── category_schedules (targetAmount, targetDate, dueDate)
-  │   └── transaction_ledger (flowType: DEBIT|CREDIT, source: MANUAL|IMPORT, recordedAt, note, metadata)
   ├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
   │   └── income_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
-  ├── expense_sources (name, amount, categoryId, rrule, startDate, endDate)
+  ├── expense_sources (name, amount, poolId, categoryId, rrule, startDate, endDate)
   │   └── expense_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
-  └── file_notes (entityType: CATEGORY|TRANSACTION, comment, fileKey, fileName, mimeType)
+  └── file_notes (entityType: POOL|CATEGORY|TRANSACTION, comment, fileKey, fileName, mimeType)
 ```
 
 > **Tenant-App Relationship**: Every tenant belongs to exactly one app via `tenants.app_id → apps.id`. `tenant_users` links users to tenants and derives `appId` via JOIN to `tenants`. If a user requires access to multiple apps, separate tenant IDs are provisioned for each app context.

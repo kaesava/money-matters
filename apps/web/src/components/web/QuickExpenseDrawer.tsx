@@ -1,4 +1,5 @@
 import React from "react";
+import { t } from "@money-matters/i18n";
 import { SlideOverDrawer, Spinner, SearchableCategorySelect, InfoTooltip, useIconVisibility } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
@@ -95,7 +96,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 }`}
               >
                 {showIcons && <span>💸</span>}
-                <span>Expense</span>
+                <span>{t("drawers.quickExpense.tabExpense", { defaultValue: "Expense" })}</span>
               </button>
               <button
                 type="button"
@@ -105,7 +106,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 }`}
               >
                 {showIcons && <span>💰</span>}
-                <span>Income</span>
+                <span>{t("drawers.quickExpense.tabIncome", { defaultValue: "Income" })}</span>
               </button>
               <button
                 type="button"
@@ -115,7 +116,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 }`}
               >
                 {showIcons && <span>🔄</span>}
-                <span>Transfer</span>
+                <span>{t("drawers.quickExpense.tabTransfer", { defaultValue: "Transfer" })}</span>
               </button>
             </div>
 
@@ -132,7 +133,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
               <>
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-                    Transfer Name
+                    {t("drawers.quickExpense.transferName", { defaultValue: "Transfer Name" })}
                   </label>
                   <input
                     type="text"
@@ -187,7 +188,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 {!isIncome && (
                   <div className="flex flex-col gap-1">
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-                      Category
+                      {t("drawers.quickExpense.category", { defaultValue: "Category" })}
                     </label>
                     <SearchableCategorySelect
                       categories={categories}
@@ -208,7 +209,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       onChange={(e) => setReceivingAccountId(e.target.value)}
                       className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     >
-                      <option value="">Default Everyday Account</option>
+                      <option value="">{t("drawers.quickExpense.defaultEverydayAccount", { defaultValue: "Default Everyday Account" })}</option>
                       {bankAccounts.map((a) => (
                         <option key={a.id} value={a.id}>
                           {a.name}
@@ -257,7 +258,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     <div className="col-span-2 p-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-blue-900 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-150">
                       <span className="text-base shrink-0">📅</span>
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#1B2B4B]">Scheduled for Payday Waterfall</span>
+                        <span className="font-bold text-[#1B2B4B]">{t("drawers.quickExpense.scheduledPaydayWaterfall", { defaultValue: "Scheduled for Payday Waterfall" })}</span>
                         <span className="text-[11px] text-blue-700 font-medium">
                           This future {!isIncome ? "expense bill" : "income deposit"} will be included as an upcoming event in your payday allocation horizon.
                         </span>
@@ -275,7 +276,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 onClick={onClose}
                 className="px-4 py-2.5 text-xs font-bold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all"
               >
-                Cancel
+                {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
               <button
                 type="submit"

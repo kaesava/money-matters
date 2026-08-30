@@ -128,7 +128,6 @@ function SetupWizardContent() {
           <SetupBankAccountsStep
             onBack={() => setStep(1)}
             onNext={() => setStep(3)}
-            showIcons={showIcons}
           />
         )}
 

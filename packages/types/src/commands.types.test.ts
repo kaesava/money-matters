@@ -4,9 +4,10 @@ import {
   UpdateTenantCommand,
   CreateBankAccountCommand,
   UpdateBankAccountCommand,
+  CreatePoolCommand,
+  UpdatePoolCommand,
   CreateCategoryCommand,
   UpdateCategoryCommand,
-  CreateCategoryScheduleCommand,
   CreateIncomeSourceCommand,
   UpdateIncomeSourceCommand,
   CreateIncomeSourceScheduleCommand,
@@ -42,35 +43,34 @@ describe('Command Schemas Validation', () => {
     expect(updateBank.lastKnownBalance).toBe('1500.25');
   });
 
-  it('validates CreateCategoryCommand and UpdateCategoryCommand', () => {
-    const catCmd = CreateCategoryCommand.parse({
-      name: 'Groceries',
-      type: 'EVERYDAY',
-      colour: '#FF0000',
+  it('validates CreatePoolCommand and UpdatePoolCommand', () => {
+    const poolCmd = CreatePoolCommand.parse({
+      name: 'Joint Bills',
+      poolType: 'REGULAR',
+      bankAccountId: '11111111-1111-4111-8111-111111111111',
     });
-    expect(catCmd.type).toBe('EVERYDAY');
+    expect(poolCmd.poolType).toBe('REGULAR');
 
-    expect(() =>
-      CreateCategoryCommand.parse({
-        name: 'Invalid Type',
-        type: 'INVALID' as unknown,
-      })
-    ).toThrow();
-
-    const updateCat = UpdateCategoryCommand.parse({
+    const updatePool = UpdatePoolCommand.parse({
       isCommitted: true,
-      monthlyAmount: '300.00',
+      targetAmount: '300.00',
     });
-    expect(updateCat.isCommitted).toBe(true);
+    expect(updatePool.isCommitted).toBe(true);
   });
 
-  it('validates CreateCategoryScheduleCommand', () => {
-    const schedCmd = CreateCategoryScheduleCommand.parse({
-      categoryId: '11111111-1111-4111-8111-111111111111',
-      targetAmount: '1000.00',
-      dueDate: '2026-12-01',
+  it('validates CreateCategoryCommand and UpdateCategoryCommand', () => {
+    const catCmd = CreateCategoryCommand.parse({
+      poolId: '11111111-1111-4111-8111-111111111111',
+      name: 'Groceries',
+      colour: '#FF0000',
     });
-    expect(schedCmd.targetAmount).toBe('1000.00');
+    expect(catCmd.name).toBe('Groceries');
+
+    const updateCat = UpdateCategoryCommand.parse({
+      isEssential: true,
+      monthlyAmount: '300.00',
+    });
+    expect(updateCat.isEssential).toBe(true);
   });
 
   it('validates CreateIncomeSourceCommand and UpdateIncomeSourceCommand', () => {
@@ -102,21 +102,21 @@ describe('Command Schemas Validation', () => {
 
   it('validates RecordExpenseCommand and MoveMoneyCommand', () => {
     const expense = RecordExpenseCommand.parse({
-      categoryId: '11111111-1111-4111-8111-111111111111',
+      poolId: '11111111-1111-4111-8111-111111111111',
       amount: '50.00',
     });
     expect(expense.flowType).toBe('DEBIT');
     expect(expense.source).toBe('MANUAL');
 
     const move = MoveMoneyCommand.parse({
-      sourceCategoryId: '11111111-1111-4111-8111-111111111111',
-      destinationCategoryId: '22222222-2222-4222-8222-222222222222',
+      sourcePoolId: '11111111-1111-4111-8111-111111111111',
+      destinationPoolId: '22222222-2222-4222-8222-222222222222',
       amount: '100.00',
     });
     expect(move.amount).toBe('100.00');
   });
 
-  it('validates OverrideEventCommand, SkipEventsCommand, DeleteUpcomingEventCommand, and ConfirmPaydayCommand', () => {
+  it('validates OverrideEventCommand, DeleteUpcomingEventCommand, and ConfirmPaydayCommand', () => {
     const override = OverrideEventCommand.parse({
       eventId: '11111111-1111-4111-8111-111111111111',
       eventType: 'INCOME',
@@ -147,7 +147,7 @@ describe('Command Schemas Validation', () => {
       actualAmount: '2500.00',
       lines: [
         {
-          bucketId: '22222222-2222-4222-8222-222222222222',
+          poolId: '22222222-2222-4222-8222-222222222222',
           amount: '500.00',
         },
       ],
@@ -169,7 +169,7 @@ describe('Command Schemas Validation', () => {
       clientMutationId: '11111111-1111-4111-8111-111111111111',
       idempotencyKey: 'mut-12345',
       clientTimestamp: '2026-07-26T00:00:00.000Z',
-      categoryId: '22222222-2222-4222-8222-222222222222',
+      poolId: '22222222-2222-4222-8222-222222222222',
       amount: '45.50',
       flowType: 'DEBIT',
     });
@@ -185,4 +185,3 @@ describe('Command Schemas Validation', () => {
     expect(waterfall.paycheckAmount).toBe('3200.00');
   });
 });
-

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { SearchInput, fmtDate } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export interface UpcomingEvent {
   id: string;
@@ -99,8 +100,8 @@ export function UpcomingEventsList({
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-[#1B2B4B]">Upcoming Events</h2>
-          <p className="text-xs text-zinc-500 font-semibold">Scheduled income deposits & upcoming bill payments</p>
+          <h2 className="text-2xl font-black text-[#1B2B4B]">{t("dashboard.upcomingEvents.title", { defaultValue: "Upcoming Events" })}</h2>
+          <p className="text-xs text-zinc-500 font-semibold">{t("dashboard.upcomingEvents.subtitle", { defaultValue: "Scheduled income deposits & upcoming bill payments" })}</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -169,7 +170,7 @@ export function UpcomingEventsList({
                 defaultValue=""
               >
                 <option value="" disabled>
-                  Select Series...
+                  {t("dashboard.upcomingEvents.selectSeries", { defaultValue: "Select Series..." })}
                 </option>
                 {seriesList.map((s) => {
                   const isSelected = s.eventKeys.every((k) => selectedEventKeys.includes(k));
@@ -191,7 +192,7 @@ export function UpcomingEventsList({
 
       {events.length === 0 ? (
         <div className="p-8 rounded-2xl bg-white border border-zinc-100 text-center text-xs text-zinc-400">
-          No upcoming events found.
+          {t("dashboard.upcomingEvents.empty", { defaultValue: "No upcoming events found." })}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -229,12 +230,12 @@ export function UpcomingEventsList({
                       <span className="text-sm font-bold text-[#1B2B4B]">{evt.name}</span>
                       {isOverdue && (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
-                          ACTION REQUIRED
+                          {t("badges.actionRequired", { defaultValue: "ACTION REQUIRED" })}
                         </span>
                       )}
                       {evt.type === "INCOME" && isNextPayday && (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#00B4A6]/20 text-[#00B4A6] border border-[#00B4A6]/40">
-                          NEXT PAYDAY
+                          {t("badges.nextPayday", { defaultValue: "NEXT PAYDAY" })}
                         </span>
                       )}
                       <span
@@ -297,13 +298,13 @@ export function UpcomingEventsList({
                 ⚠️
               </div>
               <div>
-                <h3 className="text-lg font-black text-[#1B2B4B]">Permanently Delete Events</h3>
-                <p className="text-xs text-zinc-500 font-semibold">Action cannot be undone</p>
+                <h3 className="text-lg font-black text-[#1B2B4B]">{t("dashboard.upcomingEvents.deleteTitle", { defaultValue: "Permanently Delete Events" })}</h3>
+                <p className="text-xs text-zinc-500 font-semibold">{t("dashboard.upcomingEvents.cannotBeUndone", { defaultValue: "Action cannot be undone" })}</p>
               </div>
             </div>
 
             <p className="text-xs text-zinc-600 leading-relaxed">
-              Are you sure you want to permanently delete the <strong className="text-rose-600">{selectedEventKeys.length}</strong> selected event(s)? These records will be permanently removed from your database.
+              {t("dashboard.upcomingEvents.deleteConfirmPrompt", { defaultValue: `Are you sure you want to permanently delete the ${selectedEventKeys.length} selected event(s)? These records will be permanently removed from your database.` })}
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -311,7 +312,7 @@ export function UpcomingEventsList({
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all"
               >
-                Cancel
+                {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
               <button
                 onClick={() => {

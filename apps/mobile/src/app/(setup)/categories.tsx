@@ -24,10 +24,10 @@ export default function SetupCategoriesScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Queries & Mutations
-  const existingCategoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: params.mode === 'rerun' });
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
+  const existingCategoriesQuery = trpc.listPools.useQuery(undefined, { enabled: params.mode === 'rerun' });
   const createIncomeSource = trpc.createIncomeSource.useMutation();
-  const createCategory = trpc.createCategory.useMutation();
-  const createCategorySchedule = trpc.createCategorySchedule.useMutation();
+  const createCategory = trpc.createPool.useMutation();
   const generateEvents = trpc.maintainRollingWindow.useMutation();
   const reSetupBudget = trpc.reSetupBudget.useMutation();
 
@@ -72,21 +72,20 @@ export default function SetupCategoriesScreen() {
       if (isRerun) {
         const existingCats = existingCategoriesQuery.data ?? [];
         const selectedList = allPresets.filter((p) => selected.has(p.id));
-        const categoriesList = selectedList.map((c) => {
+        const poolsList = selectedList.map((c) => {
           const targetAmt = parseFloat(targets[c.id] || c.suggestedMonthlyAud.toString()) || 0;
-          const matched = existingCats.find((ec) => ec.name.trim().toLowerCase() === c.name.trim().toLowerCase() && ec.type === c.type);
+          const matched = existingCats.find((ec) => ec.name.trim().toLowerCase() === c.name.trim().toLowerCase() && (ec.poolType || (ec as { type?: string }).type) === c.type);
           return {
             id: matched?.id,
             name: c.name,
-            type: c.type as "EVERYDAY" | "REGULAR" | "GOAL",
-            monthlyAmount: targetAmt,
-            targetAmount: targetAmt,
+            poolType: c.type as "EVERYDAY" | "REGULAR" | "GOAL",
+            targetAmount: targetAmt.toFixed(2),
           };
         });
 
-        const totalBillsCap = categoriesList
-          .filter((c) => c.type === 'REGULAR')
-          .reduce((sum, c) => sum + (c.monthlyAmount || 0), 0);
+        const totalBillsCap = poolsList
+          .filter((c) => c.poolType === 'REGULAR')
+          .reduce((sum, c) => sum + (parseFloat(c.targetAmount || '0') || 0), 0);
 
         Alert.alert(
           "Reconcile & Apply Budget Changes",
@@ -98,9 +97,9 @@ export default function SetupCategoriesScreen() {
               onPress: async () => {
                 try {
                   await reSetupBudget.mutateAsync({
-                    everydayTargetCap: 2000,
-                    billsTargetCap: totalBillsCap,
-                    categoriesList,
+                    everydayTargetCap: "2000.00",
+                    billsTargetCap: totalBillsCap.toFixed(2),
+                    poolsList,
                   });
                   router.replace('/(app)/home');
                 } catch (err) {
@@ -124,33 +123,20 @@ export default function SetupCategoriesScreen() {
           frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
         });
 
-        // 2. Save categories & schedule targets in parallel batches
+        // 2. Save categories & pools
+        const defaultBankAccountId = bankAccountsQuery.data?.[0]?.id || '';
         const selectedList = allPresets.filter((p) => selected.has(p.id));
-        const createdCategories = await Promise.all(
+        await Promise.all(
           selectedList.map(async (cat) => {
             const targetAmt = targets[cat.id] || allPresets.find((p) => p.id === cat.id)!.suggestedMonthlyAud.toString();
-            const created = await createCategory.mutateAsync({
+            return await createCategory.mutateAsync({
               name: cat.name,
-              type: cat.type,
-              budgetFrequency: 'MONTHLY',
-              enteredAmount: targetAmt,
-              monthlyAmount: targetAmt,
+              poolType: cat.type,
+              bankAccountId: defaultBankAccountId,
+              targetAmount: parseFloat(targetAmt) > 0 ? parseFloat(targetAmt).toFixed(2) : undefined,
             });
-            return { presetId: cat.id, createdId: created.id };
           })
         );
-
-        const schedulePromises = createdCategories.map(({ presetId, createdId }) => {
-          const targetAmt = targets[presetId] || allPresets.find((p) => p.id === presetId)!.suggestedMonthlyAud.toString();
-          if (parseFloat(targetAmt) > 0) {
-            return createCategorySchedule.mutateAsync({
-              categoryId: createdId,
-              targetAmount: parseFloat(targetAmt).toFixed(2),
-            });
-          }
-          return Promise.resolve();
-        });
-        await Promise.all(schedulePromises);
 
         // 3. Trigger events burst generator
         await generateEvents.mutateAsync();

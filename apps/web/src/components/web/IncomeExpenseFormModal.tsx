@@ -1,64 +1,60 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { trpc } from "../../lib/trpc";
-import posthog from "../../lib/posthog-client";
-import { ModalDialog } from "./ModalDialog";
-import { RecurrenceFields } from "./forms/RecurrenceFields";
-import { InfoTooltip, Spinner, useToast } from "@money-matters/ui/web";
 
-function cleanAmount(raw: string): string {
-  const cleaned = raw.replace(/[^0-9.]/g, "");
-  const val = parseFloat(cleaned);
-  return isNaN(val) ? "0.00" : val.toFixed(2);
+import React, { useState, useEffect, useMemo } from "react";
+import { useToast } from "@money-matters/ui/web";
+import { ModalDialog } from "./ModalDialog";
+import { t } from "@money-matters/i18n";
+import { trpc } from "../../lib/trpc";
+
+interface SourceToEdit {
+  id: string;
+  name: string;
+  amount: string;
+  poolId?: string;
+  categoryId?: string;
+  receivingAccountId?: string;
+  rrule?: string | null;
+  startDate?: string | null;
 }
 
-export interface IncomeExpenseFormModalProps {
+interface IncomeExpenseFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: "INCOME" | "EXPENSE";
-  sourceToEdit?: {
-    id: string;
-    name: string;
-    amount: string;
-    categoryId?: string | null;
-    receivingAccountId?: string | null;
-    rrule?: string | null;
-    startDate?: string | null;
-  } | null;
-  onSuccess?: () => void;
-  onArchive?: (item: { id: string; name: string }) => void;
+  sourceToEdit?: SourceToEdit;
 }
 
-export function IncomeExpenseFormModal({
+function cleanAmount(val: string): string {
+  const cleaned = val.replace(/[^0-9.]/g, "");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? "0.00" : num.toFixed(2);
+}
+
+export default function IncomeExpenseFormModal({
   isOpen,
   onClose,
   mode,
   sourceToEdit,
-  onSuccess,
-  onArchive,
 }: IncomeExpenseFormModalProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
-  const categoriesQuery = trpc.listCategories.useQuery();
-  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
 
-  const categoriesData = categoriesQuery.data;
-  const bankAccountsData = bankAccountsQuery.data;
+  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
+  const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
 
-  const categories = React.useMemo(() => categoriesData ?? [], [categoriesData]);
-  const bankAccounts = React.useMemo(() => bankAccountsData ?? [], [bankAccountsData]);
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
+  const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
 
   const createIncomeMut = trpc.createIncomeSource.useMutation();
   const updateIncomeMut = trpc.updateIncomeSource.useMutation();
 
   const createExpenseMut = trpc.createExpenseSource.useMutation();
-  const updateExpenseMut = trpc.updateExpenseSource.useMutation();
 
   const isEdit = !!sourceToEdit;
 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [poolId, setPoolId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
   const [isRecurring, setIsRecurring] = useState(true);
   const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
@@ -70,7 +66,7 @@ export function IncomeExpenseFormModal({
     if (sourceToEdit) {
       setName(sourceToEdit.name || "");
       setAmount(sourceToEdit.amount || "");
-      setCategoryId(sourceToEdit.categoryId || "");
+      setPoolId(sourceToEdit.poolId || pools[0]?.id || "");
       setReceivingAccountId(sourceToEdit.receivingAccountId || "");
 
       const hasSchedule = !!sourceToEdit.rrule || !!sourceToEdit.startDate;
@@ -89,21 +85,14 @@ export function IncomeExpenseFormModal({
     } else {
       setName("");
       setAmount("");
-      setCategoryId(categories.find((c) => c.type !== "EVERYDAY")?.id || "");
+      setPoolId(pools.find((p) => p.poolType === "REGULAR")?.id || pools[0]?.id || "");
       setReceivingAccountId(bankAccounts[0]?.id || "");
       setIsRecurring(true);
       setFrequency("MONTHLY");
       setStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
     }
     setErrorMsg("");
-  }, [sourceToEdit, isOpen, bankAccounts, categories]);
-
-  const isDirty = isEdit
-    ? name !== (sourceToEdit?.name || "") ||
-      amount !== (sourceToEdit?.amount || "") ||
-      categoryId !== (sourceToEdit?.categoryId || "") ||
-      receivingAccountId !== (sourceToEdit?.receivingAccountId || "")
-    : name.trim().length > 0 || amount.length > 0;
+  }, [sourceToEdit, isOpen, bankAccounts, pools]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -115,8 +104,8 @@ export function IncomeExpenseFormModal({
       return;
     }
 
-    if (mode === "EXPENSE" && !categoryId) {
-      setErrorMsg("Expense sources MUST be assigned to a Category.");
+    if (mode === "EXPENSE" && !poolId) {
+      setErrorMsg("Expense sources MUST be assigned to a Pool.");
       return;
     }
 
@@ -128,7 +117,7 @@ export function IncomeExpenseFormModal({
     try {
       if (mode === "INCOME") {
         if (isEdit && sourceToEdit) {
-          const res = await updateIncomeMut.mutateAsync({
+          await updateIncomeMut.mutateAsync({
             id: sourceToEdit.id,
             data: {
               name,
@@ -139,10 +128,6 @@ export function IncomeExpenseFormModal({
               startDate: startDate || undefined,
             },
           });
-
-          if (res?.hasConfirmedHistory) {
-            toast.info("Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.");
-          }
         } else {
           await createIncomeMut.mutateAsync({
             name,
@@ -157,26 +142,19 @@ export function IncomeExpenseFormModal({
         await utils.listIncomeEvents.invalidate();
       } else {
         if (isEdit && sourceToEdit) {
-          const res = await updateExpenseMut.mutateAsync({
-            id: sourceToEdit.id,
-            data: {
-              name,
-              amount: formattedAmount,
-              categoryId: categoryId || undefined,
-              isRecurring,
-              frequency: isRecurring ? frequency : undefined,
-              startDate: startDate || undefined,
-            },
+          await createExpenseMut.mutateAsync({
+            name,
+            amount: formattedAmount,
+            poolId,
+            isRecurring,
+            frequency: isRecurring ? frequency : undefined,
+            startDate: startDate || undefined,
           });
-
-          if (res?.hasPaidHistory) {
-            toast.info("Note: Bills that have already been marked as paid won't be changed. Only unperformed future occurrences have been updated.");
-          }
         } else {
           await createExpenseMut.mutateAsync({
             name,
             amount: formattedAmount,
-            categoryId,
+            poolId,
             isRecurring,
             frequency: isRecurring ? frequency : undefined,
             startDate: startDate || undefined,
@@ -186,184 +164,144 @@ export function IncomeExpenseFormModal({
         await utils.listExpenseEvents.invalidate();
       }
 
-      posthog.capture(
-        mode === "INCOME"
-          ? isEdit
-            ? "income_source_updated"
-            : "income_source_created"
-          : isEdit
-            ? "expense_source_updated"
-            : "expense_source_created",
-        {
-          is_recurring: isRecurring,
-          frequency: isRecurring ? frequency : "one_off",
-          has_linked_destination: Boolean(mode === "INCOME" ? receivingAccountId : categoryId),
-        }
-      );
-      if (onSuccess) onSuccess();
+      toast.success(t("toasts.saved"));
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : `Failed to save ${mode.toLowerCase()} source.`;
-      setErrorMsg(message);
+      setErrorMsg((err as Error).message || "Failed to save stream");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const modalTitle = isEdit
-    ? `Edit ${mode === "INCOME" ? "Income" : "Expense"}: ${sourceToEdit.name}`
-    : mode === "INCOME"
-      ? "Setup Income"
-      : "Setup Expense or Bill";
-
-  const infoTooltipText = mode === "INCOME"
-    ? "Setup any upcoming one-off or repeating income"
-    : "Setup any upcoming expenses or bills you're expecting";
+  if (!isOpen) return null;
 
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        <div className="flex items-center gap-2">
-          <span>{modalTitle}</span>
-          <InfoTooltip content={infoTooltipText} />
-        </div>
-      }
-      isDirty={isDirty}
-      onSave={handleSave}
+      title={isEdit ? `Edit ${mode === "INCOME" ? "Income Stream" : "Bill Schedule"}` : `Add ${mode === "INCOME" ? "Income Stream" : "Bill Schedule"}`}
+      maxWidth="max-w-md"
     >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSave();
-        }}
-        className="flex flex-col gap-4"
-      >
+      <div className="space-y-4 text-xs font-medium text-zinc-700">
         {errorMsg && (
-          <div className="p-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
+          <div className="p-3 bg-red-50 text-red-700 font-bold rounded-xl border border-red-200">
             {errorMsg}
           </div>
         )}
 
-        {/* Source Name */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-            {mode === "INCOME" ? "Income Source Name" : "Expense Bill Name"}
-          </label>
+        <div>
+          <label className="block font-bold text-[#1B2B4B] mb-1">Name / Label</label>
           <input
             type="text"
-            placeholder={mode === "INCOME" ? "e.g. Primary Salary, Yearly Bonus" : "e.g. Electricity, Internet"}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+            placeholder={mode === "INCOME" ? "e.g. Salary, Client Retainer" : "e.g. Electricity, Gym Membership"}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           />
         </div>
 
-        {/* Amount */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-            Expected Amount ($)
-          </label>
+        <div>
+          <label className="block font-bold text-[#1B2B4B] mb-1">Amount ($)</label>
           <input
             type="number"
             step="0.01"
-            placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+            placeholder="0.00"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           />
         </div>
 
-        {/* Expense Category (Mandatory for Expense) */}
         {mode === "EXPENSE" && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Assigned Category <span className="text-rose-500">*</span>
-            </label>
+          <div>
+            <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.incomeExpenseForm.assignPool", { defaultValue: "Assign to Pool" })}</label>
             <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
-              required
+              value={poolId}
+              onChange={(e) => setPoolId(e.target.value)}
+              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             >
-              <option value="">-- Select Category --</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.type})
+              {pools.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.poolType})
                 </option>
               ))}
             </select>
           </div>
         )}
 
-        {/* Income Receiving Bank Account */}
-        {mode === "INCOME" && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Receiving Bank Account (Optional)
-            </label>
+        {mode === "INCOME" && bankAccounts.length > 0 && (
+          <div>
+            <label className="block font-bold text-[#1B2B4B] mb-1">Receiving Bank Account (Optional)</label>
             <select
               value={receivingAccountId}
               onChange={(e) => setReceivingAccountId(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900"
+              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             >
-              <option value="">-- Direct Deposit Account --</option>
-              {bankAccounts.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
+              <option value="">(None / Unlinked)</option>
+              {bankAccounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name}
                 </option>
               ))}
             </select>
           </div>
         )}
 
-        <RecurrenceFields
-          isRecurring={isRecurring}
-          setIsRecurring={setIsRecurring}
-          frequency={frequency}
-          setFrequency={setFrequency}
-          startDate={startDate}
-          setStartDate={setStartDate}
-        />
+        <label className="flex items-center gap-2 pt-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isRecurring}
+            onChange={(e) => setIsRecurring(e.target.checked)}
+            className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
+          />
+          <span className="font-bold text-zinc-800">{t("modals.incomeExpenseForm.recurringSchedule", { defaultValue: "Recurring Schedule" })}</span>
+        </label>
 
-        {/* Form Actions */}
-        <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-zinc-100">
-          <div>
-            {isEdit && onArchive && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm(`Are you sure you want to archive "${sourceToEdit?.name}"?`)) {
-                    onArchive(sourceToEdit);
-                    onClose();
-                  }
-                }}
-                className="text-[11px] font-bold text-zinc-400 hover:text-rose-600 transition-colors"
+        {isRecurring && (
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div>
+              <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.incomeExpenseForm.frequency", { defaultValue: "Frequency" })}</label>
+              <select
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY")}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
               >
-                Archive Schedule
-              </button>
-            )}
+                <option value="WEEKLY">{t("frequencies.weekly", { defaultValue: "Weekly" })}</option>
+                <option value="FORTNIGHTLY">{t("frequencies.fortnightly", { defaultValue: "Fortnightly" })}</option>
+                <option value="MONTHLY">{t("frequencies.monthly", { defaultValue: "Monthly" })}</option>
+                <option value="ANNUALLY">{t("frequencies.annually", { defaultValue: "Annually" })}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.incomeExpenseForm.firstDate", { defaultValue: "First Date" })}</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-800 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-[#00B4A6] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2"
-            >
-              {submitting && <Spinner size="sm" />}
-              {isEdit ? "Save Changes" : `Create ${mode === "INCOME" ? "Income" : "Expense"}`}
-            </button>
-          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-4 border-t border-zinc-200">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50"
+          >
+            {t("common.cancel", { defaultValue: "Cancel" })}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={submitting}
+            className="px-5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl shadow-md disabled:opacity-50"
+          >
+            {submitting ? "Saving..." : isEdit ? "Update Stream" : "Create Stream"}
+          </button>
         </div>
-      </form>
+      </div>
     </ModalDialog>
   );
 }

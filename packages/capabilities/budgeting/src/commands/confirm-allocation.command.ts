@@ -7,7 +7,8 @@ export const ConfirmAllocationInput = z.object({
   incomeAmount: z.number().positive(),
   lines: z.array(
     z.object({
-      categoryId: z.string().uuid(),
+      poolId: z.string().uuid(),
+      categoryId: z.string().uuid().optional(),
       confirmedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
       reasoning: z.string().optional(),
     }).strict()
@@ -42,8 +43,9 @@ export async function confirmAllocationCommand(
       tenantId,
       appId,
       planId: plan.id,
+      poolId: line.poolId,
       categoryId: line.categoryId,
-      proposedAmount: line.confirmedAmount, // For V2, proposed = confirmed on override
+      proposedAmount: line.confirmedAmount,
       confirmedAmount: line.confirmedAmount,
       reasoning: line.reasoning || "Manual Override",
       createdBy: userId,
@@ -64,6 +66,7 @@ export async function confirmAllocationCommand(
         ledgerEntriesToInsert.push({
           tenantId,
           appId,
+          poolId: line.poolId,
           categoryId: line.categoryId,
           planLineId: insertedLine.id,
           flowType: "CREDIT" as const,

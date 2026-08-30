@@ -19,7 +19,7 @@ export default function TransactionsScreen() {
   const { data: session } = authClient.useSession();
 
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
-  const categoriesQuery = trpc.listCategories.useQuery();
+  const categoriesQuery = trpc.listPools.useQuery();
 
   const transactions = transactionsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
@@ -72,7 +72,7 @@ export default function TransactionsScreen() {
 
     if (categoryTypeFilter !== 'ALL') {
       const cat = categories.find((c) => c.id === tx.categoryId);
-      if (!cat || cat.type !== categoryTypeFilter) return false;
+      if (!cat || (cat.poolType || (cat as { type?: string }).type) !== categoryTypeFilter) return false;
     }
 
     return true;

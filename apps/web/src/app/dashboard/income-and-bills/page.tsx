@@ -2,85 +2,51 @@
 
 import React, { useState, useCallback } from "react";
 import { trpc } from "../../../lib/trpc";
-import posthog from "../../../lib/posthog-client";
-import { SourceItem, EventItem } from "./components/BurstModal";
-import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
-import { MatrixPlanTab } from "./components/MatrixPlanTab";
-import { SetupSourcesTab } from "./components/SetupSourcesTab";
-import { IncomeExpenseFormModal } from "../../../components/web/IncomeExpenseFormModal";
-import { InfoTooltip, SearchInput, useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-import { MatrixIncomeEvent } from "@money-matters/capability-budgeting";
+import { useToast, Spinner } from "@money-matters/ui/web";
+import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
+import { MatrixPlanTab } from "./components/MatrixPlanTab";
+import posthog from "../../../lib/posthog-client";
 
-interface CategoryRecord {
-  id: string;
-  name: string;
-  type?: "EVERYDAY" | "REGULAR" | "GOAL";
-  isPrivate?: boolean | null;
-  isCommitted?: boolean | null;
-  isEssential?: boolean | null;
-  isSurplusTarget?: boolean | null;
-  monthlyAmount?: string | null;
-  targetAmount?: string | null;
-  everydayAllowanceAmount?: string | null;
-  enteredAmount?: string | null;
-  currentBalance?: number;
-  userId?: string | null;
-}
+type ActiveTab = "STREAMS" | "EVENTS" | "MATRIX";
 
-export default function IncomeAndExpensesPage() {
+export default function IncomeAndBillsPage() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>("MATRIX");
   const toast = useToast();
   const utils = trpc.useUtils();
 
-  const [activeTab, setActiveTab] = useState<"SCHEDULE" | "SETUP">("SCHEDULE");
-  const [scheduleSubView, setScheduleSubView] = useState<"TIMELINE" | "GRID">("TIMELINE");
-
+  const poolsQuery = trpc.listPools.useQuery();
+  const categoriesQuery = trpc.listCategories.useQuery();
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
   const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
-  const categoriesQuery = trpc.listCategories.useQuery();
-  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
 
-  const rawCategories = (categoriesQuery.data ?? []) as unknown as CategoryRecord[];
-  const categories = rawCategories;
-  const bankAccounts = bankAccountsQuery.data ?? [];
-  const incomeEvents = (incomeEventsQuery.data ?? []) as EventItem[];
-  const expenseEvents = (expenseEventsQuery.data ?? []) as EventItem[];
+  const isLoading =
+    poolsQuery.isLoading ||
+    categoriesQuery.isLoading ||
+    incomeSourcesQuery.isLoading ||
+    expenseSourcesQuery.isLoading ||
+    incomeEventsQuery.isLoading ||
+    expenseEventsQuery.isLoading;
 
-  const incomeItems: SourceItem[] = (incomeSourcesQuery.data ?? []).map((inc) => ({
-    id: inc.id,
-    name: inc.name,
-    amount: inc.amount,
-    rrule: inc.rrule,
-    startDate: inc.startDate,
-    receivingAccountId: inc.receivingAccountId,
-    accountName: bankAccounts.find((a) => a.id === inc.receivingAccountId)?.name || "Main Account",
-  }));
+  const pools = poolsQuery.data || [];
+  const incomeSources = incomeSourcesQuery.data || [];
+  const expenseSources = expenseSourcesQuery.data || [];
+  const incomeEvents = incomeEventsQuery.data || [];
+  const expenseEvents = expenseEventsQuery.data || [];
 
-  const expenseItems: SourceItem[] = (expenseSourcesQuery.data ?? []).map((exp) => ({
-    id: exp.id,
-    name: exp.name,
-    amount: exp.amount,
-    rrule: exp.rrule,
-    startDate: exp.startDate,
-    categoryId: exp.categoryId,
-    categoryName: categories.find((c) => c.id === exp.categoryId)?.name || "Uncategorized",
-  }));
-
-  const matrixIncomeEvents: MatrixIncomeEvent[] = incomeEvents.map((inc) => ({
-    id: inc.id,
-    sourceName: inc.name || "",
-    expectedAmount: parseFloat(inc.expectedAmount || "0"),
-    actualAmount: inc.actualAmount ? parseFloat(inc.actualAmount) : null,
-    expectedDate: inc.expectedDate,
-    rrule: inc.rrule || null,
-    status: inc.status as "UPCOMING" | "SKIPPED" | "CONFIRMED" | "DRAFT" | "REVIEWED",
-    userId: inc.userId || undefined,
+  const matrixIncomeEvents = incomeEvents.map((e) => ({
+    id: e.id,
+    expectedDate: e.expectedDate,
+    expectedAmount: parseFloat(e.expectedAmount || "0"),
+    actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
+    status: e.status as "UPCOMING" | "CONFIRMED" | "SKIPPED",
+    sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
   }));
 
   const matrixExpenseEvents = expenseEvents.map((e) => ({
-    categoryId: e.categoryId || "",
+    categoryId: e.poolId || e.categoryId || "",
     amount: parseFloat(e.expectedAmount || "0"),
     dueDate: e.expectedDate,
     status: e.status as "UPCOMING" | "PAID" | "SKIPPED",
@@ -97,61 +63,6 @@ export default function IncomeAndExpensesPage() {
       utils.listIncomeEvents.invalidate();
     },
   });
-  const archiveExpenseMut = trpc.archiveExpenseSource.useMutation({
-    onSuccess: () => {
-      utils.listExpenseSources.invalidate();
-      utils.listExpenseEvents.invalidate();
-    },
-  });
-
-  const markExpensePaidMut = trpc.markExpensePaid.useMutation({
-    onSuccess: () => {
-      utils.listExpenseEvents.invalidate();
-      utils.listCategories.invalidate();
-    },
-  });
-  const skipExpenseEventMut = trpc.skipExpenseEvent.useMutation({
-    onSuccess: () => {
-      utils.listExpenseEvents.invalidate();
-    },
-  });
-  const unskipExpenseEventMut = trpc.unskipExpenseEvent.useMutation({
-    onSuccess: () => {
-      utils.listExpenseEvents.invalidate();
-    },
-  });
-  const updateExpenseEventMut = trpc.updateUpcomingExpense.useMutation({
-    onSuccess: () => {
-      utils.listExpenseEvents.invalidate();
-    },
-  });
-
-  const markIncomeReceivedMut = trpc.markIncomeReceived.useMutation({
-    onSuccess: () => {
-      utils.listIncomeEvents.invalidate();
-    },
-  });
-  const skipIncomeEventMut = trpc.skipIncomeEvent.useMutation({
-    onSuccess: () => {
-      utils.listIncomeEvents.invalidate();
-    },
-  });
-  const unskipIncomeEventMut = trpc.unskipIncomeEvent.useMutation({
-    onSuccess: () => {
-      utils.listIncomeEvents.invalidate();
-    },
-  });
-  const updateIncomeEventMut = trpc.updateUpcomingIncome.useMutation({
-    onSuccess: () => {
-      utils.listIncomeEvents.invalidate();
-    },
-  });
-
-  const moveMoneyMut = trpc.moveMoney.useMutation({
-    onSuccess: () => {
-      utils.listCategories.invalidate();
-    },
-  });
 
   const handleArchive = useCallback(
     async (item: { id: string; name?: string }, mode: "INCOME" | "EXPENSE") => {
@@ -161,274 +72,214 @@ export default function IncomeAndExpensesPage() {
         if (mode === "INCOME") {
           await archiveIncomeMut.mutateAsync({ id: item.id });
           posthog.capture("income_source_archived");
-        } else {
-          await archiveExpenseMut.mutateAsync({ id: item.id });
-          posthog.capture("expense_source_archived");
         }
         toast.success(t("toasts.archived"));
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to archive.");
       }
     },
-    [archiveIncomeMut, archiveExpenseMut, toast]
+    [archiveIncomeMut, toast]
   );
 
-  const handleEdit = useCallback((item: SourceItem, mode: "INCOME" | "EXPENSE") => {
-    setModalMode(mode);
-    setSourceToEdit({
-      id: item.id,
-      name: item.name,
-      amount: item.amount,
-      categoryId: item.categoryId,
-      receivingAccountId: item.receivingAccountId,
-      rrule: item.rrule,
-      startDate: item.startDate,
-    });
-    setIsModalOpen(true);
-  }, []);
+  const currentUserId = pools[0]?.id || "default-user";
 
-  const handleMarkPaid = useCallback(
-    (eventId: string, amount: string, date: string) => {
-      const cleaned = amount.replace(/[^0-9.]/g, "");
-      const val = parseFloat(cleaned);
-      const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
-      markExpensePaidMut.mutate({ eventId, actualAmount: cleanAmt, recordedAt: date });
-    },
-    [markExpensePaidMut]
-  );
-
-  const handleSkip = useCallback((eventId: string) => {
-    skipExpenseEventMut.mutate({ eventId });
-  }, [skipExpenseEventMut]);
-
-  const handleUnskip = useCallback((eventId: string) => {
-    unskipExpenseEventMut.mutate({ eventId });
-  }, [unskipExpenseEventMut]);
-
-  const handleUpdateEvent = useCallback(
-    async (eventId: string, amount: string, date: string) => {
-      const cleaned = amount.replace(/[^0-9.]/g, "");
-      const val = parseFloat(cleaned);
-      const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
-      await updateExpenseEventMut.mutateAsync({ eventId, expectedAmount: cleanAmt, expectedDate: date });
-    },
-    [updateExpenseEventMut]
-  );
-
-  const handleMarkIncomeReceived = useCallback(
-    (eventId: string, amount: string, date: string) => {
-      const cleaned = amount.replace(/[^0-9.]/g, "");
-      const val = parseFloat(cleaned);
-      const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
-      markIncomeReceivedMut.mutate({ eventId, actualAmount: cleanAmt, recordedAt: date });
-    },
-    [markIncomeReceivedMut]
-  );
-
-  const handleSkipIncome = useCallback((eventId: string) => {
-    skipIncomeEventMut.mutate({ eventId });
-  }, [skipIncomeEventMut]);
-
-  const handleUnskipIncome = useCallback((eventId: string) => {
-    unskipIncomeEventMut.mutate({ eventId });
-  }, [unskipIncomeEventMut]);
-
-  const _handleUpdateIncomeEvent = useCallback(
-    async (eventId: string, amount: string, date: string) => {
-      const cleaned = amount.replace(/[^0-9.]/g, "");
-      const val = parseFloat(cleaned);
-      const cleanAmt = isNaN(val) ? "0.00" : val.toFixed(2);
-      await updateIncomeEventMut.mutateAsync({ eventId, expectedAmount: cleanAmt, expectedDate: date });
-    },
-    [updateIncomeEventMut]
-  );
-
-  const handleConfirmTransferAndPay = useCallback(
-    async (sourceCategoryId: string, destinationCategoryId: string, amount: string) => {
-      await moveMoneyMut.mutateAsync({
-        sourceCategoryId,
-        destinationCategoryId,
-        amount,
-        note: "Automated shortfall transfer to mark bill paid",
-      });
-      toast.success(`Transferred $${amount} from source pool.`);
-    },
-    [moveMoneyMut, toast]
-  );
-
-  const currentUserId = categories[0]?.userId || "default-user";
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-8 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
-            {t("nav.incomeExpenses")}
-          </h1>
-          <InfoTooltip
-            title={t("tooltips.incomeBills.title")}
-            content={t("tooltips.incomeBills.content")}
-          />
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-[#1B2B4B]">Income & Bill Management</h1>
+          <p className="text-sm font-medium text-zinc-500 mt-0.5">
+            Manage your recurring income schedules, bill commitments, and 12-month payday matrix.
+          </p>
         </div>
-        <p className="text-xs text-zinc-500 font-medium mt-1">
-          Set up paychecks, plan allocations across a 12-month horizon, and review upcoming bill events.
-        </p>
-      </div>
-
-      {/* 2-Tab Header Navigation */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveTab("SCHEDULE")}
-            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all cursor-pointer ${
-              activeTab === "SCHEDULE"
-                ? "bg-[#2563eb] text-white shadow-xs"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            }`}
+            type="button"
+            onClick={() => {
+              setModalMode("INCOME");
+              setSourceToEdit(undefined);
+              setIsModalOpen(true);
+            }}
+            className="px-4 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-sm shadow-sm hover:bg-[#1d4ed8] transition-colors"
           >
-            🗓️ Schedule & Allocations
+            + Add Income Stream
           </button>
           <button
-            onClick={() => setActiveTab("SETUP")}
-            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all cursor-pointer ${
-              activeTab === "SETUP"
-                ? "bg-[#2563eb] text-white shadow-xs"
-                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            }`}
+            type="button"
+            onClick={() => {
+              setModalMode("EXPENSE");
+              setSourceToEdit(undefined);
+              setIsModalOpen(true);
+            }}
+            className="px-4 py-2 bg-[#1B2B4B] text-white rounded-xl font-bold text-sm shadow-sm hover:bg-slate-800 transition-colors"
           >
-            ⚙️ {t("incomeBillsTabs.setupSources")}
+            + Add Bill Schedule
           </button>
         </div>
-
-        {activeTab === "SETUP" && (
-          <div className="max-w-xs">
-            <SearchInput
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Filter income & bills..."
-            />
-          </div>
-        )}
       </div>
 
-      {/* Sub-View Switcher for SCHEDULE tab on the left */}
-      {activeTab === "SCHEDULE" && (
-        <div className="flex items-center justify-start border-b border-zinc-100 dark:border-zinc-800 pb-3 -mt-3">
-          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80">
-            <button
-              onClick={() => setScheduleSubView("TIMELINE")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                scheduleSubView === "TIMELINE"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              📅 Timeline View
-            </button>
-            <button
-              onClick={() => setScheduleSubView("GRID")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                scheduleSubView === "GRID"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              📊 12-Month Grid
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex border-b border-zinc-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab("MATRIX")}
+          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
+            activeTab === "MATRIX"
+              ? "border-[#2563eb] text-[#2563eb]"
+              : "border-transparent text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          12-Month Cashflow Matrix
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("STREAMS")}
+          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
+            activeTab === "STREAMS"
+              ? "border-[#2563eb] text-[#2563eb]"
+              : "border-transparent text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          Income Streams & Bills ({incomeSources.length + expenseSources.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("EVENTS")}
+          className={`px-6 py-3 font-bold text-sm border-b-2 transition-colors ${
+            activeTab === "EVENTS"
+              ? "border-[#2563eb] text-[#2563eb]"
+              : "border-transparent text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          Upcoming Event Ledger ({incomeEvents.length + expenseEvents.length})
+        </button>
+      </div>
 
-      {/* Tab Render */}
-      {activeTab === "SCHEDULE" && scheduleSubView === "TIMELINE" && (
-        <UpcomingTimelineTab
-          incomeEvents={incomeEvents}
-          expenseEvents={expenseEvents}
-          categories={categories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            currentBalance: parseFloat(c.enteredAmount || "0"),
-            isSurplusTarget: Boolean(c.isSurplusTarget),
-          }))}
-          searchQuery={searchQuery}
-          onMarkExpensePaid={handleMarkPaid}
-          onMarkIncomeReceived={handleMarkIncomeReceived}
-          onSkipExpense={handleSkip}
-          onUnskipExpense={handleUnskip}
-          onSkipIncome={handleSkipIncome}
-          onUnskipIncome={handleUnskipIncome}
-          onConfirmTransferAndPay={handleConfirmTransferAndPay}
-        />
-      )}
-
-      {activeTab === "SCHEDULE" && scheduleSubView === "GRID" && (
+      {activeTab === "MATRIX" && (
         <MatrixPlanTab
           currentUserId={currentUserId}
-          categories={rawCategories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            type: (c.type || "EVERYDAY") as "EVERYDAY" | "REGULAR" | "GOAL",
-            isPrivate: Boolean(c.isPrivate),
-            isCommitted: Boolean(c.isCommitted),
-            isEssential: Boolean(c.isEssential),
-            isSurplusTarget: Boolean(c.isSurplusTarget),
-            monthlyAmount: c.monthlyAmount ? parseFloat(c.monthlyAmount) : null,
-            targetAmount: c.targetAmount ? parseFloat(c.targetAmount) : null,
-            everydayAllowanceAmount: c.everydayAllowanceAmount ? parseFloat(c.everydayAllowanceAmount) : null,
-            currentBalance: typeof c.currentBalance === "number" ? c.currentBalance : parseFloat(c.enteredAmount || "0"),
-            userId: c.userId || undefined,
+          categories={pools.map((p) => ({
+            id: p.id,
+            name: p.name,
+            type: p.poolType,
+            currentBalance: parseFloat(String(p.currentBalance || "0")),
+            monthlyAmount: parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"),
+            enteredAmount: parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"),
+            budgetFrequency: "MONTHLY",
+            isEssential: true,
+            isCommitted: p.isCommitted,
+            isSurplusTarget: p.isSurplusTarget,
+            waterfallPriority: (p as unknown as { waterfallPriority?: number }).waterfallPriority ?? 0,
           }))}
           incomeEvents={matrixIncomeEvents}
           expenseEvents={matrixExpenseEvents}
-          onMarkPaid={handleMarkPaid}
         />
       )}
 
-      {activeTab === "SETUP" && (
-        <SetupSourcesTab
-          incomeItems={incomeItems}
-          expenseItems={expenseItems}
-          searchQuery={searchQuery}
-          incomeEvents={incomeEvents}
-          expenseEvents={expenseEvents}
-          categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-          bankAccounts={bankAccounts.map((a) => ({ id: a.id, name: a.name }))}
-          onAddIncome={() => {
-            setModalMode("INCOME");
-            setSourceToEdit(null);
-            setIsModalOpen(true);
-          }}
-          onAddExpense={() => {
-            setModalMode("EXPENSE");
-            setSourceToEdit(null);
-            setIsModalOpen(true);
-          }}
-          onArchiveIncome={(item) => handleArchive(item, "INCOME")}
-          onArchiveExpense={(item) => handleArchive(item, "EXPENSE")}
-          onEditIncome={(item) => handleEdit(item, "INCOME")}
-          onEditExpense={(item) => handleEdit(item, "EXPENSE")}
-          onMarkPaid={handleMarkPaid}
-          onSkip={handleSkip}
-          onUnskip={handleUnskip}
-          onUpdateEvent={handleUpdateEvent}
-          isPendingMarkPaid={markExpensePaidMut.isPending}
-          isPendingSkip={skipExpenseEventMut.isPending}
-        />
+      {activeTab === "STREAMS" && (
+        <div className="flex flex-col gap-6">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            placeholder="Filter streams by name..."
+            className="w-full px-4 py-2 bg-white border border-zinc-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
+              <h3 className="font-bold text-[#1B2B4B] text-base mb-2">{`Income Streams (${incomeSources.length})`}</h3>
+              <div className="divide-y divide-zinc-100 mt-3">
+                {incomeSources.map((inc) => (
+                  <div key={inc.id} className="py-3 flex justify-between items-center text-sm">
+                    <div>
+                      <span className="font-bold text-[#1B2B4B] block">{inc.name}</span>
+                      <span className="text-xs text-zinc-400 font-mono">${parseFloat(inc.amount).toFixed(2)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleArchive(inc, "INCOME")}
+                      className="text-xs font-bold text-red-600 hover:underline"
+                    >
+                      Archive
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
+              <h3 className="font-bold text-[#1B2B4B] text-base mb-2">{`Bill Schedules (${expenseSources.length})`}</h3>
+              <div className="divide-y divide-zinc-100 mt-3">
+                {expenseSources.map((exp) => (
+                  <div key={exp.id} className="py-3 flex justify-between items-center text-sm">
+                    <div>
+                      <span className="font-bold text-[#1B2B4B] block">{exp.name}</span>
+                      <span className="text-xs text-zinc-400 font-mono">
+                        ${parseFloat(exp.amount).toFixed(2)} • {exp.poolName || "Pool"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleArchive(exp, "EXPENSE")}
+                      className="text-xs font-bold text-red-600 hover:underline"
+                    >
+                      Archive
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      <IncomeExpenseFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        mode={modalMode}
-        sourceToEdit={sourceToEdit}
-        onArchive={(item) => handleArchive(item, modalMode)}
-        onSuccess={() => {
-          utils.listIncomeSources.invalidate();
-          utils.listExpenseSources.invalidate();
-          utils.listIncomeEvents.invalidate();
-          utils.listExpenseEvents.invalidate();
-        }}
-      />
+      {activeTab === "EVENTS" && (
+        <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
+          <h3 className="font-bold text-[#1B2B4B] text-base mb-2">Upcoming Scheduled Events</h3>
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full text-left text-sm text-zinc-600">
+              <thead className="bg-zinc-50 text-xs font-bold text-zinc-400 uppercase">
+                <tr>
+                  <th className="px-4 py-2">Event Name</th>
+                  <th className="px-4 py-2">Expected Date</th>
+                  <th className="px-4 py-2">Amount</th>
+                  <th className="px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 font-medium">
+                {expenseEvents.map((evt) => (
+                  <tr key={evt.id}>
+                    <td className="px-4 py-3 font-bold text-[#1B2B4B]">{evt.name}</td>
+                    <td className="px-4 py-3">{evt.expectedDate}</td>
+                    <td className="px-4 py-3 font-mono">${parseFloat(evt.expectedAmount).toFixed(2)}</td>
+                    <td className="px-4 py-3 font-bold text-xs">{evt.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <IncomeExpenseFormModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSourceToEdit(undefined);
+          }}
+          mode={modalMode}
+          sourceToEdit={sourceToEdit}
+        />
+      )}
     </div>
   );
 }

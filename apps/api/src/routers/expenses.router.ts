@@ -1,6 +1,6 @@
 import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { expenseSources, categories, expenseEvents } from "@money-matters/db";
-import { and, eq, sql, asc, inArray } from "drizzle-orm";
+import { expenseSources, categories, expenseEvents, pools } from "@money-matters/db";
+import { and, eq, sql, inArray } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { recordExpenseCommand } from "@money-matters/capability-transactions";
 import { z } from 'zod';
@@ -14,6 +14,8 @@ export const expensesRouter = {
           id: expenseSources.id,
           name: expenseSources.name,
           amount: expenseSources.amount,
+          poolId: expenseSources.poolId,
+          poolName: pools.name,
           categoryId: expenseSources.categoryId,
           categoryName: categories.name,
           rrule: expenseSources.rrule,
@@ -21,6 +23,7 @@ export const expensesRouter = {
           endDate: expenseSources.endDate,
         })
         .from(expenseSources)
+        .leftJoin(pools, eq(expenseSources.poolId, pools.id))
         .leftJoin(categories, eq(expenseSources.categoryId, categories.id))
         .where(
           and(
@@ -36,7 +39,8 @@ export const expensesRouter = {
       z.object({
         name: z.string().min(1),
         amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-        categoryId: z.string().uuid(),
+        poolId: z.string().uuid(),
+        categoryId: z.string().uuid().optional(),
         isRecurring: z.boolean().default(true),
         startDate: z.string().optional(),
         endDate: z.string().nullable().optional(),
@@ -58,7 +62,8 @@ export const expensesRouter = {
         .values({
           name: input.name,
           amount: input.amount,
-          categoryId: input.categoryId,
+          poolId: input.poolId,
+          categoryId: input.categoryId || null,
           rrule,
           startDate: input.startDate || null,
           endDate: input.endDate || null,
@@ -75,7 +80,8 @@ export const expensesRouter = {
           await ctx.db.insert(expenseEvents).values(
             dates.map((d) => ({
               expenseSourceId: source.id,
-              categoryId: input.categoryId,
+              poolId: input.poolId,
+              categoryId: input.categoryId || null,
               name: input.name,
               expectedDate: d.toISOString().split("T")[0],
               expectedAmount: input.amount,
@@ -90,7 +96,8 @@ export const expensesRouter = {
       } else if (input.startDate) {
         await ctx.db.insert(expenseEvents).values({
           expenseSourceId: source.id,
-          categoryId: input.categoryId,
+          poolId: input.poolId,
+          categoryId: input.categoryId || null,
           name: input.name,
           expectedDate: input.startDate,
           expectedAmount: input.amount,
@@ -108,217 +115,61 @@ export const expensesRouter = {
           event: 'expense_source_created',
           properties: {
             tenant_id: ctx.tenantId,
+            pool_id: input.poolId,
+            category_id: input.categoryId,
+            amount: input.amount,
             is_recurring: input.isRecurring,
-            frequency: input.frequency ?? (input.isRecurring ? 'MONTHLY' : null),
+          },
+        });
+        await posthog.flush();
+      }
+
+      return source;
+    }),
+
+  recordExpense: tenantProcedure
+    .input(
+      z.object({
+        poolId: z.string().uuid(),
+        categoryId: z.string().uuid().optional(),
+        amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+        note: z.string().optional(),
+        date: z.string().optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const result = await recordExpenseCommand(
+        {
+          poolId: input.poolId,
+          categoryId: input.categoryId,
+          flowType: "DEBIT",
+          amount: input.amount,
+          source: "MANUAL",
+          note: input.note,
+          date: input.date,
+        },
+        ctx.tenantId!,
+        ctx.appId!,
+        ctx.userId!,
+        ctx.db
+      );
+
+      if (posthog && ctx.userId) {
+        posthog.capture({
+          distinctId: ctx.userId,
+          event: 'expense_recorded',
+          properties: {
+            tenant_id: ctx.tenantId,
+            pool_id: input.poolId,
+            category_id: input.categoryId,
             amount: input.amount,
           },
         });
         await posthog.flush();
       }
-      return source;
-    }),
 
-  updateExpenseSource: tenantProcedure
-    .input(
-      z.object({
-        id: z.string().uuid(),
-        data: z.object({
-          name: z.string().min(1).optional(),
-          amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-          categoryId: z.string().uuid().optional(),
-          isRecurring: z.boolean().optional(),
-          startDate: z.string().optional(),
-          endDate: z.string().nullable().optional(),
-          frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
-        }).strict(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const [source] = await ctx.db
-        .select()
-        .from(expenseSources)
-        .where(
-          and(
-            eq(expenseSources.id, input.id),
-            eq(expenseSources.tenantId, ctx.tenantId!),
-            eq(expenseSources.appId, ctx.appId!),
-            sql`${expenseSources.archivedAt} IS NULL`
-          )
-        );
-
-      if (!source) throw new Error("Expense source not found.");
-
-      const events = await ctx.db
-        .select()
-        .from(expenseEvents)
-        .where(eq(expenseEvents.expenseSourceId, source.id));
-
-      const paidEvents = events.filter((e) => e.status !== "UPCOMING");
-      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
-
-      const newName = input.data.name ?? source.name;
-      const newAmount = input.data.amount ?? source.amount;
-      const newCategoryId = input.data.categoryId ?? source.categoryId;
-      const newEndDate = input.data.endDate !== undefined ? input.data.endDate : source.endDate;
-
-      const wasRecurring = !!source.rrule;
-      const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
-
-      let newStartDate = input.data.startDate;
-      if (!newStartDate) {
-        if (source.startDate) newStartDate = source.startDate;
-        else if (unperformedEvents.length > 0 && unperformedEvents[0].expectedDate) newStartDate = unperformedEvents[0].expectedDate;
-        else newStartDate = new Date().toISOString().split("T")[0];
-      }
-
-      const newFreq = input.data.frequency;
-      let rrule: string | null = isRecurring ? (source.rrule || "FREQ=MONTHLY") : null;
-      if (isRecurring && newFreq) {
-        if (newFreq === "WEEKLY") rrule = "FREQ=WEEKLY";
-        else if (newFreq === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
-        else if (newFreq === "MONTHLY") rrule = "FREQ=MONTHLY";
-        else if (newFreq === "ANNUALLY") rrule = "FREQ=YEARLY";
-      }
-
-      const typeChanged = wasRecurring !== isRecurring;
-      const scheduleOrFreqChanged = isRecurring && (
-        typeChanged ||
-        (input.data.startDate && input.data.startDate !== source.startDate) ||
-        (input.data.endDate !== undefined && input.data.endDate !== source.endDate) ||
-        (newFreq && rrule !== source.rrule)
-      );
-
-      if (typeChanged || scheduleOrFreqChanged) {
-        if (unperformedEvents.length > 0) {
-          await ctx.db
-            .delete(expenseEvents)
-            .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
-        }
-
-        if (isRecurring && rrule) {
-          const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
-          if (dates.length > 0) {
-            await ctx.db.insert(expenseEvents).values(
-              dates.map((d) => ({
-                expenseSourceId: source.id,
-                categoryId: newCategoryId,
-                name: newName,
-                expectedDate: d.toISOString().split("T")[0],
-                expectedAmount: newAmount,
-                status: "UPCOMING" as const,
-                tenantId: ctx.tenantId!,
-                appId: ctx.appId!,
-                createdBy: ctx.userId!,
-                updatedBy: ctx.userId!,
-              }))
-            );
-          }
-        } else {
-          await ctx.db.insert(expenseEvents).values({
-            expenseSourceId: source.id,
-            categoryId: newCategoryId,
-            name: newName,
-            expectedDate: newStartDate,
-            expectedAmount: newAmount,
-            status: "UPCOMING",
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            createdBy: ctx.userId!,
-            updatedBy: ctx.userId!,
-          });
-        }
-      } else {
-        if (unperformedEvents.length > 0) {
-          const unperformedIds = unperformedEvents.map((e) => e.id);
-          const updateData: {
-            name: string;
-            categoryId: string;
-            expectedAmount: string;
-            updatedAt: Date;
-            updatedBy: string;
-            expectedDate?: string;
-          } = {
-            name: newName,
-            categoryId: newCategoryId,
-            expectedAmount: newAmount,
-            updatedAt: new Date(),
-            updatedBy: ctx.userId!,
-          };
-          if (!isRecurring && input.data.startDate) {
-            updateData.expectedDate = input.data.startDate;
-          }
-          await ctx.db
-            .update(expenseEvents)
-            .set(updateData)
-            .where(inArray(expenseEvents.id, unperformedIds));
-        }
-      }
-
-      const [updated] = await ctx.db
-        .update(expenseSources)
-        .set({
-          name: newName,
-          amount: newAmount,
-          categoryId: newCategoryId,
-          rrule,
-          startDate: isRecurring ? newStartDate : (input.data.startDate || source.startDate),
-          endDate: newEndDate,
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
-        .where(eq(expenseSources.id, source.id))
-        .returning();
-
-      return {
-        updated,
-        hasPaidHistory: paidEvents.length > 0,
-        unperformedUpdatedCount: unperformedEvents.length,
-      };
-    }),
-
-  archiveExpenseSource: tenantProcedure
-    .input(z.object({ id: z.string().uuid() }).strict())
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const events = await ctx.db
-        .select()
-        .from(expenseEvents)
-        .where(eq(expenseEvents.expenseSourceId, input.id));
-
-      const paidEvents = events.filter((e) => e.status !== "UPCOMING");
-      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
-
-      if (unperformedEvents.length > 0) {
-        await ctx.db
-          .delete(expenseEvents)
-          .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
-      }
-
-      const [archived] = await ctx.db
-        .update(expenseSources)
-        .set({
-          archivedAt: new Date(),
-          updatedBy: ctx.userId!,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(expenseSources.id, input.id),
-            eq(expenseSources.tenantId, ctx.tenantId!),
-            eq(expenseSources.appId, ctx.appId!),
-            sql`${expenseSources.archivedAt} IS NULL`
-          )
-        )
-        .returning();
-
-      if (!archived) throw new Error("Expense source not found.");
-
-      return {
-        success: true,
-        deletedUnperformedCount: unperformedEvents.length,
-        hasPaidHistory: paidEvents.length > 0,
-      };
+      return result;
     }),
 
   listExpenseEvents: tenantProcedure
@@ -327,18 +178,17 @@ export const expensesRouter = {
         .select({
           id: expenseEvents.id,
           name: expenseEvents.name,
-          expectedDate: expenseEvents.expectedDate,
           expectedAmount: expenseEvents.expectedAmount,
-          actualAmount: expenseEvents.actualAmount,
-          isOverridden: expenseEvents.isOverridden,
-          paymentMethod: expenseEvents.paymentMethod,
-          note: expenseEvents.note,
+          expectedDate: expenseEvents.expectedDate,
           status: expenseEvents.status,
+          poolId: expenseEvents.poolId,
+          poolName: pools.name,
           categoryId: expenseEvents.categoryId,
           categoryName: categories.name,
           expenseSourceId: expenseEvents.expenseSourceId,
         })
         .from(expenseEvents)
+        .leftJoin(pools, eq(expenseEvents.poolId, pools.id))
         .leftJoin(categories, eq(expenseEvents.categoryId, categories.id))
         .where(
           and(
@@ -346,214 +196,9 @@ export const expensesRouter = {
             eq(expenseEvents.appId, ctx.appId!),
             sql`${expenseEvents.archivedAt} IS NULL`
           )
-        )
-        .orderBy(asc(expenseEvents.expectedDate));
-    }),
-
-  createExpenseEvent: tenantProcedure
-    .input(
-      z.object({
-        categoryId: z.string().uuid().optional(),
-        name: z.string().min(1),
-        expectedDate: z.string(),
-        expectedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-        note: z.string().optional(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const [evt] = await ctx.db
-        .insert(expenseEvents)
-        .values({
-          categoryId: input.categoryId || null,
-          name: input.name,
-          expectedDate: input.expectedDate,
-          expectedAmount: input.expectedAmount,
-          note: input.note || null,
-          status: "UPCOMING",
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        })
-        .returning();
-      return evt;
-    }),
-
-  markExpensePaid: tenantProcedure
-    .input(
-      z.object({
-        eventId: z.string().uuid(),
-        actualAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-        note: z.string().optional(),
-        recordedAt: z.string().optional(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const [evt] = await ctx.db
-        .select()
-        .from(expenseEvents)
-        .where(
-          and(
-            eq(expenseEvents.id, input.eventId),
-            eq(expenseEvents.tenantId, ctx.tenantId!),
-            eq(expenseEvents.appId, ctx.appId!)
-          )
         );
-
-      if (!evt) throw new Error("Expense event not found.");
-
-      const amountToPay = input.actualAmount || evt.expectedAmount;
-
-      if (evt.categoryId) {
-        await recordExpenseCommand(
-          {
-            categoryId: evt.categoryId,
-            amount: amountToPay,
-            flowType: "DEBIT",
-            source: "MANUAL",
-            note: input.note || evt.note || `Paid expense: ${evt.name}`,
-            recordedAt: input.recordedAt || new Date().toISOString(),
-          },
-          ctx.tenantId!,
-          ctx.appId!,
-          ctx.userId!,
-          ctx.db
-        );
-      }
-
-      await ctx.db
-        .update(expenseEvents)
-        .set({
-          status: "PAID",
-          actualAmount: amountToPay,
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
-        .where(eq(expenseEvents.id, input.eventId));
-
-      if (posthog && ctx.userId) {
-        posthog.capture({
-          distinctId: ctx.userId,
-          event: 'expense_marked_paid',
-          properties: {
-            tenant_id: ctx.tenantId,
-            amount: amountToPay,
-            has_category: !!evt.categoryId,
-          },
-        });
-        await posthog.flush();
-      }
-      return { success: true, message: "Expense marked paid and moved to Transactions." };
     }),
 
-  createUpcomingExpense: tenantProcedure
-    .input(
-      z.object({
-        name: z.string().min(1),
-        amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
-        categoryId: z.string().uuid(),
-        expectedDate: z.string(),
-        note: z.string().optional(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const [evt] = await ctx.db
-        .insert(expenseEvents)
-        .values({
-          name: input.name,
-          expectedAmount: input.amount,
-          categoryId: input.categoryId,
-          expectedDate: input.expectedDate,
-          note: input.note || null,
-          status: "UPCOMING",
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        })
-        .returning();
-      return evt;
-    }),
-
-  updateUpcomingExpense: tenantProcedure
-    .input(
-      z.object({
-        eventId: z.string().uuid(),
-        expectedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-        expectedDate: z.string().optional(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const [updated] = await ctx.db
-        .update(expenseEvents)
-        .set({
-          ...(input.expectedAmount !== undefined ? { expectedAmount: input.expectedAmount } : {}),
-          ...(input.expectedDate !== undefined ? { expectedDate: input.expectedDate } : {}),
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
-        .where(
-          and(
-            eq(expenseEvents.id, input.eventId),
-            eq(expenseEvents.tenantId, ctx.tenantId!),
-            eq(expenseEvents.appId, ctx.appId!)
-          )
-        )
-        .returning();
-      return updated;
-    }),
-  skipExpenseEvent: tenantProcedure
-    .input(
-      z.object({
-        eventId: z.string().uuid(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      await ctx.db
-        .update(expenseEvents)
-        .set({
-          status: "SKIPPED",
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
-        .where(
-          and(
-            eq(expenseEvents.id, input.eventId),
-            eq(expenseEvents.tenantId, ctx.tenantId!),
-            eq(expenseEvents.appId, ctx.appId!)
-          )
-        );
-      return { success: true };
-    }),
-  unskipExpenseEvent: tenantProcedure
-    .input(
-      z.object({
-        eventId: z.string().uuid(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      await ctx.db
-        .update(expenseEvents)
-        .set({
-          status: "UPCOMING",
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
-        .where(
-          and(
-            eq(expenseEvents.id, input.eventId),
-            eq(expenseEvents.tenantId, ctx.tenantId!),
-            eq(expenseEvents.appId, ctx.appId!)
-          )
-        );
-      return { success: true };
-    }),
   reburstExpenseSource: tenantProcedure
     .input(
       z.object({
@@ -599,6 +244,7 @@ export const expensesRouter = {
         await ctx.db.insert(expenseEvents).values(
           dates.map((d) => ({
             expenseSourceId: source.id,
+            poolId: source.poolId,
             categoryId: source.categoryId,
             name: source.name,
             expectedDate: d.toISOString().split("T")[0],

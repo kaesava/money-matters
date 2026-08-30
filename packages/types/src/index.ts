@@ -3,7 +3,7 @@
  * Monorepo Domain Schemas & Validation Contracts
  * 
  * Provides runtime validation using Zod for base entities, tenant-scoped domain structures,
- * bank accounts, categories, income sources, payday allocation plans, and affordability queries.
+ * bank accounts, pools, categories, income sources, payday allocation plans, and affordability queries.
  */
 import { z } from "zod";
 
@@ -77,7 +77,6 @@ export const SubscriptionStatusDto = z.object({
 }).strict();
 export type SubscriptionStatusDto = z.infer<typeof SubscriptionStatusDto>;
 
-
 /**
  * Schema validating tenant membership access control, role levels, and pending invite tokens.
  */
@@ -95,41 +94,44 @@ export const TenantMemberSchema = BaseSchema.extend({
 export const BankAccountSchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
   name: z.string().min(1),
+  bankProvider: z.string().default("CBA"),
   lastKnownBalance: z.string().default("0.00"),
   unbudgetedBuffer: z.string().default("0.00"),
+  isPrivate: z.boolean().default(false),
+  userId: z.string().uuid().nullable().optional(),
 }).strict();
 
 /**
- * Schema defining spending and savings categories across the 3-bucket architecture (REGULAR, GOAL, EVERYDAY).
+ * Schema defining Virtual Pools (EVERYDAY, REGULAR, GOAL) linked to Bank Accounts.
+ */
+export const PoolSchema = BaseSchema.extend({
+  tenantId: z.string().uuid(),
+  name: z.string().min(1),
+  poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
+  bankAccountId: z.string().uuid(),
+  everydayAllowanceAmount: z.string().nullable().optional(),
+  rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).default("ROLLOVER").optional(),
+  targetAmount: z.string().nullable().optional(),
+  targetDate: z.string().nullable().optional(),
+  isCommitted: z.boolean().default(false),
+  isSurplusTarget: z.boolean().default(false),
+  waterfallPriority: z.number().int().default(50),
+}).strict();
+
+/**
+ * Schema defining spending sub-categories belonging to a Pool.
  */
 export const CategorySchema = BaseSchema.extend({
   tenantId: z.string().uuid(),
+  poolId: z.string().uuid(),
   name: z.string().min(1),
-  type: z.enum(["REGULAR", "GOAL", "EVERYDAY"]),
-  userId: z.string().uuid().nullable().optional(),
-  isPrivate: z.boolean().default(false),
-  isCommitted: z.boolean().default(false),
-  monthlyAmount: z.string().nullable(),
-  enteredAmount: z.string().nullable(),
-  budgetFrequency: z.enum(["FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY"),
-  rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).default("ROLLOVER"),
-  everydayTargetKeepAmount: z.string().nullable(),
-  everydaySweepFrequency: z.string().nullable(),
-  icon: z.string().nullable(),
-  colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable(),
-}).strict();
-
-/**
- * Schema for category recurring target dates, due dates, and schedule parameters.
- */
-export const CategoryScheduleSchema = BaseSchema.extend({
-  categoryId: z.string().uuid(),
-  targetAmount: z.string(),
-  dueDate: z.string().nullable(),
-  targetDate: z.string().nullable(),
-  rrule: z.string().nullable().optional(),
-  startDate: z.string().nullable().optional(),
-  endDate: z.string().nullable().optional(),
+  monthlyAmount: z.string().nullable().optional(),
+  enteredAmount: z.string().nullable().optional(),
+  budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY").optional(),
+  isEssential: z.boolean().default(false),
+  icon: z.string().nullable().optional(),
+  colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
+  lastNotifiedAt: z.date().nullable().optional(),
 }).strict();
 
 /**
@@ -177,11 +179,12 @@ export const AllocationPlanSchema = BaseSchema.extend({
 }).strict();
 
 /**
- * Schema for individual category line-items within a paycheck allocation plan.
+ * Schema for individual pool line-items within a paycheck allocation plan.
  */
 export const AllocationPlanLineSchema = BaseSchema.extend({
   planId: z.string().uuid(),
-  categoryId: z.string().uuid(),
+  poolId: z.string().uuid(),
+  categoryId: z.string().uuid().nullable().optional(),
   proposedAmount: z.string(),
   confirmedAmount: z.string().nullable(),
   reasoning: z.string().nullable(),
@@ -191,7 +194,8 @@ export const AllocationPlanLineSchema = BaseSchema.extend({
  * Schema for double-entry or single-entry transaction ledger events.
  */
 export const TransactionLedgerSchema = BaseSchema.extend({
-  categoryId: z.string().uuid(),
+  poolId: z.string().uuid(),
+  categoryId: z.string().uuid().nullable().optional(),
   bankAccountId: z.string().uuid().nullable(),
   planLineId: z.string().uuid().nullable(),
   transferGroupId: z.string().uuid().nullable().optional(),
@@ -209,14 +213,16 @@ export const TransactionLedgerSchema = BaseSchema.extend({
 export const ListTransactionsQuery = z.object({
   limit: z.number().int().min(1).max(1000).default(50),
   offset: z.number().int().default(0),
+  poolId: z.string().uuid().optional(),
   categoryId: z.string().uuid().optional(),
 }).strict();
 
 /**
- * Query schema for listing transactions scoped to a specific category.
+ * Query schema for listing transactions scoped to a specific pool or category.
  */
 export const ListCategoryTransactionsQuery = z.object({
-  categoryId: z.string().uuid(),
+  poolId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().optional(),
   limit: z.number().int().max(100).default(30),
   offset: z.number().int().default(0),
 }).strict();
@@ -226,6 +232,7 @@ export const ListCategoryTransactionsQuery = z.object({
  */
 export const CanAffordQuery = z.object({
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  includePersonal: z.boolean().default(false).optional(),
 }).strict();
 
 /**
@@ -235,7 +242,6 @@ export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
   z.object({
     verdict: z.literal("SAFE_YES"),
     availableCash: z.string(),
-    billsReserved: z.string(),
     everydayRemaining: z.string(),
     daysUntilPayday: z.number().int(),
     dailyPacingAfterSpend: z.string(),
@@ -244,7 +250,6 @@ export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
   z.object({
     verdict: z.literal("PACING_WARNING"),
     availableCash: z.string(),
-    billsReserved: z.string(),
     everydayRemaining: z.string(),
     daysUntilPayday: z.number().int(),
     dailyPacingAfterSpend: z.string(),
@@ -253,7 +258,6 @@ export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
   z.object({
     verdict: z.literal("IMPACT_GOALS"),
     availableCash: z.string(),
-    billsReserved: z.string(),
     affectedGoalName: z.string(),
     affectedGoalId: z.string(),
     goalSurplusUsed: z.string(),
@@ -270,11 +274,9 @@ export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
   z.object({
     verdict: z.literal("HARD_NO"),
     shortfall: z.string(),
-    billsReserved: z.string(),
     rationaleSteps: z.array(z.string()),
   }),
 ]);
-
 
 /**
  * DTO summarizing monthly income, spending, savings, and remaining everyday cash balance.
@@ -292,8 +294,10 @@ export const MonthlySummaryDto = z.object({
  * Bill coverage item and overall result schemas.
  */
 export const BillCoverageItemSchema = z.object({
-  categoryId: z.string(),
-  categoryName: z.string(),
+  poolId: z.string(),
+  poolName: z.string(),
+  categoryId: z.string().nullable().optional(),
+  categoryName: z.string().nullable().optional(),
   monthlyAmount: z.string().nullable(),
   nextDueDate: z.string().nullable(),
   nextDueAmount: z.string().nullable(),
@@ -330,8 +334,8 @@ export const UserPreferencesSchema = z.object({
 export type TenantType = z.infer<typeof TenantSchema>;
 export type TenantMemberType = z.infer<typeof TenantMemberSchema>;
 export type BankAccountType = z.infer<typeof BankAccountSchema>;
+export type PoolType = z.infer<typeof PoolSchema>;
 export type CategoryType = z.infer<typeof CategorySchema>;
-export type CategoryScheduleType = z.infer<typeof CategoryScheduleSchema>;
 export type IncomeSourceType = z.infer<typeof IncomeSourceSchema>;
 export type IncomeSourceScheduleType = z.infer<typeof IncomeSourceScheduleSchema>;
 export type IncomeEventType = z.infer<typeof IncomeEventSchema>;
@@ -358,6 +362,3 @@ export const AppVersionInfoSchema = z.object({
 }).strict();
 
 export type AppVersionInfo = z.infer<typeof AppVersionInfoSchema>;
-
-
-

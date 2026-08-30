@@ -40,11 +40,12 @@ export default function TransferInstructionsScreen() {
     plan.lines.forEach(line => {
       // Find category mapping or default by name checking
       const amt = parseFloat(line.confirmedAmount || line.proposedAmount || '0');
+      const nameStr = ((line as unknown as { categoryName?: string; poolName?: string }).poolName || (line as unknown as { categoryName?: string }).categoryName || '').toLowerCase();
       // For V1 split allocation logic
-      if (line.categoryName.toLowerCase().includes('groceries') || 
-          line.categoryName.toLowerCase().includes('petrol') ||
-          line.categoryName.toLowerCase().includes('eating out') ||
-          line.categoryName.toLowerCase().includes('everyday')) {
+      if (nameStr.includes('groceries') || 
+          nameStr.includes('petrol') ||
+          nameStr.includes('eating out') ||
+          nameStr.includes('everyday')) {
         everydaySum += amt;
       } else {
         majorRecurringSum += amt;

@@ -1,4 +1,4 @@
-import { categories, incomeSources, expenseSources, bankAccounts, DbOrTx } from "@money-matters/db";
+import { pools, categories, incomeSources, expenseSources, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function listArchivedItemsQuery(
@@ -6,13 +6,29 @@ export async function listArchivedItemsQuery(
   appId: string,
   dbClient: DbOrTx
 ) {
-  const [archivedCats, archivedIncome, archivedExpenses, archivedAccounts] = await Promise.all([
+  const [archivedPools, archivedCats, archivedIncome, archivedExpenses, archivedAccounts] = await Promise.all([
+    dbClient
+      .select({
+        id: pools.id,
+        name: pools.name,
+        itemType: sql<string>`'POOL'`,
+        subtitle: pools.poolType,
+        archivedAt: pools.archivedAt,
+      })
+      .from(pools)
+      .where(
+        and(
+          eq(pools.tenantId, tenantId),
+          eq(pools.appId, appId),
+          sql`${pools.archivedAt} IS NOT NULL`
+        )
+      ),
     dbClient
       .select({
         id: categories.id,
         name: categories.name,
         itemType: sql<string>`'CATEGORY'`,
-        subtitle: categories.type,
+        subtitle: categories.monthlyAmount,
         archivedAt: categories.archivedAt,
       })
       .from(categories)
@@ -73,7 +89,7 @@ export async function listArchivedItemsQuery(
       ),
   ]);
 
-  return [...archivedCats, ...archivedIncome, ...archivedExpenses, ...archivedAccounts].sort(
+  return [...archivedPools, ...archivedCats, ...archivedIncome, ...archivedExpenses, ...archivedAccounts].sort(
     (a, b) => new Date(b.archivedAt!).getTime() - new Date(a.archivedAt!).getTime()
   );
 }

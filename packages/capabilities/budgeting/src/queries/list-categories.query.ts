@@ -1,5 +1,5 @@
-import { categories, categorySchedules, transactionLedger, DbOrTx } from "@money-matters/db";
-import { eq, and, sql, or, ne } from "drizzle-orm";
+import { categories, pools, bankAccounts, transactionLedger, DbOrTx } from "@money-matters/db";
+import { eq, and, sql } from "drizzle-orm";
 
 export async function listCategoriesQuery(
   tenantId: string,
@@ -7,39 +7,41 @@ export async function listCategoriesQuery(
   dbClient: DbOrTx,
   userId?: string
 ) {
-  // 1. Fetch categories with 100% stealth privacy for isPrivate categories
-  const categoryFilters = [
-    eq(categories.tenantId, tenantId),
-    eq(categories.appId, appId),
-    sql`${categories.archivedAt} IS NULL`,
-  ];
-
-  if (userId) {
-    categoryFilters.push(
-      or(eq(categories.isPrivate, false), eq(categories.userId, userId))!
-    );
-  }
-
-  let dbCats = await dbClient
-    .select()
+  // 1. Fetch categories joined with pools and bankAccounts for stealth privacy
+  const dbCats = await dbClient
+    .select({
+      id: categories.id,
+      poolId: categories.poolId,
+      name: categories.name,
+      monthlyAmount: categories.monthlyAmount,
+      enteredAmount: categories.enteredAmount,
+      budgetFrequency: categories.budgetFrequency,
+      isEssential: categories.isEssential,
+      icon: categories.icon,
+      colour: categories.colour,
+      poolType: pools.poolType,
+      isPrivate: bankAccounts.isPrivate,
+      bankAccountUserId: bankAccounts.userId,
+    })
     .from(categories)
-    .where(and(...categoryFilters));
-
-  // 2. Fetch category schedules
-  const dbSchedules = await dbClient
-    .select()
-    .from(categorySchedules)
+    .innerJoin(pools, eq(categories.poolId, pools.id))
+    .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
     .where(
       and(
-        eq(categorySchedules.tenantId, tenantId),
-        eq(categorySchedules.appId, appId),
-        sql`${categorySchedules.archivedAt} IS NULL`
+        eq(categories.tenantId, tenantId),
+        eq(categories.appId, appId),
+        sql`${categories.archivedAt} IS NULL`
       )
     );
 
-  const schedulesMap = new Map(dbSchedules.map((s) => [s.categoryId, s]));
+  const visibleCats = userId
+    ? dbCats.filter((c) => !c.isPrivate || c.bankAccountUserId === userId)
+    : dbCats;
 
-  // 3. Compute balances from ledger credits and debits
+  // 2. Compute current month's spent amount (debits) per categoryId
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
   const txs = await dbClient
     .select({
       categoryId: transactionLedger.categoryId,
@@ -51,111 +53,41 @@ export async function listCategoriesQuery(
       and(
         eq(transactionLedger.tenantId, tenantId),
         eq(transactionLedger.appId, appId),
+        sql`${transactionLedger.recordedAt} >= ${startOfMonth.toISOString()}`,
         sql`${transactionLedger.archivedAt} IS NULL`
       )
     );
 
-  const balancesMap: Record<string, number> = {};
-  for (const cat of dbCats) {
-    balancesMap[cat.id] = 0;
+  const spentMap: Record<string, number> = {};
+  for (const cat of visibleCats) {
+    spentMap[cat.id] = 0;
   }
   for (const tx of txs) {
-    const val = parseFloat(tx.amount);
-    if (tx.flowType === "CREDIT") {
-      balancesMap[tx.categoryId] = (balancesMap[tx.categoryId] || 0) + val;
-    } else {
-      balancesMap[tx.categoryId] = (balancesMap[tx.categoryId] || 0) - val;
+    if (!tx.categoryId) continue;
+    if (tx.flowType === "DEBIT") {
+      spentMap[tx.categoryId] = (spentMap[tx.categoryId] || 0) + parseFloat(tx.amount);
     }
   }
 
-  // 4. Determine health status and progress
-  const today = new Date();
-  return dbCats.map((cat) => {
-    const balance = balancesMap[cat.id] || 0;
-    const sched = schedulesMap.get(cat.id);
-    let health: "GREEN" | "AMBER" | "RED" = "GREEN";
-    let progressPct = 100;
-
-    if (balance < 0) {
-      health = "RED";
-    } else if (cat.type === "REGULAR") {
-      const targetAmount = sched?.targetAmount ? parseFloat(sched.targetAmount) : (cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : 0);
-      progressPct = targetAmount > 0 ? Math.min(100, Math.round((balance / targetAmount) * 100)) : 100;
-      
-      let expectedPct = 100;
-      if (sched?.startDate && sched?.dueDate) {
-        const start = new Date(sched.startDate).getTime();
-        const end = new Date(sched.dueDate).getTime();
-        const now = today.getTime();
-        if (now > end) {
-          expectedPct = 100;
-          if (balance < targetAmount) health = "RED";
-        } else if (now > start) {
-          expectedPct = ((now - start) / (end - start)) * 100;
-          if (progressPct < expectedPct) health = "AMBER";
-          else health = "GREEN";
-        } else {
-          expectedPct = 0;
-          health = "GREEN";
-        }
-      } else {
-        if (balance < targetAmount) health = "AMBER";
-      }
-    } else if (cat.type === "GOAL" && sched) {
-      const targetAmount = parseFloat(sched.targetAmount || "0");
-      progressPct = targetAmount > 0 ? Math.min(100, Math.round((balance / targetAmount) * 100)) : 100;
-      
-      let expectedPct = 100;
-      if (sched.startDate && sched.targetDate) {
-        const start = new Date(sched.startDate).getTime();
-        const end = new Date(sched.targetDate).getTime();
-        const now = today.getTime();
-        if (now > end) {
-          expectedPct = 100;
-          if (balance < targetAmount) health = "RED";
-        } else if (now > start) {
-          expectedPct = ((now - start) / (end - start)) * 100;
-          if (progressPct < expectedPct) health = "AMBER";
-          else health = "GREEN";
-        }
-      } else if (sched.targetDate) {
-        const targetD = new Date(sched.targetDate);
-        if (targetD.getTime() < today.getTime() && balance < targetAmount) {
-          health = "RED";
-        } else if (balance < targetAmount * 0.5) {
-          health = "AMBER";
-        }
-      }
-    } else {
-      health = balance >= 0 ? "GREEN" : "RED";
-    }
+  return visibleCats.map((cat) => {
+    const monthlySpent = spentMap[cat.id] || 0;
+    const monthlyTarget = cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : 0;
+    const trackingProgressPct = monthlyTarget > 0 ? Math.min(100, Math.round((monthlySpent / monthlyTarget) * 100)) : 0;
 
     return {
       id: cat.id,
+      poolId: cat.poolId,
       name: cat.name,
-      type: cat.type,
-      isCommitted: cat.isCommitted,
+      poolType: cat.poolType,
+      monthlyAmount: cat.monthlyAmount,
       enteredAmount: cat.enteredAmount,
       budgetFrequency: cat.budgetFrequency,
-      rolloverRule: cat.rolloverRule,
-      everydayTargetKeepAmount: null,
-      everydaySweepFrequency: null,
-      everydayAllowanceAmount: cat.everydayAllowanceAmount || null,
-      monthlyAmount: cat.monthlyAmount || null,
-      icon: cat.icon || null,
-      colour: cat.colour || null,
-      currentBalance: balance.toFixed(2),
-      targetAmount: sched?.targetAmount || cat.monthlyAmount || null,
-      targetDate: sched?.targetDate || sched?.dueDate || null,
-      rrule: sched?.rrule || null,
-      startDate: sched?.startDate || null,
-      endDate: sched?.endDate || null,
-      progressPercentage: progressPct,
-      healthStatus: health,
-      isPrivate: cat.isPrivate,
-      userId: cat.userId,
-      isSurplusTarget: cat.isSurplusTarget,
       isEssential: cat.isEssential,
+      icon: cat.icon,
+      colour: cat.colour,
+      isPrivate: cat.isPrivate,
+      monthlySpent,
+      trackingProgressPct,
     };
   });
 }

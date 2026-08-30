@@ -12,7 +12,7 @@ export default function MobileHistoryScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
-  const categoriesQuery = trpc.listCategories.useQuery();
+  const categoriesQuery = trpc.listPools.useQuery();
 
   interface TransactionItem {
     id: string;
@@ -40,7 +40,7 @@ export default function MobileHistoryScreen() {
     if (flowFilter !== 'ALL' && tx.flowType !== flowFilter) return false;
     if (categoryTypeFilter !== 'ALL') {
       const cat = categories.find((c) => c.id === tx.categoryId);
-      if (!cat || cat.type !== categoryTypeFilter) return false;
+      if (!cat || (cat.poolType || (cat as { type?: string }).type) !== categoryTypeFilter) return false;
     }
     return true;
   });

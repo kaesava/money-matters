@@ -1,4 +1,4 @@
-import { transactionLedger, categories, DbOrTx } from "@money-matters/db";
+import { transactionLedger, pools, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { MoveMoneyCommand } from "@money-matters/types";
@@ -12,46 +12,46 @@ export async function moveMoneyCommand(
   dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
-    // 1. Verify access to source category
-    const [sourceCat] = await tx
+    // 1. Verify access to source pool
+    const [sourcePool] = await tx
       .select()
-      .from(categories)
+      .from(pools)
       .where(
         and(
-          eq(categories.id, input.sourceCategoryId),
-          eq(categories.tenantId, tenantId),
-          eq(categories.appId, appId)
+          eq(pools.id, input.sourcePoolId),
+          eq(pools.tenantId, tenantId),
+          eq(pools.appId, appId)
         )
       );
 
-    if (!sourceCat) {
-      throw new Error("Source category invalid or access unauthorized.");
+    if (!sourcePool) {
+      throw new Error("Source pool invalid or access unauthorized.");
     }
 
-    // 2. Verify access to destination category
-    const [destCat] = await tx
+    // 2. Verify access to destination pool
+    const [destPool] = await tx
       .select()
-      .from(categories)
+      .from(pools)
       .where(
         and(
-          eq(categories.id, input.destinationCategoryId),
-          eq(categories.tenantId, tenantId),
-          eq(categories.appId, appId)
+          eq(pools.id, input.destinationPoolId),
+          eq(pools.tenantId, tenantId),
+          eq(pools.appId, appId)
         )
       );
 
-    if (!destCat) {
-      throw new Error("Destination category invalid or access unauthorized.");
+    if (!destPool) {
+      throw new Error("Destination pool invalid or access unauthorized.");
     }
 
-    const note = input.note || `Transferred ${input.amount} from ${sourceCat.name} to ${destCat.name}`;
+    const note = input.note || `Transferred $${input.amount} from ${sourcePool.name} to ${destPool.name}`;
     const timestamp = new Date();
     const commonId = randomUUID();
 
     // 3. Bulk insert DEBIT and CREDIT transactions in single SQL statement
     await tx.insert(transactionLedger).values([
       {
-        categoryId: input.sourceCategoryId,
+        poolId: input.sourcePoolId,
         flowType: "DEBIT",
         amount: input.amount,
         idempotencyKey: `move-debit-${commonId}`,
@@ -65,7 +65,7 @@ export async function moveMoneyCommand(
         updatedBy: userId,
       },
       {
-        categoryId: input.destinationCategoryId,
+        poolId: input.destinationPoolId,
         flowType: "CREDIT",
         amount: input.amount,
         idempotencyKey: `move-credit-${commonId}`,

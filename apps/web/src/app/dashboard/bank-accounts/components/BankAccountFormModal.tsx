@@ -21,7 +21,7 @@ export interface BankAccountFormModalProps {
   readonly accIsPrivate: boolean;
   readonly setAccIsPrivate: (val: boolean) => void;
   readonly accSelectedTypes: CategoryType[];
-  readonly accounts: Array<{ id: string; name: string; categoryTypes: CategoryType[] }>;
+  readonly accounts: Array<{ id: string; name: string; categoryTypes?: CategoryType[]; poolTypes?: CategoryType[] }>;
   readonly isTrialExpired: boolean;
   readonly isSaving: boolean;
   readonly bankOptions: Array<{ key: BankName; label: string; logoBg: string; textColor: string }>;
@@ -211,7 +211,7 @@ export function BankAccountFormModal({
               { key: "GOAL" as const, label: "Goal Pool" },
             ].map((item) => {
               const isChecked = accSelectedTypes.includes(item.key);
-              const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && a.categoryTypes.includes(item.key));
+              const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && (a.poolTypes || a.categoryTypes || []).includes(item.key));
 
               return (
                 <label

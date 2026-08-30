@@ -37,6 +37,7 @@ export const en = {
     next: "Next",
     back: "Back",
     done: "Done",
+    dismiss: "Dismiss",
     sortOrder: "Sort Order",
     ascending: "Ascending",
     descending: "Descending",
@@ -339,6 +340,11 @@ export const en = {
     },
   },
   landing: {
+    earlyAccess: {
+      title: "Money Matters is Almost Ready!",
+      description: "We're currently performing final testing and polish to ensure your household budgeting experience is flawless. Sign-ups will open very soon.",
+      notifyLabel: "Get notified when we launch:",
+    },
     getStartedFree: "Get started for free",
     badge: "🇦🇺 Built for Aussie Households & Families",
     heroTitle: "Your bills are covered. Your savings are on track.",
@@ -675,6 +681,15 @@ export const en = {
     },
   },
   dashboard: {
+    upcomingEvents: {
+      title: "Upcoming Events",
+      subtitle: "Scheduled income deposits & upcoming bill payments",
+      selectSeries: "Select Series...",
+      empty: "No upcoming events found.",
+      deleteTitle: "Permanently Delete Events",
+      cannotBeUndone: "Action cannot be undone",
+      deleteConfirmPrompt: "Are you sure you want to permanently delete the selected event(s)? These records will be permanently removed from your database.",
+    },
     title: "Home",
     welcome: "G'day, {name} 👋",
     nextPaydayReady: "Next Payday Ready",
@@ -1164,6 +1179,16 @@ export const en = {
     returnToApp: "Return to Money Matters",
   },
   modals: {
+    categoryActivity: {
+      noUpcoming: "No upcoming bills linked to this pool.",
+      noHistory: "No transaction history for this category.",
+    },
+    unsavedChanges: {
+      title: "Unsaved Changes",
+      description: "You have unsaved changes in this form. Would you like to save them before leaving?",
+      discard: "Discard Changes",
+      keepEditing: "Keep Editing",
+    },
     reconciliation: {
       title: "Bank Account Reconciliation",
       accountBalance: "Target Category Balance",
@@ -1171,6 +1196,7 @@ export const en = {
       variance: "Variance / Discrepancy",
       notes: "Reconciliation Notes",
       submit: "Confirm & Balance Account",
+      defaultSurplusCategory: "Default Tenant Surplus Category",
     },
     moveMoney: {
       title: "Move Money Between Categories",
@@ -1197,6 +1223,8 @@ export const en = {
       disclaimer: "Your category balances will only update when money is actually marked as paid. Saving this will store your expense so it's ready to go when paid (or change the date above if your expense occurred early!).",
       saveWithoutPaid: "Save w/o Paid",
       markPaid: "Mark Paid",
+      dueDate: "Due Date",
+      saveUpcoming: "Save Upcoming",
     },
     paydayPreview: {
       title: "Payday Waterfall Split Preview",
@@ -1204,12 +1232,16 @@ export const en = {
       runWaterfall: "Run Payday Waterfall Split",
       incomeNamePlaceholder: "e.g. Salary, Client Payment",
       notesPlaceholder: "Add optional income notes...",
+      tabDeposit: "Paycheck Deposit",
+      incomeLabel: "Income Stream Label",
+      depositDate: "Deposit Date",
     },
     eventOverride: {
       title: "Override Scheduled Event",
       overrideAmount: "Override Amount ($)",
       overrideDate: "Override Date (YYYY-MM-DD)",
       submit: "Apply Event Override",
+      editMasterSeries: "Edit Master Series",
     },
     categoryForm: {
       titleNew: "Add New Category",
@@ -1219,6 +1251,18 @@ export const en = {
       typeLabel: "Pool",
       submitNew: "Create Category",
       submitEdit: "Save Changes",
+      poolName: "Pool Name",
+      poolType: "Pool Type",
+      everydayPool: "Everyday Spending Pool",
+      regularPool: "Regular Bills Pool",
+      savingsPool: "Savings Goal Pool",
+      sweepSurplus: "Sweep unallocated payday surplus into this pool",
+    },
+    incomeExpenseForm: {
+      assignPool: "Assign to Pool",
+      recurringSchedule: "Recurring Schedule",
+      frequency: "Frequency",
+      firstDate: "First Date",
     },
     bankAccountForm: {
       titleNew: "Link Bank Account",
@@ -1276,6 +1320,8 @@ export const en = {
     },
   },
   badges: {
+    actionRequired: "ACTION REQUIRED",
+    nextPayday: "NEXT PAYDAY",
     bill: "BILL",
     income: "INCOME",
     upcomingPaydays: "UPCOMING PAYDAYS",
@@ -1428,6 +1474,77 @@ export const en = {
     overdueDesc: "Due date passed without payment or allocation",
     skippedLabel: "Skipped",
     skippedDesc: "Bypassed by user for this cycle",
+  },
+  actions: {
+    markPaid: "Mark Paid",
+    filter: "Filter",
+    editCategory: "Edit Category",
+    archiveCategory: "Archive Category",
+    viewAllTransactions: "View All Transactions",
+    archivePool: "Archive Pool",
+    cancel: "Cancel",
+    editMasterSeries: "Edit Master Series",
+  },
+  cards: {
+    paydayTransfer: {
+      badge: "1-Tap Payday Transfer Plan",
+      target: "Target:",
+    },
+    bankTransfer: {
+      badge: "Bank Account Action Required",
+      transferLabel: "Transfer",
+    },
+    canAfford: {
+      includePersonal: "Include Personal Pools",
+    },
+  },
+  drawers: {
+    categoryDetail: {
+      noHistory: "No transaction history for this category.",
+      viewAllTransactions: "View All Transactions",
+      overview: "Overview",
+    },
+    quickExpense: {
+      tabExpense: "Expense",
+      tabIncome: "Income",
+      tabTransfer: "Transfer",
+      transferName: "Transfer Name",
+      category: "Category",
+      defaultEverydayAccount: "Default Everyday Account",
+      scheduledPaydayWaterfall: "Scheduled for Payday Waterfall",
+    },
+  },
+  frequencies: {
+    weekly: "Weekly",
+    fortnightly: "Fortnightly",
+    monthly: "Monthly",
+    annually: "Annually",
+  },
+  poolTypes: {
+    everyday: "Everyday",
+    bills: "Bills",
+    goals: "Goals",
+  },
+  csvImport: {
+    upload: {
+      selectTargetAccount: "Select Target Bank Account",
+      dragDrop: "Drag and drop your bank statement CSV here",
+      supportedBanks: "Supports CommBank, NAB, ANZ, Westpac, ING, Macquarie, and generic CSV formats.",
+      browseFiles: "Browse Files",
+      customMappingRequired: "Custom CSV Column Mapping Required",
+      detectHeadersFailed: "Could not automatically detect headers. Select which columns correspond to date, description, and amount.",
+      dateColumn: "Date Column",
+      descColumn: "Description Column",
+      amountColumn: "Amount Column",
+      applyMapping: "Apply Column Mapping",
+      parsing: "Parsing bank statement CSV...",
+    },
+    review: {
+      includedIncome: "Included Income",
+      includedExpenses: "Included Expenses",
+      netImpact: "Net Impact",
+      flipSelected: "Flip Selected",
+    },
   },
 } as const;
 

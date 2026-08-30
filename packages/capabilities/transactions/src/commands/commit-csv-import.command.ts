@@ -1,4 +1,4 @@
-import { transactionLedger, categories, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
+import { transactionLedger, pools, categories, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { CommitCsvImportCommand } from "@money-matters/types";
@@ -18,9 +18,28 @@ export async function commitCsvImportCommand(
   }
 
   return await dbClient.transaction(async (tx) => {
-    // 1. Fetch tenant budget categories and income sources
+    // 1. Fetch tenant pools & categories
+    const tenantPools = await tx
+      .select({ id: pools.id, name: pools.name, poolType: pools.poolType })
+      .from(pools)
+      .where(
+        and(
+          eq(pools.tenantId, tenantId),
+          eq(pools.appId, appId)
+        )
+      );
+
+    const validPoolIds = new Set(tenantPools.map((p) => p.id));
+    const everydayPool = tenantPools.find((p) => p.poolType === "EVERYDAY") || tenantPools[0];
+    const regularPool = tenantPools.find((p) => p.poolType === "REGULAR") || everydayPool;
+    const goalPool = tenantPools.find((p) => p.poolType === "GOAL") || everydayPool;
+
+    if (!everydayPool) {
+      throw new Error("No valid budget pool found for this tenant.");
+    }
+
     const tenantCategories = await tx
-      .select({ id: categories.id, name: categories.name, type: categories.type })
+      .select({ id: categories.id, poolId: categories.poolId })
       .from(categories)
       .where(
         and(
@@ -28,15 +47,7 @@ export async function commitCsvImportCommand(
           eq(categories.appId, appId)
         )
       );
-
     const validCatIds = new Set(tenantCategories.map((c) => c.id));
-    const everydayCat = tenantCategories.find((c) => c.type === "EVERYDAY") || tenantCategories[0];
-    const regularCat = tenantCategories.find((c) => c.type === "REGULAR") || everydayCat;
-    const goalCat = tenantCategories.find((c) => c.type === "GOAL") || everydayCat;
-
-    if (!everydayCat) {
-      throw new Error("No valid budget category found for this tenant.");
-    }
 
     const tenantIncomeSources = await tx
       .select({ id: incomeSources.id })
@@ -95,24 +106,25 @@ export async function commitCsvImportCommand(
     }> = [];
 
     const insertValues = newTransactions.map((t) => {
-      let targetCatId = everydayCat.id;
-      if (t.categoryId && validCatIds.has(t.categoryId)) {
-        targetCatId = t.categoryId;
-      } else if (t.targetPool === "REGULAR") {
-        targetCatId = regularCat.id;
-      } else if (t.targetPool === "GOAL") {
-        targetCatId = goalCat.id;
+      let targetPoolId = everydayPool.id;
+
+      if (t.poolId && validPoolIds.has(t.poolId)) {
+        targetPoolId = t.poolId;
+      } else if (t.targetPoolType === "REGULAR") {
+        targetPoolId = regularPool.id;
+      } else if (t.targetPoolType === "GOAL") {
+        targetPoolId = goalPool.id;
       }
 
-      const recordedAt = t.date ? new Date(t.date) : new Date();
+      const targetCategoryId = t.categoryId && validCatIds.has(t.categoryId) ? t.categoryId : null;
 
-      // If user flagged credit row as Payday Income for waterfall allocation, queue income event creation
+      // Handle credit payday allocation scheduling
       if (t.flowType === "CREDIT" && t.creditAction === "PAYDAY_ALLOCATION" && primaryIncomeSource) {
         paydayIncomeEventsToInsert.push({
-          incomeSourceId: primaryIncomeSource.id,
+          incomeSourceId: t.incomeSourceId || primaryIncomeSource.id,
           expectedDate: t.date,
           expectedAmount: t.amount,
-          note: t.note || t.description,
+          note: `Imported Payday Income: ${t.description}`,
           tenantId,
           appId,
           createdBy: userId,
@@ -121,38 +133,38 @@ export async function commitCsvImportCommand(
       }
 
       return {
-        categoryId: targetCatId,
-        bankAccountId: input.bankAccountId || null,
+        tenantId,
+        appId,
+        poolId: targetPoolId,
+        categoryId: targetCategoryId,
+        bankAccountId: input.bankAccountId,
         flowType: t.flowType,
         amount: t.amount,
         idempotencyKey: t.idempotencyKey,
         note: t.note || t.description,
         source: "IMPORT" as const,
         transferGroupId: batchId,
-        recordedAt,
-        tenantId,
-        appId,
+        recordedAt: new Date(t.date),
         createdBy: userId,
         updatedBy: userId,
       };
     });
 
-    // 5. Bulk insert ledger entries in chunks of 200
+    // 5. Bulk insert in chunks of 200
     for (let i = 0; i < insertValues.length; i += CHUNK_SIZE) {
-      const valueChunk = insertValues.slice(i, i + CHUNK_SIZE);
-      await tx.insert(transactionLedger).values(valueChunk);
+      const chunk = insertValues.slice(i, i + CHUNK_SIZE);
+      await tx.insert(transactionLedger).values(chunk);
     }
 
-    // 6. Bulk insert queued payday income events if any
     if (paydayIncomeEventsToInsert.length > 0) {
       for (let i = 0; i < paydayIncomeEventsToInsert.length; i += CHUNK_SIZE) {
-        const eventChunk = paydayIncomeEventsToInsert.slice(i, i + CHUNK_SIZE);
-        await tx.insert(incomeEvents).values(eventChunk);
+        const chunk = paydayIncomeEventsToInsert.slice(i, i + CHUNK_SIZE);
+        await tx.insert(incomeEvents).values(chunk);
       }
     }
 
     return {
-      importedCount: insertValues.length,
+      importedCount: newTransactions.length,
       skippedDuplicatesCount,
       batchId,
     };

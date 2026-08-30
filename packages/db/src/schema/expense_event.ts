@@ -1,5 +1,6 @@
 import { pgTable, uuid, numeric, pgEnum, date, varchar, boolean } from "drizzle-orm/pg-core";
 import { expenseSources } from "./expense_source.js";
+import { pools } from "./pool.js";
 import { categories } from "./category.js";
 import { tenantAndTimestamps } from "./base.js";
 
@@ -8,6 +9,7 @@ export const expenseEventStatusEnum = pgEnum("expense_event_status_enum", ["UPCO
 export const expenseEvents = pgTable("expense_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   expenseSourceId: uuid("expense_source_id").references(() => expenseSources.id),
+  poolId: uuid("pool_id").references(() => pools.id).notNull(),
   categoryId: uuid("category_id").references(() => categories.id),
   name: varchar("name", { length: 255 }).notNull(),
   expectedDate: date("expected_date").notNull(),

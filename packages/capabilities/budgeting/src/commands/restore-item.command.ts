@@ -1,16 +1,17 @@
-import { categories, incomeSources, expenseSources, incomeEvents, expenseEvents, bankAccounts, DbOrTx } from "@money-matters/db";
+import { pools, categories, incomeSources, expenseSources, incomeEvents, expenseEvents, bankAccounts, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
 export async function restoreItemCommand(
   itemId: string,
-  itemType: "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
+  itemType: "POOL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
   tenantId: string,
   appId: string,
   userId: string,
   dbClient: DbOrTx
 ) {
-  let table: typeof categories | typeof incomeSources | typeof expenseSources | typeof bankAccounts = categories;
+  let table: typeof pools | typeof categories | typeof incomeSources | typeof expenseSources | typeof bankAccounts = categories;
+  if (itemType === "POOL") table = pools;
   if (itemType === "INCOME_SOURCE") table = incomeSources;
   if (itemType === "EXPENSE_SOURCE") table = expenseSources;
   if (itemType === "BANK_ACCOUNT") table = bankAccounts;
@@ -32,7 +33,6 @@ export async function restoreItemCommand(
     )
     .returning();
 
-  // If restoring an Income Source or Expense Source, regenerate upcoming burst events
   if (restored) {
     if (itemType === "INCOME_SOURCE") {
       const inc = restored as typeof incomeSources.$inferSelect;
@@ -71,6 +71,7 @@ export async function restoreItemCommand(
         for (const d of dates) {
           await dbClient.insert(expenseEvents).values({
             expenseSourceId: exp.id,
+            poolId: exp.poolId,
             categoryId: exp.categoryId,
             name: exp.name,
             expectedDate: d.toISOString().split("T")[0],
@@ -85,6 +86,7 @@ export async function restoreItemCommand(
       } else {
         await dbClient.insert(expenseEvents).values({
           expenseSourceId: exp.id,
+          poolId: exp.poolId,
           categoryId: exp.categoryId,
           name: exp.name,
           expectedDate: startDate,

@@ -5,6 +5,7 @@ import {
   removeDeviceTokenHandler,
   sendEmailViaResend,
   sendBudgetAlertEmail,
+  createScheduledNotificationFunctions,
 } from "./index.js";
 
 vi.mock("@money-matters/db", () => {
@@ -44,6 +45,7 @@ describe("notifications capability handlers", () => {
   it("exports handlers correctly", () => {
     expect(registerDeviceTokenHandler).toBeDefined();
     expect(removeDeviceTokenHandler).toBeDefined();
+    expect(createScheduledNotificationFunctions).toBeDefined();
   });
 
   it("can register device token", async () => {
@@ -56,11 +58,6 @@ describe("notifications capability handlers", () => {
     );
     expect(mockDb.select).toHaveBeenCalled();
     expect(result).toHaveProperty("id");
-  });
-
-  it("exports createScheduledNotificationFunctions", async () => {
-    const { createScheduledNotificationFunctions } = await import("./index.js");
-    expect(createScheduledNotificationFunctions).toBeDefined();
   });
 });
 
@@ -112,7 +109,7 @@ describe("Resend email sending helper", () => {
 
 describe("sendBudgetAlertEmail template generator", () => {
   it("renders budget alert email HTML and calls sendEmailViaResend", async () => {
-    delete process.env.RESEND_API_KEY; // keep simulated
+    delete process.env.RESEND_API_KEY;
     const res = await sendBudgetAlertEmail("test@example.com", {
       categoryName: "Groceries",
       limitAmount: "500.00",

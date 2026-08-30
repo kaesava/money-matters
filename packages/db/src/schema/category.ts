@@ -1,29 +1,26 @@
-import { pgTable, uuid, varchar, integer, boolean, pgEnum, timestamp, numeric } from "drizzle-orm/pg-core";
-import { tenants } from "./tenant.js";
+import { pgTable, uuid, varchar, boolean, timestamp, numeric } from "drizzle-orm/pg-core";
 import { tenantAndTimestamps } from "./base.js";
+import { pools } from "./pool.js";
 
-export const categoryTypeEnum = pgEnum("category_type_enum", ["REGULAR", "GOAL", "EVERYDAY"]);
-export const rolloverRuleEnum = pgEnum("rollover_rule_enum", ["ROLLOVER", "SWEEP", "RESET"]);
+export { poolTypeEnum, rolloverRuleEnum } from "./pool.js";
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
+  poolId: uuid("pool_id")
+    .references(() => pools.id, { onDelete: "cascade" })
+    .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  type: categoryTypeEnum("type").notNull(),
-  userId: uuid("user_id"), // Owner userId for isPrivate categories
-  isPrivate: boolean("is_private").notNull().default(false), // 🔒 Stealth privacy flag
-  isCommitted: boolean("is_committed").notNull().default(false), // GOAL committed targets
-  isEssential: boolean("is_essential").notNull().default(false), // REGULAR essential priority bill (Rent, Utilities)
-  monthlyAmount: numeric("monthly_amount", { precision: 12, scale: 2 }), // REGULAR target amount per month
 
-  everydayAllowanceAmount: numeric("everyday_allowance_amount", { precision: 12, scale: 2 }), // EVERYDAY target allowance per paycheck
-  enteredAmount: numeric("entered_amount", { precision: 12, scale: 2 }), // Target amount entered by user in the UI
-  rolloverRule: rolloverRuleEnum("rollover_rule").notNull().default('ROLLOVER'),
-  icon: varchar("icon", { length: 50 }),
-  colour: varchar("colour", { length: 7 }), // Hex color code e.g. '#00B4A6'
-  budgetFrequency: varchar("budget_frequency", { length: 20 }).default("MONTHLY"), // FORTNIGHTLY, MONTHLY, ANNUALLY
-  isSurplusTarget: boolean("is_surplus_target").notNull().default(false), // Designated sweep target category for surplus residual funds
-  lastNotifiedAt: timestamp("last_notified_at", { withTimezone: true }),
+  monthlyAmount: numeric("monthly_amount", { precision: 12, scale: 2 }),
+  enteredAmount: numeric("entered_amount", { precision: 12, scale: 2 }),
+  budgetFrequency: varchar("budget_frequency", { length: 50 }).default("MONTHLY"),
+
+  isEssential: boolean("is_essential").default(false).notNull(),
+  icon: varchar("icon", { length: 100 }),
+  colour: varchar("colour", { length: 20 }),
+
   ...tenantAndTimestamps,
 });
 
-
+export type Category = typeof categories.$inferSelect;
+export type NewCategory = typeof categories.$inferInsert;

@@ -1,4 +1,5 @@
 import React from "react";
+import { t } from "@money-matters/i18n";
 
 interface Category {
   id: string;
@@ -35,7 +36,7 @@ export function BankReconcileModal({
       <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-100 p-6 flex flex-col gap-6 z-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#1B2B4B]">Bank Balance Reconciliation</h2>
+          <h2 className="text-lg font-bold text-[#1B2B4B]">{t("modals.reconciliation.title", { defaultValue: "Bank Balance Reconciliation" })}</h2>
           <button onClick={onClose} className="text-zinc-400 font-bold p-1">✕</button>
         </div>
 
@@ -59,7 +60,7 @@ export function BankReconcileModal({
               onChange={(e) => setReconcileTargetCategoryId(e.target.value)}
               className="px-4 py-2.5 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
             >
-              <option value="">Default Tenant Surplus Category</option>
+              <option value="">{t("modals.reconciliation.defaultSurplusCategory", { defaultValue: "Default Tenant Surplus Category" })}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}

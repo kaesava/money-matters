@@ -1,5 +1,5 @@
 import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { allocationPlans, allocationPlanLines, categories, incomeEvents } from "@money-matters/db";
+import { allocationPlans, allocationPlanLines, categories, pools, incomeEvents } from "@money-matters/db";
 import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { posthog } from '../lib/posthog.js';
 import {
@@ -31,6 +31,11 @@ export const paydayRouter = {
     .input(ConfirmPaydayCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+      const customLines = input.lines?.map((l) => ({
+        bucketId: l.poolId,
+        amount: l.amount,
+      }));
+
       const result = await runAllocationCommand(
         ctx.tenantId!,
         ctx.appId!,
@@ -38,7 +43,7 @@ export const paydayRouter = {
         input.incomeEventId,
         parseFloat(input.actualAmount),
         ctx.db,
-        input.lines,
+        customLines,
         input.markAsReceivedToday
       );
       if (posthog && ctx.userId) {
@@ -100,19 +105,22 @@ export const paydayRouter = {
       const lines = await ctx.db
         .select({
           id: allocationPlanLines.id,
+          poolId: allocationPlanLines.poolId,
           categoryId: allocationPlanLines.categoryId,
           proposedAmount: allocationPlanLines.proposedAmount,
           confirmedAmount: allocationPlanLines.confirmedAmount,
           reasoning: allocationPlanLines.reasoning,
+          poolName: pools.name,
           categoryName: categories.name,
         })
         .from(allocationPlanLines)
+        .leftJoin(pools, eq(pools.id, allocationPlanLines.poolId))
         .leftJoin(categories, eq(categories.id, allocationPlanLines.categoryId))
         .where(eq(allocationPlanLines.planId, plan.id));
 
       return {
         ...plan,
-        lines: lines.map(l => ({ ...l, categoryName: l.categoryName ?? "Unknown" })),
+        lines: lines.map(l => ({ ...l, poolName: l.poolName ?? "Unknown Pool" })),
       };
     }),
 
@@ -149,19 +157,20 @@ export const paydayRouter = {
         .limit(50);
 
       const planIds = plans.map(p => p.id);
-      let lines: Array<{ planId: string; categoryId: string; proposedAmount: string; confirmedAmount: string | null; reasoning: string | null; categoryName: string | null }> = [];
+      let lines: Array<{ planId: string; poolId: string; categoryId: string | null; proposedAmount: string; confirmedAmount: string | null; reasoning: string | null; poolName: string | null }> = [];
       if (planIds.length > 0) {
         lines = await ctx.db
           .select({
             planId: allocationPlanLines.planId,
+            poolId: allocationPlanLines.poolId,
             categoryId: allocationPlanLines.categoryId,
             proposedAmount: allocationPlanLines.proposedAmount,
             confirmedAmount: allocationPlanLines.confirmedAmount,
             reasoning: allocationPlanLines.reasoning,
-            categoryName: categories.name,
+            poolName: pools.name,
           })
           .from(allocationPlanLines)
-          .leftJoin(categories, eq(categories.id, allocationPlanLines.categoryId))
+          .leftJoin(pools, eq(pools.id, allocationPlanLines.poolId))
           .where(inArray(allocationPlanLines.planId, planIds));
       }
 
@@ -226,7 +235,8 @@ export const paydayRouter = {
         incomeEventId: z.string().uuid(),
         totalIncomeAmount: z.string(),
         lines: z.array(z.object({
-          categoryId: z.string().uuid(),
+          poolId: z.string().uuid(),
+          categoryId: z.string().uuid().optional(),
           proposedAmount: z.string(),
         })),
       }).strict()
@@ -288,7 +298,8 @@ export const paydayRouter = {
           await tx.insert(allocationPlanLines).values(
             input.lines.map((l) => ({
               planId: plan.id,
-              categoryId: l.categoryId,
+              poolId: l.poolId,
+              categoryId: l.categoryId || null,
               proposedAmount: l.proposedAmount,
               tenantId: ctx.tenantId!,
               appId: ctx.appId!,

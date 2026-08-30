@@ -1,6 +1,6 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
-import { db, userPreferences, tenantUserPreferences, bankAccounts, bankAccountCategoryMappings, categories, AppPreferencesBlob } from "@money-matters/db";
+import { db, userPreferences, tenantUserPreferences, bankAccounts, pools, categories, AppPreferencesBlob } from "@money-matters/db";
 import { and, eq, sql, or } from "drizzle-orm";
 import { inngest } from '../inngest/client.js';
 import { logAuditEvent, sendNotificationEmail } from '@money-matters/core';
@@ -11,7 +11,6 @@ import {
   archiveBankAccountHandler,
   getTenantHandler,
   getBankAccountsWithMappingsHandler,
-  updateBankAccountMappingsHandler,
   invitePartnerHandler,
   acceptInviteHandler,
   exportMyDataHandler,
@@ -19,7 +18,7 @@ import {
   leaveTenantHandler,
 } from "@money-matters/capability-tenant";
 import {
-  listCategoriesQuery,
+  listPoolsQuery,
 } from "@money-matters/capability-budgeting";
 import {
   recordExpenseCommand,
@@ -40,7 +39,6 @@ export const tenantRouter = {
       const handler = invitePartnerHandler(ctx.db);
       const result = await handler(input, ctx.tenantId!, ctx.userId!);
 
-      // Send transactional invitation email via Resend
       const isDev = process.env.NODE_ENV === "development";
       const originUrl =
         process.env.APP_URL ||
@@ -52,7 +50,6 @@ export const tenantRouter = {
         `You have been invited to collaborate on a household budget on Money Matters.\n\nClick the link below to accept your invitation:\n${inviteUrl}\n\nThis invitation will expire in 48 hours.`
       );
 
-      // Dispatch non-blocking partner invite email trigger to Inngest
       inngest.send({
         name: 'partner/invited',
         data: {
@@ -63,7 +60,6 @@ export const tenantRouter = {
         },
       }).catch(() => {});
 
-      // Log structured audit event for security monitoring (Rule 19)
       logAuditEvent('partner_invited', ctx.tenantId!, ctx.userId!, { inviteEmail: input.email });
 
       if (posthog && ctx.userId) {
@@ -147,13 +143,11 @@ export const tenantRouter = {
     .query(async ({ ctx }) => {
       const appId = ctx.appId || MONEY_MATTERS_APP_ID;
 
-      // 1. Global User Preferences (1:1 per userId)
       const [globalPref] = await ctx.db
         .select()
         .from(userPreferences)
         .where(eq(userPreferences.userId, ctx.userId!));
 
-      // 2. Tenant & App User Preferences (userId + tenantId + appId)
       const [tenantPref] = await ctx.db
         .select()
         .from(tenantUserPreferences)
@@ -172,7 +166,6 @@ export const tenantRouter = {
         userId: ctx.userId!,
         tenantId: ctx.tenantId!,
         appId,
-        // Global User Preferences (App & Tenant Agnostic)
         timezone: globalPref?.timezone ?? "Australia/Sydney",
         locale: globalPref?.locale ?? "en-AU",
         theme: globalPref?.theme ?? "system",
@@ -180,15 +173,12 @@ export const tenantRouter = {
         notificationEmail: globalPref?.notificationEmail ?? null,
         phoneCountryCode: globalPref?.phoneCountryCode ?? "+61",
         phoneNumber: globalPref?.phoneNumber ?? null,
-        // Tenant / Cashflow Alert Preferences (Tenant Scoped, stored in appPreferences JSONB)
         paydayAlertsEnabled: appBlob?.payday_alerts_enabled ?? true,
         shortfallAlertsEnabled: appBlob?.shortfall_alerts_enabled ?? true,
         billRemindersEnabled: appBlob?.bill_reminders_enabled ?? true,
         weeklyDigestEnabled: appBlob?.weekly_digest_enabled ?? false,
-        // Onboarding Setup State
         setupCompleted: appBlob?.setup_completed ?? false,
         setupCompletedAt: appBlob?.setup_completed_at ?? null,
-        // App UI Blob
         appPreferences: tenantPref?.appPreferences ?? {},
         quickActionsCollapsed: appBlob?.quick_actions_collapsed ?? false,
       };
@@ -214,7 +204,6 @@ export const tenantRouter = {
       requiresWriteAccess(ctx);
       const appId = ctx.appId || MONEY_MATTERS_APP_ID;
 
-      // 1. Upsert Global User Preferences (userId only)
       const [existingGlobal] = await ctx.db
         .select()
         .from(userPreferences)
@@ -243,7 +232,6 @@ export const tenantRouter = {
           });
       }
 
-      // 2. Upsert Tenant User Preferences (userId + tenantId + appId)
       const [existingTenantPref] = await ctx.db
         .select()
         .from(tenantUserPreferences)
@@ -350,19 +338,6 @@ export const tenantRouter = {
       return await handler(ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  updateBankAccountMappings: ownerProcedure
-    .input(z.object({
-      mappings: z.array(z.object({
-        categoryType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
-        bankAccountId: z.string().uuid(),
-      }))
-    }).strict())
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const handler = updateBankAccountMappingsHandler(ctx.db);
-      return await handler(input, ctx.tenantId!, ctx.appId!, ctx.userId!);
-    }),
-
   listBankAccounts: tenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
@@ -392,28 +367,16 @@ export const tenantRouter = {
           )
         );
 
-      const allCategories = await listCategoriesQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
-
-      const mappings = await ctx.db
-        .select()
-        .from(bankAccountCategoryMappings)
-        .where(
-          and(
-            eq(bankAccountCategoryMappings.tenantId, ctx.tenantId!),
-            eq(bankAccountCategoryMappings.appId, ctx.appId!),
-            sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
-          )
-        );
+      const allPools = await listPoolsQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
 
       return accounts.map((acc) => {
-        const mappedTypes = mappings.filter((m) => m.bankAccountId === acc.id).map((m) => m.categoryType);
-        const linkedCats = allCategories.filter((c) => mappedTypes.includes(c.type));
+        const linkedPools = allPools.filter((p) => p.bankAccountId === acc.id);
         const buffer = parseFloat(acc.unbudgetedBuffer || "0");
-        const expectedBalance = linkedCats.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0) + buffer;
+        const expectedBalance = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0) + buffer;
         return {
           ...acc,
           expectedBalance: expectedBalance.toFixed(2),
-          linkedCategoryCount: linkedCats.length,
+          linkedPoolCount: linkedPools.length,
         };
       });
     }),
@@ -425,8 +388,9 @@ export const tenantRouter = {
         actualBalance: z.string().regex(/^\d+(\.\d{1,2})?$/),
         splits: z.array(
           z.object({
-            categoryId: z.string().uuid(),
-            adjustment: z.string(), // positive for CREDIT, negative for DEBIT
+            poolId: z.string().uuid(),
+            categoryId: z.string().uuid().optional(),
+            adjustment: z.string(),
           })
         ),
       }).strict()
@@ -435,29 +399,28 @@ export const tenantRouter = {
       requiresWriteAccess(ctx);
       const accountId = input.accountId;
 
-      // Update bank account balance
       await ctx.db
         .update(bankAccounts)
         .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
         .where(eq(bankAccounts.id, accountId));
 
-      // Record transaction for each split adjustment
       for (const split of input.splits) {
         const adj = parseFloat(split.adjustment);
         if (Math.abs(adj) < 0.01) continue;
 
-        const cat = await ctx.db.query.categories.findFirst({
-          where: eq(categories.id, split.categoryId),
+        const pool = await ctx.db.query.pools.findFirst({
+          where: eq(pools.id, split.poolId),
         });
-        const categoryName = cat ? cat.name : "Category";
+        const poolName = pool ? pool.name : "Pool";
 
         await recordExpenseCommand(
           {
+            poolId: split.poolId,
             categoryId: split.categoryId,
             amount: Math.abs(adj).toFixed(2),
             flowType: adj > 0 ? "CREDIT" : "DEBIT",
             source: "MANUAL",
-            note: `${categoryName} Pool Adjustment`,
+            note: `${poolName} Reconciliation Adjustment`,
             recordedAt: new Date().toISOString(),
           },
           ctx.tenantId!,
@@ -481,7 +444,6 @@ export const tenantRouter = {
       const handler = deleteMyAccountHandler(ctx.db);
       const result = await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);
 
-      // Dispatch non-blocking background account deletion worker to Inngest
       inngest.send({
         name: 'user/account.delete-requested',
         data: {
@@ -675,8 +637,8 @@ export const tenantRouter = {
         await ctx.db.execute(
           sql`UPDATE neon_auth.user SET name = ${input.displayName}, image = ${input.avatarUrl || null} WHERE id = ${ctx.userId}`
         );
-      } catch (e) {
-        // Table neon_auth may not exist in lightweight mocks
+      } catch {
+        // Non-blocking: neon_auth.user table may not exist in mock DB or test environments
       }
 
       const [existingPref] = await ctx.db
@@ -778,5 +740,3 @@ export const tenantRouter = {
       return { success: true };
     }),
 };
-
-

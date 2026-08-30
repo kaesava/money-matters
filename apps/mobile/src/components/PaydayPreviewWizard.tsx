@@ -46,7 +46,7 @@ export function PaydayPreviewWizard({
   const todayStr = new Date().toISOString().slice(0, 10);
   const activeId = incomeEventId || eventToEdit?.id || null;
 
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: visible });
+  const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: visible });
 
   const categories = categoriesQuery.data ?? [];
@@ -88,11 +88,23 @@ export function PaydayPreviewWizard({
     }
   }, [previewQuery.data, eventToEdit, visible, bankAccounts]);
 
+interface PaydayLine {
+  poolId?: string;
+  bucketId?: string;
+  poolName?: string;
+  bucketName?: string;
+  proposedAmount: number | string;
+  reasoning?: string;
+}
+
   useEffect(() => {
-    if (previewQuery.data?.engineResult?.lines) {
+    const rawLines = (previewQuery.data?.engineResult as unknown as { lines?: PaydayLine[] })?.lines;
+    if (Array.isArray(rawLines)) {
       const initialAlloc: Record<string, string> = {};
-      previewQuery.data.engineResult.lines.forEach((l) => {
-        initialAlloc[l.bucketId] = l.proposedAmount.toString();
+      rawLines.forEach((l) => {
+        const id = l.poolId || l.bucketId || '';
+        const amt = typeof l.proposedAmount === 'number' ? l.proposedAmount.toFixed(2) : String(l.proposedAmount || '0');
+        if (id) initialAlloc[id] = amt;
       });
       setAllocations(initialAlloc);
     }
@@ -154,8 +166,8 @@ export function PaydayPreviewWizard({
     setSubmitting(true);
     try {
       if (activeId) {
-        const linesPayload = Object.entries(allocations).map(([categoryId, amount]) => ({
-          bucketId: categoryId,
+        const linesPayload = Object.entries(allocations).map(([poolId, amount]) => ({
+          poolId,
           amount: parseFloat(amount || '0').toFixed(2),
         }));
 
@@ -174,9 +186,10 @@ export function PaydayPreviewWizard({
           note,
         });
         const preview = await utils.previewPayday.fetch({ incomeEventId: createdEvt.id });
-        const linesPayload = preview.engineResult.lines.map((l) => ({
-          bucketId: l.bucketId,
-          amount: l.proposedAmount.toFixed(2),
+        const rawLines = (preview.engineResult as unknown as { lines?: PaydayLine[] })?.lines ?? [];
+        const linesPayload = rawLines.map((l) => ({
+          poolId: l.poolId || l.bucketId || '',
+          amount: (typeof l.proposedAmount === 'number' ? l.proposedAmount : parseFloat(String(l.proposedAmount || '0'))).toFixed(2),
         }));
         await confirmMutation.mutateAsync({
           incomeEventId: createdEvt.id,
@@ -230,7 +243,8 @@ export function PaydayPreviewWizard({
     Alert.alert(`Allocation Reason: ${catName}`, reason || 'Standard budget target allocation.');
   };
 
-  const lines = previewQuery.data?.engineResult?.lines || [];
+  const rawEngineResult = previewQuery.data?.engineResult as unknown as { lines?: PaydayLine[] } | undefined;
+  const lines: PaydayLine[] = Array.isArray(rawEngineResult?.lines) ? rawEngineResult!.lines : [];
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
@@ -301,18 +315,22 @@ export function PaydayPreviewWizard({
             <View style={styles.linesSection}>
               <Text style={styles.sectionHeader}>Category Distribution Splits</Text>
               {lines.map((l) => {
-                const cat = categories.find((c) => c.id === l.bucketId);
+                const lineId = l.poolId || l.bucketId || '';
+                const lineName = l.poolName || l.bucketName || 'Pool';
+                const lineReason = l.reasoning || '';
+                const proposedNum = typeof l.proposedAmount === 'number' ? l.proposedAmount : parseFloat(String(l.proposedAmount || '0')) || 0;
+                const cat = categories.find((c) => c.id === lineId);
 
-                const curBal = cat ? parseFloat(cat.currentBalance || '0') : 0;
-                const addAmt = parseFloat(allocations[l.bucketId] ?? l.proposedAmount) || 0;
+                const curBal = cat ? (typeof cat.currentBalance === 'number' ? cat.currentBalance : parseFloat(cat.currentBalance || '0')) : 0;
+                const addAmt = parseFloat(allocations[lineId] ?? String(proposedNum)) || 0;
                 const projBal = curBal + addAmt;
 
                 return (
-                  <View key={l.bucketId} style={styles.lineCard}>
+                  <View key={lineId} style={styles.lineCard}>
                     <View style={styles.lineHeader}>
-                      <Text style={styles.catName}>{l.bucketName}</Text>
-                      {l.reasoning ? (
-                        <TouchableOpacity onPress={() => showReasonAlert(l.bucketName, l.reasoning)}>
+                      <Text style={styles.catName}>{lineName}</Text>
+                      {lineReason ? (
+                        <TouchableOpacity onPress={() => showReasonAlert(lineName, lineReason)}>
                           <Text style={styles.whyBtn}>ⓘ Why this amount?</Text>
                         </TouchableOpacity>
                       ) : null}
@@ -324,8 +342,8 @@ export function PaydayPreviewWizard({
                       </Text>
                       <TextInput
                         style={styles.lineInput}
-                        value={allocations[l.bucketId] ?? l.proposedAmount.toFixed(2)}
-                        onChangeText={(val) => setAllocations((prev) => ({ ...prev, [l.bucketId]: val }))}
+                        value={allocations[lineId] ?? proposedNum.toFixed(2)}
+                        onChangeText={(val) => setAllocations((prev) => ({ ...prev, [lineId]: val }))}
                         keyboardType="decimal-pad"
                       />
                     </View>

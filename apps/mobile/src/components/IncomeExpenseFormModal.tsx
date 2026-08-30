@@ -90,17 +90,6 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
     },
   });
 
-  const updateExpenseMut = trpc.updateExpenseSource.useMutation({
-    onSuccess: (res: { hasPaidHistory?: boolean }) => {
-      if (res?.hasPaidHistory) {
-        Alert.alert('Notice', "Note: Bills that have already been marked as paid won't be changed. Only unperformed future occurrences have been updated.");
-      }
-      onSuccess?.();
-      onClose();
-    },
-  });
-
-
   const handleSubmit = () => {
     if (!name.trim() || !amount || parseFloat(amount) <= 0) {
       Alert.alert('Validation Error', 'Please provide a valid name and positive amount.');
@@ -134,33 +123,19 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
         });
       }
     } else {
-      if (sourceToEdit) {
-        updateExpenseMut.mutate({
-          id: sourceToEdit.id,
-          data: {
-            name: name.trim(),
-            amount: parseFloat(amount).toFixed(2),
-            categoryId,
-            isRecurring,
-            startDate: startDate ? startDate : undefined,
-            frequency: isRecurring ? frequency : undefined,
-          },
-        });
-      } else {
-        createExpenseMut.mutate({
-          name: name.trim(),
-          amount: parseFloat(amount).toFixed(2),
-          categoryId,
-          isRecurring,
-          startDate: isRecurring ? startDate : undefined,
-          frequency: isRecurring ? frequency : undefined,
-        });
-      }
+      createExpenseMut.mutate({
+        name: name.trim(),
+        amount: parseFloat(amount).toFixed(2),
+        poolId: categoryId,
+        isRecurring,
+        startDate: startDate ? startDate : undefined,
+        frequency: isRecurring ? frequency : undefined,
+      });
     }
   };
 
   const isPending =
-    createIncomeMut.isPending || updateIncomeMut.isPending || createExpenseMut.isPending || updateExpenseMut.isPending;
+    createIncomeMut.isPending || updateIncomeMut.isPending || createExpenseMut.isPending;
 
   const D = DESIGN_TOKENS;
 

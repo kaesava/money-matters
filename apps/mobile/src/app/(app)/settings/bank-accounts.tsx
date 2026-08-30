@@ -17,10 +17,7 @@ import { trpc } from "../../../lib/trpc";
 export default function BankAccountsScreen() {
   const router = useRouter();
   const toast = useMobileToast();
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
-  const updateMappingsMut = trpc.updateBankAccountMappings.useMutation({
-    onSuccess: () => bankAccountsQuery.refetch(),
-  });
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const createAccountMut = trpc.createBankAccount.useMutation({
     onSuccess: () => {
       bankAccountsQuery.refetch();
@@ -95,18 +92,16 @@ export default function BankAccountsScreen() {
 
   const accounts = bankAccountsQuery.data || [];
 
-  const handleCategoryTypeChange = (type: "EVERYDAY" | "REGULAR" | "GOAL", targetAccountId: string) => {
-    const currentMappings = [
-      { categoryType: "EVERYDAY" as const, bankAccountId: accounts.find(a => a.categoryTypes.includes("EVERYDAY"))?.id || accounts[0]?.id },
-      { categoryType: "REGULAR" as const, bankAccountId: accounts.find(a => a.categoryTypes.includes("REGULAR"))?.id || accounts[0]?.id },
-      { categoryType: "GOAL" as const, bankAccountId: accounts.find(a => a.categoryTypes.includes("GOAL"))?.id || accounts[0]?.id },
-    ];
+  const updatePoolMut = trpc.updatePool.useMutation({
+    onSuccess: () => bankAccountsQuery.refetch(),
+  });
 
-    const updated = currentMappings.map((m) =>
-      m.categoryType === type ? { ...m, bankAccountId: targetAccountId } : m
-    );
-
-    updateMappingsMut.mutate({ mappings: updated });
+  const handleCategoryTypeChange = async (type: "EVERYDAY" | "REGULAR" | "GOAL", targetAccountId: string) => {
+    const pools = accounts.flatMap((a) => (a as unknown as { pools?: Array<{ id: string; poolType: string }> }).pools || []);
+    const matchingPools = pools.filter((p) => p.poolType === type);
+    for (const p of matchingPools) {
+      await updatePoolMut.mutateAsync({ poolId: p.id, data: { bankAccountId: targetAccountId } });
+    }
   };
 
   const handleCreateAccount = () => {
@@ -138,7 +133,7 @@ export default function BankAccountsScreen() {
             { key: "REGULAR" as const, label: t("settings.bankAccounts.regular"), color: "#3B82F6" },
             { key: "GOAL" as const, label: t("settings.bankAccounts.goal"), color: "#6366F1" },
           ].map((typeItem) => {
-            const currentAcc = accounts.find((a) => a.categoryTypes.includes(typeItem.key));
+            const currentAcc = accounts.find((a) => (a as unknown as { pools?: Array<{ poolType: string }> }).pools?.some((p) => p.poolType === typeItem.key));
             return (
               <View key={typeItem.key} style={styles.mappingRow}>
                 <Text style={[styles.mappingLabel, { color: typeItem.color }]}>{typeItem.label}</Text>

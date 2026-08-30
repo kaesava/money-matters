@@ -20,11 +20,18 @@ export default function CategoriesScreen() {
   const params = useLocalSearchParams<{ health?: string; search?: string }>();
 
   const { data: session } = authClient.useSession();
-  const { data: categories = [], isLoading, error, refetch } = trpc.listCategories.useQuery();
+  const { data: categories = [], isLoading, error, refetch } = trpc.listPools.useQuery();
   const billCoverageQuery = trpc.listBillCoverage.useQuery();
   const billCoverageItems = billCoverageQuery.data?.items ?? [];
 
-  const typedCategories = categories as MobileCategoryItem[];
+  const typedCategories = categories.map((c) => {
+    const raw = c as unknown as { type?: 'GOAL' | 'REGULAR' | 'EVERYDAY'; poolType: 'GOAL' | 'REGULAR' | 'EVERYDAY'; currentBalance?: string | number };
+    return {
+      ...c,
+      type: raw.type || raw.poolType || 'EVERYDAY',
+      currentBalance: typeof raw.currentBalance === 'number' ? String(raw.currentBalance) : String(raw.currentBalance || '0'),
+    };
+  }) as MobileCategoryItem[];
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState(params.search ?? '');
@@ -47,7 +54,7 @@ export default function CategoriesScreen() {
   const [categoryToEdit, setCategoryToEdit] = useState<MobileCategoryItem | null>(null);
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
 
-  const archiveMut = trpc.archiveCategory.useMutation({
+  const archiveMut = trpc.archivePool.useMutation({
     onSuccess: () => {
       refetch();
       billCoverageQuery.refetch();
@@ -66,7 +73,7 @@ export default function CategoriesScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await archiveMut.mutateAsync({ categoryId: cat.id });
+            await archiveMut.mutateAsync({ poolId: cat.id });
             posthog.capture('category_archived', { category_type: cat.type });
             toast.success(t('toasts.archived'));
           } catch (err) {

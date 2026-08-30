@@ -69,7 +69,7 @@ export function FilterBar({
             }`}
           >
             {showIcons && <span>🎛️</span>}
-            <span>Filter</span>
+            <span>{t("common.filter", { defaultValue: "Filter" })}</span>
             {activeFilterCount > 0 && (
               <span className="bg-[#1B2B4B] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
                 {activeFilterCount}

@@ -232,13 +232,13 @@ export function MatrixPlanTab({
     try {
       setIsSaving(true);
       // Group cell overrides by incomeEventId (colId)
-      const eventMap: Record<string, Array<{ categoryId: string; proposedAmount: string }>> = {};
+      const eventMap: Record<string, Array<{ poolId: string; proposedAmount: string }>> = {};
       for (const [key, val] of Object.entries(cellOverrides)) {
         const parts = key.split("_");
         const eventId = parts[0];
-        const catId = parts.slice(1).join("_");
+        const pId = parts.slice(1).join("_");
         if (!eventMap[eventId]) eventMap[eventId] = [];
-        eventMap[eventId].push({ categoryId: catId, proposedAmount: val.toFixed(2) });
+        eventMap[eventId].push({ poolId: pId, proposedAmount: val.toFixed(2) });
       }
 
       for (const col of projection.columns) {
@@ -550,7 +550,7 @@ export function MatrixPlanTab({
       <PaydayPreviewModal
         isOpen={!!activePaydayEventId}
         onClose={() => setActivePaydayEventId(null)}
-        incomeEventId={activePaydayEventId}
+        incomeEventId={activePaydayEventId || undefined}
         onSuccess={() => {
           utils.listAllAllocationPlans.invalidate();
           utils.listIncomeEvents.invalidate();

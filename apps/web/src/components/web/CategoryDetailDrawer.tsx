@@ -106,7 +106,7 @@ export function CategoryDetailDrawer({ categoryId, onClose, onEdit, onArchive }:
                   onClick={() => onEdit(cat)}
                   className="px-3 py-1 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border border-zinc-200 transition-colors"
                 >
-                  Edit Category
+                  {t("common.edit")}
                 </button>
               )}
             </div>
@@ -163,7 +163,7 @@ export function CategoryDetailDrawer({ categoryId, onClose, onEdit, onArchive }:
                   onClick={() => onArchive(cat)}
                   className="text-xs font-semibold text-rose-500 hover:text-rose-700 hover:underline transition-colors"
                 >
-                  Archive Category
+                  {t("common.archive")}
                 </button>
               </div>
             )}
@@ -199,7 +199,7 @@ function TransactionHistory({
       <div className="flex flex-col items-center gap-2 py-6 rounded-xl text-center bg-zinc-50">
         <span className="text-xl">📋</span>
         <p className="text-xs font-semibold text-zinc-500">
-          No transaction history for this category.
+          {t("drawers.categoryDetail.noHistory", { defaultValue: "No transaction history for this category." })}
         </p>
       </div>
     );
@@ -241,7 +241,7 @@ function TransactionHistory({
           onClick={() => onClose?.()}
           className="text-xs font-bold text-[#00B4A6] hover:underline inline-flex items-center gap-1 cursor-pointer"
         >
-          <span>View All Transactions</span>
+          <span>{t("drawers.categoryDetail.viewAllTransactions", { defaultValue: "View All Transactions" })}</span>
           <span>→</span>
         </Link>
       </div>

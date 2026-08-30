@@ -23,16 +23,30 @@ function CategoriesPageContent() {
   const paramSearch = searchParams.get("search") || searchParams.get("name") || "";
   const paramHealth = searchParams.get("health") || searchParams.get("status") || "ALL";
 
-  const categoriesQuery = trpc.listCategories.useQuery();
-  const categories = (categoriesQuery.data ?? []) as CategorySummaryItem[];
+  const poolsQuery = trpc.listPools.useQuery();
+  const rawPools = poolsQuery.data ?? [];
+  const categories: CategorySummaryItem[] = rawPools.map((p) => ({
+    id: p.id,
+    poolId: p.id,
+    name: p.name,
+    type: p.poolType,
+    isPrivate: p.isPrivate,
+    currentBalance: String(p.currentBalance || "0"),
+    monthlyAmount: p.targetAmount || p.everydayAllowanceAmount || "0",
+    everydayAllowanceAmount: p.everydayAllowanceAmount,
+    targetAmount: p.targetAmount,
+    targetDate: p.targetDate,
+    healthStatus: p.healthStatus,
+    isEssential: true,
+    isSurplusTarget: p.isSurplusTarget,
+  }));
 
   const billCoverageQuery = trpc.listBillCoverage.useQuery();
   const billCoverageItems = billCoverageQuery.data?.items ?? [];
 
   const archivedQuery = trpc.listArchivedItems.useQuery();
-  const hasArchivedCategories = archivedQuery.data?.some(i => i.itemType === 'CATEGORY') ?? false;
+  const hasArchivedCategories = archivedQuery.data?.some((i) => i.itemType === 'POOL' || i.itemType === 'CATEGORY') ?? false;
 
-  // Filter States
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [healthFilter, setHealthFilter] = useState(paramHealth);
   const [projectionMonths, setProjectionMonths] = useState(0);
@@ -55,7 +69,6 @@ function CategoriesPageContent() {
     });
   }, []);
 
-  // Section Collapse States (Collapsed by default, expanded if filtered)
   const isFiltered = Boolean(paramSearch || searchQuery.trim() || (paramHealth && paramHealth !== "ALL") || (healthFilter && healthFilter !== "ALL"));
   const [isEverydayCollapsed, setIsEverydayCollapsed] = useState(!isFiltered);
   const [isRegularCollapsed, setIsRegularCollapsed] = useState(!isFiltered);
@@ -72,7 +85,6 @@ function CategoriesPageContent() {
     }
   }, [searchQuery, healthFilter]);
 
-  // Listen for global floating + button event on Pools screen
   useEffect(() => {
     function handleOpenCreateModal() {
       setCategoryToEdit(null);
@@ -82,47 +94,42 @@ function CategoriesPageContent() {
     return () => window.removeEventListener("open-create-category-modal", handleOpenCreateModal);
   }, []);
 
-  // Selection & Modals
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState<CategorySummaryItem | null>(null);
   const [activityCategory, setActivityCategory] = useState<CategorySummaryItem | null>(null);
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
 
-  // Month progress
   const { elapsedPct } = monthProgress();
 
-  // Mutations
-  const archiveCategoryMut = trpc.archiveCategory.useMutation({
+  const archivePoolMut = trpc.archivePool.useMutation({
     onSuccess: () => {
-      utils.listCategories.invalidate();
+      utils.listPools.invalidate();
       utils.listBillCoverage.invalidate();
     },
   });
 
   const handleArchive = async (cat: CategorySummaryItem) => {
     if (cat.type === "EVERYDAY") {
-      toast.warning("The Everyday category cannot be archived or deleted.");
+      toast.warning("The Everyday pool cannot be archived or deleted.");
       return;
     }
     if (confirm(`Are you sure you want to archive "${cat.name}"?`)) {
       try {
-        await archiveCategoryMut.mutateAsync({ categoryId: cat.id });
-        posthog.capture("category_archived", { category_type: cat.type });
+        await archivePoolMut.mutateAsync({ poolId: cat.id });
+        posthog.capture("pool_archived", { pool_type: cat.type });
         toast.success(t("toasts.archived"));
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Failed to archive category.";
+        const message = err instanceof Error ? err.message : "Failed to archive pool.";
         toast.error(message);
       }
     }
   };
 
-  // Group Categories by Bucket
   const everydayCategories = categories.filter((c) => c.type === "EVERYDAY");
   const regularCategories = categories.filter((c) => c.type === "REGULAR");
   const goalCategories = categories.filter((c) => c.type === "GOAL");
 
-  // Everyday Bucket Summary Math
   const everydayBalance = everydayCategories.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
   const everydayMonthlyBudget = everydayCategories.reduce(
     (sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || "0"),
@@ -133,7 +140,6 @@ function CategoriesPageContent() {
       ? Math.min(100, Math.max(0, Math.round(((everydayMonthlyBudget - everydayBalance) / everydayMonthlyBudget) * 100)))
       : 0;
 
-  // Regular Bills Bucket Summary Math
   const regularBalance = regularCategories.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
   const regularMonthlyBudget = regularCategories.reduce((sum, c) => sum + parseFloat(c.monthlyAmount || "0"), 0);
   const regularConsumedPct =
@@ -141,7 +147,6 @@ function CategoriesPageContent() {
       ? Math.min(100, Math.max(0, Math.round(((regularMonthlyBudget - regularBalance) / regularMonthlyBudget) * 100)))
       : 0;
 
-  // Filter Helper
   const filterFn = (catList: CategorySummaryItem[]) =>
     catList.filter((c) => {
       const q = searchQuery.toLowerCase().trim();
@@ -152,7 +157,6 @@ function CategoriesPageContent() {
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
-      {/* Header & Main Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -187,7 +191,6 @@ function CategoriesPageContent() {
         </div>
       </div>
 
-      {/* Timeline Projection Slider (Today -> +12 Months) */}
       <div className="p-5 bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-purple-50/90 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl shadow-xs relative overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
@@ -214,7 +217,6 @@ function CategoriesPageContent() {
           </div>
         </div>
 
-        {/* Floating Tooltip displaying target date at slider thumb position */}
         <div className="relative pt-6 pb-2">
           <div
             className="absolute top-0 text-[11px] font-black font-mono bg-[#2563eb] text-white px-2.5 py-0.5 rounded-md shadow-md pointer-events-none transition-all"
@@ -237,7 +239,6 @@ function CategoriesPageContent() {
           />
         </div>
 
-        {/* Axis Labels showing actual calculated dates */}
         <div className="flex justify-between text-[10px] font-bold text-zinc-400 font-mono mt-1 px-1">
           {axisDates.map((label: string, idx: number) => (
             <span key={idx} className={idx === 0 && projectionMonths <= 0.05 ? "text-[#2563eb] font-extrabold" : ""}>
@@ -246,13 +247,12 @@ function CategoriesPageContent() {
           ))}
         </div>
 
-        {/* Visual Indicator Banner when in Projection Mode */}
         {projectionMonths > 0.05 && (
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 rounded-xl flex items-center justify-between text-xs animate-in slide-in-from-top-2 duration-150">
             <div className="flex items-center gap-2">
               <span className="animate-pulse text-base">🔮</span>
               <span className="font-bold text-amber-900 dark:text-amber-200">
-                PROJECTION MODE: Showing estimated category balances as of <strong>{projectionTargetDate}</strong>.
+                PROJECTION MODE: Showing estimated pool balances as of <strong>{projectionTargetDate}</strong>.
               </span>
             </div>
             <button
@@ -266,7 +266,6 @@ function CategoriesPageContent() {
         )}
       </div>
 
-      {/* Filter Bar */}
       <FilterBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -278,7 +277,6 @@ function CategoriesPageContent() {
         }}
       />
 
-      {/* SECTION 1: EVERYDAY SPENDING */}
       <EverydayPoolSection
         categories={filterFn(everydayCategories)}
         everydayBalance={everydayBalance}
@@ -295,7 +293,6 @@ function CategoriesPageContent() {
         onOpenActivity={setActivityCategory}
       />
 
-      {/* SECTION 2: REGULAR BILLS */}
       <RegularBillsSection
         categories={filterFn(regularCategories)}
         billCoverageItems={billCoverageItems}
@@ -314,7 +311,6 @@ function CategoriesPageContent() {
         onOpenActivity={setActivityCategory}
       />
 
-      {/* SECTION 3: SAVE TOWARD (GOALS) */}
       <SavingsGoalsSection
         categories={filterFn(goalCategories)}
         onSelectCategory={setSelectedCategoryId}
@@ -337,12 +333,11 @@ function CategoriesPageContent() {
         </div>
       )}
 
-      {/* Shared Modals & Drawers */}
       {isMoveMoneyOpen && (
         <QuickActionDrawer
           onClose={() => {
             setIsMoveMoneyOpen(false);
-            utils.listCategories.invalidate();
+            utils.listPools.invalidate();
           }}
           initialTab="TRANSFER"
         />
@@ -352,7 +347,7 @@ function CategoriesPageContent() {
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
         categoryToEdit={categoryToEdit}
-        onSuccess={() => utils.listCategories.invalidate()}
+        onSuccess={() => utils.listPools.invalidate()}
       />
 
       <CategoryActivityModal

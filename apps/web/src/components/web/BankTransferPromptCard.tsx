@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { t } from "@money-matters/i18n";
 
 export interface BankTransferPromptCardProps {
   readonly sourceAccountName: string;
@@ -35,10 +36,10 @@ export function BankTransferPromptCard({
         </div>
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900 bg-blue-200/60 px-2 py-0.5 rounded-full">
-            Bank Account Action Required
+            {t("cards.bankTransfer.badge", { defaultValue: "Bank Account Action Required" })}
           </span>
           <h4 className="text-xs font-bold text-[#1B2B4B] mt-0.5">
-            Transfer <span className="font-mono font-extrabold text-[#2563eb]">{fmt(transferAmount)}</span> from {sourceAccountName} → {targetAccountName}
+            {t("cards.bankTransfer.transferLabel", { defaultValue: "Transfer" })} <span className="font-mono font-extrabold text-[#2563eb]">{fmt(transferAmount)}</span> from {sourceAccountName} → {targetAccountName}
           </h4>
           <p className="text-[11px] text-blue-800 mt-0.5">{reason}</p>
         </div>
@@ -56,7 +57,7 @@ export function BankTransferPromptCard({
             onClick={onDone}
             className="px-2.5 py-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-700 bg-white/80 border border-zinc-200 rounded-xl transition-colors"
           >
-            Dismiss
+            {t("common.dismiss", { defaultValue: "Dismiss" })}
           </button>
         )}
       </div>

@@ -11,17 +11,20 @@ interface MoveMoneyModalProps {
 }
 
 export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalProps) {
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: visible });
+  const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const categories = categoriesQuery.data ?? [];
 
   const [fromCategoryId, setFromCategoryId] = useState('');
   const [toCategoryId, setToCategoryId] = useState('');
   const [amount, setAmount] = useState('');
 
-  const everydayCat = categories.find((c) => c.type === 'EVERYDAY');
+  const getBalance = (c: { currentBalance?: string | number }) =>
+    typeof c.currentBalance === 'number' ? c.currentBalance : parseFloat(c.currentBalance || '0');
+
+  const everydayCat = categories.find((c) => c.poolType === 'EVERYDAY');
   const maxSavingsCat = [...categories]
-    .filter((c) => c.type !== 'EVERYDAY' && parseFloat(c.currentBalance || '0') > 0)
-    .sort((a, b) => parseFloat(b.currentBalance || '0') - parseFloat(a.currentBalance || '0'))[0];
+    .filter((c) => c.poolType !== 'EVERYDAY' && getBalance(c) > 0)
+    .sort((a, b) => getBalance(b) - getBalance(a))[0];
 
   const moveMoneyMut = trpc.moveMoney.useMutation({
     onSuccess: () => {
@@ -53,7 +56,7 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
     const sourceCat = categories.find((c) => c.id === fromCategoryId);
     const transferAmt = parseFloat(amount);
     if (sourceCat) {
-      const sourceBal = parseFloat(sourceCat.currentBalance || '0');
+      const sourceBal = getBalance(sourceCat);
       if (transferAmt > sourceBal) {
         Alert.alert(
           'Overdrawn Warning',
@@ -75,8 +78,8 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
 
   const performTransfer = () => {
     moveMoneyMut.mutate({
-      sourceCategoryId: fromCategoryId,
-      destinationCategoryId: toCategoryId,
+      sourcePoolId: fromCategoryId,
+      destinationPoolId: toCategoryId,
       amount: parseFloat(amount).toFixed(2),
     });
   };
@@ -162,7 +165,7 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
         <View style={styles.guardBanner}>
           <Text style={styles.guardBannerTitle}>🛡️ Payday Safety Guard</Text>
           <Text style={styles.guardBannerText}>
-            Moving {formatAUD(parseFloat(amount))} leaves {formatAUD(Math.max(0, parseFloat(everydayCat.currentBalance || '0') - parseFloat(amount)))} in Everyday spending cash.
+            Moving {formatAUD(parseFloat(amount) || 0)} leaves {formatAUD(Math.max(0, (parseFloat(String(everydayCat.currentBalance || '0')) || 0) - (parseFloat(amount) || 0)))} in Everyday spending cash.
           </Text>
         </View>
       )}

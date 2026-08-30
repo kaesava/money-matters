@@ -58,14 +58,14 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
     }
   }, [categoryToEdit, visible]);
 
-  const createMut = trpc.createCategory.useMutation({
+  const createMut = trpc.createPool.useMutation({
     onSuccess: () => {
       onSuccess?.();
       onClose();
     },
   });
 
-  const updateMut = trpc.updateCategory.useMutation({
+  const updateMut = trpc.updatePool.useMutation({
     onSuccess: () => {
       onSuccess?.();
       onClose();
@@ -78,14 +78,15 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       return;
     }
 
+    const defaultBankAccountId = bankAccountId || bankAccounts[0]?.id || '';
+
     if (categoryToEdit) {
       updateMut.mutate({
-        categoryId: categoryToEdit.id,
+        poolId: categoryToEdit.id,
         data: {
           name: name.trim(),
-          type,
-          targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
-          monthlyAmount: type === 'REGULAR' && monthlyAmount ? parseFloat(monthlyAmount).toFixed(2) : undefined,
+          bankAccountId: defaultBankAccountId || undefined,
+          targetAmount: (type === 'GOAL' || type === 'REGULAR') && (targetAmount || monthlyAmount) ? parseFloat(targetAmount || monthlyAmount).toFixed(2) : undefined,
           targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
           everydayAllowanceAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
         },
@@ -93,9 +94,9 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
     } else {
       createMut.mutate({
         name: name.trim(),
-        type,
-        targetAmount: type === 'GOAL' && targetAmount ? parseFloat(targetAmount).toFixed(2) : undefined,
-        monthlyAmount: type === 'REGULAR' && monthlyAmount ? parseFloat(monthlyAmount).toFixed(2) : undefined,
+        poolType: type,
+        bankAccountId: defaultBankAccountId,
+        targetAmount: (type === 'GOAL' || type === 'REGULAR') && (targetAmount || monthlyAmount) ? parseFloat(targetAmount || monthlyAmount).toFixed(2) : undefined,
         targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
         everydayAllowanceAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
       });

@@ -23,6 +23,7 @@
 | **Stripe / subscription payments** | **DELIVERED** | Integrated with trial lockouts, webhooks, and read-only grace periods |
 | **Uptime Monitoring (Better Stack / UptimeRobot)** | Deferred to Release 2 | Automated ping checks on `/health` and Web frontend |
 | **Product Analytics (PostHog)** | **DELIVERED** | Integrated telemetry and telemetry context providers |
+| **Japanese Translation (ja.ts) Parity Check** | Deferred to Release 2 | `check-i18n.cjs` validates `en.ts` completeness and TSX string literal externalization in V1; full EN-JA dictionary key parity deferred to Release 2 |
 | **Category-Level Balance Management (Everyday & Bills)** | Deferred to Release 2 | Managed at pool level in V1; see detailed feature spec below |
 
 ---

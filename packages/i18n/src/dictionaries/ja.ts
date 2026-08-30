@@ -38,6 +38,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "next": "次へ",
     "back": "戻る",
     "done": "完了",
+    "dismiss": "閉じる",
     "sortOrder": "並び順",
     "ascending": "昇順",
     "descending": "降順",
@@ -124,6 +125,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "hint": "給料が振り込まれた瞬間に、お金の流れをコントロール。",
     "signIn": "ログイン",
     "signUp": "アカウント作成",
+    "signUpWithApple": "Appleでサインアップ",
     "emailLabel": "メールアドレス",
     "emailPlaceholder": "you@example.com",
     "passwordLabel": "パスワード",
@@ -224,7 +226,19 @@ export const ja: DeepStringRecord<typeof en> = {
       "transactions": "取引履歴",
       "paydayAllocations": "給与日配分"
     },
+    "subtitle": "サブタイトル",
     "historyTooltip": "世帯のすべての支出と給料日振分けの完全な記録。",
+    "filterAll": "すべて",
+    "filterDebit": "支出",
+    "filterCredit": "収入",
+    "filterTransfer": "振替",
+    "searchPlaceholder": "検索...",
+    "allCategories": "すべてのカテゴリ",
+    "noTransactionsFound": "取引が見つかりません",
+    "date": "日付",
+    "description": "説明",
+    "category": "カテゴリ",
+    "amount": "金額",
     "title": "履歴",
     "empty": "履歴はありません",
     "emptySubtitle": "支出や収入を記録すると、ここに表示されます。",
@@ -234,6 +248,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "typeExpense": "支出",
     "typeIncome": "収入",
     "newExpense": {
+      "title": "何に支出しましたか？",
       "submitting": "記録中...",
       "submitCta": "記録する",
       "submitIncomeCta": "収入を記録",
@@ -326,6 +341,11 @@ export const ja: DeepStringRecord<typeof en> = {
     }
   },
   "landing": {
+    "earlyAccess": {
+      "title": "Money Matters はまもなくリリースされます！",
+      "description": "家計管理体験を完璧にするため、最終調整とテストを行っています。まもなくサインアップを開始します。",
+      "notifyLabel": "リリース時に通知を受け取る:"
+    },
     "getStartedFree": "60日間無料体験を始める",
     "badge": "🇦🇺 オーストラリアの家庭向け家計管理",
     "heroTitle": "支払いも貯蓄も準備完了。",
@@ -505,6 +525,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "faq6Body": "セキュリティとプライバシーは私たちの設計の中核です。PostgreSQL Row Level Security (RLS)、マルチテナントデータ隔離、厳格なHTTPS暗号化、オーストラリア・プライバシー法準拠、個人情報の非ログ化を徹底しています。",
     "faqSectionBadge": "よくある質問",
     "faqSectionTitle": "Money Mattersについてのよくある質問",
+    "faqSectionSubtitle": "給与自動配分、柔軟な銀行口座連携、住宅ローンオフセット節約、プライバシーに関する明確な回答。",
     "termsOfService": "Terms of Service"
   },
   "paychecks": {
@@ -661,6 +682,14 @@ export const ja: DeepStringRecord<typeof en> = {
     }
   },
   "dashboard": {
+    "upcomingEvents": {
+      "title": "今後の予定",
+      "subtitle": "予定されている収入・給料と請求の支払い",
+      "selectSeries": "シリーズを選択...",
+      "empty": "今後の予定はありません。",
+      "deleteTitle": "イベントを永久に削除",
+      "cannotBeUndone": "この操作は取り消せません"
+    },
     "title": "ホーム",
     "welcome": "こんにちは、{name} さん 👋",
     "nextPaydayReady": "次回の給料日準備完了",
@@ -1039,6 +1068,53 @@ export const ja: DeepStringRecord<typeof en> = {
     "deleteAccountTitle": "アカウントの永久削除",
     "deleteAccountSubtitle": "アカウントを削除し、すべてのデータを永久に消去します。",
     "deleteWarning": "この操作は取り消せません。すべての取引履歴、予算設定、メモが消去されます。",
+    "deletePageTitle": "アカウントとデータの削除",
+    "deletePageSubtitle": "アカウントと世帯データの永久削除リクエスト。",
+    "deleteStep1Title": "1. 削除リクエストをメール送信",
+    "deleteStep1Body": "以下の宛先にメールを送信してください ",
+    "deleteStep2Title": "2. 登録メールアドレスを記載",
+    "deleteStep2Body": "Money Mattersに登録したメールアドレスを正確にご記載ください。",
+    "deleteStep3Title": "3. 3営業日以内に受領確認",
+    "deleteStep3Body": "担当チームより受領確認メールを返信いたします。",
+    "deleteStep4Title": "4. 30日以内に削除完了",
+    "deleteStep4Body": "確認後30日以内にアカウントと関連データが永久削除されます。",
+    "whatGetsDeleted": "削除されるデータ",
+    "delItem1": "お名前、メールアドレス、認証情報",
+    "delItem2": "世帯およびメンバーシップ記録",
+    "delItem3": "すべての予算カテゴリ、配分計画、ウォーターフォール設定",
+    "delItem4": "すべての収入・支出イベント、金額、メモ",
+    "delItem5": "すべての銀行口座記録および取引明細",
+    "delItem6": "すべての添付ファイルおよびメモ",
+    "delItem7": "すべての通知設定およびプッシュトークン",
+    "delItem8": "すべてのセッショントークンおよびログイン履歴",
+    "whatMayBeRetained": "保持される可能性のあるデータ（理由）",
+    "whatMayBeRetainedSub": "オーストラリアの法律により、匿名化された記録が保持される場合があります:",
+    "retainItem1": "集計・匿名化された利用指標",
+    "retainNote1": "サービス改善のため最大7年間保持（個人を特定不可）",
+    "retainItem2": "税務・金融規制により必要な記録",
+    "retainNote2": "会社法に基づき最大7年間保持される場合があります",
+    "retainItem3": "セキュリティ監査ログ",
+    "retainNote3": "不正防止のため90日間保持後、自動破棄",
+    "privacyContact": "プライバシーに関するお問い合わせ",
+    "privacyContactSub": "データ、プライバシー、削除に関するお問い合わせ:",
+    "devLabel": "開発元:",
+    "appLabel": "アプリ:",
+    "googlePlayNotice": "本ページはGoogle Playのデータセーフティ要件を満たしています。",
+    "instantErasure": "即時アカウント削除",
+    "backToSettings": "← 設定に戻る",
+    "signedInAs": "現在ログイン中: ",
+    "signedInAsEnd": "。データのエクスポートおよびアカウントの即時削除が可能です。",
+    "step1ExportTitle": "ステップ1: データの wrote エクスポート（任意）",
+    "step1ExportBody": "削除前に予算カテゴリ、収入、支出、取引履歴、口座データの完全なバックアップをダウンロードしてください。",
+    "dataDownloaded": "✓ データダウンロード完了",
+    "exportMyData": "📥 データをエクスポート",
+    "step2ConfirmTitle": "ステップ2: 永久削除の確認",
+    "understandErasure": "アカウントを削除すると、すべての世帯予算、取引履歴、収入記録、口座情報が永久に消去されることを理解しています。",
+    "typeToConfirm": "確認のため {phrase} と入力してください:",
+    "deleteMyHousehold": "DELETE MY HOUSEHOLD",
+    "deleteAccountNow": "今すぐアカウントを永久削除",
+    "deletionSuccess": "アカウントおよび関連データが永久に削除されました。",
+    "aboutThisPage": "このページについて",
     "confirmDeletePrompt": "確認のため、下に「DELETE」と入力してください:",
     "deleteButton": "アカウントを永久削除",
     "deletionConfirmedTitle": "アカウント削除が完了しました",
@@ -1101,6 +1177,15 @@ export const ja: DeepStringRecord<typeof en> = {
     "returnToApp": "Return to Money Matters"
   },
   "modals": {
+    "categoryActivity": {
+      "noUpcoming": "このプールにリンクされた今後の請求はありません。"
+    },
+    "unsavedChanges": {
+      "title": "未保存の変更",
+      "description": "フォームに未保存の変更があります。移動する前に保存しますか？",
+      "discard": "変更を破棄",
+      "keepEditing": "編集を続ける"
+    },
     "reconciliation": {
       "title": "銀行口座残高の調整",
       "accountBalance": "プール目標残高",
@@ -1146,7 +1231,8 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "予定の変更・オーバーライド",
       "overrideAmount": "変更後の金額 ($)",
       "overrideDate": "変更後の日付 (YYYY-MM-DD)",
-      "submit": "変更を適用"
+      "submit": "変更を適用",
+      "editMasterSeries": "マスターシリーズを編集"
     },
     "categoryForm": {
       "titleNew": "新規カテゴリー追加",
@@ -1213,6 +1299,8 @@ export const ja: DeepStringRecord<typeof en> = {
     }
   },
   "badges": {
+    "actionRequired": "要対応",
+    "nextPayday": "次回給料日",
     "bill": "請求",
     "income": "収入",
     "upcomingPaydays": "次回以降の給料日",
@@ -1348,5 +1436,97 @@ export const ja: DeepStringRecord<typeof en> = {
     "overdueDesc": "支払いまたは割り当てなしで期日を過ぎた請求",
     "skippedLabel": "スキップ",
     "skippedDesc": "このサイクルでユーザーによりスキップされた請求"
+  },
+  "actions": {
+    "markPaid": "支払済みにする",
+    "filter": "フィルター",
+    "editCategory": "カテゴリを編集",
+    "archiveCategory": "カテゴリをアーカイブ",
+    "viewAllTransactions": "すべての取引を表示",
+    "archivePool": "プールをアーカイブ",
+    "cancel": "キャンセル",
+    "editMasterSeries": "マスターシリーズを編集"
+  },
+  "cards": {
+    "paydayTransfer": {
+      "badge": "ワンタップ給料日振替プラン",
+      "target": "対象口座:"
+    },
+    "bankTransfer": {
+      "badge": "銀行口座のアクションが必要です",
+      "transferLabel": "振替"
+    },
+    "canAfford": {
+      "includePersonal": "個人プールを含める"
+    }
+  },
+  "drawers": {
+    "categoryDetail": {
+      "noHistory": "このカテゴリの取引履歴はありません。",
+      "viewAllTransactions": "すべての取引を表示",
+      "overview": "概要"
+    },
+    "quickExpense": {
+      "tabExpense": "支出",
+      "tabIncome": "収入",
+      "tabTransfer": "振替",
+      "transferName": "振替名",
+      "category": "カテゴリ",
+      "defaultEverydayAccount": "デフォルト日常口座",
+      "scheduledPaydayWaterfall": "給料日ウォーターフォールにスケジュール済み"
+    }
+  },
+  "frequencies": {
+    "weekly": "毎週",
+    "fortnightly": "隔週",
+    "monthly": "毎月",
+    "annually": "毎年"
+  },
+  "poolTypes": {
+    "everyday": "日常費",
+    "bills": "請求書",
+    "goals": "目標"
+  },
+  "csvImport": {
+    "upload": {
+      "selectTargetAccount": "対象の銀行口座を選択",
+      "dragDrop": "ここに銀行明細CSVファイルをドラッグ＆ドロップ",
+      "supportedBanks": "CommBank、NAB、ANZ、Westpac、ING、Macquarieおよび汎用CSVに対応。",
+      "browseFiles": "ファイルを参照",
+      "customMappingRequired": "カスタムCSV列マッピングが必要",
+      "detectHeadersFailed": "ヘッダーを自動検出できませんでした。日付、説明、金額に対応する列を選択してください。",
+      "dateColumn": "日付列",
+      "descColumn": "説明列",
+      "amountColumn": "金額列",
+      "applyMapping": "列マッピングを適用",
+      "parsing": "銀行明細CSVを解析中..."
+    },
+    "review": {
+      "includedIncome": "対象収入",
+      "netImpact": "純影響額",
+      "flipSelected": "選択項目の符号を反転"
+    }
+  },
+  "terms": {
+    "title": "利用規約",
+    "lastUpdated": "最終更新日: 2026年8月",
+    "content": "Money Mattersへようこそ。当サービスを利用することにより、本規約に同意したものとみなされます..."
+  },
+  "notFound": {
+    "title": "404 ページが見つかりません",
+    "message": "指定されたページが存在しないか、移動した可能性があります。",
+    "backToDashboard": "ダッシュボードに戻る"
+  },
+  "passwordStrength": {
+    "weak": "弱い",
+    "medium": "普通",
+    "strong": "強い"
+  },
+  "keyboardShortcuts": {
+    "title": "キーボードショートカット",
+    "quickExpense": "クイック支出",
+    "search": "検索",
+    "close": "閉じる",
+    "shortcuts": "ショートカット"
   }
 } as const;

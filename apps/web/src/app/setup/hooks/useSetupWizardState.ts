@@ -204,14 +204,34 @@ export function useSetupWizardState() {
   const handleFinish = async () => {
     setIsSubmitting(true);
     try {
-      await reSetupMut.mutateAsync({
-        everydayTargetCap: totalEverydayMonthly,
-        billsTargetCap: totalRegularMonthly,
-        categoriesList: activeCategories.map((cat) => ({
+      const everydayPool = {
+        name: "Everyday Pool",
+        poolType: "EVERYDAY" as const,
+        everydayAllowanceAmount: totalEverydayMonthly.toFixed(2),
+        categories: activeCategories.filter((c) => c.type === "EVERYDAY").map((cat) => ({
           name: cat.name,
-          type: cat.type,
-          monthlyAmount: cat.monthlyAud,
+          monthlyAmount: cat.monthlyAud.toFixed(2),
         })),
+      };
+      const billsPool = {
+        name: "Bills Pool",
+        poolType: "REGULAR" as const,
+        targetAmount: totalRegularMonthly.toFixed(2),
+        categories: activeCategories.filter((c) => c.type === "REGULAR").map((cat) => ({
+          name: cat.name,
+          monthlyAmount: cat.monthlyAud.toFixed(2),
+        })),
+      };
+      const goalPools = activeCategories.filter((c) => c.type === "GOAL").map((cat) => ({
+        name: cat.name,
+        poolType: "GOAL" as const,
+        targetAmount: cat.monthlyAud.toFixed(2),
+      }));
+
+      await reSetupMut.mutateAsync({
+        everydayTargetCap: totalEverydayMonthly.toFixed(2),
+        billsTargetCap: totalRegularMonthly.toFixed(2),
+        poolsList: [everydayPool, billsPool, ...goalPools],
       });
 
       posthog.capture("onboarding_completed", {

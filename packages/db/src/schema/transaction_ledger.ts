@@ -1,4 +1,5 @@
 import { pgTable, uuid, numeric, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pools } from "./pool.js";
 import { categories } from "./category.js";
 import { bankAccounts } from "./bank_account.js";
 import { allocationPlanLines } from "./allocation_plan_line.js";
@@ -9,8 +10,9 @@ export const transactionSourceEnum = pgEnum("transaction_source_enum", ["MANUAL"
 
 export const transactionLedger = pgTable("transaction_ledger", {
   id: uuid("id").primaryKey().defaultRandom(),
-  categoryId: uuid("category_id").references(() => categories.id).notNull(),
-  bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable in V1, tracks associated bank flow
+  poolId: uuid("pool_id").references(() => pools.id).notNull(),
+  categoryId: uuid("category_id").references(() => categories.id), // Nullable optional sub-tag
+  bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable, tracks associated bank flow
   planLineId: uuid("plan_line_id").references(() => allocationPlanLines.id), // Ties confirmed allocation line splits to ledger credits
   flowType: transactionFlowEnum("flow_type").notNull(),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
@@ -21,4 +23,3 @@ export const transactionLedger = pgTable("transaction_ledger", {
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
   ...tenantAndTimestamps,
 });
-

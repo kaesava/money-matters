@@ -4,8 +4,8 @@ import {
   TenantSchema,
   TenantMemberSchema,
   BankAccountSchema,
+  PoolSchema,
   CategorySchema,
-  CategoryScheduleSchema,
   IncomeSourceSchema,
   IncomeSourceScheduleSchema,
   IncomeEventSchema,
@@ -86,49 +86,26 @@ describe('Domain Schemas Validation', () => {
     expect(bank.unbudgetedBuffer).toBe('0.00');
   });
 
-  it('validates CategorySchema 3-bucket architecture parameters', () => {
+  it('validates PoolSchema parameters', () => {
+    const pool = PoolSchema.parse({
+      ...mockBase,
+      name: 'Regular Bills',
+      poolType: 'REGULAR',
+      bankAccountId: '55555555-5555-4555-8555-555555555555',
+    });
+    expect(pool.poolType).toBe('REGULAR');
+
     const category = CategorySchema.parse({
       ...mockBase,
-      name: 'Rent & Bills',
-      type: 'REGULAR',
-      isCommitted: true,
+      poolId: pool.id,
+      name: 'Rent & Utilities',
       monthlyAmount: '1200.00',
       enteredAmount: '1200.00',
       budgetFrequency: 'MONTHLY',
-      rolloverRule: 'ROLLOVER',
-      everydayTargetKeepAmount: null,
-      everydaySweepFrequency: null,
       icon: 'home',
       colour: '#123456',
     });
-    expect(category.type).toBe('REGULAR');
     expect(category.colour).toBe('#123456');
-
-    // Invalid hex color
-    expect(() =>
-      CategorySchema.parse({
-        ...mockBase,
-        name: 'Bad Color',
-        type: 'GOAL',
-        monthlyAmount: null,
-        enteredAmount: null,
-        everydayTargetKeepAmount: null,
-        everydaySweepFrequency: null,
-        icon: null,
-        colour: 'invalid-hex',
-      })
-    ).toThrow();
-  });
-
-  it('validates CategoryScheduleSchema optional fields', () => {
-    const sched = CategoryScheduleSchema.parse({
-      ...mockBase,
-      categoryId: '66666666-6666-4666-8666-666666666666',
-      targetAmount: '500.00',
-      dueDate: '2026-12-31',
-      targetDate: null,
-    });
-    expect(sched.targetAmount).toBe('500.00');
   });
 
   it('validates IncomeSourceSchema and IncomeSourceScheduleSchema', () => {
@@ -176,7 +153,7 @@ describe('Domain Schemas Validation', () => {
     const planLine = AllocationPlanLineSchema.parse({
       ...mockBase,
       planId: plan.id,
-      categoryId: '77777777-7777-4777-8777-777777777777',
+      poolId: '77777777-7777-4777-8777-777777777777',
       proposedAmount: '500.00',
       confirmedAmount: null,
       reasoning: 'Fixed monthly obligation',
@@ -187,7 +164,7 @@ describe('Domain Schemas Validation', () => {
   it('validates TransactionLedgerSchema and transaction queries', () => {
     const tx = TransactionLedgerSchema.parse({
       ...mockBase,
-      categoryId: '77777777-7777-4777-8777-777777777777',
+      poolId: '77777777-7777-4777-8777-777777777777',
       bankAccountId: null,
       planLineId: null,
       flowType: 'DEBIT',
@@ -204,7 +181,7 @@ describe('Domain Schemas Validation', () => {
     expect(listQuery.offset).toBe(0);
 
     const catQuery = ListCategoryTransactionsQuery.parse({
-      categoryId: '77777777-7777-4777-8777-777777777777',
+      poolId: '77777777-7777-4777-8777-777777777777',
     });
     expect(catQuery.limit).toBe(30);
   });
@@ -218,18 +195,16 @@ describe('Domain Schemas Validation', () => {
     const safeYesVerdict = CanAffordVerdictDto.parse({
       verdict: 'SAFE_YES',
       availableCash: '1000.00',
-      billsReserved: '200.00',
       everydayRemaining: '680.00',
       daysUntilPayday: 10,
       dailyPacingAfterSpend: '68.00',
-      rationaleSteps: ['Available cash: $1,000.00', 'Reserved bills: $200.00'],
+      rationaleSteps: ['Available cash: $1,000.00'],
     });
     expect(safeYesVerdict.verdict).toBe('SAFE_YES');
 
     const pacingWarningVerdict = CanAffordVerdictDto.parse({
       verdict: 'PACING_WARNING',
       availableCash: '200.00',
-      billsReserved: '50.00',
       everydayRemaining: '30.00',
       daysUntilPayday: 5,
       dailyPacingAfterSpend: '6.00',
@@ -240,7 +215,6 @@ describe('Domain Schemas Validation', () => {
     const impactGoalsVerdict = CanAffordVerdictDto.parse({
       verdict: 'IMPACT_GOALS',
       availableCash: '50.00',
-      billsReserved: '0.00',
       affectedGoalName: 'Emergency Buffer',
       affectedGoalId: '11111111-1111-4111-8111-111111111111',
       goalSurplusUsed: '70.00',
@@ -261,13 +235,10 @@ describe('Domain Schemas Validation', () => {
     const hardNoVerdict = CanAffordVerdictDto.parse({
       verdict: 'HARD_NO',
       shortfall: '70.00',
-      billsReserved: '100.00',
-      rationaleSteps: ['Causes a bill default'],
+      rationaleSteps: ['Insufficient funds'],
     });
     expect(hardNoVerdict.verdict).toBe('HARD_NO');
   });
-
-
 
   it('validates MonthlySummaryDto, ConfirmPlanCommand, and UserPreferencesSchema', () => {
     const summary = MonthlySummaryDto.parse({

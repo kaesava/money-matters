@@ -25,11 +25,11 @@ export default function HistoryPage() {
   const paramCategory = searchParams.get("categoryId") || "ALL";
 
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
-  const categoriesQuery = trpc.listCategories.useQuery();
 
   interface TransactionItem {
     id: string;
     recordedAt: string | Date;
+    poolId?: string;
     categoryId: string;
     categoryName?: string;
     amount: string;
@@ -39,7 +39,6 @@ export default function HistoryPage() {
   }
 
   const transactions = (transactionsQuery.data as TransactionItem[]) ?? [];
-  const categories = categoriesQuery.data ?? [];
 
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [flowFilter, setFlowFilter] = useState("ALL");
@@ -77,15 +76,18 @@ export default function HistoryPage() {
     }
   };
 
+  const poolsQuery = trpc.listPools.useQuery();
+  const pools = poolsQuery.data ?? [];
+
   const filtered = transactions.filter((tx: TransactionItem) => {
     const q = searchQuery.toLowerCase().trim();
     if (q && !tx.note?.toLowerCase().includes(q) && !tx.categoryName?.toLowerCase().includes(q) && !tx.amount.includes(q)) return false;
     if (flowFilter !== "ALL" && tx.flowType !== flowFilter) return false;
     if (categoryTypeFilter !== "ALL") {
-      const cat = categories.find((c) => c.id === tx.categoryId);
-      if (!cat || cat.type !== categoryTypeFilter) return false;
+      const pool = pools.find((p) => p.id === tx.poolId);
+      if (!pool || pool.poolType !== categoryTypeFilter) return false;
     }
-    if (categoryFilter !== "ALL" && tx.categoryId !== categoryFilter) return false;
+    if (categoryFilter !== "ALL" && tx.categoryId !== categoryFilter && tx.poolId !== categoryFilter) return false;
     return true;
   });
 

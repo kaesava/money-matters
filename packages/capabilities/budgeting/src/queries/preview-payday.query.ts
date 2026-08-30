@@ -1,6 +1,6 @@
-import { incomeEvents, categories, categorySchedules, transactionLedger, DbOrTx } from "@money-matters/db";
+import { incomeEvents, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
+import { previewAllocationQuery } from "./preview-allocation.query.js";
 
 export async function previewPaydayQuery(
   incomeEventId: string,
@@ -8,7 +8,6 @@ export async function previewPaydayQuery(
   appId: string,
   dbClient: DbOrTx
 ) {
-  // Fetch target event by id regardless of status
   const [targetEvent] = await dbClient
     .select()
     .from(incomeEvents)
@@ -34,8 +33,7 @@ export async function previewPaydayForEvent(
   appId: string,
   dbClient: DbOrTx
 ) {
-  // Check if a saved allocation plan (DRAFT/PENDING or CONFIRMED) exists for this event
-  const { allocationPlans, allocationPlanLines } = await import("@money-matters/db");
+  const { allocationPlans, allocationPlanLines, pools } = await import("@money-matters/db");
   const [existingPlan] = await dbClient
     .select()
     .from(allocationPlans)
@@ -54,20 +52,20 @@ export async function previewPaydayForEvent(
     const savedLines = await dbClient
       .select({
         id: allocationPlanLines.id,
-        categoryId: allocationPlanLines.categoryId,
+        poolId: allocationPlanLines.poolId,
         proposedAmount: allocationPlanLines.proposedAmount,
         confirmedAmount: allocationPlanLines.confirmedAmount,
         reasoning: allocationPlanLines.reasoning,
-        categoryName: categories.name,
+        poolName: pools.name,
       })
       .from(allocationPlanLines)
-      .leftJoin(categories, eq(categories.id, allocationPlanLines.categoryId))
+      .leftJoin(pools, eq(pools.id, allocationPlanLines.poolId))
       .where(eq(allocationPlanLines.planId, existingPlan.id));
 
     if (savedLines.length > 0) {
       const lines = savedLines.map((l) => ({
-        bucketId: l.categoryId,
-        bucketName: l.categoryName ?? "Unknown Category",
+        bucketId: l.poolId,
+        bucketName: l.poolName ?? "Unknown Pool",
         proposedAmount: parseFloat(l.confirmedAmount || l.proposedAmount),
         reasoning: l.reasoning ?? "Custom saved allocation plan",
       }));
@@ -93,73 +91,8 @@ export async function previewPaydayForEvent(
     }
   }
 
-  // Fetch categories and schedules to run allocation engine if no saved plan exists
-  const allCategories = await dbClient
-    .select()
-    .from(categories)
-    .where(
-      and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        sql`${categories.archivedAt} IS NULL`
-      )
-    );
-
-  const allSchedules = await dbClient
-    .select()
-    .from(categorySchedules)
-    .where(
-      and(
-        eq(categorySchedules.tenantId, tenantId),
-        eq(categorySchedules.appId, appId),
-        sql`${categorySchedules.archivedAt} IS NULL`
-      )
-    );
-
-  const scheduleMap = new Map(allSchedules.map((s) => [s.categoryId, s]));
-
-  // Calculate current balances from transaction_ledger
-  const ledgerSums = await dbClient
-    .select({
-      categoryId: transactionLedger.categoryId,
-      balance: sql<string>`COALESCE(SUM(CASE WHEN ${transactionLedger.flowType} = 'CREDIT' THEN ${transactionLedger.amount} ELSE -${transactionLedger.amount} END), 0)::text`,
-    })
-    .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    )
-    .groupBy(transactionLedger.categoryId);
-
-  const balanceMap = new Map(ledgerSums.map((l) => [l.categoryId, parseFloat(l.balance)]));
-
-  const engineBuckets: EngineBucket[] = allCategories.map((c) => {
-    const sched = scheduleMap.get(c.id);
-    return {
-      id: c.id,
-      name: c.name,
-      type: c.type,
-      isCommitted: c.isCommitted,
-      monthlyAmount: c.monthlyAmount ? parseFloat(c.monthlyAmount) : null,
-      targetAmount: sched?.targetAmount ? parseFloat(sched.targetAmount) : null,
-      targetDate: sched?.targetDate || null,
-      currentBalance: balanceMap.get(c.id) || 0,
-      paycheckFrequencyDays: 14,
-    };
-  });
-
-  const paycheckDate = new Date(targetEvent.expectedDate);
   const incomeAmount = parseFloat(targetEvent.actualAmount || targetEvent.expectedAmount);
-
-  const allocationResult = runAllocationEngine({
-    incomeAmount,
-    buckets: engineBuckets,
-    paycheckDate,
-    paycheckFrequencyDays: 14,
-  });
+  const allocationResult = await previewAllocationQuery(tenantId, appId, targetEvent.id, incomeAmount, dbClient);
 
   return {
     incomeEvent: {

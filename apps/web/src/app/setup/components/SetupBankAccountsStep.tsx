@@ -1,47 +1,55 @@
 "use client";
 
 import React, { useState } from "react";
-import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { InfoTooltip, useToast } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
+import { useToast } from "@money-matters/ui/web";
 import { BankAccountFormModal } from "../../dashboard/bank-accounts/components/BankAccountFormModal";
+
+interface BankAccount {
+  id: string;
+  name: string;
+  bankProvider?: string | null;
+  lastKnownBalance: string;
+  unbudgetedBuffer?: string | null;
+  isPrivate?: boolean;
+  categoryTypes?: string[];
+  poolTypes?: string[];
+}
+
+interface SetupBankAccountsStepProps {
+  accounts?: BankAccount[];
+  onNext: () => void;
+  onBack: () => void;
+}
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
 
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
-  { key: "CBA", label: "Commonwealth Bank (CBA)", logoBg: "bg-amber-400", textColor: "text-zinc-950" },
-  { key: "Westpac", label: "Westpac", logoBg: "bg-red-600", textColor: "text-white" },
-  { key: "ANZ", label: "ANZ", logoBg: "bg-blue-600", textColor: "text-white" },
-  { key: "NAB", label: "NAB", logoBg: "bg-red-700", textColor: "text-white" },
-  { key: "ING", label: "ING", logoBg: "bg-orange-500", textColor: "text-white" },
-  { key: "Macquarie", label: "Macquarie", logoBg: "bg-zinc-800", textColor: "text-white" },
-  { key: "Other", label: "Other / Custom Bank", logoBg: "bg-slate-500", textColor: "text-white" },
+  { key: "CBA", label: "Commonwealth Bank", logoBg: "bg-amber-400", textColor: "text-slate-900" },
+  { key: "NAB", label: "National Australia Bank", logoBg: "bg-rose-600", textColor: "text-white" },
+  { key: "ANZ", label: "ANZ Bank", logoBg: "bg-blue-600", textColor: "text-white" },
+  { key: "Westpac", label: "Westpac", logoBg: "bg-red-700", textColor: "text-white" },
+  { key: "ING", label: "ING Australia", logoBg: "bg-orange-500", textColor: "text-white" },
+  { key: "Macquarie", label: "Macquarie Bank", logoBg: "bg-slate-900", textColor: "text-white" },
+  { key: "Other", label: "Other Financial Institution", logoBg: "bg-slate-500", textColor: "text-white" },
 ];
 
-export interface SetupBankAccountsStepProps {
-  onBack: () => void;
-  onNext: () => void;
-  showIcons?: boolean;
+function fmtMoney(val: string | number | undefined | null): string {
+  const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
+  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function SetupBankAccountsStep({
-  onBack,
-  onNext,
-  showIcons = true,
-}: SetupBankAccountsStepProps) {
+export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAccountsStepProps) {
   const toast = useToast();
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const utils = trpc.useUtils();
 
-  const accounts = bankAccountsQuery.data ?? [];
-
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<{ id: string; name: string } | null>(null);
   const [accName, setAccName] = useState("");
-  const [accBankProvider, setAccBankProvider] = useState<BankName>("Other");
-  const [accBalance, setAccBalance] = useState("0.00");
+  const [accBankProvider, setAccBankProvider] = useState<BankName>("CBA");
+  const [accBalance, setAccBalance] = useState("1000.00");
   const [accBuffer, setAccBuffer] = useState("0.00");
   const [accIsPrivate, setAccIsPrivate] = useState(false);
   const [accSelectedTypes, setAccSelectedTypes] = useState<CategoryType[]>([]);
@@ -51,10 +59,10 @@ export function SetupBankAccountsStep({
     onSuccess: () => {
       utils.getBankAccountsWithMappings.invalidate();
       closeModal();
-      toast.success("Bank account added successfully.");
+      toast.success("Bank account created.");
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to create bank account.");
+      toast.error(err.message || "Failed to save bank account.");
       setIsSaving(false);
     },
   });
@@ -68,12 +76,6 @@ export function SetupBankAccountsStep({
     onError: (err) => {
       toast.error(err.message || "Failed to update bank account.");
       setIsSaving(false);
-    },
-  });
-
-  const updateMappingsMut = trpc.updateBankAccountMappings.useMutation({
-    onSuccess: () => {
-      utils.getBankAccountsWithMappings.invalidate();
     },
   });
 
@@ -99,14 +101,14 @@ export function SetupBankAccountsStep({
     setIsModalOpen(true);
   };
 
-  const openEditModal = (acc: (typeof accounts)[number]) => {
+  const openEditModal = (acc: BankAccount) => {
     setEditingAccount({ id: acc.id, name: acc.name });
     setAccName(acc.name);
     setAccBankProvider((acc.bankProvider as BankName) || "Other");
     setAccBalance(acc.lastKnownBalance || "0.00");
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(acc.isPrivate ?? false);
-    setAccSelectedTypes((acc.categoryTypes as CategoryType[]) || []);
+    setAccSelectedTypes(((acc.poolTypes || acc.categoryTypes) as CategoryType[]) || []);
     setIsModalOpen(true);
   };
 
@@ -125,14 +127,14 @@ export function SetupBankAccountsStep({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accName.trim()) {
-      toast.warning("Please enter an account name.");
+      toast.error("Account name is required.");
       return;
     }
+
     setIsSaving(true);
 
     if (editingAccount) {
-      // Update account details & pool mappings
-      await updateAccountMut.mutateAsync({
+      updateAccountMut.mutate({
         accountId: editingAccount.id,
         data: {
           name: accName.trim(),
@@ -142,83 +144,56 @@ export function SetupBankAccountsStep({
           isPrivate: accIsPrivate,
         },
       });
-
-      // Update pool routing mappings if changed
-      if (accSelectedTypes.length > 0) {
-        const mappingsToUpdate = accSelectedTypes.map((catType) => ({
-          categoryType: catType,
-          bankAccountId: editingAccount.id,
-        }));
-        await updateMappingsMut.mutateAsync({ mappings: mappingsToUpdate });
-      }
     } else {
-      // Create new account
-      const created = await createAccountMut.mutateAsync({
+      createAccountMut.mutate({
         name: accName.trim(),
         bankProvider: accBankProvider,
         lastKnownBalance: accBalance,
         unbudgetedBuffer: accBuffer,
         isPrivate: accIsPrivate,
       });
-
-      // Attach pool mappings if selected
-      if (created && accSelectedTypes.length > 0) {
-        const mappingsToUpdate = accSelectedTypes.map((catType) => ({
-          categoryType: catType,
-          bankAccountId: created.id,
-        }));
-        await updateMappingsMut.mutateAsync({ mappings: mappingsToUpdate });
-      }
     }
   };
 
-  const handleArchive = () => {
+  const handleArchive = async () => {
     if (!editingAccount) return;
-    if (accounts.length <= 1) {
-      toast.warning("At least one bank account must remain active for your budget pools.");
-      return;
+    if (confirm(`Remove bank account "${editingAccount.name}"?`)) {
+      archiveAccountMut.mutate({ accountId: editingAccount.id });
     }
-    archiveAccountMut.mutate({ accountId: editingAccount.id });
-  };
-
-  const fmtMoney = (val: number | string | undefined) => {
-    const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
-    return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
-    <div className="p-6 bg-white border border-slate-200 rounded-3xl shadow-sm space-y-6">
-      {/* Step Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-100">
         <div>
-          <h2 className="text-xl font-extrabold text-[#1B2B4B] flex items-center gap-2">
-            <span>{showIcons ? "🏦" : ""}</span>
-            <span>{t("setup.bankAccountsStep.title")}</span>
-            <InfoTooltip content={t("setup.bankAccountsStep.tooltip")} />
+          <h2 className="text-xl font-black text-[#1B2B4B] tracking-tight">
+            {t("setup.bankAccountsStep.title")}
           </h2>
-          <p className="text-xs text-slate-500 font-semibold mt-1">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             {t("setup.bankAccountsStep.subtitle")}
           </p>
         </div>
+
         <button
           type="button"
           onClick={openAddModal}
-          className="px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-black rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+          className="px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
         >
+          <span>➕</span>
           <span>{t("setup.bankAccountsStep.addAccount")}</span>
         </button>
       </div>
 
       {/* Bank Accounts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {accounts.map((acc) => {
+        {(accounts || []).map((acc) => {
           const providerOpt = BANK_OPTIONS.find((b) => b.key === acc.bankProvider) || {
             label: acc.bankProvider || "Bank",
             logoBg: "bg-slate-500",
             textColor: "text-white",
           };
 
-          const poolTypes = (acc.categoryTypes as CategoryType[]) || [];
+          const poolTypes = ((acc.poolTypes || acc.categoryTypes) as CategoryType[]) || [];
 
           return (
             <div
@@ -255,7 +230,6 @@ export function SetupBankAccountsStep({
                   </span>
                 </div>
 
-                {/* Pool badges */}
                 <div className="flex items-center gap-1 flex-wrap justify-end">
                   {poolTypes.includes("EVERYDAY") && (
                     <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-md">
@@ -303,7 +277,6 @@ export function SetupBankAccountsStep({
         </button>
       </div>
 
-      {/* Re-usable Bank Account Add/Edit Modal */}
       <BankAccountFormModal
         isOpen={isModalOpen}
         editingAccount={editingAccount}
@@ -318,10 +291,10 @@ export function SetupBankAccountsStep({
         accIsPrivate={accIsPrivate}
         setAccIsPrivate={setAccIsPrivate}
         accSelectedTypes={accSelectedTypes}
-        accounts={accounts.map((a) => ({
+        accounts={(accounts || []).map((a) => ({
           id: a.id,
           name: a.name,
-          categoryTypes: (a.categoryTypes as CategoryType[]) || [],
+          categoryTypes: ((a.poolTypes || a.categoryTypes) as CategoryType[]) || [],
         }))}
         isTrialExpired={false}
         isSaving={isSaving}

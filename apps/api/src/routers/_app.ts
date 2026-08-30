@@ -1,5 +1,6 @@
 import { router } from '../trpc/trpc.js';
 import { tenantRouter } from './tenant.router.js';
+import { poolsRouter } from './pools.router.js';
 import { categoriesRouter } from './categories.router.js';
 import { incomeRouter } from './income.router.js';
 import { expensesRouter } from './expenses.router.js';
@@ -12,6 +13,7 @@ import { bugReportRouter } from './bug-report.router.js';
 
 export const appRouter = router({
   ...tenantRouter,
+  ...poolsRouter,
   ...categoriesRouter,
   ...incomeRouter,
   ...expensesRouter,

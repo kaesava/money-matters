@@ -72,7 +72,7 @@ function TransactionsPageContent() {
     }> = [];
 
     const processedIds = new Set<string>();
-    const categoryMap = new Map(categories.map((c) => [c.name, c.type]));
+    const categoryMap = new Map(categories.map((c) => [c.name, (c as unknown as { poolType?: string; type?: string }).poolType || (c as unknown as { poolType?: string; type?: string }).type]));
 
     for (let i = 0; i < rawTransactions.length; i++) {
       const tx = rawTransactions[i];

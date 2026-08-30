@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { t } from "@money-matters/i18n";
 import { fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 
 export interface ParsedTx {
@@ -18,7 +19,8 @@ export interface ParsedTx {
 export interface CategoryItem {
   id: string;
   name: string;
-  type: "EVERYDAY" | "REGULAR" | "GOAL";
+  type?: "EVERYDAY" | "REGULAR" | "GOAL";
+  poolType?: "EVERYDAY" | "REGULAR" | "GOAL";
 }
 
 export interface CsvStepReviewProps {
@@ -166,7 +168,7 @@ export function CsvStepReview({
         <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-900 rounded-2xl text-white shadow-xs">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
-              Included Expenses
+              {t("csvImport.review.includedExpenses", { defaultValue: "Included Expenses" })}
             </span>
             <span className="text-base font-black text-rose-400 tabular-nums">
               -${selectedExpenses.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -174,7 +176,7 @@ export function CsvStepReview({
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
-              Included Income
+              {t("csvImport.review.includedIncome", { defaultValue: "Included Income" })}
             </span>
             <span className="text-base font-black text-emerald-400 tabular-nums">
               +${selectedIncome.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -182,7 +184,7 @@ export function CsvStepReview({
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400">
-              Net Impact
+              {t("csvImport.review.netImpact", { defaultValue: "Net Impact" })}
             </span>
             <span className={`text-base font-black tabular-nums ${netImpact >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
               {netImpact >= 0 ? "+" : ""}${netImpact.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -204,16 +206,16 @@ export function CsvStepReview({
         </div>
 
         <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg p-0.5">
-          {(["ALL", "DEBIT", "CREDIT", "DUPLICATES"] as const).map((t) => (
+          {(["ALL", "DEBIT", "CREDIT", "DUPLICATES"] as const).map((tType) => (
             <button
-              key={t}
+              key={tType}
               type="button"
-              onClick={() => setFilterType(t)}
+              onClick={() => setFilterType(tType)}
               className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors cursor-pointer ${
-                filterType === t ? "bg-[#2563eb] text-white" : "text-slate-600 hover:bg-slate-100"
+                filterType === tType ? "bg-[#2563eb] text-white" : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              {t === "ALL" ? "All" : t === "DEBIT" ? "Debits" : t === "CREDIT" ? "Credits" : "Duplicates"}
+              {tType === "ALL" ? "All" : tType === "DEBIT" ? "Debits" : tType === "CREDIT" ? "Credits" : "Duplicates"}
             </button>
           ))}
         </div>
@@ -235,7 +237,7 @@ export function CsvStepReview({
             className="px-2.5 py-1 text-xs font-bold bg-amber-50 border border-amber-300 text-amber-900 hover:bg-amber-100 rounded-lg disabled:opacity-40 transition-all flex items-center gap-1 cursor-pointer"
           >
             <span>🔄</span>
-            <span>Flip Selected</span>
+            <span>{t("csvImport.review.flipSelected", { defaultValue: "Flip Selected" })}</span>
           </button>
 
           {/* Bulk Pool Selector */}

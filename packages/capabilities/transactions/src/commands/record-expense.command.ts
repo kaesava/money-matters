@@ -1,4 +1,4 @@
-import { transactionLedger, categories, DbOrTx } from "@money-matters/db";
+import { transactionLedger, pools, DbOrTx } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { RecordExpenseCommand } from "@money-matters/types";
@@ -12,27 +12,28 @@ export async function recordExpenseCommand(
   dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
-    // 1. Confirm category access
-    const [cat] = await tx
+    // 1. Confirm pool access
+    const [pool] = await tx
       .select()
-      .from(categories)
+      .from(pools)
       .where(
         and(
-          eq(categories.id, input.categoryId),
-          eq(categories.tenantId, tenantId),
-          eq(categories.appId, appId)
+          eq(pools.id, input.poolId),
+          eq(pools.tenantId, tenantId),
+          eq(pools.appId, appId)
         )
       );
 
-    if (!cat) {
-      throw new Error("Category target invalid or access unauthorized.");
+    if (!pool) {
+      throw new Error("Pool target invalid or access unauthorized.");
     }
 
     // 2. Insert expense ledger debit
     const [expense] = await tx
       .insert(transactionLedger)
       .values({
-        categoryId: input.categoryId,
+        poolId: input.poolId,
+        categoryId: input.categoryId || null,
         bankAccountId: input.bankAccountId || null,
         flowType: input.flowType || "DEBIT",
         amount: input.amount,

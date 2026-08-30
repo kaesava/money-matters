@@ -13,7 +13,8 @@ export interface BankAccountItem {
   lastKnownBalance?: string;
   unbudgetedBuffer?: string;
   isPrivate?: boolean;
-  categoryTypes: CategoryType[];
+  poolTypes?: CategoryType[];
+  categoryTypes?: CategoryType[];
   updatedAt?: string | Date;
 }
 
@@ -108,10 +109,10 @@ export function BankAccountTable({
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {acc.categoryTypes.length === 0 ? (
+                        {((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]).length === 0 ? (
                           <span className="text-[10px] font-semibold text-zinc-400 italic">None linked</span>
                         ) : (
-                          acc.categoryTypes.map((type) => {
+                          ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]).map((type) => {
                             const badgeStyle =
                               type === "EVERYDAY"
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"

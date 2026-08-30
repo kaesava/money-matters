@@ -1,4 +1,4 @@
-import { DbOrTx, categories, categorySchedules, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources } from "@money-matters/db";
+import { DbOrTx, pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 
@@ -37,7 +37,19 @@ export async function runAllocationCommand(
   customLines?: { bucketId: string; amount: string }[],
   markAsReceivedToday?: boolean
 ) {
-  // 1. Fetch Categories
+  // 1. Fetch Pools
+  const dbPools = await dbClient
+    .select()
+    .from(pools)
+    .where(
+      and(
+        eq(pools.tenantId, tenantId),
+        eq(pools.appId, appId),
+        sql`${pools.archivedAt} IS NULL`
+      )
+    );
+
+  // 2. Fetch Categories
   const dbCats = await dbClient
     .select()
     .from(categories)
@@ -49,24 +61,18 @@ export async function runAllocationCommand(
       )
     );
 
-  // 2. Fetch Category Schedules
-  const dbSchedules = await dbClient
-    .select()
-    .from(categorySchedules)
-    .where(
-      and(
-        eq(categorySchedules.tenantId, tenantId),
-        eq(categorySchedules.appId, appId),
-        sql`${categorySchedules.archivedAt} IS NULL`
-      )
-    );
+  const poolCategoryTargetsMap = new Map<string, number>();
+  for (const cat of dbCats) {
+    if (cat.monthlyAmount) {
+      const val = parseFloat(cat.monthlyAmount);
+      poolCategoryTargetsMap.set(cat.poolId, (poolCategoryTargetsMap.get(cat.poolId) || 0) + val);
+    }
+  }
 
-  const schedulesMap = new Map(dbSchedules.map((s) => [s.categoryId, s]));
-
-  // 3. Compute balances from ledger credits and debits
+  // 3. Compute balances from ledger credits and debits per poolId
   const txs = await dbClient
     .select({
-      categoryId: transactionLedger.categoryId,
+      poolId: transactionLedger.poolId,
       amount: transactionLedger.amount,
       flowType: transactionLedger.flowType,
     })
@@ -80,15 +86,16 @@ export async function runAllocationCommand(
     );
 
   const balancesMap: Record<string, number> = {};
-  for (const cat of dbCats) {
-    balancesMap[cat.id] = 0;
+  for (const pool of dbPools) {
+    balancesMap[pool.id] = 0;
   }
   for (const tx of txs) {
+    if (!tx.poolId) continue;
     const val = parseFloat(tx.amount);
     if (tx.flowType === "CREDIT") {
-      balancesMap[tx.categoryId] = (balancesMap[tx.categoryId] || 0) + val;
+      balancesMap[tx.poolId] = (balancesMap[tx.poolId] || 0) + val;
     } else {
-      balancesMap[tx.categoryId] = (balancesMap[tx.categoryId] || 0) - val;
+      balancesMap[tx.poolId] = (balancesMap[tx.poolId] || 0) - val;
     }
   }
 
@@ -114,17 +121,24 @@ export async function runAllocationCommand(
   const isFuturePlanned = eventDateStr > todayStr && !markAsReceivedToday;
 
   // Map to engine models
-  const engineBuckets: EngineBucket[] = dbCats.map((cat) => {
-    const sched = schedulesMap.get(cat.id);
-    const balance = balancesMap[cat.id] || 0;
+  const engineBuckets: EngineBucket[] = dbPools.map((pool) => {
+    const balance = balancesMap[pool.id] || 0;
+    const catTargetSum = poolCategoryTargetsMap.get(pool.id) || 0;
+
+    const monthlyAmt = pool.poolType === "REGULAR" 
+      ? (catTargetSum > 0 ? catTargetSum : (pool.targetAmount ? parseFloat(pool.targetAmount) : null))
+      : (pool.targetAmount ? parseFloat(pool.targetAmount) : null);
+
     return {
-      id: cat.id,
-      name: cat.name,
-      type: cat.type,
-      isCommitted: cat.isCommitted,
-      monthlyAmount: cat.monthlyAmount ? parseFloat(cat.monthlyAmount) : null,
-      targetAmount: sched?.targetAmount ? parseFloat(sched.targetAmount) : null,
-      targetDate: sched?.targetDate || null,
+      id: pool.id,
+      name: pool.name,
+      type: pool.poolType,
+      isCommitted: pool.isCommitted,
+      isSurplusTarget: pool.isSurplusTarget,
+      monthlyAmount: monthlyAmt,
+      targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
+      everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,
+      targetDate: pool.targetDate || null,
       currentBalance: balance,
     };
   });
@@ -167,7 +181,7 @@ export async function runAllocationCommand(
         tenantId,
         appId,
         planId: insertedPlan.id,
-        categoryId: line.bucketId,
+        poolId: line.bucketId,
         proposedAmount: line.proposedAmount.toFixed(2),
         confirmedAmount: confirmedVal.toFixed(2),
         reasoning: line.reasoning,
@@ -192,7 +206,7 @@ export async function runAllocationCommand(
         ledgerEntriesToInsert.push({
           tenantId,
           appId,
-          categoryId: line.bucketId,
+          poolId: line.bucketId,
           planLineId: insertedLine.id,
           flowType: "CREDIT" as const,
           amount: confirmedVal.toFixed(2),

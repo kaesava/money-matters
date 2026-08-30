@@ -1,4 +1,5 @@
 import { 
+  pools,
   categories, 
   incomeSources, 
   incomeEvents, 
@@ -13,7 +14,6 @@ import {
   allocationPlanLines,
   users,
   tenants,
-  tenantUsers,
   DbOrTx
 } from "@money-matters/db";
 import { eq, and } from "drizzle-orm";
@@ -64,17 +64,35 @@ export function exportMyDataHandler(db: DbOrTx) {
       .where(and(eq(tenantUserPreferences.userId, userId), eq(tenantUserPreferences.tenantId, tenantId), eq(tenantUserPreferences.appId, appId)))
       .limit(1);
 
-    // 3. Fetch Categories (Shared OR Private owned by current user)
+    // 3. Fetch Bank Accounts (Shared OR Private owned by current user)
+    const rawBankAccounts = await db
+      .select()
+      .from(bankAccounts)
+      .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
+
+    const userBankAccounts = rawBankAccounts.filter(
+      (b) => !b.isPrivate || b.userId === userId
+    );
+    const allowedBankAccountIds = new Set(userBankAccounts.map((b) => b.id));
+
+    // 4. Fetch Pools
+    const rawPools = await db
+      .select()
+      .from(pools)
+      .where(and(eq(pools.tenantId, tenantId), eq(pools.appId, appId)));
+
+    const userPools = rawPools.filter((p) => allowedBankAccountIds.has(p.bankAccountId));
+    const allowedPoolIds = new Set(userPools.map((p) => p.id));
+
+    // 5. Fetch Categories
     const rawCategories = await db
       .select()
       .from(categories)
       .where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
 
-    const userCategories = rawCategories.filter(
-      (c) => !c.isPrivate || c.userId === userId
-    );
+    const userCategories = rawCategories.filter((c) => allowedPoolIds.has(c.poolId));
 
-    // 4. Fetch Income Sources & Events
+    // 6. Fetch Income Sources & Events
     const userIncomeSources = await db
       .select()
       .from(incomeSources)
@@ -85,7 +103,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(incomeEvents)
       .where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
 
-    // 5. Fetch Expense Sources & Events
+    // 7. Fetch Expense Sources & Events
     const userExpenseSources = await db
       .select()
       .from(expenseSources)
@@ -96,29 +114,15 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(expenseEvents)
       .where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
 
-    // 6. Fetch Bank Accounts (Shared OR Private owned by current user)
-    const rawBankAccounts = await db
-      .select()
-      .from(bankAccounts)
-      .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
-
-    const userBankAccounts = rawBankAccounts.filter(
-      (b) => !b.isPrivate || b.userId === userId
-    );
-
-    const allowedCategoryIds = new Set(userCategories.map((c) => c.id));
-
-    // 7. Fetch Transaction Ledger
+    // 8. Fetch Transaction Ledger
     const rawLedger = await db
       .select()
       .from(transactionLedger)
       .where(and(eq(transactionLedger.tenantId, tenantId), eq(transactionLedger.appId, appId)));
 
-    const userLedger = rawLedger.filter(
-      (t) => !t.categoryId || allowedCategoryIds.has(t.categoryId)
-    );
+    const userLedger = rawLedger.filter((t) => allowedPoolIds.has(t.poolId));
 
-    // 8. Fetch File Notes metadata
+    // 9. Fetch File Notes metadata
     const userFileNotes = await db
       .select({
         id: fileNotes.id,
@@ -131,16 +135,18 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(fileNotes)
       .where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
 
-    // 9. Fetch Allocation Plans & Lines
+    // 10. Fetch Allocation Plans & Lines
     const userAllocationPlans = await db
       .select()
       .from(allocationPlans)
       .where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
 
-    const userAllocationPlanLines = await db
+    const rawAllocationPlanLines = await db
       .select()
       .from(allocationPlanLines)
       .where(and(eq(allocationPlanLines.tenantId, tenantId), eq(allocationPlanLines.appId, appId)));
+
+    const userAllocationPlanLines = rawAllocationPlanLines.filter((l) => allowedPoolIds.has(l.poolId));
 
     const csvFiles: Record<string, string> = {
       "User_Profile.csv": arrayToCsv(
@@ -151,15 +157,16 @@ export function exportMyDataHandler(db: DbOrTx) {
         tenantRecord ? [{ ...tenantRecord, ...tenantPrefs }] : [],
         ["id", "name", "country", "state", "postcode", "fyEndMonthDay", "subscriptionStatus"]
       ),
-      "Categories.csv": arrayToCsv(userCategories, ["id", "name", "type", "monthlyAmount", "targetAmount", "isPrivate"]),
-      "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "institution", "accountType", "currentBalance", "isPrivate"]),
+      "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "bankProvider", "lastKnownBalance", "isPrivate"]),
+      "Pools.csv": arrayToCsv(userPools, ["id", "name", "poolType", "bankAccountId", "targetAmount", "everydayAllowanceAmount"]),
+      "Categories.csv": arrayToCsv(userCategories, ["id", "poolId", "name", "monthlyAmount", "budgetFrequency"]),
       "Income_Sources.csv": arrayToCsv(userIncomeSources, ["id", "name", "amount", "rrule", "startDate", "receivingAccountId"]),
       "Income_Events.csv": arrayToCsv(userIncomeEvents, ["id", "incomeSourceId", "expectedDate", "expectedAmount", "status"]),
-      "Bills_and_Expenses.csv": arrayToCsv(userExpenseSources, ["id", "name", "amount", "rrule", "startDate", "categoryId"]),
-      "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expenseSourceId", "expectedDate", "expectedAmount", "status"]),
-      "Transactions_Ledger.csv": arrayToCsv(userLedger, ["id", "date", "description", "amount", "flow", "categoryId", "bankAccountId"]),
-      "Payday_Allocation_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "planDate", "totalIncome", "status"]),
-      "Payday_Allocation_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "allocationPlanId", "categoryId", "allocatedAmount"]),
+      "Bills_and_Expenses.csv": arrayToCsv(userExpenseSources, ["id", "name", "amount", "rrule", "startDate", "poolId", "categoryId"]),
+      "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expenseSourceId", "expectedDate", "expectedAmount", "poolId", "status"]),
+      "Transactions_Ledger.csv": arrayToCsv(userLedger, ["id", "recordedAt", "amount", "flowType", "poolId", "categoryId", "bankAccountId"]),
+      "Payday_Allocation_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "totalIncomeAmount", "status"]),
+      "Payday_Allocation_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "planId", "poolId", "proposedAmount", "confirmedAmount"]),
       "Notes_and_Attachments.csv": arrayToCsv(userFileNotes, ["id", "fileName", "fileMimeType", "fileSize", "comment", "createdAt"]),
     };
 

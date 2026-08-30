@@ -28,18 +28,17 @@ export function useQuickActionState(
   const isTransfer = type === "TRANSFER";
   const isFutureDate = date > todayStr;
 
-  const categoriesQuery = trpc.listCategories.useQuery();
+  const categoriesQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
 
   const rawCategories = categoriesQuery.data;
-  const categories = useMemo(() => rawCategories ?? [], [rawCategories]);
+  const categories = useMemo(() => (rawCategories ?? []).map((p) => ({ ...p, type: p.poolType })), [rawCategories]);
   const rawBankAccounts = bankAccountsQuery.data;
   const bankAccounts = useMemo(() => rawBankAccounts ?? [], [rawBankAccounts]);
   const rawTxList = transactionsQuery.data;
   const txList = useMemo(() => rawTxList ?? [], [rawTxList]);
 
-  // Tab switch handler: clear all entered data
   function handleTabChange(newType: "DEBIT" | "CREDIT" | "TRANSFER") {
     setType(newType);
     setName("");
@@ -65,7 +64,6 @@ export function useQuickActionState(
     );
   };
 
-  // Derive last 3 Expense presets from actual transactions
   const quickExpensePresets = useMemo(() => {
     const presets: QuickPresetItem[] = [];
     const seen = new Set<string>();
@@ -87,7 +85,6 @@ export function useQuickActionState(
     return presets;
   }, [txList]);
 
-  // Derive last 3 Income presets from actual transactions
   const quickIncomePresets = useMemo(() => {
     const presets: QuickPresetItem[] = [];
     const seen = new Set<string>();
@@ -109,7 +106,6 @@ export function useQuickActionState(
     return presets;
   }, [txList]);
 
-  // Derive last 3 Transfer presets from actual transactions
   const quickTransferPresets = useMemo(() => {
     const presets: QuickPresetItem[] = [];
     const transferMap = new Map<
@@ -170,18 +166,19 @@ export function useQuickActionState(
     onError: (err) => setError(err.message),
   });
 
-  const createUpcomingExpenseMut = trpc.createUpcomingExpense.useMutation({
+  const createExpenseSourceMut = trpc.createExpenseSource.useMutation({
     onSuccess: () => handleDone(),
     onError: (err) => setError(err.message),
   });
 
-  const createUpcomingIncomeMut = trpc.createUpcomingIncome.useMutation({
+  const createIncomeSourceMut = trpc.createIncomeSource.useMutation({
     onSuccess: () => handleDone(),
     onError: (err) => setError(err.message),
   });
 
   function handleDone() {
     utils.listTransactions.invalidate();
+    utils.listPools.invalidate();
     utils.listCategories.invalidate();
     utils.listIncomeSources.invalidate();
     utils.listExpenseSources.invalidate();
@@ -192,33 +189,25 @@ export function useQuickActionState(
     setTimeout(() => onClose(), 1200);
   }
 
-  // Populate preset values: skip any archived categories or bank accounts
   function handleSelectPreset(preset: QuickPresetItem) {
     if (preset.name) setName(preset.name);
     if (preset.amount) setAmount(preset.amount);
 
     if (preset.categoryId) {
-      const isActive = categories.some((c) => c.id === preset.categoryId);
-      if (isActive) setCategoryId(preset.categoryId);
+      const match = categories.find((c) => c.id === preset.categoryId);
+      if (match) setCategoryId(match.id);
     }
-
-    if (preset.sourceCategoryId) {
-      const isActive = categories.some((c) => c.id === preset.sourceCategoryId);
-      if (isActive) setSourceCategoryId(preset.sourceCategoryId);
-    }
-
-    if (preset.destinationCategoryId) {
-      const isActive = categories.some(
-        (c) => c.id === preset.destinationCategoryId
-      );
-      if (isActive) setDestinationCategoryId(preset.destinationCategoryId);
-    }
-
     if (preset.receivingAccountId) {
-      const isActive = bankAccounts.some(
-        (a) => a.id === preset.receivingAccountId
-      );
-      if (isActive) setReceivingAccountId(preset.receivingAccountId);
+      const match = bankAccounts.find((b) => b.id === preset.receivingAccountId);
+      if (match) setReceivingAccountId(match.id);
+    }
+    if (preset.sourceCategoryId) {
+      const match = categories.find((c) => c.id === preset.sourceCategoryId);
+      if (match) setSourceCategoryId(match.id);
+    }
+    if (preset.destinationCategoryId) {
+      const match = categories.find((c) => c.id === preset.destinationCategoryId);
+      if (match) setDestinationCategoryId(match.id);
     }
   }
 
@@ -227,79 +216,43 @@ export function useQuickActionState(
     setError(null);
 
     const amountNum = parseFloat(amount);
-    if (!amount || isNaN(amountNum) || amountNum <= 0) {
-      setError("Amount must be greater than zero.");
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setError("Please enter a valid positive amount.");
       return;
     }
 
-    if (!name.trim()) {
-      setError(
-        isTransfer
-          ? "Transfer name is required."
-          : isIncome
-          ? "Income source name is required."
-          : "Expense name is required."
-      );
+    if (!isTransfer && !name.trim()) {
+      setError("Name is required.");
       return;
     }
 
     if (isTransfer) {
       if (!sourceCategoryId || !destinationCategoryId) {
-        setError("Please select both source and destination categories.");
+        setError("Both source and destination pools are required.");
         return;
       }
       if (sourceCategoryId === destinationCategoryId) {
-        setError("Source and destination categories must be different.");
+        setError("Source and destination pools must be different.");
         return;
       }
       const sourceCat = categories.find((c) => c.id === sourceCategoryId);
       if (sourceCat) {
-        if (sourceCat.type === "GOAL") {
-          const catBal = parseFloat(sourceCat.currentBalance || "0");
-          if (amountNum > catBal) {
-            if (
-              !confirm(
-                `Warning: Transferring $${amountNum.toFixed(
-                  2
-                )} exceeds "${sourceCat.name}" goal balance ($${catBal.toFixed(
-                  2
-                )}). Proceed?`
-              )
-            ) {
-              return;
-            }
-          }
-        } else {
-          // Everyday & Regular (Bills) draw from the entire Pool bucket
-          const poolCategories = categories.filter(
-            (c) => c.type === sourceCat.type
-          );
-          const totalPoolBalance = poolCategories.reduce(
-            (sum, c) => sum + parseFloat(c.currentBalance || "0"),
-            0
-          );
-          if (amountNum > totalPoolBalance) {
-            const poolLabel =
-              sourceCat.type === "EVERYDAY" ? "Everyday" : "Bills";
-            if (
-              !confirm(
-                `Warning: Transferring $${amountNum.toFixed(
-                  2
-                )} exceeds available ${poolLabel} pool balance ($${totalPoolBalance.toFixed(
-                  2
-                )}). Proceed?`
-              )
-            ) {
-              return;
-            }
+        const catBal = parseFloat(String(sourceCat.currentBalance || "0"));
+        if (amountNum > catBal) {
+          if (
+            !confirm(
+              `Warning: Transferring $${amountNum.toFixed(2)} exceeds "${sourceCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`
+            )
+          ) {
+            return;
           }
         }
       }
       moveMoneyMutation.mutate({
-        sourceCategoryId,
-        destinationCategoryId,
+        sourcePoolId: sourceCategoryId,
+        destinationPoolId: destinationCategoryId,
         amount: amountNum.toFixed(2),
-        note: name,
+        note: name || "Pool Transfer",
       });
       posthog.capture("money_moved_between_categories", {
         amount: amountNum,
@@ -311,106 +264,73 @@ export function useQuickActionState(
 
     if (!isIncome) {
       if (!categoryId) {
-        setError("Category is required.");
+        setError("Pool selection is required.");
         return;
       }
       const targetCat = categories.find((c) => c.id === categoryId);
       if (targetCat && !isFutureDate) {
-        if (targetCat.type === "GOAL") {
-          const catBal = parseFloat(targetCat.currentBalance || "0");
-          if (amountNum > catBal) {
-            if (
-              !confirm(
-                `Warning: Recording $${amountNum.toFixed(
-                  2
-                )} expense exceeds "${targetCat.name}" goal balance ($${catBal.toFixed(
-                  2
-                )}). Proceed?`
-              )
-            ) {
-              return;
-            }
-          }
-        } else {
-          const poolCategories = categories.filter(
-            (c) => c.type === targetCat.type
-          );
-          const totalPoolBalance = poolCategories.reduce(
-            (sum, c) => sum + parseFloat(c.currentBalance || "0"),
-            0
-          );
-          if (amountNum > totalPoolBalance) {
-            const poolLabel =
-              targetCat.type === "EVERYDAY" ? "Everyday" : "Bills";
-            if (
-              !confirm(
-                `Warning: Expense of $${amountNum.toFixed(
-                  2
-                )} exceeds available ${poolLabel} pool balance ($${totalPoolBalance.toFixed(
-                  2
-                )}). Proceed?`
-              )
-            ) {
-              return;
-            }
+        const catBal = parseFloat(String(targetCat.currentBalance || "0"));
+        if (amountNum > catBal) {
+          if (
+            !confirm(
+              `Warning: Expense of $${amountNum.toFixed(2)} exceeds available "${targetCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`
+            )
+          ) {
+            return;
           }
         }
       }
       if (isFutureDate) {
-        createUpcomingExpenseMut.mutate({
+        createExpenseSourceMut.mutate({
           name,
           amount: amountNum.toFixed(2),
-          categoryId,
-          expectedDate: date,
-          note: name,
+          poolId: categoryId,
+          isRecurring: false,
+          startDate: date,
         });
       } else {
         recordExpenseMutation.mutate({
-          categoryId,
+          poolId: categoryId,
           amount: amountNum.toFixed(2),
           flowType: "DEBIT",
           note: name,
-          recordedAt: new Date(date).toISOString(),
+          date,
         });
       }
     } else {
       if (isFutureDate) {
-        createUpcomingIncomeMut.mutate({
+        createIncomeSourceMut.mutate({
           name,
           amount: amountNum.toFixed(2),
-          expectedDate: date,
+          isRecurring: false,
+          startDate: date,
           receivingAccountId: receivingAccountId || undefined,
-          note: name,
         });
       } else {
-        const targetCat =
-          categories.find((c) => c.type === "EVERYDAY") || categories[0];
+        const targetCat = categories.find((c) => c.poolType === "EVERYDAY") || categories[0];
         if (!targetCat?.id) {
-          setError(
-            "No active pool category found. Please ensure at least one category exists."
-          );
+          setError("No active pool found. Please ensure at least one pool exists.");
           return;
         }
         recordExpenseMutation.mutate({
-          categoryId: targetCat.id,
+          poolId: targetCat.id,
           amount: amountNum.toFixed(2),
           flowType: "CREDIT",
           note: name,
-          recordedAt: new Date(date).toISOString(),
+          date,
         });
       }
     }
   }
 
-  const isPending =
+  const isSubmitting =
     recordExpenseMutation.isPending ||
     moveMoneyMutation.isPending ||
-    createUpcomingExpenseMut.isPending ||
-    createUpcomingIncomeMut.isPending;
+    createExpenseSourceMut.isPending ||
+    createIncomeSourceMut.isPending;
 
   return {
     type,
-    handleTabChange,
     name,
     setName,
     amount,
@@ -427,15 +347,18 @@ export function useQuickActionState(
     setDate,
     error,
     success,
-    isIncome,
-    isTransfer,
     categories,
     bankAccounts,
     quickExpensePresets,
     quickIncomePresets,
     quickTransferPresets,
+    isIncome,
+    isTransfer,
+    isFutureDate,
+    isSubmitting,
+    isPending: isSubmitting,
+    handleTabChange,
     handleSelectPreset,
     handleSubmit,
-    isPending,
   };
 }

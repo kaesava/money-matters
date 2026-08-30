@@ -7,24 +7,42 @@ interface CanAffordCardProps {
   canAffordAmount: string;
   setCanAffordAmount: (amt: string) => void;
   canAffordData?: CanAffordVerdictType | null;
+  includePersonal?: boolean;
+  setIncludePersonal?: (val: boolean) => void;
+  hasPrivatePools?: boolean;
 }
 
 export function CanAffordCard({
   canAffordAmount,
   setCanAffordAmount,
   canAffordData,
+  includePersonal = false,
+  setIncludePersonal,
+  hasPrivatePools = false,
 }: CanAffordCardProps) {
-
-
   return (
     <div className="p-5 rounded-2xl bg-white border border-zinc-100 shadow-sm flex flex-col gap-3">
-      <div className="flex items-center gap-1.5">
-        <h3 className="text-sm font-bold text-[#1B2B4B]">{t("canAfford.title")}</h3>
-        <InfoTooltip
-          title="Affordability Decision Engine"
-          content="Evaluates spendable Everyday cash after reserving upcoming bills due before your next payday ($15/day safety pacing floor)."
-        />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-bold text-[#1B2B4B]">{t("canAfford.title")}</h3>
+          <InfoTooltip
+            title="Affordability Decision Engine"
+            content="Evaluates spendable Everyday cash across your pools ($15/day safety pacing floor)."
+          />
+        </div>
+        {hasPrivatePools && setIncludePersonal && (
+          <label className="flex items-center gap-1.5 text-xs text-zinc-600 font-semibold cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includePersonal}
+              onChange={(e) => setIncludePersonal(e.target.checked)}
+              className="rounded border-zinc-300 text-[#2563eb] focus:ring-[#2563eb]"
+            />
+            {t("cards.canAfford.includePersonal", { defaultValue: "Include Personal Pools" })}
+          </label>
+        )}
       </div>
+
       <div className="flex gap-2">
         <input
           type="number"
@@ -67,7 +85,6 @@ export function CanAffordCard({
             </span>
           </div>
 
-          {/* Reasoning Rationale Waterfall Breakdown */}
           <div className="pt-2 border-t border-black/10 space-y-1 text-[11px] font-mono leading-relaxed">
             {canAffordData.rationaleSteps.map((step, idx) => (
               <div key={idx} className="flex items-start gap-1.5">
@@ -78,7 +95,6 @@ export function CanAffordCard({
           </div>
         </div>
       )}
-
     </div>
   );
 }

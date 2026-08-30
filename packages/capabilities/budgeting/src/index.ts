@@ -1,10 +1,13 @@
+export * from "./commands/create-pool.command.js";
+export * from "./commands/update-pool.command.js";
+export * from "./commands/archive-pool.command.js";
 export * from "./commands/create-category.command.js";
 export * from "./commands/update-category.command.js";
 export * from "./commands/archive-category.command.js";
 export * from "./commands/restore-item.command.js";
 export * from "./commands/run-allocation.command.js";
-export * from "./commands/upsert-category-schedule.command.js";
 export * from "./commands/move-money.command.js";
+export * from "./queries/list-pools.query.js";
 export * from "./queries/list-categories.query.js";
 export * from "./queries/get-category-detail.query.js";
 export * from "./queries/get-monthly-summary.query.js";
@@ -22,4 +25,3 @@ export * from "./queries/preview-payday.query.js";
 export * from "./queries/list-bill-coverage.query.js";
 export * from "./engine/matrix-projection-engine.js";
 export * from "./engine/bill-lifecycle-fsm.js";
-

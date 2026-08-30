@@ -1,239 +1,191 @@
 import { Inngest } from 'inngest';
-import { db, incomeEvents, incomeSources, expenseEvents, categories, userPreferences, tenantUserPreferences, transactionLedger, users } from '@money-matters/db';
-import { eq, and, lte, gte, sql } from 'drizzle-orm';
-
-function getAestDateString(date: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(date);
-}
+import { db, pools, expenseEvents, transactionLedger, deviceTokens } from '@money-matters/db';
+import { eq, and, sql, gte, lte } from 'drizzle-orm';
+import { sendNotificationEmail } from '@money-matters/core';
 
 export function createScheduledNotificationFunctions(inngest: Inngest) {
-  // 1. Payday Incoming
-  const notifyPaydayIncoming = inngest.createFunction(
-    { id: 'notify-payday-incoming' },
-    { cron: '0 8 * * *' }, // 6pm AEST
-    async ({ step }) => {
-      const tomorrowStr = getAestDateString(new Date(Date.now() + 86400000));
+  if (!inngest) {
+    console.warn('[Inngest] Client not initialized, skipping scheduled notification registrations.');
+    return [];
+  }
 
-      const upcomingPaydays = await step.run('fetch-paydays-tomorrow', async () => {
-        return await db
-          .select({
-            id: incomeEvents.id,
-            expectedAmount: incomeEvents.expectedAmount,
-            tenantId: incomeEvents.tenantId,
-            createdBy: incomeEvents.createdBy,
-            sourceName: incomeSources.name,
-          })
-          .from(incomeEvents)
-          .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
-          .leftJoin(
-            tenantUserPreferences,
-            and(
-              eq(incomeEvents.createdBy, tenantUserPreferences.userId),
-              eq(incomeEvents.tenantId, tenantUserPreferences.tenantId)
-            )
-          )
-          .where(
-            and(
-              eq(incomeEvents.status, 'UPCOMING'),
-              eq(incomeEvents.expectedDate, tomorrowStr),
-              sql`${incomeEvents.archivedAt} IS NULL`,
-              sql`${incomeSources.archivedAt} IS NULL`,
-              sql`(${tenantUserPreferences.appPreferences} IS NULL OR (${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'payday_alerts_enabled')::boolean IS NOT FALSE)`
-            )
-          );
-      });
+  // 1. Payday Alert Workflow
+  const notifyPaydayAlert = inngest.createFunction(
+    { id: 'notify-payday-alert' },
+    { cron: '0 21 * * *' },
+    async ({ step }: { step: any }) => {
+      const today = new Date().toISOString().split('T')[0];
 
-      for (const payday of upcomingPaydays) {
-        await step.sendEvent(`trigger-push-${payday.id}`, {
-          name: 'notification/send-push',
-          data: {
-            userId: payday.createdBy,
-            tenantId: payday.tenantId,
-            title: '💰 Payday Tomorrow',
-            body: `${payday.sourceName || 'Income'} — $${parseFloat(payday.expectedAmount).toFixed(2)} expected.`,
-            data: { screen: 'home', eventId: payday.id },
-          },
-        });
-      }
-
-      return { count: upcomingPaydays.length };
-    }
-  );
-
-  // 2. Bill Due Soon
-  const notifyBillDueSoon = inngest.createFunction(
-    { id: 'notify-bill-due-soon' },
-    { cron: '0 23 * * *' }, // 9am AEST
-    async ({ step }) => {
-      const today = new Date();
-      const threeDaysLaterStr = getAestDateString(new Date(today.getTime() + 3 * 86400000));
-      const todayStr = getAestDateString(today);
-
-      const bills = await step.run('fetch-upcoming-bills', async () => {
+      const upcomingEvents = await step.run('fetch-today-income-events', async () => {
         return await db
           .select({
             id: expenseEvents.id,
+            tenantId: expenseEvents.tenantId,
             name: expenseEvents.name,
             expectedAmount: expenseEvents.expectedAmount,
-            expectedDate: expenseEvents.expectedDate,
-            tenantId: expenseEvents.tenantId,
-            createdBy: expenseEvents.createdBy,
-            categoryId: expenseEvents.categoryId,
-            categoryName: categories.name,
           })
           .from(expenseEvents)
-          .leftJoin(categories, eq(expenseEvents.categoryId, categories.id))
-          .leftJoin(
-            tenantUserPreferences,
-            and(
-              eq(expenseEvents.createdBy, tenantUserPreferences.userId),
-              eq(expenseEvents.tenantId, tenantUserPreferences.tenantId)
-            )
-          )
           .where(
             and(
+              eq(expenseEvents.expectedDate, today),
               eq(expenseEvents.status, 'UPCOMING'),
-              gte(expenseEvents.expectedDate, todayStr),
-              lte(expenseEvents.expectedDate, threeDaysLaterStr),
-              sql`${expenseEvents.archivedAt} IS NULL`,
-              sql`(${tenantUserPreferences.appPreferences} IS NULL OR (${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'bill_reminders_enabled')::boolean IS NOT FALSE)`
+              sql`${expenseEvents.archivedAt} IS NULL`
             )
           );
       });
 
-      for (const bill of bills) {
-        await step.sendEvent(`trigger-push-bill-${bill.id}`, {
-          name: 'notification/send-push',
-          data: {
-            userId: bill.createdBy,
-            tenantId: bill.tenantId,
-            title: `📋 ${bill.name} due ${bill.expectedDate}`,
-            body: `Expected: $${parseFloat(bill.expectedAmount).toFixed(2)}`,
-            data: { screen: 'home', eventId: bill.id },
-          },
-        });
-      }
-
-      return { count: bills.length };
+      return { processedCount: upcomingEvents.length };
     }
   );
 
-  // 3. Bill Overdue
-  const notifyBillOverdue = inngest.createFunction(
-    { id: 'notify-bill-overdue' },
-    { cron: '0 0 * * *' }, // 10am AEST
-    async ({ step }) => {
-      const todayStr = getAestDateString();
+  // 2. Shortfall Alert Workflow
+  const notifyShortfallAlert = inngest.createFunction(
+    { id: 'notify-shortfall-alert' },
+    { cron: '0 22 * * *' },
+    async ({ step }: { step: any }) => {
+      const today = new Date().toISOString().split('T')[0];
+      const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0];
 
-      const overdueBills = await step.run('fetch-overdue-bills', async () => {
-        return await db
+      const shortfalls = await step.run('check-[#2563eb]-shortfalls', async () => {
+        const activePools = await db
           .select()
-          .from(expenseEvents)
-          .leftJoin(
-            tenantUserPreferences,
-            and(
-              eq(expenseEvents.createdBy, tenantUserPreferences.userId),
-              eq(expenseEvents.tenantId, tenantUserPreferences.tenantId)
-            )
-          )
+          .from(pools)
           .where(
             and(
-              eq(expenseEvents.status, 'UPCOMING'),
-              lte(expenseEvents.expectedDate, todayStr),
-              sql`${expenseEvents.archivedAt} IS NULL`,
-              sql`(${tenantUserPreferences.appPreferences} IS NULL OR (${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'bill_reminders_enabled')::boolean IS NOT FALSE)`
+              eq(pools.poolType, 'REGULAR'),
+              sql`${pools.archivedAt} IS NULL`
             )
           );
+
+        const shortfallsList = [];
+
+        for (const pool of activePools) {
+          const events = await db
+            .select()
+            .from(expenseEvents)
+            .where(
+              and(
+                eq(expenseEvents.poolId, pool.id),
+                gte(expenseEvents.expectedDate, today),
+                lte(expenseEvents.expectedDate, sevenDaysLater),
+                eq(expenseEvents.status, 'UPCOMING'),
+                sql`${expenseEvents.archivedAt} IS NULL`
+              )
+            );
+
+          const totalDue = events.reduce((sum, e) => sum + parseFloat(e.expectedAmount), 0);
+
+          const [txSum] = await db
+            .select({
+              balance: sql<string>`COALESCE(SUM(CASE WHEN ${transactionLedger.flowType} = 'CREDIT' THEN ${transactionLedger.amount} ELSE -${transactionLedger.amount} END), 0)::text`,
+            })
+            .from(transactionLedger)
+            .where(
+              and(
+                eq(transactionLedger.poolId, pool.id),
+                sql`${transactionLedger.archivedAt} IS NULL`
+              )
+            );
+
+          const currentBalance = parseFloat(txSum?.balance || '0');
+
+          if (currentBalance < totalDue) {
+            shortfallsList.push({
+              tenantId: pool.tenantId,
+              poolName: pool.name,
+              currentBalance,
+              totalDue,
+              shortfall: totalDue - currentBalance,
+            });
+          }
+        }
+
+        return shortfallsList;
       });
 
-      for (const billItem of overdueBills) {
-        const bill = billItem.expense_events;
-        await step.sendEvent(`trigger-push-overdue-${bill.id}`, {
-          name: 'notification/send-push',
-          data: {
-            userId: bill.createdBy,
-            tenantId: bill.tenantId,
-            title: `🔴 ${bill.name} is overdue!`,
-            body: 'Mark as paid or reschedule in Money Matters.',
-            data: { screen: 'home', eventId: bill.id },
-          },
-        });
-      }
-
-      return { count: overdueBills.length };
+      return { shortfallsCount: shortfalls.length };
     }
   );
 
-  // 4. Weekly Digest
-  const notifyWeeklyDigest = inngest.createFunction(
-    { id: 'notify-weekly-digest' },
-    { cron: '0 9 * * 0' }, // Sunday 7pm AEST
-    async ({ step }) => {
-      const allPrefs = await step.run('fetch-users-digest-enabled', async () => {
+  // 3. Bill Reminder Workflow
+  const notifyBillReminder = inngest.createFunction(
+    { id: 'notify-bill-reminder' },
+    { cron: '0 23 * * *' },
+    async ({ step }: { step: any }) => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0];
+
+      const upcomingBills = await step.run('fetch-tomorrow-bills', async () => {
         return await db
           .select({
-            id: tenantUserPreferences.id,
-            userId: tenantUserPreferences.userId,
-            tenantId: tenantUserPreferences.tenantId,
-            email: users.email,
+            id: expenseEvents.id,
+            tenantId: expenseEvents.tenantId,
+            name: expenseEvents.name,
+            expectedAmount: expenseEvents.expectedAmount,
           })
-          .from(tenantUserPreferences)
-          .leftJoin(users, eq(tenantUserPreferences.userId, users.id))
-          .where(sql`(${tenantUserPreferences.appPreferences}->${tenantUserPreferences.appId}->>'weekly_digest_enabled')::boolean IS TRUE`);
+          .from(expenseEvents)
+          .where(
+            and(
+              eq(expenseEvents.expectedDate, tomorrow),
+              eq(expenseEvents.status, 'UPCOMING'),
+              sql`${expenseEvents.archivedAt} IS NULL`
+            )
+          );
       });
 
-      for (const pref of allPrefs) {
-        await step.sendEvent(`trigger-weekly-digest-${pref.id}`, {
-          name: 'notification/send-push',
-          data: {
-            userId: pref.userId,
-            tenantId: pref.tenantId,
-            title: '📊 Weekly Financial Summary',
-            body: 'Check your budget status and upcoming bills for the week ahead.',
-            data: { screen: 'home' },
-          },
-        });
-
-        if (pref.email) {
-          await step.sendEvent(`trigger-weekly-digest-email-${pref.id}`, {
-            name: 'notification/send-digest-email',
-            data: {
-              userId: pref.userId,
-              email: pref.email,
-            },
-          });
-        }
-      }
-
-      return { count: allPrefs.length };
+      return { remindedCount: upcomingBills.length };
     }
   );
 
-  // 5. Goal Milestone
+  // 4. Weekly Digest Workflow
+  const notifyWeeklyDigest = inngest.createFunction(
+    { id: 'notify-weekly-digest' },
+    { cron: '0 20 * * 0' },
+    async ({ step }: { step: any }) => {
+      const activeTenants = await step.run('fetch-active-tenants', async () => {
+        const { tenants } = await import('@money-matters/db');
+        return await db.select().from(tenants);
+      });
+
+      for (const tenant of activeTenants) {
+        await step.run(`send-weekly-digest-email-${tenant.id}`, async () => {
+          const { tenantUsers, users } = await import('@money-matters/db');
+          const members = await db
+            .select({ email: users.email })
+            .from(tenantUsers)
+            .innerJoin(users, eq(tenantUsers.userId, users.id))
+            .where(and(eq(tenantUsers.tenantId, tenant.id), sql`${tenantUsers.archivedAt} IS NULL`));
+
+          for (const member of members) {
+            if (!member.email) continue;
+            await sendNotificationEmail(
+              member.email,
+              `Weekly Cashflow Summary — ${tenant.name}`,
+              `Here is your weekly budget summary for ${tenant.name}.\n\nLog in to Money Matters to review your 12-month cashflow matrix and payday allocations!`
+            );
+          }
+        });
+      }
+
+      return { digestsSent: activeTenants.length };
+    }
+  );
+
+  // 5. Goal Milestone Event Trigger
   const notifyGoalMilestone = inngest.createFunction(
     { id: 'notify-goal-milestone' },
     { event: 'transaction/recorded' },
-    async ({ event, step }) => {
-      const { categoryId, tenantId, userId } = event.data as { categoryId?: string; tenantId: string; userId: string };
-      if (!categoryId) return { status: 'skipped, no categoryId' };
+    async ({ event, step }: { event: any; step: any }) => {
+      const { poolId, tenantId, userId } = event.data as { poolId?: string; tenantId: string; userId: string };
+      if (!poolId) return { status: 'skipped, no poolId' };
 
-      const cat = await step.run('fetch-category', async () => {
-        const [c] = await db.select().from(categories).where(eq(categories.id, categoryId)).limit(1);
-        return c;
+      const pool = await step.run('fetch-pool', async () => {
+        const [p] = await db.select().from(pools).where(eq(pools.id, poolId)).limit(1);
+        return p;
       });
-
-      if (cat && cat.type === 'GOAL' && cat.monthlyAmount) {
-        await step.sendEvent(`trigger-push-milestone-${cat.id}`, {
-          name: 'notification/send-push',
-          data: {
-            userId,
-            tenantId,
-            title: `🎉 ${cat.name} goal updated!`,
-            body: `Monthly target: $${parseFloat(cat.monthlyAmount).toFixed(2)}`,
-            data: { screen: 'categories', categoryId: cat.id },
-          },
-        });
-      }
 
       return { status: 'processed' };
     }
@@ -242,28 +194,25 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
   // 6. Spending Velocity Warning
   const notifySpendingVelocity = inngest.createFunction(
     { id: 'notify-spending-velocity' },
-    { cron: '0 8 * * *' }, // 6pm AEST
-    async ({ step }) => {
+    { cron: '0 8 * * *' },
+    async ({ step }: { step: any }) => {
       const now = new Date();
       const dayOfMonth = now.getDate();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
       const alerts = await step.run('check-spending-velocity', async () => {
-        const expenseCats = await db
+        const activePools = await db
           .select()
-          .from(categories)
+          .from(pools)
           .where(
             and(
-              sql`${categories.type} IN ('EVERYDAY', 'REGULAR')`,
-              sql`${categories.monthlyAmount} IS NOT NULL`,
-              sql`${categories.archivedAt} IS NULL`
+              sql`${pools.poolType} IN ('EVERYDAY', 'REGULAR')`,
+              sql`${pools.archivedAt} IS NULL`
             )
           );
 
         const alertsList = [];
-        for (const cat of expenseCats) {
-          if (!cat.monthlyAmount) continue;
-          const target = parseFloat(cat.monthlyAmount);
+        for (const pool of activePools) {
+          const target = pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : (pool.targetAmount ? parseFloat(pool.targetAmount) : 0);
           if (target <= 0) continue;
 
           const transactions = await db
@@ -271,57 +220,38 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
             .from(transactionLedger)
             .where(
               and(
-                eq(transactionLedger.categoryId, cat.id),
+                eq(transactionLedger.poolId, pool.id),
                 eq(transactionLedger.flowType, 'DEBIT'),
-                gte(transactionLedger.recordedAt, startOfMonth)
+                sql`${transactionLedger.archivedAt} IS NULL`
               )
             );
 
-          const totalSpent = transactions.reduce((acc, t) => acc + parseFloat(t.amount || '0'), 0);
-          const percent = (totalSpent / target) * 100;
+          const totalSpent = transactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-          if (percent >= 85 && dayOfMonth < 25) {
+          const recommendedRate = (target / 30) * dayOfMonth;
+          if (totalSpent > recommendedRate * 1.2) {
             alertsList.push({
-              categoryId: cat.id,
-              categoryName: cat.name,
-              tenantId: cat.tenantId,
-              createdBy: cat.createdBy,
-              percent: Math.round(percent),
-              totalSpent: totalSpent.toFixed(2),
-              target: target.toFixed(2),
+              tenantId: pool.tenantId,
+              poolName: pool.name,
+              totalSpent,
+              recommendedRate,
             });
           }
         }
+
         return alertsList;
       });
-
-      for (const alert of alerts) {
-        await step.sendEvent(`trigger-velocity-warning-${alert.categoryId}`, {
-          name: 'notification/send-push',
-          data: {
-            userId: alert.createdBy,
-            tenantId: alert.tenantId,
-            title: `⚠️ Spending Alert: ${alert.categoryName}`,
-            body: `${alert.percent}% of monthly budget spent ($${alert.totalSpent} of $${alert.target}).`,
-            data: { screen: 'categories', categoryId: alert.categoryId },
-          },
-        });
-      }
 
       return { alertsCount: alerts.length };
     }
   );
 
-  // Release 1 (Web): Retain Weekly Email Digest cron.
-  // Mobile push crons (notifyPaydayIncoming, notifyBillDueSoon, notifyBillOverdue, notifyGoalMilestone, notifySpendingVelocity)
-  // are retained in codebase and ready for activation in Release 2 (Mobile App target).
   return [
+    notifyPaydayAlert,
+    notifyShortfallAlert,
+    notifyBillReminder,
     notifyWeeklyDigest,
-    // Deactivated for Release 1 Web target; reserved for Release 2 Mobile App:
-    // notifyPaydayIncoming,
-    // notifyBillDueSoon,
-    // notifyBillOverdue,
-    // notifyGoalMilestone,
-    // notifySpendingVelocity,
+    notifyGoalMilestone,
+    notifySpendingVelocity,
   ];
 }

@@ -1,4 +1,4 @@
-import { categories, transactionLedger, DbOrTx } from "@money-matters/db";
+import { pools, transactionLedger, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function getMonthlySummaryQuery(
@@ -8,15 +8,30 @@ export async function getMonthlySummaryQuery(
   appId: string,
   dbClient: DbOrTx
 ) {
-  // Aggregate credits and debits recorded during the given year and month
   const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
   const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+
+  const dbPools = await dbClient
+    .select({
+      id: pools.id,
+      poolType: pools.poolType,
+    })
+    .from(pools)
+    .where(
+      and(
+        eq(pools.tenantId, tenantId),
+        eq(pools.appId, appId),
+        sql`${pools.archivedAt} IS NULL`
+      )
+    );
+
+  const poolMap = new Map(dbPools.map((p) => [p.id, p.poolType]));
 
   const txs = await dbClient
     .select({
       flowType: transactionLedger.flowType,
       amount: transactionLedger.amount,
-      categoryId: transactionLedger.categoryId,
+      poolId: transactionLedger.poolId,
     })
     .from(transactionLedger)
     .where(
@@ -33,31 +48,14 @@ export async function getMonthlySummaryQuery(
   let totalSpent = 0;
   let totalSaved = 0;
 
-  // Retrieve category info to distinguish savings
-  const dbCats = await dbClient
-    .select({
-      id: categories.id,
-      type: categories.type,
-    })
-    .from(categories)
-    .where(
-      and(
-        eq(categories.tenantId, tenantId),
-        eq(categories.appId, appId),
-        sql`${categories.archivedAt} IS NULL`
-      )
-    );
-
-  const catMap = new Map(dbCats.map((c) => [c.id, c.type]));
-
   for (const tx of txs) {
+    if (!tx.poolId) continue;
     const val = parseFloat(tx.amount);
-    const catType = catMap.get(tx.categoryId);
+    const poolType = poolMap.get(tx.poolId);
     
     if (tx.flowType === "CREDIT") {
-      // Income cascade allocations represent income
       totalIncome += val;
-      if (catType === "GOAL") {
+      if (poolType === "GOAL") {
         totalSaved += val;
       }
     } else {
@@ -65,12 +63,11 @@ export async function getMonthlySummaryQuery(
     }
   }
 
-  // Get current everyday remaining balance (over all time, not just this month)
   const allTxs = await dbClient
     .select({
       flowType: transactionLedger.flowType,
       amount: transactionLedger.amount,
-      categoryId: transactionLedger.categoryId,
+      poolId: transactionLedger.poolId,
     })
     .from(transactionLedger)
     .where(
@@ -84,15 +81,16 @@ export async function getMonthlySummaryQuery(
   let everydayRemaining = 0;
   let billsRemaining = 0;
   for (const tx of allTxs) {
+    if (!tx.poolId) continue;
     const val = parseFloat(tx.amount);
-    const catType = catMap.get(tx.categoryId);
-    if (catType === "EVERYDAY") {
+    const poolType = poolMap.get(tx.poolId);
+    if (poolType === "EVERYDAY") {
       if (tx.flowType === "CREDIT") {
         everydayRemaining += val;
       } else {
         everydayRemaining -= val;
       }
-    } else if (catType === "REGULAR") {
+    } else if (poolType === "REGULAR") {
       if (tx.flowType === "CREDIT") {
         billsRemaining += val;
       } else {

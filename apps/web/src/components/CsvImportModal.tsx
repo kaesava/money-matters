@@ -62,7 +62,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
   const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
 
-  const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
+  const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   // Handle Escape key to cancel/close modal
@@ -331,7 +331,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
 
   const selectedBankAccount = bankAccounts.find((acc) => acc.id === targetBankAccountId);
   const targetBankAccountName = selectedBankAccount
-    ? `${selectedBankAccount.name} (${selectedBankAccount.categoryTypes.join(", ") || "Unlinked"})`
+    ? `${selectedBankAccount.name} (${((selectedBankAccount as unknown as { poolTypes?: string[]; categoryTypes?: string[] }).poolTypes || (selectedBankAccount as unknown as { poolTypes?: string[]; categoryTypes?: string[] }).categoryTypes || []).join(", ") || "Unlinked"})`
     : undefined;
 
   if (!isOpen) return null;

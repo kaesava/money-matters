@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
-import { t } from "@money-matters/i18n";
 import { DashboardError } from "../../../../components/web/DashboardError";
 import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 
@@ -26,7 +25,6 @@ export default function CascadePage() {
     { enabled: !!eventId && amount > 0 }
   );
 
-  // Strategic Fix: Handle the error natively through tRPC to perfectly infer the error type
   const confirmMutation = trpc.confirmAllocation.useMutation({
     onSuccess: () => {
       router.push("/dashboard/income-and-bills");
@@ -36,27 +34,25 @@ export default function CascadePage() {
     }
   });
 
-  // Initialize custom amounts when preview data loads
   useEffect(() => {
     if (previewQuery.data) {
       const initial: Record<string, string> = {};
       for (const line of previewQuery.data) {
-        initial[line.categoryId] = line.proposedAmount.toFixed(2);
+        initial[line.poolId] = line.proposedAmount.toFixed(2);
       }
       setCustomAmounts(initial);
     }
   }, [previewQuery.data]);
 
-  const handleAmountChange = (catId: string, value: string) => {
+  const handleAmountChange = (pId: string, value: string) => {
     setCustomAmounts((prev) => ({
       ...prev,
-      [catId]: value,
+      [pId]: value,
     }));
   };
 
   const lines = previewQuery.data || [];
 
-  // Compute live sum of custom allocations
   const totalAllocated = Object.values(customAmounts).reduce((acc, val) => {
     const parsed = parseFloat(val);
     return acc + (isNaN(parsed) ? 0 : parsed);
@@ -64,7 +60,6 @@ export default function CascadePage() {
 
   const remaining = amount - totalAllocated;
 
-  // Strategic Fix: Removed async/await and try/catch blocks. We just trigger the mutation.
   const handleConfirm = () => {
     setErrorMessage(null);
     if (Math.abs(remaining) > 0.01) {
@@ -73,9 +68,9 @@ export default function CascadePage() {
     }
 
     const submissionLines = lines.map((line) => {
-      const val = customAmounts[line.categoryId] || "0.00";
+      const val = customAmounts[line.poolId] || "0.00";
       return {
-        categoryId: line.categoryId,
+        poolId: line.poolId,
         confirmedAmount: parseFloat(val).toFixed(2),
         reasoning: line.reasoning,
       };
@@ -98,85 +93,47 @@ export default function CascadePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
-            Cascade Allocation Override
-          </h1>
-          <InfoTooltip
-            title={t("tooltips.cascade.title")}
-            content={t("tooltips.cascade.content")}
-          />
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-black text-[#1B2B4B]">Payday Waterfall Allocation</h1>
+          <p className="text-sm font-medium text-zinc-500 mt-1">Review and fine-tune step-by-step pool allocations.</p>
+        </div>
+        <div className="text-right">
+          <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Paycheck Amount</span>
+          <span className="text-2xl font-black text-[#2563eb]">{fmt(amount)}</span>
         </div>
       </div>
 
-      {/* Calculator Bar */}
-      <div className="p-5 rounded-2xl bg-[#1B2B4B] text-white flex flex-wrap gap-6 items-center justify-between shadow-md">
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-zinc-400">Total Paycheck</span>
-          <span className="text-2xl font-black">{fmt(amount)}</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-zinc-400">Total Allocated</span>
-          <span className="text-2xl font-black text-[#00B4A6]">{fmt(totalAllocated)}</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-zinc-400">Remaining Unallocated</span>
-          <span className={`text-2xl font-black ${Math.abs(remaining) > 0.01 ? "text-amber-400" : "text-emerald-400"}`}>
-            {fmt(remaining)}
-          </span>
-        </div>
-      </div>
+      {errorMessage && <DashboardError message={errorMessage} />}
 
-      {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-50 text-rose-700 text-sm font-semibold border border-rose-100">
-          ⚠️ {errorMessage}
-        </div>
-      )}
-
-      {/* Grid of Split lines */}
       {previewQuery.isLoading ? (
-        <div className="h-64 rounded-2xl animate-pulse bg-zinc-200/50" />
-      ) : previewQuery.error ? (
-        <DashboardError error={previewQuery.error} onRetry={() => previewQuery.refetch()} />
+        <div className="p-12 text-center">
+          <Spinner />
+        </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-200/80">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-zinc-50/80 border-b border-zinc-100 text-zinc-400 font-bold uppercase tracking-wider">
+            <table className="w-full text-left text-sm text-zinc-600">
+              <thead className="bg-zinc-50 text-xs font-bold text-zinc-400 uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-4">Category Name</th>
-                  <th className="px-6 py-4">Type</th>
-                  <th className="px-6 py-4">Current Balance</th>
-                  <th className="px-6 py-4">Target / Limit</th>
-                  <th className="px-6 py-4">% Complete</th>
-                  <th className="px-6 py-4">Proposed Split</th>
-                  <th className="px-6 py-4 text-right">Confirm Split ($)</th>
+                  <th className="px-6 py-3 rounded-l-lg">Pool Target</th>
+                  <th className="px-6 py-3">Waterfall Priority / Reason</th>
+                  <th className="px-6 py-3">Engine Proposed</th>
+                  <th className="px-6 py-3 text-right rounded-r-lg">Confirmed Split</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 text-zinc-700">
+              <tbody className="divide-y divide-zinc-100 font-medium">
                 {lines.map((line) => {
-                  const currentValue = customAmounts[line.categoryId] ?? "0.00";
+                  const currentValue = customAmounts[line.poolId] ?? line.proposedAmount.toFixed(2);
                   return (
-                    <tr key={line.categoryId} className="hover:bg-zinc-50/50 transition-colors text-sm">
+                    <tr key={line.poolId} className="hover:bg-zinc-50/50 transition-colors">
                       <td className="px-6 py-4 font-bold text-[#1B2B4B]">
-                        {line.categoryName}
+                        {line.poolName}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
-                          {line.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-mono">
-                        {fmt(line.currentBalance)}
-                      </td>
-                      <td className="px-6 py-4 font-mono">
-                        {line.targetAmount ? fmt(line.targetAmount) : "—"}
-                      </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-zinc-500">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-xs text-zinc-500">{line.progressPercentage}%</span>
+                          <span>{line.reasoning}</span>
+                          <InfoTooltip content={line.reasoning} />
                         </div>
                       </td>
                       <td className="px-6 py-4 font-semibold text-zinc-500">
@@ -188,8 +145,8 @@ export default function CascadePage() {
                           step="0.01"
                           min="0.00"
                           value={currentValue}
-                          onChange={(e) => handleAmountChange(line.categoryId, e.target.value)}
-                          className="px-3 py-1.5 border border-zinc-200 rounded-lg text-right w-28 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B4A6] font-mono font-bold"
+                          onChange={(e) => handleAmountChange(line.poolId, e.target.value)}
+                          className="px-3 py-1.5 border border-zinc-200 rounded-lg text-right w-28 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb] font-mono font-bold"
                         />
                       </td>
                     </tr>
@@ -201,21 +158,21 @@ export default function CascadePage() {
         </div>
       )}
 
-      {/* Action triggers */}
       <div className="flex justify-end gap-3">
         <button
-          onClick={() => router.push("/dashboard/paychecks")}
-          className="px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-bold text-zinc-600 hover:bg-zinc-50 transition-all active:scale-95"
+          type="button"
+          onClick={() => router.push("/dashboard/income-and-bills")}
+          className="px-5 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 font-bold text-sm hover:bg-zinc-50 transition-colors"
         >
           Cancel
         </button>
         <button
+          type="button"
+          disabled={confirmMutation.isPending}
           onClick={handleConfirm}
-          disabled={confirmMutation.isPending || previewQuery.isLoading}
-          className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#00B4A6] hover:opacity-90 disabled:opacity-50 transition-all active:scale-95 shadow-md flex items-center justify-center gap-1.5"
+          className="px-6 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm shadow-md transition-colors disabled:opacity-50"
         >
-          {confirmMutation.isPending && <Spinner size="sm" />}
-          Confirm & Save Splits
+          {confirmMutation.isPending ? "Confirming..." : "Confirm & Commit Allocation"}
         </button>
       </div>
     </div>

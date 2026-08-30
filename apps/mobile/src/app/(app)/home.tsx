@@ -39,7 +39,7 @@ export default function HomeScreen() {
   const [canAffordAmount, setCanAffordAmount] = useState('');
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
-  const categoriesQuery = trpc.listCategories.useQuery();
+  const categoriesQuery = trpc.listPools.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const canAffordQuery = trpc.canAfford.useQuery(
@@ -47,7 +47,7 @@ export default function HomeScreen() {
     { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
   );
 
-  const markPaidMutation = trpc.markExpensePaid.useMutation({
+  const markPaidMutation = trpc.overrideEvent.useMutation({
     onSuccess: () => {
       expenseEventsQuery.refetch();
       categoriesQuery.refetch();
@@ -69,8 +69,11 @@ export default function HomeScreen() {
   const onTrackCount = categories.filter((c) => c.healthStatus === 'GREEN').length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || '0');
   const everydayMonthlyBudget = categories
-    .filter((c) => c.type === 'EVERYDAY')
-    .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || '0'), 0);
+    .filter((c) => {
+      const raw = c as unknown as { poolType?: string; type?: string };
+      return (raw.poolType || raw.type) === 'EVERYDAY';
+    })
+    .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.targetAmount || '0'), 0);
 
   const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
   const nextPaydayEvent = upcomingIncomeList[0] ?? null;
@@ -92,15 +95,15 @@ export default function HomeScreen() {
     .filter((e) => e.status === 'UPCOMING')
     .filter((e) => new Date(e.expectedDate) <= threeDaysLater)
     .map((e) => {
-      const cat = categories.find((c) => c.id === e.categoryId);
-      const catBal = cat ? parseFloat(cat.currentBalance) : 0;
+      const cat = categories.find((c) => c.id === (e.categoryId || e.poolId));
+      const catBal = cat ? (typeof cat.currentBalance === 'number' ? cat.currentBalance : parseFloat(cat.currentBalance || '0')) : 0;
       const isOverdue = new Date(e.expectedDate) < todayObj;
       return {
         id: e.id,
         name: e.name,
         expectedAmount: parseFloat(e.expectedAmount),
         expectedDate: e.expectedDate,
-        categoryId: e.categoryId,
+        categoryId: e.categoryId || e.poolId,
         isOverdue,
         categoryBalance: catBal,
       };
@@ -111,7 +114,7 @@ export default function HomeScreen() {
       amount: item.expectedAmount,
       is_overdue: item.isOverdue,
     });
-    markPaidMutation.mutate({ eventId: item.id, actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` });
+    markPaidMutation.mutate({ eventId: item.id, eventType: 'EXPENSE', status: 'PAID', actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` });
   };
 
   const handleBulkDelete = () => {
@@ -150,8 +153,15 @@ export default function HomeScreen() {
   }
   combinedEvents.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
 
-  const dueGuardrailQuery = trpc.evaluateDueGuardrail.useQuery({ lookaheadDays: 14 });
-  const dueGuardrail = dueGuardrailQuery.data;
+  const billCoverageQuery = trpc.listBillCoverage.useQuery();
+  const billCoverageData = billCoverageQuery.data;
+  const shortfallAmount = (billCoverageData?.totalUpcomingBeforePayday ?? 0) - (billCoverageData?.billsPoolBalance ?? 0);
+  const dueGuardrail = shortfallAmount > 0 ? {
+    status: 'SHORTFALL_ALERT',
+    requiredAmount: billCoverageData?.totalUpcomingBeforePayday ?? 0,
+    currentBalance: billCoverageData?.billsPoolBalance ?? 0,
+    shortfallAmount,
+  } : null;
 
   return (
     <MobileScreenWrapper

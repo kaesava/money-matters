@@ -2,11 +2,13 @@
 
 import React from "react";
 import { Spinner } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export interface BankAccountOption {
   id: string;
   name: string;
-  categoryTypes: string[];
+  categoryTypes?: string[];
+  poolTypes?: string[];
 }
 
 export interface CsvStepUploadProps {
@@ -54,151 +56,135 @@ export function CsvStepUpload({
 }: CsvStepUploadProps) {
   return (
     <div className="space-y-6">
-      {/* Target Bank Account Selection */}
-      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-slate-50 border border-slate-200">
-        <label className="text-xs font-bold text-[#1B2B4B]">Target Bank Account for Import:</label>
+      {/* Target Account Selection */}
+      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <label className="block text-xs font-bold uppercase text-slate-500 mb-2">
+          {t("csvImport.upload.selectTargetAccount", { defaultValue: "Select Target Bank Account" })}
+        </label>
         <select
           value={targetBankAccountId}
           onChange={(e) => setTargetBankAccountId(e.target.value)}
-          className="px-3 py-2 text-xs font-bold rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-[#2563eb]"
+          className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
         >
-          {bankAccounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>
-              {acc.name} ({acc.categoryTypes.join(", ") || "Unlinked"})
-            </option>
-          ))}
+          {bankAccounts.map((acc) => {
+            const types = acc.poolTypes || acc.categoryTypes || [];
+            return (
+              <option key={acc.id} value={acc.id}>
+                {acc.name} ({types.join(", ") || "Primary"})
+              </option>
+            );
+          })}
         </select>
       </div>
 
-      {isParsing ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Spinner size="lg" className="text-[#2563eb]" />
-          <span className="text-sm font-bold text-slate-600">Parsing statement & checking duplicates...</span>
+      {/* Drag & Drop File Upload Area */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+          isDragging
+            ? "border-[#2563eb] bg-blue-50/50"
+            : "border-slate-300 hover:border-slate-400 bg-white"
+        }`}
+      >
+        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#2563eb] flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+          📁
         </div>
-      ) : (
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
-            isDragging
-              ? "border-[#2563eb] bg-blue-50/50 scale-[1.01]"
-              : "border-slate-300 hover:border-[#2563eb] bg-slate-50/50"
-          }`}
-        >
+        <h4 className="text-sm font-bold text-slate-800 mb-1">
+          {fileName ? `Selected: ${fileName}` : t("csvImport.upload.dragDrop", { defaultValue: "Drag and drop your bank statement CSV here" })}
+        </h4>
+        <p className="text-xs text-slate-400 font-medium mb-4">
+          {t("csvImport.upload.supportedBanks", { defaultValue: "Supports CommBank, NAB, ANZ, Westpac, ING, Macquarie, and generic CSV formats." })}
+        </p>
+
+        <label className="inline-flex items-center px-4 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer">
+          <span>{t("csvImport.upload.browseFiles", { defaultValue: "Browse Files" })}</span>
           <input
             type="file"
-            accept=".csv"
+            accept=".csv,text/csv"
             onChange={handleFileUpload}
             className="hidden"
-            id="csv-file-input-modal"
           />
-          <label htmlFor="csv-file-input-modal" className="cursor-pointer flex flex-col items-center gap-3">
-            <span className="text-4xl">{isDragging ? "📥" : "📄"}</span>
-            <div>
-              <p className="font-extrabold text-slate-800 text-sm">
-                {fileName ? fileName : "Click to select or drag & drop CSV statement"}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                Supports statement CSV exports from CBA, Westpac, ANZ, NAB, ING, Macquarie
-              </p>
-            </div>
-          </label>
-        </div>
-      )}
-
-      {/* CSV Format Assumptions Card */}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 space-y-1.5">
-        <div className="font-bold text-slate-800 flex items-center gap-1.5">
-          <span>💡</span>
-          <span>CSV Statement Requirements & Assumptions:</span>
-        </div>
-        <ul className="list-disc list-inside text-[11px] text-slate-500 space-y-1 pl-1">
-          <li>First row must contain column headers (e.g., Date, Description, Amount).</li>
-          <li>Standard comma-separated (<code>.csv</code>) exports from Australian financial institutions.</li>
-          <li>Dates formatted as <code>DD/MM/YYYY</code> or <code>YYYY-MM-DD</code>.</li>
-          <li>Amounts as numbers (e.g. <code>-42.50</code> for debits, <code>1500.00</code> for credits).</li>
-        </ul>
+        </label>
       </div>
 
-      {/* Custom Column Mapper (Fallback) */}
+      {/* Custom Column Mapper (Fallback if AI/regex parser needs manual column binding) */}
       {showCustomMapper && (
-        <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-3">
-          <h4 className="text-xs font-bold text-amber-900">Custom Column Mapping</h4>
-          <p className="text-xs text-amber-800">
-            Specify which columns match Date, Description, and Amount in your CSV file:
+        <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-amber-900 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚙️</span>
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {t("csvImport.upload.customMappingRequired", { defaultValue: "Custom CSV Column Mapping Required" })}
+            </span>
+          </div>
+          <p className="text-xs text-amber-800 font-medium">
+            {t("csvImport.upload.detectHeadersFailed", { defaultValue: "Could not automatically detect headers. Select which columns correspond to date, description, and amount." })}
           </p>
-          <div className="grid grid-cols-3 gap-3">
+
+          <div className="grid grid-cols-3 gap-3 pt-1">
             <div>
-              <label className="text-[10px] font-bold text-slate-600">Date Column:</label>
+              <label className="block text-[11px] font-bold text-amber-900 mb-1">{t("csvImport.upload.dateColumn", { defaultValue: "Date Column" })}</label>
               <select
                 value={dateColIndex}
                 onChange={(e) => setDateColIndex(Number(e.target.value))}
-                className="w-full p-2 text-xs border rounded-lg bg-white font-semibold"
+                className="w-full px-2 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-semibold"
               >
-                {rawHeaders.map((h, i) => {
-                  const lower = (h || "").toLowerCase();
-                  const isDateCand = lower.includes("date") || lower.includes("time") || lower.includes("day");
-                  const isSelected = i === dateColIndex;
-                  return (
-                    <option key={i} value={i}>
-                      {isDateCand ? "📅 " : ""}{h || `Col ${i + 1}`}
-                      {isSelected ? " (Selected Default)" : isDateCand ? " (Recommended Date)" : ""}
-                    </option>
-                  );
-                })}
+                {rawHeaders.map((h, idx) => (
+                  <option key={idx} value={idx}>
+                    Col {idx + 1}: {h || "(Empty)"}
+                  </option>
+                ))}
               </select>
             </div>
+
             <div>
-              <label className="text-[10px] font-bold text-slate-600">Description Column:</label>
+              <label className="block text-[11px] font-bold text-amber-900 mb-1">{t("csvImport.upload.descColumn", { defaultValue: "Description Column" })}</label>
               <select
                 value={descColIndex}
                 onChange={(e) => setDescColIndex(Number(e.target.value))}
-                className="w-full p-2 text-xs border rounded-lg bg-white font-semibold"
+                className="w-full px-2 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-semibold"
               >
-                {rawHeaders.map((h, i) => {
-                  const lower = (h || "").toLowerCase();
-                  const isDescCand = lower.includes("desc") || lower.includes("narrative") || lower.includes("memo") || lower.includes("detail") || lower.includes("payee");
-                  const isSelected = i === descColIndex;
-                  return (
-                    <option key={i} value={i}>
-                      {isDescCand ? "📝 " : ""}{h || `Col ${i + 1}`}
-                      {isSelected ? " (Selected Default)" : isDescCand ? " (Recommended Text)" : ""}
-                    </option>
-                  );
-                })}
+                {rawHeaders.map((h, idx) => (
+                  <option key={idx} value={idx}>
+                    Col {idx + 1}: {h || "(Empty)"}
+                  </option>
+                ))}
               </select>
             </div>
+
             <div>
-              <label className="text-[10px] font-bold text-slate-600">Amount Column:</label>
+              <label className="block text-[11px] font-bold text-amber-900 mb-1">{t("csvImport.upload.amountColumn", { defaultValue: "Amount Column" })}</label>
               <select
                 value={amountColIndex}
                 onChange={(e) => setAmountColIndex(Number(e.target.value))}
-                className="w-full p-2 text-xs border rounded-lg bg-white font-semibold"
+                className="w-full px-2 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-semibold"
               >
-                {rawHeaders.map((h, i) => {
-                  const lower = (h || "").toLowerCase();
-                  const isAmountCand = lower.includes("amount") || lower.includes("debit") || lower.includes("credit") || lower.includes("sum") || lower.includes("val");
-                  const isSelected = i === amountColIndex;
-                  return (
-                    <option key={i} value={i}>
-                      {isAmountCand ? "💲 " : ""}{h || `Col ${i + 1}`}
-                      {isSelected ? " (Selected Default)" : isAmountCand ? " (Recommended Numeric)" : ""}
-                    </option>
-                  );
-                })}
+                {rawHeaders.map((h, idx) => (
+                  <option key={idx} value={idx}>
+                    Col {idx + 1}: {h || "(Empty)"}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
-          <div className="flex justify-end">
+
+          <div className="flex justify-end pt-2">
             <button
               type="button"
               onClick={handleApplyCustomMapping}
-              className="px-4 py-2 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 rounded-lg shadow-xs"
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
             >
-              Apply Column Mapping & Parse
+              {t("csvImport.upload.applyMapping", { defaultValue: "Apply Column Mapping" })}
             </button>
           </div>
+        </div>
+      )}
+
+      {isParsing && (
+        <div className="flex items-center justify-center p-6 text-slate-500 font-semibold text-xs gap-2">
+          <Spinner />
+          <span>{t("csvImport.upload.parsing", { defaultValue: "Parsing bank statement CSV..." })}</span>
         </div>
       )}
     </div>

@@ -1,20 +1,11 @@
 import { z } from "zod";
-import { bankAccounts, bankAccountCategoryMappings, DbOrTx } from "@money-matters/db";
+import { bankAccounts, pools, DbOrTx } from "@money-matters/db";
 import { CreateBankAccountCommand, UpdateBankAccountCommand } from "@money-matters/types";
-import { eq, and, sql, or, ne } from "drizzle-orm";
+import { eq, and, sql, or } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
 
-export const UpdateBankAccountMappingsSchema = z.object({
-  mappings: z.array(
-    z.object({
-      categoryType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
-      bankAccountId: z.string().uuid(),
-    })
-  ),
-});
-
 /**
- * Lists bank accounts for a tenant alongside their associated category types, respecting private bank account ownership.
+ * Lists bank accounts for a tenant alongside their associated pools, respecting private bank account ownership.
  */
 export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
   return async (tenantId: string, appId: string, userId?: string) => {
@@ -33,22 +24,20 @@ export function getBankAccountsWithMappingsHandler(db: DbOrTx) {
       .from(bankAccounts)
       .where(and(...accountFilters));
 
-    const mappings = await db
+    const tenantPools = await db
       .select()
-      .from(bankAccountCategoryMappings)
+      .from(pools)
       .where(
         and(
-          eq(bankAccountCategoryMappings.tenantId, tenantId),
-          eq(bankAccountCategoryMappings.appId, appId),
-          sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
+          eq(pools.tenantId, tenantId),
+          eq(pools.appId, appId),
+          sql`${pools.archivedAt} IS NULL`
         )
       );
 
     return accounts.map((acc) => ({
       ...acc,
-      categoryTypes: mappings
-        .filter((m) => m.bankAccountId === acc.id)
-        .map((m) => m.categoryType),
+      pools: tenantPools.filter((p) => p.bankAccountId === acc.id),
     }));
   };
 }
@@ -124,74 +113,7 @@ export function updateBankAccountHandler(db: DbOrTx) {
 }
 
 /**
- * Re-assigns category types to bank accounts for a tenant.
- */
-export function updateBankAccountMappingsHandler(db: DbOrTx) {
-  return async (
-    input: z.infer<typeof UpdateBankAccountMappingsSchema>,
-    tenantId: string,
-    appId: string,
-    userId: string
-  ) => {
-    for (const mapping of input.mappings) {
-      const [existing] = await db
-        .select()
-        .from(bankAccountCategoryMappings)
-        .where(
-          and(
-            eq(bankAccountCategoryMappings.tenantId, tenantId),
-            eq(bankAccountCategoryMappings.categoryType, mapping.categoryType)
-          )
-        )
-        .limit(1);
-
-      if (existing) {
-        await db
-          .update(bankAccountCategoryMappings)
-          .set({
-            bankAccountId: mapping.bankAccountId,
-            archivedAt: null,
-            updatedAt: new Date(),
-            updatedBy: userId,
-          })
-          .where(eq(bankAccountCategoryMappings.id, existing.id));
-      } else {
-        await db.insert(bankAccountCategoryMappings).values({
-          tenantId,
-          appId,
-          categoryType: mapping.categoryType,
-          bankAccountId: mapping.bankAccountId,
-          createdBy: userId,
-          updatedBy: userId,
-        });
-      }
-    }
-
-    // Verify all 3 pools remain mapped to active bank accounts
-    const activeMappings = await db
-      .select()
-      .from(bankAccountCategoryMappings)
-      .where(
-        and(
-          eq(bankAccountCategoryMappings.tenantId, tenantId),
-          eq(bankAccountCategoryMappings.appId, appId),
-          sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
-        )
-      );
-
-    const mappedTypes = new Set(activeMappings.map((m) => m.categoryType));
-    const requiredTypes = ["EVERYDAY", "REGULAR", "GOAL"] as const;
-    const missing = requiredTypes.filter((t) => !mappedTypes.has(t));
-    if (missing.length > 0) {
-      throw new Error(`All pools must be linked to at least one bank account. Unlinked pools: ${missing.join(", ")}`);
-    }
-
-    return { success: true };
-  };
-}
-
-/**
- * Archives a bank account within the tenant scope after ensuring no category types are linked to it.
+ * Archives a bank account within the tenant scope after ensuring no active pools are linked to it.
  */
 export function archiveBankAccountHandler(db: DbOrTx) {
   return async (
@@ -200,21 +122,21 @@ export function archiveBankAccountHandler(db: DbOrTx) {
     appId: string,
     userId: string
   ) => {
-    const activeMappings = await db
+    const activePools = await db
       .select()
-      .from(bankAccountCategoryMappings)
+      .from(pools)
       .where(
         and(
-          eq(bankAccountCategoryMappings.tenantId, tenantId),
-          eq(bankAccountCategoryMappings.bankAccountId, accountId),
-          sql`${bankAccountCategoryMappings.archivedAt} IS NULL`
+          eq(pools.tenantId, tenantId),
+          eq(pools.bankAccountId, accountId),
+          sql`${pools.archivedAt} IS NULL`
         )
       );
 
-    if (activeMappings.length > 0) {
-      const linkedTypes = activeMappings.map((m) => m.categoryType).join(", ");
+    if (activePools.length > 0) {
+      const linkedNames = activePools.map((p) => p.name).join(", ");
       throw new Error(
-        `Cannot delete bank account because category type(s) [${linkedTypes}] are linked to it. Please re-assign them to another bank account first.`
+        `Cannot delete bank account because pool(s) [${linkedNames}] are linked to it. Please re-assign them to another bank account first.`
       );
     }
 

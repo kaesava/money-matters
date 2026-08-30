@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { fmtDate } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export interface PaydayTransferLine {
   categoryName: string;
@@ -40,7 +41,7 @@ export function PaydayTransferCard({
       <div className="flex items-center justify-between">
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#2563eb] bg-blue-50 px-2 py-0.5 rounded-full">
-            1-Tap Payday Transfer Plan
+            {t("cards.paydayTransfer.badge", { defaultValue: "1-Tap Payday Transfer Plan" })}
           </span>
           <h3 className="text-sm font-extrabold text-[#1B2B4B] mt-1">
             Allocate {fmt(paycheckAmount)} Received on {fmtDate(paycheckDate)}
@@ -71,7 +72,7 @@ export function PaydayTransferCard({
                 </span>
               </div>
               <p className="text-[11px] text-zinc-500 truncate mt-0.5">
-                Target: <strong className="text-zinc-700">{line.targetAccountName}</strong>
+                {t("cards.paydayTransfer.target", { defaultValue: "Target:" })} <strong className="text-zinc-700">{line.targetAccountName}</strong>
                 {line.payID && ` • PayID: ${line.payID}`}
               </p>
             </div>

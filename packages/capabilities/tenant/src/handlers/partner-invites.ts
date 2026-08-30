@@ -1,13 +1,9 @@
-import { tenantUsers, categories, tenants, DbOrTx } from "@money-matters/db";
+import { tenantUsers, bankAccounts, pools, tenants, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { ensurePremiumAccess } from "@money-matters/core";
 
 /**
  * Invites a partner to join the household tenant.
- *
- * DESIGN: appId is NOT stored on tenant_users — it is derived from the parent
- * tenant (tenants.app_id) via JOIN. The appId parameter is removed from this
- * handler's signature as a result.
  */
 export function invitePartnerHandler(db: DbOrTx) {
   return async (
@@ -47,9 +43,6 @@ export function invitePartnerHandler(db: DbOrTx) {
 
 /**
  * Accepts a household partner invitation after verifying token expiry and email identity.
- *
- * Derives appId from the parent tenant (via JOIN) to seed the Personal category,
- * since tenant_users no longer stores app_id.
  */
 export function acceptInviteHandler(db: DbOrTx) {
   return async (input: { inviteToken: string }, userId: string, userEmail?: string) => {
@@ -91,7 +84,6 @@ export function acceptInviteHandler(db: DbOrTx) {
       .where(eq(tenantUsers.id, invite.id))
       .returning();
 
-    // Derive appId from parent tenant — tenant_users no longer stores app_id
     const [tenant] = await db
       .select({ appId: tenants.appId })
       .from(tenants)
@@ -102,40 +94,47 @@ export function acceptInviteHandler(db: DbOrTx) {
       throw new Error("Tenant not found for accepted invitation.");
     }
 
-    // Auto-seed default Personal category for joining partner
-    const [existingPersonal] = await db
+    // Auto-seed default Private Personal Bank Account & Pool for joining partner
+    const [existingPrivateAcc] = await db
       .select()
-      .from(categories)
+      .from(bankAccounts)
       .where(
         and(
-          eq(categories.tenantId, updated.tenantId),
-          eq(categories.isPrivate, true),
-          eq(categories.userId, userId)
+          eq(bankAccounts.tenantId, updated.tenantId),
+          eq(bankAccounts.isPrivate, true),
+          eq(bankAccounts.userId, userId)
         )
       )
       .limit(1);
 
-    if (!existingPersonal) {
-      await db.insert(categories).values({
+    if (!existingPrivateAcc) {
+      const [partnerAcc] = await db
+        .insert(bankAccounts)
+        .values({
+          tenantId: updated.tenantId,
+          appId: tenant.appId,
+          name: "Personal Private Account",
+          lastKnownBalance: "0.00",
+          unbudgetedBuffer: "0.00",
+          isPrivate: true,
+          userId: userId,
+          createdBy: userId,
+          updatedBy: userId,
+        })
+        .returning();
+
+      await db.insert(pools).values({
         tenantId: updated.tenantId,
-        appId: tenant.appId, // derived from parent tenant
-        name: "Personal Private Pool",
-        type: "EVERYDAY" as const,
-        isPrivate: true,
-        userId: userId,
-        icon: "user",
-        colour: "#EC4899",
-        monthlyAmount: "200.00",
-        enteredAmount: "200.00",
-        budgetFrequency: "MONTHLY",
-        rolloverRule: "ROLLOVER" as const,
-        isCommitted: false,
+        appId: tenant.appId,
+        name: "Personal Everyday Pool",
+        poolType: "EVERYDAY",
+        bankAccountId: partnerAcc.id,
+        everydayAllowanceAmount: "200.00",
         createdBy: userId,
         updatedBy: userId,
       });
     }
 
-    // Verify user email since they successfully accepted an invite sent to their email
     if (typeof db.execute === "function") {
       await db.execute(sql`UPDATE neon_auth.user SET "emailVerified" = true, "updatedAt" = NOW() WHERE id = ${userId} AND ("emailVerified" = false OR "emailVerified" IS NULL)`);
     }

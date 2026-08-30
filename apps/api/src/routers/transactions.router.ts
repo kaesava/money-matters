@@ -32,13 +32,13 @@ export const transactionsRouter = {
       requiresWriteAccess(ctx);
       const result = await recordExpenseCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
       
-      // Fire-and-forget async background event to Inngest for notifications & goal milestones
       if (inngest) {
         await inngest.send({
           name: 'transaction/recorded',
           data: {
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
+            poolId: input.poolId,
             categoryId: input.categoryId,
             amount: input.amount,
             note: input.note,
@@ -54,6 +54,7 @@ export const transactionsRouter = {
           event: 'expense_recorded',
           properties: {
             tenant_id: ctx.tenantId,
+            pool_id: input.poolId,
             category_id: input.categoryId,
             source: input.source,
             amount: input.amount,
@@ -73,14 +74,14 @@ export const transactionsRouter = {
   listCategoryTransactions: privateTenantProcedure
     .input(ListCategoryTransactionsQuery)
     .query(async ({ input, ctx }) => {
-      return await listCategoryTransactionsQuery(input.categoryId, ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
+      return await listCategoryTransactionsQuery(input.categoryId || "", ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
     }),
 
   canAfford: privateTenantProcedure
     .input(CanAffordQuery)
     .query(async ({ input, ctx }) => {
       const amt = parseFloat(input.amount);
-      return await canAffordQuery(amt, ctx.tenantId!, ctx.appId!, ctx.db);
+      return await canAffordQuery(amt, ctx.tenantId!, ctx.appId!, ctx.db, input.includePersonal);
     }),
 
   parseCsv: privateTenantProcedure

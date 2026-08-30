@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { t } from "@money-matters/i18n";
 
 export interface EarlyAccessModalProps {
   isOpen: boolean;
@@ -35,9 +36,9 @@ export function EarlyAccessModal({
           🚀
         </div>
         <div className="space-y-1">
-          <h3 className="text-xl font-bold text-[#1B2B4B]">Money Matters is Almost Ready!</h3>
+          <h3 className="text-xl font-bold text-[#1B2B4B]">{t("landing.earlyAccess.title", { defaultValue: "Money Matters is Almost Ready!" })}</h3>
           <p className="text-xs text-zinc-600 leading-relaxed">
-            We&apos;re currently performing final testing and polish to ensure your household budgeting experience is flawless. Sign-ups will open very soon.
+            {t("landing.earlyAccess.description", { defaultValue: "We're currently performing final testing and polish to ensure your household budgeting experience is flawless. Sign-ups will open very soon." })}
           </p>
         </div>
 
@@ -51,7 +52,7 @@ export function EarlyAccessModal({
           className="space-y-3 pt-2"
         >
           <label className="text-xs font-bold text-zinc-700 block">
-            Get notified when we launch:
+            {t("landing.earlyAccess.notifyLabel", { defaultValue: "Get notified when we launch:" })}
           </label>
           <div className="flex gap-2">
             <input
