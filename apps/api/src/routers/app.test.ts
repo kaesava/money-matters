@@ -15,7 +15,6 @@ describe("tRPC App Router procedure definitions", () => {
     expect(caller).toHaveProperty("runAllocation");
     expect(caller).toHaveProperty("canAfford");
     expect(caller).toHaveProperty("recordExpense");
-    expect(caller).toHaveProperty("reSetupBudget");
   });
 
   it("ensures deprecated procedures are culled", () => {
@@ -25,5 +24,8 @@ describe("tRPC App Router procedure definitions", () => {
     expect(caller).not.toHaveProperty("confirmPlan");
     expect(caller).not.toHaveProperty("resolveShortfall");
     expect(caller).not.toHaveProperty("submitReconciliation");
+    expect(caller).not.toHaveProperty("reSetupBudget");
+    expect(caller).not.toHaveProperty("maintainRollingWindow");
   });
 });
+

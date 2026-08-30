@@ -20,8 +20,14 @@ export * from "./commands/override-event.command.js";
 export * from "./commands/bulk-delete-events.command.js";
 export * from "./commands/delete-upcoming-event.command.js";
 export * from "./engine/due-date-guardrail.js";
-export * from "./commands/re-setup-budget.command.js";
 export * from "./queries/preview-payday.query.js";
+
+
+
+export * from "./commands/maintain-rolling-window.command.js";
 export * from "./queries/list-bill-coverage.query.js";
+
 export * from "./engine/matrix-projection-engine.js";
+
+
 export * from "./engine/bill-lifecycle-fsm.js";

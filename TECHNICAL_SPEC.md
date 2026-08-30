@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
-> **Last updated:** 2026-08-29  
-> **Status:** 100% production-ready standard. Fully executed and synchronized across all Master Plan phases & capability enhancements: Profile & Household Settings 4-tab bar layout, mandatory Name & Notification Email validation, reusable `CountrySelect`, `LocationFields` & `PhoneInput` validation components with Canada prefix fix, interactive `AvatarCropModal` (zoom & pan cropper), owner-only household member removal with modal confirmation challenge, non-destructive `leaveMyHousehold` architecture (disassociates `tenant_users` membership without deleting `users` identity), direct Resend email dispatch for household partner invitations with "Pending Acceptance" status badges, refactored `seed.ts` direct SQL upserts (eliminates unwanted Neon Auth seed verification emails), Pools Surplus Sweep Target assignment across GOAL and REGULAR categories, 12-table Zipped CSV Data Backup, left-aligned Income & Bills Timeline view switcher with `(i)` InfoTooltip, and active Neon PostgreSQL DB schema & seed dispatches.
+> **Last updated:** 2026-08-30  
+> **Status:** 100% production-ready standard. Fully executed and synchronized across all Master Plan phases & capability enhancements: Pool-Centric Architecture (`Bank Account → Pool → Category`), `getPoolBalancesMap` DB-side aggregate SUM(CASE WHEN...) balance utility in `@money-matters/db`, `budgetingRouter` consolidating pool, category, and budgeting RPC procedures, 100% `privateTenantProcedure` RLS session context injection across private routes (bank accounts, pools, categories, income, payday, expenses, reconciliation), transactional payday allocation plan revert with offsetting DEBIT ledger entries, cascading pool soft-archival to child categories, last-category-in-pool archival protection, Profile & Household Settings, AEST timezone date formatting, full user-facing `t(...)` string externalization, and active Neon PostgreSQL DB schema & seed dispatches.
 
 ---
 
@@ -15,14 +15,14 @@
 | Language | Strict TypeScript | ^6.0.3 | Zero `any`, mandatory Zod `.strict()` |
 | Web Framework | Next.js (App Router) | Cloudflare Workers via `@opennextjs/cloudflare` | Custom domain `moneymatters.kaesava.au` |
 | API Server | Fastify | Cloudflare Workers (`src/worker.ts`) | Custom domain `api.moneymatters.kaesava.au` |
-| API Layer | tRPC | ^11.18.0 | Type-safe RPC contracts |
+| API Layer | tRPC | ^11.18.0 | Type-safe RPC contracts (`budgetingRouter`, `tenantRouter`, `incomeRouter`, `expensesRouter`, `paydayRouter`, `transactionsRouter`, `billingRouter`, `fileNotesRouter`, `bugReportRouter`, `notificationsRouter`) |
 | ORM | Drizzle ORM | ^0.39.0 | Neon PostgreSQL driver |
-| Database (Server) | Neon PostgreSQL (Serverless) | Neon DB | Multi-tenant schema with RLS |
+| Database (Server) | Neon PostgreSQL (Serverless) | Neon DB | Multi-tenant schema with RLS (`privateTenantProcedure` session injection) |
 | Database (Mobile) | Expo SQLite | 16.0.10 | Local SQLite (Online-first MVP) |
 | Auth | Neon Auth (Better Auth) | Neon Auth Service | JWT & session cookie verification |
 | Rate Limiting | Upstash Redis | Serverless Redis (ap-southeast-1) | REST API sliding-window rate limiter |
 | File Storage | Cloudflare R2 | Cloudflare R2 | Attachments & file notes (`money-matters-production`) |
-| Async Workflows | Inngest | Inngest Cloud | Release 1 active background cron (`notifyWeeklyDigest` Sunday 7pm AEST via Resend) & async dispatches; mobile push crons staged for Release 2 via `/api/inngest` webhook |
+| Async Workflows | Inngest | Inngest Cloud | Release 1 active background cron (`notifyWeeklyDigest` Sunday 7pm AEST via Resend) & async dispatches; non-digest crons staged for Release 2 (`V2_SCOPE.md`) |
 | Email Service | Resend | Resend API | Transactional emails & partner invites |
 | Analytics & Replays | PostHog (Self-driving) | PostHog SaaS | Product usage tracking, feature flags, session replays |
 | Crash & APM | Sentry | Sentry SaaS | Production exception reporting & symbolicated stack traces |
@@ -43,11 +43,12 @@ money-matters/
 ├── packages/
 │   ├── capabilities/
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
-│   │   ├── tenant/          # Household creation, partner invite, bank account CRUD
-│   │   ├── budgeting/       # 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), Time-Based Accumulation engine, multi-payday matrix projection simulation engine (`matrix-projection-engine.ts`) with stealth privacy math balancing (`hiddenAllocationsTotal`) and intra-cycle lowest watermark validation
-│   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator & spending velocity
-│   │   ├── notifications/   # Expo push + 6 scheduled Inngest functions (payday, bill, overdue, digest, goal, velocity)
+│   │   ├── tenant/          # Household creation, partner invite, bank account CRUD, bank balance reconciliation
+│   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, payday allocation revert ledger reversals, cascading pool archival, last-category guard
+│   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator using getPoolBalancesMap
+│   │   ├── notifications/   # Expo push + scheduled weekly digest Inngest workflow
 │   │   ├── file-notes/      # Notes, comments, attachments via Cloudflare R2
+
 │   │   └── bug-reports/     # In-app bug report persistence, Frustration scale & workflow category capture, tenant-isolated bugReports schema, Resend receipt/alert dispatches
 │   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags

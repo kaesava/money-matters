@@ -129,6 +129,14 @@ describe('Command Schemas Validation', () => {
     expect(override.name).toBe('Salary Paycheck');
     expect(override.note).toBe('Bonus added');
 
+    expect(() =>
+      OverrideEventCommand.parse({
+        eventId: '11111111-1111-4111-8111-111111111111',
+        eventType: 'EXPENSE',
+        status: 'CONFIRMED',
+      })
+    ).toThrow();
+
     const delEvt = DeleteUpcomingEventCommand.parse({
       eventId: '11111111-1111-4111-8111-111111111111',
       eventType: 'EXPENSE',
@@ -144,7 +152,7 @@ describe('Command Schemas Validation', () => {
 
     const payday = ConfirmPaydayCommand.parse({
       incomeEventId: '11111111-1111-4111-8111-111111111111',
-      actualAmount: '2500.00',
+      actualAmount: '500.00',
       lines: [
         {
           poolId: '22222222-2222-4222-8222-222222222222',
@@ -153,7 +161,24 @@ describe('Command Schemas Validation', () => {
       ],
     });
     expect(payday.lines[0].amount).toBe('500.00');
+
+    expect(() =>
+      ConfirmPaydayCommand.parse({
+        incomeEventId: '11111111-1111-4111-8111-111111111111',
+        actualAmount: '500.00',
+        lines: [],
+      })
+    ).toThrow();
+
+    expect(() =>
+      ConfirmPaydayCommand.parse({
+        incomeEventId: '11111111-1111-4111-8111-111111111111',
+        actualAmount: '500.00',
+        lines: [{ poolId: '22222222-2222-4222-8222-222222222222', amount: '100.00' }],
+      })
+    ).toThrow();
   });
+
 
   it('validates InvitePartnerCommand, AcceptInviteCommand, SyncLedgerMutationCommand, and WaterfallExecutionPayload', () => {
     const invite = InvitePartnerCommand.parse({ email: 'partner@example.com' });

@@ -2,6 +2,8 @@ import { pools, categories, incomeSources, expenseSources, incomeEvents, expense
 import { eq, and } from "drizzle-orm";
 import { generateBurstDates } from "../engine/burst-engine.js";
 
+const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+
 export async function restoreItemCommand(
   itemId: string,
   itemType: "POOL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
@@ -36,20 +38,22 @@ export async function restoreItemCommand(
   if (restored) {
     if (itemType === "INCOME_SOURCE") {
       const inc = restored as typeof incomeSources.$inferSelect;
-      const startDate = inc.startDate || new Date().toISOString().split("T")[0];
+      const startDate = inc.startDate || getAestDateString();
       if (inc.rrule) {
         const dates = generateBurstDates(inc.rrule, startDate, inc.endDate, 12);
-        for (const d of dates) {
-          await dbClient.insert(incomeEvents).values({
-            incomeSourceId: inc.id,
-            expectedDate: d.toISOString().split("T")[0],
-            expectedAmount: inc.amount,
-            status: "UPCOMING",
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId,
-          });
+        if (dates.length > 0) {
+          await dbClient.insert(incomeEvents).values(
+            dates.map((d) => ({
+              incomeSourceId: inc.id,
+              expectedDate: getAestDateString(d),
+              expectedAmount: inc.amount,
+              status: "UPCOMING" as const,
+              tenantId,
+              appId,
+              createdBy: userId,
+              updatedBy: userId,
+            }))
+          );
         }
       } else {
         await dbClient.insert(incomeEvents).values({
@@ -65,23 +69,25 @@ export async function restoreItemCommand(
       }
     } else if (itemType === "EXPENSE_SOURCE") {
       const exp = restored as typeof expenseSources.$inferSelect;
-      const startDate = exp.startDate || new Date().toISOString().split("T")[0];
+      const startDate = exp.startDate || getAestDateString();
       if (exp.rrule) {
         const dates = generateBurstDates(exp.rrule, startDate, exp.endDate, 12);
-        for (const d of dates) {
-          await dbClient.insert(expenseEvents).values({
-            expenseSourceId: exp.id,
-            poolId: exp.poolId,
-            categoryId: exp.categoryId,
-            name: exp.name,
-            expectedDate: d.toISOString().split("T")[0],
-            expectedAmount: exp.amount,
-            status: "UPCOMING",
-            tenantId,
-            appId,
-            createdBy: userId,
-            updatedBy: userId,
-          });
+        if (dates.length > 0) {
+          await dbClient.insert(expenseEvents).values(
+            dates.map((d) => ({
+              expenseSourceId: exp.id,
+              poolId: exp.poolId,
+              categoryId: exp.categoryId,
+              name: exp.name,
+              expectedDate: getAestDateString(d),
+              expectedAmount: exp.amount,
+              status: "UPCOMING" as const,
+              tenantId,
+              appId,
+              createdBy: userId,
+              updatedBy: userId,
+            }))
+          );
         }
       } else {
         await dbClient.insert(expenseEvents).values({
@@ -103,3 +109,4 @@ export async function restoreItemCommand(
 
   return restored;
 }
+

@@ -1,6 +1,8 @@
-import { DbOrTx, pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources } from "@money-matters/db";
+import { pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
+
+const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
 
 /**
  * Resolves frequency interval in days from an RRULE recurrence string.
@@ -69,55 +71,27 @@ export async function runAllocationCommand(
     }
   }
 
-  // 3. Compute balances from ledger credits and debits per poolId
-  const txs = await dbClient
+  // 3. Compute balances using DB-side aggregate SUM(CASE WHEN...)
+  const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
+
+  // 4. Fetch income event joined with income source to resolve dates & recurrence frequency
+  const [eventWithSource] = await dbClient
     .select({
-      poolId: transactionLedger.poolId,
-      amount: transactionLedger.amount,
-      flowType: transactionLedger.flowType,
+      id: incomeEvents.id,
+      expectedDate: incomeEvents.expectedDate,
+      rrule: incomeSources.rrule,
     })
-    .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    );
-
-  const balancesMap: Record<string, number> = {};
-  for (const pool of dbPools) {
-    balancesMap[pool.id] = 0;
-  }
-  for (const tx of txs) {
-    if (!tx.poolId) continue;
-    const val = parseFloat(tx.amount);
-    if (tx.flowType === "CREDIT") {
-      balancesMap[tx.poolId] = (balancesMap[tx.poolId] || 0) + val;
-    } else {
-      balancesMap[tx.poolId] = (balancesMap[tx.poolId] || 0) - val;
-    }
-  }
-
-  // 4. Fetch income event to resolve dates & recurrence frequency
-  const [event] = await dbClient
-    .select()
     .from(incomeEvents)
+    .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
     .where(eq(incomeEvents.id, incomeEventId));
 
   let freqDays = 14;
-  if (event) {
-    const [source] = await dbClient
-      .select()
-      .from(incomeSources)
-      .where(eq(incomeSources.id, event.incomeSourceId));
-    if (source?.rrule) {
-      freqDays = parseRruleFrequencyDays(source.rrule);
-    }
+  if (eventWithSource?.rrule) {
+    freqDays = parseRruleFrequencyDays(eventWithSource.rrule);
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const eventDateStr = event ? new Date(event.expectedDate).toISOString().slice(0, 10) : todayStr;
+  const todayStr = getAestDateString();
+  const eventDateStr = eventWithSource ? eventWithSource.expectedDate : todayStr;
   const isFuturePlanned = eventDateStr > todayStr && !markAsReceivedToday;
 
   // Map to engine models
@@ -146,7 +120,7 @@ export async function runAllocationCommand(
   const engineOutput = runAllocationEngine({
     incomeAmount,
     buckets: engineBuckets,
-    paycheckDate: event ? new Date(event.expectedDate) : new Date(),
+    paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00+10:00") : new Date(),
     paycheckFrequencyDays: freqDays,
   });
 
@@ -156,7 +130,18 @@ export async function runAllocationCommand(
 
   // 5. Execute DB write transaction
   const plan = await dbClient.transaction(async (tx) => {
-    await tx.delete(allocationPlans).where(and(eq(allocationPlans.incomeEventId, incomeEventId), eq(allocationPlans.tenantId, tenantId)));
+    const [existingPlan] = await tx
+      .select({ id: allocationPlans.id, status: allocationPlans.status })
+      .from(allocationPlans)
+      .where(and(eq(allocationPlans.incomeEventId, incomeEventId), eq(allocationPlans.tenantId, tenantId)))
+      .limit(1);
+
+    if (existingPlan) {
+      if (existingPlan.status === "CONFIRMED") {
+        throw new Error("Cannot re-run allocation over an already-confirmed payday. Revert the payday first.");
+      }
+      await tx.delete(allocationPlans).where(eq(allocationPlans.id, existingPlan.id));
+    }
 
     const [insertedPlan] = await tx
       .insert(allocationPlans)
@@ -237,8 +222,8 @@ export async function runAllocationCommand(
         updatedBy: userId,
         updatedAt: new Date(),
       };
-      if (markAsReceivedToday && event) {
-        updateData.expectedDate = new Date().toISOString().split("T")[0];
+      if (markAsReceivedToday && eventWithSource) {
+        updateData.expectedDate = getAestDateString();
       }
       await tx
         .update(incomeEvents)
@@ -251,3 +236,4 @@ export async function runAllocationCommand(
 
   return plan;
 }
+

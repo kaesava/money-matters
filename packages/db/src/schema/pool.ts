@@ -21,7 +21,10 @@ export const pools = pgTable("pools", {
 
   // GOAL-specific fields
   targetAmount: numeric("target_amount", { precision: 12, scale: 2 }),
-  targetDate: date("target_date"),
+  targetDate: varchar("target_date", { length: 50 }),
+
+  icon: varchar("icon", { length: 100 }),
+  colour: varchar("colour", { length: 20 }),
 
   isCommitted: boolean("is_committed").notNull().default(false),
   isSurplusTarget: boolean("is_surplus_target").notNull().default(false),
@@ -29,3 +32,4 @@ export const pools = pgTable("pools", {
 
   ...tenantAndTimestamps,
 });
+

@@ -1,5 +1,5 @@
-import { pools, bankAccounts, transactionLedger, DbOrTx } from "@money-matters/db";
-import { eq, and, sql, or } from "drizzle-orm";
+import { pools, bankAccounts, DbOrTx, getPoolBalancesMap } from "@money-matters/db";
+import { eq, and, sql } from "drizzle-orm";
 
 export async function listPoolsQuery(
   tenantId: string,
@@ -38,35 +38,8 @@ export async function listPoolsQuery(
     ? dbPools.filter((p) => !p.isPrivate || p.bankAccountUserId === userId)
     : dbPools;
 
-  // 2. Compute balances from ledger credits and debits per pool
-  const txs = await dbClient
-    .select({
-      poolId: transactionLedger.poolId,
-      amount: transactionLedger.amount,
-      flowType: transactionLedger.flowType,
-    })
-    .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    );
-
-  const balancesMap: Record<string, number> = {};
-  for (const pool of visiblePools) {
-    balancesMap[pool.id] = 0;
-  }
-  for (const tx of txs) {
-    if (!tx.poolId) continue;
-    const val = parseFloat(tx.amount);
-    if (tx.flowType === "CREDIT") {
-      balancesMap[tx.poolId] = (balancesMap[tx.poolId] || 0) + val;
-    } else {
-      balancesMap[tx.poolId] = (balancesMap[tx.poolId] || 0) - val;
-    }
-  }
+  // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
+  const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
 
   // 3. Determine health status & progress percentage
   const today = new Date();
@@ -82,12 +55,18 @@ export async function listPoolsQuery(
       const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
       progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 100;
       if (pool.targetDate) {
-        const targetD = new Date(pool.targetDate).getTime();
+        const targetD = new Date(pool.targetDate + "T00:00:00+10:00").getTime();
         if (today.getTime() > targetD && currentBalance < target) {
           healthStatus = "RED";
         } else if (progressPercentage < 50) {
           healthStatus = "AMBER";
         }
+      }
+    } else if (pool.poolType === "REGULAR") {
+      const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
+      progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 100;
+      if (target > 0 && currentBalance < target) {
+        healthStatus = currentBalance < target * 0.8 ? "RED" : "AMBER";
       }
     } else if (pool.poolType === "EVERYDAY") {
       healthStatus = currentBalance >= 0 ? "GREEN" : "RED";
@@ -104,6 +83,7 @@ export async function listPoolsQuery(
       targetDate: pool.targetDate,
       isCommitted: pool.isCommitted,
       isSurplusTarget: pool.isSurplusTarget,
+      waterfallPriority: pool.waterfallPriority,
       isPrivate: pool.isPrivate,
       currentBalance,
       healthStatus,
@@ -111,3 +91,4 @@ export async function listPoolsQuery(
     };
   });
 }
+

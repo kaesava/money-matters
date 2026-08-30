@@ -1,6 +1,9 @@
-import { pools, bankAccounts, transactionLedger, incomeEvents, DbOrTx } from "@money-matters/db";
+import { pools, bankAccounts, incomeEvents, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { CanAffordVerdictType } from "@money-matters/types";
+
+
+const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
 
 export async function canAffordQuery(
   amount: number,
@@ -10,7 +13,7 @@ export async function canAffordQuery(
   includePersonal = false
 ): Promise<CanAffordVerdictType> {
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0]!;
+  const todayStr = getAestDateString(today);
 
   // 1. Fetch Pools & Bank Accounts
   const dbPools = await dbClient
@@ -40,35 +43,8 @@ export async function canAffordQuery(
 
   const everydayPoolIds = new Set(everydayPools.map((p) => p.id));
 
-  // 2. Compute balances from ledger credits and debits per poolId
-  const txs = await dbClient
-    .select({
-      poolId: transactionLedger.poolId,
-      amount: transactionLedger.amount,
-      flowType: transactionLedger.flowType,
-    })
-    .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    );
-
-  const poolBalancesMap: Record<string, number> = {};
-  for (const pool of dbPools) {
-    poolBalancesMap[pool.id] = 0;
-  }
-  for (const tx of txs) {
-    if (!tx.poolId) continue;
-    const val = parseFloat(tx.amount);
-    if (tx.flowType === "CREDIT") {
-      poolBalancesMap[tx.poolId] = (poolBalancesMap[tx.poolId] || 0) + val;
-    } else {
-      poolBalancesMap[tx.poolId] = (poolBalancesMap[tx.poolId] || 0) - val;
-    }
-  }
+  // 2. Compute balances using DB-side aggregate SUM(CASE WHEN...)
+  const poolBalancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
 
   // Calculate Everyday Pool Total
   let everydayBalance = 0;
@@ -91,13 +67,14 @@ export async function canAffordQuery(
     .orderBy(desc(incomeEvents.expectedDate));
 
   const nextPaycheck = upcomingPaychecks[upcomingPaychecks.length - 1]; // Next upcoming paycheck
-  const nextPaycheckDateStr = nextPaycheck ? nextPaycheck.expectedDate : new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]!;
-  const daysUntilPayday = Math.max(1, Math.ceil((new Date(nextPaycheckDateStr).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+  const nextPaycheckDateStr = nextPaycheck ? nextPaycheck.expectedDate : getAestDateString(new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000));
+  const daysUntilPayday = Math.max(1, Math.ceil((new Date(nextPaycheckDateStr + "T00:00:00+10:00").getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 
   const netAvailableCash = Math.max(0, everydayBalance);
 
   // Verdict 1: SAFE_YES (Available cash covers purchase AND daily pacing >= $15/day)
   if (amount <= netAvailableCash) {
+
     const everydayRemaining = (everydayBalance - amount).toFixed(2);
     const netRemainingAfterSpend = everydayBalance - amount;
     const dailyPacing = (netRemainingAfterSpend / daysUntilPayday).toFixed(2);

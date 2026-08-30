@@ -38,9 +38,10 @@ export async function listCategoriesQuery(
     ? dbCats.filter((c) => !c.isPrivate || c.bankAccountUserId === userId)
     : dbCats;
 
-  // 2. Compute current month's spent amount (debits) per categoryId
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  // 2. Compute current month's spent amount (debits) per categoryId in Australia/Sydney timezone
+  const aestDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+  const [yStr, mStr] = aestDateStr.split('-');
+  const startOfMonthIso = new Date(`${yStr}-${mStr}-01T00:00:00+10:00`).toISOString();
 
   const txs = await dbClient
     .select({
@@ -53,10 +54,11 @@ export async function listCategoriesQuery(
       and(
         eq(transactionLedger.tenantId, tenantId),
         eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.recordedAt} >= ${startOfMonth.toISOString()}`,
+        sql`${transactionLedger.recordedAt} >= ${startOfMonthIso}::timestamptz`,
         sql`${transactionLedger.archivedAt} IS NULL`
       )
     );
+
 
   const spentMap: Record<string, number> = {};
   for (const cat of visibleCats) {

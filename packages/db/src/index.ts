@@ -10,3 +10,5 @@ export type DbTransaction = Parameters<Parameters<DbClient["transaction"]>[0]>[0
 export type DbOrTx = DbClient | DbTransaction;
 
 export * from "./schema/index.js";
+export * from "./utils/get-pool-balances.util.js";
+

@@ -1,6 +1,9 @@
-import { pools, bankAccounts, categories, transactionLedger, incomeEvents, expenseEvents, DbOrTx } from "@money-matters/db";
-import { eq, and, sql, or, desc, asc } from "drizzle-orm";
+import { pools, bankAccounts, categories, incomeEvents, expenseEvents, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
+import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { BillCoverageResult, BillCoverageItem } from "@money-matters/types";
+
+
+const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
 
 export async function listBillCoverageQuery(
   tenantId: string,
@@ -8,8 +11,7 @@ export async function listBillCoverageQuery(
   dbClient: DbOrTx,
   userId?: string
 ): Promise<BillCoverageResult> {
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0]!;
+  const todayStr = getAestDateString();
 
   // 1. Fetch REGULAR pools with privacy filtering
   const poolFilters = [
@@ -37,22 +39,9 @@ export async function listBillCoverageQuery(
 
   const regPoolIds = new Set(visiblePools.map((p) => p.id));
 
-  // Batch 1: Query transactions, categories, and income events concurrently
-  const [txs, dbCats, upcomingPaychecks] = await Promise.all([
-    dbClient
-      .select({
-        poolId: transactionLedger.poolId,
-        amount: transactionLedger.amount,
-        flowType: transactionLedger.flowType,
-      })
-      .from(transactionLedger)
-      .where(
-        and(
-          eq(transactionLedger.tenantId, tenantId),
-          eq(transactionLedger.appId, appId),
-          sql`${transactionLedger.archivedAt} IS NULL`
-        )
-      ),
+  // Batch 1: Query balances, categories, and income events concurrently
+  const [balancesMap, dbCats, upcomingPaychecks] = await Promise.all([
+    getPoolBalancesMap(tenantId, appId, dbClient),
     dbClient
       .select()
       .from(categories)
@@ -79,22 +68,13 @@ export async function listBillCoverageQuery(
 
   // 2. Compute overall Bills Pool Balance across regular pools
   let billsPoolBalance = 0;
-  for (const tx of txs) {
-    if (tx.poolId && regPoolIds.has(tx.poolId)) {
-      const val = parseFloat(tx.amount);
-      if (tx.flowType === "CREDIT") {
-        billsPoolBalance += val;
-      } else {
-        billsPoolBalance -= val;
-      }
-    }
+  for (const poolId of regPoolIds) {
+    billsPoolBalance += balancesMap[poolId] || 0;
   }
 
-  // 3. Determine next payday date
+  // 3. Determine next payday date (upcomingPaychecks sorted DESC, last item is nearest)
   const nextPaycheck = upcomingPaychecks[upcomingPaychecks.length - 1];
-  const defaultNextPayday = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0]!;
+  const defaultNextPayday = getAestDateString(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
   const nextPaydayDateStr = nextPaycheck ? nextPaycheck.expectedDate : defaultNextPayday;
 
   // 4. Batch 2: Fetch upcoming expense events due before next payday for REGULAR pools
@@ -125,10 +105,7 @@ export async function listBillCoverageQuery(
     }
   }
 
-  const poolShortfall = Math.max(0, totalUpcomingBeforePayday - billsPoolBalance);
-  const isPoolCovered = billsPoolBalance >= totalUpcomingBeforePayday;
-
-  // 5. Build per-pool / per-category bill coverage items
+  // 5. Build per-pool / per-category bill coverage items with individual pool coverage calculations
   const items: BillCoverageItem[] = visiblePools.map((pool) => {
     const poolEvents = eventsByPoolMap.get(pool.id) || [];
     if (poolEvents.length === 0) {
@@ -143,10 +120,15 @@ export async function listBillCoverageQuery(
       };
     }
 
+    const poolBalance = balancesMap[pool.id] || 0;
+    const poolUpcomingTotal = poolEvents.reduce((sum, e) => sum + parseFloat(e.expectedAmount), 0);
+    const isThisPoolCovered = poolBalance >= poolUpcomingTotal;
+    const poolShortfall = Math.max(0, poolUpcomingTotal - poolBalance);
+
     const nearestEvent = poolEvents[0];
     const cat = dbCats.find((c) => c.id === nearestEvent.categoryId);
-    const status = isPoolCovered ? "COVERED" : "SHORT_BY";
-    const shortfallStr = isPoolCovered ? null : poolShortfall.toFixed(2);
+    const status = isThisPoolCovered ? "COVERED" : "SHORT_BY";
+    const shortfallStr = isThisPoolCovered ? null : poolShortfall.toFixed(2);
 
     return {
       poolId: pool.id,
@@ -168,3 +150,4 @@ export async function listBillCoverageQuery(
     items,
   };
 }
+

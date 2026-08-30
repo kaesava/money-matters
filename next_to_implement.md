@@ -1,8 +1,6 @@
 # AGENT - In progress...
 
-### Household
-* When I invite a household member, it says "Invite link created! Share URL: http://localhost:3000/invite/46649913-1e1b-4c85-af7f-8dbd35216b82". It's not clear if the user will receive an email or if I need to share the link with the user. Preference is the former (an email needs to be sent from the app to the user with the invite link), don't provide the link here - let them know that an email has been sent. Also, in the Household members list, markhousehold members that are yet to accept. If accepted, don't add anything, if waiting, maybe a badge indicating that the user has not yet accepted their invite?
-* I feel like Neon Auth triggers emails to users to validate their email address "Verify Your Email Address - money-matters" when the seed is triggered even though the seed (I hope) expects these users to have been marked as verified in Neon Auth tables. Check
+
 
 _________
 
@@ -27,12 +25,10 @@ _________
 ### List View
 ### Timeline & Grid
 ### Setup
-* We should include the abilty for the user to setup their bank accounts - showing the default one created (every new tenant should have the default bank account created with all three pools linked to it - ensure the seed honours this too and the rules exists to enforce this), but allowing users to add new, delete (ensuring at least one exists because every pool must be linked to exactly one bank account), and link/unlink pools - re-use the Bank Accounts > New logic and UI (don't re-invent) as much as possible.
 ## Bank Accounts
 ### Adding/Editing Modal:
 
 ## "History"###
-* Improve the language (target - Aussie family): "A complete record of your itemized spending ledger and automated payday waterfall allocations." Rightnow it's too technical - what's waterfall? what's itemized. 
 ### Transactions
 
 ### Allocation History
@@ -42,7 +38,6 @@ _________
 ### Profile
 ### My Details
 ### Household
-* Change "Manage departure from the household budget or permanent erasure of your household data" to "Manage exit from the household or permanent closure of household and erasure of related data".
 ### Account & Data
 ### Subscription
 ### Provide Feedback
@@ -54,18 +49,17 @@ _________
 ## Workflows
 
 ### Import CSV
-IN PROGRESS
 ### Manually adjusting Bills or Everyday.
 ### Can I afford
 ### Sign-up - Google, Apple, Email/password
 ### Verify Password
 ### Sign In - different method to sign-up (Google after Email, Apple after Email, Email after Google, Email after Apple, etc.)
-### Payday cascade
+### Payday allocation - individual
+### Payday allocation - bulk
 ### User Tenant Exit
 ### Tenant Deletion
 ### Archive/Unarchive - feature by feature - Account, Category, Transaction(?), Income/Expense schedule, Income/Expense Item, Quick Add Expense/Income/Transfer, etc. (Check Transactions)
 ### Setup Flows
-Does not include bank accounts - ok?
 ### Burst Event Regeneration (Check Transactions)
 ### Tenant Switching
 ### Account Reconciliation (Check Transactions)

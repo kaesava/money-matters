@@ -22,7 +22,24 @@ export async function archiveCategoryCommand(
 
   if (!cat) throw new Error("Category not found.");
 
-  // 2. Check for upcoming expense events
+  // 2. Check if this is the last active category in the pool
+  const activePoolCategories = await dbClient
+    .select({ id: categories.id })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.poolId, cat.poolId),
+        eq(categories.tenantId, tenantId),
+        eq(categories.appId, appId),
+        sql`${categories.archivedAt} IS NULL`
+      )
+    );
+
+  if (activePoolCategories.length <= 1) {
+    throw new Error("Cannot archive the last active category in a pool. Archive the pool instead.");
+  }
+
+  // 3. Check for upcoming expense events
   const pendingEvents = await dbClient
     .select()
     .from(expenseEvents)
@@ -37,6 +54,7 @@ export async function archiveCategoryCommand(
   if (pendingEvents.length > 0) {
     throw new Error("Cannot archive a category that has upcoming expenses assigned to it.");
   }
+
 
   const [archived] = await dbClient
     .update(categories)

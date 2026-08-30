@@ -1,4 +1,4 @@
-import { pools, expenseEvents, DbOrTx } from "@money-matters/db";
+import { pools, categories, expenseEvents, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function archivePoolCommand(
@@ -46,6 +46,7 @@ export async function archivePoolCommand(
     .update(pools)
     .set({
       archivedAt: new Date(),
+      archivedBy: userId,
       updatedBy: userId,
       updatedAt: new Date(),
     })
@@ -58,5 +59,25 @@ export async function archivePoolCommand(
     )
     .returning();
 
+  if (archived) {
+    await dbClient
+      .update(categories)
+      .set({
+        archivedAt: new Date(),
+        archivedBy: userId,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(categories.poolId, poolId),
+          eq(categories.tenantId, tenantId),
+          eq(categories.appId, appId),
+          sql`${categories.archivedAt} IS NULL`
+        )
+      );
+  }
+
   return archived;
 }
+

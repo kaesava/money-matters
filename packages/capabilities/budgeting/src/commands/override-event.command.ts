@@ -10,7 +10,15 @@ export async function overrideEventCommand(
   userId: string,
   dbClient: DbOrTx
 ) {
+
+
+  if (input.eventType === "EXPENSE" && (input.status as string) === "CONFIRMED") {
+    throw new Error("Expense events cannot be set to CONFIRMED status.");
+  }
+
   return await dbClient.transaction(async (tx) => {
+
+
     if (input.eventType === "INCOME") {
       const setPayload: Record<string, unknown> = {
         isOverridden: true,

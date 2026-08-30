@@ -6,6 +6,9 @@ import { t } from "@money-matters/i18n";
 import { useToast } from "@money-matters/ui/web";
 import { BankAccountFormModal } from "../../dashboard/bank-accounts/components/BankAccountFormModal";
 
+type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
+type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
+
 interface BankAccount {
   id: string;
   name: string;
@@ -13,8 +16,8 @@ interface BankAccount {
   lastKnownBalance: string;
   unbudgetedBuffer?: string | null;
   isPrivate?: boolean;
-  categoryTypes?: string[];
-  poolTypes?: string[];
+  categoryTypes?: CategoryType[];
+  poolTypes?: CategoryType[];
 }
 
 interface SetupBankAccountsStepProps {
@@ -22,9 +25,6 @@ interface SetupBankAccountsStepProps {
   onNext: () => void;
   onBack: () => void;
 }
-
-type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
-type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
 
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
   { key: "CBA", label: "Commonwealth Bank", logoBg: "bg-amber-400", textColor: "text-slate-900" },
@@ -41,9 +41,31 @@ function fmtMoney(val: string | number | undefined | null): string {
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+interface AccountLike {
+  id: string;
+  name: string;
+  bankProvider?: string | null;
+  lastKnownBalance?: string | number | null;
+  unbudgetedBuffer?: string | null;
+  isPrivate?: boolean;
+  pools?: Array<{ poolType?: CategoryType }>;
+  poolTypes?: CategoryType[];
+  categoryTypes?: CategoryType[];
+}
+
+function getPoolTypesFromAccount(acc: AccountLike): CategoryType[] {
+  if (Array.isArray(acc.pools)) {
+    return acc.pools.map((p) => p.poolType).filter((pt): pt is CategoryType => Boolean(pt));
+  }
+  return ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]);
+}
+
 export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAccountsStepProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
+
+  const { data: fetchedAccounts } = trpc.getBankAccountsWithMappings.useQuery();
+  const displayAccounts: AccountLike[] = accounts && accounts.length > 0 ? accounts : (fetchedAccounts as unknown as AccountLike[]) || [];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<{ id: string; name: string } | null>(null);
@@ -101,14 +123,15 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
     setIsModalOpen(true);
   };
 
-  const openEditModal = (acc: BankAccount) => {
+  const openEditModal = (acc: AccountLike) => {
     setEditingAccount({ id: acc.id, name: acc.name });
     setAccName(acc.name);
     setAccBankProvider((acc.bankProvider as BankName) || "Other");
-    setAccBalance(acc.lastKnownBalance || "0.00");
+    setAccBalance(String(acc.lastKnownBalance ?? "0.00"));
+
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(acc.isPrivate ?? false);
-    setAccSelectedTypes(((acc.poolTypes || acc.categoryTypes) as CategoryType[]) || []);
+    setAccSelectedTypes(getPoolTypesFromAccount(acc));
     setIsModalOpen(true);
   };
 
@@ -186,14 +209,14 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
 
       {/* Bank Accounts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {(accounts || []).map((acc) => {
+        {displayAccounts.map((acc) => {
           const providerOpt = BANK_OPTIONS.find((b) => b.key === acc.bankProvider) || {
             label: acc.bankProvider || "Bank",
             logoBg: "bg-slate-500",
             textColor: "text-white",
           };
 
-          const poolTypes = ((acc.poolTypes || acc.categoryTypes) as CategoryType[]) || [];
+          const poolTypes = getPoolTypesFromAccount(acc);
 
           return (
             <div
@@ -291,11 +314,12 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
         accIsPrivate={accIsPrivate}
         setAccIsPrivate={setAccIsPrivate}
         accSelectedTypes={accSelectedTypes}
-        accounts={(accounts || []).map((a) => ({
+        accounts={displayAccounts.map((a) => ({
           id: a.id,
           name: a.name,
-          categoryTypes: ((a.poolTypes || a.categoryTypes) as CategoryType[]) || [],
+          categoryTypes: getPoolTypesFromAccount(a),
         }))}
+
         isTrialExpired={false}
         isSaving={isSaving}
         bankOptions={BANK_OPTIONS}
@@ -308,3 +332,4 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
     </div>
   );
 }
+

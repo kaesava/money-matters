@@ -1,5 +1,10 @@
 import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import {
+  createPoolCommand,
+  updatePoolCommand,
+  archivePoolCommand,
+  listPoolsQuery,
+  moveMoneyCommand,
   createCategoryCommand,
   updateCategoryCommand,
   archiveCategoryCommand,
@@ -8,19 +13,56 @@ import {
   listBillCoverageQuery,
   getMonthlySummaryQuery,
   listArchivedItemsQuery,
-  moveMoneyCommand,
-  reSetupBudget,
 } from "@money-matters/capability-budgeting";
 import {
+  CreatePoolCommand,
+  UpdatePoolCommand,
+  MoveMoneyCommand,
   CreateCategoryCommand,
   UpdateCategoryCommand,
-  MoveMoneyCommand,
-  ReSetupBudgetInputSchema,
 } from "@money-matters/types";
 import { z } from 'zod';
-import { posthog } from '../lib/posthog.js';
 
-export const categoriesRouter = {
+export const budgetingRouter = {
+  // Pool procedures
+  createPool: privateTenantProcedure
+    .input(CreatePoolCommand)
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      return await createPoolCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  updatePool: privateTenantProcedure
+    .input(z.object({
+      poolId: z.string().uuid(),
+      data: UpdatePoolCommand
+    }).strict())
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      return await updatePoolCommand(input.poolId, input.data, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  archivePool: privateTenantProcedure
+    .input(z.object({ poolId: z.string().uuid() }).strict())
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const result = await archivePoolCommand(input.poolId, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+      return { success: true };
+    }),
+
+  listPools: privateTenantProcedure
+    .query(async ({ ctx }) => {
+      return await listPoolsQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId);
+    }),
+
+  moveMoney: privateTenantProcedure
+    .input(MoveMoneyCommand)
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      return await moveMoneyCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  // Category procedures
   createCategory: privateTenantProcedure
     .input(CreateCategoryCommand)
     .mutation(async ({ input, ctx }) => {
@@ -47,25 +89,6 @@ export const categoriesRouter = {
         throw new Error("Category not found or access unauthorized.");
       }
       return { success: true };
-    }),
-
-  moveMoney: privateTenantProcedure
-    .input(MoveMoneyCommand)
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      const result = await moveMoneyCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
-      if (posthog && ctx.userId) {
-        posthog.capture({
-          distinctId: ctx.userId,
-          event: 'money_moved',
-          properties: {
-            tenant_id: ctx.tenantId,
-            amount: input.amount,
-          },
-        });
-        await posthog.flush();
-      }
-      return result;
     }),
 
   listCategories: privateTenantProcedure
@@ -115,12 +138,5 @@ export const categoriesRouter = {
     )
     .query(async ({ input, ctx }) => {
       return await getMonthlySummaryQuery(input.year, input.month, ctx.tenantId!, ctx.appId!, ctx.db);
-    }),
-
-  reSetupBudget: privateTenantProcedure
-    .input(ReSetupBudgetInputSchema)
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-      return await reSetupBudget(ctx.db, input);
     }),
 };

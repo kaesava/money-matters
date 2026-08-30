@@ -11,6 +11,10 @@ export async function moveMoneyCommand(
   userId: string,
   dbClient: DbOrTx
 ) {
+  if (input.sourcePoolId === input.destinationPoolId) {
+    throw new Error("Cannot move money to the same pool.");
+  }
+
   return await dbClient.transaction(async (tx) => {
     // 1. Verify access to source pool
     const [sourcePool] = await tx
@@ -43,6 +47,18 @@ export async function moveMoneyCommand(
     if (!destPool) {
       throw new Error("Destination pool invalid or access unauthorized.");
     }
+
+    // 3. Verify sufficient balance in source pool
+    const { getPoolBalancesMap } = await import("@money-matters/db");
+    const balancesMap = await getPoolBalancesMap(tenantId, appId, tx);
+
+    const sourceBalance = balancesMap[input.sourcePoolId] || 0;
+    const transferAmount = parseFloat(input.amount);
+
+    if (sourceBalance < transferAmount) {
+      throw new Error(`Insufficient funds in ${sourcePool.name}. Available: $${sourceBalance.toFixed(2)}, requested: $${transferAmount.toFixed(2)}.`);
+    }
+
 
     const note = input.note || `Transferred $${input.amount} from ${sourcePool.name} to ${destPool.name}`;
     const timestamp = new Date();

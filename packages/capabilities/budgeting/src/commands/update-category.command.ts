@@ -1,5 +1,5 @@
-import { categories, DbOrTx } from "@money-matters/db";
-import { eq, and } from "drizzle-orm";
+import { categories, pools, DbOrTx } from "@money-matters/db";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { UpdateCategoryCommand } from "@money-matters/types";
 
@@ -12,6 +12,25 @@ export async function updateCategoryCommand(
   dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
+    if (input.poolId) {
+      const [targetPool] = await tx
+        .select({ id: pools.id })
+        .from(pools)
+        .where(
+          and(
+            eq(pools.id, input.poolId),
+            eq(pools.tenantId, tenantId),
+            eq(pools.appId, appId),
+            sql`${pools.archivedAt} IS NULL`
+          )
+        )
+        .limit(1);
+
+      if (!targetPool) {
+        throw new Error("Pool not found or access unauthorized.");
+      }
+    }
+
     const [updated] = await tx
       .update(categories)
       .set({
@@ -42,3 +61,4 @@ export async function updateCategoryCommand(
     return updated;
   });
 }
+

@@ -115,4 +115,36 @@ During the dashboard redesign (2026-08-23), category health warning indicators (
 2. **Notification Integration:** Connect health warnings with scheduled email digests and push notification preferences.
 3. **UI Behaviour:** Allow users to "Acknowledge / Snooze for 7 days" directly from category cards or dashboard status chips.
 
+---
+
+## V2 Feature: Re-Setup Budget Wizard & Command
+
+Deferred to Release 2. Initial setup wizard (`/setup`) is active in R1. Mid-life household re-setup wizard and reSetupBudget capability are deferred.
+
+Command logic preserved for V2:
+- `reSetupBudget(db, input, overrideTenantId, overrideUserId, overrideAppId)`
+- Schema: `ReSetupBudgetInputSchema`
+
+---
+
+## V2 Feature: Non-Digest Scheduled Notification Functions
+
+In R1, only `notifyWeeklyDigest` is registered in Inngest scheduled workflows.
+The following scheduled notification functions were deferred to Release 2:
+- `notifyPaydayAlert`: Daily alert for expected paydays
+- `notifyShortfallAlert`: Alert when regular pools shortfall upcoming bills
+- `notifyBillOverdue`: Alert when bill dates pass without payment
+- `notifyGoalMilestone`: Alert when goal pools cross milestone percentage
+- `notifySpendingVelocity`: Alert when daily velocity exceeds recommended rate
+
+---
+
+## V2 Technical: Deferred Command Schemas & Types
+
+The following types were defined for V2 offline/sync or alternative pathways:
+- `ConfirmPlanCommand`: Direct plan confirmation schema
+- `SyncLedgerMutationCommand`: Offline mutation sync schema
+- `WaterfallExecutionPayload`: Background waterfall execution payload
+
+
 

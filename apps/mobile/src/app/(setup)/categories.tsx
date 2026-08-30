@@ -28,8 +28,6 @@ export default function SetupCategoriesScreen() {
   const existingCategoriesQuery = trpc.listPools.useQuery(undefined, { enabled: params.mode === 'rerun' });
   const createIncomeSource = trpc.createIncomeSource.useMutation();
   const createCategory = trpc.createPool.useMutation();
-  const generateEvents = trpc.maintainRollingWindow.useMutation();
-  const reSetupBudget = trpc.reSetupBudget.useMutation();
 
   const allPresets = [...AUSTRALIAN_FAMILY_PRESETS, ...customPresets];
 
@@ -70,47 +68,8 @@ export default function SetupCategoriesScreen() {
       const isRerun = params.mode === 'rerun';
 
       if (isRerun) {
-        const existingCats = existingCategoriesQuery.data ?? [];
-        const selectedList = allPresets.filter((p) => selected.has(p.id));
-        const poolsList = selectedList.map((c) => {
-          const targetAmt = parseFloat(targets[c.id] || c.suggestedMonthlyAud.toString()) || 0;
-          const matched = existingCats.find((ec) => ec.name.trim().toLowerCase() === c.name.trim().toLowerCase() && (ec.poolType || (ec as { type?: string }).type) === c.type);
-          return {
-            id: matched?.id,
-            name: c.name,
-            poolType: c.type as "EVERYDAY" | "REGULAR" | "GOAL",
-            targetAmount: targetAmt.toFixed(2),
-          };
-        });
-
-        const totalBillsCap = poolsList
-          .filter((c) => c.poolType === 'REGULAR')
-          .reduce((sum, c) => sum + (parseFloat(c.targetAmount || '0') || 0), 0);
-
-        Alert.alert(
-          "Reconcile & Apply Budget Changes",
-          `Your new monthly Bills target cap will be $${totalBillsCap.toLocaleString()}. Changes take effect on your next payday. Continue?`,
-          [
-            { text: "Keep Editing", style: "cancel", onPress: () => setIsSubmitting(false) },
-            {
-              text: "Confirm & Reconcile",
-              onPress: async () => {
-                try {
-                  await reSetupBudget.mutateAsync({
-                    everydayTargetCap: "2000.00",
-                    billsTargetCap: totalBillsCap.toFixed(2),
-                    poolsList,
-                  });
-                  router.replace('/(app)/home');
-                } catch (err) {
-                  Alert.alert("Re-setup Failed", "Could not complete budget reconciliation.");
-                } finally {
-                  setIsSubmitting(false);
-                }
-              },
-            },
-          ]
-        );
+        Alert.alert("Budget Reconciliation", "Budget reconciliation features are scheduled for Release 2.");
+        setIsSubmitting(false);
         return;
       } else {
         // 1. Create main income source
@@ -137,9 +96,6 @@ export default function SetupCategoriesScreen() {
             });
           })
         );
-
-        // 3. Trigger events burst generator
-        await generateEvents.mutateAsync();
       }
 
       router.replace('/(app)/home');
@@ -150,6 +106,7 @@ export default function SetupCategoriesScreen() {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">

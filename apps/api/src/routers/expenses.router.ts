@@ -1,4 +1,4 @@
-import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
+import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { expenseSources, categories, expenseEvents, pools } from "@money-matters/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
@@ -6,8 +6,10 @@ import { recordExpenseCommand } from "@money-matters/capability-transactions";
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
 
+const getAestDateString = (d: Date = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+
 export const expensesRouter = {
-  listExpenseSources: tenantProcedure
+  listExpenseSources: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
         .select({
@@ -34,7 +36,7 @@ export const expensesRouter = {
         );
     }),
 
-  createExpenseSource: tenantProcedure
+  createExpenseSource: privateTenantProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -49,6 +51,24 @@ export const expensesRouter = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+
+      const [targetPool] = await ctx.db
+        .select({ id: pools.id })
+        .from(pools)
+        .where(
+          and(
+            eq(pools.id, input.poolId),
+            eq(pools.tenantId, ctx.tenantId!),
+            eq(pools.appId, ctx.appId!),
+            sql`${pools.archivedAt} IS NULL`
+          )
+        )
+        .limit(1);
+
+      if (!targetPool) {
+        throw new Error("Target pool not found or access unauthorized.");
+      }
+
       let rrule: string | null = null;
       if (input.isRecurring && input.startDate) {
         if (input.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
@@ -83,7 +103,7 @@ export const expensesRouter = {
               poolId: input.poolId,
               categoryId: input.categoryId || null,
               name: input.name,
-              expectedDate: d.toISOString().split("T")[0],
+              expectedDate: getAestDateString(d),
               expectedAmount: input.amount,
               status: "UPCOMING" as const,
               tenantId: ctx.tenantId!,
@@ -127,7 +147,7 @@ export const expensesRouter = {
       return source;
     }),
 
-  recordExpense: tenantProcedure
+  recordExpense: privateTenantProcedure
     .input(
       z.object({
         poolId: z.string().uuid(),
@@ -172,7 +192,7 @@ export const expensesRouter = {
       return result;
     }),
 
-  listExpenseEvents: tenantProcedure
+  listExpenseEvents: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
         .select({
@@ -199,7 +219,7 @@ export const expensesRouter = {
         );
     }),
 
-  reburstExpenseSource: tenantProcedure
+  reburstExpenseSource: privateTenantProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -228,7 +248,8 @@ export const expensesRouter = {
         .where(
           and(
             eq(expenseEvents.expenseSourceId, source.id),
-            eq(expenseEvents.status, "UPCOMING")
+            eq(expenseEvents.status, "UPCOMING"),
+            sql`${expenseEvents.archivedAt} IS NULL`
           )
         );
 
@@ -238,7 +259,7 @@ export const expensesRouter = {
           .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
-      const startDate = source.startDate || new Date().toISOString().split("T")[0];
+      const startDate = source.startDate || getAestDateString();
       const dates = generateBurstDates(source.rrule, startDate, source.endDate, 12);
       if (dates.length > 0) {
         await ctx.db.insert(expenseEvents).values(
@@ -247,7 +268,7 @@ export const expensesRouter = {
             poolId: source.poolId,
             categoryId: source.categoryId,
             name: source.name,
-            expectedDate: d.toISOString().split("T")[0],
+            expectedDate: getAestDateString(d),
             expectedAmount: source.amount,
             status: "UPCOMING" as const,
             tenantId: ctx.tenantId!,

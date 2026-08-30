@@ -1,4 +1,5 @@
-import { categories, DbOrTx } from "@money-matters/db";
+import { categories, pools, DbOrTx } from "@money-matters/db";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { CreateCategoryCommand } from "@money-matters/types";
 
@@ -10,6 +11,23 @@ export async function createCategoryCommand(
   dbClient: DbOrTx
 ) {
   return await dbClient.transaction(async (tx) => {
+    const [targetPool] = await tx
+      .select({ id: pools.id })
+      .from(pools)
+      .where(
+        and(
+          eq(pools.id, input.poolId),
+          eq(pools.tenantId, tenantId),
+          eq(pools.appId, appId),
+          sql`${pools.archivedAt} IS NULL`
+        )
+      )
+      .limit(1);
+
+    if (!targetPool) {
+      throw new Error("Pool not found or access unauthorized.");
+    }
+
     const [cat] = await tx
       .insert(categories)
       .values({
@@ -31,3 +49,4 @@ export async function createCategoryCommand(
     return cat;
   });
 }
+

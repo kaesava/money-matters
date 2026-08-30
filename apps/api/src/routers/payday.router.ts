@@ -1,5 +1,5 @@
-import { tenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
-import { allocationPlans, allocationPlanLines, categories, pools, incomeEvents } from "@money-matters/db";
+import { privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
+import { allocationPlans, allocationPlanLines, categories, pools, incomeEvents, transactionLedger } from "@money-matters/db";
 import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { posthog } from '../lib/posthog.js';
 import {
@@ -21,13 +21,13 @@ import {
 import { z } from 'zod';
 
 export const paydayRouter = {
-  previewPayday: tenantProcedure
+  previewPayday: privateTenantProcedure
     .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .query(async ({ input, ctx }) => {
       return await previewPaydayQuery(input.incomeEventId, ctx.tenantId!, ctx.appId!, ctx.db);
     }),
 
-  confirmPayday: tenantProcedure
+  confirmPayday: privateTenantProcedure
     .input(ConfirmPaydayCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -62,28 +62,28 @@ export const paydayRouter = {
       return result;
     }),
 
-  overrideEvent: tenantProcedure
+  overrideEvent: privateTenantProcedure
     .input(OverrideEventCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       return await overrideEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  deleteUpcomingEvent: tenantProcedure
+  deleteUpcomingEvent: privateTenantProcedure
     .input(DeleteUpcomingEventCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       return await deleteUpcomingEventCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  bulkDeleteEvents: tenantProcedure
+  bulkDeleteEvents: privateTenantProcedure
     .input(BulkDeleteEventsCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       return await bulkDeleteEventsCommand(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
-  listAllocationPlan: tenantProcedure
+  listAllocationPlan: privateTenantProcedure
     .input(z.object({ incomeEventId: z.string().uuid() }).strict())
     .query(async ({ input, ctx }) => {
       const [plan] = await ctx.db
@@ -124,7 +124,7 @@ export const paydayRouter = {
       };
     }),
 
-  listAllAllocationPlans: tenantProcedure
+  listAllAllocationPlans: privateTenantProcedure
     .query(async ({ ctx }) => {
       const { incomeEvents, incomeSources, bankAccounts } = await import("@money-matters/db");
       
@@ -180,7 +180,7 @@ export const paydayRouter = {
       }));
     }),
 
-  runAllocation: tenantProcedure
+  runAllocation: privateTenantProcedure
     .input(
       z.object({
         incomeAmount: z.number().positive(),
@@ -199,7 +199,7 @@ export const paydayRouter = {
       );
     }),
 
-  previewAllocation: tenantProcedure
+  previewAllocation: privateTenantProcedure
     .input(
       z.object({
         incomeEventId: z.string().uuid(),
@@ -216,7 +216,7 @@ export const paydayRouter = {
       );
     }),
 
-  confirmAllocation: tenantProcedure
+  confirmAllocation: privateTenantProcedure
     .input(ConfirmAllocationInput)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -229,7 +229,7 @@ export const paydayRouter = {
       );
     }),
 
-  saveBulkAllocations: tenantProcedure
+  saveBulkAllocations: privateTenantProcedure
     .input(
       z.object({
         incomeEventId: z.string().uuid(),
@@ -313,7 +313,7 @@ export const paydayRouter = {
       });
     }),
 
-  revertAllocationPlan: tenantProcedure
+  revertAllocationPlan: privateTenantProcedure
     .input(
       z.object({
         incomeEventId: z.string().uuid(),
@@ -322,23 +322,63 @@ export const paydayRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
 
-      const [plan] = await ctx.db
-        .select()
-        .from(allocationPlans)
-        .where(
-          and(
-            eq(allocationPlans.incomeEventId, input.incomeEventId),
-            eq(allocationPlans.tenantId, ctx.tenantId!)
+      return await ctx.db.transaction(async (tx) => {
+        const [plan] = await tx
+          .select()
+          .from(allocationPlans)
+          .where(
+            and(
+              eq(allocationPlans.incomeEventId, input.incomeEventId),
+              eq(allocationPlans.tenantId, ctx.tenantId!)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
 
-      if (plan) {
-        await ctx.db
-          .delete(allocationPlans)
-          .where(eq(allocationPlans.id, plan.id));
-      }
+        if (plan) {
+          if (plan.status === "CONFIRMED") {
+            const lines = await tx
+              .select()
+              .from(allocationPlanLines)
+              .where(eq(allocationPlanLines.planId, plan.id));
 
-      return { success: true };
+            const reversalEntries = lines
+              .filter((l) => l.confirmedAmount && parseFloat(l.confirmedAmount) > 0)
+              .map((l) => ({
+                tenantId: ctx.tenantId!,
+                appId: ctx.appId!,
+                poolId: l.poolId,
+                categoryId: l.categoryId,
+                flowType: "DEBIT" as const,
+                amount: l.confirmedAmount!,
+                idempotencyKey: `revert-${l.id}`,
+                note: `Payday Revert: ${l.reasoning || "Confirmed Allocation Reversal"}`,
+                source: "MANUAL" as const,
+                createdBy: ctx.userId!,
+                updatedBy: ctx.userId!,
+              }));
+
+            if (reversalEntries.length > 0) {
+              await tx.insert(transactionLedger).values(reversalEntries);
+            }
+
+            await tx
+              .update(incomeEvents)
+              .set({
+                status: "UPCOMING",
+                actualAmount: null,
+                updatedBy: ctx.userId!,
+                updatedAt: new Date(),
+              })
+              .where(eq(incomeEvents.id, input.incomeEventId));
+          }
+
+          await tx
+            .delete(allocationPlans)
+            .where(eq(allocationPlans.id, plan.id));
+        }
+
+        return { success: true };
+      });
     }),
 };
+

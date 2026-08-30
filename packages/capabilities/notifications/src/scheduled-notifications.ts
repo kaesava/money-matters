@@ -247,11 +247,7 @@ export function createScheduledNotificationFunctions(inngest: Inngest) {
   );
 
   return [
-    notifyPaydayAlert,
-    notifyShortfallAlert,
-    notifyBillReminder,
     notifyWeeklyDigest,
-    notifyGoalMilestone,
-    notifySpendingVelocity,
   ];
 }
+

@@ -52,56 +52,66 @@ async function sendNotificationEmail(to: string, subject: string, bodyText: stri
  */
 export function deleteMyAccountHandler(db: DbOrTx) {
   return async (tenantId: string, userId: string, email: string, appId: string) => {
-    const [membership] = await db
-      .select()
-      .from(tenantUsers)
-      .where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)))
-      .limit(1);
-
-    if (membership && membership.role !== "OWNER") {
-      throw new Error("Only the Household Owner can delete the household tenant. Partners can leave the household.");
-    }
-
     const partnerMemberships = await db
       .select()
       .from(tenantUsers)
       .where(and(eq(tenantUsers.tenantId, tenantId), ne(tenantUsers.userId, userId)));
 
-    // Hard delete all tenant records in FK-safe order
-    await db.delete(fileNotes).where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
-    await db.delete(deviceTokens).where(eq(deviceTokens.userId, userId));
-    await db.delete(transactionLedger).where(and(eq(transactionLedger.tenantId, tenantId), eq(transactionLedger.appId, appId)));
+    const partnerUserIds = partnerMemberships
+      .map((p) => p.userId)
+      .filter((id): id is string => Boolean(id));
+    const allUserIdsToPurgeTokens: string[] = [userId, ...partnerUserIds];
 
-    const plans = await db.select({ id: allocationPlans.id }).from(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
-    const planIds = plans.map((p) => p.id);
-    if (planIds.length > 0) {
-      await db.delete(allocationPlanLines).where(inArray(allocationPlanLines.planId, planIds));
-    }
-    await db.delete(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
 
-    await db.delete(expenseEvents).where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
-    await db.delete(expenseSources).where(and(eq(expenseSources.tenantId, tenantId), eq(expenseSources.appId, appId)));
+    await db.transaction(async (tx) => {
+      const [membership] = await tx
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId)))
+        .limit(1);
 
-    await db.delete(incomeEvents).where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
-    await db.delete(incomeSources).where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
+      if (membership && membership.role !== "OWNER") {
+        throw new Error("Only the Household Owner can delete the household tenant. Partners can leave the household.");
+      }
 
-    await db.delete(categories).where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
-    await db.delete(pools).where(and(eq(pools.tenantId, tenantId), eq(pools.appId, appId)));
+      // Hard delete all tenant records in FK-safe order
+      await tx.delete(fileNotes).where(and(eq(fileNotes.tenantId, tenantId), eq(fileNotes.appId, appId)));
+      if (allUserIdsToPurgeTokens.length > 0) {
+        await tx.delete(deviceTokens).where(inArray(deviceTokens.userId, allUserIdsToPurgeTokens));
+      }
+      await tx.delete(transactionLedger).where(and(eq(transactionLedger.tenantId, tenantId), eq(transactionLedger.appId, appId)));
 
-    await db.delete(userPreferences).where(eq(userPreferences.userId, userId));
-    await db.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
-    await db.delete(bankAccounts).where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
+      const plans = await tx.select({ id: allocationPlans.id }).from(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
+      const planIds = plans.map((p) => p.id);
+      if (planIds.length > 0) {
+        await tx.delete(allocationPlanLines).where(inArray(allocationPlanLines.planId, planIds));
+      }
+      await tx.delete(allocationPlans).where(and(eq(allocationPlans.tenantId, tenantId), eq(allocationPlans.appId, appId)));
 
-    await db.delete(tenantUsers).where(eq(tenantUsers.tenantId, tenantId));
-    await db.delete(tenants).where(eq(tenants.id, tenantId));
-    await db.delete(users).where(eq(users.id, userId));
+      await tx.delete(expenseEvents).where(and(eq(expenseEvents.tenantId, tenantId), eq(expenseEvents.appId, appId)));
+      await tx.delete(expenseSources).where(and(eq(expenseSources.tenantId, tenantId), eq(expenseSources.appId, appId)));
 
-    try {
-      await db.execute(sql`DELETE FROM neon_auth.session WHERE "userId" = ${userId}`);
-      await db.execute(sql`DELETE FROM neon_auth.user WHERE id = ${userId}`);
-    } catch (err) {
-      console.warn("Neon auth purge step skipped or failed:", err);
-    }
+      await tx.delete(incomeEvents).where(and(eq(incomeEvents.tenantId, tenantId), eq(incomeEvents.appId, appId)));
+      await tx.delete(incomeSources).where(and(eq(incomeSources.tenantId, tenantId), eq(incomeSources.appId, appId)));
+
+      await tx.delete(categories).where(and(eq(categories.tenantId, tenantId), eq(categories.appId, appId)));
+      await tx.delete(pools).where(and(eq(pools.tenantId, tenantId), eq(pools.appId, appId)));
+
+      await tx.delete(userPreferences).where(eq(userPreferences.userId, userId));
+      await tx.delete(tenantUserPreferences).where(eq(tenantUserPreferences.userId, userId));
+      await tx.delete(bankAccounts).where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.appId, appId)));
+
+      await tx.delete(tenantUsers).where(eq(tenantUsers.tenantId, tenantId));
+      await tx.delete(tenants).where(eq(tenants.id, tenantId));
+      await tx.delete(users).where(eq(users.id, userId));
+
+      try {
+        await tx.execute(sql`DELETE FROM neon_auth.session WHERE "userId" = ${userId}`);
+        await tx.execute(sql`DELETE FROM neon_auth.user WHERE id = ${userId}`);
+      } catch (err) {
+        console.warn("Neon auth purge step skipped or failed:", err);
+      }
+    });
 
     await sendNotificationEmail(
       email,
@@ -122,6 +132,7 @@ export function deleteMyAccountHandler(db: DbOrTx) {
     return { success: true };
   };
 }
+
 
 /**
  * Removes user from household tenant and purges user's private data.

@@ -134,7 +134,10 @@ export const OverrideEventCommand = z.object({
   categoryId: z.string().uuid().optional(),
   note: z.string().optional(),
   updateSeries: z.boolean().default(false),
-}).strict();
+}).strict().refine((val) => !(val.eventType === "EXPENSE" && val.status === "CONFIRMED"), {
+  message: "Expense events cannot be set to CONFIRMED status",
+  path: ["status"],
+});
 
 export const DeleteUpcomingEventCommand = z.object({
   eventId: z.string().uuid(),
@@ -156,8 +159,16 @@ export const ConfirmPaydayCommand = z.object({
       categoryId: z.string().uuid().optional(),
       amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
     }).strict()
-  ),
-}).strict();
+  ).min(1, "At least one allocation line is required"),
+}).strict().refine((data) => {
+  const actual = parseFloat(data.actualAmount);
+  const sum = data.lines.reduce((acc, l) => acc + parseFloat(l.amount), 0);
+  return Math.abs(actual - sum) <= 0.02;
+}, {
+  message: "Sum of allocation lines must equal total actual income amount",
+  path: ["lines"],
+});
+
 
 export const InvitePartnerCommand = z.object({
   email: z.string().email(),
@@ -222,32 +233,3 @@ export const CommitCsvImportCommand = z.object({
   transactions: z.array(CsvImportItemSchema).min(1).max(1000, "Cannot commit more than 1,000 transactions at once"),
 }).strict();
 
-export const ReSetupBudgetInputSchema = z.object({
-  tenantId: z.string().uuid().optional(),
-  userId: z.string().uuid().optional(),
-  everydayTargetCap: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-  billsTargetCap: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
-  poolsList: z.array(
-    z.object({
-      id: z.string().uuid().optional(),
-      name: z.string().min(1),
-      poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
-      bankAccountId: z.string().uuid().optional(),
-      everydayAllowanceAmount: z.string().optional().nullable(),
-      targetAmount: z.string().optional().nullable(),
-      targetDate: z.string().optional().nullable(),
-      isCommitted: z.boolean().optional(),
-      isSurplusTarget: z.boolean().optional(),
-      categories: z.array(
-        z.object({
-          id: z.string().uuid().optional(),
-          name: z.string().min(1),
-          monthlyAmount: z.string().optional().nullable(),
-          isEssential: z.boolean().optional(),
-          icon: z.string().optional().nullable(),
-          colour: z.string().optional().nullable(),
-        }).strict()
-      ).optional().default([]),
-    }).strict()
-  ),
-}).strict();

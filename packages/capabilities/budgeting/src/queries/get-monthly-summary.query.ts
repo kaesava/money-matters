@@ -1,5 +1,6 @@
-import { pools, transactionLedger, DbOrTx } from "@money-matters/db";
+import { pools, transactionLedger, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
+
 
 export async function getMonthlySummaryQuery(
   year: number,
@@ -27,6 +28,22 @@ export async function getMonthlySummaryQuery(
 
   const poolMap = new Map(dbPools.map((p) => [p.id, p.poolType]));
 
+  // 1. Fetch pre-aggregated pool balances (single query)
+  const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
+
+  let everydayRemaining = 0;
+  let billsRemaining = 0;
+
+  for (const pool of dbPools) {
+    const bal = balancesMap[pool.id] || 0;
+    if (pool.poolType === "EVERYDAY") {
+      everydayRemaining += bal;
+    } else if (pool.poolType === "REGULAR") {
+      billsRemaining += bal;
+    }
+  }
+
+  // 2. Fetch month-filtered transactions for month's totalIncome, totalSpent, totalSaved
   const txs = await dbClient
     .select({
       flowType: transactionLedger.flowType,
@@ -63,42 +80,6 @@ export async function getMonthlySummaryQuery(
     }
   }
 
-  const allTxs = await dbClient
-    .select({
-      flowType: transactionLedger.flowType,
-      amount: transactionLedger.amount,
-      poolId: transactionLedger.poolId,
-    })
-    .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    );
-
-  let everydayRemaining = 0;
-  let billsRemaining = 0;
-  for (const tx of allTxs) {
-    if (!tx.poolId) continue;
-    const val = parseFloat(tx.amount);
-    const poolType = poolMap.get(tx.poolId);
-    if (poolType === "EVERYDAY") {
-      if (tx.flowType === "CREDIT") {
-        everydayRemaining += val;
-      } else {
-        everydayRemaining -= val;
-      }
-    } else if (poolType === "REGULAR") {
-      if (tx.flowType === "CREDIT") {
-        billsRemaining += val;
-      } else {
-        billsRemaining -= val;
-      }
-    }
-  }
-
   return {
     year,
     month,
@@ -109,3 +90,4 @@ export async function getMonthlySummaryQuery(
     billsRemaining: billsRemaining.toFixed(2),
   };
 }
+

@@ -9,23 +9,21 @@ import { trpc } from '../../lib/trpc';
 export default function SetupCompleteScreen() {
   const router = useRouter();
   const posthog = usePostHog();
-  const generateEvents = trpc.maintainRollingWindow.useMutation();
   const [loading, setLoading] = useState(false);
 
   const handleFinish = async () => {
     setLoading(true);
     try {
-      await generateEvents.mutateAsync();
       posthog.capture('setup_completed');
       router.replace('/(app)/home');
     } catch (err) {
-      console.error("Failed to generate initial events:", err);
-      // Fallback redirect
+      console.error("Failed to navigate home:", err);
       router.replace('/(app)/home');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <View style={styles.container}>

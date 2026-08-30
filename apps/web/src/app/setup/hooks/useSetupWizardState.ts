@@ -112,6 +112,7 @@ export function useSetupWizardState() {
       hasKids,
       children,
       hasPrivateHealth,
+      hasMedicalOutofPocket,
       hasGym,
       hasPets,
       petsCount,
@@ -132,6 +133,7 @@ export function useSetupWizardState() {
       hasKids,
       children,
       hasPrivateHealth,
+      hasMedicalOutofPocket,
       hasGym,
       hasPets,
       petsCount,
@@ -199,40 +201,12 @@ export function useSetupWizardState() {
     return Math.round(monthlyAmount);
   };
 
-  const reSetupMut = trpc.reSetupBudget.useMutation();
+  const updatePrefMut = trpc.updateUserPreferences.useMutation();
 
   const handleFinish = async () => {
     setIsSubmitting(true);
     try {
-      const everydayPool = {
-        name: "Everyday Pool",
-        poolType: "EVERYDAY" as const,
-        everydayAllowanceAmount: totalEverydayMonthly.toFixed(2),
-        categories: activeCategories.filter((c) => c.type === "EVERYDAY").map((cat) => ({
-          name: cat.name,
-          monthlyAmount: cat.monthlyAud.toFixed(2),
-        })),
-      };
-      const billsPool = {
-        name: "Bills Pool",
-        poolType: "REGULAR" as const,
-        targetAmount: totalRegularMonthly.toFixed(2),
-        categories: activeCategories.filter((c) => c.type === "REGULAR").map((cat) => ({
-          name: cat.name,
-          monthlyAmount: cat.monthlyAud.toFixed(2),
-        })),
-      };
-      const goalPools = activeCategories.filter((c) => c.type === "GOAL").map((cat) => ({
-        name: cat.name,
-        poolType: "GOAL" as const,
-        targetAmount: cat.monthlyAud.toFixed(2),
-      }));
-
-      await reSetupMut.mutateAsync({
-        everydayTargetCap: totalEverydayMonthly.toFixed(2),
-        billsTargetCap: totalRegularMonthly.toFixed(2),
-        poolsList: [everydayPool, billsPool, ...goalPools],
-      });
+      await updatePrefMut.mutateAsync({ setupCompleted: true });
 
       posthog.capture("onboarding_completed", {
         step: 4,
@@ -242,6 +216,7 @@ export function useSetupWizardState() {
       });
 
       router.push("/dashboard");
+
     } catch (err: unknown) {
       console.error("Failed to complete onboarding:", err);
       alert(`Onboarding Error: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -249,8 +224,6 @@ export function useSetupWizardState() {
       setIsSubmitting(false);
     }
   };
-
-  const updatePrefMut = trpc.updateUserPreferences.useMutation();
 
   const handleDiscard = async () => {
     setShowDiscardModal(false);

@@ -1,7 +1,8 @@
-import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, requiresWriteAccess } from '../trpc/trpc.js';
+import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
-import { db, userPreferences, tenantUserPreferences, bankAccounts, pools, categories, AppPreferencesBlob } from "@money-matters/db";
-import { and, eq, sql, or } from "drizzle-orm";
+import { db, userPreferences, tenantUserPreferences, bankAccounts, pools, categories, transactionLedger, AppPreferencesBlob } from "@money-matters/db";
+import { and, eq, sql, or, inArray } from "drizzle-orm";
+
 import { inngest } from '../inngest/client.js';
 import { logAuditEvent, sendNotificationEmail } from '@money-matters/core';
 import { 
@@ -353,7 +354,7 @@ export const tenantRouter = {
         );
     }),
 
-  listBankAccountsWithExpected: tenantProcedure
+  listBankAccountsWithExpected: privateTenantProcedure
     .query(async ({ ctx }) => {
       const accounts = await ctx.db
         .select()
@@ -381,7 +382,8 @@ export const tenantRouter = {
       });
     }),
 
-  reconcileBankBalance: tenantProcedure
+
+  reconcileBankBalance: privateTenantProcedure
     .input(
       z.object({
         accountId: z.string().uuid(),
@@ -399,39 +401,58 @@ export const tenantRouter = {
       requiresWriteAccess(ctx);
       const accountId = input.accountId;
 
-      await ctx.db
-        .update(bankAccounts)
-        .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
-        .where(eq(bankAccounts.id, accountId));
+      return await ctx.db.transaction(async (tx) => {
+        await tx
+          .update(bankAccounts)
+          .set({ lastKnownBalance: input.actualBalance, updatedAt: new Date(), updatedBy: ctx.userId! })
+          .where(eq(bankAccounts.id, accountId));
 
-      for (const split of input.splits) {
-        const adj = parseFloat(split.adjustment);
-        if (Math.abs(adj) < 0.01) continue;
+        const targetPoolIds = input.splits.map((s) => s.poolId);
+        const dbPools = targetPoolIds.length > 0
+          ? await tx
+              .select({ id: pools.id, name: pools.name })
+              .from(pools)
+              .where(
+                and(
+                  inArray(pools.id, targetPoolIds),
+                  eq(pools.tenantId, ctx.tenantId!),
+                  eq(pools.appId, ctx.appId!)
+                )
+              )
+          : [];
 
-        const pool = await ctx.db.query.pools.findFirst({
-          where: eq(pools.id, split.poolId),
-        });
-        const poolName = pool ? pool.name : "Pool";
+        const poolNameMap = new Map(dbPools.map((p) => [p.id, p.name]));
 
-        await recordExpenseCommand(
-          {
+        const txValues = [];
+        for (const split of input.splits) {
+          const adj = parseFloat(split.adjustment);
+          if (Math.abs(adj) < 0.01) continue;
+
+          const poolName = poolNameMap.get(split.poolId) || "Pool";
+          txValues.push({
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
             poolId: split.poolId,
-            categoryId: split.categoryId,
+            categoryId: split.categoryId || null,
+            bankAccountId: accountId,
+            flowType: (adj > 0 ? "CREDIT" : "DEBIT") as "CREDIT" | "DEBIT",
             amount: Math.abs(adj).toFixed(2),
-            flowType: adj > 0 ? "CREDIT" : "DEBIT",
-            source: "MANUAL",
+            idempotencyKey: `reconcile-${accountId}-${split.poolId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
             note: `${poolName} Reconciliation Adjustment`,
-            recordedAt: new Date().toISOString(),
-          },
-          ctx.tenantId!,
-          ctx.appId!,
-          ctx.userId!,
-          ctx.db
-        );
-      }
+            source: "MANUAL" as const,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          });
+        }
 
-      return { success: true };
+        if (txValues.length > 0) {
+          await tx.insert(transactionLedger).values(txValues);
+        }
+
+        return { success: true };
+      });
     }),
+
 
   exportMyData: tenantProcedure
     .query(async ({ ctx }) => {
@@ -524,7 +545,7 @@ export const tenantRouter = {
       }).strict()
     )
     .mutation(async ({ ctx, input }) => {
-      const { tenantUsers } = await import('@money-matters/db');
+      const { tenantUsers, bankAccounts, pools, categories, tenantUserPreferences } = await import('@money-matters/db');
 
       const [caller] = await ctx.db
         .select()
@@ -549,6 +570,38 @@ export const tenantRouter = {
         throw new Error("Target member ID or User ID is required.");
       }
 
+      const [targetMember] = await ctx.db
+        .select()
+        .from(tenantUsers)
+        .where(and(eq(tenantUsers.tenantId, ctx.tenantId!), memberFilter));
+
+      if (targetMember?.userId) {
+        const targetUserId = targetMember.userId;
+        const privateBankAccs = await ctx.db
+          .select({ id: bankAccounts.id })
+          .from(bankAccounts)
+          .where(and(eq(bankAccounts.tenantId, ctx.tenantId!), eq(bankAccounts.userId, targetUserId), eq(bankAccounts.isPrivate, true)));
+
+        const privateBankAccIds = privateBankAccs.map((b) => b.id);
+
+        if (privateBankAccIds.length > 0) {
+          const privatePoolsList = await ctx.db
+            .select({ id: pools.id })
+            .from(pools)
+            .where(inArray(pools.bankAccountId, privateBankAccIds));
+
+          const privatePoolIds = privatePoolsList.map((p) => p.id);
+
+          if (privatePoolIds.length > 0) {
+            await ctx.db.delete(categories).where(inArray(categories.poolId, privatePoolIds));
+            await ctx.db.delete(pools).where(inArray(pools.id, privatePoolIds));
+          }
+          await ctx.db.delete(bankAccounts).where(inArray(bankAccounts.id, privateBankAccIds));
+        }
+
+        await ctx.db.delete(tenantUserPreferences).where(and(eq(tenantUserPreferences.tenantId, ctx.tenantId!), eq(tenantUserPreferences.userId, targetUserId)));
+      }
+
       await ctx.db
         .update(tenantUsers)
         .set({ archivedAt: new Date(), updatedAt: new Date() })
@@ -556,6 +609,7 @@ export const tenantRouter = {
 
       return { success: true };
     }),
+
 
   updateHousehold: tenantProcedure
     .input(
