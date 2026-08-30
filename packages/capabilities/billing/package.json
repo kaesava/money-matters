@@ -27,7 +27,9 @@
     "vitest": "^4.1.10"
   },
   "scripts": {
+    "build": "echo \"Package build complete\"",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run --passWithNoTests --coverage"
   }

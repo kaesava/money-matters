@@ -54,3 +54,4 @@ export * from './NetworkErrorBanner';
 
 
 export * from './fields/RecurrenceBuilder';
+export * from '../hooks/useRecurrenceBuilder';

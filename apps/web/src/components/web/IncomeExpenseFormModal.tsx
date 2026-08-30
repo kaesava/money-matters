@@ -60,7 +60,7 @@ export default function IncomeExpenseFormModal({
   const [receivingAccountId, setReceivingAccountId] = useState("");
   
   const recurrenceBuilder = useRecurrenceBuilder();
-  const { rruleString, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
+  const { frequency, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
   
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -168,7 +168,7 @@ export default function IncomeExpenseFormModal({
               amount: formattedAmount,
               receivingAccountId: receivingAccountId || undefined,
               isRecurring,
-              rrule: isRecurring ? (rruleString || undefined) : undefined,
+              frequency: isRecurring ? frequency : undefined,
               startDate: startDate || undefined,
               endDate: isRecurring && endDate ? endDate : undefined,
             },
@@ -179,7 +179,7 @@ export default function IncomeExpenseFormModal({
             amount: formattedAmount,
             receivingAccountId: receivingAccountId || undefined,
             isRecurring,
-            rrule: isRecurring ? (rruleString || undefined) : undefined,
+            frequency: isRecurring ? frequency : undefined,
             startDate: startDate || undefined,
             endDate: isRecurring && endDate ? endDate : undefined,
           });
@@ -192,7 +192,7 @@ export default function IncomeExpenseFormModal({
           amount: formattedAmount,
           poolId,
           isRecurring,
-          rrule: isRecurring ? (rruleString || undefined) : undefined,
+          frequency: isRecurring ? frequency : undefined,
           startDate: startDate || undefined,
           endDate: isRecurring && endDate ? endDate : undefined,
         });

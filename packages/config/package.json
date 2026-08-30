@@ -22,6 +22,9 @@
   },
   "scripts": {
     "build": "echo \"Package build complete\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --passWithNoTests --coverage",
+    "lint": "eslint ."
   }
 }
