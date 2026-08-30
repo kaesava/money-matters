@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { logger } from "@money-matters/core";
 
 export async function GET(req: NextRequest) {
   return handleProxy(req);
@@ -58,7 +59,7 @@ async function handleProxy(req: NextRequest) {
     }
 
     const targetUrl = `${authBase}${path}${url.search}`;
-    if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Forwarding ${req.method} to ${targetUrl}`);
+    logger.debug(`[Auth Proxy] Forwarding ${req.method}`, { targetUrl });
 
     const headers = new Headers();
     req.headers.forEach((value, key) => {
@@ -76,7 +77,7 @@ async function handleProxy(req: NextRequest) {
     // In dev mode, map un-prefixed neon-auth cookies back to __Secure- for the target Neon auth server
     const reqCookie = req.headers.get("cookie");
     if (process.env.NODE_ENV === "development") {
-      if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Incoming cookie header: ${reqCookie}`);
+      logger.debug('[Auth Proxy] Incoming cookie header present', { hasCookie: Boolean(reqCookie) });
       if (reqCookie) {
         let mapped = reqCookie;
         if (mapped.includes("neon-auth.session_token=") && !mapped.includes("__Secure-neon-auth.session_token=")) {
@@ -90,7 +91,7 @@ async function handleProxy(req: NextRequest) {
         }
         if (mapped !== reqCookie) {
           headers.set("cookie", mapped);
-          if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Mapped cookie header for backend: ${mapped}`);
+          logger.debug('[Auth Proxy] Cookie header remapped for backend (Secure prefix added)');
         }
       }
     }
@@ -125,7 +126,7 @@ async function handleProxy(req: NextRequest) {
             
             bodyJson.callbackURL = callbackUrlObj.toString();
             bodyText = JSON.stringify(bodyJson);
-            if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Rewrote callbackURL from ${originalUrl} to ${bodyJson.callbackURL}`);
+            logger.debug('[Auth Proxy] Rewrote callbackURL', { from: originalUrl, to: bodyJson.callbackURL });
           }
         } catch (_e) {
           // Ignore JSON parse errors
@@ -138,10 +139,9 @@ async function handleProxy(req: NextRequest) {
     const response = await fetch(targetUrl, options);
     const buffer = await response.arrayBuffer();
 
-    if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Target response status: ${response.status}`);
+    logger.debug('[Auth Proxy] Target response status', { status: response.status });
     if (response.status >= 400) {
-      const errorText = new TextDecoder().decode(buffer);
-      if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Target error response: ${errorText}`);
+      logger.debug('[Auth Proxy] Target error response body', { status: response.status });
     }
 
     const responseHeaders = new Headers();
@@ -162,7 +162,7 @@ async function handleProxy(req: NextRequest) {
               locUrl.protocol = proto;
               locUrl.host = incomingHost;
               value = locUrl.toString();
-              if (process.env.NODE_ENV === "development") console.log(`[DEBUG Auth Proxy] Rewrote redirect Location from localhost:3000 to ${value}`);
+              logger.debug('[Auth Proxy] Rewrote redirect Location', { to: value });
             }
           } catch (_e) {
             // Relative URL or invalid URL, keep it
@@ -190,16 +190,14 @@ async function handleProxy(req: NextRequest) {
       responseHeaders.append("set-cookie", cookieVal.trim());
     }
 
-    if (process.env.NODE_ENV === "development") {
-      if (process.env.NODE_ENV === "development") console.log("[DEBUG Auth Proxy] Final Set-Cookie headers:", responseHeaders.get("set-cookie"));
-    }
+    logger.debug('[Auth Proxy] Response cookies forwarded to client');
 
     return new Response(buffer, {
       status: response.status,
       headers: responseHeaders,
     });
   } catch (err) {
-    console.error("[Auth Proxy Error]:", err);
+    logger.error("[Auth Proxy] Upstream connection error", { err });
     return new Response(JSON.stringify({ error: "Failed to connect to auth service" }), {
       status: 502,
       headers: { "Content-Type": "application/json" },

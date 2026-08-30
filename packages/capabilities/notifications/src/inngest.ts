@@ -1,6 +1,6 @@
 import { Inngest } from 'inngest';
 import { db, deviceTokens } from '@money-matters/db';
-import { sendEmail } from '@money-matters/core';
+import { sendEmail, logAuditEvent } from '@money-matters/core';
 import { t } from '@money-matters/i18n';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
@@ -146,7 +146,7 @@ export function createNotificationFunctions(inngest: Inngest) {
       const { userId, tenantId, email } = accountDeletionPayloadSchema.parse(event.data);
 
       await step.run('log-deletion-audit', async () => {
-        console.log(`[Account Deletion Worker] Audit: User ${userId} requested account deletion for tenant ${tenantId || 'NONE'}`);
+        logAuditEvent('account_deletion_requested', tenantId || 'NO_TENANT', userId, { source: 'inngest_worker' });
       });
 
       if (email) {

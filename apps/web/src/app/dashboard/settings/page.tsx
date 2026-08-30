@@ -105,7 +105,7 @@ function SettingsPageContent() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-xs text-slate-500">Loading settings...</div>}>
+    <Suspense fallback={<div className="p-8 text-xs text-slate-500">{t("settings.loadingSettings")}</div>}>
       <SettingsPageContent />
     </Suspense>
   );

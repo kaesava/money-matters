@@ -90,7 +90,10 @@ export function updateBankAccountHandler(db: DbOrTx) {
     const [updated] = await db
       .update(bankAccounts)
       .set({
-        ...input,
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.bankProvider !== undefined ? { bankProvider: input.bankProvider } : {}),
+        ...(input.lastKnownBalance !== undefined ? { lastKnownBalance: input.lastKnownBalance } : {}),
+        ...(input.unbudgetedBuffer !== undefined ? { unbudgetedBuffer: input.unbudgetedBuffer } : {}),
         updatedBy: userId,
         updatedAt: new Date(),
       })

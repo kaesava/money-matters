@@ -31,7 +31,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
-  const createTenant = trpc.createTenant.useMutation();
 
   const hasMultipleTenants = (tenantsQuery.data?.length ?? 0) > 1;
 
@@ -44,27 +43,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setLanguage(userLocale);
     }
   }, [userLocale]);
-
-  // Tenant Creation Guard: if user has 0 tenants (e.g. signed up via Google), create one and redirect to setup
-  useEffect(() => {
-    if (
-      !isPending &&
-      session?.user &&
-      !tenantsQuery.isLoading &&
-      tenantsQuery.data &&
-      tenantsQuery.data.length === 0 &&
-      !createTenant.isPending &&
-      !createTenant.isSuccess
-    ) {
-      createTenant.mutate({ name: session.user.name || "My Finances" }, {
-        onSuccess: () => {
-          tenantsQuery.refetch().then(() => {
-            router.replace("/setup");
-          });
-        }
-      });
-    }
-  }, [isPending, session, tenantsQuery.isLoading, tenantsQuery.data, createTenant, router, tenantsQuery]);
 
 
   // Zero-Categories Guard: redirect to setup wizard if user has 0 categories and hasn't explicitly cancelled/completed setup
@@ -106,10 +84,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         });
     }
   }, []);
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("[DEBUG DashboardLayout] isPending:", isPending, "isExchanging:", isExchanging);
-  }
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== "undefined") {

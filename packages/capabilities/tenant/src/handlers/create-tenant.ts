@@ -74,49 +74,45 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .returning();
 
-    // 4. Create default Pools on Primary Account
-    const [everydayPool] = await db
+    // 4. Bulk-insert default Pools on Primary Account in one statement.
+    // FK ordering requires primaryAccount.id to exist first (step 3 above).
+    const [everydayPool, billsPool] = await db
       .insert(pools)
-      .values({
-        tenantId,
-        appId,
-        name: "Everyday Spending",
-        poolType: "EVERYDAY",
-        bankAccountId: primaryAccount.id,
-        everydayAllowanceAmount: "1000.00",
-        createdBy: userId,
-        updatedBy: userId,
-      })
+      .values([
+        {
+          tenantId,
+          appId,
+          name: "Everyday Spending",
+          poolType: "EVERYDAY",
+          bankAccountId: primaryAccount.id,
+          everydayAllowanceAmount: "1000.00",
+          createdBy: userId,
+          updatedBy: userId,
+        },
+        {
+          tenantId,
+          appId,
+          name: "Regular Bills",
+          poolType: "REGULAR",
+          bankAccountId: primaryAccount.id,
+          rolloverRule: "ROLLOVER",
+          createdBy: userId,
+          updatedBy: userId,
+        },
+        {
+          tenantId,
+          appId,
+          name: "Emergency Reserve",
+          poolType: "GOAL",
+          bankAccountId: primaryAccount.id,
+          targetAmount: "10000.00",
+          isCommitted: true,
+          isSurplusTarget: true,
+          createdBy: userId,
+          updatedBy: userId,
+        },
+      ])
       .returning();
-
-    const [billsPool] = await db
-      .insert(pools)
-      .values({
-        tenantId,
-        appId,
-        name: "Regular Bills",
-        poolType: "REGULAR",
-        bankAccountId: primaryAccount.id,
-        rolloverRule: "ROLLOVER",
-        createdBy: userId,
-        updatedBy: userId,
-      })
-      .returning();
-
-    await db
-      .insert(pools)
-      .values({
-        tenantId,
-        appId,
-        name: "Emergency Reserve",
-        poolType: "GOAL",
-        bankAccountId: primaryAccount.id,
-        targetAmount: "10000.00",
-        isCommitted: true,
-        isSurplusTarget: true,
-        createdBy: userId,
-        updatedBy: userId,
-      });
 
     // 5. Seed default sub-tag categories into Everyday and Bills pools
     const templates = await db

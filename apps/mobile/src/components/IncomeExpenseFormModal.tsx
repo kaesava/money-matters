@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileModalDialog, RecurrenceBuilder, useRecurrenceBuilder } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 
 export interface SourceToEdit {
@@ -30,38 +30,54 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
 
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [isRecurring, setIsRecurring] = useState(true);
-  const [frequency, setFrequency] = useState<'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'>('MONTHLY');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0] ?? '');
   const [categoryId, setCategoryId] = useState('');
+
+  const recurrenceBuilder = useRecurrenceBuilder();
+  const { rruleString, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
 
   useEffect(() => {
     if (sourceToEdit) {
       setName(sourceToEdit.name);
       setAmount(sourceToEdit.amount);
-      const hasRrule = Boolean(sourceToEdit.rrule);
-      setIsRecurring(hasRrule);
+      const hasSchedule = !!sourceToEdit.rrule || !!sourceToEdit.startDate;
+      setIsRecurring(hasSchedule);
 
       if (sourceToEdit.rrule) {
-        if (sourceToEdit.rrule.includes('FREQ=WEEKLY;INTERVAL=2')) setFrequency('FORTNIGHTLY');
-        else if (sourceToEdit.rrule.includes('FREQ=WEEKLY')) setFrequency('WEEKLY');
-        else if (sourceToEdit.rrule.includes('FREQ=YEARLY')) setFrequency('ANNUALLY');
-        else setFrequency('MONTHLY');
+        if (sourceToEdit.rrule.includes('FREQ=WEEKLY;INTERVAL=2')) {
+          setFrequency('FORTNIGHTLY');
+          setInterval(1);
+        } else if (sourceToEdit.rrule.includes('FREQ=WEEKLY')) {
+          setFrequency('WEEKLY');
+          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
+          setInterval(m ? parseInt(m[1]) : 1);
+        } else if (sourceToEdit.rrule.includes('FREQ=YEARLY')) {
+          setFrequency('ANNUALLY');
+          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
+          setInterval(m ? parseInt(m[1]) : 1);
+        } else {
+          setFrequency('MONTHLY');
+          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
+          setInterval(m ? parseInt(m[1]) : 1);
+        }
       } else {
         setFrequency('MONTHLY');
+        setInterval(1);
       }
 
       if (sourceToEdit.startDate) {
         const dStr = typeof sourceToEdit.startDate === 'string' ? sourceToEdit.startDate : sourceToEdit.startDate.toISOString();
         setStartDate(dStr.split('T')[0] ?? '');
       }
+      if (sourceToEdit.endDate) setEndDate(sourceToEdit.endDate.split('T')[0] ?? '');
       if (sourceToEdit.categoryId) setCategoryId(sourceToEdit.categoryId);
     } else {
       setName('');
       setAmount('');
       setIsRecurring(true);
       setFrequency('MONTHLY');
+      setInterval(1);
       setStartDate(new Date().toISOString().split('T')[0] ?? '');
+      setEndDate(null);
       setCategoryId('');
     }
   }, [sourceToEdit, visible]);
@@ -109,8 +125,9 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
             name: name.trim(),
             amount: parseFloat(amount).toFixed(2),
             isRecurring,
-            startDate: startDate ? startDate : undefined,
-            frequency: isRecurring ? frequency : undefined,
+            rrule: isRecurring ? (rruleString || undefined) : undefined,
+            startDate: startDate || undefined,
+            endDate: isRecurring && endDate ? endDate : undefined,
           },
         });
       } else {
@@ -118,8 +135,9 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
           name: name.trim(),
           amount: parseFloat(amount).toFixed(2),
           isRecurring,
-          startDate: isRecurring ? startDate : undefined,
-          frequency: isRecurring ? frequency : undefined,
+          rrule: isRecurring ? (rruleString || undefined) : undefined,
+          startDate: startDate || undefined,
+          endDate: isRecurring && endDate ? endDate : undefined,
         });
       }
     } else {
@@ -186,51 +204,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
         </View>
       )}
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Schedule Type</Text>
-        <View style={styles.row}>
-          <TouchableOpacity
-            onPress={() => setIsRecurring(true)}
-            style={[styles.typeBtn, isRecurring && styles.typeBtnActive]}
-          >
-            <Text style={[styles.typeBtnText, isRecurring && styles.typeBtnTextActive]}>Recurring</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setIsRecurring(false)}
-            style={[styles.typeBtn, !isRecurring && styles.typeBtnActive]}
-          >
-            <Text style={[styles.typeBtnText, !isRecurring && styles.typeBtnTextActive]}>One-off</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {isRecurring && (
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Frequency</Text>
-          <View style={styles.row}>
-            {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((freq) => (
-              <TouchableOpacity
-                key={freq}
-                onPress={() => setFrequency(freq)}
-                style={[styles.typeBtn, frequency === freq && styles.typeBtnActive]}
-              >
-                <Text style={[styles.typeBtnText, frequency === freq && styles.typeBtnTextActive]}>{freq}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>First Payment / Due Date (YYYY-MM-DD)</Text>
-        <TextInput
-          value={startDate}
-          onChangeText={setStartDate}
-          placeholder="2026-08-01"
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
-        />
-      </View>
+      <RecurrenceBuilder builder={recurrenceBuilder} />
 
       <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
         {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Save</Text>}

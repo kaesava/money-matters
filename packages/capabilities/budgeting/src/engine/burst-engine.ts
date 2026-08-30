@@ -13,6 +13,9 @@
  * @param monthsAhead - Projection window limit in months (defaults to 12)
  * @returns Array of Date instances for expected future occurrences
  */
+import rrulePkg from "rrule";
+const { RRule } = rrulePkg;
+
 export function generateBurstDates(
   rruleStr: string,
   startDateStr: string,
@@ -25,53 +28,36 @@ export function generateBurstDates(
   if (isNaN(start.getTime())) return dates;
   const now = new Date();
 
+  // Create a strict cutoff based on the current date + N months
   const cutOff = new Date(now.getFullYear(), now.getMonth() + monthsAhead, now.getDate());
-  const endDate = endDateStr ? new Date(endDateStr) : null;
 
-  let current = new Date(start.getTime());
-
-  // Parse rrule interval and freq
-  const isWeekly = rruleStr.includes("FREQ=WEEKLY");
-  const isFortnightly = isWeekly && rruleStr.includes("INTERVAL=2");
-  const isMonthly = rruleStr.includes("FREQ=MONTHLY");
-  const isYearly = rruleStr.includes("FREQ=YEARLY");
-
-  let stepDays = 7;
-  if (isFortnightly) stepDays = 14;
-
-  let iterations = 0;
-  while (iterations < 365) {
-    iterations++;
-
-    if (endDate && current > endDate) break;
-
-    // Add occurrence if it's today or in future
-    if (current >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-      dates.push(new Date(current.getTime()));
-    }
-
-    // Stop condition: reached max occurrences OR passed cutoff date
-    if (dates.length >= maxOccurrences || current > cutOff) {
-      break;
-    }
-
-    if (isMonthly) {
-      const targetYear = current.getFullYear() + Math.floor((current.getMonth() + 1) / 12);
-      const targetMonth = (current.getMonth() + 1) % 12;
-      const originalDay = start.getDate();
-      const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-      current = new Date(targetYear, targetMonth, Math.min(originalDay, daysInTargetMonth));
-    } else if (isYearly) {
-      const targetYear = current.getFullYear() + 1;
-      const originalMonth = start.getMonth();
-      const originalDay = start.getDate();
-      const daysInTargetMonth = new Date(targetYear, originalMonth + 1, 0).getDate();
-      current = new Date(targetYear, originalMonth, Math.min(originalDay, daysInTargetMonth));
-    } else {
-      current = new Date(current.getTime() + stepDays * 24 * 60 * 60 * 1000);
+  let limitDate = cutOff;
+  if (endDateStr) {
+    const end = new Date(endDateStr);
+    if (!isNaN(end.getTime()) && end < cutOff) {
+      limitDate = end;
     }
   }
 
-  return dates;
+  try {
+    const options = RRule.parseString(rruleStr);
+    options.dtstart = start;
+    options.until = limitDate; // RRule handles until inclusive
+
+    const rule = new RRule(options);
+
+    // We only care about occurrences from "today" forwards (even if dtstart was in the past)
+    const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Generate dates using rrule. 
+    // We add true as the 3rd argument to `between` to ensure it's inclusive of `todayLocal` and `limitDate`.
+    const generated = rule.between(todayLocal, limitDate, true);
+
+    return generated.slice(0, maxOccurrences);
+  } catch (e) {
+    // Fallback if rrule string parsing fails (should not happen for valid generated rrules)
+    console.error("Failed to parse rrule", e);
+    return dates;
+  }
 }
 

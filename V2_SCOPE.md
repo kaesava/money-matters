@@ -38,6 +38,7 @@
 | **Per-category bank account mapping** | Maps at category-type level initially | `bankAccountId` FK exists on `categories` table (nullable) |
 | **Real-time balance updates (WebSockets/SSE)** | Uses pull (React Query refetch) | No blocking concern |
 | **Multi-app platform (second app shell)** | Only `money-matters` initially | `appId` on all tables; app registry in `packages/config` |
+| **V2 Inngest Scheduled Notifications** | Deferred to Release 2 | The following 5 cron/event-triggered Inngest functions were stubbed out in V1 and removed from `scheduled-notifications.ts`. They must be redesigned with full tenant-scoped DB access (not global `db` singleton) before activation: `notify-payday-alert` (daily, `expenseEvents` today), `notify-shortfall-alert` (daily, pool balance vs upcoming bills), `notify-bill-reminder` (daily, tomorrow's bills), `notify-goal-milestone` (event: `transaction/recorded`), `notify-spending-velocity` (daily, EVERYDAY pool burn rate). |
 
 ---
 

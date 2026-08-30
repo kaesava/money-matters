@@ -2,7 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer } from "@money-matters/ui/web";
+import { SlideOverDrawer, fmtDate } from "@money-matters/ui/web";
 import { trpc } from "../../lib/trpc";
 
 export interface CategoryDetailItem {
@@ -139,9 +139,7 @@ export function CategoryDetailDrawer({ categoryId, onClose, onEdit, onArchive }:
             {cat.targetDate && (
               <p className="text-xs font-medium text-zinc-500">
                 {t("categories.nextDue", {
-                  date: new Date(cat.targetDate).toLocaleDateString("en-AU", {
-                    weekday: "short", day: "numeric", month: "long", year: "numeric",
-                  }),
+                  date: fmtDate(cat.targetDate, "Australia/Sydney"),
                 })}
               </p>
             )}
@@ -189,7 +187,7 @@ function TransactionHistory({
   const txs = transactionsQuery.data ?? [];
 
   if (transactionsQuery.isLoading) {
-    return <div className="py-6 text-center text-xs text-zinc-400">Loading history...</div>;
+    return <div className="py-6 text-center text-xs text-zinc-400">{t("drawers.categoryDetail.loadingHistory")}</div>;
   }
 
   if (txs.length === 0) {
@@ -217,7 +215,7 @@ function TransactionHistory({
       {(txs as TransactionItem[]).slice(0, 5).map((tx: TransactionItem) => {
         const recDate = tx.recordedAt ? new Date(tx.recordedAt) : new Date();
         const dateStr = !isNaN(recDate.getTime())
-          ? recDate.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+          ? fmtDate(recDate, "Australia/Sydney")
           : "—";
 
         return (

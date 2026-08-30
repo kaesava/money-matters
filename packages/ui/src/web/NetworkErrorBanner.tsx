@@ -21,7 +21,7 @@ export function NetworkErrorBanner({
   return (
     <div
       role="alert"
-      className="fixed top-0 left-0 right-0 z-[9999] bg-[#1B2B4B] text-white px-4 py-3 shadow-lg border-b border-rose-500/30 animate-in slide-in-from-top duration-300 flex items-center justify-between gap-4"
+      className="sticky top-0 left-0 right-0 z-[9999] bg-[#1B2B4B] text-white px-4 py-3 shadow-lg border-b border-rose-500/30 animate-in slide-in-from-top duration-300 flex items-center justify-between gap-4"
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 font-bold text-sm">

@@ -224,6 +224,9 @@ export const en = {
   transactions: {
     tabs: {
       transactions: "Transactions",
+      allocatePendingIncome: "Allocate Pending Income",
+      pendingList: "Pending List",
+      setup: "Setup",
       paydayAllocations: "Payday Allocations",
     },
     subtitle: "Subtitle",
@@ -784,8 +787,15 @@ export const en = {
       lastUpdated: "Updated {time} ago",
     },
   },
+  recurrence: {
+    scheduleType: "Schedule Type",
+    recurring: "Recurring",
+    oneOff: "One-off",
+    frequency: "Frequency"
+  },
   settings: {
     title: "Settings",
+    loadingSettings: "Loading settings...",
     tabs: {
       profile: "Profile",
       household: "Household",
@@ -976,6 +986,7 @@ export const en = {
     enterIncomeAmount: "Enter an income amount in Deposit Detail",
   },
   forms: {
+    scheduleType: "Schedule Type",
     recurrenceSchedule: "Recurrence Schedule",
     recurring: "Recurring",
     oneOff: "One-off",
@@ -1307,7 +1318,13 @@ export const en = {
       deletionSubject: "Account Deletion Processed",
       deletionBody: "Your account deletion request has been processed. All personal credentials and associated household records have been permanently erased from our primary databases per privacy governance guidelines.",
     },
-    settings: {
+    recurrence: {
+    scheduleType: "Schedule Type",
+    recurring: "Recurring",
+    oneOff: "One-off",
+    frequency: "Frequency"
+  },
+  settings: {
       title: "Notification Preferences",
       backCta: "← Back",
       loading: "Loading notification settings...",
@@ -1437,7 +1454,13 @@ export const en = {
       title: "About Bank Accounts",
       content: "Linking your pools (Everyday, Bills, Savings) to your actual bank accounts ensures your payday waterfall matches your real-world bank balances for effortless 1-tap reconciliation.",
     },
-    settings: {
+    recurrence: {
+    scheduleType: "Schedule Type",
+    recurring: "Recurring",
+    oneOff: "One-off",
+    frequency: "Frequency"
+  },
+  settings: {
       title: "About Settings",
       content: "Manage your household profile, preferences, and account configuration.",
     },
@@ -1504,6 +1527,7 @@ export const en = {
   },
   drawers: {
     categoryDetail: {
+      loadingHistory: "Loading history...",
       noHistory: "No transaction history for this category.",
       viewAllTransactions: "View All Transactions",
       overview: "Overview",

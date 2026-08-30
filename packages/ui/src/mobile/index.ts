@@ -29,3 +29,4 @@ export * from './ToastContext';
 export * from './Toast';
 export * from './AlertBanner';
 
+export * from './fields/RecurrenceBuilder';

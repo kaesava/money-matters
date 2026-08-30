@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { trpc } from "../../../lib/trpc";
-import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
+import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate, Tabs } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 
@@ -11,7 +12,7 @@ type ActiveTab = "STREAMS" | "EVENTS" | "MATRIX";
 const getAestTodayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
 export default function IncomeAndBillsPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("MATRIX");
+  const [activeTab, setActiveTab] = useState("MATRIX");
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -228,42 +229,15 @@ export default function IncomeAndBillsPage() {
         />
       </div>
 
-      {/* 3-Tab Viewport Switcher */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-zinc-200/80 w-fit">
-        <button
-          type="button"
-          onClick={() => setActiveTab("MATRIX")}
-          className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-            activeTab === "MATRIX"
-              ? "bg-[#2563eb] text-white shadow-xs"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-        >
-          Upcoming (Grid)
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("EVENTS")}
-          className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-            activeTab === "EVENTS"
-              ? "bg-[#2563eb] text-white shadow-xs"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-        >
-          Upcoming
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("STREAMS")}
-          className={`px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-            activeTab === "STREAMS"
-              ? "bg-[#2563eb] text-white shadow-xs"
-              : "text-zinc-600 hover:text-zinc-900"
-          }`}
-        >
-          Setup
-        </button>
-      </div>
+      <Tabs
+        tabs={[
+          { id: "MATRIX", label: t("transactions.tabs.allocatePendingIncome", { defaultValue: "Allocate Pending Income" }) },
+          { id: "EVENTS", label: t("transactions.tabs.pendingList", { defaultValue: "Pending List" }) },
+          { id: "STREAMS", label: t("transactions.tabs.setup", { defaultValue: "Setup" }) },
+        ]}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+      />
 
       {activeTab === "MATRIX" && (
         <MatrixPlanTab

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -58,9 +58,10 @@ export default function IncomeExpenseFormModal({
   const [amount, setAmount] = useState("");
   const [poolId, setPoolId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
-  const [isRecurring, setIsRecurring] = useState(true);
-  const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
-  const [startDate, setStartDate] = useState(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
+  
+  const recurrenceBuilder = useRecurrenceBuilder();
+  const { rruleString, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
+  
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -76,15 +77,29 @@ export default function IncomeExpenseFormModal({
       setIsRecurring(hasSchedule);
 
       if (sourceToEdit.rrule) {
-        if (sourceToEdit.rrule.includes("FREQ=WEEKLY;INTERVAL=2")) setFrequency("FORTNIGHTLY");
-        else if (sourceToEdit.rrule.includes("FREQ=WEEKLY")) setFrequency("WEEKLY");
-        else if (sourceToEdit.rrule.includes("FREQ=YEARLY")) setFrequency("ANNUALLY");
-        else setFrequency("MONTHLY");
+        if (sourceToEdit.rrule.includes("FREQ=WEEKLY;INTERVAL=2")) {
+          setFrequency("FORTNIGHTLY");
+          setInterval(1);
+        } else if (sourceToEdit.rrule.includes("FREQ=WEEKLY")) {
+          setFrequency("WEEKLY");
+          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
+          setInterval(m ? parseInt(m[1]) : 1);
+        } else if (sourceToEdit.rrule.includes("FREQ=YEARLY")) {
+          setFrequency("ANNUALLY");
+          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
+          setInterval(m ? parseInt(m[1]) : 1);
+        } else {
+          setFrequency("MONTHLY");
+          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
+          setInterval(m ? parseInt(m[1]) : 1);
+        }
       } else {
         setFrequency("MONTHLY");
+        setInterval(1);
       }
 
       setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
+      // Note: sourceToEdit currently doesn't provide endDate in the interface, so we omit setting it, or we could add it to SourceToEdit if needed.
     } else {
       setName("");
       setAmount("");
@@ -92,7 +107,9 @@ export default function IncomeExpenseFormModal({
       setReceivingAccountId(bankAccounts[0]?.id || "");
       setIsRecurring(true);
       setFrequency("MONTHLY");
+      setInterval(1);
       setStartDate(new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
+      setEndDate(null);
     }
     setErrorMsg("");
   }, [sourceToEdit, isOpen, bankAccounts, pools]);
@@ -151,8 +168,9 @@ export default function IncomeExpenseFormModal({
               amount: formattedAmount,
               receivingAccountId: receivingAccountId || undefined,
               isRecurring,
-              frequency: isRecurring ? frequency : undefined,
+              rrule: isRecurring ? (rruleString || undefined) : undefined,
               startDate: startDate || undefined,
+              endDate: isRecurring && endDate ? endDate : undefined,
             },
           });
         } else {
@@ -161,8 +179,9 @@ export default function IncomeExpenseFormModal({
             amount: formattedAmount,
             receivingAccountId: receivingAccountId || undefined,
             isRecurring,
-            frequency: isRecurring ? frequency : undefined,
+            rrule: isRecurring ? (rruleString || undefined) : undefined,
             startDate: startDate || undefined,
+            endDate: isRecurring && endDate ? endDate : undefined,
           });
         }
         await utils.listIncomeSources.invalidate();
@@ -173,8 +192,9 @@ export default function IncomeExpenseFormModal({
           amount: formattedAmount,
           poolId,
           isRecurring,
-          frequency: isRecurring ? frequency : undefined,
+          rrule: isRecurring ? (rruleString || undefined) : undefined,
           startDate: startDate || undefined,
+          endDate: isRecurring && endDate ? endDate : undefined,
         });
         await utils.listExpenseSources.invalidate();
         await utils.listExpenseEvents.invalidate();
@@ -274,48 +294,7 @@ export default function IncomeExpenseFormModal({
           </div>
         )}
 
-        <label className="flex items-center gap-2 pt-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isRecurring}
-            onChange={(e) => setIsRecurring(e.target.checked)}
-            className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-          />
-          <span className="font-bold text-zinc-800">
-            {t("modals.incomeExpenseForm.recurringSchedule", { defaultValue: "Recurring Schedule" })}
-          </span>
-        </label>
-
-        {isRecurring && (
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">
-                {t("modals.incomeExpenseForm.frequency", { defaultValue: "Frequency" })}
-              </label>
-              <select
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY")}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              >
-                <option value="WEEKLY">{t("frequencies.weekly", { defaultValue: "Weekly" })}</option>
-                <option value="FORTNIGHTLY">{t("frequencies.fortnightly", { defaultValue: "Fortnightly" })}</option>
-                <option value="MONTHLY">{t("frequencies.monthly", { defaultValue: "Monthly" })}</option>
-                <option value="ANNUALLY">{t("frequencies.annually", { defaultValue: "Annually" })}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">
-                {t("modals.incomeExpenseForm.firstDate", { defaultValue: "First Date" })}
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              />
-            </div>
-          </div>
-        )}
+        <RecurrenceBuilder builder={recurrenceBuilder} />
 
         <div className="flex items-center justify-between gap-2 pt-4 border-t border-zinc-200">
           {isEdit ? (

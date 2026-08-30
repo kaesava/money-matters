@@ -294,7 +294,7 @@ export const tenantRouter = {
       return { success: true };
     }),
 
-  createBankAccount: tenantProcedure
+  createBankAccount: privateTenantProcedure
     .input(CreateBankAccountCommand)
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
@@ -314,7 +314,7 @@ export const tenantRouter = {
       return result;
     }),
 
-  updateBankAccount: tenantProcedure
+  updateBankAccount: privateTenantProcedure
     .input(z.object({
       accountId: z.string().uuid(),
       data: UpdateBankAccountCommand
@@ -333,13 +333,13 @@ export const tenantRouter = {
       return await handler(input.accountId, ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  getBankAccountsWithMappings: tenantProcedure
+  getBankAccountsWithMappings: privateTenantProcedure
     .query(async ({ ctx }) => {
       const handler = getBankAccountsWithMappingsHandler(ctx.db);
       return await handler(ctx.tenantId!, ctx.appId!, ctx.userId!);
     }),
 
-  listBankAccounts: tenantProcedure
+  listBankAccounts: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await ctx.db
         .select()
@@ -388,6 +388,7 @@ export const tenantRouter = {
       z.object({
         accountId: z.string().uuid(),
         actualBalance: z.string().regex(/^\d+(\.\d{1,2})?$/),
+        clientIdempotencyToken: z.string().uuid(),
         splits: z.array(
           z.object({
             poolId: z.string().uuid(),
@@ -437,7 +438,7 @@ export const tenantRouter = {
             bankAccountId: accountId,
             flowType: (adj > 0 ? "CREDIT" : "DEBIT") as "CREDIT" | "DEBIT",
             amount: Math.abs(adj).toFixed(2),
-            idempotencyKey: `reconcile-${accountId}-${split.poolId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            idempotencyKey: `reconcile-${accountId}-${split.poolId}-${input.clientIdempotencyToken}`,
             note: `${poolName} Reconciliation Adjustment`,
             source: "MANUAL" as const,
             createdBy: ctx.userId!,

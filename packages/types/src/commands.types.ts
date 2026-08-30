@@ -15,7 +15,6 @@ export const CreateBankAccountCommand = z.object({
   lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
   unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.00").optional(),
   isPrivate: z.boolean().default(false).optional(),
-  userId: z.string().uuid().optional(),
 }).strict();
 
 export const UpdateBankAccountCommand = z.object({
@@ -24,7 +23,6 @@ export const UpdateBankAccountCommand = z.object({
   lastKnownBalance: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   unbudgetedBuffer: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   isPrivate: z.boolean().optional(),
-  userId: z.string().uuid().optional(),
 }).strict();
 
 export const CreatePoolCommand = z.object({

@@ -224,6 +224,9 @@ export const ja: DeepStringRecord<typeof en> = {
   "transactions": {
     "tabs": {
       "transactions": "取引履歴",
+      "allocatePendingIncome": "未決算の収入を割り当てる",
+      "pendingList": "保留リスト",
+      "setup": "セットアップ",
       "paydayAllocations": "給与日配分"
     },
     "subtitle": "サブタイトル",
@@ -785,6 +788,7 @@ export const ja: DeepStringRecord<typeof en> = {
   },
   "settings": {
     "title": "設定",
+    "loadingSettings": "設定を読み込み中...",
     "tabs": {
       "profile": "プロフィール",
       "household": "世帯",
@@ -975,6 +979,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "enterIncomeAmount": "入金詳細に収入額を入力してください"
   },
   "forms": {
+    "scheduleType": "スケジュールタイプ",
     "recurrenceSchedule": "繰り返しスケジュール",
     "recurring": "定期",
     "oneOff": "単発",
@@ -1471,6 +1476,7 @@ export const ja: DeepStringRecord<typeof en> = {
   },
   "drawers": {
     "categoryDetail": {
+      "loadingHistory": "履歴を読み込み中...",
       "noHistory": "このカテゴリの取引履歴はありません。",
       "viewAllTransactions": "すべての取引を表示",
       "overview": "概要"
@@ -1537,5 +1543,11 @@ export const ja: DeepStringRecord<typeof en> = {
     "search": "検索",
     "close": "閉じる",
     "shortcuts": "ショートカット"
+  },
+  "recurrence": {
+    "scheduleType": "スケジュールタイプ",
+    "recurring": "繰り返し",
+    "oneOff": "単発",
+    "frequency": "頻度"
   }
 } as const;
