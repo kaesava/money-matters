@@ -112,7 +112,7 @@ export default function IncomeExpenseFormModal({
       setEndDate(null);
     }
     setErrorMsg("");
-  }, [sourceToEdit, isOpen, bankAccounts, pools]);
+  }, [sourceToEdit, isOpen, bankAccounts, pools, setEndDate, setFrequency, setInterval, setIsRecurring, setStartDate]);
 
   const handleArchive = async () => {
     if (!sourceToEdit) return;

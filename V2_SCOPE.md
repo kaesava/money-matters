@@ -26,6 +26,7 @@
 | **Japanese Translation (ja.ts) Parity Check** | Deferred to Release 2 | `check-i18n.cjs` validates `en.ts` completeness and TSX string literal externalization in V1; full EN-JA dictionary key parity deferred to Release 2 |
 | **Category-Level Balance Management (Everyday & Bills)** | Deferred to Release 2 | Managed at pool level in V1; see detailed feature spec below |
 | **Upcoming Queue Multi-Selection & Batch Actioning** | Deferred to Release 2 | Single-row actioning (*Mark Received / Paid*, *Skip*) delivered in V1; batch checkboxes and bulk mark action bar deferred to V2 |
+| **Full Outlook-Style Complex Recurrence Builder** | Deferred to Release 2 | V1 provides simple frequency enums (`WEEKLY`, `FORTNIGHTLY`, `MONTHLY`, `ANNUALLY`) + one-off target date picker via `useRecurrenceBuilder`. Full Outlook-style RRULE rule builder (e.g. 2nd Tuesday of every month, Nth weekday, custom intervals, complex until dates) deferred to V2. |
 
 ---
 

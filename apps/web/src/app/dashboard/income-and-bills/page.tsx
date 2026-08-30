@@ -7,8 +7,6 @@ import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableC
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 
-type ActiveTab = "STREAMS" | "EVENTS" | "MATRIX";
-
 const getAestTodayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
 export default function IncomeAndBillsPage() {
