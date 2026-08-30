@@ -7,8 +7,8 @@ describe('i18n Localization Engine', () => {
     expect(t('common.previous')).toBe('Previous');
     expect(t('common.nextPage')).toBe('Next');
     expect(t('common.pageOf', { page: 1, totalPages: 5 })).toBe('Page 1 of 5');
-    expect(t('nav.paychecks')).toBe('Paychecks');
-    expect(t('app.title')).toBe('money matters');
+    expect(t('nav.paychecks')).toBe('Income & Bills');
+    expect(t('app.title')).toBe('Money Matters by Kaesava');
   });
 
   it('interpolates template parameters correctly', () => {
@@ -16,7 +16,7 @@ describe('i18n Localization Engine', () => {
     expect(result).toBe('Step 2 of 4');
 
     const alert = t('shortfall.alertBody', { category: 'Dining Out', amount: '$45.00' });
-    expect(alert).toBe('Dining Out is overdrawn by $45.00.');
+    expect(alert).toBe('Dining Out is short by $45.00.');
   });
 
   it('uses defaultValue fallback when key does not exist', () => {
