@@ -43,21 +43,29 @@ export default function IncomeAndBillsPage() {
   const incomeEvents = useMemo(() => rawIncomeEvents || [], [rawIncomeEvents]);
   const expenseEvents = useMemo(() => rawExpenseEvents || [], [rawExpenseEvents]);
 
-  const matrixIncomeEvents = incomeEvents.map((e) => ({
-    id: e.id,
-    expectedDate: e.expectedDate,
-    expectedAmount: parseFloat(e.expectedAmount || "0"),
-    actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-    status: e.status as "UPCOMING" | "CONFIRMED" | "SKIPPED",
-    sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
-  }));
+  const matrixIncomeEvents = useMemo(() => {
+    return incomeEvents
+      .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
+      .map((e) => ({
+        id: e.id,
+        expectedDate: e.expectedDate,
+        expectedAmount: parseFloat(e.expectedAmount || "0"),
+        actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
+        status: e.status as "UPCOMING" | "CONFIRMED" | "SKIPPED",
+        sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
+      }));
+  }, [incomeEvents]);
 
-  const matrixExpenseEvents = expenseEvents.map((e) => ({
-    categoryId: e.poolId || e.categoryId || "",
-    amount: parseFloat(e.expectedAmount || "0"),
-    dueDate: e.expectedDate,
-    status: e.status as "UPCOMING" | "PAID" | "SKIPPED",
-  }));
+  const matrixExpenseEvents = useMemo(() => {
+    return expenseEvents
+      .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
+      .map((e) => ({
+        categoryId: e.poolId || e.categoryId || "",
+        amount: parseFloat(e.expectedAmount || "0"),
+        dueDate: e.expectedDate,
+        status: e.status as "UPCOMING" | "PAID" | "SKIPPED",
+      }));
+  }, [expenseEvents]);
 
   const todayStr = useMemo(() => getAestTodayStr(), []);
 

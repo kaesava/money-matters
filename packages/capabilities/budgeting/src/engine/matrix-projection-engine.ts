@@ -70,12 +70,16 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   const cellOverrides = input.cellOverrides ?? {};
   
   // Filter for UPCOMING events only to prevent double counting
-  const expenseEvents = (input.expenseEvents ?? []).filter(e => e.status === "UPCOMING");
+  const expenseEvents = (input.expenseEvents ?? []).filter((e) => e && e.status === "UPCOMING" && Boolean(e.dueDate) && String(e.dueDate).length >= 10);
   
   // Only project UPCOMING incomes, sort chronologically
   const upcomingIncomes = [...input.incomeEvents]
-    .filter(e => e.status === "UPCOMING")
-    .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
+    .filter((e) => e && e.status === "UPCOMING" && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
+    .sort((a, b) => {
+      const tA = new Date(a.expectedDate + "T00:00:00").getTime();
+      const tB = new Date(b.expectedDate + "T00:00:00").getTime();
+      return (isNaN(tA) ? 0 : tA) - (isNaN(tB) ? 0 : tB);
+    });
 
   // Filter categories by Stealth Privacy RLS: (isPrivate = false OR userId = currentUserId)
   const visibleCategories = input.categories.filter(
@@ -94,8 +98,15 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   // 1. Build Columns metadata (1:1 with Income Events)
   const columns: MatrixColumn[] = [];
   for (const evt of upcomingIncomes) {
-    const dateObj = new Date(evt.expectedDate + "T00:00:00");
-    const dateLabel = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" }).format(dateObj);
+    let dateLabel = evt.expectedDate;
+    try {
+      const dateObj = new Date(evt.expectedDate + "T00:00:00");
+      if (!isNaN(dateObj.getTime())) {
+        dateLabel = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" }).format(dateObj);
+      }
+    } catch (_err) {
+      // Keep dateLabel as raw expectedDate fallback
+    }
 
     columns.push({
       id: evt.id,
