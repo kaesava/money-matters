@@ -1,7 +1,7 @@
 "use client";
 
 import { t } from "@money-matters/i18n";
-import { useIconVisibility, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
+import { fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
 interface SavingsGoalsSectionProps {
@@ -28,7 +28,6 @@ export function SavingsGoalsSection({
   onOpenCreateModal,
   onOpenActivity,
 }: SavingsGoalsSectionProps) {
-  const { showIcons } = useIconVisibility();
   const { widths, onMouseDown } = useResizableColumns({
     name: 240,
     balance: 160,

@@ -54,7 +54,7 @@ export function BankAccountFormModal({
   accBuffer,
   setAccBuffer,
   accIsPrivate,
-  setAccIsPrivate,
+  setAccIsPrivate: _setAccIsPrivate,
   pools,
   selectedPoolIds,
   onPoolToggle,
@@ -115,7 +115,22 @@ export function BankAccountFormModal({
 
   const isDirty = isFormDirty(initialState, currentState);
 
+  const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
   const isNegativeAvailable = (parseFloat(accBalance) || 0) < (parseFloat(accBuffer) || 0);
+
+  const handlePrivateCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const targetValue = e.target.checked;
+    if (targetValue !== accIsPrivate) {
+      setPrivacyWarningTarget(targetValue);
+    }
+  };
+
+  const handleConfirmPrivacyChange = () => {
+    if (privacyWarningTarget !== null) {
+      setAccIsPrivate(privacyWarningTarget);
+      setPrivacyWarningTarget(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150" role="dialog" aria-modal="true" aria-labelledby={modalId}>

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useIconVisibility, InfoTooltip, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
+import { InfoTooltip, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 import { DualPoolProgressBar } from "./DualPoolProgressBar";
 
 export interface CategorySummaryItem {
@@ -53,8 +53,6 @@ export function EverydayPoolSection({
   onEditCategory,
   onOpenActivity,
 }: EverydayPoolSectionProps) {
-  const { showIcons } = useIconVisibility();
-
   const { widths, onMouseDown } = useResizableColumns({
     name: 320,
     target: 200,

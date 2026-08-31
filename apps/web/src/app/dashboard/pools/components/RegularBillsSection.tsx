@@ -2,7 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useIconVisibility, InfoTooltip, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
+import { InfoTooltip, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
 import { DualPoolProgressBar } from "./DualPoolProgressBar";
 import { CategorySummaryItem } from "./EverydayPoolSection";
 
@@ -44,7 +44,6 @@ export function RegularBillsSection({
   onArchiveCategory: _onArchiveCategory,
   onOpenActivity,
 }: RegularBillsSectionProps) {
-  const { showIcons } = useIconVisibility();
   const coverageMap = new Map(billCoverageItems.map((item) => [item.categoryId, item]));
   const { widths, onMouseDown } = useResizableColumns({
     name: 240,
