@@ -39,6 +39,7 @@ export interface BankAccountFormModalProps {
   readonly onSubmit: (e: React.FormEvent) => void;
   readonly fmtMoney: (val: number | string | undefined) => string;
   readonly onArchive?: () => void;
+  readonly errorMsg?: string | null;
 }
 
 export function BankAccountFormModal({
@@ -65,6 +66,7 @@ export function BankAccountFormModal({
   onSubmit,
   fmtMoney,
   onArchive,
+  errorMsg,
 }: BankAccountFormModalProps) {
   const toast = useToast();
   const modalId = useId();
@@ -76,6 +78,7 @@ export function BankAccountFormModal({
 
   const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [poolStealTarget, setPoolStealTarget] = useState<{ pool: PoolRecord; ownerName: string } | null>(null);
 
 
   // Escape key handler for modal dismissal
@@ -112,21 +115,7 @@ export function BankAccountFormModal({
 
   const isDirty = isFormDirty(initialState, currentState);
 
-  const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
-
-  const handlePrivateCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const targetValue = e.target.checked;
-    if (targetValue !== accIsPrivate) {
-      setPrivacyWarningTarget(targetValue);
-    }
-  };
-
-  const handleConfirmPrivacyChange = () => {
-    if (privacyWarningTarget !== null) {
-      setAccIsPrivate(privacyWarningTarget);
-      setPrivacyWarningTarget(null);
-    }
-  };
+  const isNegativeAvailable = (parseFloat(accBalance) || 0) < (parseFloat(accBuffer) || 0);
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150" role="dialog" aria-modal="true" aria-labelledby={modalId}>
@@ -142,6 +131,14 @@ export function BankAccountFormModal({
             ✕
           </button>
         </div>
+
+        {(errorMsg || isNegativeAvailable) && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+            {isNegativeAvailable
+              ? "Unbudgeted Buffer / Reserved amount cannot exceed the Current Balance."
+              : errorMsg}
+          </div>
+        )}
 
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1">
@@ -212,11 +209,7 @@ export function BankAccountFormModal({
               <span className="text-[#1B2B4B]">Amount Available to Budget:</span>
               <InfoTooltip content="Net spendable funds in this account (Current Balance − Reserved Funds)." />
             </div>
-            <span className={`font-mono text-sm font-black ${
-              (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0) < 0
-                ? "text-rose-600"
-                : "text-emerald-700"
-            }`}>
+            <span className={`font-mono text-sm font-black ${isNegativeAvailable ? "text-rose-600" : "text-emerald-700"}`}>
               {fmtMoney(currentAvailable)}
             </span>
           </div>
@@ -232,14 +225,29 @@ export function BankAccountFormModal({
               <p className="text-xs text-zinc-400 italic py-2">No pools created yet.</p>
             ) : (
               pools.map((pool) => {
-                const isChecked = selectedPoolIds.includes(pool.id) || (editingAccount && pool.bankAccountId === editingAccount.id && !selectedPoolIds.includes(pool.id));
+                const isChecked = selectedPoolIds.includes(pool.id);
+                const isCurrentlyOwned = Boolean(editingAccount && pool.bankAccountId === editingAccount.id);
                 const currentOwner = accounts.find((a) => a.id === pool.bankAccountId && a.id !== editingAccount?.id);
                 const typeLabel = pool.poolType === "EVERYDAY" ? "Everyday" : pool.poolType === "REGULAR" ? "Bills" : "Goal";
                 const badgeStyle = pool.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700" : pool.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700";
 
+                const handleToggleClick = (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  if (isChecked && isCurrentlyOwned) {
+                    toast.info("To unlink this pool, link it to your target Bank Account instead.");
+                    return;
+                  }
+                  if (!isChecked && currentOwner) {
+                    setPoolStealTarget({ pool, ownerName: currentOwner.name });
+                    return;
+                  }
+                  onPoolToggle(pool.id);
+                };
+
                 return (
-                  <label
+                  <div
                     key={pool.id}
+                    onClick={handleToggleClick}
                     className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors ${
                       isChecked ? "bg-blue-50/50 border-[#2563eb] text-[#1B2B4B]" : "bg-zinc-50/50 border-zinc-200 text-zinc-600"
                     }`}
@@ -247,8 +255,8 @@ export function BankAccountFormModal({
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={Boolean(isChecked)}
-                        onChange={() => onPoolToggle(pool.id)}
+                        checked={isChecked}
+                        onChange={() => {}}
                         className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb]"
                       />
                       <div className="flex items-center gap-2">
@@ -265,7 +273,7 @@ export function BankAccountFormModal({
                         <span className="text-[10px] font-mono text-zinc-400">Available: {fmtMoney(pool.currentBalance)}</span>
                       )}
                     </div>
-                  </label>
+                  </div>
                 );
               })
             )}
@@ -282,7 +290,7 @@ export function BankAccountFormModal({
               onChange={handlePrivateCheckboxChange}
               className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
             />
-            <span>{t("bankAccounts.privatePersonalAccount", { defaultValue: "🔒 Private Personal Account (Hidden from other users)" })}</span>
+            <span>{t("bankAccounts.privatePersonalAccount", { defaultValue: "Private Personal Account (Hidden from other users)" })}</span>
           </label>
           {isTrialExpired && (
             <InfoTooltip content={t("bankAccounts.upgradeToPrivate", { defaultValue: "Upgrade to Premium to mark accounts as private" })} />
@@ -312,16 +320,21 @@ export function BankAccountFormModal({
             </button>
             <button
               type="submit"
-              disabled={isSaving || (!!editingAccount && !isDirty)}
+              disabled={isSaving || isNegativeAvailable || (!!editingAccount && !isDirty)}
               onClick={(e) => {
+                if (isNegativeAvailable) {
+                  e.preventDefault();
+                  toast.error("Unbudgeted Buffer cannot exceed Current Balance.");
+                  return;
+                }
                 if (editingAccount && !isDirty && !isSaving) {
                   e.preventDefault();
                   toast.info("No changes to save.");
                 }
               }}
-              title={editingAccount && !isDirty ? "No changes to save" : undefined}
+              title={isNegativeAvailable ? "Reserved funds cannot exceed Current Balance" : editingAccount && !isDirty ? "No changes to save" : undefined}
               className={`px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
-                editingAccount && !isDirty ? "bg-zinc-300 opacity-60 cursor-not-allowed" : "bg-[#2563eb] hover:bg-blue-700"
+                isNegativeAvailable || (editingAccount && !isDirty) ? "bg-zinc-300 opacity-60 cursor-not-allowed" : "bg-[#2563eb] hover:bg-blue-700"
               }`}
             >
               {isSaving ? (
@@ -334,8 +347,22 @@ export function BankAccountFormModal({
               )}
             </button>
           </div>
-
         </div>
+
+        <ConfirmDialog
+          isOpen={!!poolStealTarget}
+          onClose={() => setPoolStealTarget(null)}
+          onConfirm={() => {
+            if (poolStealTarget) {
+              onPoolToggle(poolStealTarget.pool.id);
+              setPoolStealTarget(null);
+            }
+          }}
+          title="Re-link Pool"
+          description={`"_${poolStealTarget?.pool.name}_" is currently linked to **${poolStealTarget?.ownerName}**. Linking it here will move it to this account. Are you sure?`}
+          confirmLabel="Link to this Account"
+          variant="warning"
+        />
 
         {/* Privacy Warning Confirmation Modal */}
         {privacyWarningTarget !== null && (

@@ -379,7 +379,7 @@ function TransactionsPageContent() {
                           {sortColumn === "description" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
-                      <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4 text-center">{t("transactions.category") || "Category"}</ResizableTh>
+                      <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4 text-left">Pool</ResizableTh>
                       <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="py-3 px-4 text-center">Source</ResizableTh>
                       <ResizableTh
                         width={widths.amount}
@@ -402,12 +402,13 @@ function TransactionsPageContent() {
                       <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 font-mono text-zinc-500 text-center">{fmtDate(tx.date)}</td>
                         <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">{tx.description}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
-                            tx.type === "TRANSFER" ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-slate-100 text-zinc-700"
-                          }`}>
+                        <td className="py-3 px-4 text-left">
+                          <Link
+                            href={`/dashboard/pools?search=${encodeURIComponent(tx.categoryName.split(" ➔ ")[0])}`}
+                            className="font-semibold text-[#2563eb] hover:underline"
+                          >
                             {tx.categoryName}
-                          </span>
+                          </Link>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">

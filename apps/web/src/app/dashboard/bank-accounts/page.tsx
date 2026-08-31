@@ -150,9 +150,11 @@ export default function BankAccountsDashboardPage() {
     const q = searchQuery.toLowerCase().trim();
     if (q && !acc.name.toLowerCase().includes(q)) return false;
     if (typeFilter !== "ALL") {
-      const catTypes = acc.poolTypes || acc.categoryTypes || [];
-      if (typeFilter === "UNLINKED" && catTypes.length > 0) return false;
-      if (typeFilter !== "UNLINKED" && !catTypes.includes(typeFilter as CategoryType)) return false;
+      if (typeFilter === "UNLINKED") {
+        if ((acc.linkedPoolsCount ?? 0) > 0) return false;
+      } else {
+        if (!acc.linkedPools?.some((p) => p.id === typeFilter)) return false;
+      }
     }
     return true;
   });
@@ -258,22 +260,26 @@ export default function BankAccountsDashboardPage() {
       return;
     }
 
-    if (editingAccount) {
-      const linkedPools = pools.filter((p) => p.bankAccountId === editingAccount.id);
-      const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-      const expectedBankBal = poolsTotal + bufNum;
+    const linkedPools = pools.filter((p) => selectedPoolIds.includes(p.id));
+    const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+    const expectedBankBal = poolsTotal + bufNum;
 
-      // RULE: If NO pools are linked to this bank account, skip modal completely!
-      if (linkedPools.length > 0 && Math.abs(balNum - expectedBankBal) > 0.009) {
-        setIsModalOpen(false); // Close edit form modal cleanly!
-        setReconcileState({
-          account: editingAccount,
-          newBalance: balNum,
-          expectedBalance: expectedBankBal,
-          linkedPools,
-        });
-        return;
-      }
+    // RULE: If pools are linked and balance differs, trigger alignment modal
+    if (linkedPools.length > 0 && Math.abs(balNum - expectedBankBal) > 0.009) {
+      setIsModalOpen(false); // Close edit form modal cleanly!
+      setReconcileState({
+        account: editingAccount || {
+          id: "new-account",
+          name: accName.trim(),
+        },
+        newBalance: balNum,
+        expectedBalance: expectedBankBal,
+        linkedPools,
+      });
+      return;
+    }
+
+    if (editingAccount) {
 
       updateAccountMut.mutate(
         {
@@ -499,17 +505,16 @@ export default function BankAccountsDashboardPage() {
         />
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-zinc-400">Linked Pool:</span>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+            className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           >
             <option value="ALL">All Accounts</option>
-            <option value="EVERYDAY">Everyday Pool</option>
-            <option value="REGULAR">Bills Pool</option>
-            <option value="GOAL">Savings Pool</option>
-            <option value="UNLINKED">Unlinked</option>
+            {pools.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+            <option value="UNLINKED">Unlinked Accounts</option>
           </select>
         </div>
       </div>
@@ -560,6 +565,7 @@ export default function BankAccountsDashboardPage() {
           onSubmit={handleSaveAccount}
           fmtMoney={fmtMoney}
           onArchive={() => editingAccount && handleArchive(editingAccount)}
+          errorMsg={errorMsg}
         />
       )}
 

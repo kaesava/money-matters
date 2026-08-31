@@ -128,7 +128,6 @@ export function BankAccountTable({
                         </span>
                         <span className="text-[10px] text-zinc-400 font-medium">
                           Actual Balance: {fmtMoney(actualBal)}
-                          {buf > 0 && ` (Reserved: ${fmtMoney(buf)})`}
                         </span>
                         {(acc.linkedPoolsCount ?? 0) > 0 && acc.hasDifference && (
                           <button

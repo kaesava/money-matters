@@ -42,11 +42,6 @@ export function SavingsGoalsSection({
       {/* Header */}
       <div className="p-5 bg-gradient-to-r from-blue-50/60 to-white border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {showIcons && (
-            <div className="w-10 h-10 rounded-xl bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-bold">
-              🎯
-            </div>
-          )}
           <div>
             <h3 className="font-extrabold text-[#1B2B4B] text-base">{t("categories.goalSection")}</h3>
           </div>
@@ -60,9 +55,9 @@ export function SavingsGoalsSection({
           {onOpenCreateModal && (
             <button
               onClick={() => onOpenCreateModal("GOAL")}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 shadow-xs transition-all cursor-pointer"
             >
-              + Add Goal
+              Add Goal
             </button>
           )}
         </div>
@@ -121,13 +116,13 @@ export function SavingsGoalsSection({
                       >
                         <span>{cat.name}</span>
                         {cat.isPrivate && (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                            🔒 Private
+                          <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                            Private
                           </span>
                         )}
                         {cat.isSurplusTarget && (
                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" title="Sweep Target">
-                            🧲 Sweep Target
+                            Sweep Target
                           </span>
                         )}
                       </button>
@@ -135,11 +130,10 @@ export function SavingsGoalsSection({
                         <button
                           type="button"
                           onClick={() => onOpenActivity(cat)}
-                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors cursor-pointer shrink-0"
                           title="View past transactions and upcoming events for this category"
                         >
-                          <span>📊</span>
-                          <span>Activity</span>
+                          Activity
                         </button>
                       )}
                     </div>

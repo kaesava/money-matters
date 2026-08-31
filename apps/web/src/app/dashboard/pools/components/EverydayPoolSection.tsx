@@ -66,11 +66,6 @@ export function EverydayPoolSection({
       <div className="p-5 bg-gradient-to-r from-emerald-50/60 to-white border-b border-zinc-100 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            {showIcons && (
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl font-bold">
-                💳
-              </div>
-            )}
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-[#1B2B4B]">{t("categories.sections.everydayTitle")}</h2>
@@ -78,13 +73,11 @@ export function EverydayPoolSection({
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm transition-all flex items-center gap-1 cursor-pointer ml-1"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-xs transition-all cursor-pointer ml-1"
                 >
-                  <span>
-                    {isCollapsed
-                      ? `${categories.length} categor${categories.length === 1 ? "y" : "ies"} ▼`
-                      : "Collapse ▲"}
-                  </span>
+                  {isCollapsed
+                    ? `${categories.length} categor${categories.length === 1 ? "y" : "ies"}`
+                    : "Collapse"}
                 </button>
               </div>
             </div>
@@ -128,7 +121,7 @@ export function EverydayPoolSection({
                       <button
                         type="button"
                         onClick={() => onEditCategory(cat)}
-                        className="text-[#00B4A6] hover:underline font-bold text-left cursor-pointer"
+                        className="text-[#2563eb] hover:underline font-bold text-left cursor-pointer"
                       >
                         {cat.name}
                       </button>
@@ -136,11 +129,10 @@ export function EverydayPoolSection({
                         <button
                           type="button"
                           onClick={() => onOpenActivity(cat)}
-                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors cursor-pointer shrink-0"
                           title="View past transactions and upcoming events for this category"
                         >
-                          <span>📊</span>
-                          <span>Activity</span>
+                          Activity
                         </button>
                       )}
                     </div>
