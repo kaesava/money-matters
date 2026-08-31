@@ -29,6 +29,7 @@ export async function listPoolsQuery(
       waterfallPriority: pools.waterfallPriority,
       isPrivate: bankAccounts.isPrivate,
       bankAccountUserId: bankAccounts.userId,
+      bankAccountName: bankAccounts.name,
     })
     .from(pools)
     .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
@@ -78,6 +79,7 @@ export async function listPoolsQuery(
       name: pool.name,
       poolType: pool.poolType,
       bankAccountId: pool.bankAccountId,
+      bankAccountName: pool.bankAccountName || null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount,
       rolloverRule: pool.rolloverRule,
       targetAmount: pool.targetAmount,

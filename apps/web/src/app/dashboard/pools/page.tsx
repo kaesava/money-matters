@@ -9,7 +9,7 @@ import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
-import { CategoryActivityModal } from "../../../components/web/CategoryActivityModal";
+import { CategoryItemModal } from "../../../components/web/CategoryItemModal";
 import { CategorySummaryItem, CategoryItem, PoolTableRow } from "./types";
 import { PoolsTable } from "./components/PoolsTable";
 import { CategoryDrawer } from "./components/CategoryDrawer";
@@ -37,16 +37,20 @@ function PoolsPageContent() {
   // Table pagination & sorting state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [sortField, setSortField] = useState<"name" | "currentBalance" | "targetAmount" | "targetDate">("name");
+  const [sortField, setSortField] = useState<"name" | "bankAccountName" | "poolType" | "currentBalance" | "targetAmount" | "targetDate">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  // Drawer & modal state
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  // Modal & Drawer state
+  const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [poolToEdit, setPoolToEdit] = useState<CategorySummaryItem | null>(null);
-  const [activityPool, setActivityPool] = useState<CategorySummaryItem | null>(null);
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
-  const [selectedGoalForDrawer, setSelectedGoalForDrawer] = useState<{ id: string; name: string } | null>(null);
+  const [selectedPoolForDrawer, setSelectedPoolForDrawer] = useState<PoolTableRow | null>(null);
   const [poolToArchive, setPoolToArchive] = useState<CategorySummaryItem | null>(null);
+
+  // Category item modal state
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<CategoryItem | null>(null);
+  const [categoryInitialPoolId, setCategoryInitialPoolId] = useState<string | null>(null);
 
   const archivePoolMut = trpc.archivePool.useMutation({
     onSuccess: () => {
@@ -63,7 +67,7 @@ function PoolsPageContent() {
   useEffect(() => {
     function handleOpenCreateModal() {
       setPoolToEdit(null);
-      setIsFormModalOpen(true);
+      setIsPoolModalOpen(true);
     }
     window.addEventListener("open-create-category-modal", handleOpenCreateModal);
     return () => window.removeEventListener("open-create-category-modal", handleOpenCreateModal);
@@ -109,7 +113,7 @@ function PoolsPageContent() {
       let targetAmountNum: number | null = null;
       if (p.poolType === "GOAL") {
         targetAmountNum = p.targetAmount ? parseFloat(p.targetAmount) : null;
-      } else if (p.poolType === "REGULAR") {
+      } else {
         const catSum = poolCats.reduce((sum, c) => sum + (c.monthlyAmount ? parseFloat(c.monthlyAmount) : 0), 0);
         targetAmountNum = catSum > 0 ? catSum : (p.targetAmount ? parseFloat(p.targetAmount) : null);
       }
@@ -139,6 +143,8 @@ function PoolsPageContent() {
         name: p.name,
         type: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
         poolType: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        bankAccountId: p.bankAccountId,
+        bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
         currentBalance: String(p.currentBalance || "0"),
         everydayAllowanceAmount: p.everydayAllowanceAmount,
@@ -152,6 +158,8 @@ function PoolsPageContent() {
         id: p.id,
         name: p.name,
         poolType: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        bankAccountId: p.bankAccountId,
+        bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
         currentBalance: p.currentBalance || 0,
         targetAmount: targetAmountNum,
@@ -165,7 +173,7 @@ function PoolsPageContent() {
     });
   }, [poolsQuery.data, categoriesQuery.data]);
 
-  // Filter logic: Type filter + Search (matches Pool Name OR Category Name)
+  // Filter logic: Type filter + Search (matches Pool Name, Category Name, OR Bank Account Name)
   const filteredRows = useMemo(() => {
     return tableRows.filter((row) => {
       if (typeFilter !== "ALL" && row.poolType !== typeFilter) {
@@ -176,7 +184,8 @@ function PoolsPageContent() {
 
       const poolNameMatch = row.name.toLowerCase().includes(q);
       const catNameMatch = row.categories.some((c) => c.name.toLowerCase().includes(q));
-      return poolNameMatch || catNameMatch;
+      const bankNameMatch = row.bankAccountName ? row.bankAccountName.toLowerCase().includes(q) : false;
+      return poolNameMatch || catNameMatch || bankNameMatch;
     });
   }, [tableRows, typeFilter, searchQuery]);
 
@@ -189,6 +198,12 @@ function PoolsPageContent() {
       if (sortField === "name") {
         aVal = a.name.toLowerCase();
         bVal = b.name.toLowerCase();
+      } else if (sortField === "bankAccountName") {
+        aVal = (a.bankAccountName || "").toLowerCase();
+        bVal = (b.bankAccountName || "").toLowerCase();
+      } else if (sortField === "poolType") {
+        aVal = a.poolType;
+        bVal = b.poolType;
       } else if (sortField === "currentBalance") {
         aVal = a.currentBalance;
         bVal = b.currentBalance;
@@ -220,7 +235,7 @@ function PoolsPageContent() {
     return sortedRows.slice(start, start + pageSize);
   }, [sortedRows, page, pageSize]);
 
-  const toggleSort = (field: "name" | "currentBalance" | "targetAmount" | "targetDate") => {
+  const toggleSort = (field: "name" | "bankAccountName" | "poolType" | "currentBalance" | "targetAmount" | "targetDate") => {
     if (sortField === field) {
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
@@ -246,6 +261,18 @@ function PoolsPageContent() {
     } finally {
       setPoolToArchive(null);
     }
+  };
+
+  const handleOpenAddCategoryModal = (poolId: string) => {
+    setCategoryToEdit(null);
+    setCategoryInitialPoolId(poolId);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategoryModal = (cat: CategoryItem) => {
+    setCategoryToEdit(cat);
+    setCategoryInitialPoolId(cat.poolId);
+    setIsCategoryModalOpen(true);
   };
 
   return (
@@ -285,11 +312,11 @@ function PoolsPageContent() {
             type="button"
             onClick={() => {
               setPoolToEdit(null);
-              setIsFormModalOpen(true);
+              setIsPoolModalOpen(true);
             }}
             className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <span>{t("categories.addCategory")}</span>
+            <span>New Pool</span>
           </button>
         </div>
       </div>
@@ -378,7 +405,7 @@ function PoolsPageContent() {
               setSearchQuery(val);
               setPage(1);
             }}
-            placeholder={t("categories.searchPlaceholder")}
+            placeholder="Search Pool Name, Category, or Bank Account..."
           />
 
           <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200 shrink-0">
@@ -420,14 +447,12 @@ function PoolsPageContent() {
         }}
         onEditPool={(pool) => {
           setPoolToEdit(pool);
-          setIsFormModalOpen(true);
+          setIsPoolModalOpen(true);
         }}
         onOpenCategoryDrawer={(pool) => {
-          setSelectedGoalForDrawer({ id: pool.id, name: pool.name });
+          setSelectedPoolForDrawer(pool);
         }}
-        onOpenActivity={(pool) => {
-          setActivityPool(pool);
-        }}
+        onAddCategoryForPool={handleOpenAddCategoryModal}
         fmtMoney={fmtMoney}
         isLoading={poolsQuery.isLoading}
       />
@@ -454,25 +479,39 @@ function PoolsPageContent() {
         />
       )}
 
+      {/* Create / Edit Pool Modal */}
       <CategoryFormModal
-        isOpen={isFormModalOpen}
-        onClose={() => setIsFormModalOpen(false)}
+        isOpen={isPoolModalOpen}
+        onClose={() => setIsPoolModalOpen(false)}
         categoryToEdit={poolToEdit}
         onSuccess={() => utils.listPools.invalidate()}
       />
 
-      <CategoryActivityModal
-        isOpen={activityPool !== null}
-        onClose={() => setActivityPool(null)}
-        category={activityPool}
+      {/* Create / Edit Category Modal */}
+      <CategoryItemModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categoryToEdit={categoryToEdit}
+        initialPoolId={categoryInitialPoolId}
+        onSuccess={() => {
+          utils.listCategories.invalidate();
+          utils.listPools.invalidate();
+        }}
       />
 
+      {/* Category Side Drawer */}
       <CategoryDrawer
-        poolId={selectedGoalForDrawer?.id ?? null}
-        poolName={selectedGoalForDrawer?.name ?? null}
-        onClose={() => setSelectedGoalForDrawer(null)}
+        pool={selectedPoolForDrawer}
+        onClose={() => setSelectedPoolForDrawer(null)}
+        onAddCategory={(poolId) => {
+          handleOpenAddCategoryModal(poolId);
+        }}
+        onEditCategory={(cat) => {
+          handleOpenEditCategoryModal(cat);
+        }}
       />
 
+      {/* Archive Confirmation Dialog */}
       <ConfirmDialog
         isOpen={Boolean(poolToArchive)}
         onClose={() => setPoolToArchive(null)}

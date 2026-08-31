@@ -3,6 +3,8 @@ export interface CategorySummaryItem {
   name: string;
   type: "REGULAR" | "GOAL" | "EVERYDAY";
   poolType?: "REGULAR" | "GOAL" | "EVERYDAY";
+  bankAccountId?: string | null;
+  bankAccountName?: string | null;
   isPrivate?: boolean | null;
   currentBalance: string;
   monthlyAmount?: string | null;
@@ -30,6 +32,8 @@ export interface PoolTableRow {
   id: string;
   name: string;
   poolType: "EVERYDAY" | "REGULAR" | "GOAL";
+  bankAccountId?: string | null;
+  bankAccountName?: string | null;
   isPrivate?: boolean | null;
   currentBalance: number;
   targetAmount: number | null;

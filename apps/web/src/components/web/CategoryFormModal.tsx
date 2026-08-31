@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
-
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 
@@ -16,6 +15,7 @@ interface CategoryFormModalProps {
     name: string;
     type?: "EVERYDAY" | "REGULAR" | "GOAL";
     poolType?: "EVERYDAY" | "REGULAR" | "GOAL";
+    bankAccountId?: string | null;
     isPrivate?: boolean | null;
     monthlyAmount?: string | null;
     everydayAllowanceAmount?: string | null;
@@ -37,19 +37,18 @@ export function CategoryFormModal({
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
   const bankAccounts = bankAccountsQuery.data ?? [];
-  const defaultBankAccountId = bankAccounts[0]?.id || "00000000-0000-0000-0000-000000000001";
 
   const isEdit = Boolean(categoryToEdit?.id);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("REGULAR");
-  const [bankAccountId, setBankAccountId] = useState(defaultBankAccountId);
-  const [monthlyAmount, setMonthlyAmount] = useState("");
+  const [bankAccountId, setBankAccountId] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [isSurplusTarget, setIsSurplusTarget] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   const createPoolMut = trpc.createPool.useMutation();
   const updatePoolMut = trpc.updatePool.useMutation();
@@ -59,24 +58,20 @@ export function CategoryFormModal({
     if (categoryToEdit) {
       setName(categoryToEdit.name);
       setType(categoryToEdit.poolType || categoryToEdit.type || "REGULAR");
-      setBankAccountId((categoryToEdit as unknown as { bankAccountId?: string }).bankAccountId || defaultBankAccountId);
-      setMonthlyAmount(categoryToEdit.monthlyAmount || categoryToEdit.everydayAllowanceAmount || "");
+      setBankAccountId(categoryToEdit.bankAccountId || bankAccounts[0]?.id || "");
       setTargetAmount(categoryToEdit.targetAmount || "");
       setTargetDate(categoryToEdit.targetDate || "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
     } else {
       setName("");
       setType("REGULAR");
-      setBankAccountId(defaultBankAccountId);
-      setMonthlyAmount("");
+      setBankAccountId(""); // Mandatory: No pre-selection by default
       setTargetAmount("");
       setTargetDate("");
       setIsSurplusTarget(false);
     }
     setErrorMsg(null);
-  }, [categoryToEdit, isOpen, defaultBankAccountId]);
-
-  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  }, [categoryToEdit, isOpen, bankAccounts]);
 
   const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
@@ -96,16 +91,17 @@ export function CategoryFormModal({
     }
   };
 
-  const handleArchive = () => {
-    setShowArchiveConfirm(true);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
     if (!name.trim()) {
       setErrorMsg("Pool name is required.");
+      return;
+    }
+
+    if (!isEdit && !bankAccountId) {
+      setErrorMsg("Bank Account selection is mandatory.");
       return;
     }
 
@@ -116,8 +112,7 @@ export function CategoryFormModal({
           poolId: categoryToEdit.id,
           data: {
             name: name.trim(),
-            everydayAllowanceAmount: type === "EVERYDAY" ? monthlyAmount || undefined : undefined,
-            targetAmount: type === "GOAL" ? targetAmount || undefined : (type === "REGULAR" ? monthlyAmount || undefined : undefined),
+            targetAmount: type === "GOAL" ? targetAmount || undefined : undefined,
             targetDate: type === "GOAL" ? targetDate || undefined : undefined,
             isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
           },
@@ -126,9 +121,8 @@ export function CategoryFormModal({
         await createPoolMut.mutateAsync({
           name: name.trim(),
           poolType: type,
-          bankAccountId: bankAccountId || defaultBankAccountId,
-          everydayAllowanceAmount: type === "EVERYDAY" ? monthlyAmount || undefined : undefined,
-          targetAmount: type === "GOAL" ? targetAmount || undefined : (type === "REGULAR" ? monthlyAmount || undefined : undefined),
+          bankAccountId: bankAccountId || bankAccounts[0]?.id || "",
+          targetAmount: type === "GOAL" ? targetAmount || undefined : undefined,
           targetDate: type === "GOAL" ? targetDate || undefined : undefined,
           isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
         });
@@ -160,78 +154,69 @@ export function CategoryFormModal({
         )}
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.categoryForm.poolName", { defaultValue: "Pool Name" })}</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">Pool Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Utilities, House Deposit, Groceries"
             className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            autoFocus
           />
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.categoryForm.poolType", { defaultValue: "Pool Type" })}</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">Pool Type</label>
           <select
             value={type}
             disabled={isEdit}
             onChange={(e) => setType(e.target.value as "EVERYDAY" | "REGULAR" | "GOAL")}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500 cursor-pointer"
           >
-            <option value="EVERYDAY">{t("modals.categoryForm.everydayPool", { defaultValue: "Everyday Spending Pool" })}</option>
-            <option value="REGULAR">{t("modals.categoryForm.regularPool", { defaultValue: "Regular Bills Pool" })}</option>
-            <option value="GOAL">{t("modals.categoryForm.savingsPool", { defaultValue: "Savings Goal Pool" })}</option>
+            <option value="EVERYDAY">Everyday Spending Pool</option>
+            <option value="REGULAR">Regular Bills Pool</option>
+            <option value="GOAL">Savings Goal Pool</option>
           </select>
+          {isEdit && (
+            <p className="text-[10px] text-zinc-400 mt-1 font-semibold">
+              Pool type is immutable after creation to protect transaction history.
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Bank Account</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">Linked Bank Account</label>
           <select
             value={bankAccountId}
             disabled={isEdit}
             onChange={(e) => setBankAccountId(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500 cursor-pointer"
           >
+            {!isEdit && <option value="">-- Select Bank Account (Mandatory) --</option>}
             {bankAccounts.map((acc) => (
               <option key={acc.id} value={acc.id}>
                 {acc.name} {acc.isPrivate ? "(Private)" : "(Household)"}
               </option>
             ))}
           </select>
+          {isEdit && (
+            <p className="text-[10px] text-zinc-400 mt-1 font-semibold">
+              Bank account link is read-only after creation.
+            </p>
+          )}
         </div>
 
-        {type === "REGULAR" && (
-          <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">Monthly Bill Target ($)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={monthlyAmount}
-              onChange={(e) => setMonthlyAmount(e.target.value)}
-              placeholder="500.00"
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
-          </div>
-        )}
-
-        {type === "EVERYDAY" && (
-          <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">Monthly Everyday Allowance ($)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={monthlyAmount}
-              onChange={(e) => setMonthlyAmount(e.target.value)}
-              placeholder="1200.00"
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
+        {(type === "REGULAR" || type === "EVERYDAY") && (
+          <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
+            <span className="font-bold text-[#1B2B4B] block mb-0.5">Calculated Target</span>
+            For {type === "EVERYDAY" ? "Everyday" : "Bills"} pools, monthly target amounts are calculated automatically from your category targets in the pool.
           </div>
         )}
 
         {type === "GOAL" && (
           <>
             <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">Target Savings Goal Amount ($)</label>
+              <label className="block font-bold text-[#1B2B4B] mb-1">Target Goal Amount ($)</label>
               <input
                 type="number"
                 step="0.01"
@@ -261,7 +246,7 @@ export function CategoryFormModal({
               onChange={(e) => setIsSurplusTarget(e.target.checked)}
               className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
             />
-            <span className="font-bold text-zinc-800">{t("modals.categoryForm.sweepSurplus", { defaultValue: "Sweep unallocated payday surplus into this pool" })}</span>
+            <span className="font-bold text-zinc-800">Sweep unallocated payday surplus into this pool</span>
           </label>
         )}
 
@@ -269,13 +254,12 @@ export function CategoryFormModal({
           {isEdit ? (
             <button
               type="button"
-              onClick={handleArchive}
+              onClick={() => setShowArchiveConfirm(true)}
               disabled={submitting}
               className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline cursor-pointer"
             >
-              {t("actions.archivePool", { defaultValue: "Archive Pool" })}
+              Archive Pool
             </button>
-
           ) : <div />}
 
           <div className="flex gap-2">
@@ -284,12 +268,12 @@ export function CategoryFormModal({
               onClick={onClose}
               className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50"
             >
-              {t("common.cancel", { defaultValue: "Cancel" })}
+              Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl shadow-md disabled:opacity-50"
+              className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50"
             >
               {submitting ? "Saving..." : isEdit ? "Update Pool" : "Create Pool"}
             </button>
@@ -302,7 +286,7 @@ export function CategoryFormModal({
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
         title="Archive Pool"
-        description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"?`}
+        description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"? All linked categories will also be archived.`}
         confirmLabel="Archive Pool"
         variant="danger"
         isLoading={submitting}
@@ -310,4 +294,3 @@ export function CategoryFormModal({
     </ModalDialog>
   );
 }
-
