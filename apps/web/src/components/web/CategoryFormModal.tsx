@@ -43,6 +43,7 @@ export function CategoryFormModal({
 
   const [name, setName] = useState("");
   const [type, setType] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("REGULAR");
+  const [bankAccountId, setBankAccountId] = useState(defaultBankAccountId);
   const [monthlyAmount, setMonthlyAmount] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
@@ -58,6 +59,7 @@ export function CategoryFormModal({
     if (categoryToEdit) {
       setName(categoryToEdit.name);
       setType(categoryToEdit.poolType || categoryToEdit.type || "REGULAR");
+      setBankAccountId((categoryToEdit as unknown as { bankAccountId?: string }).bankAccountId || defaultBankAccountId);
       setMonthlyAmount(categoryToEdit.monthlyAmount || categoryToEdit.everydayAllowanceAmount || "");
       setTargetAmount(categoryToEdit.targetAmount || "");
       setTargetDate(categoryToEdit.targetDate || "");
@@ -65,13 +67,14 @@ export function CategoryFormModal({
     } else {
       setName("");
       setType("REGULAR");
+      setBankAccountId(defaultBankAccountId);
       setMonthlyAmount("");
       setTargetAmount("");
       setTargetDate("");
       setIsSurplusTarget(false);
     }
     setErrorMsg(null);
-  }, [categoryToEdit, isOpen]);
+  }, [categoryToEdit, isOpen, defaultBankAccountId]);
 
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
@@ -123,7 +126,7 @@ export function CategoryFormModal({
         await createPoolMut.mutateAsync({
           name: name.trim(),
           poolType: type,
-          bankAccountId: defaultBankAccountId,
+          bankAccountId: bankAccountId || defaultBankAccountId,
           everydayAllowanceAmount: type === "EVERYDAY" ? monthlyAmount || undefined : undefined,
           targetAmount: type === "GOAL" ? targetAmount || undefined : (type === "REGULAR" ? monthlyAmount || undefined : undefined),
           targetDate: type === "GOAL" ? targetDate || undefined : undefined,
@@ -178,6 +181,22 @@ export function CategoryFormModal({
             <option value="EVERYDAY">{t("modals.categoryForm.everydayPool", { defaultValue: "Everyday Spending Pool" })}</option>
             <option value="REGULAR">{t("modals.categoryForm.regularPool", { defaultValue: "Regular Bills Pool" })}</option>
             <option value="GOAL">{t("modals.categoryForm.savingsPool", { defaultValue: "Savings Goal Pool" })}</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block font-bold text-[#1B2B4B] mb-1">Bank Account</label>
+          <select
+            value={bankAccountId}
+            disabled={isEdit}
+            onChange={(e) => setBankAccountId(e.target.value)}
+            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500"
+          >
+            {bankAccounts.map((acc) => (
+              <option key={acc.id} value={acc.id}>
+                {acc.name} {acc.isPrivate ? "(Private)" : "(Household)"}
+              </option>
+            ))}
           </select>
         </div>
 

@@ -36,7 +36,6 @@ export default function BankAccountsDashboardPage() {
   const csvBatchesQuery = trpc.listCsvImportBatches.useQuery();
   const csvBatches = csvBatchesQuery.data ?? [];
 
-  const updatePoolMut = trpc.updatePool.useMutation();
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
 
   const createAccountMut = trpc.createBankAccount.useMutation({
@@ -280,41 +279,24 @@ export default function BankAccountsDashboardPage() {
     }
 
     if (editingAccount) {
-
-      updateAccountMut.mutate(
-        {
-          accountId: editingAccount.id,
-          data: {
-            name: accName.trim(),
-            bankProvider: accBankProvider,
-            lastKnownBalance: accBalance.trim() || "0.00",
-            unbudgetedBuffer: accBuffer.trim() || "0.00",
-            isPrivate: accIsPrivate,
-          },
-        },
-        {
-          onSuccess: () => {
-            updateMappingsForAccount(editingAccount.id, selectedPoolIds);
-          },
-        }
-      );
-    } else {
-      createAccountMut.mutate(
-        {
+      updateAccountMut.mutate({
+        accountId: editingAccount.id,
+        data: {
           name: accName.trim(),
           bankProvider: accBankProvider,
           lastKnownBalance: accBalance.trim() || "0.00",
           unbudgetedBuffer: accBuffer.trim() || "0.00",
           isPrivate: accIsPrivate,
         },
-        {
-          onSuccess: (newAcc) => {
-            if (newAcc && newAcc.id) {
-              updateMappingsForAccount(newAcc.id, selectedPoolIds);
-            }
-          },
-        }
-      );
+      });
+    } else {
+      createAccountMut.mutate({
+        name: accName.trim(),
+        bankProvider: accBankProvider,
+        lastKnownBalance: accBalance.trim() || "0.00",
+        unbudgetedBuffer: accBuffer.trim() || "0.00",
+        isPrivate: accIsPrivate,
+      });
     }
   };
 
@@ -348,25 +330,10 @@ export default function BankAccountsDashboardPage() {
       },
     });
 
-    if (editingAccount && editingAccount.id === account.id) {
-      await updateMappingsForAccount(account.id, selectedPoolIds);
-    }
-
     utils.listPools.invalidate();
     bankAccountsQuery.refetch();
     setReconcileState(null);
     closeModal();
-  };
-
-  const updateMappingsForAccount = async (targetAccountId: string, poolIdsToLink: string[]) => {
-    for (const pId of poolIdsToLink) {
-      await updatePoolMut.mutateAsync({
-        poolId: pId,
-        data: { bankAccountId: targetAccountId },
-      });
-    }
-    utils.listPools.invalidate();
-    bankAccountsQuery.refetch();
   };
 
   const [accountToArchive, setAccountToArchive] = useState<BankAccountItem | null>(null);

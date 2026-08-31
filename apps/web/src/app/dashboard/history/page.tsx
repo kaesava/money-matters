@@ -43,6 +43,7 @@ function TransactionsPageContent() {
   });
 
   const categoriesQuery = trpc.listCategories.useQuery();
+  const poolsQuery = trpc.listPools.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500, offset: 0 });
   const paydayPlansQuery = trpc.listAllAllocationPlans.useQuery(undefined, {
     enabled: activeTab === "payday-allocations",
@@ -58,6 +59,8 @@ function TransactionsPageContent() {
   };
 
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
+  const poolMap = useMemo(() => new Map(pools.map((p) => [p.id, p.name])), [pools]);
 
   // Map transaction ledger items for spacious display and group internal transfer pairs
   const allTransactions = useMemo(() => {
@@ -97,11 +100,14 @@ function TransactionsPageContent() {
         processedIds.add(tx.id);
         processedIds.add(partner.id);
 
-        const txObj = tx as unknown as { poolName?: string; categoryName?: string };
-        const partnerObj = partner as unknown as { poolName?: string; categoryName?: string };
+        const txObj = tx as unknown as { poolId?: string; poolName?: string; categoryName?: string };
+        const partnerObj = partner as unknown as { poolId?: string; poolName?: string; categoryName?: string };
 
-        const sourceCatName = (tx.flowType === "DEBIT" ? (txObj.poolName || txObj.categoryName) : (partnerObj.poolName || partnerObj.categoryName)) || "Everyday Pool";
-        const destCatName = (tx.flowType === "CREDIT" ? (txObj.poolName || txObj.categoryName) : (partnerObj.poolName || partnerObj.categoryName)) || "Destination Pool";
+        const txPoolName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || txObj.categoryName;
+        const partnerPoolName = partnerObj.poolName || (partner.poolId ? poolMap.get(partner.poolId) : undefined) || partnerObj.categoryName;
+
+        const sourceCatName = (tx.flowType === "DEBIT" ? txPoolName : partnerPoolName) || "Everyday Pool";
+        const destCatName = (tx.flowType === "CREDIT" ? txPoolName : partnerPoolName) || "Destination Pool";
 
         result.push({
           id: tx.id,
@@ -115,8 +121,8 @@ function TransactionsPageContent() {
         });
       } else {
         processedIds.add(tx.id);
-        const txObj = tx as unknown as { poolName?: string; categoryName?: string };
-        const catName = txObj.poolName || txObj.categoryName || "Everyday Pool";
+        const txObj = tx as unknown as { poolId?: string; poolName?: string; categoryName?: string };
+        const catName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || txObj.categoryName || "Everyday Pool";
         result.push({
           id: tx.id,
           recordedAt: tx.recordedAt,
@@ -132,7 +138,7 @@ function TransactionsPageContent() {
     }
 
     return result;
-  }, [transactionsQuery.data, categories]);
+  }, [transactionsQuery.data, categories, poolMap]);
 
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {

@@ -1,57 +1,73 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { monthProgress } from "@money-matters/ui";
-import { InfoTooltip, useToast, ConfirmDialog } from "@money-matters/ui/web";
+import { InfoTooltip, useToast, ConfirmDialog, SearchInput } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
-import { CategoryDetailDrawer } from "../../../components/web/CategoryDetailDrawer";
 import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
-import { FilterBar } from "../../../components/web/FilterBar";
 import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
 import { CategoryActivityModal } from "../../../components/web/CategoryActivityModal";
-import { EverydayPoolSection, CategorySummaryItem } from "./components/EverydayPoolSection";
-import { RegularBillsSection } from "./components/RegularBillsSection";
-import { SavingsGoalsSection } from "./components/SavingsGoalsSection";
+import { CategorySummaryItem, CategoryItem, PoolTableRow } from "./types";
+import { PoolsTable } from "./components/PoolsTable";
+import { CategoryDrawer } from "./components/CategoryDrawer";
 
-function CategoriesPageContent() {
+type PoolTypeFilter = "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
+
+function PoolsPageContent() {
   const toast = useToast();
   const utils = trpc.useUtils();
   const searchParams = useSearchParams();
   const paramSearch = searchParams.get("search") || searchParams.get("name") || "";
-  const paramHealth = searchParams.get("health") || searchParams.get("status") || "ALL";
+  const paramType = (searchParams.get("type") || "ALL").toUpperCase() as PoolTypeFilter;
 
   const poolsQuery = trpc.listPools.useQuery();
-  const rawPools = poolsQuery.data ?? [];
-  const categories: CategorySummaryItem[] = rawPools.map((p) => ({
-    id: p.id,
-    poolId: p.id,
-    name: p.name,
-    type: p.poolType,
-    isPrivate: p.isPrivate,
-    currentBalance: String(p.currentBalance || "0"),
-    monthlyAmount: p.targetAmount || p.everydayAllowanceAmount || "0",
-    everydayAllowanceAmount: p.everydayAllowanceAmount,
-    targetAmount: p.targetAmount,
-    targetDate: p.targetDate,
-    healthStatus: p.healthStatus,
-    isEssential: true,
-    isSurplusTarget: p.isSurplusTarget,
-  }));
-
-  const billCoverageQuery = trpc.listBillCoverage.useQuery();
-  const billCoverageItems = billCoverageQuery.data?.items ?? [];
-
+  const categoriesQuery = trpc.listCategories.useQuery();
   const archivedQuery = trpc.listArchivedItems.useQuery();
-  const hasArchivedCategories = archivedQuery.data?.some((i) => i.itemType === 'POOL' || i.itemType === 'CATEGORY') ?? false;
+
+  const hasArchivedCategories = archivedQuery.data?.some((i) => i.itemType === "POOL" || i.itemType === "CATEGORY") ?? false;
 
   const [searchQuery, setSearchQuery] = useState(paramSearch);
-  const [healthFilter, setHealthFilter] = useState(paramHealth);
+  const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>(paramType);
   const [projectionMonths, setProjectionMonths] = useState(0);
   const [showProjectionMatrix, setShowProjectionMatrix] = useState(false);
+
+  // Table pagination & sorting state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortField, setSortField] = useState<"name" | "currentBalance" | "targetAmount" | "targetDate">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // Drawer & modal state
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [poolToEdit, setPoolToEdit] = useState<CategorySummaryItem | null>(null);
+  const [activityPool, setActivityPool] = useState<CategorySummaryItem | null>(null);
+  const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
+  const [selectedGoalForDrawer, setSelectedGoalForDrawer] = useState<{ id: string; name: string } | null>(null);
+  const [poolToArchive, setPoolToArchive] = useState<CategorySummaryItem | null>(null);
+
+  const archivePoolMut = trpc.archivePool.useMutation({
+    onSuccess: () => {
+      utils.listPools.invalidate();
+      utils.listCategories.invalidate();
+    },
+  });
+
+  useEffect(() => {
+    if (paramSearch) setSearchQuery(paramSearch);
+    if (paramType) setTypeFilter(paramType);
+  }, [paramSearch, paramType]);
+
+  useEffect(() => {
+    function handleOpenCreateModal() {
+      setPoolToEdit(null);
+      setIsFormModalOpen(true);
+    }
+    window.addEventListener("open-create-category-modal", handleOpenCreateModal);
+    return () => window.removeEventListener("open-create-category-modal", handleOpenCreateModal);
+  }, []);
 
   const formatProjectionDate = (months: number) => {
     if (months <= 0.05) return "Today";
@@ -60,9 +76,9 @@ function CategoriesPageContent() {
     return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" }).format(d);
   };
 
-  const projectionTargetDate = React.useMemo(() => formatProjectionDate(projectionMonths), [projectionMonths]);
+  const projectionTargetDate = useMemo(() => formatProjectionDate(projectionMonths), [projectionMonths]);
 
-  const axisDates = React.useMemo(() => {
+  const axisDates = useMemo(() => {
     return [0, 3, 6, 9, 12].map((m) => {
       if (m === 0) return "Today";
       const d = new Date();
@@ -71,54 +87,151 @@ function CategoriesPageContent() {
     });
   }, []);
 
-  const isFiltered = Boolean(paramSearch || searchQuery.trim() || (paramHealth && paramHealth !== "ALL") || (healthFilter && healthFilter !== "ALL"));
-  const [isEverydayCollapsed, setIsEverydayCollapsed] = useState(!isFiltered);
-  const [isRegularCollapsed, setIsRegularCollapsed] = useState(!isFiltered);
+  // Map raw pools + categories into table rows
+  const tableRows: PoolTableRow[] = useMemo(() => {
+    const rawPools = poolsQuery.data ?? [];
+    const rawCategories = categoriesQuery.data ?? [];
 
-  useEffect(() => {
-    if (paramSearch) setSearchQuery(paramSearch);
-    if (paramHealth) setHealthFilter(paramHealth);
-  }, [paramSearch, paramHealth]);
+    return rawPools.map((p) => {
+      const poolCats: CategoryItem[] = rawCategories
+        .filter((c) => c.poolId === p.id)
+        .map((c) => ({
+          id: c.id,
+          poolId: c.poolId,
+          name: c.name,
+          monthlyAmount: c.monthlyAmount,
+          enteredAmount: c.enteredAmount,
+          budgetFrequency: c.budgetFrequency,
+          isEssential: c.isEssential,
+          monthlySpent: c.monthlySpent,
+        }));
 
-  useEffect(() => {
-    if (searchQuery.trim() || healthFilter !== "ALL") {
-      setIsEverydayCollapsed(false);
-      setIsRegularCollapsed(false);
+      let targetAmountNum: number | null = null;
+      if (p.poolType === "GOAL") {
+        targetAmountNum = p.targetAmount ? parseFloat(p.targetAmount) : null;
+      } else if (p.poolType === "REGULAR") {
+        const catSum = poolCats.reduce((sum, c) => sum + (c.monthlyAmount ? parseFloat(c.monthlyAmount) : 0), 0);
+        targetAmountNum = catSum > 0 ? catSum : (p.targetAmount ? parseFloat(p.targetAmount) : null);
+      }
+
+      let progressText = "—";
+      let progressPercentage: number | null = null;
+
+      if (p.poolType === "GOAL") {
+        if (targetAmountNum && targetAmountNum > 0) {
+          const pct = Math.min(100, Math.round(((p.currentBalance || 0) / targetAmountNum) * 100));
+          progressPercentage = pct;
+          progressText = `${pct}%`;
+        } else {
+          progressText = "100%";
+        }
+      } else if (p.poolType === "REGULAR") {
+        const target = targetAmountNum || 0;
+        const remaining = Math.max(0, target - (p.currentBalance || 0));
+        progressText = `Remaining: $${remaining.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      } else if (p.poolType === "EVERYDAY") {
+        const remaining = Math.max(0, p.currentBalance || 0);
+        progressText = `Remaining: $${remaining.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+
+      const rawSummaryItem: CategorySummaryItem = {
+        id: p.id,
+        name: p.name,
+        type: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        poolType: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        isPrivate: p.isPrivate,
+        currentBalance: String(p.currentBalance || "0"),
+        everydayAllowanceAmount: p.everydayAllowanceAmount,
+        targetAmount: p.targetAmount,
+        targetDate: p.targetDate,
+        healthStatus: p.healthStatus,
+        isSurplusTarget: p.isSurplusTarget,
+      };
+
+      return {
+        id: p.id,
+        name: p.name,
+        poolType: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        isPrivate: p.isPrivate,
+        currentBalance: p.currentBalance || 0,
+        targetAmount: targetAmountNum,
+        targetDate: p.targetDate || null,
+        categoryCount: poolCats.length,
+        categories: poolCats,
+        progressText,
+        progressPercentage,
+        rawPool: rawSummaryItem,
+      };
+    });
+  }, [poolsQuery.data, categoriesQuery.data]);
+
+  // Filter logic: Type filter + Search (matches Pool Name OR Category Name)
+  const filteredRows = useMemo(() => {
+    return tableRows.filter((row) => {
+      if (typeFilter !== "ALL" && row.poolType !== typeFilter) {
+        return false;
+      }
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return true;
+
+      const poolNameMatch = row.name.toLowerCase().includes(q);
+      const catNameMatch = row.categories.some((c) => c.name.toLowerCase().includes(q));
+      return poolNameMatch || catNameMatch;
+    });
+  }, [tableRows, typeFilter, searchQuery]);
+
+  // Sorting logic
+  const sortedRows = useMemo(() => {
+    return [...filteredRows].sort((a, b) => {
+      let aVal: string | number | null = null;
+      let bVal: string | number | null = null;
+
+      if (sortField === "name") {
+        aVal = a.name.toLowerCase();
+        bVal = b.name.toLowerCase();
+      } else if (sortField === "currentBalance") {
+        aVal = a.currentBalance;
+        bVal = b.currentBalance;
+      } else if (sortField === "targetAmount") {
+        aVal = a.targetAmount ?? -1;
+        bVal = b.targetAmount ?? -1;
+      } else if (sortField === "targetDate") {
+        aVal = a.targetDate ?? "";
+        bVal = b.targetDate ?? "";
+      }
+
+      if (aVal === bVal) return 0;
+      if (aVal === null || aVal === "") return 1;
+      if (bVal === null || bVal === "") return -1;
+
+      if (sortDir === "asc") {
+        return aVal < bVal ? -1 : 1;
+      } else {
+        return aVal > bVal ? -1 : 1;
+      }
+    });
+  }, [filteredRows, sortField, sortDir]);
+
+  // Pagination logic
+  const totalItems = sortedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedRows.slice(start, start + pageSize);
+  }, [sortedRows, page, pageSize]);
+
+  const toggleSort = (field: "name" | "currentBalance" | "targetAmount" | "targetDate") => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
     }
-  }, [searchQuery, healthFilter]);
+  };
 
-  useEffect(() => {
-    function handleOpenCreateModal() {
-      setCategoryToEdit(null);
-      setIsFormModalOpen(true);
-    }
-    window.addEventListener("open-create-category-modal", handleOpenCreateModal);
-    return () => window.removeEventListener("open-create-category-modal", handleOpenCreateModal);
-  }, []);
-
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<CategorySummaryItem | null>(null);
-  const [activityCategory, setActivityCategory] = useState<CategorySummaryItem | null>(null);
-  const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
-
-  const { elapsedPct } = monthProgress();
-
-  const archivePoolMut = trpc.archivePool.useMutation({
-    onSuccess: () => {
-      utils.listPools.invalidate();
-      utils.listBillCoverage.invalidate();
-    },
-  });
-
-  const [poolToArchive, setPoolToArchive] = useState<CategorySummaryItem | null>(null);
-
-  const handleArchive = (cat: CategorySummaryItem) => {
-    if (cat.type === "EVERYDAY") {
-      toast.warning("The Everyday pool cannot be archived or deleted.");
-      return;
-    }
-    setPoolToArchive(cat);
+  const fmtMoney = (val: number | null | undefined) => {
+    if (val === null || val === undefined) return "—";
+    return `$${val.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const confirmArchivePool = async () => {
@@ -135,38 +248,9 @@ function CategoriesPageContent() {
     }
   };
 
-
-  const everydayCategories = categories.filter((c) => c.type === "EVERYDAY");
-  const regularCategories = categories.filter((c) => c.type === "REGULAR");
-  const goalCategories = categories.filter((c) => c.type === "GOAL");
-
-  const everydayBalance = everydayCategories.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
-  const everydayMonthlyBudget = everydayCategories.reduce(
-    (sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.monthlyAmount || "0"),
-    0
-  );
-  const everydayConsumedPct =
-    everydayMonthlyBudget > 0
-      ? Math.min(100, Math.max(0, Math.round(((everydayMonthlyBudget - everydayBalance) / everydayMonthlyBudget) * 100)))
-      : 0;
-
-  const regularBalance = regularCategories.reduce((sum, c) => sum + parseFloat(c.currentBalance || "0"), 0);
-  const regularMonthlyBudget = regularCategories.reduce((sum, c) => sum + parseFloat(c.monthlyAmount || "0"), 0);
-  const regularConsumedPct =
-    regularMonthlyBudget > 0
-      ? Math.min(100, Math.max(0, Math.round(((regularMonthlyBudget - regularBalance) / regularMonthlyBudget) * 100)))
-      : 0;
-
-  const filterFn = (catList: CategorySummaryItem[]) =>
-    catList.filter((c) => {
-      const q = searchQuery.toLowerCase().trim();
-      if (q && !c.name.toLowerCase().includes(q)) return false;
-      if (healthFilter !== "ALL" && c.healthStatus !== healthFilter) return false;
-      return true;
-    });
-
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 animate-in fade-in duration-200">
+      {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -182,7 +266,7 @@ function CategoriesPageContent() {
           <button
             type="button"
             onClick={() => setShowProjectionMatrix(!showProjectionMatrix)}
-            className={`px-3.5 py-2.5 rounded-xl font-bold text-xs border transition-all shadow-2xs ${
+            className={`px-3.5 py-2.5 rounded-xl font-bold text-xs border transition-all shadow-2xs cursor-pointer ${
               showProjectionMatrix
                 ? "bg-blue-100 text-[#2563eb] border-blue-300"
                 : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
@@ -193,23 +277,24 @@ function CategoriesPageContent() {
           <button
             type="button"
             onClick={() => setIsMoveMoneyOpen(true)}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
           >
             <span>{t("categories.actions.moveMoney")}</span>
           </button>
           <button
             type="button"
             onClick={() => {
-              setCategoryToEdit(null);
+              setPoolToEdit(null);
               setIsFormModalOpen(true);
             }}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <span>{t("categories.addCategory")}</span>
           </button>
         </div>
       </div>
 
+      {/* Projection Matrix */}
       {showProjectionMatrix && (
         <div className="p-5 bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-purple-50/90 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-blue-200/80 dark:border-blue-900/60 rounded-2xl shadow-xs relative overflow-hidden animate-in fade-in duration-150">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -224,7 +309,7 @@ function CategoriesPageContent() {
                 <button
                   type="button"
                   onClick={() => setProjectionMonths(0)}
-                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg shadow-xs transition-all animate-in fade-in flex items-center gap-1"
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg shadow-xs transition-all animate-in fade-in flex items-center gap-1 cursor-pointer"
                 >
                   <span>Snap to Today</span>
                 </button>
@@ -275,7 +360,7 @@ function CategoriesPageContent() {
               <button
                 type="button"
                 onClick={() => setProjectionMonths(0)}
-                className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline"
+                className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
               >
                 Reset to Today →
               </button>
@@ -284,64 +369,71 @@ function CategoriesPageContent() {
         </div>
       )}
 
-      <FilterBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder={t("categories.searchPlaceholder")}
-        filterGroups={[]}
-        onClearAll={() => {
-          setSearchQuery("");
-          setHealthFilter("ALL");
-        }}
-      />
+      {/* Controls Bar & Segmented Filter */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
+        <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
+          <SearchInput
+            value={searchQuery}
+            onChange={(val) => {
+              setSearchQuery(val);
+              setPage(1);
+            }}
+            placeholder={t("categories.searchPlaceholder")}
+          />
 
-      <EverydayPoolSection
-        categories={filterFn(everydayCategories)}
-        everydayBalance={everydayBalance}
-        everydayMonthlyBudget={everydayMonthlyBudget}
-        everydayConsumedPct={everydayConsumedPct}
-        elapsedPct={elapsedPct}
-        isCollapsed={isEverydayCollapsed}
-        onToggleCollapse={() => setIsEverydayCollapsed(!isEverydayCollapsed)}
-        onSelectCategory={setSelectedCategoryId}
-        onEditCategory={(cat) => {
-          setCategoryToEdit(cat);
+          <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200 shrink-0">
+            {(["ALL", "EVERYDAY", "REGULAR", "GOAL"] as const).map((fType) => (
+              <button
+                key={fType}
+                type="button"
+                onClick={() => {
+                  setTypeFilter(fType);
+                  setPage(1);
+                }}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  typeFilter === fType
+                    ? "bg-[#2563eb] text-white shadow-xs"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                {fType === "ALL" ? "All" : fType === "EVERYDAY" ? "Everyday" : fType === "REGULAR" ? "Bills" : "Goals"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Flat Pools Table */}
+      <PoolsTable
+        pools={paginatedRows}
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalItems={totalItems}
+        sortField={sortField}
+        sortDir={sortDir}
+        toggleSort={toggleSort}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => {
+          setPageSize(s);
+          setPage(1);
+        }}
+        onEditPool={(pool) => {
+          setPoolToEdit(pool);
           setIsFormModalOpen(true);
         }}
-        onOpenActivity={setActivityCategory}
-      />
-
-      <RegularBillsSection
-        categories={filterFn(regularCategories)}
-        billCoverageItems={billCoverageItems}
-        regularBalance={regularBalance}
-        regularMonthlyBudget={regularMonthlyBudget}
-        regularConsumedPct={regularConsumedPct}
-        elapsedPct={elapsedPct}
-        isCollapsed={isRegularCollapsed}
-        onToggleCollapse={() => setIsRegularCollapsed(!isRegularCollapsed)}
-        onSelectCategory={setSelectedCategoryId}
-        onEditCategory={(cat) => {
-          setCategoryToEdit(cat);
-          setIsFormModalOpen(true);
+        onOpenCategoryDrawer={(pool) => {
+          setSelectedGoalForDrawer({ id: pool.id, name: pool.name });
         }}
-        onArchiveCategory={handleArchive}
-        onOpenActivity={setActivityCategory}
-      />
-
-      <SavingsGoalsSection
-        categories={filterFn(goalCategories)}
-        onSelectCategory={setSelectedCategoryId}
-        onEditCategory={(cat) => {
-          setCategoryToEdit(cat);
-          setIsFormModalOpen(true);
+        onOpenActivity={(pool) => {
+          setActivityPool(pool);
         }}
-        onArchiveCategory={handleArchive}
-        onOpenActivity={setActivityCategory}
+        fmtMoney={fmtMoney}
+        isLoading={poolsQuery.isLoading}
       />
 
       {hasArchivedCategories && (
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-2">
           <a
             href="/dashboard/settings/archived"
             className="text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition-colors"
@@ -351,6 +443,7 @@ function CategoriesPageContent() {
         </div>
       )}
 
+      {/* Modals & Drawers */}
       {isMoveMoneyOpen && (
         <QuickActionDrawer
           onClose={() => {
@@ -364,54 +457,40 @@ function CategoriesPageContent() {
       <CategoryFormModal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
-        categoryToEdit={categoryToEdit}
+        categoryToEdit={poolToEdit}
         onSuccess={() => utils.listPools.invalidate()}
       />
 
       <CategoryActivityModal
-        isOpen={activityCategory !== null}
-        onClose={() => setActivityCategory(null)}
-        category={activityCategory}
+        isOpen={activityPool !== null}
+        onClose={() => setActivityPool(null)}
+        category={activityPool}
       />
 
-      <CategoryDetailDrawer
-        categoryId={selectedCategoryId}
-        onClose={() => setSelectedCategoryId(null)}
-        onEdit={(cat) => {
-          setSelectedCategoryId(null);
-          const matched = categories.find((c) => c.id === cat.id);
-          if (matched) {
-            setCategoryToEdit(matched);
-            setIsFormModalOpen(true);
-          }
-        }}
-        onArchive={(cat) => {
-          setSelectedCategoryId(null);
-          const matched = categories.find((c) => c.id === cat.id);
-          if (matched) {
-            handleArchive(matched);
-          }
-        }}
+      <CategoryDrawer
+        poolId={selectedGoalForDrawer?.id ?? null}
+        poolName={selectedGoalForDrawer?.name ?? null}
+        onClose={() => setSelectedGoalForDrawer(null)}
       />
 
       <ConfirmDialog
-        isOpen={!!poolToArchive}
+        isOpen={Boolean(poolToArchive)}
         onClose={() => setPoolToArchive(null)}
         onConfirm={confirmArchivePool}
         title="Archive Pool"
         description={`Are you sure you want to archive "${poolToArchive?.name || ""}"?`}
         confirmLabel="Archive Pool"
         variant="danger"
+        isLoading={archivePoolMut.isPending}
       />
     </div>
   );
 }
 
-
-export default function CategoriesPage() {
+export default function PoolsPage() {
   return (
     <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">{t("categories.loading")}</div>}>
-      <CategoriesPageContent />
+      <PoolsPageContent />
     </React.Suspense>
   );
 }

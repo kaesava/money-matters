@@ -91,6 +91,31 @@ export function updateBankAccountHandler(db: DbOrTx) {
     appId: string,
     userId: string
   ) => {
+    const existingList = await db
+      .select()
+      .from(bankAccounts)
+      .where(
+        and(
+          eq(bankAccounts.id, accountId),
+          eq(bankAccounts.tenantId, tenantId),
+          eq(bankAccounts.appId, appId),
+          sql`${bankAccounts.archivedAt} IS NULL`
+        )
+      )
+      .limit(1);
+
+    const existing = existingList[0];
+    if (!existing) {
+      throw new Error("Bank account not found or access unauthorized.");
+    }
+
+    const effectiveBalance = Number(input.lastKnownBalance ?? existing.lastKnownBalance ?? "0");
+    const effectiveBuffer = Number(input.unbudgetedBuffer ?? existing.unbudgetedBuffer ?? "0");
+
+    if (effectiveBuffer > effectiveBalance) {
+      throw new Error("Unbudgeted buffer cannot exceed the current balance.");
+    }
+
     const [updated] = await db
       .update(bankAccounts)
       .set({

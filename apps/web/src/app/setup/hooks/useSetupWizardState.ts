@@ -101,6 +101,15 @@ export function useSetupWizardState() {
   const prefsBlob = appPrefs?.["01908bde-34bb-7b19-a178-574211bc93aa"];
   const showIcons = prefsBlob?.show_icons ?? true;
 
+  useEffect(() => {
+    const isCompleted =
+      Boolean(userPrefQuery.data?.setupCompleted) ||
+      (typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true");
+    if (isCompleted) {
+      router.replace("/dashboard");
+    }
+  }, [userPrefQuery.data?.setupCompleted, router]);
+
   const quizAnswers: QuizAnswers = useMemo(
     () => ({
       incomes,

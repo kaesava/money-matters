@@ -5,7 +5,7 @@ import { Spinner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { ModalDialog } from "./ModalDialog";
 import { trpc } from "../../lib/trpc";
-import { CategorySummaryItem } from "../../app/dashboard/pools/components/EverydayPoolSection";
+import { CategorySummaryItem } from "../../app/dashboard/pools/types";
 
 interface CategoryActivityModalProps {
   isOpen: boolean;

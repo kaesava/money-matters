@@ -40,7 +40,6 @@ export const CreatePoolCommand = z.object({
 
 export const UpdatePoolCommand = z.object({
   name: z.string().min(1).optional(),
-  bankAccountId: z.string().uuid().optional(),
   everydayAllowanceAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
   targetAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
