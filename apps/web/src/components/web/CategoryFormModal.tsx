@@ -128,7 +128,7 @@ export function CategoryFormModal({
 
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
-        setErrorMsg("Goal amount is required for Goal pools and must be greater than 0.");
+        setErrorMsg("Goal amount is required for Goal pools and must be greater than $0.");
         return;
       }
       if (!targetDate) {

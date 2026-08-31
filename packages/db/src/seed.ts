@@ -272,7 +272,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   const [billsPool] = await db
     .insert(pools)
-    .values({ name: "Joint Bills Pool", poolType: "REGULAR", bankAccountId: primaryAccount.id, isCommitted: true, targetAmount: "3974.00", waterfallPriority: 10, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .values({ name: "Joint Bills Pool", poolType: "REGULAR", bankAccountId: primaryAccount.id, isCommitted: true, waterfallPriority: 10, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   const [emergencyPool] = await db
@@ -282,7 +282,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   const [surplusPool] = await db
     .insert(pools)
-    .values({ name: "Surplus & Offset Reserve", poolType: "GOAL", bankAccountId: savingsAccount.id, isSurplusTarget: true, waterfallPriority: 99, tenantId, appId, createdBy: userId, updatedBy: userId })
+    .values({ name: "Surplus & Offset Reserve", poolType: "GOAL", bankAccountId: savingsAccount.id, isSurplusTarget: true, targetAmount: "50000.00", waterfallPriority: 99, tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   const [kaesavaPrivatePool] = await db

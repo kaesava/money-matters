@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, Spinner, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, Button } from "@money-matters/ui/web";
 
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
@@ -253,36 +253,23 @@ export default function UpcomingExpenseModal({
           >
             {t("common.cancel", { defaultValue: "Cancel" })}
           </button>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={handleSaveUpcoming}
-            disabled={submitting}
-            className="px-4 py-2 border border-[#2563eb] text-[#2563eb] font-bold rounded-xl hover:bg-blue-50 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            loading={submitting}
+            disabled={!name.trim() || !amount.trim() || parseFloat(amount) <= 0}
           >
-            {submitting ? (
-              <>
-                <Spinner size="sm" />
-                <span>{t("common.saving")}</span>
-              </>
-            ) : (
-              <span>{t("modals.upcomingExpense.saveUpcoming", { defaultValue: "Save Upcoming" })}</span>
-            )}
-          </button>
-          <button
+            {t("modals.upcomingExpense.saveUpcoming", { defaultValue: "Save Upcoming" })}
+          </Button>
+          <Button
             type="button"
             onClick={handleMarkPaid}
-            disabled={submitting}
-            className="px-5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            loading={submitting}
+            disabled={!name.trim() || !amount.trim() || parseFloat(amount) <= 0}
           >
-            {submitting ? (
-              <>
-                <Spinner size="sm" className="text-white" />
-                <span>{t("common.saving")}</span>
-              </>
-            ) : (
-              <span>{t("actions.markPaid", { defaultValue: "Mark Paid" })}</span>
-            )}
-          </button>
+            {t("actions.markPaid", { defaultValue: "Mark Paid" })}
+          </Button>
 
         </div>
       </div>

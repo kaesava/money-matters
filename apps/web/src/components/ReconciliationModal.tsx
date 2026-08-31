@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
-import { Spinner, InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, Button } from "@money-matters/ui/web";
 import posthog from "../lib/posthog-client";
 
 export interface PoolItem {
@@ -318,21 +318,15 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             {t("common.cancel", { defaultValue: "Cancel" })}
           </button>
 
-          <button
+          <Button
             type="button"
             onClick={handleConfirmSubmit}
-            disabled={!isSumValid || isSubmitting}
-            className="flex-1 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={isSubmitting}
+            disabled={!isSumValid}
+            className="flex-1"
           >
-            {isSubmitting ? (
-              <>
-                <Spinner size="sm" className="text-white" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              t("common.confirm", { defaultValue: "Confirm" })
-            )}
-          </button>
+            {t("common.confirm", { defaultValue: "Confirm" })}
+          </Button>
         </div>
 
       </div>

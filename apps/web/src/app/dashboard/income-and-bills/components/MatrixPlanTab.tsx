@@ -6,7 +6,7 @@ import { EngineBucket } from "@money-matters/capability-budgeting/engine";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast, InfoTooltip, ConfirmDialog, Button } from "@money-matters/ui/web";
 import PaydayPreviewModal from "../../../../components/web/PaydayPreviewModal";
 
 
@@ -543,14 +543,14 @@ export function MatrixPlanTab({
             >
               Discard
             </button>
-            <button
+            <Button
               type="button"
               onClick={handleSaveChanges}
-              disabled={isSaving}
-              className="px-4 py-1.5 text-xs font-bold text-white bg-[#00B4A6] hover:bg-[#009b8f] rounded-xl shadow-md transition-all flex items-center gap-2"
+              loading={isSaving}
+              className="px-4 py-1.5 text-xs shadow-md"
             >
-              {isSaving ? "Saving..." : "Save Changes"}
-            </button>
+              Save Changes
+            </Button>
           </div>
         </div>
       )}

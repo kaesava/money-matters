@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
 import { InfoTooltip, fmtDate, SearchInput, ConfirmDialog } from "@money-matters/ui/web";
@@ -27,7 +28,8 @@ function fmtMoney(val: string | number | undefined) {
   return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function BankAccountsDashboardPage() {
+function BankAccountsDashboardContent() {
+  const searchParams = useSearchParams();
   const { status: subStatus } = useSubscriptionStatus();
   const isTrialExpired = subStatus?.isTrialExpired ?? false;
 
@@ -68,7 +70,7 @@ export default function BankAccountsDashboardPage() {
   });
 
   // State management
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [sortField, setSortField] = useState<"name" | "lastKnownBalance">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -591,6 +593,14 @@ export default function BankAccountsDashboardPage() {
         variant="warning"
       />
     </div>
+  );
+}
+
+export default function BankAccountsDashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <BankAccountsDashboardContent />
+    </Suspense>
   );
 }
 

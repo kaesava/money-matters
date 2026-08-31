@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { t } from '@money-matters/i18n';
 import Link from 'next/link';
-import { Spinner } from '@money-matters/ui/web';
+import { Button } from '@money-matters/ui/web';
 import DonutRing from '../../../components/web/DonutRing';
 
 export interface WebDashboardHeroCardProps {
@@ -342,21 +342,14 @@ export const DashboardHeroCard: React.FC<WebDashboardHeroCardProps> = ({
               >
                 Cancel
               </button>
-              <button
+              <Button
                 type="button"
-                disabled={isAdjusting}
                 onClick={handleConfirmAdjustment}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:opacity-75 transition-colors cursor-pointer flex items-center gap-1.5"
+                loading={isAdjusting}
+                disabled={!editValue.trim() || isNaN(parseFloat(editValue))}
               >
-                {isAdjusting ? (
-                  <>
-                    <Spinner size="sm" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  "Confirm"
-                )}
-              </button>
+                Confirm
+              </Button>
             </div>
           </div>
         </div>

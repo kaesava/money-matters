@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
-import { PhoneInput, validateMobileNumber, Spinner, useToast, InfoTooltip } from "@money-matters/ui/web";
+import { PhoneInput, validateMobileNumber, useToast, InfoTooltip, Button } from "@money-matters/ui/web";
 import { AvatarCropModal } from "../../../../components/web/AvatarCropModal";
 
 interface ProfileSectionProps {
@@ -325,14 +325,13 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         </div>
 
         <div className="pt-2 flex justify-end">
-          <button
+          <Button
             type="submit"
-            disabled={isSaving || !isDirty}
-            className="px-5 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            loading={isSaving}
+            disabled={!isDirty || !displayName.trim() || !notificationEmail.trim()}
           >
-            {isSaving && <Spinner size="sm" />}
-            <span>{t("settings.saveProfileCta")}</span>
-          </button>
+            {t("settings.saveProfileCta")}
+          </Button>
         </div>
       </form>
     </>

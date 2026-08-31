@@ -195,11 +195,6 @@ export function PoolsTable({
                         >
                           {row.poolType === "EVERYDAY" ? "Everyday" : row.poolType === "REGULAR" ? "Bills" : "Goal"}
                         </span>
-                        {row.isPrivate && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                            Private
-                          </span>
-                        )}
                       </div>
                     </td>
 
@@ -231,17 +226,24 @@ export function PoolsTable({
 
                     {/* Bank Account (Hyperlink to Bank Accounts page search) */}
                     <td className="py-4 px-4 text-zinc-600 font-medium">
-                      {row.bankAccountName ? (
-                        <Link
-                          href={`/dashboard/bank-accounts?search=${encodeURIComponent(row.bankAccountName)}`}
-                          className="text-[#2563eb] hover:underline font-semibold"
-                          title={`View bank account ${row.bankAccountName}`}
-                        >
-                          {row.bankAccountName}
-                        </Link>
-                      ) : (
-                        <span className="text-zinc-400">—</span>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {row.bankAccountName ? (
+                          <Link
+                            href={`/dashboard/bank-accounts?search=${encodeURIComponent(row.bankAccountName)}`}
+                            className="text-[#2563eb] hover:underline font-semibold"
+                            title={`View bank account ${row.bankAccountName}`}
+                          >
+                            {row.bankAccountName}
+                          </Link>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                        {row.isPrivate && (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1">
+                            🔒 Private
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Current Balance */}

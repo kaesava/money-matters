@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Spinner, useToast } from "@money-matters/ui/web";
+import { Spinner, useToast, Button } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -261,14 +261,13 @@ export default function PaydayPreviewModal({
           >
             {t("common.cancel", { defaultValue: "Cancel" })}
           </button>
-          <button
+          <Button
             type="button"
             onClick={handleConfirmPayday}
-            disabled={submitting}
-            className="px-5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl shadow-md disabled:opacity-50"
+            loading={submitting}
           >
-            {submitting ? "Confirming..." : "Confirm & Deposit"}
-          </button>
+            Confirm &amp; Deposit
+          </Button>
         </div>
       </div>
     </ModalDialog>

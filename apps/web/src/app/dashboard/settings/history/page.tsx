@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
+import { InfoTooltip, fmtDate, useResizableColumns, ResizableTh, SkeletonTable } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import { FilterBar } from "../../../../components/web/FilterBar";
 import { PaginationBar } from "@money-matters/ui/web";
@@ -204,7 +204,10 @@ export default function HistoryPage() {
       />
 
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        {transactionsQuery.isLoading ? (
+          <SkeletonTable cols={5} rows={pageSize} />
+        ) : (
+          <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider select-none">
               <ResizableTh width={widths.date} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("date", e)} onClick={() => toggleSort("recordedAt")} className="px-6 py-4 cursor-pointer hover:text-zinc-700 text-center">
@@ -221,9 +224,7 @@ export default function HistoryPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {transactionsQuery.isLoading ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">Loading your history...</td></tr>
-            ) : sorted.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr><td colSpan={5} className="px-6 py-12 text-center text-xs text-zinc-400 font-medium">{t("transactions.empty")}</td></tr>
             ) : (
               paginated.map((tx: TransactionItem) => {
@@ -256,6 +257,7 @@ export default function HistoryPage() {
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       <PaginationBar

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable } from "@money-matters/ui/web";
 import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
 import { getTenantDateString } from "@money-matters/core";
 
@@ -26,7 +26,7 @@ function TransactionsPageContent() {
 
   // Tab 1 state
   const [filterType, setFilterType] = useState<"ALL" | "DEBIT" | "CREDIT" | "TRANSFER">("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [selectedPool, setSelectedPool] = useState<string>("ALL");
   const [sortColumn, setSortColumn] = useState<"recordedAt" | "description" | "amount">("recordedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -347,16 +347,7 @@ function TransactionsPageContent() {
           {/* Transactions Table */}
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
             {transactionsQuery.isLoading ? (
-              <div className="p-6 divide-y divide-zinc-100">
-                {[1, 2, 3, 4, 5].map((idx) => (
-                  <div key={idx} className="py-3 px-4 flex items-center justify-between animate-pulse">
-                    <div className="h-4 bg-zinc-200 rounded-md w-24" />
-                    <div className="h-4 bg-zinc-200 rounded-md w-48" />
-                    <div className="h-4 bg-zinc-200 rounded-md w-24" />
-                    <div className="h-4 bg-zinc-200 rounded-md w-16 ml-auto" />
-                  </div>
-                ))}
-              </div>
+              <SkeletonTable cols={6} rows={pageSize} />
             ) : sortedTransactions.length === 0 ? (
               <div className="py-16 text-center text-zinc-400 text-xs font-semibold">
                 No transaction records found matching your filters.
@@ -419,7 +410,7 @@ function TransactionsPageContent() {
                         <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">{tx.description}</td>
                         <td className="py-3 px-4 text-left">
                           <Link
-                            href={`/dashboard/pools?search=${encodeURIComponent(tx.categoryName.split(" ➔ ")[0])}`}
+                            href={`/dashboard/pools?search=${encodeURIComponent(tx.poolName || tx.categoryName.split(" ➔ ")[0].replace(/\s*\([^)]*\)$/, ""))}`}
                             className="font-semibold text-[#2563eb] hover:underline"
                           >
                             {tx.categoryName}

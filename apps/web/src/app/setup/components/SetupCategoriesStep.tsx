@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { EstimatedCategoryItem } from "@money-matters/types";
-import { InfoTooltip, Spinner } from "@money-matters/ui/web";
+import { InfoTooltip, Button } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
 
 interface SetupCategoriesStepProps {
@@ -352,21 +352,13 @@ export function SetupCategoriesStep({
         >
           ← Back to Lifestyle
         </button>
-        <button
+        <Button
           type="button"
           onClick={onFinish}
-          disabled={isSubmitting}
-          className="px-8 py-3 text-xs font-bold rounded-xl bg-[#22c55e] text-white hover:bg-emerald-600 transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+          loading={isSubmitting}
         >
-          {isSubmitting ? (
-            <>
-              <Spinner size="sm" className="text-white" />
-              <span>Saving Setup...</span>
-            </>
-          ) : (
-            <span>{showIcons ? "🚀 " : ""}Save &amp; Complete Setup</span>
-          )}
-        </button>
+          {showIcons ? "🚀 " : ""}Save &amp; Complete Setup
+        </Button>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useEffect, useState } from "react";
-import { InfoTooltip, useToast, isFormDirty, ConfirmDialog } from "@money-matters/ui/web";
+import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button } from "@money-matters/ui/web";
 
 import { t } from "@money-matters/i18n";
 
@@ -335,34 +335,14 @@ export function BankAccountFormModal({
             >
               Cancel
             </button>
-            <button
+            <Button
               type="submit"
-              disabled={isSaving || isNegativeAvailable || (!!editingAccount && !isDirty)}
-              onClick={(e) => {
-                if (isNegativeAvailable) {
-                  e.preventDefault();
-                  toast.error("Unbudgeted Buffer cannot exceed Current Balance.");
-                  return;
-                }
-                if (editingAccount && !isDirty && !isSaving) {
-                  e.preventDefault();
-                  toast.info("No changes to save.");
-                }
-              }}
+              loading={isSaving}
+              disabled={!accName.trim() || isNegativeAvailable || (Boolean(editingAccount) && !isDirty)}
               title={isNegativeAvailable ? "Reserved funds cannot exceed Current Balance" : editingAccount && !isDirty ? "No changes to save" : undefined}
-              className={`px-4 py-2 text-xs font-bold text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
-                isNegativeAvailable || (editingAccount && !isDirty) ? "bg-zinc-300 opacity-60 cursor-not-allowed" : "bg-[#2563eb] hover:bg-blue-700"
-              }`}
             >
-              {isSaving ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>{editingAccount ? "Saving Account..." : "Creating Account..."}</span>
-                </>
-              ) : (
-                <span>{editingAccount ? "Save Changes" : "Create Account"}</span>
-              )}
-            </button>
+              {editingAccount ? "Save Changes" : "Create Account"}
+            </Button>
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import JSZip from "jszip";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner, useToast, InfoTooltip } from "@money-matters/ui/web";
+import { useToast, InfoTooltip, Button } from "@money-matters/ui/web";
 
 export function PrivacySection() {
   const toast = useToast();
@@ -69,15 +69,14 @@ export function PrivacySection() {
               Download a complete zipped CSV archive containing your profile, household details, categories, bank accounts, transactions, and payday allocation plans.
             </p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleDownloadZippedCsv}
-            disabled={exporting}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#00B4A6] hover:bg-[#00B4A6]/90 text-white transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50 shrink-0"
+            loading={exporting}
+            className="shrink-0"
           >
-            {exporting && <Spinner size="sm" className="text-white" />}
-            <span>{exporting ? "Generating Zipped Backup..." : "Download Zipped CSV Backup"}</span>
-          </button>
+            Download Zipped CSV Backup
+          </Button>
         </div>
       </section>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 
 import { t } from "@money-matters/i18n";
@@ -343,14 +343,14 @@ export default function IncomeExpenseFormModal({
             >
               {t("common.cancel", { defaultValue: "Cancel" })}
             </button>
-            <button
+            <Button
               type="button"
               onClick={handleSave}
-              disabled={submitting || archiving}
-              className="px-5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold rounded-xl shadow-md disabled:opacity-50 transition-colors"
+              loading={submitting || archiving}
+              disabled={!name.trim() || !amount.trim() || parseFloat(amount) <= 0 || (mode === "EXPENSE" && !poolId)}
             >
-              {submitting ? "Saving..." : isEdit ? "Update Schedule" : "Create Schedule"}
-            </button>
+              {isEdit ? "Update Schedule" : "Create Schedule"}
+            </Button>
           </div>
         </div>
       </div>

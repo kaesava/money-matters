@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
-import { Spinner } from "@money-matters/ui/web";
+import { Button } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
 
 export default function ForgotPasswordPage() {
@@ -80,14 +80,14 @@ export default function ForgotPasswordPage() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 px-4 text-xs font-bold text-white bg-[#2563eb] hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2"
+              className="w-full mt-2"
+              loading={isSubmitting}
+              disabled={!email.trim()}
             >
-              {isSubmitting && <Spinner size="sm" />}
               Send Reset Link
-            </button>
+            </Button>
 
             <div className="text-center mt-2">
               <Link href="/sign-in" className="text-xs text-[#2563eb] hover:underline font-semibold">

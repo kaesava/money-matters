@@ -6,7 +6,7 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useSubscriptionStatus } from "../../../../hooks/useSubscriptionStatus";
-import { Spinner, InfoTooltip, useToast } from "@money-matters/ui/web";
+import { Spinner, InfoTooltip, useToast, Button } from "@money-matters/ui/web";
 import { ModalDialog } from "../../../../components/web/ModalDialog";
 
 export function PartnerInviteSection() {
@@ -209,14 +209,13 @@ export function PartnerInviteSection() {
               />
             </div>
             <div className="flex justify-end">
-              <button
+              <Button
                 type="submit"
-                disabled={partnerInviting}
-                className="px-5 py-2.5 text-xs font-extrabold bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                loading={partnerInviting}
+                disabled={!partnerEmail.trim()}
               >
-                {partnerInviting && <Spinner size="sm" className="text-white" />}
-                <span>Send Invitation →</span>
-              </button>
+                Send Invitation →
+              </Button>
             </div>
           </form>
         )}

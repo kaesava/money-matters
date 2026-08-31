@@ -286,7 +286,7 @@ function SignInContent() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-2" loading={loading} loadingText={t("auth.signingIn", { defaultValue: "Signing in..." })}>
+          <Button type="submit" className="w-full mt-2" loading={loading} disabled={!email.trim() || !password.trim()}>
             {t("auth.signInCta")}
           </Button>
         </form>

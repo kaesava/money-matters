@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import { t } from "@money-matters/i18n";
+import { Button } from "@money-matters/ui/web";
 
 export interface ModalDialogProps {
   isOpen: boolean;
@@ -127,14 +128,14 @@ export function ModalDialog({
             </div>
             <div className="flex flex-col gap-2 mt-2">
               {onSave && (
-                <button
+                <Button
                   type="button"
                   onClick={handleConfirmSave}
-                  disabled={saving}
-                  className="w-full py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-sm"
+                  loading={saving}
+                  className="w-full py-2.5"
                 >
-                  {saving ? t("common.saving", { defaultValue: "Saving..." }) : t("common.save", { defaultValue: "Save Changes" })}
-                </button>
+                  {t("common.save", { defaultValue: "Save Changes" })}
+                </Button>
               )}
               <button
                 type="button"

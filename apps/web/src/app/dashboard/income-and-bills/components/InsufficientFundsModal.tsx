@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
+import { Button } from "@money-matters/ui/web";
 
 export interface CategoryOption {
   id: string;
@@ -86,14 +87,14 @@ export function InsufficientFundsModal({
             >
               Cancel
             </button>
-            <button
+            <Button
               type="button"
-              disabled={isSubmitting || !selectedCategoryId}
+              loading={isSubmitting}
+              disabled={!selectedCategoryId}
               onClick={handleConfirm}
-              className="px-5 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-sm disabled:opacity-50 transition-colors"
             >
-              {isSubmitting ? "Processing..." : t("incomeBillsTabs.confirmTransferAndPay")}
-            </button>
+              {t("incomeBillsTabs.confirmTransferAndPay")}
+            </Button>
           </div>
         </div>
       </div>

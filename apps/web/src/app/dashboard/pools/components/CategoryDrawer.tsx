@@ -98,8 +98,8 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-[#1B2B4B]">{pool.name}</span>
               {pool.isPrivate && (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                  Private
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1">
+                  🔒 Private
                 </span>
               )}
             </div>
@@ -122,10 +122,24 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
               <span className="font-bold text-zinc-700">{pool.bankAccountName || "Unlinked"}</span>
             </div>
             <div className="text-right">
-              <span className="text-zinc-400 font-semibold block text-[11px]">Current Balance</span>
-              <span className="font-mono font-black text-[#1B2B4B]">
-                ${pool.currentBalance.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-zinc-400 font-semibold block text-[11px]">
+                {pool.poolType !== "GOAL" ? "Current Balance / Monthly Target" : "Current Balance"}
               </span>
+              <div className="flex items-center justify-end gap-1 font-mono font-black text-[#1B2B4B]">
+                <span>
+                  ${pool.currentBalance.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                {pool.poolType !== "GOAL" && (() => {
+                  const target = pool.poolType === "EVERYDAY"
+                    ? (pool.rawPool.everydayAllowanceAmount ? parseFloat(pool.rawPool.everydayAllowanceAmount) : pool.targetAmount)
+                    : pool.targetAmount;
+                  return target != null && target > 0 ? (
+                    <span className="text-xs text-zinc-500 font-semibold">
+                      / ${target.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
             </div>
           </div>
         </div>

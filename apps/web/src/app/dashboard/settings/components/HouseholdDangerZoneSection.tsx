@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
-import { Spinner, useToast, InfoTooltip } from "@money-matters/ui/web";
+import { useToast, InfoTooltip, Button } from "@money-matters/ui/web";
 import { ModalDialog } from "../../../../components/web/ModalDialog";
 
 export function HouseholdDangerZoneSection() {
@@ -134,15 +134,15 @@ export function HouseholdDangerZoneSection() {
             >
               Cancel
             </button>
-            <button
+            <Button
               type="button"
+              variant="danger"
               onClick={handleLeaveHousehold}
-              disabled={!isLeaveValid || isSubmitting}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+              loading={isSubmitting}
+              disabled={!isLeaveValid}
             >
-              {isSubmitting && <Spinner size="sm" className="text-white" />}
-              <span>Confirm & Leave</span>
-            </button>
+              Confirm &amp; Leave
+            </Button>
           </div>
         </div>
       </ModalDialog>
@@ -188,15 +188,15 @@ export function HouseholdDangerZoneSection() {
             >
               Cancel
             </button>
-            <button
+            <Button
               type="button"
+              variant="danger"
               onClick={handleDeleteHousehold}
-              disabled={!isDeleteValid || isSubmitting}
-              className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+              loading={isSubmitting}
+              disabled={!isDeleteValid}
             >
-              {isSubmitting && <Spinner size="sm" className="text-white" />}
-              <span>Confirm & Delete Permanently</span>
-            </button>
+              Confirm &amp; Delete Permanently
+            </Button>
           </div>
         </div>
       </ModalDialog>

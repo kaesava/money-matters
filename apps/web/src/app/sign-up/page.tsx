@@ -387,7 +387,7 @@ function SignUpContent() {
             </label>
           </div>
 
-          <Button type="submit" className="w-full mt-2" loading={loading} loadingText={t("auth.creatingAccount", { defaultValue: "Creating account..." })}>
+          <Button type="submit" className="w-full mt-2" loading={loading} disabled={!name.trim() || !email.trim() || !password.trim() || !agreedToTerms}>
             {t("auth.signUpCta")}
           </Button>
         </form>

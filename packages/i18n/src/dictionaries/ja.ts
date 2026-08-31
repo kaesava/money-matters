@@ -46,7 +46,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "delete": "削除",
     "archive": "アーカイブ",
     "restore": "元に戻す",
-    "loading": "読み込み中…",
+    "loading": "読み込み中...",
     "error": "エラーが発生しました。もう一度お試しください。",
     "retry": "再試行",
     "empty": "データがありません。",
@@ -400,7 +400,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "earlyAccess": {
       "title": "Money Matters はまもなくリリースされます！",
       "description": "家計管理体験を完璧にするため、最終調整とテストを行っています。まもなくサインアップを開始します。",
-      "notifyLabel": "リリース時に通知を受け取る:"
+      "notifyLabel": "リリース時に通知を受け取る:",
+      "notifyBtn": "通知を受け取る"
     },
     "getStartedFree": "60日間無料体験を始める",
     "badge": "🇦🇺 オーストラリアの家庭向け家計管理",

@@ -1,6 +1,6 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer, Spinner, SearchableCategorySelect, InfoTooltip, useIconVisibility, ConfirmDialog } from "@money-matters/ui/web";
+import { SlideOverDrawer, SearchableCategorySelect, InfoTooltip, useIconVisibility, ConfirmDialog, Button } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 
@@ -281,28 +281,14 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
               >
                 {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
-              <button
+              <Button
                 type="submit"
-                disabled={isPending}
-                className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl transition-all shadow-sm flex items-center gap-2 ${
-                  isTransfer
-                    ? "bg-blue-600 hover:bg-blue-700"
-                    : isIncome
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-rose-600 hover:bg-rose-700"
-                }`}
+                loading={isPending}
+                disabled={!amount.trim() || parseFloat(amount) <= 0 || (isTransfer ? (!sourceCategoryId || !destinationCategoryId) : !categoryId)}
+                variant={isTransfer ? "primary" : isIncome ? "primary" : "danger"}
               >
-                {isPending && <Spinner size="sm" color="white" />}
-                <span>
-                  {isPending
-                    ? (isTransfer ? "Recording Transfer..." : isIncome ? "Recording Income..." : "Recording Expense...")
-                    : isTransfer
-                    ? "Confirm Transfer"
-                    : isIncome
-                    ? "Record Income"
-                    : "Record Expense"}
-                </span>
-              </button>
+                {isTransfer ? "Confirm Transfer" : isIncome ? "Record Income" : "Record Expense"}
+              </Button>
             </div>
 
           </>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PaginationBar, useIconVisibility, useResizableColumns, ResizableTh, fmtDate } from "@money-matters/ui/web";
+import { PaginationBar, useIconVisibility, useResizableColumns, ResizableTh, fmtDate, SkeletonTable } from "@money-matters/ui/web";
 import { BurstModal, SourceItem, EventItem } from "./BurstModal";
 
 function fmt(val: string | number) {
@@ -128,7 +128,10 @@ export function SourceTable({
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse text-xs font-semibold">
+        {isLoading ? (
+          <SkeletonTable cols={4} rows={pageSize} />
+        ) : (
+          <table className="w-full text-left border-collapse text-xs font-semibold">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/80">
               <ResizableTh width={widths.name} onResizeMouseDown={(e) => onMouseDown("name", e)} className="px-5 py-3.5"><SortHeader label="Name" sortKey="name" currentKey={sortKey} dir={sortDir} onSort={handleSort} /></ResizableTh>
@@ -138,16 +141,7 @@ export function SourceTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {isLoading ? (
-              [1, 2, 3].map((idx) => (
-                <tr key={idx} className="animate-pulse">
-                  <td className="px-5 py-3.5"><div className="h-4 bg-zinc-200 rounded-md w-32" /></td>
-                  <td className="px-5 py-3.5"><div className="h-4 bg-zinc-200 rounded-md w-24" /></td>
-                  <td className="px-5 py-3.5"><div className="h-4 bg-zinc-200 rounded-md w-24" /></td>
-                  <td className="px-5 py-3.5 text-right"><div className="h-4 bg-zinc-200 rounded-md w-16 ml-auto" /></td>
-                </tr>
-              ))
-            ) : paginated.length === 0 ? (
+            {paginated.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-5 py-10 text-center text-xs text-zinc-400 font-medium">
                   {filtered.length === 0 && items.length > 0 ? "No matches found." : `No ${isIncome ? "income sources" : "expense bills"} set up yet.`}
@@ -189,6 +183,7 @@ export function SourceTable({
             })}
           </tbody>
         </table>
+        )}
       </div>
 
 

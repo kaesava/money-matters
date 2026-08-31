@@ -2,6 +2,7 @@
 
 import React from "react";
 import { t } from "@money-matters/i18n";
+import { Button } from "@money-matters/ui/web";
 
 export interface EarlyAccessModalProps {
   isOpen: boolean;
@@ -63,13 +64,14 @@ export function EarlyAccessModal({
               placeholder="you@example.com"
               className="flex-1 px-3 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
-            <button
+            <Button
               type="submit"
-              disabled={isPending}
-              className="bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer"
+              loading={isPending}
+              disabled={!emailInput.trim()}
+              className="shrink-0"
             >
-              {isPending ? "Submitting..." : "Notify Me"}
-            </button>
+              {t("landing.earlyAccess.notifyBtn")}
+            </Button>
           </div>
         </form>
       </div>

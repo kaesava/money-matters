@@ -1,5 +1,5 @@
 import React from 'react';
-import { Spinner, fmtDate } from "@money-matters/ui/web";
+import { fmtDate, Button } from "@money-matters/ui/web";
 import { useIconVisibility } from '@money-matters/ui';
 
 export interface WebAttentionItem {
@@ -61,7 +61,6 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
         {sortedItems.map((item) => {
           const isEditing = editingId === item.id;
           const currentDate = isEditing ? editDate : item.expectedDate;
-          const currentAmount = isEditing ? parseFloat(editAmount) || item.expectedAmount : item.expectedAmount;
           const isFutureDate = currentDate > todayStr;
 
           // Severity calculation
@@ -137,9 +136,11 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                 <div className="flex items-center gap-2">
                   {isEditing ? (
                     <>
-                      <button
+                      <Button
                         type="button"
                         onClick={() => {
+                          const currentAmount = editAmount ? parseFloat(editAmount) : item.expectedAmount;
+                          const currentDate = editDate || item.expectedDate;
                           if (isFutureDate && onSave) {
                             onSave(item, currentAmount, currentDate);
                           } else {
@@ -147,14 +148,11 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                           }
                           setEditingId(null);
                         }}
-                        disabled={markingPaidId === item.id}
-                        className={`text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-                          isFutureDate ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"
-                        }`}
+                        loading={markingPaidId === item.id}
+                        variant="primary"
                       >
-                        {markingPaidId === item.id && <Spinner size="sm" />}
                         {isFutureDate ? "Save" : "Mark Paid"}
-                      </button>
+                      </Button>
                       <button
                         type="button"
                         onClick={() => setEditingId(null)}

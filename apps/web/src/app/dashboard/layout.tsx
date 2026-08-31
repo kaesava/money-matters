@@ -322,7 +322,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
               {(isInitialLoading || isQueryFetching) ? (
                 <div className="min-h-[60vh] flex items-center justify-center p-6 text-center">
-                  <Spinner size="lg" label={t("dashboard.loading") || "Loading workspace..."} direction="col" />
+                  <Spinner size="lg" label={t("common.loading")} direction="col" />
                 </div>
               ) : isQueryError ? (
 
