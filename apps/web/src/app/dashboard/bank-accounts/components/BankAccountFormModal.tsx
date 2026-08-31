@@ -54,7 +54,7 @@ export function BankAccountFormModal({
   accBuffer,
   setAccBuffer,
   accIsPrivate,
-  setAccIsPrivate: _setAccIsPrivate,
+  setAccIsPrivate,
   pools,
   selectedPoolIds,
   onPoolToggle,
