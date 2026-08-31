@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useToast, ConfirmDialog } from "@money-matters/ui/web";
+import React, { useState, useEffect, useMemo } from "react";
+import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -58,20 +58,41 @@ export function CategoryFormModal({
     if (categoryToEdit) {
       setName(categoryToEdit.name);
       setType(categoryToEdit.poolType || categoryToEdit.type || "REGULAR");
-      setBankAccountId(categoryToEdit.bankAccountId || bankAccounts[0]?.id || "");
+      setBankAccountId(categoryToEdit.bankAccountId || "");
       setTargetAmount(categoryToEdit.targetAmount || "");
       setTargetDate(categoryToEdit.targetDate || "");
       setIsSurplusTarget(categoryToEdit.isSurplusTarget ?? false);
     } else {
       setName("");
       setType("REGULAR");
-      setBankAccountId(""); // Mandatory: No pre-selection by default
+      setBankAccountId(""); // Mandatory: No pre-selection
       setTargetAmount("");
       setTargetDate("");
       setIsSurplusTarget(false);
     }
     setErrorMsg(null);
-  }, [categoryToEdit, isOpen, bankAccounts]);
+  }, [categoryToEdit, isOpen]);
+
+  // Compute if form state is dirty (has changes)
+  const isDirty = useMemo(() => {
+    if (!isEdit) {
+      return Boolean(name.trim() && bankAccountId);
+    }
+    if (!categoryToEdit) return false;
+    const initialName = categoryToEdit.name || "";
+    const initialTarget = categoryToEdit.targetAmount || "";
+    const initialDate = categoryToEdit.targetDate || "";
+    const initialSurplus = categoryToEdit.isSurplusTarget ?? false;
+
+    return (
+      name.trim() !== initialName ||
+      targetAmount !== initialTarget ||
+      targetDate !== initialDate ||
+      isSurplusTarget !== initialSurplus
+    );
+  }, [isEdit, categoryToEdit, name, bankAccountId, targetAmount, targetDate, isSurplusTarget]);
+
+  const isSurplusDisabled = Boolean(isEdit && categoryToEdit?.isSurplusTarget);
 
   const confirmArchive = async () => {
     if (!categoryToEdit?.id) return;
@@ -105,6 +126,17 @@ export function CategoryFormModal({
       return;
     }
 
+    if (type === "GOAL") {
+      if (!targetAmount || parseFloat(targetAmount) <= 0) {
+        setErrorMsg("Goal amount is required for Goal pools and must be greater than 0.");
+        return;
+      }
+      if (!targetDate) {
+        setErrorMsg("Completion date is required for Goal pools.");
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       if (isEdit && categoryToEdit) {
@@ -121,7 +153,7 @@ export function CategoryFormModal({
         await createPoolMut.mutateAsync({
           name: name.trim(),
           poolType: type,
-          bankAccountId: bankAccountId || bankAccounts[0]?.id || "",
+          bankAccountId: bankAccountId,
           targetAmount: type === "GOAL" ? targetAmount || undefined : undefined,
           targetDate: type === "GOAL" ? targetDate || undefined : undefined,
           isSurplusTarget: type !== "EVERYDAY" ? isSurplusTarget : undefined,
@@ -154,7 +186,7 @@ export function CategoryFormModal({
         )}
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Pool Name</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.poolNameLabel")}</label>
           <input
             type="text"
             value={name}
@@ -166,60 +198,57 @@ export function CategoryFormModal({
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Pool Type</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.poolTypeLabel")}</label>
           <select
             value={type}
             disabled={isEdit}
             onChange={(e) => setType(e.target.value as "EVERYDAY" | "REGULAR" | "GOAL")}
             className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500 cursor-pointer"
           >
-            <option value="EVERYDAY">Everyday Spending Pool</option>
-            <option value="REGULAR">Regular Bills Pool</option>
-            <option value="GOAL">Savings Goal Pool</option>
+            <option value="EVERYDAY">{t("categories.typeEveryday")}</option>
+            <option value="REGULAR">{t("categories.typeRegular")}</option>
+            <option value="GOAL">{t("categories.typeGoal")}</option>
           </select>
-          {isEdit && (
-            <p className="text-[10px] text-zinc-400 mt-1 font-semibold">
-              Pool type is immutable after creation to protect transaction history.
-            </p>
-          )}
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Linked Bank Account</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.linkedAccountLabel")}</label>
           <select
             value={bankAccountId}
             disabled={isEdit}
             onChange={(e) => setBankAccountId(e.target.value)}
             className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500 cursor-pointer"
           >
-            {!isEdit && <option value="">-- Select Bank Account (Mandatory) --</option>}
+            {!isEdit && <option value="">{t("categories.selectBankAccount")}</option>}
             {bankAccounts.map((acc) => (
               <option key={acc.id} value={acc.id}>
                 {acc.name} {acc.isPrivate ? "(Private)" : "(Household)"}
               </option>
             ))}
           </select>
-          {isEdit && (
-            <p className="text-[10px] text-zinc-400 mt-1 font-semibold">
-              Bank account link is read-only after creation.
-            </p>
-          )}
         </div>
+
+        {isEdit && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
+            {t("categories.immutabilityWarning")}
+          </div>
+        )}
 
         {(type === "REGULAR" || type === "EVERYDAY") && (
           <div className="p-3 bg-slate-50 border border-zinc-200 rounded-xl text-zinc-600 text-[11px] leading-relaxed">
-            <span className="font-bold text-[#1B2B4B] block mb-0.5">Calculated Target</span>
-            For {type === "EVERYDAY" ? "Everyday" : "Bills"} pools, monthly target amounts are calculated automatically from your category targets in the pool.
+            <span className="font-bold text-[#1B2B4B] block mb-0.5">{t("categories.calculatedTarget")}</span>
+            {t("categories.calculatedTargetNotice")}
           </div>
         )}
 
         {type === "GOAL" && (
           <>
             <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">Target Goal Amount ($)</label>
+              <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetAmountLabel")}</label>
               <input
                 type="number"
                 step="0.01"
+                min="0.01"
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
                 placeholder="10000.00"
@@ -227,7 +256,7 @@ export function CategoryFormModal({
               />
             </div>
             <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">Target Completion Date (Optional)</label>
+              <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetCompletionDate")}</label>
               <input
                 type="date"
                 value={targetDate}
@@ -239,43 +268,55 @@ export function CategoryFormModal({
         )}
 
         {type !== "EVERYDAY" && (
-          <label className="flex items-center gap-2 pt-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isSurplusTarget}
-              onChange={(e) => setIsSurplusTarget(e.target.checked)}
-              className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-            />
-            <span className="font-bold text-zinc-800">Sweep unallocated payday surplus into this pool</span>
-          </label>
+          <div className="pt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSurplusTarget}
+                disabled={isSurplusDisabled}
+                onChange={(e) => setIsSurplusTarget(e.target.checked)}
+                className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb] disabled:opacity-50"
+              />
+              <span className="font-bold text-zinc-800 flex items-center gap-1.5">
+                <span>{t("categories.sweepSurplus")}</span>
+                <InfoTooltip content={t("categories.shortfallTargetTooltip")} />
+              </span>
+            </label>
+            {isSurplusDisabled && (
+              <p className="text-[11px] text-zinc-500 mt-1 pl-6">
+                {t("categories.shortfallTargetDisabledWarning")}
+              </p>
+            )}
+          </div>
         )}
 
-        <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
+        <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
           {isEdit ? (
             <button
               type="button"
               onClick={() => setShowArchiveConfirm(true)}
-              disabled={submitting}
-              className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline cursor-pointer"
+              className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
             >
-              Archive Pool
+              {t("categories.archivePool")}
             </button>
-          ) : <div />}
+          ) : (
+            <div />
+          )}
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50"
+              className="px-4 py-2 border border-zinc-300 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100"
             >
-              Cancel
+              {t("categories.cancel")}
             </button>
             <button
               type="submit"
-              disabled={submitting}
-              className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50"
+              disabled={submitting || !isDirty}
+              className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {submitting ? "Saving..." : isEdit ? "Update Pool" : "Create Pool"}
+              {submitting ? "Saving..." : t("categories.savePool")}
             </button>
           </div>
         </div>
@@ -285,9 +326,9 @@ export function CategoryFormModal({
         isOpen={showArchiveConfirm}
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
-        title="Archive Pool"
-        description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"? All linked categories will also be archived.`}
-        confirmLabel="Archive Pool"
+        title={t("categories.archivePool")}
+        description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"? All linked categories in this pool will also be archived.`}
+        confirmLabel={t("categories.archivePool")}
         variant="danger"
         isLoading={submitting}
       />

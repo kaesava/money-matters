@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
@@ -29,7 +29,9 @@ export function CategoryItemModal({
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
   // Filter out Goal pools as categories are only for Everyday/Bills pools
-  const availablePools = (poolsQuery.data ?? []).filter((p) => p.poolType !== "GOAL");
+  const availablePools = useMemo(() => {
+    return (poolsQuery.data ?? []).filter((p) => p.poolType !== "GOAL");
+  }, [poolsQuery.data]);
 
   const isEdit = Boolean(categoryToEdit?.id);
 
@@ -64,7 +66,7 @@ export function CategoryItemModal({
   }, [categoryToEdit, isOpen, initialPoolId, availablePools]);
 
   // Compute calculated monthly amount for display
-  const calculatedMonthly = React.useMemo(() => {
+  const calculatedMonthly = useMemo(() => {
     const val = parseFloat(enteredAmount);
     if (isNaN(val) || val <= 0) return "0.00";
     let monthly = val;
@@ -73,6 +75,27 @@ export function CategoryItemModal({
     else if (frequency === "ANNUALLY") monthly = val / 12;
     return monthly.toFixed(2);
   }, [enteredAmount, frequency]);
+
+  // Check if form is dirty (has modifications)
+  const isDirty = useMemo(() => {
+    if (!isEdit) {
+      return Boolean(name.trim() && selectedPoolId && enteredAmount && parseFloat(enteredAmount) > 0);
+    }
+    if (!categoryToEdit) return false;
+    const origName = categoryToEdit.name || "";
+    const origPool = categoryToEdit.poolId || "";
+    const origAmount = categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || "";
+    const origFreq = (categoryToEdit.budgetFrequency as FrequencyOption) || "MONTHLY";
+    const origEssential = categoryToEdit.isEssential ?? false;
+
+    return (
+      name.trim() !== origName ||
+      selectedPoolId !== origPool ||
+      enteredAmount !== origAmount ||
+      frequency !== origFreq ||
+      isEssential !== origEssential
+    );
+  }, [isEdit, categoryToEdit, name, selectedPoolId, enteredAmount, frequency, isEssential]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +109,10 @@ export function CategoryItemModal({
       setErrorMsg("Target pool is required.");
       return;
     }
+    if (!enteredAmount || parseFloat(enteredAmount) <= 0) {
+      setErrorMsg("Target amount is required and must be greater than 0.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -94,6 +121,7 @@ export function CategoryItemModal({
           categoryId: categoryToEdit.id,
           data: {
             name: name.trim(),
+            poolId: selectedPoolId,
             monthlyAmount: calculatedMonthly,
             enteredAmount: enteredAmount.trim() || undefined,
             budgetFrequency: frequency,
@@ -148,7 +176,7 @@ export function CategoryItemModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? `Edit Category — ${categoryToEdit?.name}` : "Create Category"}
+      title={isEdit ? `Edit Category — ${categoryToEdit?.name}` : t("categories.addCategory")}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
@@ -159,7 +187,7 @@ export function CategoryItemModal({
         )}
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Category Name</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.nameLabel")}</label>
           <input
             type="text"
             value={name}
@@ -171,13 +199,13 @@ export function CategoryItemModal({
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Target Pool</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetPoolLabel")}</label>
           <select
             value={selectedPoolId}
             onChange={(e) => setSelectedPoolId(e.target.value)}
             className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           >
-            <option value="" disabled>Select Pool</option>
+            <option value="" disabled>{t("categories.selectPool")}</option>
             {availablePools.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({p.poolType === "EVERYDAY" ? "Everyday" : "Bills"})
@@ -188,10 +216,11 @@ export function CategoryItemModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">Target Amount ($)</label>
+            <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetAmountLabel")}</label>
             <input
               type="number"
               step="0.01"
+              min="0.01"
               value={enteredAmount}
               onChange={(e) => setEnteredAmount(e.target.value)}
               placeholder="150.00"
@@ -199,23 +228,23 @@ export function CategoryItemModal({
             />
           </div>
           <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">Frequency</label>
+            <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.frequencyLabel")}</label>
             <select
               value={frequency}
               onChange={(e) => setFrequency(e.target.value as FrequencyOption)}
               className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             >
-              <option value="WEEKLY">Weekly</option>
-              <option value="FORTNIGHTLY">Fortnightly</option>
-              <option value="MONTHLY">Monthly</option>
-              <option value="ANNUALLY">Annually</option>
+              <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
+              <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>
+              <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
+              <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
             </select>
           </div>
         </div>
 
         {enteredAmount && parseFloat(enteredAmount) > 0 && frequency !== "MONTHLY" && (
           <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] font-semibold text-blue-900 flex items-center justify-between font-mono">
-            <span>Monthly Equivalent:</span>
+            <span>{t("categories.monthlyEquivalent")}</span>
             <span className="font-bold text-[#2563eb]">${calculatedMonthly} / mo</span>
           </div>
         )}
@@ -227,7 +256,7 @@ export function CategoryItemModal({
             onChange={(e) => setIsEssential(e.target.checked)}
             className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
           />
-          <span className="font-bold text-zinc-800">Mark as essential recurring bill</span>
+          <span className="font-bold text-zinc-800">{t("categories.prioritiseCategory")}</span>
         </label>
 
         <div className="flex justify-between items-center pt-4 border-t border-zinc-200">
@@ -238,7 +267,7 @@ export function CategoryItemModal({
               disabled={submitting}
               className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline cursor-pointer"
             >
-              Archive Category
+              {t("categories.archiveCategory")}
             </button>
           ) : <div />}
 
@@ -248,14 +277,14 @@ export function CategoryItemModal({
               onClick={onClose}
               className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50"
             >
-              Cancel
+              {t("categories.cancel")}
             </button>
             <button
               type="submit"
-              disabled={submitting}
-              className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50"
+              disabled={submitting || !isDirty}
+              className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {submitting ? "Saving..." : isEdit ? "Update Category" : "Create Category"}
+              {submitting ? "Saving..." : t("categories.saveCategory")}
             </button>
           </div>
         </div>
@@ -265,9 +294,9 @@ export function CategoryItemModal({
         isOpen={showArchiveConfirm}
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
-        title="Archive Category"
+        title={t("categories.archiveCategory")}
         description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"?`}
-        confirmLabel="Archive Category"
+        confirmLabel={t("categories.archiveCategory")}
         variant="danger"
         isLoading={submitting}
       />

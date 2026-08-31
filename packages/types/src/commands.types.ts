@@ -26,23 +26,40 @@ export const UpdateBankAccountCommand = z.object({
 }).strict();
 
 export const CreatePoolCommand = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, "Pool name is required"),
   poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
-  bankAccountId: z.string().uuid(),
-  everydayAllowanceAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
+  bankAccountId: z.string().uuid("Please select a bank account"),
+  everydayAllowanceAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
-  targetAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
+  targetAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   targetDate: z.string().optional().nullable(),
   isCommitted: z.boolean().default(false).optional(),
   isSurplusTarget: z.boolean().default(false).optional(),
   waterfallPriority: z.number().int().optional(),
-}).strict();
+}).strict().superRefine((data, ctx) => {
+  if (data.poolType === "GOAL") {
+    if (!data.targetAmount || parseFloat(data.targetAmount) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Goal amount is required for Goal pools and must be greater than 0",
+        path: ["targetAmount"],
+      });
+    }
+    if (!data.targetDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Completion date is required for Goal pools",
+        path: ["targetDate"],
+      });
+    }
+  }
+});
 
 export const UpdatePoolCommand = z.object({
-  name: z.string().min(1).optional(),
-  everydayAllowanceAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
+  name: z.string().min(1, "Pool name is required").optional(),
+  everydayAllowanceAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Amount must be a valid positive number" }).optional().nullable(),
   rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).optional(),
-  targetAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
+  targetAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   targetDate: z.string().optional().nullable(),
   isCommitted: z.boolean().optional(),
   isSurplusTarget: z.boolean().optional(),
@@ -50,22 +67,22 @@ export const UpdatePoolCommand = z.object({
 }).strict();
 
 export const CreateCategoryCommand = z.object({
-  poolId: z.string().uuid(),
-  name: z.string().min(1),
+  poolId: z.string().uuid("Please select a pool"),
+  name: z.string().min(1, "Category name is required"),
   isEssential: z.boolean().default(false).optional(),
-  monthlyAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
-  enteredAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
+  monthlyAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
+  enteredAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   icon: z.string().optional().nullable(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
 }).strict();
 
 export const UpdateCategoryCommand = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().min(1, "Category name is required").optional(),
   poolId: z.string().uuid().optional(),
   isEssential: z.boolean().optional(),
-  monthlyAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
-  enteredAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/).optional().nullable(),
+  monthlyAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
+  enteredAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   icon: z.string().optional().nullable(),
   colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),

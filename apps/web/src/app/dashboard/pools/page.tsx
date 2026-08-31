@@ -31,6 +31,7 @@ function PoolsPageContent() {
 
   const [searchQuery, setSearchQuery] = useState(paramSearch);
   const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>(paramType);
+  const [privacyFilter, setPrivacyFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
   const [projectionMonths, setProjectionMonths] = useState(0);
   const [showProjectionMatrix, setShowProjectionMatrix] = useState(false);
 
@@ -131,11 +132,21 @@ function PoolsPageContent() {
         }
       } else if (p.poolType === "REGULAR") {
         const target = targetAmountNum || 0;
-        const remaining = Math.max(0, target - (p.currentBalance || 0));
-        progressText = `Remaining: $${remaining.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const cur = p.currentBalance || 0;
+        if (target > 0 && cur >= target) {
+          progressText = t("categories.fullyFunded");
+        } else if (cur > 0) {
+          progressText = t("categories.onTrack");
+        } else {
+          progressText = t("categories.shortfall");
+        }
       } else if (p.poolType === "EVERYDAY") {
-        const remaining = Math.max(0, p.currentBalance || 0);
-        progressText = `Remaining: $${remaining.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const cur = p.currentBalance || 0;
+        if (cur >= 0) {
+          progressText = t("categories.readyToSpend");
+        } else {
+          progressText = t("categories.needsAttention");
+        }
       }
 
       const rawSummaryItem: CategorySummaryItem = {
@@ -173,10 +184,16 @@ function PoolsPageContent() {
     });
   }, [poolsQuery.data, categoriesQuery.data]);
 
-  // Filter logic: Type filter + Search (matches Pool Name, Category Name, OR Bank Account Name)
+  // Filter logic: Type filter + Privacy filter + Search
   const filteredRows = useMemo(() => {
     return tableRows.filter((row) => {
       if (typeFilter !== "ALL" && row.poolType !== typeFilter) {
+        return false;
+      }
+      if (privacyFilter === "SHARED" && row.isPrivate) {
+        return false;
+      }
+      if (privacyFilter === "PRIVATE" && !row.isPrivate) {
         return false;
       }
       const q = searchQuery.toLowerCase().trim();
@@ -187,7 +204,7 @@ function PoolsPageContent() {
       const bankNameMatch = row.bankAccountName ? row.bankAccountName.toLowerCase().includes(q) : false;
       return poolNameMatch || catNameMatch || bankNameMatch;
     });
-  }, [tableRows, typeFilter, searchQuery]);
+  }, [tableRows, typeFilter, privacyFilter, searchQuery]);
 
   // Sorting logic
   const sortedRows = useMemo(() => {
@@ -408,24 +425,46 @@ function PoolsPageContent() {
             placeholder="Search Pool Name, Category, or Bank Account..."
           />
 
-          <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200 shrink-0">
-            {(["ALL", "EVERYDAY", "REGULAR", "GOAL"] as const).map((fType) => (
-              <button
-                key={fType}
-                type="button"
-                onClick={() => {
-                  setTypeFilter(fType);
-                  setPage(1);
-                }}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                  typeFilter === fType
-                    ? "bg-[#2563eb] text-white shadow-xs"
-                    : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                {fType === "ALL" ? "All" : fType === "EVERYDAY" ? "Everyday" : fType === "REGULAR" ? "Bills" : "Goals"}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
+              {(["ALL", "EVERYDAY", "REGULAR", "GOAL"] as const).map((fType) => (
+                <button
+                  key={fType}
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter(fType);
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    typeFilter === fType
+                      ? "bg-[#2563eb] text-white shadow-xs"
+                      : "text-zinc-500 hover:text-zinc-800"
+                  }`}
+                >
+                  {fType === "ALL" ? "All" : fType === "EVERYDAY" ? "Everyday" : fType === "REGULAR" ? "Bills" : "Goals"}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
+              {(["ALL", "SHARED", "PRIVATE"] as const).map((pType) => (
+                <button
+                  key={pType}
+                  type="button"
+                  onClick={() => {
+                    setPrivacyFilter(pType);
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    privacyFilter === pType
+                      ? "bg-[#1B2B4B] text-white shadow-xs"
+                      : "text-zinc-500 hover:text-zinc-800"
+                  }`}
+                >
+                  {pType === "ALL" ? "All" : pType === "SHARED" ? "Shared" : "Private"}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

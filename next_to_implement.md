@@ -1,3 +1,37 @@
+# History
+* Ensure Search searches across Pool Name and Category Name if Transaction record includes Category Name. Search across From and To Pool/Category for Transfers and Pool for all else and Category if exists.
+# Pools
+* Incude another filter next to All|Everyday|Bills|Goals to show All|Shared|Private.
+* Show the Type as a badge next to Pool Name instead of its own column.
+* Make the Bank Account a hyperlink, on click take the user to the Bank Accounts screen with the Bank Account Name pre-entered into the search field.
+* When I click on 3 Categories, was expecting side drawer not popup.
+*Change "ACTIONS" column header to "HISTORY"
+* Change History from button to hyperlink. Also, while the button takes the user to the page, it doesn't populate the Pool Name in the History Search bar. (Note that when I click a Pool in the History bar, it correctly navigates me to the Pools screen with the Pool Name in the search bar).
+
+## Categories drawer (when user clicks on "3 Categories") - applies to Everyday & Bills only
+* Right align Current Balance and show Monthly Target (sum of Categories)
+* Remove the Archive action.
+* Make "Name" and "Monthly targer" Sortable
+* Include a Search bar that searches by Category Name. Ensure app consistency and re-use
+* Change "ACTIONS" column header to "HISTORY"
+* Change History from button to hyperlink. Also, while the button takes the user to the page, it doesn't populate the Category  Name in the History Search bar.
+
+## Category Edit
+
+## Pool Edit
+* For Goal Pools, it allows me to save without  a Goal Amount or Completion date. Make sure both are entered.
+* Make "Pool type is immutable after creation to protect transaction history." and "Bank account link is read-only after creation." more user-friendly - targeted to Aussie family user. No hardcoding literals.
+* "Update Pool" - is this standard - I thought we were saying "Save Pool". Also, it should only be active if change was made - this was a design pattern followed across the app. Important to be be consistent across the app in wording and behaviour of Save/Confirm buttons.
+* Next to "mark a pool as sweep target" show (i) icon with information targeted at Aussie family user that explains what this is (reuse existing (i) pattern). Disable unchecking if it was previously already checked (and tell the user to mark the Pool they want as sweep target to instead). Ensure language is targeted at Aussie family and never hardcoded. On save, if checked, warn them that the previous Pool (name the Pool) will no longer be the sweep target. Also, find a better way of saying sweep target across the app - maybe something like Shortfall/Surplus target?
+
+* Categories - Remove Archive link
+* Create Category - I tried saving with blank Category Name but it didn't error (required fields must be marked). I tried setting Mark as essential recurring bill, but that didn't work. Rename "Mark as essential recurring bill" as "Prioritise this category when allocating income"
+
+* Run seed to overwrite dev and prod (all dummy data anyway)
+
+
+
+
 # AGENT - In progress...
     
 _________

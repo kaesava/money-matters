@@ -79,16 +79,16 @@ export function SlideOverAllocationDrawer({
               </h2>
               <div className="mt-3 space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-zinc-400 w-28">Income Source:</span>
+                  <span className="font-semibold text-zinc-400 w-28">{t("categories.incomeSourceLabel")}</span>
                   <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.incomeName || "Income Deposit"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-zinc-400 w-28">Bank Account:</span>
+                  <span className="font-semibold text-zinc-400 w-28">{t("categories.bankAccountLabel")}</span>
                   <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.receivingAccountName || "Main Account"}</span>
                 </div>
                 {(plan.expectedDate || plan.incomeDate) && (
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-400 w-28">Income Date:</span>
+                    <span className="font-semibold text-zinc-400 w-28">{t("categories.incomeDateLabel")}</span>
                     <span className="font-mono text-zinc-700 dark:text-zinc-300">{fmtDate(plan.expectedDate || plan.incomeDate)}</span>
                   </div>
                 )}

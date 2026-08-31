@@ -71,6 +71,8 @@ function TransactionsPageContent() {
       date: string;
       description: string;
       categoryName: string;
+      poolName?: string;
+      rawCategoryName?: string;
       categoryType?: "EVERYDAY" | "REGULAR" | "GOAL";
       amount: string;
       type: "DEBIT" | "CREDIT" | "TRANSFER";
@@ -122,14 +124,19 @@ function TransactionsPageContent() {
       } else {
         processedIds.add(tx.id);
         const txObj = tx as unknown as { poolId?: string; poolName?: string; categoryName?: string };
-        const catName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || txObj.categoryName || "Everyday Pool";
+        const pName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || "";
+        const cName = txObj.categoryName || "";
+        const displayLabel = pName && cName ? `${pName} (${cName})` : pName || cName || "Everyday Pool";
+
         result.push({
           id: tx.id,
           recordedAt: tx.recordedAt,
           date: fmtDate(tx.recordedAt),
           description: tx.note || `Transaction (${tx.source || "MANUAL"})`,
-          categoryName: catName,
-          categoryType: categoryMap.get(catName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,
+          categoryName: displayLabel,
+          poolName: pName,
+          rawCategoryName: cName,
+          categoryType: categoryMap.get(pName || cName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,
           amount: tx.amount,
           type: tx.flowType as "DEBIT" | "CREDIT",
           source: tx.source || "MANUAL",
@@ -148,7 +155,9 @@ function TransactionsPageContent() {
         const q = searchQuery.toLowerCase();
         return (
           tx.description.toLowerCase().includes(q) ||
-          tx.categoryName.toLowerCase().includes(q)
+          tx.categoryName.toLowerCase().includes(q) ||
+          (tx.poolName && tx.poolName.toLowerCase().includes(q)) ||
+          (tx.rawCategoryName && tx.rawCategoryName.toLowerCase().includes(q))
         );
       }
       return true;

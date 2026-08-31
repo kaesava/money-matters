@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { SlideOverDrawer, useToast, ConfirmDialog } from "@money-matters/ui/web";
-import { t } from "@money-matters/i18n";
+import Link from "next/link";
+import { SlideOverDrawer, SearchInput } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import { CategoryItem, PoolTableRow } from "../types";
 
@@ -15,26 +14,15 @@ interface CategoryDrawerProps {
 }
 
 export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }: CategoryDrawerProps) {
-  const toast = useToast();
-  const router = useRouter();
-  const utils = trpc.useUtils();
-
-  const [isAddingInline, setIsAddingInline] = useState(false);
-  const [editingCatId, setEditingCatId] = useState<string | null>(null);
-  const [catName, setCatName] = useState("");
-  const [monthlyAmount, setMonthlyAmount] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [catToDelete, setCatToDelete] = useState<CategoryItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<"name" | "monthlyAmount">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const poolId = pool?.id ?? null;
 
   const categoriesQuery = trpc.listCategories.useQuery(undefined, {
     enabled: Boolean(poolId),
   });
-
-  const createCategoryMut = trpc.createCategory.useMutation();
-  const updateCategoryMut = trpc.updateCategory.useMutation();
-  const archiveCategoryMut = trpc.archiveCategory.useMutation();
 
   if (!pool || !poolId) return null;
 
@@ -51,92 +39,49 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
       monthlySpent: c.monthlySpent,
     }));
 
+  const filteredCategories = poolCategories.filter((cat) => {
+    if (!searchQuery.trim()) return true;
+    return cat.name.toLowerCase().includes(searchQuery.toLowerCase().trim());
+  });
+
+  const sortedCategories = [...filteredCategories].sort((a, b) => {
+    let aVal: string | number = "";
+    let bVal: string | number = "";
+
+    if (sortField === "name") {
+      aVal = a.name.toLowerCase();
+      bVal = b.name.toLowerCase();
+    } else if (sortField === "monthlyAmount") {
+      aVal = a.monthlyAmount ? parseFloat(a.monthlyAmount) : 0;
+      bVal = b.monthlyAmount ? parseFloat(b.monthlyAmount) : 0;
+    }
+
+    if (aVal === bVal) return 0;
+    if (sortDir === "asc") return aVal < bVal ? -1 : 1;
+    return aVal > bVal ? -1 : 1;
+  });
+
+  const toggleSort = (field: "name" | "monthlyAmount") => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
+
   const handleStartAdd = () => {
     if (onAddCategory) {
+      onClose();
       onAddCategory(pool.id);
-      return;
     }
-    setEditingCatId(null);
-    setCatName("");
-    setMonthlyAmount("");
-    setIsAddingInline(true);
   };
 
   const handleStartEdit = (cat: CategoryItem) => {
     if (onEditCategory) {
+      onClose();
       onEditCategory(cat);
-      return;
     }
-    setIsAddingInline(false);
-    setEditingCatId(cat.id);
-    setCatName(cat.name);
-    setMonthlyAmount(cat.monthlyAmount || "");
-  };
-
-  const handleCancelForm = () => {
-    setIsAddingInline(false);
-    setEditingCatId(null);
-    setCatName("");
-    setMonthlyAmount("");
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!catName.trim()) {
-      toast.error("Category name is required.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (isAddingInline) {
-        await createCategoryMut.mutateAsync({
-          poolId,
-          name: catName.trim(),
-          monthlyAmount: monthlyAmount.trim() || undefined,
-        });
-        toast.success("Category created successfully.");
-      } else if (editingCatId) {
-        await updateCategoryMut.mutateAsync({
-          categoryId: editingCatId,
-          data: {
-            name: catName.trim(),
-            monthlyAmount: monthlyAmount.trim() || undefined,
-          },
-        });
-        toast.success("Category updated successfully.");
-      }
-
-      await utils.listCategories.invalidate();
-      await utils.listPools.invalidate();
-      handleCancelForm();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to save category.";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!catToDelete) return;
-    try {
-      setSubmitting(true);
-      await archiveCategoryMut.mutateAsync({ categoryId: catToDelete.id });
-      await utils.listCategories.invalidate();
-      await utils.listPools.invalidate();
-      toast.success(t("toasts.archived"));
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete category.";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-      setCatToDelete(null);
-    }
-  };
-
-  const handleGoToCategoryHistory = (categoryName: string) => {
-    router.push(`/dashboard/history?search=${encodeURIComponent(categoryName)}`);
   };
 
   return (
@@ -176,7 +121,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
               <span className="text-zinc-400 font-semibold block text-[11px]">Bank Account</span>
               <span className="font-bold text-zinc-700">{pool.bankAccountName || "Unlinked"}</span>
             </div>
-            <div>
+            <div className="text-right">
               <span className="text-zinc-400 font-semibold block text-[11px]">Current Balance</span>
               <span className="font-mono font-black text-[#1B2B4B]">
                 ${pool.currentBalance.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -185,68 +130,23 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
           </div>
         </div>
 
-        {/* Categories Section Header */}
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-            Pool Categories ({poolCategories.length})
-          </span>
-          {!isAddingInline && !editingCatId && (
-            <button
-              type="button"
-              onClick={handleStartAdd}
-              className="px-3 py-1.5 rounded-xl font-bold text-xs bg-[#2563eb] text-white hover:bg-blue-700 transition-all cursor-pointer shadow-2xs"
-            >
-              + Add Category
-            </button>
-          )}
+        {/* Search & Header Controls */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search category name..."
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleStartAdd}
+            className="px-3.5 py-2 rounded-xl font-bold text-xs bg-[#2563eb] text-white hover:bg-blue-700 transition-all cursor-pointer shadow-2xs shrink-0"
+          >
+            + New Category
+          </button>
         </div>
-
-        {/* Add / Edit Inline Form (Fallback) */}
-        {(isAddingInline || editingCatId) && (
-          <form onSubmit={handleSave} className="p-4 bg-blue-50/50 border border-blue-200 rounded-2xl space-y-3 animate-in fade-in">
-            <h4 className="text-xs font-black text-[#1B2B4B]">
-              {isAddingInline ? "Add New Category" : "Edit Category"}
-            </h4>
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-600 mb-1">Category Name</label>
-              <input
-                type="text"
-                value={catName}
-                onChange={(e) => setCatName(e.target.value)}
-                placeholder="e.g. Electricity, Groceries"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-600 mb-1">Monthly Target Amount ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={monthlyAmount}
-                onChange={(e) => setMonthlyAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-xs font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleCancelForm}
-                className="px-3 py-1.5 border border-zinc-300 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-4 py-1.5 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs disabled:opacity-50"
-              >
-                {submitting ? "Saving..." : "Save Category"}
-              </button>
-            </div>
-          </form>
-        )}
 
         {/* Categories Table */}
         {categoriesQuery.isLoading ? (
@@ -255,22 +155,38 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
               <div key={i} className="h-10 bg-zinc-100 rounded-xl animate-pulse" />
             ))}
           </div>
-        ) : poolCategories.length === 0 ? (
+        ) : sortedCategories.length === 0 ? (
           <div className="py-10 text-center text-xs font-medium text-zinc-400 bg-zinc-50/50 rounded-2xl border border-dashed border-zinc-200">
-            No categories defined for this pool yet.
+            {searchQuery ? "No categories matched your search." : "No categories defined for this pool yet."}
           </div>
         ) : (
           <div className="border border-zinc-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50/80 text-zinc-500 font-bold uppercase tracking-wider">
-                  <th className="py-3 px-4">Category Name</th>
-                  <th className="py-3 px-4 text-right">Monthly Target</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-zinc-200 bg-zinc-50/80 text-zinc-500 font-bold uppercase tracking-wider select-none">
+                  <th
+                    className="py-3 px-4 cursor-pointer hover:text-zinc-800 transition-colors"
+                    onClick={() => toggleSort("name")}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Category Name</span>
+                      {sortField === "name" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
+                    </div>
+                  </th>
+                  <th
+                    className="py-3 px-4 text-right cursor-pointer hover:text-zinc-800 transition-colors"
+                    onClick={() => toggleSort("monthlyAmount")}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>Monthly Target</span>
+                      {sortField === "monthlyAmount" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 text-right">HISTORY</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
-                {poolCategories.map((cat) => (
+                {sortedCategories.map((cat) => (
                   <tr key={cat.id} className="hover:bg-zinc-50/60 transition-colors">
                     <td className="py-3.5 px-4 font-bold text-[#1B2B4B]">
                       <button
@@ -290,23 +206,13 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleGoToCategoryHistory(cat.name)}
-                          className="px-2 py-1 text-xs font-bold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors cursor-pointer border border-zinc-200"
-                          title="View history for this category"
-                        >
-                          History
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCatToDelete(cat)}
-                          className="px-2 py-1 text-xs font-bold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          Archive
-                        </button>
-                      </div>
+                      <Link
+                        href={`/dashboard/history?search=${encodeURIComponent(cat.name)}`}
+                        className="font-semibold text-[#2563eb] hover:underline text-xs"
+                        title={`View history for ${cat.name}`}
+                      >
+                        History
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -315,17 +221,6 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
           </div>
         )}
       </div>
-
-      <ConfirmDialog
-        isOpen={Boolean(catToDelete)}
-        onClose={() => setCatToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Archive Category"
-        description={`Are you sure you want to archive "${catToDelete?.name || ""}"?`}
-        confirmLabel="Archive Category"
-        variant="danger"
-        isLoading={submitting}
-      />
     </SlideOverDrawer>
   );
 }
