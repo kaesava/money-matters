@@ -297,7 +297,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   {isPending
                     ? (isTransfer ? "Recording Transfer..." : isIncome ? "Recording Income..." : "Recording Expense...")
                     : isTransfer
-                    ? "Submit Transfer"
+                    ? "Confirm Transfer"
                     : isIncome
                     ? "Record Income"
                     : "Record Expense"}

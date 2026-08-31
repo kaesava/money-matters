@@ -98,6 +98,12 @@ export function updateBankAccountHandler(db: DbOrTx) {
         ...(input.bankProvider !== undefined ? { bankProvider: input.bankProvider } : {}),
         ...(input.lastKnownBalance !== undefined ? { lastKnownBalance: input.lastKnownBalance } : {}),
         ...(input.unbudgetedBuffer !== undefined ? { unbudgetedBuffer: input.unbudgetedBuffer } : {}),
+        ...(input.isPrivate !== undefined
+          ? {
+              isPrivate: input.isPrivate,
+              userId: input.isPrivate ? userId : null,
+            }
+          : {}),
         updatedBy: userId,
         updatedAt: new Date(),
       })

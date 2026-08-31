@@ -7,7 +7,6 @@ import { InfoTooltip, fmtDate, SearchInput, ConfirmDialog } from "@money-matters
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 
 import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./components/BankAccountTable";
-import { TransferConflictModal } from "./components/TransferConflictModal";
 import { BankAccountFormModal } from "./components/BankAccountFormModal";
 import { CsvImportModal } from "../../../components/CsvImportModal";
 import { ReconciliationModal } from "../../../components/ReconciliationModal";
@@ -87,15 +86,9 @@ export default function BankAccountsDashboardPage() {
   const [accBalance, setAccBalance] = useState("0.00");
   const [accBuffer, setAccBuffer] = useState("0.00");
   const [accIsPrivate, setAccIsPrivate] = useState(false);
-  const [accSelectedTypes, setAccSelectedTypes] = useState<Array<"EVERYDAY" | "REGULAR" | "GOAL">>([]);
 
   // CSV Import Modal & Rollback State
   const [selectedAccountForImport, setSelectedAccountForImport] = useState<BankAccountItem | null>(null);
-  const [conflictModalInfo, setConflictModalInfo] = useState<{
-    type: "EVERYDAY" | "REGULAR" | "GOAL";
-    typeLabel: string;
-    previousOwnerName: string;
-  } | null>(null);
 
   const [rollbackMsg, setRollbackMsg] = useState<string | null>(null);
   const [showRollbackSection, setShowRollbackSection] = useState(false);
@@ -142,6 +135,12 @@ export default function BankAccountsDashboardPage() {
       hasDifference,
       differenceAmount: diff,
       linkedPoolsCount: linkedPools.length,
+      linkedPools: linkedPools.map((p) => ({
+        id: p.id,
+        name: p.name,
+        poolType: p.poolType,
+        currentBalance: p.currentBalance || 0,
+      })),
     };
   });
 
@@ -181,6 +180,16 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
+  const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
+
+  const handlePoolToggle = (poolId: string) => {
+    if (selectedPoolIds.includes(poolId)) {
+      setSelectedPoolIds(selectedPoolIds.filter((id) => id !== poolId));
+    } else {
+      setSelectedPoolIds([...selectedPoolIds, poolId]);
+    }
+  };
+
   const openAddModal = () => {
     setEditingAccount(null);
     setAccName("");
@@ -188,7 +197,7 @@ export default function BankAccountsDashboardPage() {
     setAccBalance("0.00");
     setAccBuffer("0.00");
     setAccIsPrivate(false);
-    setAccSelectedTypes([]);
+    setSelectedPoolIds([]);
     setErrorMsg(null);
     setIsModalOpen(true);
   };
@@ -204,7 +213,7 @@ export default function BankAccountsDashboardPage() {
     setAccBalance(acc.lastKnownBalance || "0.00");
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(acc.isPrivate ?? false);
-    setAccSelectedTypes(acc.categoryTypes || []);
+    setSelectedPoolIds(pools.filter(p => p.bankAccountId === acc.id).map(p => p.id));
     setErrorMsg(null);
     setIsModalOpen(true);
   };
@@ -279,7 +288,7 @@ export default function BankAccountsDashboardPage() {
         },
         {
           onSuccess: () => {
-            updateMappingsForAccount(editingAccount.id, accSelectedTypes);
+            updateMappingsForAccount(editingAccount.id, selectedPoolIds);
           },
         }
       );
@@ -295,7 +304,7 @@ export default function BankAccountsDashboardPage() {
         {
           onSuccess: (newAcc) => {
             if (newAcc && newAcc.id) {
-              updateMappingsForAccount(newAcc.id, accSelectedTypes);
+              updateMappingsForAccount(newAcc.id, selectedPoolIds);
             }
           },
         }
@@ -303,22 +312,17 @@ export default function BankAccountsDashboardPage() {
     }
   };
 
-  const handleConfirmReconcile = async (selectedPoolId: string) => {
+  const handleConfirmReconcile = async (splits: Array<{ poolId: string; adjustment: string }>) => {
     if (!reconcileState) return;
     const { account, newBalance, expectedBalance } = reconcileState;
     const diff = Number((newBalance - expectedBalance).toFixed(2));
 
-    if (Math.abs(diff) > 0.009 && selectedPoolId) {
+    if (Math.abs(diff) > 0.009 && splits.length > 0) {
       await reconcileMut.mutateAsync({
         accountId: account.id,
         actualBalance: newBalance.toFixed(2),
         clientIdempotencyToken: crypto.randomUUID(),
-        splits: [
-          {
-            poolId: selectedPoolId,
-            adjustment: diff.toFixed(2),
-          },
-        ],
+        splits,
       });
     }
 
@@ -339,7 +343,7 @@ export default function BankAccountsDashboardPage() {
     });
 
     if (editingAccount && editingAccount.id === account.id) {
-      await updateMappingsForAccount(account.id, accSelectedTypes);
+      await updateMappingsForAccount(account.id, selectedPoolIds);
     }
 
     utils.listPools.invalidate();
@@ -348,49 +352,15 @@ export default function BankAccountsDashboardPage() {
     closeModal();
   };
 
-  const updateMappingsForAccount = async (targetAccountId: string, selectedTypes: Array<"EVERYDAY" | "REGULAR" | "GOAL">) => {
-    const pools = poolsQuery.data ?? [];
-
-    for (const tType of selectedTypes) {
-      const matchingPool = pools.find((p) => p.poolType === tType);
-      if (matchingPool && matchingPool.bankAccountId !== targetAccountId) {
-        await updatePoolMut.mutateAsync({
-          poolId: matchingPool.id,
-          data: { bankAccountId: targetAccountId },
-        });
-      }
+  const updateMappingsForAccount = async (targetAccountId: string, poolIdsToLink: string[]) => {
+    for (const pId of poolIdsToLink) {
+      await updatePoolMut.mutateAsync({
+        poolId: pId,
+        data: { bankAccountId: targetAccountId },
+      });
     }
     utils.listPools.invalidate();
     bankAccountsQuery.refetch();
-  };
-
-  const handleCategoryTypeToggle = (type: "EVERYDAY" | "REGULAR" | "GOAL") => {
-    if (accSelectedTypes.includes(type)) {
-      setAccSelectedTypes(accSelectedTypes.filter((t) => t !== type));
-    } else {
-      const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && (a.categoryTypes || []).includes(type));
-      if (currentOwner) {
-        const labelMap: Record<"EVERYDAY" | "REGULAR" | "GOAL", string> = {
-          EVERYDAY: "Everyday Pool",
-          REGULAR: "Bills Pool",
-          GOAL: "Goal Pool",
-        };
-        setConflictModalInfo({
-          type,
-          typeLabel: labelMap[type],
-          previousOwnerName: currentOwner.name,
-        });
-      } else {
-        setAccSelectedTypes([...accSelectedTypes, type]);
-      }
-    }
-  };
-
-  const confirmConflictTransfer = () => {
-    if (conflictModalInfo) {
-      setAccSelectedTypes([...accSelectedTypes, conflictModalInfo.type]);
-      setConflictModalInfo(null);
-    }
   };
 
   const [accountToArchive, setAccountToArchive] = useState<BankAccountItem | null>(null);
@@ -579,14 +549,15 @@ export default function BankAccountsDashboardPage() {
           setAccBuffer={setAccBuffer}
           accIsPrivate={accIsPrivate}
           setAccIsPrivate={setAccIsPrivate}
-          accSelectedTypes={accSelectedTypes}
+          pools={pools}
+          selectedPoolIds={selectedPoolIds}
+          onPoolToggle={handlePoolToggle}
           accounts={accounts}
           isTrialExpired={isTrialExpired}
           isSaving={createAccountMut.isPending || updateAccountMut.isPending}
           bankOptions={BANK_OPTIONS}
           onClose={closeModal}
           onSubmit={handleSaveAccount}
-          onCategoryTypeToggle={handleCategoryTypeToggle}
           fmtMoney={fmtMoney}
           onArchive={() => editingAccount && handleArchive(editingAccount)}
         />
@@ -616,14 +587,6 @@ export default function BankAccountsDashboardPage() {
           initialTab="TRANSFER"
         />
       )}
-
-      {/* Conflict Transfer Warning Modal */}
-      <TransferConflictModal
-        conflictModalInfo={conflictModalInfo}
-        accName={accName}
-        onCancel={() => setConflictModalInfo(null)}
-        onConfirm={confirmConflictTransfer}
-      />
 
       {/* Bank Account Selected CSV Import Modal */}
       {selectedAccountForImport && (

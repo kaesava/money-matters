@@ -6,7 +6,14 @@ import { InfoTooltip, useToast, isFormDirty, ConfirmDialog } from "@money-matter
 import { t } from "@money-matters/i18n";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
-type CategoryType = "EVERYDAY" | "REGULAR" | "GOAL";
+
+export interface PoolRecord {
+  id: string;
+  name: string;
+  poolType: string;
+  bankAccountId: string;
+  currentBalance: number;
+}
 
 export interface BankAccountFormModalProps {
   readonly isOpen: boolean;
@@ -21,14 +28,15 @@ export interface BankAccountFormModalProps {
   readonly setAccBuffer: (val: string) => void;
   readonly accIsPrivate: boolean;
   readonly setAccIsPrivate: (val: boolean) => void;
-  readonly accSelectedTypes: CategoryType[];
-  readonly accounts: Array<{ id: string; name: string; categoryTypes?: CategoryType[]; poolTypes?: CategoryType[] }>;
+  readonly pools: PoolRecord[];
+  readonly selectedPoolIds: string[];
+  readonly onPoolToggle: (poolId: string) => void;
+  readonly accounts: Array<{ id: string; name: string }>;
   readonly isTrialExpired: boolean;
   readonly isSaving: boolean;
   readonly bankOptions: Array<{ key: BankName; label: string; logoBg: string; textColor: string }>;
   readonly onClose: () => void;
   readonly onSubmit: (e: React.FormEvent) => void;
-  readonly onCategoryTypeToggle: (type: CategoryType) => void;
   readonly fmtMoney: (val: number | string | undefined) => string;
   readonly onArchive?: () => void;
 }
@@ -46,14 +54,15 @@ export function BankAccountFormModal({
   setAccBuffer,
   accIsPrivate,
   setAccIsPrivate,
-  accSelectedTypes,
+  pools,
+  selectedPoolIds,
+  onPoolToggle,
   accounts,
   isTrialExpired,
   isSaving,
   bankOptions,
   onClose,
   onSubmit,
-  onCategoryTypeToggle,
   fmtMoney,
   onArchive,
 }: BankAccountFormModalProps) {
@@ -81,7 +90,7 @@ export function BankAccountFormModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  const initialPoolTypes = (editingAccount as unknown as { poolTypes?: CategoryType[]; categoryTypes?: CategoryType[] })?.poolTypes || (editingAccount as unknown as { poolTypes?: CategoryType[]; categoryTypes?: CategoryType[] })?.categoryTypes || [];
+  const initialPoolIds = editingAccount ? pools.filter(p => p.bankAccountId === editingAccount.id).map(p => p.id) : [];
 
   const initialState = editingAccount ? {
     name: editingAccount.name,
@@ -89,7 +98,7 @@ export function BankAccountFormModal({
     balance: (editingAccount as unknown as { lastKnownBalance?: string }).lastKnownBalance || "0",
     buffer: (editingAccount as unknown as { unbudgetedBuffer?: string }).unbudgetedBuffer || "0",
     isPrivate: Boolean((editingAccount as unknown as { isPrivate?: boolean }).isPrivate),
-    selectedTypes: initialPoolTypes as CategoryType[],
+    selectedPoolIds: initialPoolIds,
   } : null;
 
   const currentState = {
@@ -98,23 +107,12 @@ export function BankAccountFormModal({
     balance: accBalance,
     buffer: accBuffer,
     isPrivate: accIsPrivate,
-    selectedTypes: accSelectedTypes,
+    selectedPoolIds,
   };
 
   const isDirty = isFormDirty(initialState, currentState);
 
-
   const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
-
-
-  const handlePoolCheckboxClick = (typeKey: CategoryType) => {
-    const isCurrentlyChecked = accSelectedTypes.includes(typeKey);
-    if (isCurrentlyChecked) {
-      toast.warning("Every pool must be linked to a bank account. To move this pool to a different bank account, edit the bank account that you want to link it to.");
-      return;
-    }
-    onCategoryTypeToggle(typeKey);
-  };
 
   const handlePrivateCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = e.target.checked;
@@ -227,39 +225,50 @@ export function BankAccountFormModal({
         <div className="flex flex-col gap-2 pt-1 border-t border-zinc-100">
           <div className="flex items-center gap-1">
             <label className="text-xs font-bold text-[#1B2B4B]">Link Pools to this Account</label>
-            <InfoTooltip content="Each category pool (Everyday, Bills, Goals) must be linked to a bank account for waterfall payday routing." />
+            <InfoTooltip content="Each pool record (Everyday, Bills, Goals) is linked to a bank account. Linked pools inherit their privacy and user access directly from this account." />
           </div>
-          <div className="flex flex-col gap-2">
-            {[
-              { key: "EVERYDAY" as const, label: "Everyday Pool" },
-              { key: "REGULAR" as const, label: "Bills Pool" },
-              { key: "GOAL" as const, label: "Goal Pool" },
-            ].map((item) => {
-              const isChecked = accSelectedTypes.includes(item.key);
-              const currentOwner = accounts.find((a) => a.id !== editingAccount?.id && (a.poolTypes || a.categoryTypes || []).includes(item.key));
+          <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+            {pools.length === 0 ? (
+              <p className="text-xs text-zinc-400 italic py-2">No pools created yet.</p>
+            ) : (
+              pools.map((pool) => {
+                const isChecked = selectedPoolIds.includes(pool.id) || (editingAccount && pool.bankAccountId === editingAccount.id && !selectedPoolIds.includes(pool.id));
+                const currentOwner = accounts.find((a) => a.id === pool.bankAccountId && a.id !== editingAccount?.id);
+                const typeLabel = pool.poolType === "EVERYDAY" ? "Everyday" : pool.poolType === "REGULAR" ? "Bills" : "Goal";
+                const badgeStyle = pool.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700" : pool.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700";
 
-              return (
-                <label
-                  key={item.key}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors ${
-                    isChecked ? "bg-blue-50/50 border-[#2563eb] text-[#1B2B4B]" : "bg-zinc-50/50 border-zinc-200 text-zinc-600"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handlePoolCheckboxClick(item.key)}
-                      className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb]"
-                    />
-                    <span>{item.label}</span>
-                  </div>
-                  {currentOwner && !isChecked && (
-                    <span className="text-[10px] font-normal text-zinc-400">Currently linked: {currentOwner.name}</span>
-                  )}
-                </label>
-              );
-            })}
+                return (
+                  <label
+                    key={pool.id}
+                    className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors ${
+                      isChecked ? "bg-blue-50/50 border-[#2563eb] text-[#1B2B4B]" : "bg-zinc-50/50 border-zinc-200 text-zinc-600"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(isChecked)}
+                        onChange={() => onPoolToggle(pool.id)}
+                        className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb]"
+                      />
+                      <div className="flex items-center gap-2">
+                        <span>{pool.name}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${badgeStyle}`}>
+                          {typeLabel}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {currentOwner && !isChecked ? (
+                        <span className="text-[10px] font-normal text-zinc-400">Linked to: {currentOwner.name}</span>
+                      ) : (
+                        <span className="text-[10px] font-mono text-zinc-400">Available: {fmtMoney(pool.currentBalance)}</span>
+                      )}
+                    </div>
+                  </label>
+                );
+              })
+            )}
           </div>
         </div>
 

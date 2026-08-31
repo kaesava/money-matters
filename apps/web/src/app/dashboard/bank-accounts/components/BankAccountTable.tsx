@@ -20,6 +20,7 @@ export interface BankAccountItem {
   hasDifference?: boolean;
   differenceAmount?: number;
   linkedPoolsCount?: number;
+  linkedPools?: Array<{ id: string; name: string; poolType: string; currentBalance: number }>;
 }
 
 export interface BankAccountTableProps {
@@ -36,6 +37,7 @@ export interface BankAccountTableProps {
   openEditModal: (acc: BankAccountItem) => void;
   openImportModal: (acc: BankAccountItem) => void;
   openAlignmentModal?: (acc: BankAccountItem) => void;
+  openLinkedPoolsModal?: (acc: BankAccountItem) => void;
   fmtMoney: (val: string | number | undefined) => string;
   isLoading?: boolean;
 }
@@ -54,9 +56,11 @@ export function BankAccountTable({
   openEditModal,
   openImportModal,
   openAlignmentModal,
+  openLinkedPoolsModal,
   fmtMoney,
   isLoading,
 }: BankAccountTableProps) {
+  const [selectedAccForPools, setSelectedAccForPools] = React.useState<BankAccountItem | null>(null);
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
       <div className="overflow-x-auto">
@@ -148,28 +152,17 @@ export function BankAccountTable({
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <div className="flex flex-wrap items-center justify-center gap-1.5">
-                        {((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]).length === 0 ? (
-                          <span className="text-[10px] font-semibold text-zinc-400 italic">None linked</span>
-                        ) : (
-                          ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]).map((type) => {
-                            const badgeStyle =
-                              type === "EVERYDAY"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : type === "REGULAR"
-                                ? "bg-blue-50 text-[#2563eb] border-blue-200"
-                                : "bg-indigo-50 text-indigo-700 border-indigo-200";
-                            return (
-                              <span
-                                key={type}
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${badgeStyle}`}
-                              >
-                                {type === "EVERYDAY" ? "Everyday" : type === "REGULAR" ? "Bills" : "Goal"}
-                              </span>
-                            );
-                          })
-                        )}
-                      </div>
+                      {(acc.linkedPoolsCount ?? 0) === 0 ? (
+                        <span className="text-[11px] font-medium text-zinc-400 italic">No pools linked</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openLinkedPoolsModal ? openLinkedPoolsModal(acc) : setSelectedAccForPools(acc)}
+                          className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1"
+                        >
+                          <span>{acc.linkedPoolsCount} {acc.linkedPoolsCount === 1 ? "Pool" : "Pools"} Linked</span>
+                        </button>
+                      )}
                     </td>
                     <td className="py-4 px-4 text-center">
                       {acc.isPrivate ? (
@@ -213,6 +206,55 @@ export function BankAccountTable({
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
       />
+
+      {/* Linked Pools Details Modal */}
+      {selectedAccForPools && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="bg-white max-w-sm w-full rounded-2xl shadow-xl border border-zinc-200 p-5 space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div>
+                <h4 className="font-extrabold text-sm text-[#1B2B4B]">Linked Pools</h4>
+                <p className="text-[11px] text-zinc-500">{selectedAccForPools.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAccForPools(null)}
+                className="text-zinc-400 hover:text-zinc-600 font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {!(selectedAccForPools.linkedPools) || selectedAccForPools.linkedPools.length === 0 ? (
+                <p className="text-xs text-zinc-400 italic py-2">No pools currently linked.</p>
+              ) : (
+                selectedAccForPools.linkedPools.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/70 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#1B2B4B]">{p.name}</span>
+                      <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
+                        p.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700" : p.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700"
+                      }`}>
+                        {p.poolType === "EVERYDAY" ? "Everyday" : p.poolType === "REGULAR" ? "Bills" : "Goal"}
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-zinc-800">${(p.currentBalance || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedAccForPools(null)}
+              className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs rounded-xl transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

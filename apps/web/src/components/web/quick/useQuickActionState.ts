@@ -294,46 +294,23 @@ export function useQuickActionState(
       }
 
 
-      if (isFutureDate) {
-        createExpenseSourceMut.mutate({
-          name,
-          amount: amountNum.toFixed(2),
-          poolId: categoryId,
-          isRecurring: false,
-          startDate: date,
-        });
-      } else {
-        recordExpenseMutation.mutate({
-          poolId: categoryId,
-          amount: amountNum.toFixed(2),
-          flowType: "DEBIT",
-          note: name,
-          date,
-        });
-      }
+      // Create pending Expense Event (shows up in Income & Bills > Pending List)
+      createExpenseSourceMut.mutate({
+        name,
+        amount: amountNum.toFixed(2),
+        poolId: categoryId,
+        isRecurring: false,
+        startDate: date,
+      });
     } else {
-      if (isFutureDate) {
-        createIncomeSourceMut.mutate({
-          name,
-          amount: amountNum.toFixed(2),
-          isRecurring: false,
-          startDate: date,
-          receivingAccountId: receivingAccountId || undefined,
-        });
-      } else {
-        const targetCat = categories.find((c) => c.poolType === "EVERYDAY") || categories[0];
-        if (!targetCat?.id) {
-          setError("No active pool found. Please ensure at least one pool exists.");
-          return;
-        }
-        recordExpenseMutation.mutate({
-          poolId: targetCat.id,
-          amount: amountNum.toFixed(2),
-          flowType: "CREDIT",
-          note: name,
-          date,
-        });
-      }
+      // Create pending Income Event (shows up in Income & Bills > Pending List)
+      createIncomeSourceMut.mutate({
+        name,
+        amount: amountNum.toFixed(2),
+        isRecurring: false,
+        startDate: date,
+        receivingAccountId: receivingAccountId || undefined,
+      });
     }
   }
 

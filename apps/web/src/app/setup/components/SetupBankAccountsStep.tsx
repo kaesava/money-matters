@@ -66,6 +66,8 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
   const utils = trpc.useUtils();
 
   const { data: fetchedAccounts } = trpc.getBankAccountsWithMappings.useQuery();
+  const poolsQuery = trpc.listPools.useQuery();
+  const pools = poolsQuery.data ?? [];
   const displayAccounts: AccountLike[] = accounts && accounts.length > 0 ? accounts : (fetchedAccounts as unknown as AccountLike[]) || [];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,8 +77,16 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
   const [accBalance, setAccBalance] = useState("1000.00");
   const [accBuffer, setAccBuffer] = useState("0.00");
   const [accIsPrivate, setAccIsPrivate] = useState(false);
-  const [accSelectedTypes, setAccSelectedTypes] = useState<CategoryType[]>([]);
+  const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  const handlePoolToggle = (poolId: string) => {
+    if (selectedPoolIds.includes(poolId)) {
+      setSelectedPoolIds(selectedPoolIds.filter((id) => id !== poolId));
+    } else {
+      setSelectedPoolIds([...selectedPoolIds, poolId]);
+    }
+  };
 
   const createAccountMut = trpc.createBankAccount.useMutation({
     onSuccess: () => {
@@ -120,7 +130,7 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
     setAccBalance("1000.00");
     setAccBuffer("0.00");
     setAccIsPrivate(false);
-    setAccSelectedTypes([]);
+    setSelectedPoolIds([]);
     setIsModalOpen(true);
   };
 
@@ -132,7 +142,7 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
 
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
     setAccIsPrivate(acc.isPrivate ?? false);
-    setAccSelectedTypes(getPoolTypesFromAccount(acc));
+    setSelectedPoolIds(pools.filter(p => p.bankAccountId === acc.id).map(p => p.id));
     setIsModalOpen(true);
   };
 
@@ -140,12 +150,6 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
     setIsModalOpen(false);
     setEditingAccount(null);
     setIsSaving(false);
-  };
-
-  const handleCategoryTypeToggle = (type: CategoryType) => {
-    setAccSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -320,19 +324,24 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
         setAccBuffer={setAccBuffer}
         accIsPrivate={accIsPrivate}
         setAccIsPrivate={setAccIsPrivate}
-        accSelectedTypes={accSelectedTypes}
+        pools={pools.map((p) => ({
+          id: p.id,
+          name: p.name,
+          poolType: p.poolType,
+          bankAccountId: p.bankAccountId,
+          currentBalance: p.currentBalance || 0,
+        }))}
+        selectedPoolIds={selectedPoolIds}
+        onPoolToggle={handlePoolToggle}
         accounts={displayAccounts.map((a) => ({
           id: a.id,
           name: a.name,
-          categoryTypes: getPoolTypesFromAccount(a),
         }))}
-
         isTrialExpired={false}
         isSaving={isSaving}
         bankOptions={BANK_OPTIONS}
         onClose={closeModal}
         onSubmit={handleSubmit}
-        onCategoryTypeToggle={handleCategoryTypeToggle}
         fmtMoney={fmtMoney}
         onArchive={editingAccount ? handleArchive : undefined}
       />

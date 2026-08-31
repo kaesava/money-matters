@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
-import { Spinner } from "@money-matters/ui/web";
+import { Spinner, InfoTooltip } from "@money-matters/ui/web";
 import posthog from "../lib/posthog-client";
 
 export interface PoolItem {
@@ -17,10 +17,11 @@ export interface ReconciliationModalProps {
   isOpen: boolean;
   onClose: () => void;
   accountName: string;
-  expectedBalance: number;
-  newBalance: number;
+  expectedBalance: number; // Total available across linked pools
+  newBalance: number;      // New bank balance entered
+  unbudgetedBuffer?: number;
   pools: PoolItem[];
-  onConfirm: (selectedPoolId: string) => Promise<void>;
+  onConfirm: (splits: Array<{ poolId: string; adjustment: string }>) => Promise<void>;
   onOpenTransferModal?: () => void;
 }
 
@@ -34,18 +35,31 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   accountName,
   expectedBalance,
   newBalance,
+  unbudgetedBuffer = 0,
   pools,
   onConfirm,
   onOpenTransferModal,
 }) => {
-  const [selectedPoolId, setSelectedPoolId] = useState<string>("");
+  const newAvailableToBudget = Math.max(0, newBalance - unbudgetedBuffer);
+  const variance = Number((newAvailableToBudget - expectedBalance).toFixed(2));
+  const isSurplus = variance > 0;
+  const absVariance = Math.abs(variance);
+
+  // Filter visible pools: hide $0 balance pools during shortfalls
+  const visiblePools = useMemo(() => {
+    if (!isSurplus) {
+      return pools.filter((p) => p.currentBalance > 0);
+    }
+    return pools;
+  }, [pools, isSurplus]);
+
+  const hasHiddenZeroPools = !isSurplus && pools.some((p) => p.currentBalance <= 0);
+
+  // State for entered adjustment amounts per poolId
+  const [adjustments, setAdjustments] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const diff = Number((newBalance - expectedBalance).toFixed(2));
-  const isSurplus = diff > 0;
-  const absDiff = Math.abs(diff);
-
-  // Pre-selection & ESC listener
+  // Pre-fill sweep goal pool with 100% of variance on open
   useEffect(() => {
     if (!isOpen) return;
 
@@ -56,42 +70,76 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
     };
     window.addEventListener("keydown", handleKeyDown);
 
-    // Determine initial selected pool
-    const surplusPool = pools.find((p) => p.isSurplusTarget);
-    if (isSurplus) {
-      if (surplusPool) {
-        setSelectedPoolId(surplusPool.id);
-      } else if (pools.length > 0) {
-        setSelectedPoolId(pools[0].id);
-      }
-    } else {
-      // Draw-down: check if surplus pool has sufficient funds
-      if (surplusPool && surplusPool.currentBalance >= absDiff) {
-        setSelectedPoolId(surplusPool.id);
+    const initialAdjustments: Record<string, string> = {};
+    visiblePools.forEach((p) => {
+      initialAdjustments[p.id] = "0.00";
+    });
+
+    const sweepPool = visiblePools.find((p) => p.isSurplusTarget) || visiblePools[0];
+    if (sweepPool) {
+      if (!isSurplus && sweepPool.currentBalance < absVariance) {
+        // Sweep goal doesn't have full funds, pre-fill max available or clear
+        initialAdjustments[sweepPool.id] = Math.min(sweepPool.currentBalance, absVariance).toFixed(2);
       } else {
-        const firstValidPool = pools.find((p) => p.currentBalance >= absDiff);
-        setSelectedPoolId(firstValidPool ? firstValidPool.id : "");
+        initialAdjustments[sweepPool.id] = absVariance.toFixed(2);
       }
     }
+
+    setAdjustments(initialAdjustments);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, isSurplus, absDiff, pools, isSubmitting, onClose]);
+  }, [isOpen, absVariance, isSurplus, visiblePools, isSubmitting, onClose]);
 
   if (!isOpen) return null;
 
-  const validPoolsExist = isSurplus || pools.some((p) => p.currentBalance >= absDiff);
+  // Calculate sum of entered positive numbers
+  const sumAdjustments = Number(
+    Object.values(adjustments)
+      .reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
+      .toFixed(2)
+  );
+
+  const isSumValid = Math.abs(sumAdjustments - absVariance) < 0.009;
+
+  const handleAdjustmentChange = (poolId: string, inputVal: string, maxAvailable: number) => {
+    let valNum = parseFloat(inputVal) || 0;
+    if (valNum < 0) valNum = 0;
+
+    // Enforce drawdown cap for shortfalls
+    if (!isSurplus && valNum > maxAvailable) {
+      valNum = maxAvailable;
+    }
+
+    setAdjustments((prev) => ({
+      ...prev,
+      [poolId]: inputVal === "" ? "" : valNum.toString(),
+    }));
+  };
 
   const handleConfirmSubmit = async () => {
-    if (!selectedPoolId) return;
+    if (!isSumValid) return;
+
+    const splits = Object.entries(adjustments)
+      .filter(([_, val]) => (parseFloat(val) || 0) > 0)
+      .map(([poolId, val]) => {
+        const amt = parseFloat(val) || 0;
+        const signedAmt = isSurplus ? amt : -amt;
+        return {
+          poolId,
+          adjustment: signedAmt.toFixed(2),
+        };
+      });
+
     setIsSubmitting(true);
     try {
-      await onConfirm(selectedPoolId);
+      await onConfirm(splits);
       posthog.capture("bank_account_aligned", {
         account_name: accountName,
-        diff_amount: diff,
+        diff_amount: variance,
         is_surplus: isSurplus,
+        splits_count: splits.length,
       });
       onClose();
     } catch (err) {
@@ -103,7 +151,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-100 pb-4">
@@ -123,20 +171,25 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
           </button>
         </div>
 
-        {/* Read-Only Summary Metric Cards */}
+        {/* Metric Cards */}
         <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Expected</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Expected Total</span>
+              <InfoTooltip content="Calculated as the total available balance across all pools currently linked to this bank account." />
+            </div>
             <span className="font-mono font-bold text-slate-800 text-xs mt-0.5">{fmtMoney(expectedBalance)}</span>
           </div>
+
           <div className="flex flex-col border-x border-slate-200 px-2">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">New Balance</span>
-            <span className="font-mono font-bold text-slate-900 text-xs mt-0.5">{fmtMoney(newBalance)}</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Available to Budget</span>
+            <span className="font-mono font-bold text-slate-900 text-xs mt-0.5">{fmtMoney(newAvailableToBudget)}</span>
           </div>
+
           <div className="flex flex-col text-right">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Difference</span>
             <span className={`font-mono font-bold text-xs mt-0.5 ${isSurplus ? "text-emerald-600" : "text-amber-600"}`}>
-              {isSurplus ? `+${fmtMoney(diff)}` : `-${fmtMoney(absDiff)}`}
+              {isSurplus ? `+${fmtMoney(variance)}` : `-${fmtMoney(absVariance)}`}
             </span>
           </div>
         </div>
@@ -147,84 +200,110 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
         }`}>
           {isSurplus ? (
             <p>
-              The bank account has <strong className="font-bold">{fmtMoney(diff)} more</strong> than expected. Select a pool to receive this surplus:
+              Select the pools where this <strong className="font-bold">surplus ({fmtMoney(absVariance)})</strong> will go:
             </p>
           ) : (
             <p>
-              The bank account has <strong className="font-bold">{fmtMoney(absDiff)} less</strong> than expected. Select a pool for this draw-down:
+              Select the pools where this <strong className="font-bold">shortfall ({fmtMoney(absVariance)})</strong> will come from:
             </p>
           )}
         </div>
 
-        {/* Pool Picker */}
+        {/* Interactive Multi-Pool Adjustment Table */}
         <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Linked Pools Available
-          </label>
-          {pools.length === 0 ? (
-            <p className="text-xs text-slate-400 italic py-2">No pools currently linked to this bank account.</p>
-          ) : (
-            pools.map((pool) => {
-              const isDisabled = !isSurplus && pool.currentBalance < absDiff;
-              const isSelected = selectedPoolId === pool.id;
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                <th className="py-2 text-left">Pool</th>
+                <th className="py-2 text-right">Available</th>
+                <th className="py-2 text-right w-28">Adjustment ($)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+              {visiblePools.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-slate-400 italic">No valid linked pools available.</td>
+                </tr>
+              ) : (
+                visiblePools.map((pool) => {
+                  const val = adjustments[pool.id] ?? "0.00";
+                  const badgeStyle = pool.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700" : pool.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700";
 
-              return (
-                <button
-                  key={pool.id}
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => !isDisabled && setSelectedPoolId(pool.id)}
-                  className={`w-full text-left p-3 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
-                    isDisabled
-                      ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400"
-                      : isSelected
-                      ? "border-[#2563eb] bg-blue-50/70 text-[#1B2B4B] shadow-xs"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700 cursor-pointer"
-                  }`}
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{pool.name}</span>
-                      {pool.isSurplusTarget && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md">
-                          Sweep Goal
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500">
-                      Available: {fmtMoney(pool.currentBalance)}
-                    </span>
-                  </div>
+                  return (
+                    <tr key={pool.id} className="hover:bg-slate-50/80">
+                      <td className="py-2.5 text-left">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-[#1B2B4B]">{pool.name}</span>
+                            {pool.isSurplusTarget && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 bg-blue-100 text-blue-700 rounded-md">
+                                Sweep Goal
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[9px] font-bold inline-block w-max mt-0.5 rounded px-1.5 py-0.2 ${badgeStyle}`}>
+                            {pool.poolType === "EVERYDAY" ? "Everyday" : pool.poolType === "REGULAR" ? "Bills" : "Goal"}
+                          </span>
+                        </div>
+                      </td>
 
-                  <div className="flex items-center gap-2">
-                    {isDisabled && (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md">
-                        Insufficient Funds
-                      </span>
-                    )}
-                    {isSelected && <span className="text-[#2563eb] font-bold text-sm">✓</span>}
-                  </div>
-                </button>
-              );
-            })
+                      <td className="py-2.5 text-right font-mono font-bold text-slate-600">
+                        {fmtMoney(pool.currentBalance)}
+                      </td>
+
+                      <td className="py-2.5 text-right">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max={!isSurplus ? pool.currentBalance : undefined}
+                          value={val}
+                          onChange={(e) => handleAdjustmentChange(pool.id, e.target.value, pool.currentBalance)}
+                          className="w-24 px-2.5 py-1.5 text-right font-mono font-bold text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white"
+                          placeholder="0.00"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+
+          {hasHiddenZeroPools && (
+            <p className="text-[10px] text-slate-400 italic pt-1">
+              Note: Pools with $0.00 balance are hidden as they cannot absorb a shortfall.
+            </p>
           )}
         </div>
 
-        {/* Transfer Funds Hyperlink Prompt if all pools disabled for draw-down */}
-        {!validPoolsExist && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 space-y-1.5">
-            <p className="font-semibold">
-              No single linked pool has sufficient available funds ({fmtMoney(absDiff)}) for this draw-down.
-            </p>
-            {onOpenTransferModal && (
-              <button
-                type="button"
-                onClick={onOpenTransferModal}
-                className="text-red-700 font-bold hover:underline cursor-pointer flex items-center gap-1"
-              >
-                <span>Transfer funds between pools →</span>
-              </button>
+        {/* Live Sum Validation Status */}
+        <div className="flex items-center justify-between text-xs font-semibold pt-1 border-t border-slate-100">
+          <span className="text-slate-500">Allocated Split Total:</span>
+          <div className="flex items-center gap-2">
+            <span className={`font-mono font-bold ${isSumValid ? "text-emerald-600" : "text-amber-600"}`}>
+              {fmtMoney(sumAdjustments)} / {fmtMoney(absVariance)}
+            </span>
+            {isSumValid ? (
+              <span className="text-emerald-600 font-bold">✓ Matches</span>
+            ) : (
+              <span className="text-amber-600 font-bold text-[10px]">
+                (${fmtMoney(Math.abs(absVariance - sumAdjustments))} remaining)
+              </span>
             )}
+          </div>
+        </div>
+
+        {/* Unconditional Transfer Hyperlink */}
+        {onOpenTransferModal && (
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={onOpenTransferModal}
+              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1"
+            >
+              <span>Transfer funds between pools →</span>
+            </button>
           </div>
         )}
 
@@ -242,7 +321,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
           <button
             type="button"
             onClick={handleConfirmSubmit}
-            disabled={!selectedPoolId || isSubmitting}
+            disabled={!isSumValid || isSubmitting}
             className="flex-1 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (

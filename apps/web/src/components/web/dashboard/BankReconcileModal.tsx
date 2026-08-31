@@ -10,7 +10,7 @@ export interface BankReconcileModalProps {
   expectedBalance: number;
   newBalance: number;
   pools: PoolItem[];
-  onConfirm: (selectedPoolId: string) => Promise<void>;
+  onConfirm: (splits: Array<{ poolId: string; adjustment: string }>) => Promise<void>;
   onOpenTransferModal?: () => void;
 }
 

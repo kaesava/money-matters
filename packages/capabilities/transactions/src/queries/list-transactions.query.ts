@@ -1,4 +1,4 @@
-import { transactionLedger, categories, DbOrTx } from "@money-matters/db";
+import { transactionLedger, categories, pools, DbOrTx } from "@money-matters/db";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export async function listTransactionsQuery(
@@ -23,6 +23,7 @@ export async function listTransactionsQuery(
     .select({
       id: transactionLedger.id,
       categoryId: transactionLedger.categoryId,
+      poolId: transactionLedger.poolId,
       bankAccountId: transactionLedger.bankAccountId,
       planLineId: transactionLedger.planLineId,
       transferGroupId: transactionLedger.transferGroupId,
@@ -32,9 +33,11 @@ export async function listTransactionsQuery(
       source: transactionLedger.source,
       recordedAt: transactionLedger.recordedAt,
       categoryName: categories.name,
+      poolName: pools.name,
     })
     .from(transactionLedger)
     .leftJoin(categories, eq(transactionLedger.categoryId, categories.id))
+    .leftJoin(pools, eq(transactionLedger.poolId, pools.id))
     .where(and(...conditions))
     .orderBy(desc(transactionLedger.recordedAt))
     .limit(limit)

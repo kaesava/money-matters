@@ -97,14 +97,17 @@ function TransactionsPageContent() {
         processedIds.add(tx.id);
         processedIds.add(partner.id);
 
-        const sourceCatName = (tx.flowType === "DEBIT" ? tx.categoryName : partner.categoryName) || "Source Pool";
-        const destCatName = (tx.flowType === "CREDIT" ? tx.categoryName : partner.categoryName) || "Destination Pool";
+        const txObj = tx as unknown as { poolName?: string; categoryName?: string };
+        const partnerObj = partner as unknown as { poolName?: string; categoryName?: string };
+
+        const sourceCatName = (tx.flowType === "DEBIT" ? (txObj.poolName || txObj.categoryName) : (partnerObj.poolName || partnerObj.categoryName)) || "Everyday Pool";
+        const destCatName = (tx.flowType === "CREDIT" ? (txObj.poolName || txObj.categoryName) : (partnerObj.poolName || partnerObj.categoryName)) || "Destination Pool";
 
         result.push({
           id: tx.id,
           recordedAt: tx.recordedAt,
           date: fmtDate(tx.recordedAt),
-          description: tx.note || "Transfer between categories",
+          description: tx.note || "Pool Transfer",
           categoryName: `${sourceCatName} ➔ ${destCatName}`,
           amount: tx.amount,
           type: "TRANSFER",
@@ -112,7 +115,8 @@ function TransactionsPageContent() {
         });
       } else {
         processedIds.add(tx.id);
-        const catName = tx.categoryName || "Uncategorized";
+        const txObj = tx as unknown as { poolName?: string; categoryName?: string };
+        const catName = txObj.poolName || txObj.categoryName || "Everyday Pool";
         result.push({
           id: tx.id,
           recordedAt: tx.recordedAt,
