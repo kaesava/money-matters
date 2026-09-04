@@ -11,7 +11,7 @@ export const en = {
     description: "Simple, honest household budgeting. Ring-fence bills on payday, fund savings goals, and spend what's left with total peace of mind.",
   },
   nav: {
-    dashboard: "Dashboard",
+    dashboard: "Money Matters - Simple, honest household budgeting.",
     home: "Home",
     accounts: "Bank Accounts",
     categories: "Pools",
@@ -246,8 +246,8 @@ export const en = {
   transactions: {
     tabs: {
       transactions: "History",
-      allocatePendingIncome: "Allocate Pending Income",
-      pendingList: "Pending List",
+      allocatePendingIncome: "Allocate Income",
+      pendingList: "Upcoming",
       setup: "Setup",
       paydayAllocations: "Payday Allocations",
     },
@@ -1282,6 +1282,7 @@ export const en = {
       dateLabel: "Date (YYYY-MM-DD)",
       amountPlaceholder: "0.00",
       submit: "Record Expense",
+      runPaydayAllocation: "Run Payday Allocation for this pay",
     },
     upcomingExpense: {
       title: "Single Occurrence Edit",
@@ -1334,7 +1335,7 @@ export const en = {
       firstDate: "First Date",
       receivingBankAccount: "Receiving Bank Account",
       defaultMainAccount: "Default Main Account",
-      assignedPool: "Assigned Pool",
+      assignedPool: "Pool",
       selectTargetPool: "Select Target Pool...",
     },
     bankAccountForm: {

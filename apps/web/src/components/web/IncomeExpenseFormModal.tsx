@@ -355,7 +355,7 @@ export default function IncomeExpenseFormModal({
               loading={submitting || archiving}
               disabled={!name.trim() || !amount.trim() || parseFloat(amount) <= 0 || (mode === "EXPENSE" && !poolId)}
             >
-              {isEdit ? "Update Schedule" : "Create Schedule"}
+              {isEdit ? "Update" : "Create"}
             </Button>
           </div>
         </div>

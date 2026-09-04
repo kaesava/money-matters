@@ -95,10 +95,12 @@ export const expensesRouter = {
         })
         .returning();
 
+      let firstEventId: string | null = null;
+
       if (input.isRecurring && input.startDate && rrule) {
         const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
         if (dates.length > 0) {
-          await ctx.db.insert(expenseEvents).values(
+          const insertedEvents = await ctx.db.insert(expenseEvents).values(
             dates.map((d) => ({
               expenseSourceId: source.id,
               poolId: input.poolId,
@@ -112,10 +114,11 @@ export const expensesRouter = {
               createdBy: ctx.userId!,
               updatedBy: ctx.userId!,
             }))
-          );
+          ).returning();
+          firstEventId = insertedEvents[0]?.id ?? null;
         }
       } else if (input.startDate) {
-        await ctx.db.insert(expenseEvents).values({
+        const [insertedEvent] = await ctx.db.insert(expenseEvents).values({
           expenseSourceId: source.id,
           poolId: input.poolId,
           categoryId: input.categoryId || null,
@@ -127,7 +130,8 @@ export const expensesRouter = {
           appId: ctx.appId!,
           createdBy: ctx.userId!,
           updatedBy: ctx.userId!,
-        });
+        }).returning();
+        firstEventId = insertedEvent?.id ?? null;
       }
 
       if (posthog && ctx.userId) {
@@ -145,7 +149,7 @@ export const expensesRouter = {
         await posthog.flush();
       }
 
-      return source;
+      return { ...source, firstEventId };
     }),
 
   updateExpenseSource: privateTenantProcedure

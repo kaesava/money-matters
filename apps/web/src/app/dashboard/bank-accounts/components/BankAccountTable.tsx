@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import Link from "next/link";
 import { PaginationBar, SkeletonTable } from "@money-matters/ui/web";
 
 export type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
@@ -61,6 +62,18 @@ export function BankAccountTable({
   isLoading,
 }: BankAccountTableProps) {
   const [selectedAccForPools, setSelectedAccForPools] = React.useState<BankAccountItem | null>(null);
+
+  useEffect(() => {
+    if (!selectedAccForPools) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setSelectedAccForPools(null);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedAccForPools]);
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
       {isLoading ? (
@@ -113,19 +126,43 @@ export function BankAccountTable({
                 return (
                   <tr key={acc.id} className="hover:bg-zinc-50/80 transition-colors group">
                     <td className="py-4 px-4 font-bold text-[#1B2B4B]">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(acc)}
-                          className="text-sm font-bold text-[#2563eb] hover:underline text-left cursor-pointer"
-                        >
-                          {acc.name}
-                        </button>
-                        {acc.isPrivate && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1">
-                            🔒 Private
-                          </span>
-                        )}
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(acc)}
+                            className="text-sm font-bold text-[#2563eb] hover:underline text-left cursor-pointer"
+                          >
+                            {acc.name}
+                          </button>
+                          {acc.isPrivate && (
+                            <span
+                              title="Private"
+                              className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center cursor-help"
+                            >
+                              🔒
+                            </span>
+                          )}
+                        </div>
+                        {acc.hasDifference && (() => {
+                          const diff = acc.differenceAmount || 0;
+                          const labelStr = diff > 0
+                            ? `Reconcile Surplus of ${fmtMoney(diff)}`
+                            : `Reconcile Shortfall of ${fmtMoney(Math.abs(diff))}`;
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openAlignmentModal?.(acc);
+                              }}
+                              className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                              <span>{labelStr}</span>
+                            </button>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="py-4 px-4 text-right font-mono tabular-nums">
@@ -153,33 +190,17 @@ export function BankAccountTable({
                             </button>
                             {(() => {
                               const poolsTotal = (acc.linkedPools || []).reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-                              const diff = acc.differenceAmount || 0;
                               const expectedStr = `Expected ${fmtMoney(poolsTotal)}.`;
 
-                              if (acc.hasDifference) {
-                                const labelStr = diff > 0
-                                  ? `${expectedStr} Reconcile Available Surplus of ${fmtMoney(diff)}`
-                                  : `${expectedStr} Reconcile Shortfall of ${fmtMoney(Math.abs(diff))}`;
+                              if (!acc.hasDifference) {
                                 return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openAlignmentModal?.(acc);
-                                    }}
-                                    className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer"
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                    <span>{labelStr}</span>
-                                  </button>
+                                  <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span>{expectedStr} Balanced</span>
+                                  </span>
                                 );
                               }
-                              return (
-                                <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                  <span>{expectedStr} Balanced</span>
-                                </span>
-                              );
+                              return null;
                             })()}
                           </>
                         )}
@@ -248,7 +269,13 @@ export function BankAccountTable({
                   {selectedAccForPools.linkedPools.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/70 text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-[#1B2B4B]">{p.name}</span>
+                        <Link
+                          href={`/dashboard/pools?search=${encodeURIComponent(p.name)}`}
+                          onClick={() => setSelectedAccForPools(null)}
+                          className="font-bold text-[#2563eb] hover:underline cursor-pointer"
+                        >
+                          {p.name}
+                        </Link>
                         {p.isSurplusTarget && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md">
                             Sweep Pool

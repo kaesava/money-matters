@@ -12,7 +12,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "description": "シンプルで誠実な家計管理。請求分を確保し、貯蓄目標を積み立て、毎日の支出ペースを可視化します。"
   },
   "nav": {
-    "dashboard": "ダッシュボード",
+    "dashboard": "Money Matters - シンプルで誠実な家計予算管理",
     "home": "ホーム",
     "accounts": "銀行口座",
     "categories": "お金の管理",
@@ -245,8 +245,8 @@ export const ja: DeepStringRecord<typeof en> = {
   "transactions": {
     "tabs": {
       "transactions": "取引履歴",
-      "allocatePendingIncome": "未決算の収入を割り当てる",
-      "pendingList": "保留リスト",
+      "allocatePendingIncome": "収入を割り当てる",
+      "pendingList": "予定リスト",
       "setup": "セットアップ",
       "paydayAllocations": "給与日配分"
     },
@@ -1310,7 +1310,7 @@ export const ja: DeepStringRecord<typeof en> = {
       "firstDate": "初回日付",
       "receivingBankAccount": "受取銀行口座",
       "defaultMainAccount": "デフォルトメイン口座",
-      "assignedPool": "割り当てプール",
+      "assignedPool": "プール",
       "selectTargetPool": "ターゲットプールを選択..."
     },
     "bankAccountForm": {

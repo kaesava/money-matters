@@ -409,12 +409,35 @@ function TransactionsPageContent() {
                         <td className="py-3 px-4 font-mono text-zinc-500 text-center">{fmtDate(tx.date)}</td>
                         <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">{tx.description}</td>
                         <td className="py-3 px-4 text-left">
-                          <Link
-                            href={`/dashboard/pools?search=${encodeURIComponent(tx.poolName || tx.categoryName.split(" ➔ ")[0].replace(/\s*\([^)]*\)$/, ""))}`}
-                            className="font-semibold text-[#2563eb] hover:underline"
-                          >
-                            {tx.categoryName}
-                          </Link>
+                          {tx.categoryName.includes(" ➔ ") ? (() => {
+                            const [fromPart, toPart] = tx.categoryName.split(" ➔ ");
+                            const cleanFrom = fromPart.replace(/\s*\([^)]*\)$/, "");
+                            const cleanTo = toPart.replace(/\s*\([^)]*\)$/, "");
+                            return (
+                              <span className="font-semibold text-[#1B2B4B] flex items-center gap-1">
+                                <Link
+                                  href={`/dashboard/pools?search=${encodeURIComponent(cleanFrom)}`}
+                                  className="text-[#2563eb] hover:underline"
+                                >
+                                  {fromPart}
+                                </Link>
+                                <span className="text-zinc-400">➔</span>
+                                <Link
+                                  href={`/dashboard/pools?search=${encodeURIComponent(cleanTo)}`}
+                                  className="text-[#2563eb] hover:underline"
+                                >
+                                  {toPart}
+                                </Link>
+                              </span>
+                            );
+                          })() : (
+                            <Link
+                              href={`/dashboard/pools?search=${encodeURIComponent(tx.poolName || tx.categoryName)}`}
+                              className="font-semibold text-[#2563eb] hover:underline"
+                            >
+                              {tx.categoryName}
+                            </Link>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">

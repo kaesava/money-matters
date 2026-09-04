@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { SearchInput } from "./SearchInput";
 import { useIconVisibility } from "../hooks/IconVisibilityContext";
 import { t } from "@money-matters/i18n";
@@ -11,6 +11,7 @@ export interface CategoryOption {
   type: "EVERYDAY" | "REGULAR" | "GOAL";
   currentBalance?: string | number | null;
   icon?: string | null;
+  categoryCount?: number;
 }
 
 export interface SearchableCategorySelectProps {
@@ -63,17 +64,22 @@ function renderCategoryIcon(icon?: string | null, type?: "EVERYDAY" | "REGULAR" 
   return iconMap[lowerKey] || (type === "REGULAR" ? "📌" : type === "GOAL" ? "🎯" : "🛒");
 }
 
+const POOL_TYPE_LABELS: Record<"EVERYDAY" | "REGULAR" | "GOAL", string> = {
+  EVERYDAY: "Everyday Pools",
+  REGULAR: "Bills Pools",
+  GOAL: "Goal Pools",
+};
+
 export function SearchableCategorySelect({
   value,
   onChange,
   categories,
-  placeholder = "Select category...",
+  placeholder = "Select pool...",
   disabled = false,
   className = "",
 }: SearchableCategorySelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [poolFilter, setPoolFilter] = useState<"ALL" | "EVERYDAY" | "REGULAR" | "GOAL">("ALL");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +110,7 @@ export function SearchableCategorySelect({
     }
   }, [isOpen]);
 
-  // Intercept Escape key when search dropdown is open so it only closes the dropdown
+  // Intercept Escape key when dropdown is open
   useEffect(() => {
     if (!isOpen) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -119,27 +125,47 @@ export function SearchableCategorySelect({
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [isOpen]);
 
-  const filteredCategories = categories.filter((c) => {
-    if (poolFilter !== "ALL" && c.type !== poolFilter) return false;
-    if (search.trim() && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const filteredCategories = useMemo(() => {
+    if (!search.trim()) return categories;
+    const lower = search.toLowerCase().trim();
+    return categories.filter((c) => c.name.toLowerCase().includes(lower));
+  }, [categories, search]);
+
+  // Hierarchical grouping
+  const groupedCategories = useMemo(() => {
+    const types: Array<"EVERYDAY" | "REGULAR" | "GOAL"> = ["EVERYDAY", "REGULAR", "GOAL"];
+    return types.map((type) => ({
+      type,
+      label: POOL_TYPE_LABELS[type],
+      items: filteredCategories.filter((c) => c.type === type),
+    })).filter((g) => g.items.length > 0);
+  }, [filteredCategories]);
+
+  const flatSelectableList = useMemo(() => {
+    const list: CategoryOption[] = [];
+    for (const group of groupedCategories) {
+      for (const item of group.items) {
+        list.push(item);
+      }
+    }
+    return list;
+  }, [groupedCategories]);
 
   useEffect(() => {
     setHighlightedIndex(0);
-  }, [search, poolFilter]);
+  }, [search]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlightedIndex((prev) => (prev + 1 >= filteredCategories.length ? 0 : prev + 1));
+      setHighlightedIndex((prev) => (prev + 1 >= flatSelectableList.length ? 0 : prev + 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlightedIndex((prev) => (prev - 1 < 0 ? Math.max(0, filteredCategories.length - 1) : prev - 1));
+      setHighlightedIndex((prev) => (prev - 1 < 0 ? Math.max(0, flatSelectableList.length - 1) : prev - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      const targetCat = filteredCategories[highlightedIndex] || filteredCategories[0];
+      const targetCat = flatSelectableList[highlightedIndex] || flatSelectableList[0];
       if (targetCat) {
         onChange(targetCat.id);
         setIsOpen(false);
@@ -151,28 +177,10 @@ export function SearchableCategorySelect({
     }
   };
 
-  const getPoolLabel = (type: "EVERYDAY" | "REGULAR" | "GOAL") => {
-    switch (type) {
-      case "EVERYDAY":
-        return "Everyday";
-      case "REGULAR":
-        return "Bills";
-      case "GOAL":
-        return "Goal";
-      default:
-        return type;
-    }
-  };
-
-  const getPoolBadgeColor = (type: "EVERYDAY" | "REGULAR" | "GOAL") => {
-    switch (type) {
-      case "EVERYDAY":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "REGULAR":
-        return "bg-purple-50 text-purple-700 border-purple-200";
-      case "GOAL":
-        return "bg-teal-50 text-teal-700 border-teal-200";
-    }
+  const fmtMoney = (val?: string | number | null) => {
+    if (val === undefined || val === null) return "$0.00";
+    const num = typeof val === "number" ? val : parseFloat(val);
+    return `$${isNaN(num) ? "0.00" : num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -182,15 +190,15 @@ export function SearchableCategorySelect({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-semibold text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:opacity-75 shadow-xs"
+        className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs font-semibold text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:opacity-75 shadow-xs cursor-pointer"
       >
         {selectedCategory ? (
           <div className="flex items-center gap-2 overflow-hidden min-w-0">
             {showIcons && <span>{renderCategoryIcon(selectedCategory.icon, selectedCategory.type)}</span>}
             <span className="font-bold text-[#1B2B4B] truncate">{selectedCategory.name}</span>
-            {selectedCategory.type === "GOAL" && selectedCategory.currentBalance !== undefined && (
+            {selectedCategory.currentBalance !== undefined && (
               <span className="text-[11px] font-mono text-zinc-500 shrink-0">
-                (${parseFloat(String(selectedCategory.currentBalance || 0)).toFixed(2)})
+                ({fmtMoney(selectedCategory.currentBalance)})
               </span>
             )}
           </div>
@@ -210,66 +218,63 @@ export function SearchableCategorySelect({
             onChange={setSearch}
             onKeyDown={handleInputKeyDown}
             autoFocus
-            placeholder="Type to filter & hit Enter..."
+            placeholder="Type pool or category name..."
           />
 
-          {/* Pool Filter Pills */}
-          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-zinc-200 w-full">
-            {(["ALL", "EVERYDAY", "REGULAR", "GOAL"] as const).map((filterKey) => (
-              <button
-                key={filterKey}
-                type="button"
-                onClick={() => setPoolFilter(filterKey)}
-                className={`flex-1 py-1 text-[10px] font-extrabold rounded-lg transition-all ${
-                  poolFilter === filterKey
-                    ? "bg-white text-[#2563eb] shadow-2xs"
-                    : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                {filterKey === "ALL" ? "All" : filterKey === "EVERYDAY" ? "Everyday" : filterKey === "REGULAR" ? "Bills" : "Goals"}
-              </button>
-            ))}
-          </div>
-
-          {/* Category List */}
-          <div className="overflow-y-auto max-h-48 flex flex-col gap-1 pr-0.5 w-full">
-            {filteredCategories.length === 0 ? (
+          {/* Hierarchical Tree List */}
+          <div className="overflow-y-auto max-h-56 flex flex-col gap-2 pr-0.5 w-full">
+            {groupedCategories.length === 0 ? (
               <div className="py-4 text-center text-xs text-zinc-400 font-medium">
                 {t("common.noMatchingOptions")}
               </div>
             ) : (
-              filteredCategories.map((cat, idx) => {
-                const isSelected = cat.id === value;
-                const isHighlighted = idx === highlightedIndex;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      onChange(cat.id);
-                      setIsOpen(false);
-                    }}
-                    className={`w-full p-2 rounded-xl text-xs flex items-center justify-between text-left transition-all ${
-                      isSelected || isHighlighted
-                        ? "bg-blue-50 border border-blue-200 font-bold"
-                        : "hover:bg-slate-50 border border-transparent"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                      {showIcons && <span>{renderCategoryIcon(cat.icon, cat.type)}</span>}
-                      <span className="font-bold text-[#1B2B4B] truncate">{cat.name}</span>
-                      <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border shrink-0 ${getPoolBadgeColor(cat.type)}`}>
-                        {getPoolLabel(cat.type)}
-                      </span>
-                    </div>
-                    {cat.type === "GOAL" && cat.currentBalance !== undefined && (
-                      <span className="font-mono font-bold text-zinc-600 ml-2 shrink-0">
-                        ${parseFloat(String(cat.currentBalance || 0)).toFixed(2)}
-                      </span>
-                    )}
-                  </button>
-                );
-              })
+              groupedCategories.map((group) => (
+                <div key={group.type} className="flex flex-col gap-1">
+                  {/* Level 1: Pool Type Header */}
+                  <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[#1B2B4B] bg-slate-100 rounded-lg">
+                    {group.label} ({group.items.length})
+                  </div>
+
+                  {/* Level 2/3: Selectable Items */}
+                  <div className="flex flex-col gap-0.5 pl-1">
+                    {group.items.map((cat) => {
+                      const isSelected = cat.id === value;
+                      const flatIndex = flatSelectableList.findIndex((item) => item.id === cat.id);
+                      const isHighlighted = flatIndex === highlightedIndex;
+
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            onChange(cat.id);
+                            setIsOpen(false);
+                          }}
+                          className={`w-full p-2 rounded-xl text-xs flex items-center justify-between text-left transition-all cursor-pointer ${
+                            isSelected || isHighlighted
+                              ? "bg-blue-50 border border-blue-200 font-bold"
+                              : "hover:bg-slate-50 border border-transparent"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                            {showIcons && <span>{renderCategoryIcon(cat.icon, cat.type)}</span>}
+                            <span className="font-bold text-[#1B2B4B] truncate">{cat.name}</span>
+                            {cat.categoryCount !== undefined && cat.categoryCount > 0 && (
+                              <span className="text-[10px] text-zinc-400 font-medium">
+                                ({cat.categoryCount})
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="font-mono font-bold text-zinc-700 text-[11px] ml-2 shrink-0">
+                            {fmtMoney(cat.currentBalance)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>

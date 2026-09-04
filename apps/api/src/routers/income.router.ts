@@ -50,10 +50,12 @@ export const incomeRouter = {
         })
         .returning();
 
+      let firstEventId: string | null = null;
+
       if (input.isRecurring && input.startDate && rrule) {
         const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
         if (dates.length > 0) {
-          await ctx.db.insert(incomeEvents).values(
+          const insertedEvents = await ctx.db.insert(incomeEvents).values(
             dates.map((d) => ({
               incomeSourceId: source.id,
               expectedDate: getAestDateString(d),
@@ -64,10 +66,11 @@ export const incomeRouter = {
               createdBy: ctx.userId!,
               updatedBy: ctx.userId!,
             }))
-          );
+          ).returning();
+          firstEventId = insertedEvents[0]?.id ?? null;
         }
       } else if (input.startDate) {
-        await ctx.db.insert(incomeEvents).values({
+        const [insertedEvent] = await ctx.db.insert(incomeEvents).values({
           incomeSourceId: source.id,
           expectedDate: input.startDate,
           expectedAmount: input.amount,
@@ -76,7 +79,8 @@ export const incomeRouter = {
           appId: ctx.appId!,
           createdBy: ctx.userId!,
           updatedBy: ctx.userId!,
-        });
+        }).returning();
+        firstEventId = insertedEvent?.id ?? null;
       }
 
       if (posthog && ctx.userId) {
@@ -92,7 +96,7 @@ export const incomeRouter = {
         });
         await posthog.flush();
       }
-      return source;
+      return { ...source, firstEventId };
     }),
 
   updateIncomeSource: privateTenantProcedure

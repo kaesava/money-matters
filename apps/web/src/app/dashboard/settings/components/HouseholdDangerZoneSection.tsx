@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
@@ -165,6 +166,23 @@ export function HouseholdDangerZoneSection() {
                 ⚠️ {t("privacy.deletePartnerWarning", { email: gov.partnerEmail })}
               </p>
             )}
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-medium space-y-1.5">
+            <div className="flex items-center gap-1.5 font-bold text-amber-950">
+              <span>💡</span>
+              <span>Recommendation: Download Your Data First</span>
+            </div>
+            <p className="text-[11px] leading-relaxed">
+              We strongly recommend downloading a zipped CSV backup of your records before deleting your household.
+            </p>
+            <Link
+              href="/dashboard/settings?tab=account-data"
+              onClick={() => setActiveModal(null)}
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#2563eb] hover:underline pt-1 cursor-pointer"
+            >
+              <span>Go to Data Sovereignty &amp; Zipped CSV Backup →</span>
+            </Link>
           </div>
 
           <div className="space-y-1.5">

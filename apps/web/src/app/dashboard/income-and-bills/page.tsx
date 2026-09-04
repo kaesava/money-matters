@@ -5,6 +5,7 @@ import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate, Tabs, ConfirmDialog } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
+import PaydayPreviewModal from "../../../components/web/PaydayPreviewModal";
 
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 
@@ -69,7 +70,15 @@ export default function IncomeAndBillsPage() {
 
   const todayStr = useMemo(() => getAestTodayStr(), []);
 
-  // Filter Upcoming (Pending / Unaetioned) Events Only
+  const poolTypeMap = useMemo(() => {
+    const map = new Map<string, "EVERYDAY" | "REGULAR" | "GOAL">();
+    for (const p of pools) {
+      map.set(p.id, p.poolType);
+    }
+    return map;
+  }, [pools]);
+
+  // Filter Upcoming (Pending / Unactioned) Events Only
   const pendingEvents = useMemo(() => {
     const incs = incomeEvents
       .filter((e) => e.status !== "CONFIRMED" && e.status !== "SKIPPED")
@@ -80,6 +89,7 @@ export default function IncomeAndBillsPage() {
         expectedAmount: parseFloat(e.expectedAmount || "0"),
         status: e.status as string,
         type: "INCOME" as const,
+        poolType: "EVERYDAY" as const,
         isOverdue: e.expectedDate <= todayStr,
       }));
     const exps = expenseEvents
@@ -91,10 +101,11 @@ export default function IncomeAndBillsPage() {
         expectedAmount: parseFloat(e.expectedAmount || "0"),
         status: e.status as string,
         type: "EXPENSE" as const,
+        poolType: poolTypeMap.get(e.poolId || e.categoryId || "") || "REGULAR",
         isOverdue: e.expectedDate <= todayStr,
       }));
     return [...incs, ...exps].sort((a, b) => (a.expectedDate || "").localeCompare(b.expectedDate || ""));
-  }, [incomeEvents, expenseEvents, todayStr]);
+  }, [incomeEvents, expenseEvents, todayStr, poolTypeMap]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -106,9 +117,11 @@ export default function IncomeAndBillsPage() {
 
   // Upcoming Table State & Sorting
   const [eventSearchQuery, setEventSearchQuery] = useState("");
-  const [eventTypeFilter, setEventTypeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [eventTypeFilter, setEventTypeFilter] = useState<"ALL" | "EVERYDAY" | "REGULAR" | "GOAL">("ALL");
   const [eventSortColumn, setEventSortColumn] = useState<"type" | "name" | "expectedDate" | "expectedAmount">("expectedDate");
   const [eventSortDirection, setEventSortDirection] = useState<"asc" | "desc">("asc");
+  const [selectedIncomeEventIdForModal, setSelectedIncomeEventIdForModal] = useState<string | null>(null);
+  const [isBulkSkipping, setIsBulkSkipping] = useState(false);
 
   const { widths: eventWidths, onMouseDown: onEventMouseDown } = useResizableColumns({
     type: 110,
@@ -177,6 +190,28 @@ export default function IncomeAndBillsPage() {
     }
   }, [eventToSkip, skipIncomeMut, skipExpenseMut, utils, toast]);
 
+  const overdueEvents = useMemo(() => pendingEvents.filter((e) => e.isOverdue), [pendingEvents]);
+
+  const handleBulkSkipPastEvents = useCallback(async () => {
+    if (overdueEvents.length === 0) return;
+    setIsBulkSkipping(true);
+    try {
+      await Promise.all(
+        overdueEvents.map((e) =>
+          e.type === "INCOME"
+            ? skipIncomeMut.mutateAsync({ eventId: e.id })
+            : skipExpenseMut.mutateAsync({ eventId: e.id })
+        )
+      );
+      toast.success(`Skipped ${overdueEvents.length} past events.`);
+      utils.listIncomeEvents.invalidate();
+      utils.listExpenseEvents.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to bulk skip past events.");
+    } finally {
+      setIsBulkSkipping(false);
+    }
+  }, [overdueEvents, skipIncomeMut, skipExpenseMut, utils, toast]);
 
   // Setup Tab Filtered Schedules
   const filteredIncomeSources = useMemo(() => {
@@ -198,7 +233,7 @@ export default function IncomeAndBillsPage() {
   // Upcoming Filtered & Sorted Events
   const filteredEvents = useMemo(() => {
     return pendingEvents.filter((evt) => {
-      if (eventTypeFilter !== "ALL" && evt.type !== eventTypeFilter) return false;
+      if (eventTypeFilter !== "ALL" && evt.poolType !== eventTypeFilter) return false;
       if (eventSearchQuery.trim()) {
         const q = eventSearchQuery.toLowerCase().trim();
         const amtStr = evt.expectedAmount.toFixed(2);
@@ -470,16 +505,36 @@ export default function IncomeAndBillsPage() {
               placeholder="Search event name or amount..."
             />
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <select
-                value={eventTypeFilter}
-                onChange={(e) => setEventTypeFilter(e.target.value as "ALL" | "INCOME" | "EXPENSE")}
-                className="px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
-              >
-                <option value="ALL">All Types</option>
-                <option value="INCOME">Income Only</option>
-                <option value="EXPENSE">Bills Only</option>
-              </select>
+            <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto">
+              {/* Segmented Pill Filter */}
+              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-zinc-200 shrink-0">
+                {(["ALL", "EVERYDAY", "REGULAR", "GOAL"] as const).map((filterKey) => (
+                  <button
+                    key={filterKey}
+                    type="button"
+                    onClick={() => setEventTypeFilter(filterKey)}
+                    className={`px-3 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                      eventTypeFilter === filterKey
+                        ? "bg-[#2563eb] text-white shadow-2xs"
+                        : "text-zinc-500 hover:text-zinc-800"
+                    }`}
+                  >
+                    {filterKey === "ALL" ? "All" : filterKey === "EVERYDAY" ? "Everyday" : filterKey === "REGULAR" ? "Bills" : "Goals"}
+                  </button>
+                ))}
+              </div>
+
+              {overdueEvents.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleBulkSkipPastEvents}
+                  disabled={isBulkSkipping}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+                >
+                  <span>⏭️</span>
+                  <span>Skip Past ({overdueEvents.length})</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -592,8 +647,14 @@ export default function IncomeAndBillsPage() {
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleActionReceivedOrPaid(evt)}
-                            className="px-2.5 py-1 bg-[#2563eb] text-white hover:bg-[#1d4ed8] rounded-lg font-extrabold text-[10px] transition-colors shadow-xs"
+                            onClick={() => {
+                              if (evt.type === "INCOME") {
+                                setSelectedIncomeEventIdForModal(evt.id);
+                              } else {
+                                handleActionReceivedOrPaid(evt);
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-[#2563eb] text-white hover:bg-[#1d4ed8] rounded-lg font-extrabold text-[10px] transition-colors shadow-xs cursor-pointer"
                           >
                             {evt.type === "INCOME" ? "Mark Received" : "Mark Paid"}
                           </button>
@@ -636,7 +697,19 @@ export default function IncomeAndBillsPage() {
         confirmLabel="Skip Record"
         variant="warning"
       />
+
+      {selectedIncomeEventIdForModal && (
+        <PaydayPreviewModal
+          isOpen={Boolean(selectedIncomeEventIdForModal)}
+          incomeEventId={selectedIncomeEventIdForModal}
+          onClose={() => setSelectedIncomeEventIdForModal(null)}
+          onSuccess={() => {
+            setSelectedIncomeEventIdForModal(null);
+            utils.listIncomeEvents.invalidate();
+            utils.listExpenseEvents.invalidate();
+          }}
+        />
+      )}
     </div>
   );
 }
-

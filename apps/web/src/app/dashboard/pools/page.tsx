@@ -469,7 +469,7 @@ function PoolsPageContent() {
         </div>
       </div>
 
-      {/* Flat Pools Table */}
+      {/* Hierarchical Pools Table */}
       <PoolsTable
         pools={paginatedRows}
         page={page}
@@ -492,8 +492,17 @@ function PoolsPageContent() {
           setSelectedPoolForDrawer(pool);
         }}
         onAddCategoryForPool={handleOpenAddCategoryModal}
+        onEditCategory={(cat) => {
+          setCategoryToEdit(cat);
+          setIsCategoryModalOpen(true);
+        }}
+        onAddPool={(pType) => {
+          setPoolToEdit(pType ? ({ id: "", type: pType, poolType: pType, name: "", currentBalance: "0.00" } as CategorySummaryItem) : null);
+          setIsPoolModalOpen(true);
+        }}
         fmtMoney={fmtMoney}
         isLoading={poolsQuery.isLoading}
+        searchQuery={searchQuery}
       />
 
       {hasArchivedCategories && (

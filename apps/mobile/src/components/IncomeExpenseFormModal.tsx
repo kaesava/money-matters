@@ -207,7 +207,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
       <RecurrenceBuilder builder={recurrenceBuilder} />
 
       <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
-        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Save</Text>}
+        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{sourceToEdit ? 'Update' : 'Create'}</Text>}
       </TouchableOpacity>
     </MobileModalDialog>
   );

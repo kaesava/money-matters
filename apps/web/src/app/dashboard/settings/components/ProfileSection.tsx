@@ -192,14 +192,24 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         <div className="flex items-center gap-4 border-b border-slate-100 pb-5">
           <div className="relative group shrink-0">
             {avatarUrl ? (
-              <Image
-                unoptimized
-                src={avatarUrl}
-                alt={displayName}
-                width={56}
-                height={56}
-                className="w-14 h-14 rounded-full object-cover border-2 border-[#2563eb] shadow-xs"
-              />
+              <button
+                type="button"
+                onClick={() => {
+                  setRawImageSrc(avatarUrl);
+                  setIsCropperOpen(true);
+                }}
+                className="cursor-pointer group relative block rounded-full focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+                title="Click to view / alter avatar"
+              >
+                <Image
+                  unoptimized
+                  src={avatarUrl}
+                  alt={displayName}
+                  width={56}
+                  height={56}
+                  className="w-14 h-14 rounded-full object-cover border-2 border-[#2563eb] shadow-xs group-hover:opacity-90 transition-opacity"
+                />
+              </button>
             ) : (
               <div className="w-14 h-14 rounded-full bg-[#1B2B4B] flex items-center justify-center text-white text-lg font-extrabold shadow-xs">
                 {initials}
