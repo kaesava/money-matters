@@ -225,7 +225,13 @@ export default function IncomeExpenseFormModal({
       }
 
 
-      toast.success(t("toasts.saved"));
+      toast.success(
+        isRecurring
+          ? t("toasts.saved")
+          : mode === "INCOME"
+          ? "One-off income saved to Upcoming Timeline."
+          : "One-off bill saved to Upcoming Timeline."
+      );
       onClose();
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || "Failed to save stream");

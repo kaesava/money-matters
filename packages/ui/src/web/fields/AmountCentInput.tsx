@@ -9,6 +9,7 @@ export interface AmountCentInputProps {
   required?: boolean;
   className?: string;
   placeholder?: string;
+  allowNegative?: boolean;
 }
 
 export function AmountCentInput({
@@ -18,6 +19,7 @@ export function AmountCentInput({
   required = false,
   className = '',
   placeholder = '0.00',
+  allowNegative = false,
 }: AmountCentInputProps) {
   // Store local string representation to allow decimals/typing
   const [displayValue, setDisplayValue] = useState<string>('');
@@ -27,13 +29,29 @@ export function AmountCentInput({
     const centsStr = (value / 100).toFixed(2);
     // Only overwrite local display value if numerical value differs
     if (parseFloat(displayValue) !== value / 100) {
-      setDisplayValue(value > 0 ? centsStr : '');
+      setDisplayValue(value !== 0 ? centsStr : '');
     }
   }, [value]);
 
   const handleInputChange = (val: string) => {
-    setDisplayValue(val);
-    const parsed = parseFloat(val);
+    // Defensive sanitization:
+    let sanitized = val;
+    if (!allowNegative) {
+      sanitized = sanitized.replace(/-/g, '');
+    }
+    // Allow only numbers and max one decimal point
+    sanitized = sanitized.replace(/[^0-9.]/g, '');
+    const parts = sanitized.split('.');
+    if (parts.length > 2) {
+      sanitized = parts[0] + '.' + parts.slice(1).join('');
+    }
+    // Cap at 12 digits total
+    if (sanitized.length > 12) {
+      sanitized = sanitized.slice(0, 12);
+    }
+
+    setDisplayValue(sanitized);
+    const parsed = parseFloat(sanitized);
     if (!isNaN(parsed)) {
       onChange(Math.round(parsed * 100));
     } else {

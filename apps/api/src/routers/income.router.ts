@@ -334,7 +334,8 @@ export const incomeRouter = {
           and(
             eq(incomeSources.tenantId, ctx.tenantId!),
             eq(incomeSources.appId, ctx.appId!),
-            sql`${incomeSources.archivedAt} IS NULL`
+            sql`${incomeSources.archivedAt} IS NULL`,
+            sql`${incomeSources.rrule} IS NOT NULL`
           )
         );
     }),

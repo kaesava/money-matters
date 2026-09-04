@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, InfoTooltip, Input, GenericSelectField, DatePickerField } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -73,6 +73,17 @@ export function CategoryFormModal({
     setErrorMsg(null);
   }, [categoryToEdit, isOpen]);
 
+  // Compute if form mandatory fields are valid
+  const isValid = useMemo(() => {
+    if (!name.trim()) return false;
+    if (!isEdit && !bankAccountId) return false;
+    if (type === "GOAL") {
+      if (!targetAmount || parseFloat(targetAmount) <= 0) return false;
+      if (!targetDate) return false;
+    }
+    return true;
+  }, [name, isEdit, bankAccountId, type, targetAmount, targetDate]);
+
   // Compute if form state is dirty (has changes)
   const isDirty = useMemo(() => {
     if (!isEdit) {
@@ -117,22 +128,22 @@ export function CategoryFormModal({
     setErrorMsg(null);
 
     if (!name.trim()) {
-      setErrorMsg("Pool name is required.");
+      setErrorMsg(t("categories.nameRequired"));
       return;
     }
 
     if (!isEdit && !bankAccountId) {
-      setErrorMsg("Bank Account selection is mandatory.");
+      setErrorMsg(t("categories.bankAccountRequired", { defaultValue: "Bank Account selection is mandatory." }));
       return;
     }
 
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
-        setErrorMsg("Goal amount is required for Goal pools and must be greater than $0.");
+        setErrorMsg(t("categories.goalAmountRequired", { defaultValue: "Goal amount is required for Goal pools and must be greater than $0." }));
         return;
       }
       if (!targetDate) {
-        setErrorMsg("Completion date is required for Goal pools.");
+        setErrorMsg(t("categories.goalDateRequired", { defaultValue: "Completion date is required for Goal pools." }));
         return;
       }
     }
@@ -163,13 +174,27 @@ export function CategoryFormModal({
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      setErrorMsg((err as Error).message || "Failed to save pool");
+      setErrorMsg((err as Error).message || t("categories.saveFailed"));
     } finally {
       setSubmitting(false);
     }
   };
 
   if (!isOpen) return null;
+
+  const poolTypeOptions = [
+    { value: "EVERYDAY", label: t("categories.typeEveryday") },
+    { value: "REGULAR", label: t("categories.typeRegular") },
+    { value: "GOAL", label: t("categories.typeGoal") },
+  ];
+
+  const bankAccountOptions = [
+    ...(!isEdit ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
+    ...bankAccounts.map((acc) => ({
+      value: acc.id,
+      label: `${acc.name} ${acc.isPrivate ? "(Private)" : "(Household)"}`,
+    })),
+  ];
 
   return (
     <ModalDialog
@@ -185,48 +210,32 @@ export function CategoryFormModal({
           </div>
         )}
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.poolNameLabel")}</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Utilities, House Deposit, Groceries"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            autoFocus
-          />
-        </div>
+        <Input
+          label={t("categories.poolNameLabel")}
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Utilities, House Deposit, Groceries"
+          autoFocus
+        />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.poolTypeLabel")}</label>
-          <select
-            value={type}
-            disabled={isEdit}
-            onChange={(e) => setType(e.target.value as "EVERYDAY" | "REGULAR" | "GOAL")}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500 cursor-pointer"
-          >
-            <option value="EVERYDAY">{t("categories.typeEveryday")}</option>
-            <option value="REGULAR">{t("categories.typeRegular")}</option>
-            <option value="GOAL">{t("categories.typeGoal")}</option>
-          </select>
-        </div>
+        <GenericSelectField
+          label={t("categories.poolTypeLabel")}
+          value={type}
+          onChange={(val) => setType(val as "EVERYDAY" | "REGULAR" | "GOAL")}
+          options={poolTypeOptions}
+          disabled={isEdit}
+          required
+        />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.linkedAccountLabel")}</label>
-          <select
-            value={bankAccountId}
-            disabled={isEdit}
-            onChange={(e) => setBankAccountId(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-zinc-100 disabled:text-zinc-500 cursor-pointer"
-          >
-            {!isEdit && <option value="">{t("categories.selectBankAccount")}</option>}
-            {bankAccounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name} {acc.isPrivate ? "(Private)" : "(Household)"}
-              </option>
-            ))}
-          </select>
-        </div>
+        <GenericSelectField
+          label={t("categories.linkedAccountLabel")}
+          value={bankAccountId}
+          onChange={setBankAccountId}
+          options={bankAccountOptions}
+          disabled={isEdit}
+          required={!isEdit}
+        />
 
         {isEdit && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
@@ -243,27 +252,22 @@ export function CategoryFormModal({
 
         {type === "GOAL" && (
           <>
-            <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetAmountLabel")}</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={targetAmount}
-                onChange={(e) => setTargetAmount(e.target.value)}
-                placeholder="10000.00"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetCompletionDate")}</label>
-              <input
-                type="date"
-                value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              />
-            </div>
+            <Input
+              type="number"
+              step="0.01"
+              min="0.01"
+              label={t("categories.targetAmountLabel")}
+              required
+              value={targetAmount}
+              onChange={(e) => setTargetAmount(e.target.value)}
+              placeholder="10000.00"
+            />
+            <DatePickerField
+              label={t("categories.targetCompletionDate")}
+              required
+              value={targetDate}
+              onChange={setTargetDate}
+            />
           </>
         )}
 
@@ -313,10 +317,10 @@ export function CategoryFormModal({
             </button>
             <button
               type="submit"
-              disabled={submitting || !isDirty}
+              disabled={submitting || !isDirty || !isValid}
               className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {submitting ? "Saving..." : t("categories.savePool")}
+              {submitting ? t("common.saving", { defaultValue: "Saving..." }) : t("categories.savePool")}
             </button>
           </div>
         </div>

@@ -85,7 +85,6 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         poolId: categoryToEdit.id,
         data: {
           name: name.trim(),
-          bankAccountId: defaultBankAccountId || undefined,
           targetAmount: (type === 'GOAL' || type === 'REGULAR') && (targetAmount || monthlyAmount) ? parseFloat(targetAmount || monthlyAmount).toFixed(2) : undefined,
           targetDate: type === 'GOAL' && targetDate ? targetDate : undefined,
           everydayAllowanceAmount: type === 'EVERYDAY' && keepAmount ? parseFloat(keepAmount).toFixed(2) : undefined,
@@ -130,8 +129,9 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
           {(['GOAL', 'REGULAR', 'EVERYDAY'] as const).map((tVal) => (
             <TouchableOpacity
               key={tVal}
+              disabled={Boolean(categoryToEdit)}
               onPress={() => setType(tVal)}
-              style={[styles.typeBtn, type === tVal && styles.typeBtnActive]}
+              style={[styles.typeBtn, type === tVal && styles.typeBtnActive, categoryToEdit && { opacity: 0.6 }]}
             >
               <Text style={[styles.typeBtnText, type === tVal && styles.typeBtnTextActive]}>
                 {tVal === 'GOAL' ? t('categories.typeGoal') : tVal === 'REGULAR' ? t('categories.typeRegular') : t('categories.typeEveryday')}
@@ -199,16 +199,18 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         <Text style={styles.label}>{t('categories.linkedAccountLabel')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bankRow}>
           <TouchableOpacity
+            disabled={Boolean(categoryToEdit)}
             onPress={() => setBankAccountId('')}
-            style={[styles.bankChip, !bankAccountId && styles.bankChipActive]}
+            style={[styles.bankChip, !bankAccountId && styles.bankChipActive, categoryToEdit && { opacity: 0.6 }]}
           >
             <Text style={[styles.bankChipText, !bankAccountId && styles.bankChipTextActive]}>-- None --</Text>
           </TouchableOpacity>
           {bankAccounts.map((acc) => (
             <TouchableOpacity
               key={acc.id}
+              disabled={Boolean(categoryToEdit)}
               onPress={() => setBankAccountId(acc.id)}
-              style={[styles.bankChip, bankAccountId === acc.id && styles.bankChipActive]}
+              style={[styles.bankChip, bankAccountId === acc.id && styles.bankChipActive, categoryToEdit && { opacity: 0.6 }]}
             >
               <Text style={[styles.bankChipText, bankAccountId === acc.id && styles.bankChipTextActive]}>
                 {acc.name}
@@ -217,6 +219,14 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
           ))}
         </ScrollView>
       </View>
+
+      {Boolean(categoryToEdit) && (
+        <View style={{ padding: 10, backgroundColor: '#FFFBEB', borderRadius: 8, borderWidth: 1, borderColor: '#FCD34D', marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400E', lineHeight: 16 }}>
+            {t('categories.immutabilityWarning', { defaultValue: 'Pool type and linked account cannot be changed once created.' })}
+          </Text>
+        </View>
+      )}
 
       <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
         {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{categoryToEdit ? t('common.saveChanges') : t('modals.categoryForm.submitNew')}</Text>}

@@ -31,7 +31,8 @@ export const expensesRouter = {
           and(
             eq(expenseSources.tenantId, ctx.tenantId!),
             eq(expenseSources.appId, ctx.appId!),
-            sql`${expenseSources.archivedAt} IS NULL`
+            sql`${expenseSources.archivedAt} IS NULL`,
+            sql`${expenseSources.rrule} IS NOT NULL`
           )
         );
     }),

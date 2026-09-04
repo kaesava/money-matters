@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useEffect, useState } from "react";
-import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button } from "@money-matters/ui/web";
+import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField } from "@money-matters/ui/web";
 
 import { t } from "@money-matters/i18n";
 
@@ -70,10 +70,6 @@ export function BankAccountFormModal({
 }: BankAccountFormModalProps) {
   const toast = useToast();
   const modalId = useId();
-  const bankSelectId = useId();
-  const nameInputId = useId();
-  const balanceInputId = useId();
-  const bufferInputId = useId();
   const privateCheckId = useId();
 
   const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
@@ -155,69 +151,41 @@ export function BankAccountFormModal({
           </div>
         )}
 
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1">
-            <label htmlFor={bankSelectId} className="text-xs font-bold text-zinc-700">Bank Institution</label>
-            <InfoTooltip content="Select the Australian bank or financial institution for this account." />
-          </div>
-          <select
-            id={bankSelectId}
-            value={accBankProvider}
-            onChange={(e) => setAccBankProvider(e.target.value as BankName)}
-            className="px-3 py-2 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white"
-          >
-            {bankOptions.map((b) => (
-              <option key={b.key} value={b.key}>
-                {b.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <GenericSelectField
+          label="Bank Institution"
+          value={accBankProvider}
+          onChange={(val) => setAccBankProvider(val as BankName)}
+          options={bankOptions.map((b) => ({ value: b.key, label: b.label }))}
+          required
+        />
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor={nameInputId} className="text-xs font-bold text-zinc-700">Account Name</label>
-          <input
-            id={nameInputId}
-            type="text"
-            value={accName}
-            onChange={(e) => setAccName(e.target.value)}
-            placeholder="e.g. Smart Access Savings"
-            className="px-3 py-2 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            required
-          />
-        </div>
+        <Input
+          label="Account Name"
+          type="text"
+          value={accName}
+          onChange={(e) => setAccName(e.target.value)}
+          placeholder="e.g. Smart Access Savings"
+          required
+        />
 
         <div className="flex flex-col gap-3 p-3.5 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1">
-              <label htmlFor={balanceInputId} className="text-xs font-bold text-zinc-700">Current Balance ($)</label>
-              <InfoTooltip content="Total actual funds currently in this bank account." />
-            </div>
-            <input
-              id={balanceInputId}
-              type="number"
-              step="0.01"
-              value={accBalance}
-              onChange={(e) => setAccBalance(e.target.value)}
-              className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
-          </div>
+          <Input
+            label="Current Balance ($)"
+            type="number"
+            step="0.01"
+            value={accBalance}
+            onChange={(e) => setAccBalance(e.target.value)}
+            required
+          />
 
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1">
-              <label htmlFor={bufferInputId} className="text-xs font-bold text-zinc-700">Unbudgeted Buffer / Reserved Funds ($)</label>
-              <InfoTooltip content="Funds held in this account that are reserved/earmarked and excluded from your budget (e.g. kids' offset savings, emergency buffer)." />
-            </div>
-            <input
-              id={bufferInputId}
-              type="number"
-              step="0.01"
-              value={accBuffer}
-              onChange={(e) => setAccBuffer(e.target.value)}
-              placeholder="0.00"
-              className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
-          </div>
+          <Input
+            label="Unbudgeted Buffer / Reserved Funds ($)"
+            type="number"
+            step="0.01"
+            value={accBuffer}
+            onChange={(e) => setAccBuffer(e.target.value)}
+            placeholder="0.00"
+          />
 
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs font-bold">
             <div className="flex items-center gap-1">

@@ -51,6 +51,15 @@ export function GenericEditForm<T extends Record<string, unknown> = Record<strin
     }
   };
 
+  const isFormValid = fields.every((f) => {
+    if (!f.required) return true;
+    const rawVal = values[f.key];
+    if (rawVal === undefined || rawVal === null) return false;
+    if (typeof rawVal === 'string' && !rawVal.trim()) return false;
+    if (typeof rawVal === 'number' && isNaN(rawVal)) return false;
+    return true;
+  });
+
   return (
     <form onSubmit={onSubmit} className="flex flex-col h-full justify-between">
       {/* Scrollable Form Body */}
@@ -181,8 +190,8 @@ export function GenericEditForm<T extends Record<string, unknown> = Record<strin
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || isDeleting}
-            className="ui-btn-primary py-2 px-4 text-sm font-semibold disabled:opacity-50"
+            disabled={isSubmitting || isDeleting || !isFormValid}
+            className="ui-btn-primary py-2 px-4 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? '...' : t('common.save', { defaultValue: 'Save' })}
           </button>

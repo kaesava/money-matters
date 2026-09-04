@@ -26,8 +26,13 @@ export function DatePickerField({
         type="date"
         required={required}
         value={value}
+        onKeyDown={(e) => {
+          if (e.key !== 'Tab' && e.key !== 'Escape') {
+            e.preventDefault();
+          }
+        }}
         onChange={(e) => onChange(e.target.value)}
-        className="ui-input w-full text-sm bg-white"
+        className="ui-input w-full text-sm bg-white cursor-pointer"
       />
     </div>
   );

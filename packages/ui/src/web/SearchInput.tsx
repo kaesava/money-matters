@@ -24,6 +24,15 @@ export function SearchInput({
   onKeyDown,
   autoFocus = false,
 }: SearchInputProps) {
+  const internalRef = React.useRef<HTMLInputElement>(null);
+  const actualRef = inputRef || internalRef;
+
+  React.useEffect(() => {
+    if (value && actualRef.current) {
+      actualRef.current.select();
+    }
+  }, []);
+
   return (
     <div className={`relative flex-1 ${className}`}>
       {showIcon && (
@@ -42,7 +51,7 @@ export function SearchInput({
         </svg>
       )}
       <input
-        ref={inputRef}
+        ref={actualRef}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}

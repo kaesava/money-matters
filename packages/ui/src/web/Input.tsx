@@ -8,19 +8,39 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className = '', label, error, labelClassName = '', containerClassName = '', id, ...props }, ref) => {
+  ({ className = '', label, error, labelClassName = '', containerClassName = '', id, onChange, type = 'text', required, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id || props.name || generatedId;
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!onChange) return;
+      let val = e.target.value;
+
+      if (type === 'number') {
+        // Enforce max 12 digits for numbers defensively
+        val = val.slice(0, 12);
+      } else if (type === 'text' || !type) {
+        // Strip dangerous script/HTML characters (< and >) completely
+        val = val.replace(/[<>]/g, '');
+      }
+
+      e.target.value = val;
+      onChange(e);
+    };
+
     return (
       <div className={`w-full ${containerClassName}`}>
         {label && (
           <label htmlFor={inputId} className={`ui-label ${labelClassName}`}>
-            {label}
+            {label} {required && <span className="text-rose-500 ml-0.5">*</span>}
           </label>
         )}
         <input
           ref={ref}
           id={inputId}
+          type={type}
+          required={required}
+          onChange={handleChange}
           className={`ui-input ${className}`}
           {...props}
         />

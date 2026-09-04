@@ -96,12 +96,11 @@ export default function BankAccountsScreen() {
     onSuccess: () => bankAccountsQuery.refetch(),
   });
 
-  const handleCategoryTypeChange = async (type: "EVERYDAY" | "REGULAR" | "GOAL", targetAccountId: string) => {
-    const pools = accounts.flatMap((a) => (a as unknown as { pools?: Array<{ id: string; poolType: string }> }).pools || []);
-    const matchingPools = pools.filter((p) => p.poolType === type);
-    for (const p of matchingPools) {
-      await updatePoolMut.mutateAsync({ poolId: p.id, data: { bankAccountId: targetAccountId } });
-    }
+  const handleCategoryTypeChange = async (_type: "EVERYDAY" | "REGULAR" | "GOAL", _targetAccountId: string) => {
+    Alert.alert(
+      t("common.notice", { defaultValue: "Notice" }),
+      t("categories.immutabilityWarning", { defaultValue: "Pool type and linked bank account cannot be changed once created." })
+    );
   };
 
   const handleCreateAccount = () => {

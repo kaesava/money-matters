@@ -13,6 +13,7 @@ export interface GenericSelectFieldProps {
   onChange: (val: string) => void;
   options: SelectOption[];
   required?: boolean;
+  disabled?: boolean;
   className?: string;
   placeholder?: string;
 }
@@ -23,6 +24,7 @@ export function GenericSelectField({
   onChange,
   options,
   required = false,
+  disabled = false,
   className = '',
   placeholder,
 }: GenericSelectFieldProps) {
@@ -33,9 +35,10 @@ export function GenericSelectField({
       </label>
       <select
         required={required}
+        disabled={disabled}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="ui-input w-full text-sm bg-white cursor-pointer"
+        className="ui-input w-full text-sm bg-white cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100"
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((opt) => (
