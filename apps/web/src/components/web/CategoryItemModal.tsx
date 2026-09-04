@@ -121,7 +121,6 @@ export function CategoryItemModal({
           categoryId: categoryToEdit.id,
           data: {
             name: name.trim(),
-            poolId: selectedPoolId,
             monthlyAmount: calculatedMonthly,
             enteredAmount: enteredAmount.trim() || undefined,
             budgetFrequency: frequency,
@@ -202,8 +201,9 @@ export function CategoryItemModal({
           <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetPoolLabel")}</label>
           <select
             value={selectedPoolId}
+            disabled={isEdit}
             onChange={(e) => setSelectedPoolId(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100"
           >
             <option value="" disabled>{t("categories.selectPool")}</option>
             {availablePools.map((p) => (
@@ -213,6 +213,12 @@ export function CategoryItemModal({
             ))}
           </select>
         </div>
+
+        {isEdit && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
+            {t("categories.immutabilityWarning", { defaultValue: "Pool type and linked bank account cannot be changed once created." })}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>

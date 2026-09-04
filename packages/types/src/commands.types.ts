@@ -79,7 +79,6 @@ export const CreateCategoryCommand = z.object({
 
 export const UpdateCategoryCommand = z.object({
   name: z.string().min(1, "Category name is required").optional(),
-  poolId: z.string().uuid().optional(),
   isEssential: z.boolean().optional(),
   monthlyAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
   enteredAmount: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, { message: "Target amount must be a valid positive number" }).optional().nullable(),
