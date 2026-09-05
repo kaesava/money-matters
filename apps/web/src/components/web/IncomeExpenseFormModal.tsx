@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, InfoTooltip } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 
 import { t } from "@money-matters/i18n";
@@ -16,6 +16,8 @@ interface SourceToEdit {
   receivingAccountId?: string;
   rrule?: string | null;
   startDate?: string | null;
+  endDate?: string | null;
+  interval?: number | null;
 }
 
 interface IncomeExpenseFormModalProps {
@@ -61,10 +63,10 @@ export default function IncomeExpenseFormModal({
   const [amount, setAmount] = useState("");
   const [poolId, setPoolId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
-  
+
   const recurrenceBuilder = useRecurrenceBuilder();
   const { frequency, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -80,21 +82,21 @@ export default function IncomeExpenseFormModal({
       setIsRecurring(hasSchedule);
 
       if (sourceToEdit.rrule) {
+        const match = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
+        const parsedInterval = match ? parseInt(match[1], 10) : 1;
+
         if (sourceToEdit.rrule.includes("FREQ=WEEKLY;INTERVAL=2")) {
           setFrequency("FORTNIGHTLY");
           setInterval(1);
         } else if (sourceToEdit.rrule.includes("FREQ=WEEKLY")) {
           setFrequency("WEEKLY");
-          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
-          setInterval(m ? parseInt(m[1]) : 1);
+          setInterval(parsedInterval);
         } else if (sourceToEdit.rrule.includes("FREQ=YEARLY")) {
           setFrequency("ANNUALLY");
-          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
-          setInterval(m ? parseInt(m[1]) : 1);
+          setInterval(parsedInterval);
         } else {
           setFrequency("MONTHLY");
-          const m = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
-          setInterval(m ? parseInt(m[1]) : 1);
+          setInterval(parsedInterval);
         }
       } else {
         setFrequency("MONTHLY");
@@ -102,7 +104,7 @@ export default function IncomeExpenseFormModal({
       }
 
       setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
-      // Note: sourceToEdit currently doesn't provide endDate in the interface, so we omit setting it, or we could add it to SourceToEdit if needed.
+      setEndDate(sourceToEdit.endDate ? sourceToEdit.endDate.split("T")[0] : null);
     } else {
       setName("");
       setAmount("");
@@ -159,6 +161,11 @@ export default function IncomeExpenseFormModal({
 
     if (mode === "EXPENSE" && !poolId) {
       setErrorMsg("Expense sources MUST be assigned to a Pool.");
+      return;
+    }
+
+    if (isRecurring && endDate && startDate && endDate < startDate) {
+      setErrorMsg("End date cannot be prior to start date.");
       return;
     }
 
@@ -261,7 +268,7 @@ export default function IncomeExpenseFormModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? `Edit ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}` : `Add ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}`}
+      title={isEdit ? `Edit ${mode === "INCOME" ? "Income Schedule" : "Expense Schedule"}` : `Add ${mode === "INCOME" ? "Income Schedule" : "Expense Schedule"}`}
       maxWidth="max-w-md"
     >
       <div className="space-y-4 pt-2 text-xs font-medium text-zinc-700">
@@ -273,7 +280,7 @@ export default function IncomeExpenseFormModal({
 
         <div>
           <label className="block font-bold text-[#1B2B4B] mb-1">
-            {mode === "INCOME" ? "Income Name" : "Bill Name"} <span className="text-red-500">*</span>
+            {mode === "INCOME" ? "Income Name" : "Expense Name"} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -286,8 +293,12 @@ export default function IncomeExpenseFormModal({
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">
-            Expected Amount ($) <span className="text-red-500">*</span>
+          <label className="block font-bold text-[#1B2B4B] mb-1 flex items-center gap-1">
+            <span>Expected Amount ($)</span> <span className="text-red-500">*</span>
+            <InfoTooltip
+              title="Expected Amount"
+              content={t("modals.theseCanBeUpdatedLater", { defaultValue: "These can be updated later" })}
+            />
           </label>
           <input
             type="number"

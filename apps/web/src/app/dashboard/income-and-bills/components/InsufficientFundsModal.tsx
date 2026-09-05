@@ -7,7 +7,7 @@ import { Button } from "@money-matters/ui/web";
 export interface CategoryOption {
   id: string;
   name: string;
-  currentBalance: number;
+  currentBalance: number | string;
   isSurplusTarget?: boolean;
 }
 
@@ -73,7 +73,7 @@ export function InsufficientFundsModal({
             >
               {availableCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.name} {cat.isSurplusTarget ? `(${t("incomeBillsTabs.surplusBufferLabel")})` : ""} - Balance: ${cat.currentBalance.toFixed(2)}
+                  {cat.name} {cat.isSurplusTarget ? `(${t("incomeBillsTabs.surplusBufferLabel")})` : ""} - Balance: ${parseFloat(String(cat.currentBalance || "0")).toFixed(2)}
                 </option>
               ))}
             </select>

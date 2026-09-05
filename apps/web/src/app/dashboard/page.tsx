@@ -10,7 +10,7 @@ import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
-import PaydayPreviewModal from "../../components/web/PaydayPreviewModal";
+import { PaydayActionDrawer } from "../../components/web/PaydayActionDrawer";
 import { CanAffordModal } from "./components/CanAffordModal";
 import { useDashboardData } from "./hooks/useDashboardData";
 import posthog from "../../lib/posthog-client";
@@ -44,6 +44,10 @@ export default function DashboardPage() {
     canAffordAmount,
     setCanAffordAmount,
     canAffordQuery,
+    paydayPreviewEventId,
+    setPaydayPreviewEventId,
+    paydayActionMode,
+    setPaydayActionMode,
   } = useDashboardData();
 
   const goalCategories = pools.filter((p) => p.poolType === "GOAL");
@@ -151,7 +155,6 @@ export default function DashboardPage() {
     });
   };
 
-  const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
   const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
@@ -283,18 +286,25 @@ export default function DashboardPage() {
         <div className="lg:col-span-6">
           <NextPaydayCard
             upcomingIncomes={upcomingIncomeList}
-            onPressNextPay={(id: string) => setPaydayPreviewEventId(id)}
+            onPressMarkReceived={(id: string) => {
+              setPaydayActionMode("MARK_RECEIVED");
+              setPaydayPreviewEventId(id);
+            }}
+            onPressAllocate={(id: string) => {
+              setPaydayActionMode("ALLOCATE");
+              setPaydayPreviewEventId(id);
+            }}
             formatAUD={fmt}
           />
         </div>
       </div>
 
-      {/* Modals & Drawers */}
       {paydayPreviewEventId && (
-        <PaydayPreviewModal
+        <PaydayActionDrawer
           incomeEventId={paydayPreviewEventId}
           isOpen={!!paydayPreviewEventId}
           onClose={() => setPaydayPreviewEventId(null)}
+          mode={paydayActionMode}
         />
       )}
 

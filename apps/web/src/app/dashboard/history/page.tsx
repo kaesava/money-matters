@@ -150,19 +150,25 @@ function TransactionsPageContent() {
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
       if (filterType !== "ALL" && tx.type !== filterType) return false;
-      if (selectedPool !== "ALL" && tx.categoryType !== selectedPool) return false;
+      if (selectedPool !== "ALL") {
+        const selectedPoolObj = pools.find((p) => p.id === selectedPool);
+        const selectedName = selectedPoolObj?.name;
+        const matchesPool = (tx.poolName && tx.poolName === selectedName) || tx.categoryName.includes(selectedName || selectedPool);
+        if (!matchesPool) return false;
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         return (
           tx.description.toLowerCase().includes(q) ||
           tx.categoryName.toLowerCase().includes(q) ||
           (tx.poolName && tx.poolName.toLowerCase().includes(q)) ||
-          (tx.rawCategoryName && tx.rawCategoryName.toLowerCase().includes(q))
+          (tx.rawCategoryName && tx.rawCategoryName.toLowerCase().includes(q)) ||
+          tx.amount.includes(q)
         );
       }
       return true;
     });
-  }, [allTransactions, filterType, selectedPool, searchQuery]);
+  }, [allTransactions, filterType, selectedPool, searchQuery, pools]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
@@ -310,9 +316,9 @@ function TransactionsPageContent() {
                 className="w-full sm:w-56 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
               >
                 <option value="ALL">All Pools</option>
-                <option value="EVERYDAY">Everyday Spending Pool</option>
-                <option value="REGULAR">Regular Bills Pool</option>
-                <option value="GOAL">Savings &amp; Future Goals Pool</option>
+                {pools.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
               </select>
 
               <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
@@ -327,7 +333,7 @@ function TransactionsPageContent() {
                         : "text-zinc-500 hover:text-zinc-800"
                     }`}
                   >
-                    {tType === "ALL" ? "All" : tType === "DEBIT" ? "Spent" : tType === "CREDIT" ? "Income" : "Transfers"}
+                    {tType === "ALL" ? "All" : tType === "DEBIT" ? "Spent" : tType === "CREDIT" ? "Received" : "Transfers"}
                   </button>
                 ))}
               </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { t } from '@money-matters/i18n';
 import { fmtDate } from '@money-matters/ui/web';
 
@@ -9,19 +9,29 @@ export interface WebIncomeItem {
   readonly name: string;
   readonly amount: number;
   readonly expectedDate: string;
+  readonly status?: string; // Add status to determine pending
 }
 
 export interface NextPaydayCardProps {
   readonly upcomingIncomes: readonly WebIncomeItem[];
-  readonly onPressNextPay: (eventId: string) => void;
+  readonly onPressMarkReceived: (eventId: string) => void;
+  readonly onPressAllocate: (eventId: string) => void;
   readonly formatAUD: (val: number | string) => string;
 }
 
 export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
   upcomingIncomes,
-  onPressNextPay,
+  onPressMarkReceived,
+  onPressAllocate,
   formatAUD,
 }) => {
+  const earliestPendingId = useMemo(() => {
+    // Already filtered by UPCOMING in parent, so we just need the earliest date
+    if (!upcomingIncomes.length) return null;
+    const sorted = [...upcomingIncomes].sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
+    return sorted[0]?.id || null;
+  }, [upcomingIncomes]);
+
   if (!upcomingIncomes || upcomingIncomes.length === 0) {
     return (
       <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
@@ -75,6 +85,8 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             else daysAwayText = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`;
           }
 
+          const isEarliest = income.id === earliestPendingId;
+
           return (
             <div
               key={income.id}
@@ -89,13 +101,23 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => onPressNextPay(income.id)}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shrink-0 shadow-2xs cursor-pointer"
-              >
-                Log Payday →
-              </button>
+              {isEarliest ? (
+                <button
+                  type="button"
+                  onClick={() => onPressMarkReceived(income.id)}
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shrink-0 shadow-2xs cursor-pointer"
+                >
+                  Mark Received
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onPressAllocate(income.id)}
+                  className="px-3 py-1.5 text-xs font-bold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl transition-colors shrink-0 shadow-2xs cursor-pointer"
+                >
+                  Allocate
+                </button>
+              )}
             </div>
           );
         })}

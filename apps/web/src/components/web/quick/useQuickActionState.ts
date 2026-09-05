@@ -2,11 +2,14 @@ import { useState, useMemo } from "react";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { QuickPresetItem } from "./QuickPickBadges";
+import { useToast } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 export function useQuickActionState(
   onClose: () => void,
   initialTab: "DEBIT" | "CREDIT" | "TRANSFER" = "DEBIT"
 ) {
+  const toast = useToast();
   const todayStr = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Australia/Sydney",
   }).format(new Date());
@@ -187,9 +190,11 @@ export function useQuickActionState(
 
   const createIncomeSourceMut = trpc.createIncomeSource.useMutation({
     onSuccess: (res) => {
-      handleDone();
       if (runAllocation && !isFutureDate && res?.firstEventId) {
+        // Trigger Payday Allocation preview modal instead of closing immediately
         setPaydayModalEventId(res.firstEventId);
+      } else {
+        handleDone();
       }
     },
     onError: (err) => setError(err.message),
@@ -205,8 +210,8 @@ export function useQuickActionState(
     utils.listExpenseEvents.invalidate();
     utils.listTransferEvents.invalidate();
     utils.listBankAccountsWithExpected.invalidate();
-    setSuccess(true);
-    setTimeout(() => onClose(), 1200);
+    toast.success(t("toasts.saved", { defaultValue: "Saved successfully" }));
+    onClose();
   }
 
   function handleSelectPreset(preset: QuickPresetItem) {
@@ -304,14 +309,25 @@ export function useQuickActionState(
       }
 
 
-      // Create pending Expense Event (shows up in Income & Bills > Pending List)
-      createExpenseSourceMut.mutate({
-        name,
-        amount: amountNum.toFixed(2),
-        poolId: categoryId,
-        isRecurring: false,
-        startDate: date,
-      });
+      if (isFutureDate) {
+        // Create pending Expense Event for future date
+        createExpenseSourceMut.mutate({
+          name,
+          amount: amountNum.toFixed(2),
+          poolId: categoryId,
+          isRecurring: false,
+          startDate: date,
+        });
+      } else {
+        // Record immediate transaction for past/today expense
+        recordExpenseMutation.mutate({
+          poolId: categoryId,
+          categoryId,
+          amount: amountNum.toFixed(2),
+          note: name,
+          date,
+        });
+      }
     } else {
       // Create pending Income Event (shows up in Income & Bills > Pending List)
       createIncomeSourceMut.mutate({

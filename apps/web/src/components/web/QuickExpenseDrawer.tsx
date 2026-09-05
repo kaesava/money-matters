@@ -3,7 +3,7 @@ import { t } from "@money-matters/i18n";
 import { SlideOverDrawer, SearchableCategorySelect, InfoTooltip, useIconVisibility, ConfirmDialog, Button } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
-import PaydayPreviewModal from "@/components/web/PaydayPreviewModal";
+import { PaydayActionDrawer } from "@/components/web/PaydayActionDrawer";
 
 export interface QuickActionDrawerProps {
   readonly onClose: () => void;
@@ -33,7 +33,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     paydayModalEventId,
     setPaydayModalEventId,
     error,
-    success,
     isIncome,
     isTransfer,
     isFutureDate,
@@ -61,8 +60,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
   const titleText = isTransfer
     ? "Transfer Between Pools"
     : isIncome
-    ? "Setup Income"
-    : "Setup Expense";
+    ? t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
+    : t("drawers.quickExpense.oneOffExpense", { defaultValue: "One-off Expense" });
 
   const infoContent = isTransfer
     ? "Reallocate money directly between virtual pools (e.g., moving surplus from Everyday to a Goal pool, or adjusting bill reserves)."
@@ -86,20 +85,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
         widthClass="max-w-xl"
       >
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
-          {success ? (
-            <div className="flex flex-col items-center gap-3 py-12 text-center text-emerald-600">
-              {showIcons && <span className="text-4xl">✅</span>}
-              <p className="text-base font-bold">
-                {isTransfer
-                  ? "Transfer completed successfully!"
-                  : isIncome
-                  ? "Income recorded successfully!"
-                  : "Expense recorded successfully!"}
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* 3-Way Segmented Control */}
+            {/* 3-Way Segmented Control */}
               <div className="flex rounded-xl bg-zinc-100 p-1">
                 <button
                   type="button"
@@ -223,7 +209,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                         className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                       >
                         <option value="">{t("drawers.quickExpense.defaultEverydayAccount", { defaultValue: "Default Everyday Account" })}</option>
-                        {bankAccounts.map((a) => (
+                        {bankAccounts.map((a: { id: string; name: string }) => (
                           <option key={a.id} value={a.id}>
                             {a.name}
                           </option>
@@ -299,18 +285,15 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       : "Confirm Transfer"
                     : isIncome
                     ? isFutureDate
-                      ? "Setup Income"
+                      ? t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
                       : runAllocation
-                      ? "Mark Received"
-                      : "Setup Income"
+                      ? t("actions.markReceived", { defaultValue: "Mark Received" })
+                      : t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
                     : isFutureDate
-                    ? "Setup Expense"
-                    : "Mark Paid"}
+                    ? t("drawers.quickExpense.oneOffExpense", { defaultValue: "One-off Expense" })
+                    : t("actions.markSpent", { defaultValue: "Mark Spent" })}
                 </Button>
               </div>
-
-            </>
-          )}
         </form>
 
 
@@ -328,11 +311,15 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
       </SlideOverDrawer>
 
       {paydayModalEventId && (
-        <PaydayPreviewModal
+        <PaydayActionDrawer
           isOpen={Boolean(paydayModalEventId)}
           incomeEventId={paydayModalEventId}
+          mode="MARK_RECEIVED"
           onClose={() => setPaydayModalEventId(null)}
-          onSuccess={() => setPaydayModalEventId(null)}
+          onSuccess={() => {
+            setPaydayModalEventId(null);
+            onClose();
+          }}
         />
       )}
     </>

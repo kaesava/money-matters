@@ -7,8 +7,7 @@ import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCate
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useToast, InfoTooltip, ConfirmDialog, Button } from "@money-matters/ui/web";
-import PaydayPreviewModal from "../../../../components/web/PaydayPreviewModal";
-
+import { PaydayActionDrawer } from "../../../../components/web/PaydayActionDrawer";
 
 interface MatrixPlanTabProps {
   currentUserId: string;
@@ -117,6 +116,13 @@ export function MatrixPlanTab({
     name: string;
   } | null>(null);
   const [activePaydayEventId, setActivePaydayEventId] = useState<string | null>(null);
+  const [paydayActionMode, setPaydayActionMode] = useState<"MARK_RECEIVED" | "ALLOCATE">("MARK_RECEIVED");
+  const earliestPendingIncomeId = useMemo(() => {
+    const pendingIncomes = (incomeEvents || []).filter((e) => e.status !== "CONFIRMED" && e.status !== "SKIPPED");
+    if (!pendingIncomes.length) return null;
+    const sorted = [...pendingIncomes].sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
+    return sorted[0]?.id || null;
+  }, [incomeEvents]);
 
   // Load saved allocation plans into initial overrides state
   React.useEffect(() => {
@@ -378,6 +384,8 @@ export function MatrixPlanTab({
               </th>
               {visibleColumns.map((col) => {
                 const hasPlanOverride = Object.keys(cellOverrides).some((k) => k.startsWith(`${col.id}_`));
+                const isEarliest = earliestPendingIncomeId === col.id;
+
                 return (
                   <th
                     key={col.id}
@@ -392,13 +400,29 @@ export function MatrixPlanTab({
                       </span>
                     </div>
                     <div className="flex items-center justify-center gap-2 mt-2">
-                      <button
-                        type="button"
-                        onClick={() => setActivePaydayEventId(col.id)}
-                        className="text-[10px] font-extrabold text-white bg-[#00B4A6] hover:bg-[#009b8f] px-2 py-1 rounded shadow-sm transition-colors"
-                      >
-                        Process
-                      </button>
+                      {isEarliest ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaydayActionMode("MARK_RECEIVED");
+                            setActivePaydayEventId(col.id);
+                          }}
+                          className="text-[10px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 px-2 py-1 rounded shadow-sm transition-colors"
+                        >
+                          Mark Received
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPaydayActionMode("ALLOCATE");
+                            setActivePaydayEventId(col.id);
+                          }}
+                          className="text-[10px] font-extrabold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 px-2 py-1 rounded shadow-sm transition-colors"
+                        >
+                          Allocate
+                        </button>
+                      )}
                       {hasPlanOverride && (
                         <button
                           type="button"
@@ -556,10 +580,11 @@ export function MatrixPlanTab({
       )}
 
       {/* Payday Wizard / Execution Modal */}
-      <PaydayPreviewModal
+      <PaydayActionDrawer
         isOpen={!!activePaydayEventId}
         onClose={() => setActivePaydayEventId(null)}
         incomeEventId={activePaydayEventId || undefined}
+        mode={paydayActionMode}
         onSuccess={() => {
           utils.listAllAllocationPlans.invalidate();
           utils.listIncomeEvents.invalidate();

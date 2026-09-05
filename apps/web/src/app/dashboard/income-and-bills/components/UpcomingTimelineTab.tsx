@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { EventItem } from "./BurstModal";
-import { InsufficientFundsModal, CategoryOption } from "./InsufficientFundsModal";
+import { InsufficientFundsModal } from "./InsufficientFundsModal";
 import { PaginationBar } from "@money-matters/ui/web";
 
 export interface TimelineEventItem extends EventItem {
@@ -19,41 +19,58 @@ export interface TimelineEventItem extends EventItem {
 interface UpcomingTimelineTabProps {
   incomeEvents: TimelineEventItem[];
   expenseEvents: TimelineEventItem[];
-  transferEvents?: TimelineEventItem[];
-  categories: CategoryOption[];
+  transferEvents: TimelineEventItem[];
+  categories: {
+    id: string;
+    name: string;
+    currentBalance: string | number;
+  }[];
   searchQuery: string;
   initialKindFilter?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
-  onMarkExpensePaid: (eventId: string, amount: string, date: string) => void;
   onMarkIncomeReceived: (eventId: string, amount: string, date: string) => void;
-  onSkipExpense: (eventId: string) => void;
-  onUnskipExpense: (eventId: string) => void;
+  onAllocateIncome: (eventId: string) => void;
+  onMarkExpensePaid: (eventId: string, amount: string, date: string) => void;
   onSkipIncome: (eventId: string) => void;
-  onUnskipIncome: (eventId: string) => void;
+  onSkipExpense: (eventId: string) => void;
   onSkipTransfer?: (eventId: string) => void;
+  onUnskipIncome: (eventId: string) => void;
+  onUnskipExpense: (eventId: string) => void;
   onUnskipTransfer?: (eventId: string) => void;
-  onExecuteTransfer?: (eventId: string, amount: string, date: string, sourcePoolId?: string, destinationPoolId?: string) => Promise<void>;
-  onOpenTransferModalWithData?: (data: { sourcePoolId?: string; destinationPoolId?: string; amount?: string; date?: string }) => void;
-  onConfirmTransferAndPay: (sourceCategoryId: string, destinationCategoryId: string, amount: string) => Promise<void>;
+  onExecuteTransfer?: (
+    eventId: string,
+    amount: string,
+    date: string,
+    sourcePoolId?: string,
+    destinationPoolId?: string
+  ) => void;
+  onConfirmTransferAndPay: (fundingCategoryId: string, destCategoryId: string, amountStr: string) => Promise<void>;
+  onOpenTransferModalWithData?: (data: {
+    sourcePoolId?: string;
+    destinationPoolId?: string;
+    amount: string;
+    date: string;
+  }) => void;
 }
 
 export function UpcomingTimelineTab({
   incomeEvents,
   expenseEvents,
-  transferEvents = [],
+  transferEvents,
   categories,
   searchQuery,
   initialKindFilter = "ALL",
-  onMarkExpensePaid,
   onMarkIncomeReceived,
-  onSkipExpense,
-  onUnskipExpense,
+  onAllocateIncome,
+  onMarkExpensePaid,
   onSkipIncome,
-  onUnskipIncome,
+  onSkipExpense,
   onSkipTransfer,
+  onUnskipIncome,
+  onUnskipExpense,
   onUnskipTransfer,
   onExecuteTransfer,
-  onOpenTransferModalWithData,
   onConfirmTransferAndPay,
+  onOpenTransferModalWithData,
 }: UpcomingTimelineTabProps) {
   // Segmented Type Filter: ALL | INCOME | EXPENSE | TRANSFER
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
@@ -107,12 +124,11 @@ export function UpcomingTimelineTab({
       .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
   }, [incomeEvents, expenseEvents, transferEvents, kindFilter, searchQuery]);
 
-  // Find the earliest upcoming income event date to enforce sequential chronological order
-  const earliestUpcomingIncomeDate = useMemo(() => {
+  const earliestPendingIncomeId = useMemo(() => {
     const upcomingIncomes = incomeEvents
       .filter((e) => e.status !== "CONFIRMED" && e.status !== "SKIPPED" && !e.isSkipped)
       .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
-    return upcomingIncomes[0]?.expectedDate || null;
+    return upcomingIncomes[0]?.id || null;
   }, [incomeEvents]);
 
   useEffect(() => {
@@ -130,7 +146,7 @@ export function UpcomingTimelineTab({
   const handleExpenseMarkPaidClick = (evt: TimelineEventItem) => {
     const amt = parseFloat(evt.expectedAmount || "0");
     const cat = categories.find((c) => c.id === evt.categoryId);
-    const currBalance = cat?.currentBalance ?? 0;
+    const currBalance = typeof cat?.currentBalance === "string" ? parseFloat(cat.currentBalance || "0") : (cat?.currentBalance ?? 0);
 
     if (amt > currBalance) {
       const shortfall = amt - currBalance;
@@ -151,7 +167,7 @@ export function UpcomingTimelineTab({
   const handleTransferClick = async (evt: TimelineEventItem) => {
     const amt = parseFloat(evt.expectedAmount || "0");
     const srcCat = categories.find((c) => c.id === evt.sourcePoolId);
-    const srcBalance = srcCat?.currentBalance ?? 0;
+    const srcBalance = typeof srcCat?.currentBalance === "string" ? parseFloat(srcCat.currentBalance || "0") : (srcCat?.currentBalance ?? 0);
 
     if (amt > srcBalance) {
       if (onOpenTransferModalWithData) {
@@ -342,25 +358,6 @@ export function UpcomingTimelineTab({
                   {/* Actions: Skip / Unskip & Mark Paid / Transfer */}
                   <div className="flex items-center gap-1.5">
                     {(() => {
-                      const isIncomeLocked =
-                        isIncome &&
-                        earliestUpcomingIncomeDate &&
-                        evt.expectedDate > earliestUpcomingIncomeDate &&
-                        evt.status !== "CONFIRMED" &&
-                        evt.status !== "SKIPPED" &&
-                        !evt.isSkipped;
-
-                      if (isIncomeLocked) {
-                        return (
-                          <span
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-lg cursor-not-allowed"
-                            title="Please resolve earlier paydays first"
-                          >
-                            🔒 Resolve Earlier Pay
-                          </span>
-                        );
-                      }
-
                       if (isSkipped) {
                         return (
                           <button
@@ -396,13 +393,23 @@ export function UpcomingTimelineTab({
                             Skip
                           </button>
                           {isIncome ? (
-                            <button
-                              type="button"
-                              onClick={() => onMarkIncomeReceived(evt.id, evt.expectedAmount, evt.expectedDate)}
-                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
-                            >
-                              Mark Received
-                            </button>
+                            evt.id === earliestPendingIncomeId ? (
+                              <button
+                                type="button"
+                                onClick={() => onMarkIncomeReceived(evt.id, evt.expectedAmount, evt.expectedDate)}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
+                              >
+                                Mark Received
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => onAllocateIncome(evt.id)}
+                                className="px-3 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs rounded-lg transition-colors shadow-xs"
+                              >
+                                Allocate
+                              </button>
+                            )
                           ) : isTransfer ? (
                             <button
                               type="button"
@@ -451,7 +458,10 @@ export function UpcomingTimelineTab({
         onClose={() => setInsufficientModalState((prev) => ({ ...prev, isOpen: false }))}
         billName={insufficientModalState.billName}
         shortfallAmount={insufficientModalState.shortfall}
-        availableCategories={categories}
+        availableCategories={categories.map((c) => ({
+          ...c,
+          currentBalance: typeof c.currentBalance === "string" ? parseFloat(c.currentBalance || "0") : c.currentBalance,
+        }))}
         onConfirmTransferAndPay={handleConfirmShortfallTransfer}
       />
     </div>

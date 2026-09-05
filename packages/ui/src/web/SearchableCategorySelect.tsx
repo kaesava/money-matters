@@ -194,7 +194,6 @@ export function SearchableCategorySelect({
       >
         {selectedCategory ? (
           <div className="flex items-center gap-2 overflow-hidden min-w-0">
-            {showIcons && <span>{renderCategoryIcon(selectedCategory.icon, selectedCategory.type)}</span>}
             <span className="font-bold text-[#1B2B4B] truncate">{selectedCategory.name}</span>
             {selectedCategory.currentBalance !== undefined && (
               <span className="text-[11px] font-mono text-zinc-500 shrink-0">
@@ -257,7 +256,6 @@ export function SearchableCategorySelect({
                           }`}
                         >
                           <div className="flex items-center gap-2 overflow-hidden min-w-0">
-                            {showIcons && <span>{renderCategoryIcon(cat.icon, cat.type)}</span>}
                             <span className="font-bold text-[#1B2B4B] truncate">{cat.name}</span>
                             {cat.categoryCount !== undefined && cat.categoryCount > 0 && (
                               <span className="text-[10px] text-zinc-400 font-medium">

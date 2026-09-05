@@ -2,7 +2,7 @@
 
 import React from "react";
 import { QuickActionDrawer } from "../../../components/web/QuickExpenseDrawer";
-import PaydayPreviewModal from "@/components/web/PaydayPreviewModal";
+import { PaydayActionDrawer } from "@/components/web/PaydayActionDrawer";
 import { BankReconcileModal, BankReconcileModalProps } from "@/components/web/dashboard/BankReconcileModal";
 
 export interface DashboardModalsProps {
@@ -10,6 +10,7 @@ export interface DashboardModalsProps {
   moveMoneyOpen: boolean;
   onCloseMoveMoney: () => void;
   paydayPreviewEventId: string | null;
+  paydayActionMode?: "MARK_RECEIVED" | "ALLOCATE";
   onClosePaydayPreview: () => void;
   onSuccessPaydayPreview: () => void;
 }
@@ -19,6 +20,7 @@ export function DashboardModals({
   moveMoneyOpen,
   onCloseMoveMoney,
   paydayPreviewEventId,
+  paydayActionMode = "MARK_RECEIVED",
   onClosePaydayPreview,
   onSuccessPaydayPreview,
 }: DashboardModalsProps) {
@@ -36,9 +38,10 @@ export function DashboardModals({
       )}
 
       {paydayPreviewEventId && (
-        <PaydayPreviewModal
+        <PaydayActionDrawer
           isOpen={!!paydayPreviewEventId}
           incomeEventId={paydayPreviewEventId}
+          mode={paydayActionMode}
           onClose={onClosePaydayPreview}
           onSuccess={onSuccessPaydayPreview}
         />

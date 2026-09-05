@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -223,7 +223,9 @@ export function CategoryItemModal({
 
         {isEdit && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
-            {t("categories.immutabilityWarning", { defaultValue: "Pool type and linked bank account cannot be changed once created." })}
+            {t("categories.immutabilityWarningCategory", {
+              defaultValue: "Once set, pool types are locked to keep your transaction history clean. If you need to, please archive this category and create a new one.",
+            })}
           </div>
         )}
 
@@ -271,7 +273,16 @@ export function CategoryItemModal({
             onChange={(e) => setIsEssential(e.target.checked)}
             className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
           />
-          <span className="font-bold text-zinc-800">{t("categories.prioritiseCategory")}</span>
+          <span className="font-bold text-zinc-800 flex items-center gap-1.5">
+            <span>{t("categories.prioritiseCategory")}</span>
+            <InfoTooltip
+              title={t("categories.prioritiseCategory")}
+              content={t("categories.priorityCategoryInfo", {
+                defaultValue:
+                  "Checking this box will ensure that when Income is split across categories, this category is prioritised over others",
+              })}
+            />
+          </span>
         </label>
 
         <div className="flex justify-between items-center pt-4 border-t border-zinc-200">

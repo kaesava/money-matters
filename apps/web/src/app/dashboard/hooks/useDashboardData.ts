@@ -16,6 +16,7 @@ export function useDashboardData() {
 
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
   const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
+  const [paydayActionMode, setPaydayActionMode] = useState<"MARK_RECEIVED" | "ALLOCATE">("MARK_RECEIVED");
 
   const [quickType, setQuickType] = useState<"DEBIT" | "CREDIT">("DEBIT");
   const [quickName, setQuickName] = useState("");
@@ -105,6 +106,8 @@ export function useDashboardData() {
     setMoveMoneyOpen,
     paydayPreviewEventId,
     setPaydayPreviewEventId,
+    paydayActionMode,
+    setPaydayActionMode,
     quickType,
     setQuickType,
     quickName,

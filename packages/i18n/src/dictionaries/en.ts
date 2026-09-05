@@ -1306,6 +1306,9 @@ export const en = {
       tabWaterfall: "Waterfall Split",
       incomeLabel: "Income Source",
       depositDate: "Deposit Date",
+      depositDetails: "Deposit Details",
+      waterfallSplit: "Waterfall Split",
+      totalAllocated: "Total Allocated",
     },
     eventOverride: {
       title: "Override Scheduled Event",

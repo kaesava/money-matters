@@ -1289,7 +1289,10 @@ export const ja: DeepStringRecord<typeof en> = {
       "tabDeposit": "給与振込",
       "tabWaterfall": "ウォーターフォール配分",
       "incomeLabel": "収入元",
-      "depositDate": "振込日"
+      "depositDate": "振込日",
+      "depositDetails": "振込詳細",
+      "waterfallSplit": "ウォーターフォール配分",
+      "totalAllocated": "合計配分額"
     },
     "eventOverride": {
       "title": "予定の変更・オーバーライド",

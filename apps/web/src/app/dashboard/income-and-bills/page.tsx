@@ -6,10 +6,10 @@ import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, Tabs } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
-import PaydayPreviewModal from "../../../components/web/PaydayPreviewModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
+import { PaydayActionDrawer } from "../../../components/web/PaydayActionDrawer";
 
 function IncomeAndBillsContent() {
   const searchParams = useSearchParams();
@@ -17,6 +17,7 @@ function IncomeAndBillsContent() {
   const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
 
   const [activeTab, setActiveTab] = useState(tabParam);
+  const [paydayActionMode, setPaydayActionMode] = useState<"MARK_RECEIVED" | "ALLOCATE">("MARK_RECEIVED");
   const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
   const toast = useToast();
   const utils = trpc.useUtils();
@@ -132,10 +133,10 @@ function IncomeAndBillsContent() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-black text-[#1B2B4B]">Income & Bill Management</h1>
+        <h1 className="text-2xl font-black text-[#1B2B4B]">{t("incomeBills.title", { defaultValue: "Income & Expenses" })}</h1>
         <InfoTooltip
-          title="Income & Bill Management"
-          content="Manage your recurring income schedules, bill commitments, and 12-month payday matrix."
+          title={t("incomeBills.title", { defaultValue: "Income & Expenses" })}
+          content={t("incomeBills.content", { defaultValue: "Manage schedules and your upcoming income & expenses" })}
         />
       </div>
 
@@ -264,11 +265,11 @@ function IncomeAndBillsContent() {
               </div>
             </div>
 
-            {/* Bill Schedules Card */}
+            {/* Expense Schedules Card */}
             <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between gap-3 mb-4">
-                  <h3 className="font-bold text-[#1B2B4B] text-base">Bill Schedules</h3>
+                  <h3 className="font-bold text-[#1B2B4B] text-base">Expense Schedules</h3>
                   <button
                     type="button"
                     onClick={() => {
@@ -278,13 +279,13 @@ function IncomeAndBillsContent() {
                     }}
                     className="px-3 py-1.5 bg-[#1B2B4B] text-white rounded-xl font-bold text-xs shadow-xs hover:bg-slate-800 transition-colors"
                   >
-                    + Add Bill Schedule
+                    + Add Expense Schedule
                   </button>
                 </div>
 
                 {filteredExpenseSources.length === 0 ? (
                   <div className="py-8 text-center text-xs font-semibold text-zinc-400">
-                    No bill schedules found.
+                    No expense schedules found.
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -296,7 +297,7 @@ function IncomeAndBillsContent() {
                             onResizeMouseDown={(e: React.MouseEvent) => onSetupMouseDown("name", e)}
                             className="py-2 px-3 text-left"
                           >
-                            <span>Bill Name</span>
+                            <span>SCHEDULE NAME</span>
                           </ResizableTh>
                           <ResizableTh
                             width={setupWidths.accountOrPool}
@@ -396,6 +397,11 @@ function IncomeAndBillsContent() {
               }
             }}
             onMarkIncomeReceived={async (eventId) => {
+              setPaydayActionMode("MARK_RECEIVED");
+              setSelectedIncomeEventIdForModal(eventId);
+            }}
+            onAllocateIncome={async (eventId) => {
+              setPaydayActionMode("ALLOCATE");
               setSelectedIncomeEventIdForModal(eventId);
             }}
             onSkipExpense={async (eventId) => {
@@ -467,9 +473,10 @@ function IncomeAndBillsContent() {
       )}
 
       {selectedIncomeEventIdForModal && (
-        <PaydayPreviewModal
+        <PaydayActionDrawer
           isOpen={Boolean(selectedIncomeEventIdForModal)}
           incomeEventId={selectedIncomeEventIdForModal}
+          mode={paydayActionMode}
           onClose={() => setSelectedIncomeEventIdForModal(null)}
           onSuccess={() => {
             setSelectedIncomeEventIdForModal(null);
