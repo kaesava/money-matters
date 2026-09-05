@@ -409,40 +409,7 @@ export const paydayRouter = {
 
         if (plan) {
           if (plan.status === "CONFIRMED") {
-            const lines = await tx
-              .select()
-              .from(allocationPlanLines)
-              .where(eq(allocationPlanLines.planId, plan.id));
-
-            const reversalEntries = lines
-              .filter((l) => l.confirmedAmount && parseFloat(l.confirmedAmount) > 0)
-              .map((l) => ({
-                tenantId: ctx.tenantId!,
-                appId: ctx.appId!,
-                poolId: l.poolId,
-                categoryId: l.categoryId,
-                flowType: "DEBIT" as const,
-                amount: l.confirmedAmount!,
-                idempotencyKey: `revert-${l.id}`,
-                note: `Payday Revert: ${l.reasoning || "Confirmed Allocation Reversal"}`,
-                source: "MANUAL" as const,
-                createdBy: ctx.userId!,
-                updatedBy: ctx.userId!,
-              }));
-
-            if (reversalEntries.length > 0) {
-              await tx.insert(transactionLedger).values(reversalEntries);
-            }
-
-            await tx
-              .update(incomeEvents)
-              .set({
-                status: "PENDING",
-                actualAmount: null,
-                updatedBy: ctx.userId!,
-                updatedAt: new Date(),
-              })
-              .where(eq(incomeEvents.id, input.incomeEventId));
+            throw new Error("Confirmed income splits cannot be reverted.");
           }
 
           await tx
