@@ -7,14 +7,22 @@ export interface InfoTooltipProps {
   content: string;
   title?: string;
   className?: string;
+  align?: 'left' | 'center' | 'right';
+  position?: 'top' | 'bottom';
 }
 
-export const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, title, className = '' }) => {
+export const InfoTooltip: React.FC<InfoTooltipProps> = ({
+  content,
+  title,
+  className = '',
+  align: overrideAlign,
+  position: overridePosition,
+}) => {
   const { showIcons } = useIconVisibility();
   const [isOpen, setIsOpen] = useState(false);
   const [placement, setPlacement] = useState<{ position: 'top' | 'bottom'; align: 'left' | 'center' | 'right' }>({
-    position: 'top',
-    align: 'center',
+    position: overridePosition || 'top',
+    align: overrideAlign || 'center',
   });
   const containerRef = useRef<HTMLSpanElement>(null);
 
@@ -23,13 +31,32 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, title, classN
   const handleOpen = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const isNearTop = rect.top < 220;
-      const isNearLeft = rect.left < 140;
-      const isNearRight = typeof window !== 'undefined' && window.innerWidth - rect.right < 140;
+      const dialog = containerRef.current.closest('[role="dialog"]') || containerRef.current.closest('.overflow-y-auto');
+
+      let isNearTop = rect.top < 220;
+      let isNearLeft = rect.left < 140;
+      let isNearRight = typeof window !== 'undefined' && window.innerWidth - rect.right < 140;
+
+      if (dialog) {
+        const dialogRect = dialog.getBoundingClientRect();
+        const distFromDialogLeft = rect.left - dialogRect.left;
+        const distFromDialogRight = dialogRect.right - rect.right;
+        const distFromDialogTop = rect.top - dialogRect.top;
+
+        if (distFromDialogLeft < 140) {
+          isNearLeft = true;
+        }
+        if (distFromDialogRight < 140) {
+          isNearRight = true;
+        }
+        if (distFromDialogTop < 150) {
+          isNearTop = true;
+        }
+      }
 
       setPlacement({
-        position: isNearTop ? 'bottom' : 'top',
-        align: isNearLeft ? 'left' : isNearRight ? 'right' : 'center',
+        position: overridePosition || (isNearTop ? 'bottom' : 'top'),
+        align: overrideAlign || (isNearLeft ? 'left' : isNearRight ? 'right' : 'center'),
       });
     }
     setIsOpen(true);
@@ -47,10 +74,17 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, title, classN
       ? 'right-0 left-auto translate-x-0'
       : 'left-1/2 -translate-x-1/2';
 
+  const arrowAlignClasses =
+    placement.align === 'left'
+      ? 'left-3 translate-x-0'
+      : placement.align === 'right'
+      ? 'right-3 left-auto translate-x-0'
+      : 'left-1/2 -translate-x-1/2';
+
   const arrowClasses =
     placement.position === 'bottom'
-      ? 'bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-[#1B2B4B]'
-      : 'top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#1B2B4B]';
+      ? `bottom-full ${arrowAlignClasses} -mb-1 border-4 border-transparent border-b-[#1B2B4B]`
+      : `top-full ${arrowAlignClasses} -mt-1 border-4 border-transparent border-t-[#1B2B4B]`;
 
   return (
     <span

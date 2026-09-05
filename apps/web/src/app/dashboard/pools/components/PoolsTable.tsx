@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ResizableTh, PaginationBar, SkeletonTable } from "@money-matters/ui/web";
+import { ResizableTh, PaginationBar, SkeletonTable, InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 import { PoolTableRow, CategoryItem } from "../types";
 
 export interface PoolsTableProps {
@@ -302,6 +303,19 @@ export function PoolsTable({
                                     {pool.name}
                                   </button>
 
+                                  {pool.rawPool.isSurplusTarget && (
+                                    <span className="inline-flex items-center gap-1">
+                                      <span title={t("categories.targetPoolShortfallSurplus", { defaultValue: "Target Pool for Shortfall/Surplus" })} className="text-sm cursor-help">
+                                        🎯
+                                      </span>
+                                      <InfoTooltip
+                                        content={t("categories.targetPoolShortfallSurplus", {
+                                          defaultValue: "Target Pool for Shortfall/Surplus",
+                                        })}
+                                      />
+                                    </span>
+                                  )}
+
                                   {!isGoal && (
                                     <span className="text-[10px] font-bold text-zinc-400">
                                       ({pool.categories.length})
@@ -391,14 +405,6 @@ export function PoolsTable({
                                     >
                                       <span>•</span>
                                       <span>{cat.name}</span>
-                                      {(cat.isEssential || cat.monthlyAmount) && (
-                                        <span
-                                          title="Shortfall/Surplus target"
-                                          className="text-[11px] text-zinc-400 hover:text-zinc-600 cursor-help"
-                                        >
-                                          🎯
-                                        </span>
-                                      )}
                                     </button>
                                   </td>
 

@@ -201,7 +201,7 @@ export function CategoryFormModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? `Edit Pool — ${categoryToEdit?.name}` : "Create Financial Pool"}
+      title={isEdit ? `Edit Pool — ${categoryToEdit?.name}` : "Create Pool"}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
@@ -284,7 +284,7 @@ export function CategoryFormModal({
               />
               <span className="font-bold text-zinc-800 flex items-center gap-1.5">
                 <span>{t("categories.sweepSurplus")}</span>
-                <InfoTooltip content={t("categories.shortfallTargetTooltip")} />
+                <InfoTooltip content={t("categories.shortfallTargetTooltip")} align="left" />
               </span>
             </label>
             {isSurplusDisabled && (

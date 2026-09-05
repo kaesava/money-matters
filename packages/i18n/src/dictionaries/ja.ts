@@ -334,6 +334,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "immutabilityWarning": "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.",
     "immutabilityWarningCategory": "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.",
     "shortfallTargetTooltip": "This pool acts as a safety net. If you don't have enough money in your Everyday pool to cover a transaction, it will automatically pull the shortfall from here. Any leftover money at the end of your pay cycle will also sweep into here.",
+    "targetPoolShortfallSurplus": "Target Pool for Shortfall/Surplus",
     "shortfallTargetDisabledWarning": "This is currently your Shortfall/Surplus target. To change this, edit the pool you want to be the new target and check the box there.",
     "calculatedTargetNotice": "For Everyday and Bills pools, your monthly target is automatically calculated by adding up all the individual categories you've set up.",
     "readyToSpend": "Ready to spend",

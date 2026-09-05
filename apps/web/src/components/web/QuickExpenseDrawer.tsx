@@ -154,6 +154,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       pools={categories.map((p) => ({
                         id: p.id,
                         name: p.name,
+                        poolType: p.type || p.poolType,
+                        currentBalance: p.currentBalance,
                         isPrivate: p.isPrivate ?? undefined,
                       }))}
                       selectedPoolId={sourceCategoryId || null}
@@ -171,6 +173,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       pools={categories.map((p) => ({
                         id: p.id,
                         name: p.name,
+                        poolType: p.type || p.poolType,
+                        currentBalance: p.currentBalance,
                         isPrivate: p.isPrivate ?? undefined,
                       }))}
                       selectedPoolId={destinationCategoryId || null}
@@ -205,6 +209,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                         pools={categories.map((p) => ({
                           id: p.id,
                           name: p.name,
+                          poolType: p.type || p.poolType,
+                          currentBalance: p.currentBalance,
                           isPrivate: p.isPrivate ?? undefined,
                           categories: p.categories,
                         }))}

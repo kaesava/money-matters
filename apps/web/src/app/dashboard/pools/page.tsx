@@ -333,7 +333,7 @@ function PoolsPageContent() {
             }}
             className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <span>New Pool</span>
+            <span>Add Pool</span>
           </button>
         </div>
       </div>
