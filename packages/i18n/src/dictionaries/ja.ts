@@ -1665,6 +1665,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "futureIncomeNote": "収入日が未来の日付です。保存すると下書きとして保存されます。"
   },
   "matrix": {
+    "review": "確認",
+    "save": "保存",
+    "unsave": "保存解除",
     "reviewSplit": "振り分けを確認",
     "saveSplit": "振り分けを保存",
     "viewSplit": "振り分けを表示",
@@ -1672,13 +1675,29 @@ export const ja: DeepStringRecord<typeof en> = {
     "savedBadge": "保存済み",
     "saveSplitSuccess": "収入振り分けを保存しました。",
     "revertSuccess": "リセット完了。収入振り分けは自動計算されます。",
+    "unsaveDialogTitle": "収入振り分けの保存解除",
+    "unsaveDialogDescription": "保存された収入振り分けは破棄され、自動計算に戻ります。続行しますか？",
+    "unsaveDialogConfirm": "保存解除",
     "revertDialogTitle": "収入振り分けをリセット",
     "revertDialogDescription": "このお給料日の保存済み収入振り分けを削除し、自動計算に戻します。続行しますか？",
     "revertDialogConfirm": "リセット",
     "incomeAllocationGridTitle": "収入振り分け計画グリッド",
-    "incomeAllocationGridTooltip": "今後12ヶ月のプールへの収入振り分けを計画します。「振り分けを確認」をクリックして編集または確定してください。",
+    "incomeAllocationGridTooltip": "今後12ヶ月のプールへの収入振り分けを計画します。「確認」をクリックして編集または保存してください。",
     "showNext5": "次の5回の給料日を表示",
-    "showFull12": "12ヶ月全体を表示（{count}回の給料日）"
+    "showFull12": "12ヶ月全体を表示（{count}回の給料日）",
+    "showFull12Events": "12ヶ月全体を表示（{count}件の収入イベント）"
+  },
+  "categoryDrawer": {
+    "title": "プール詳細",
+    "historyLink": "履歴を表示",
+    "tabs": {
+      "categories": "カテゴリー",
+      "relatedExpenses": "関連支出",
+      "recentActivity": "最近のアクティビティ"
+    },
+    "noCategories": "このプールのサブカテゴリーはありません。",
+    "noExpenses": "このプールの予定支出イベントはありません。",
+    "noTransactions": "このプールの最近のアクティビティはありません。"
   },
   "incomeCascade": {
     "title": "収入振り分け",
