@@ -125,10 +125,13 @@ export function PoolPicker({
   };
 
   // Group pools by type
+  const allOption = useMemo(() => pools.find((p) => p.id === ""), [pools]);
+  const regularPools = useMemo(() => pools.filter((p) => p.id !== ""), [pools]);
+
   const groupedPools = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
 
-    const filteredPools = pools.filter((p) => {
+    const filteredPools = regularPools.filter((p) => {
       if (!q) return true;
       const poolMatch = p.name.toLowerCase().includes(q);
       const catMatch = allowCategorySelection && p.categories?.some((c) => c.name.toLowerCase().includes(q));
@@ -160,7 +163,7 @@ export function PoolPicker({
     }
 
     return groups.filter((g) => g.items.length > 0);
-  }, [pools, searchQuery, allowCategorySelection]);
+  }, [regularPools, searchQuery, allowCategorySelection]);
 
   // Auto-expand on search
   useEffect(() => {
@@ -215,7 +218,20 @@ export function PoolPicker({
 
           {/* List Container */}
           <div className="overflow-y-auto p-1.5 space-y-2 flex-1">
-            {groupedPools.length === 0 ? (
+            {allOption && (!searchQuery || allOption.name.toLowerCase().includes(searchQuery.toLowerCase().trim())) && (
+              <div
+                onClick={() => handleSelectPool(allOption)}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold cursor-pointer transition-colors border border-slate-100 dark:border-slate-800 ${
+                  !selectedPoolId
+                    ? "bg-blue-50 text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400"
+                    : "text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80"
+                }`}
+              >
+                <span>{allOption.name}</span>
+              </div>
+            )}
+
+            {groupedPools.length === 0 && !allOption ? (
               <div className="px-3 py-4 text-center text-xs text-slate-400 font-medium">
                 {searchQuery ? `No pools found matching "${searchQuery}"` : t("common.noPoolsAvailable", { defaultValue: "No pools available" })}
               </div>

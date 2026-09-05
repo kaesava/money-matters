@@ -178,62 +178,39 @@ export const incomeRouter = {
         (newFreq && rrule !== source.rrule)
       );
 
-      if (typeChanged || scheduleOrFreqChanged) {
-        if (unperformedEvents.length > 0) {
-          await ctx.db
-            .delete(incomeEvents)
-            .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
-        }
+      if (unperformedEvents.length > 0) {
+        await ctx.db
+          .delete(incomeEvents)
+          .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
+      }
 
-        if (isRecurring && rrule) {
-          const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
-          if (dates.length > 0) {
-            await ctx.db.insert(incomeEvents).values(
-              dates.map((d) => ({
-                incomeSourceId: source.id,
-                expectedDate: getAestDateString(d),
-                expectedAmount: newAmount,
-                status: "PENDING" as const,
-                tenantId: ctx.tenantId!,
-                appId: ctx.appId!,
-                createdBy: ctx.userId!,
-                updatedBy: ctx.userId!,
-              }))
-            );
-          }
-        } else {
-          await ctx.db.insert(incomeEvents).values({
-            incomeSourceId: source.id,
-            expectedDate: newStartDate,
-            expectedAmount: newAmount,
-            status: "PENDING",
-            tenantId: ctx.tenantId!,
-            appId: ctx.appId!,
-            createdBy: ctx.userId!,
-            updatedBy: ctx.userId!,
-          });
+      if (isRecurring && rrule) {
+        const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
+        if (dates.length > 0) {
+          await ctx.db.insert(incomeEvents).values(
+            dates.map((d) => ({
+              incomeSourceId: source.id,
+              expectedDate: getAestDateString(d),
+              expectedAmount: newAmount,
+              status: "PENDING" as const,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
+          );
         }
       } else {
-        if (unperformedEvents.length > 0) {
-          const unperformedIds = unperformedEvents.map((e) => e.id);
-          const updateData: {
-            expectedAmount: string;
-            updatedAt: Date;
-            updatedBy: string;
-            expectedDate?: string;
-          } = {
-            expectedAmount: newAmount,
-            updatedAt: new Date(),
-            updatedBy: ctx.userId!,
-          };
-          if (!isRecurring && input.data.startDate) {
-            updateData.expectedDate = input.data.startDate;
-          }
-          await ctx.db
-            .update(incomeEvents)
-            .set(updateData)
-            .where(inArray(incomeEvents.id, unperformedIds));
-        }
+        await ctx.db.insert(incomeEvents).values({
+          incomeSourceId: source.id,
+          expectedDate: newStartDate,
+          expectedAmount: newAmount,
+          status: "PENDING",
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        });
       }
 
       const [updated] = await ctx.db

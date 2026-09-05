@@ -93,18 +93,28 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
       onMouseEnter={handleOpen}
       onMouseLeave={() => setIsOpen(false)}
     >
-      <button
-        type="button"
+      <span
+        role="button"
+        tabIndex={0}
         onClick={(e) => {
+          e.preventDefault();
           e.stopPropagation();
           if (isOpen) setIsOpen(false);
           else handleOpen();
         }}
-        className="w-4 h-4 rounded-full bg-slate-100 hover:bg-blue-100 text-slate-400 hover:text-[#2563eb] text-[10px] font-bold inline-flex items-center justify-center transition-colors border border-slate-200 cursor-pointer shrink-0"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isOpen) setIsOpen(false);
+            else handleOpen();
+          }
+        }}
+        className="w-4 h-4 rounded-full bg-slate-100 hover:bg-blue-100 text-slate-400 hover:text-[#2563eb] text-[10px] font-bold inline-flex items-center justify-center transition-colors border border-slate-200 cursor-pointer shrink-0 select-none"
         aria-label="Information"
       >
         ℹ
-      </button>
+      </span>
 
       {isOpen && (
         <div className={`absolute ${popoverPosClasses} ${popoverAlignClasses} w-64 p-3 bg-[#1B2B4B] text-white text-xs rounded-xl shadow-xl z-50 pointer-events-auto transition-opacity animate-in fade-in duration-150`}>

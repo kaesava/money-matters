@@ -33,6 +33,55 @@ function cleanAmount(val: string): string {
   return isNaN(num) ? "0.00" : num.toFixed(2);
 }
 
+function parseSourceRecurrence(source?: SourceToEdit | null) {
+  if (!source) {
+    return {
+      origIsRecurring: true,
+      origFrequency: "MONTHLY" as const,
+      origInterval: 1,
+    };
+  }
+
+  const origIsRecurring = !!source.rrule || !!source.startDate;
+
+  if (source.rrule) {
+    const match = source.rrule.match(/INTERVAL=(\d+)/);
+    const parsedInterval = match ? parseInt(match[1], 10) : 1;
+
+    if (source.rrule.includes("FREQ=WEEKLY;INTERVAL=2") || source.rrule.includes("FREQ=FORTNIGHTLY")) {
+      return {
+        origIsRecurring,
+        origFrequency: "FORTNIGHTLY" as const,
+        origInterval: 1,
+      };
+    } else if (source.rrule.includes("FREQ=WEEKLY")) {
+      return {
+        origIsRecurring,
+        origFrequency: "WEEKLY" as const,
+        origInterval: parsedInterval,
+      };
+    } else if (source.rrule.includes("FREQ=YEARLY") || source.rrule.includes("FREQ=ANNUALLY")) {
+      return {
+        origIsRecurring,
+        origFrequency: "ANNUALLY" as const,
+        origInterval: parsedInterval,
+      };
+    } else {
+      return {
+        origIsRecurring,
+        origFrequency: "MONTHLY" as const,
+        origInterval: parsedInterval,
+      };
+    }
+  }
+
+  return {
+    origIsRecurring,
+    origFrequency: "MONTHLY" as const,
+    origInterval: 1,
+  };
+}
+
 export default function IncomeExpenseFormModal({
   isOpen,
   onClose,
@@ -75,35 +124,16 @@ export default function IncomeExpenseFormModal({
     if (sourceToEdit) {
       setName(sourceToEdit.name || "");
       setAmount(sourceToEdit.amount || "");
-      setPoolId(sourceToEdit.poolId || pools[0]?.id || "");
+      setPoolId(sourceToEdit.poolId || "");
       setReceivingAccountId(sourceToEdit.receivingAccountId || "");
 
-      const hasSchedule = !!sourceToEdit.rrule || !!sourceToEdit.startDate;
-      setIsRecurring(hasSchedule);
+      const { origIsRecurring, origFrequency, origInterval } = parseSourceRecurrence(sourceToEdit);
+      setIsRecurring(origIsRecurring);
+      setFrequency(origFrequency);
+      setInterval(origInterval);
 
-      if (sourceToEdit.rrule) {
-        const match = sourceToEdit.rrule.match(/INTERVAL=(\d+)/);
-        const parsedInterval = match ? parseInt(match[1], 10) : 1;
-
-        if (sourceToEdit.rrule.includes("FREQ=WEEKLY;INTERVAL=2")) {
-          setFrequency("FORTNIGHTLY");
-          setInterval(1);
-        } else if (sourceToEdit.rrule.includes("FREQ=WEEKLY")) {
-          setFrequency("WEEKLY");
-          setInterval(parsedInterval);
-        } else if (sourceToEdit.rrule.includes("FREQ=YEARLY")) {
-          setFrequency("ANNUALLY");
-          setInterval(parsedInterval);
-        } else {
-          setFrequency("MONTHLY");
-          setInterval(parsedInterval);
-        }
-      } else {
-        setFrequency("MONTHLY");
-        setInterval(1);
-      }
-
-      setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()));
+      const defaultToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+      setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : defaultToday);
       setEndDate(sourceToEdit.endDate ? sourceToEdit.endDate.split("T")[0] : null);
     } else {
       setName("");
@@ -254,9 +284,10 @@ export default function IncomeExpenseFormModal({
     if (!sourceToEdit) {
       return name.trim() !== "" || amount.trim() !== "";
     }
-    const origStartDate = sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : "";
+    const defaultToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+    const origStartDate = sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : defaultToday;
     const origEndDate = sourceToEdit.endDate ? sourceToEdit.endDate.split("T")[0] : null;
-    const origIsRecurring = !!sourceToEdit.rrule || !!sourceToEdit.startDate;
+    const { origIsRecurring, origFrequency, origInterval } = parseSourceRecurrence(sourceToEdit);
 
     return (
       name !== (sourceToEdit.name || "") ||
@@ -264,10 +295,12 @@ export default function IncomeExpenseFormModal({
       poolId !== (sourceToEdit.poolId || "") ||
       receivingAccountId !== (sourceToEdit.receivingAccountId || "") ||
       isRecurring !== origIsRecurring ||
+      frequency !== origFrequency ||
+      (interval || 1) !== origInterval ||
       startDate !== origStartDate ||
       (endDate || null) !== origEndDate
     );
-  }, [name, amount, poolId, receivingAccountId, isRecurring, startDate, endDate, sourceToEdit]);
+  }, [name, amount, poolId, receivingAccountId, isRecurring, frequency, interval, startDate, endDate, sourceToEdit]);
 
   const isValid = name.trim() !== "" && amount.trim() !== "" && parseFloat(amount) > 0 && (mode !== "EXPENSE" || !!poolId);
 

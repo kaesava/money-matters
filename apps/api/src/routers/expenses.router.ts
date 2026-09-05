@@ -231,30 +231,54 @@ export const expensesRouter = {
         )
         .returning();
 
-      // Update upcoming unperformed events
+      const newStartDate = input.data.startDate || source.startDate || getAestDateString();
+
+      // Delete existing unperformed events (keep CONFIRMED events) and re-burst with updated schedule & amounts
       const events = await ctx.db
         .select()
         .from(expenseEvents)
         .where(eq(expenseEvents.expenseSourceId, source.id));
 
-      const unperformedEvents = events.filter((e) => e.status === "PENDING");
+      const unperformedEvents = events.filter((e) => e.status !== "CONFIRMED");
       if (unperformedEvents.length > 0) {
         await ctx.db
-          .update(expenseEvents)
-          .set({
-            name: newName,
-            expectedAmount: newAmount,
-            poolId: newPoolId,
-            categoryId: newCategoryId || null,
-            updatedBy: ctx.userId!,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(expenseEvents.expenseSourceId, source.id),
-              eq(expenseEvents.status, "PENDING")
-            )
+          .delete(expenseEvents)
+          .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
+      }
+
+      if (isRecurring && rrule) {
+        const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
+        if (dates.length > 0) {
+          await ctx.db.insert(expenseEvents).values(
+            dates.map((d) => ({
+              expenseSourceId: source.id,
+              poolId: newPoolId,
+              categoryId: newCategoryId || null,
+              name: newName,
+              expectedDate: getAestDateString(d),
+              expectedAmount: newAmount,
+              status: "PENDING" as const,
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
           );
+        }
+      } else {
+        await ctx.db.insert(expenseEvents).values({
+          expenseSourceId: source.id,
+          poolId: newPoolId,
+          categoryId: newCategoryId || null,
+          name: newName,
+          expectedDate: newStartDate,
+          expectedAmount: newAmount,
+          status: "PENDING" as const,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+        });
       }
 
       return updated;

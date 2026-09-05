@@ -489,6 +489,8 @@ function IncomeAndBillsContent() {
                           ...pools.map((p) => ({
                             id: p.id,
                             name: p.name,
+                            poolType: p.poolType,
+                            currentBalance: p.currentBalance,
                             isPrivate: p.isPrivate ?? undefined,
                           })),
                         ]}
