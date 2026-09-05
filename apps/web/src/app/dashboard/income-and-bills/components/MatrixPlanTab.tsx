@@ -103,6 +103,7 @@ export function MatrixPlanTab({
   const toast = useToast();
   const utils = trpc.useUtils();
   const saveBulkAllocationsMut = trpc.saveBulkAllocations.useMutation();
+  const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
   const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
 
   const SESSION_DRAFT_KEY = "matrix_plan_draft_overrides";
@@ -116,6 +117,7 @@ export function MatrixPlanTab({
     name: string;
   } | null>(null);
   const [activePaydayEventId, setActivePaydayEventId] = useState<string | null>(null);
+  const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
 
   // Load saved allocation plans into initial overrides state
   React.useEffect(() => {
@@ -407,14 +409,21 @@ export function MatrixPlanTab({
                         onClick={() => setActivePaydayEventId(col.id)}
                         className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1 py-0.5"
                       >
-                        {t("common.runSplit", { defaultValue: "Run Split" })}
+                        {t("common.runSplit", { defaultValue: "Income Split" })}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIncomeToDelete(col.id)}
+                        className="text-xs font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors px-1 py-0.5"
+                      >
+                        Delete
                       </button>
                       {hasPlanOverride && (
                         <button
                           type="button"
                           onClick={() => handleRevertColumn(col.id)}
                           className="text-[10px] font-extrabold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-1.5 py-1 rounded border border-blue-200"
-                          title="Revert to Automatic Waterfall"
+                          title="Revert to Automatic Income Split"
                         >
                           Auto
                         </button>
@@ -436,18 +445,19 @@ export function MatrixPlanTab({
 
           <tbody>
             {projection.groups.map((group) => {
-              const isCollapsed = collapsedGroups[group.id];
+              const isSurplusSection = group.id === "surplus";
+              const isCollapsed = isSurplusSection ? false : collapsedGroups[group.id];
               return (
                 <React.Fragment key={group.id}>
                   {/* Accordion Group Header */}
                   <tr className="bg-zinc-100/70 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 font-bold text-[#1B2B4B] dark:text-white">
                     <td
                       colSpan={visibleColumns.length + 1}
-                      onClick={() => toggleGroup(group.id)}
-                      className="p-3 cursor-pointer hover:bg-zinc-200/50 dark:hover:bg-zinc-800 transition-colors"
+                      onClick={() => !isSurplusSection && toggleGroup(group.id)}
+                      className={`p-3 ${isSurplusSection ? "" : "cursor-pointer hover:bg-zinc-200/50 dark:hover:bg-zinc-800"} transition-colors`}
                     >
                       <div className="flex items-center gap-2">
-                        <span>{isCollapsed ? "▶" : "▼"}</span>
+                        {!isSurplusSection && <span>{isCollapsed ? "▶" : "▼"}</span>}
                         <span>{group.title}</span>
                       </div>
                     </td>
@@ -583,6 +593,29 @@ export function MatrixPlanTab({
         description="This will delete your custom overrides and revert this payday to automatic calculations. Continue?"
         confirmLabel="Revert Payday"
         variant="warning"
+      />
+
+      <ConfirmDialog
+        isOpen={!!incomeToDelete}
+        onClose={() => setIncomeToDelete(null)}
+        onConfirm={async () => {
+          if (incomeToDelete) {
+            try {
+              await deleteIncomeMut.mutateAsync({ eventId: incomeToDelete });
+              toast.success("Income deleted.");
+              await utils.listIncomeEvents.invalidate();
+              await utils.listAllAllocationPlans.invalidate();
+            } catch (_err) {
+              toast.error("Failed to delete income.");
+            } finally {
+              setIncomeToDelete(null);
+            }
+          }
+        }}
+        title="Delete Income"
+        description="Are you sure you want to Delete this Income?"
+        confirmLabel="Delete"
+        variant="danger"
       />
     </div>
   );

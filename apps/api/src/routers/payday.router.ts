@@ -136,7 +136,6 @@ export const paydayRouter = {
           incomeEventId: allocationPlans.incomeEventId,
           totalIncomeAmount: allocationPlans.totalIncomeAmount,
           status: allocationPlans.status,
-          isManual: allocationPlans.isManual,
           createdAt: allocationPlans.createdAt,
           updatedAt: allocationPlans.updatedAt,
           incomeName: sql<string>`COALESCE(${incomeEvents.name}, ${incomeSources.name}, 'Income Deposit')`,
@@ -177,7 +176,6 @@ export const paydayRouter = {
 
       return plans.map((plan) => ({
         ...plan,
-        isAutoTrigger: !plan.isManual,
         lines: lines.filter((l) => l.planId === plan.id),
       }));
     }),
@@ -312,6 +310,78 @@ export const paydayRouter = {
           );
         }
         
+        return { success: true, planId: plan.id };
+      });
+    }),
+
+  saveAutoAllocation: privateTenantProcedure
+    .input(
+      z.object({
+        incomeEventId: z.string().uuid(),
+        totalIncomeAmount: z.string(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const amountNum = parseFloat(input.totalIncomeAmount);
+      const lines = await previewAllocationQuery(
+        ctx.tenantId!,
+        ctx.appId!,
+        input.incomeEventId,
+        amountNum,
+        ctx.db
+      );
+
+      return await ctx.db.transaction(async (tx) => {
+        let [plan] = await tx
+          .select()
+          .from(allocationPlans)
+          .where(
+            and(
+              eq(allocationPlans.incomeEventId, input.incomeEventId),
+              eq(allocationPlans.status, "PENDING")
+            )
+          )
+          .limit(1);
+
+        if (!plan) {
+          const [newPlan] = await tx
+            .insert(allocationPlans)
+            .values({
+              incomeEventId: input.incomeEventId,
+              totalIncomeAmount: input.totalIncomeAmount,
+              status: "PENDING",
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            })
+            .returning();
+          plan = newPlan;
+        } else {
+          await tx
+            .update(allocationPlans)
+            .set({ totalIncomeAmount: input.totalIncomeAmount, updatedAt: new Date(), updatedBy: ctx.userId! })
+            .where(eq(allocationPlans.id, plan.id));
+        }
+
+        await tx.delete(allocationPlanLines).where(eq(allocationPlanLines.planId, plan.id));
+
+        if (lines.length > 0) {
+          await tx.insert(allocationPlanLines).values(
+            lines.map((l) => ({
+              planId: plan.id,
+              poolId: l.poolId,
+              categoryId: null,
+              proposedAmount: l.proposedAmount.toFixed(2),
+              tenantId: ctx.tenantId!,
+              appId: ctx.appId!,
+              createdBy: ctx.userId!,
+              updatedBy: ctx.userId!,
+            }))
+          );
+        }
+
         return { success: true, planId: plan.id };
       });
     }),

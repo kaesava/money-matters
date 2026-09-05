@@ -24,7 +24,7 @@ export function MissingSchedulesBanner({ incomeCount, billsCount }: MissingSched
             {incomeCount === 0 && billsCount === 0
               ? "Set up your income pay schedule & recurring bills"
               : incomeCount === 0
-              ? "Add your income pay schedule to enable automated 5-step waterfall"
+              ? "Add your income pay schedule to enable automated 5-step Income Split"
               : "Add your bill payment schedule to protect upcoming expenses"}
           </h4>
           <p className="text-[11px] text-amber-800 font-medium mt-0.5">

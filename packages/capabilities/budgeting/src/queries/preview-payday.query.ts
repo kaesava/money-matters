@@ -94,6 +94,17 @@ export async function previewPaydayForEvent(
   const incomeAmount = parseFloat(targetEvent.actualAmount || targetEvent.expectedAmount);
   const allocationResult = await previewAllocationQuery(tenantId, appId, targetEvent.id, incomeAmount, dbClient);
 
+  const lines = Array.isArray(allocationResult)
+    ? allocationResult.map((item) => ({
+        bucketId: item.poolId,
+        bucketName: item.poolName,
+        proposedAmount: item.proposedAmount,
+        reasoning: item.reasoning,
+      }))
+    : [];
+
+  const totalAllocated = lines.reduce((sum, l) => sum + l.proposedAmount, 0);
+
   return {
     incomeEvent: {
       id: targetEvent.id,
@@ -102,6 +113,11 @@ export async function previewPaydayForEvent(
       expectedAmount: targetEvent.expectedAmount,
       actualAmount: targetEvent.actualAmount || targetEvent.expectedAmount,
     },
-    engineResult: allocationResult,
+    engineResult: {
+      status: "OK" as const,
+      lines,
+      unallocatedAmount: Math.max(0, incomeAmount - totalAllocated),
+      isCustomPlan: false,
+    },
   };
 }

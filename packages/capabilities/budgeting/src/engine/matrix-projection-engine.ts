@@ -189,8 +189,6 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     col.hiddenAllocationsTotal = Number(hiddenTotalForColumn.toFixed(2));
 
     // Calculate expense deductions up until the next payday date
-    // Note: Since columns can share the exact same date, daysUntilNext might be 0,
-    // which means no expenses are deducted between them. This is correct path-dependent behavior!
     const nextColDate = i < columns.length - 1 ? columns[i + 1].date : "9999-12-31";
     
     // A. Everyday Pool Allocation & Balance
@@ -201,7 +199,8 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
 
     const everydayCatIds = new Set(everydayCats.map((c) => c.id));
     const relevantEverydayExp = expenseEvents.filter(
-      (e) => everydayCatIds.has(e.categoryId) && e.dueDate >= col.date && e.dueDate < nextColDate
+      (e) => (everydayCatIds.has(e.categoryId) || everydayCatIds.has((e as unknown as { poolId?: string }).poolId || "")) &&
+             (i === 0 ? e.dueDate < nextColDate : (e.dueDate >= col.date && e.dueDate < nextColDate))
     );
     const totalEverydayExp = relevantEverydayExp.reduce((sum, e) => sum + e.amount, 0);
 
@@ -226,7 +225,8 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
 
     const billsCatIds = new Set(billsCats.map((c) => c.id));
     const relevantBillsExp = expenseEvents.filter(
-      (e) => billsCatIds.has(e.categoryId) && e.dueDate >= col.date && e.dueDate < nextColDate
+      (e) => (billsCatIds.has(e.categoryId) || billsCatIds.has((e as unknown as { poolId?: string }).poolId || "")) &&
+             (i === 0 ? e.dueDate < nextColDate : (e.dueDate >= col.date && e.dueDate < nextColDate))
     );
     const totalBillsExp = relevantBillsExp.reduce((sum, e) => sum + e.amount, 0);
 
@@ -253,7 +253,8 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
       const balanceAfterAlloc = startBalance + finalAllocation;
 
       const relevantExpenses = expenseEvents.filter(
-        (e) => e.categoryId === cat.id && e.dueDate >= col.date && e.dueDate < nextColDate
+        (e) => (e.categoryId === cat.id || (e as unknown as { poolId?: string }).poolId === cat.id) &&
+               (i === 0 ? e.dueDate < nextColDate : (e.dueDate >= col.date && e.dueDate < nextColDate))
       );
       const totalExpenses = relevantExpenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -284,7 +285,7 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   const everydayRows: MatrixRow[] = [
     {
       categoryId: "pool_everyday",
-      categoryName: "🛍️ Everyday Pool (Discretionary)",
+      categoryName: "Everyday Pool",
       type: "EVERYDAY",
       isPrivate: false,
       isPoolRow: true,
@@ -295,7 +296,7 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   const billsRows: MatrixRow[] = [
     {
       categoryId: "pool_bills",
-      categoryName: "💳 Bills Pool (Fixed Obligations)",
+      categoryName: "Bills Pool",
       type: "REGULAR",
       isPrivate: false,
       isPoolRow: true,
@@ -342,22 +343,22 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
   const groups: MatrixAccordionGroup[] = [
     {
       id: "everyday",
-      title: "🛍️ Everyday Pool",
+      title: "Everyday Pool",
       rows: everydayRows,
     },
     {
       id: "bills",
-      title: "💳 Bills & Obligations Pool",
+      title: "Bills Pool",
       rows: billsRows,
     },
     {
       id: "goals",
-      title: "🎯 Savings Goals & Lumpy Expenses",
+      title: "Goals",
       rows: goalsRows,
     },
     {
       id: "surplus",
-      title: "🏦 Surplus Accumulator Pool",
+      title: "Surplus",
       rows: surplusRows,
     },
   ];

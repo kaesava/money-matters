@@ -138,6 +138,9 @@ export function UpcomingTimelineTab({
 
     return all
       .filter((e) => {
+        // 0. Exclude CONFIRMED records from Upcoming timeline
+        if (e.status === "CONFIRMED") return false;
+
         // 1. Kind filter
         if (kindFilter !== "ALL" && e.eventKind !== kindFilter) return false;
 

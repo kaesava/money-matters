@@ -272,7 +272,7 @@ function TransactionsPageContent() {
       } else if (planSortColumn === "receivingAccount") {
         cmp = (a.receivingAccountName || "").localeCompare(b.receivingAccountName || "");
       } else if (planSortColumn === "trigger") {
-        cmp = (a.isAutoTrigger ? "AUTO" : "MANUAL").localeCompare(b.isAutoTrigger ? "AUTO" : "MANUAL");
+        cmp = (a.status || "PENDING").localeCompare(b.status || "PENDING");
       } else if (planSortColumn === "amount") {
         cmp = parseFloat(String(a.totalIncomeAmount || 0)) - parseFloat(String(b.totalIncomeAmount || 0));
       }
@@ -619,7 +619,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>Trigger</span>
+                          <span>Status</span>
                           {planSortColumn === "trigger" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -663,8 +663,14 @@ function TransactionsPageContent() {
                           </Link>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-zinc-100 text-zinc-600 border border-zinc-200">
-                            {plan.isAutoTrigger ? "AUTO" : "MANUAL"}
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${
+                              plan.status === "CONFIRMED"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-blue-50 text-blue-700 border-blue-200"
+                            }`}
+                          >
+                            {plan.status === "CONFIRMED" ? "CONFIRMED" : "SAVED"}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">

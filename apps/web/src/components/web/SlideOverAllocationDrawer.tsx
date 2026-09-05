@@ -24,7 +24,6 @@ export interface PaydayPlanRecord {
   incomeDate?: string | null;
   incomeName?: string | null;
   receivingAccountName?: string | null;
-  isAutoTrigger?: boolean;
   lines: PaydayPlanLineRecord[];
 }
 
@@ -113,7 +112,7 @@ export function SlideOverAllocationDrawer({
           {/* Waterfall Lines List */}
           <div className="flex-1 overflow-y-auto p-6 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              Waterfall Breakdown ({plan.lines.length} pools)
+              Income Split Breakdown ({plan.lines.length} pools)
             </h3>
             {plan.lines.map((line, idx) => (
               <div

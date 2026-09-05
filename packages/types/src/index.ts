@@ -175,7 +175,6 @@ export const IncomeEventSchema = BaseSchema.extend({
 export const AllocationPlanSchema = BaseSchema.extend({
   incomeEventId: z.string().uuid(),
   status: z.enum(["PENDING", "CONFIRMED"]),
-  isManual: z.boolean().default(false),
   totalIncomeAmount: z.string(),
   confirmedAt: z.date().nullable(),
 }).strict();

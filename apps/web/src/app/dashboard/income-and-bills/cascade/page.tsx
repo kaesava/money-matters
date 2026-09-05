@@ -95,7 +95,7 @@ export default function CascadePage() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B]">Payday Waterfall Allocation</h1>
+          <h1 className="text-2xl font-black text-[#1B2B4B]">Income Split Priority Rules</h1>
           <p className="text-sm font-medium text-zinc-500 mt-1">Review and fine-tune step-by-step pool allocations.</p>
         </div>
         <div className="text-right">
@@ -117,7 +117,7 @@ export default function CascadePage() {
               <thead className="bg-zinc-50 text-xs font-bold text-zinc-400 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-3 rounded-l-lg">Pool Target</th>
-                  <th className="px-6 py-3">Waterfall Priority / Reason</th>
+                  <th className="px-6 py-3">Income Split Priority / Reason</th>
                   <th className="px-6 py-3 text-right">Engine Proposed</th>
                   <th className="px-6 py-3 text-right rounded-r-lg">Confirmed Split</th>
                 </tr>

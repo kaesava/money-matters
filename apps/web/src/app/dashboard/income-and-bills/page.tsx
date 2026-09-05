@@ -276,6 +276,8 @@ function IncomeAndBillsContent() {
             type: p.poolType,
             currentBalance: parseFloat(String(p.currentBalance || "0")),
             targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : 0,
+            isSurplusTarget: p.isSurplusTarget ?? undefined,
+            isPrivate: p.isPrivate ?? undefined,
           }))}
           incomeEvents={matrixIncomeEvents}
           expenseEvents={matrixExpenseEvents}
@@ -482,7 +484,7 @@ function IncomeAndBillsContent() {
 
                   <div className="flex items-center gap-2">
                     {/* Pool Picker Filter (Pools only, single selection) */}
-                    <div className="w-44 text-xs">
+                    <div className="w-56 sm:w-64 text-xs">
                       <PoolPicker
                         pools={[
                           { id: "", name: "All Pools" },
