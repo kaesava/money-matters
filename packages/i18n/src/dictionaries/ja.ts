@@ -1627,11 +1627,18 @@ export const ja: DeepStringRecord<typeof en> = {
   "paydayDrawer": {
     "title": "収入の振り分け",
     "subtitle": "収入を確認し、プール間での振分額を確認します",
-    "incomeDetails": "収入の詳細",
+    "incomeDetails": "収入の確認",
+    "reviewIncome": "収入の確認",
     "incomeDate": "受取日",
     "splitIncomeAcrossPools": "プールへの振分設定",
     "totalIncomeAmount": "収入合計金額",
-    "runSplitsCheckbox": "振り分けを実行してカテゴリを更新し、収入を確定済みにする",
+    "surplusPool": "Surplus Pool",
+    "runSplitsCheckbox": "Run Split to update Pool and Bank Balances and mark CONFIRMED",
+    "runSplitsTooltip": "Check to confirm the income was received. This will trigger your Pool balances and Bank balances to get updated and the income to be marked Confirmed. Once confirmed, this action cannot be undone. When unchecked (or for future dated income), your split plan will be saved but not run.",
+    "futureIncomeWarning": "You cannot run a Split on future income",
+    "revertToAuto": "Revert to Auto",
+    "revertToAutoTooltip": "Reverting to Auto will discard your manual allocation edits and recalculate the 5-step waterfall plan automatically.",
+    "revertedToAutoSuccess": "Reverted to Auto waterfall allocation plan.",
     "runSplitAndConfirm": "振り分け実行 & 確定",
     "saveAllocationDraft": "下書きを保存"
   }

@@ -61,6 +61,7 @@ export function PaydayActionDrawer({
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
   const overrideEventMut = trpc.overrideEvent.useMutation();
   const saveBulkAllocationsMut = trpc.saveBulkAllocations.useMutation();
+  const revertAllocationPlanMut = trpc.revertAllocationPlan.useMutation();
 
   useEffect(() => {
     if (previewQuery.data) {
@@ -94,14 +95,57 @@ export function PaydayActionDrawer({
   }, [isFutureDate]);
 
   const handleLineAmountChange = (bucketId: string, val: string) => {
-    // Strip invalid characters, clamp to 12 digits
-    const cleaned = val.replace(/[^0-9.]/g, "");
+    // Strip invalid non-numeric characters, enforce max 12 integer digits and max 2 decimal places
+    let cleaned = val.replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    if (parts.length > 2) {
+      cleaned = `${parts[0]}.${parts.slice(1).join("")}`;
+    }
+    if (parts[0].length > 12) {
+      parts[0] = parts[0].slice(0, 12);
+      cleaned = parts[1] !== undefined ? `${parts[0]}.${parts[1]}` : parts[0];
+    }
+    if (parts[1] && parts[1].length > 2) {
+      cleaned = `${parts[0]}.${parts[1].slice(0, 2)}`;
+    }
     setLinesMap((prev) => ({ ...prev, [bucketId]: cleaned }));
-    setIsManualOverride(true);
+
+    const rawLines = (previewQuery.data?.engineResult as unknown as { lines?: AllocationLineItem[] })?.lines ?? [];
+    const original = rawLines.find((l) => l.bucketId === bucketId);
+    const numVal = parseFloat(cleaned) || 0;
+    if (original && Math.abs(numVal - original.proposedAmount) > 0.001) {
+      setIsManualOverride(true);
+    }
   };
 
-  const engineResult = previewQuery.data?.engineResult;
-  const lines: AllocationLineItem[] = (engineResult as unknown as { lines?: AllocationLineItem[] })?.lines ?? [];
+  const handleRevertToAuto = async () => {
+    if (!activeEventId) return;
+    try {
+      setSubmitting(true);
+      await revertAllocationPlanMut.mutateAsync({ incomeEventId: activeEventId });
+      const refetched = await previewQuery.refetch();
+      if (refetched.data) {
+        const rawLines = (refetched.data.engineResult as unknown as { lines?: AllocationLineItem[] })?.lines ?? [];
+        const initMap: Record<string, string> = {};
+        rawLines.forEach((l: AllocationLineItem) => {
+          initMap[l.bucketId] = l.proposedAmount.toFixed(2);
+        });
+        setLinesMap(initMap);
+      }
+      setIsManualOverride(false);
+      toast.success(t("paydayDrawer.revertedToAutoSuccess", { defaultValue: "Reverted to Auto waterfall allocation plan." }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to revert allocation.";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const lines: AllocationLineItem[] = useMemo(() => {
+    const engineResult = previewQuery.data?.engineResult;
+    return (engineResult as unknown as { lines?: AllocationLineItem[] })?.lines ?? [];
+  }, [previewQuery.data]);
 
   const numericActual = parseFloat(actualAmount) || 0;
 
@@ -138,6 +182,25 @@ export function PaydayActionDrawer({
     .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === "GOAL")
     .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
+  // Group lines by pool type
+  const groupedLines = useMemo(() => {
+    const groups: Array<{ type: "EVERYDAY" | "REGULAR" | "GOAL"; label: string; items: AllocationLineItem[] }> = [
+      { type: "EVERYDAY", label: "Everyday Pools", items: [] },
+      { type: "REGULAR", label: "Bills Pools", items: [] },
+      { type: "GOAL", label: "Goals", items: [] },
+    ];
+
+    for (const l of lines) {
+      const p = pools.find((pool) => pool.id === l.bucketId);
+      const pType = p?.poolType || "REGULAR";
+      if (pType === "EVERYDAY") groups[0].items.push(l);
+      else if (pType === "GOAL") groups[2].items.push(l);
+      else groups[1].items.push(l);
+    }
+
+    return groups.filter((g) => g.items.length > 0);
+  }, [lines, pools]);
+
   const isDirty = useMemo(() => {
     if (!previewQuery.data) return false;
     const evt = previewQuery.data.incomeEvent;
@@ -164,7 +227,7 @@ export function PaydayActionDrawer({
       return false;
     }
     if (isSweepNegative) {
-      setErrorMsg("Unallocated remainder (Sweep Pool) cannot be negative. Please adjust pool allocation amounts.");
+      setErrorMsg("Unallocated remainder (Surplus Pool) cannot be negative. Please adjust pool allocation amounts.");
       return false;
     }
     return true;
@@ -210,13 +273,17 @@ export function PaydayActionDrawer({
         });
         toast.success("Income splits executed and income confirmed!");
       } else {
-        // Save Allocation draft without confirming income
-        await saveBulkAllocationsMut.mutateAsync({
-          incomeEventId: activeEventId,
-          totalIncomeAmount: numericActual.toFixed(2),
-          lines: payloadLines.map((l) => ({ poolId: l.poolId, proposedAmount: l.amount })),
-        });
-        toast.success("Income allocation plan draft saved.");
+        // Only save allocation draft if manually overridden or explicitly checked
+        if (isManualOverride) {
+          await saveBulkAllocationsMut.mutateAsync({
+            incomeEventId: activeEventId,
+            totalIncomeAmount: numericActual.toFixed(2),
+            lines: payloadLines.map((l) => ({ poolId: l.poolId, proposedAmount: l.amount })),
+          });
+          toast.success("Income allocation plan draft saved.");
+        } else {
+          toast.success("Split plan retained as Auto waterfall.");
+        }
       }
 
       await utils.listIncomeEvents.invalidate();
@@ -269,24 +336,43 @@ export function PaydayActionDrawer({
                 <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
                   {t("paydayDrawer.title", { defaultValue: "Split Income" })}
                 </h2>
-                {/* AUTO vs MANUAL Badge & Tooltip */}
-                <span
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 ${
-                    isManualOverride
-                      ? "bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200"
-                      : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200"
-                  }`}
-                >
-                  {isManualOverride ? "MANUAL" : "AUTO"}
-                  <InfoTooltip
-                    title={isManualOverride ? "Manual Override" : "Auto Waterfall"}
-                    content={
+                {/* AUTO vs MANUAL Badge & Revert Option */}
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 ${
                       isManualOverride
-                        ? "Manual override: Allocation amounts were customized by you and saved to your account."
-                        : "Auto-calculated: Allocation amounts were generated automatically from your target pool rules."
-                    }
-                  />
-                </span>
+                        ? "bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200"
+                        : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200"
+                    }`}
+                  >
+                    {isManualOverride ? "MANUAL" : "AUTO"}
+                    <InfoTooltip
+                      title={isManualOverride ? "Manual Override" : "Auto Waterfall"}
+                      content={
+                        isManualOverride
+                          ? "Manual override: Allocation amounts were customized by you and saved to your account."
+                          : "Auto-calculated: Allocation amounts were generated automatically from your target pool rules."
+                      }
+                    />
+                  </span>
+
+                  {isManualOverride && (
+                    <button
+                      type="button"
+                      onClick={handleRevertToAuto}
+                      disabled={submitting}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <span>{t("paydayDrawer.revertToAuto", { defaultValue: "Revert to Auto" })}</span>
+                      <InfoTooltip
+                        title={t("paydayDrawer.revertToAuto", { defaultValue: "Revert to Auto" })}
+                        content={t("paydayDrawer.revertToAutoTooltip", {
+                          defaultValue: "Reverting to Auto will discard your manual allocation edits and recalculate the 5-step waterfall plan automatically.",
+                        })}
+                      />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-zinc-500 font-medium mt-1">
                 {t("paydayDrawer.subtitle", { defaultValue: "Confirm Income & review Income Splits across Pools" })}
@@ -294,7 +380,7 @@ export function PaydayActionDrawer({
             </div>
             <button
               onClick={attemptClose}
-              className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               ✕
             </button>
@@ -312,20 +398,17 @@ export function PaydayActionDrawer({
               <div className="py-12 text-center"><Spinner /></div>
             ) : (
               <div className="space-y-6">
-                {/* 1. Income Details Section (Collapsible - Collapsed by default) */}
+                {/* 1. Review Income Section (Collapsible - Collapsed by default) */}
                 <section className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-800/30">
                   <button
                     type="button"
                     onClick={() => setIsDetailsOpen((prev) => !prev)}
-                    className="w-full flex items-center justify-between text-sm font-extrabold text-[#1B2B4B] dark:text-white"
+                    className="w-full flex items-center gap-2 text-sm font-extrabold text-[#1B2B4B] dark:text-white text-left cursor-pointer"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px]">1</span>
-                      {t("paydayDrawer.incomeDetails", { defaultValue: "Income Details" })}
+                    <span className="text-zinc-500 font-extrabold text-xs">
+                      {isDetailsOpen ? "▼" : "▶"}
                     </span>
-                    <span className="text-xs font-bold text-zinc-400">
-                      {isDetailsOpen ? "▲ Hide" : "▼ Show"}
-                    </span>
+                    <span>{t("paydayDrawer.reviewIncome", { defaultValue: "Review Income" })}</span>
                   </button>
 
                   {isDetailsOpen && (
@@ -392,37 +475,46 @@ export function PaydayActionDrawer({
                     </div>
                   </div>
 
-                  {/* Pool Allocation Inputs */}
-                  <div className="space-y-2">
-                    {lines.map((l: AllocationLineItem) => {
-                      const poolObj = pools.find((p) => p.id === l.bucketId);
-                      const currentBal = poolObj ? parseFloat(String(poolObj.currentBalance || "0")) : 0;
-                      const targetAmt = poolObj?.targetAmount ? parseFloat(poolObj.targetAmount) : 0;
-
-                      return (
-                        <div
-                          key={l.bucketId}
-                          className="py-2.5 px-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl flex justify-between items-center group hover:border-zinc-300 transition-colors"
-                        >
-                          <div className="min-w-0 pr-3">
-                            <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">
-                              {l.bucketName}
-                            </span>
-                            <span className="text-[10px] text-zinc-400 font-mono block truncate">
-                              Bal: {fmt(currentBal)} · Target: {fmt(targetAmt)}
-                            </span>
-                          </div>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)}
-                            onChange={(e) => handleLineAmountChange(l.bucketId, e.target.value)}
-                            className="w-28 px-2.5 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 tabular-nums"
-                          />
+                  {/* Grouped Pool Allocation Inputs */}
+                  <div className="space-y-4">
+                    {groupedLines.map((group) => (
+                      <div key={group.type} className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 px-1 text-[11px] font-extrabold uppercase tracking-wider text-[#1B2B4B] dark:text-blue-300">
+                          <span>•</span>
+                          <span>{group.label}</span>
                         </div>
-                      );
-                    })}
+                        <div className="space-y-1.5">
+                          {group.items.map((l: AllocationLineItem) => {
+                            const poolObj = pools.find((p) => p.id === l.bucketId);
+                            const currentBal = poolObj ? parseFloat(String(poolObj.currentBalance || "0")) : 0;
+                            const targetAmt = poolObj?.targetAmount ? parseFloat(poolObj.targetAmount) : 0;
+
+                            return (
+                              <div
+                                key={l.bucketId}
+                                className="py-2.5 px-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl flex justify-between items-center group hover:border-zinc-300 transition-colors"
+                              >
+                                <div className="min-w-0 pr-3">
+                                  <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">
+                                    {l.bucketName}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-400 font-mono block truncate">
+                                    Bal: {fmt(currentBal)} · Target: {fmt(targetAmt)}
+                                  </span>
+                                </div>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)}
+                                  onChange={(e) => handleLineAmountChange(l.bucketId, e.target.value)}
+                                  className="w-28 px-2.5 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 tabular-nums"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </section>
               </div>
@@ -431,12 +523,12 @@ export function PaydayActionDrawer({
 
           {/* Footer Actions */}
           <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4">
-            {/* Total Section & Sweep Pool Unallocated Remainder */}
-            <div className="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-1.5">
+            {/* Total Section & Surplus Pool Unallocated Remainder */}
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-2">
               {sweepPool && (
                 <div className="flex items-center justify-between text-xs font-bold text-zinc-600 dark:text-zinc-300">
                   <span className="flex items-center gap-1">
-                    <span>🧲 Sweep Target ({sweepPool.name}):</span>
+                    <span>🎯 {t("paydayDrawer.surplusPool", { defaultValue: "Surplus Pool" })} ({sweepPool.name}):</span>
                   </span>
                   <span className={`font-mono font-extrabold ${isSweepNegative ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400'}`}>
                     {fmt(sweepPoolRemainder)}
@@ -449,7 +541,7 @@ export function PaydayActionDrawer({
               </div>
             </div>
 
-            {/* Checkbox: Run Splits to update Categories and mark Income CONFIRMED */}
+            {/* Checkbox: Run Split to update Pool and Bank Balances and mark CONFIRMED */}
             <div className="flex items-start gap-2.5 pt-1">
               <input
                 type="checkbox"
@@ -466,15 +558,17 @@ export function PaydayActionDrawer({
                     isFutureDate ? "text-zinc-400 cursor-not-allowed" : "text-[#1B2B4B] dark:text-zinc-200 cursor-pointer"
                   }`}
                 >
-                  {t("paydayDrawer.runSplitsCheckbox", { defaultValue: "Run Splits to update Categories and mark Income CONFIRMED" })}
+                  {t("paydayDrawer.runSplitsCheckbox", { defaultValue: "Run Split to update Pool and Bank Balances and mark CONFIRMED" })}
                   <InfoTooltip
                     title="Run Income Split"
-                    content="When checked, saving will split your income across pools and mark the deposit as confirmed. When unchecked (or for future dates), your allocation plan will be saved as a draft."
+                    content={t("paydayDrawer.runSplitsTooltip", {
+                      defaultValue: "Check to confirm the income was received. This will trigger your Pool balances and Bank balances to get updated and the income to be marked Confirmed. Once confirmed, this action cannot be undone. When unchecked (or for future dated income), your split plan will be saved but not run.",
+                    })}
                   />
                 </label>
                 {isFutureDate && (
                   <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">
-                    (Disabled for future income dates. You can change the date above.)
+                    {t("paydayDrawer.futureIncomeWarning", { defaultValue: "You cannot run a Split on future income" })}
                   </span>
                 )}
               </div>
@@ -484,7 +578,7 @@ export function PaydayActionDrawer({
               <button
                 type="button"
                 onClick={attemptClose}
-                className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs transition-colors"
+                className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs transition-colors cursor-pointer"
               >
                 {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
@@ -493,7 +587,7 @@ export function PaydayActionDrawer({
                 onClick={handleAction}
                 loading={submitting}
                 disabled={isSweepNegative || submitting}
-                className="px-5 py-2 text-xs shadow-md font-bold"
+                className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
               >
                 {runSplitsChecked ? t("paydayDrawer.runSplitAndConfirm", { defaultValue: "Run Split & Confirm" }) : t("paydayDrawer.saveAllocationDraft", { defaultValue: "Save Allocation Draft" })}
               </Button>
@@ -517,3 +611,4 @@ export function PaydayActionDrawer({
     </div>
   );
 }
+
