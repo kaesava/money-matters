@@ -574,7 +574,7 @@ export function UpcomingTimelineTab({
                                     }
                                     className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
                                   >
-                                    Mark Received
+                                    {t("common.markReceived")}
                                   </button>
                                 ) : (
                                   <button
@@ -582,7 +582,7 @@ export function UpcomingTimelineTab({
                                     onClick={() => onAllocateIncome(evt.id)}
                                     className="px-3 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs rounded-lg transition-colors shadow-xs"
                                   >
-                                    Allocate
+                                    {t("common.allocate")}
                                   </button>
                                 )
                               ) : isTransfer ? (
