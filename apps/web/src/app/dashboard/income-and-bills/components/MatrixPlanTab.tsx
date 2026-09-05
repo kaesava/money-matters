@@ -350,7 +350,7 @@ export function MatrixPlanTab({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
-            <span>📊 Income Allocation Grid</span>
+            <span>Income Allocation Grid</span>
             <InfoTooltip content="Allocate upcoming Income into Pools to stay in control of your targets out to 12 months" />
           </h2>
         </div>
@@ -416,7 +416,7 @@ export function MatrixPlanTab({
                           className="text-[10px] font-extrabold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-1.5 py-1 rounded border border-blue-200"
                           title="Revert to Automatic Waterfall"
                         >
-                          ↺ Auto
+                          Auto
                         </button>
                       )}
                     </div>
@@ -425,7 +425,7 @@ export function MatrixPlanTab({
                     </div>
                     {col.hiddenAllocationsTotal > 0 && (
                       <div className="text-[9px] font-medium text-zinc-400 mt-0.5">
-                        (🔒 ${col.hiddenAllocationsTotal.toFixed(2)} private)
+                        (${col.hiddenAllocationsTotal.toFixed(2)} private)
                       </div>
                     )}
                   </th>
@@ -470,11 +470,10 @@ export function MatrixPlanTab({
                               {row.categoryName}
                               {row.isSurplusTarget && (
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" title="Surplus Sweep Target: Sweeps leftover cash on payday">
-                                  🧲 Sweep Target
+                                  Sweep Target
                                 </span>
                               )}
                             </span>
-                            {row.isPrivate && <span className="text-[10px]">🔒</span>}
                           </div>
                         </td>
 
@@ -539,7 +538,7 @@ export function MatrixPlanTab({
           <span className="text-xs font-semibold text-zinc-300 flex items-center gap-2">
             {isDraftRestored && (
               <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-md text-[10px] font-bold">
-                📝 Draft Restored
+                Draft Restored
               </span>
             )}
             You have unsaved allocation edits.

@@ -80,6 +80,46 @@ export const expensesRouter = {
         else rrule = intVal > 1 ? `FREQ=MONTHLY;INTERVAL=${intVal}` : "FREQ=MONTHLY";
       }
 
+      if (!input.isRecurring) {
+        // One-off expense: create standalone unlinked event directly without creating a schedule record
+        const eventDate = input.startDate || getAestDateString();
+        const [insertedEvent] = await ctx.db
+          .insert(expenseEvents)
+          .values({
+            expenseSourceId: null,
+            poolId: input.poolId,
+            categoryId: input.categoryId || null,
+            name: input.name,
+            expectedDate: eventDate,
+            expectedAmount: input.amount,
+            status: "PENDING" as const,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          })
+          .returning();
+
+        return {
+          id: insertedEvent.id,
+          name: input.name,
+          amount: input.amount,
+          poolId: input.poolId,
+          categoryId: input.categoryId || null,
+          rrule: null,
+          startDate: eventDate,
+          endDate: null,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          archivedAt: null,
+          firstEventId: insertedEvent.id,
+        };
+      }
+
       const [source] = await ctx.db
         .insert(expenseSources)
         .values({
@@ -99,7 +139,7 @@ export const expensesRouter = {
 
       let firstEventId: string | null = null;
 
-      if (input.isRecurring && input.startDate && rrule) {
+      if (input.startDate && rrule) {
         const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
         if (dates.length > 0) {
           const insertedEvents = await ctx.db.insert(expenseEvents).values(
@@ -119,21 +159,6 @@ export const expensesRouter = {
           ).returning();
           firstEventId = insertedEvents[0]?.id ?? null;
         }
-      } else if (input.startDate) {
-        const [insertedEvent] = await ctx.db.insert(expenseEvents).values({
-          expenseSourceId: source.id,
-          poolId: input.poolId,
-          categoryId: input.categoryId || null,
-          name: input.name,
-          expectedDate: input.startDate,
-          expectedAmount: input.amount,
-          status: "PENDING",
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        }).returning();
-        firstEventId = insertedEvent?.id ?? null;
       }
 
       if (posthog && ctx.userId) {
@@ -194,14 +219,90 @@ export const expensesRouter = {
       const newPoolId = input.data.poolId ?? source.poolId;
       const newCategoryId = input.data.categoryId !== undefined ? input.data.categoryId : source.categoryId;
       const newEndDate = input.data.endDate !== undefined ? input.data.endDate : source.endDate;
+      const newStartDate = input.data.startDate || source.startDate || getAestDateString();
 
       const wasRecurring = !!source.rrule;
       const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
 
+      // When converting a recurring expense schedule to a one-off event:
+      if (!isRecurring) {
+        // 1. Unlink confirmed historical events from this schedule so FKs remain valid
+        await ctx.db
+          .update(expenseEvents)
+          .set({ expenseSourceId: null })
+          .where(
+            and(
+              eq(expenseEvents.expenseSourceId, source.id),
+              eq(expenseEvents.tenantId, ctx.tenantId!),
+              eq(expenseEvents.appId, ctx.appId!)
+            )
+          );
+
+        // 2. Delete unperformed pending events linked to this schedule
+        await ctx.db
+          .delete(expenseEvents)
+          .where(
+            and(
+              eq(expenseEvents.expenseSourceId, source.id),
+              eq(expenseEvents.status, "PENDING"),
+              eq(expenseEvents.tenantId, ctx.tenantId!),
+              eq(expenseEvents.appId, ctx.appId!)
+            )
+          );
+
+        // 3. Create a new standalone one-off event unlinked from schedule
+        const [oneOffEvent] = await ctx.db
+          .insert(expenseEvents)
+          .values({
+            expenseSourceId: null,
+            poolId: newPoolId,
+            categoryId: newCategoryId || null,
+            name: newName,
+            expectedDate: newStartDate,
+            expectedAmount: newAmount,
+            status: "PENDING" as const,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          })
+          .returning();
+
+        // 4. Delete the schedule record from expenseSources database table
+        await ctx.db
+          .delete(expenseSources)
+          .where(
+            and(
+              eq(expenseSources.id, source.id),
+              eq(expenseSources.tenantId, ctx.tenantId!),
+              eq(expenseSources.appId, ctx.appId!)
+            )
+          );
+
+        return {
+          id: source.id,
+          name: newName,
+          amount: newAmount,
+          poolId: newPoolId,
+          categoryId: newCategoryId || null,
+          rrule: null,
+          startDate: newStartDate,
+          endDate: null,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+          createdAt: source.createdAt,
+          updatedAt: new Date(),
+          archivedAt: null,
+          firstEventId: oneOffEvent.id,
+        };
+      }
+
       const newFreq = input.data.frequency;
       const newInt = input.data.interval ?? 1;
-      let rrule: string | null = isRecurring ? (source.rrule || "FREQ=MONTHLY") : null;
-      if (isRecurring && (newFreq || input.data.interval !== undefined)) {
+      let rrule: string | null = source.rrule || "FREQ=MONTHLY";
+      if (newFreq || input.data.interval !== undefined) {
         const targetFreq = newFreq || (source.rrule?.includes("FREQ=WEEKLY") ? (source.rrule.includes("INTERVAL=2") ? "FORTNIGHTLY" : "WEEKLY") : source.rrule?.includes("FREQ=YEARLY") ? "ANNUALLY" : "MONTHLY");
         if (targetFreq === "WEEKLY") rrule = newInt > 1 ? `FREQ=WEEKLY;INTERVAL=${newInt}` : "FREQ=WEEKLY";
         else if (targetFreq === "FORTNIGHTLY") rrule = `FREQ=WEEKLY;INTERVAL=${newInt * 2}`;
@@ -231,8 +332,6 @@ export const expensesRouter = {
         )
         .returning();
 
-      const newStartDate = input.data.startDate || source.startDate || getAestDateString();
-
       // Delete existing unperformed events (keep CONFIRMED events) and re-burst with updated schedule & amounts
       const events = await ctx.db
         .select()
@@ -246,7 +345,7 @@ export const expensesRouter = {
           .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
-      if (isRecurring && rrule) {
+      if (rrule) {
         const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
         if (dates.length > 0) {
           await ctx.db.insert(expenseEvents).values(
@@ -265,20 +364,6 @@ export const expensesRouter = {
             }))
           );
         }
-      } else {
-        await ctx.db.insert(expenseEvents).values({
-          expenseSourceId: source.id,
-          poolId: newPoolId,
-          categoryId: newCategoryId || null,
-          name: newName,
-          expectedDate: newStartDate,
-          expectedAmount: newAmount,
-          status: "PENDING" as const,
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        });
       }
 
       return updated;

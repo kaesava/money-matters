@@ -36,6 +36,43 @@ export const incomeRouter = {
         else rrule = intVal > 1 ? `FREQ=MONTHLY;INTERVAL=${intVal}` : "FREQ=MONTHLY";
       }
 
+      if (!input.isRecurring) {
+        // One-off income: create standalone unlinked event directly without creating a schedule record
+        const eventDate = input.startDate || getAestDateString();
+        const [insertedEvent] = await ctx.db
+          .insert(incomeEvents)
+          .values({
+            incomeSourceId: null,
+            name: input.name,
+            expectedDate: eventDate,
+            expectedAmount: input.amount,
+            status: "PENDING" as const,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          })
+          .returning();
+
+        return {
+          id: insertedEvent.id,
+          name: input.name,
+          amount: input.amount,
+          receivingAccountId: input.receivingAccountId || null,
+          rrule: null,
+          startDate: eventDate,
+          endDate: null,
+          tenantId: ctx.tenantId!,
+          appId: ctx.appId!,
+          createdBy: ctx.userId!,
+          updatedBy: ctx.userId!,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          archivedAt: null,
+          firstEventId: insertedEvent.id,
+        };
+      }
+
       const [source] = await ctx.db
         .insert(incomeSources)
         .values({
@@ -54,7 +91,7 @@ export const incomeRouter = {
 
       let firstEventId: string | null = null;
 
-      if (input.isRecurring && input.startDate && rrule) {
+      if (input.startDate && rrule) {
         const dates = generateBurstDates(rrule, input.startDate, input.endDate, 12);
         if (dates.length > 0) {
           const insertedEvents = await ctx.db.insert(incomeEvents).values(
@@ -71,18 +108,6 @@ export const incomeRouter = {
           ).returning();
           firstEventId = insertedEvents[0]?.id ?? null;
         }
-      } else if (input.startDate) {
-        const [insertedEvent] = await ctx.db.insert(incomeEvents).values({
-          incomeSourceId: source.id,
-          expectedDate: input.startDate,
-          expectedAmount: input.amount,
-          status: "PENDING",
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        }).returning();
-        firstEventId = insertedEvent?.id ?? null;
       }
 
       if (posthog && ctx.userId) {
@@ -159,10 +184,67 @@ export const incomeRouter = {
         else newStartDate = getAestDateString();
       }
 
+      // When converting a recurring income schedule to a one-off event:
+      if (!isRecurring) {
+        // 1. Unlink confirmed historical events from this schedule so FKs remain valid
+        await ctx.db
+          .update(incomeEvents)
+          .set({ incomeSourceId: null })
+          .where(
+            and(
+              eq(incomeEvents.incomeSourceId, source.id),
+              eq(incomeEvents.tenantId, ctx.tenantId!),
+              eq(incomeEvents.appId, ctx.appId!)
+            )
+          );
+
+        // 2. Delete pending unperformed events
+        if (unperformedEvents.length > 0) {
+          await ctx.db
+            .delete(incomeEvents)
+            .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
+        }
+
+        // 3. Create a single new one-off event unlinked from schedule
+        const [oneOffEvent] = await ctx.db
+          .insert(incomeEvents)
+          .values({
+            incomeSourceId: null,
+            name: newName,
+            expectedDate: newStartDate,
+            expectedAmount: newAmount,
+            status: "PENDING" as const,
+            tenantId: ctx.tenantId!,
+            appId: ctx.appId!,
+            createdBy: ctx.userId!,
+            updatedBy: ctx.userId!,
+          })
+          .returning();
+
+        // 4. Delete the schedule record from incomeSources database table
+        await ctx.db
+          .delete(incomeSources)
+          .where(
+            and(
+              eq(incomeSources.id, source.id),
+              eq(incomeSources.tenantId, ctx.tenantId!),
+              eq(incomeSources.appId, ctx.appId!)
+            )
+          );
+
+        return {
+          updated: null,
+          hasConfirmedHistory: confirmedEvents.length > 0,
+          unperformedUpdatedCount: unperformedEvents.length,
+          deletedScheduleId: source.id,
+          firstEventId: oneOffEvent.id,
+        };
+      }
+
       const newFreq = input.data.frequency;
       const newInt = input.data.interval ?? 1;
-      let rrule: string | null = isRecurring ? (source.rrule || "FREQ=MONTHLY") : null;
-      if (isRecurring && (newFreq || input.data.interval !== undefined)) {
+      let rrule: string | null = source.rrule || "FREQ=MONTHLY";
+      if (newFreq || input.data.interval !== undefined) {
         const targetFreq = newFreq || (source.rrule?.includes("FREQ=WEEKLY") ? (source.rrule.includes("INTERVAL=2") ? "FORTNIGHTLY" : "WEEKLY") : source.rrule?.includes("FREQ=YEARLY") ? "ANNUALLY" : "MONTHLY");
         if (targetFreq === "WEEKLY") rrule = newInt > 1 ? `FREQ=WEEKLY;INTERVAL=${newInt}` : "FREQ=WEEKLY";
         else if (targetFreq === "FORTNIGHTLY") rrule = `FREQ=WEEKLY;INTERVAL=${newInt * 2}`;
@@ -170,21 +252,13 @@ export const incomeRouter = {
         else rrule = newInt > 1 ? `FREQ=MONTHLY;INTERVAL=${newInt}` : "FREQ=MONTHLY";
       }
 
-      const typeChanged = wasRecurring !== isRecurring;
-      const scheduleOrFreqChanged = isRecurring && (
-        typeChanged ||
-        (input.data.startDate && input.data.startDate !== source.startDate) ||
-        (input.data.endDate !== undefined && input.data.endDate !== source.endDate) ||
-        (newFreq && rrule !== source.rrule)
-      );
-
       if (unperformedEvents.length > 0) {
         await ctx.db
           .delete(incomeEvents)
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
-      if (isRecurring && rrule) {
+      if (rrule) {
         const dates = generateBurstDates(rrule, newStartDate, newEndDate, 12);
         if (dates.length > 0) {
           await ctx.db.insert(incomeEvents).values(
@@ -200,17 +274,6 @@ export const incomeRouter = {
             }))
           );
         }
-      } else {
-        await ctx.db.insert(incomeEvents).values({
-          incomeSourceId: source.id,
-          expectedDate: newStartDate,
-          expectedAmount: newAmount,
-          status: "PENDING",
-          tenantId: ctx.tenantId!,
-          appId: ctx.appId!,
-          createdBy: ctx.userId!,
-          updatedBy: ctx.userId!,
-        });
       }
 
       const [updated] = await ctx.db
@@ -220,7 +283,7 @@ export const incomeRouter = {
           amount: newAmount,
           receivingAccountId: newReceivingAccountId,
           rrule,
-          startDate: isRecurring ? newStartDate : (input.data.startDate || source.startDate),
+          startDate: newStartDate,
           endDate: newEndDate,
           updatedAt: new Date(),
           updatedBy: ctx.userId!,
