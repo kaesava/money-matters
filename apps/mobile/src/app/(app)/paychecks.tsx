@@ -82,8 +82,8 @@ export default function IncomeAndExpensesScreen() {
     ]);
   };
 
-  const incomeEventsList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
-  const expenseEventsList = (expenseEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
+  const incomeEventsList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
+  const expenseEventsList = (expenseEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
 
 
   return (
@@ -121,7 +121,7 @@ export default function IncomeAndExpensesScreen() {
               expenseEvents={expenseEventsList}
               onOpenPaydayWizard={(eventId) => setPaydayWizardEventId(eventId)}
               onEditUpcomingExpense={(evt) => setUpcomingExpenseToEdit(evt)}
-              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ eventId, eventType: 'EXPENSE', actualAmount: String(amt), status: 'PAID' })}
+              onMarkExpensePaid={(eventId, amt) => markPaidMutation.mutate({ eventId, eventType: 'EXPENSE', actualAmount: String(amt), status: 'CONFIRMED' })}
             />
           ) : (
             <View style={{ gap: 12 }}>

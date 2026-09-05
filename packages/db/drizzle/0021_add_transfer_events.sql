@@ -1,6 +1,6 @@
 -- Migration 0021: Add transfer_sources and transfer_events tables with tenant isolation RLS
 DO $$ BEGIN
-  CREATE TYPE "transfer_event_status_enum" AS ENUM('UPCOMING', 'SKIPPED', 'COMPLETED', 'CANCELLED');
+  CREATE TYPE "transfer_event_status_enum" AS ENUM('PENDING', 'SKIPPED', 'COMPLETED', 'CANCELLED');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS "transfer_events" (
   "actual_amount" numeric(12, 2),
   "note" varchar(500),
   "is_overridden" boolean DEFAULT false NOT NULL,
-  "status" "transfer_event_status_enum" DEFAULT 'UPCOMING' NOT NULL,
+  "status" "transfer_event_status_enum" DEFAULT 'PENDING' NOT NULL,
   "tenant_id" uuid NOT NULL,
   "app_id" uuid NOT NULL,
   "created_at" timestamp with time zone DEFAULT now() NOT NULL,

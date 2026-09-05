@@ -166,7 +166,7 @@ export const IncomeEventSchema = BaseSchema.extend({
   expectedDate: z.string(),
   expectedAmount: z.string(),
   actualAmount: z.string().nullable(),
-  status: z.enum(["UPCOMING", "PENDING", "SKIPPED", "CONFIRMED"]),
+  status: z.enum(["PENDING", "PENDING", "SKIPPED", "CONFIRMED"]),
 }).strict();
 
 /**

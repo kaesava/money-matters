@@ -78,7 +78,9 @@ _________
 ### Pool/Category picker
 
 
-## ******* "Income & Bill Management"
+## ******* "Income & Expense Management"
+* Change the navigation from "Income & Bills" to "Income & Expenses"
+
 
 ### Allocate Income (and functionality)
 * Mark past dates with overdue (similar to Upcoming tab)
@@ -87,9 +89,24 @@ _________
 ### Upcoming
 * The search bar shouldn't get stunted like it is (width)
 * Actions - Show Mark Spent Mark Received and Allocate Actions as hyperlinks - stay consistent across the app (similar to Pools screenscrteen) - leave Skip as is.
+* There are many Income Events, one on 1 July another on 15 July, etc. (part of the same series). For some reason, the one on 15-Jul allows "Mark Received" while the 1 July has Allocate. I am expecting the earliest (PENDING Status) income record in this list.
 
-#### Allocate/Mark Received/Mark Paid
+#### Allocate Sidebar
+* Change title and subtitle to "Split Income" and "Confirm Income & review Income Splits across Pools"
+* Change "Deposit Details" to "Income Details" and show with collapse/expand for the section - collapsed by default
+* Change "Income Source" to "Income Source / Description" - effectively align with the Quick Actions > Income labels.
+* Change "Waterfall Split" to "Split Income across Pools"
+* Show the Pools re-using the Pool Type > Pool  structure look & feel from the Pools screen. Find a way to show current balance and target for each (read-only). I like the summary (Everyday, Bills, Goals)
+* Show the Pool that is marked as the default Sweep Pool at the end in the Total section with a read-only amount that is the balance of the unallocated amount. This way, the Total Allocated would always be the full amount so you don't need to show it. Show the Income Amount though.
+* If the Sweep Pool becomes negative, don't allow Save. It can be >0.
+* All the rules about marking AUTO vs. MANUAL apply (i.e., when the user changes any field).If it is AUTO, then re-opening this will re-trigger. If this is MANUAL (i.e., overridden), opening will pull data frmo the DB instead of calculaiting. Show that it is MANUAL or AUTO wiht an (i) to share implication. (use user-friendly language targeted at Aussie audience)
+* No Pool can go negative. Ensure defensive fields (i.e. user doesn't enter 99999999999999999) etc.
+* Include a checkbox ("Run Splits to update Categories and mark Income CONFIRMED") near the Save if the Income date is today/past. Make it readonly if the date is the future (noting that they can change the date from this sidebar). If the user leaves unchecked (checked by default if enabled, unchecked if disabled), it means the user wants to save the Allocation but not actually mark the Income as confirmed.
+You can include a (i) to explain this to the user (use user-friendly language targeted at Aussie audience). 
+
 #### Skip Functionality
+* Warn the user that the skipped event will be deleted. Actually delete it when skipped.
+
 #### Income Allocation
 
 ### Setup
@@ -106,7 +123,7 @@ _________
 * Effectively, these two shoudld operate very similarly - re-use code as much as possible across them.
 
 
-#### Burst logic
+
 #### Change Start/Frequency/End-date/Amount/Other - check re-burst
 #### Delete - check event delete (archival)
 #### Burst Event Regeneration (Check Transactions)

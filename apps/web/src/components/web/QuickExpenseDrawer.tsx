@@ -314,7 +314,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
         <PaydayActionDrawer
           isOpen={Boolean(paydayModalEventId)}
           incomeEventId={paydayModalEventId}
-          mode="MARK_RECEIVED"
           onClose={() => setPaydayModalEventId(null)}
           onSuccess={() => {
             setPaydayModalEventId(null);

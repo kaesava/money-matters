@@ -185,7 +185,7 @@ export function archiveBankAccountHandler(db: DbOrTx) {
       .where(
         and(
           eq(incomeSources.receivingAccountId, accountId),
-          sql`${incomeEvents.status} IN ('UPCOMING', 'PENDING')`,
+          sql`${incomeEvents.status} IN ('PENDING', 'PENDING')`,
           sql`${incomeEvents.archivedAt} IS NULL`
         )
       );

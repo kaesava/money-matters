@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { computeMatrixProjection, getEarliestPendingIncomeId, MatrixIncomeEvent, ScheduledExpenseEvent } from "@money-matters/capability-budgeting/engine";
+import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent } from "@money-matters/capability-budgeting/engine";
 import { EngineBucket } from "@money-matters/capability-budgeting/engine";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
@@ -116,10 +116,6 @@ export function MatrixPlanTab({
     name: string;
   } | null>(null);
   const [activePaydayEventId, setActivePaydayEventId] = useState<string | null>(null);
-  const [paydayActionMode, setPaydayActionMode] = useState<"MARK_RECEIVED" | "ALLOCATE">("MARK_RECEIVED");
-  const earliestPendingIncomeId = useMemo(() => {
-    return getEarliestPendingIncomeId(incomeEvents || []);
-  }, [incomeEvents]);
 
   // Load saved allocation plans into initial overrides state
   React.useEffect(() => {
@@ -354,8 +350,8 @@ export function MatrixPlanTab({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
-            <span>📊 12-Month Allocation Grid</span>
-            <InfoTooltip content="12-Month Payday Projection: See how income is automatically ring-fenced across upcoming paydays to cover bills and savings goals. Adjusting an allocation cell automatically sweeps remaining surplus into your designated Surplus Target pool." />
+            <span>📊 Income Allocation Grid</span>
+            <InfoTooltip content="Allocate upcoming Income into Pools to stay in control of your targets out to 12 months" />
           </h2>
         </div>
 
@@ -381,45 +377,38 @@ export function MatrixPlanTab({
               </th>
               {visibleColumns.map((col) => {
                 const hasPlanOverride = Object.keys(cellOverrides).some((k) => k.startsWith(`${col.id}_`));
-                const isEarliest = earliestPendingIncomeId === col.id;
+                const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+                const incomeEvt = incomeEvents.find((e) => e.id === col.id);
+                const isPast = incomeEvt ? incomeEvt.expectedDate < todayStr : false;
 
                 return (
                   <th
                     key={col.id}
                     className="p-3 font-bold text-center border-r border-zinc-200 dark:border-zinc-800 min-w-[150px]"
                   >
-                    <div className="flex flex-col items-center justify-center gap-1.5">
-                      <span className="text-sm font-black text-[#1B2B4B] dark:text-white font-mono">
-                        {col.dateLabel}
-                      </span>
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                        <span className="text-sm font-black text-[#1B2B4B] dark:text-white font-mono">
+                          {col.dateLabel}
+                        </span>
+                        {isPast && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                         {col.sourceName}
                       </span>
                     </div>
                     <div className="flex items-center justify-center gap-2 mt-2">
-                      {isEarliest ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPaydayActionMode("MARK_RECEIVED");
-                            setActivePaydayEventId(col.id);
-                          }}
-                          className="text-[10px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 px-2 py-1 rounded shadow-sm transition-colors"
-                        >
-                          {t("common.markReceived")}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPaydayActionMode("ALLOCATE");
-                            setActivePaydayEventId(col.id);
-                          }}
-                          className="text-[10px] font-extrabold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 px-2 py-1 rounded shadow-sm transition-colors"
-                        >
-                          {t("common.allocate")}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActivePaydayEventId(col.id)}
+                        className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1 py-0.5"
+                      >
+                        {t("common.runSplit", { defaultValue: "Run Split" })}
+                      </button>
                       {hasPlanOverride && (
                         <button
                           type="button"
@@ -581,7 +570,6 @@ export function MatrixPlanTab({
         isOpen={!!activePaydayEventId}
         onClose={() => setActivePaydayEventId(null)}
         incomeEventId={activePaydayEventId || undefined}
-        mode={paydayActionMode}
         onSuccess={() => {
           utils.listAllAllocationPlans.invalidate();
           utils.listIncomeEvents.invalidate();

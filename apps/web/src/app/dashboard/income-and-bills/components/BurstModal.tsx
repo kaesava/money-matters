@@ -133,7 +133,7 @@ export function BurstModal({
           ) : (
             <div className="flex flex-col gap-2">
               {sourceEvents.map((evt) => {
-                const isPaid = evt.status === "PAID" || evt.status === "CONFIRMED";
+                const isPaid = evt.status === "CONFIRMED" || evt.status === "CONFIRMED";
                 const isSkipped = evt.status === "SKIPPED";
                 const isEditing = editingEventId === evt.id;
                 const isFutureSaveMode = isEditing && isDateFuture(editDate);

@@ -259,7 +259,7 @@ export const paydayRouter = {
           )
           .limit(1);
 
-        if (!incomeEvt || incomeEvt.status !== "UPCOMING") {
+        if (!incomeEvt || incomeEvt.status !== "PENDING") {
           throw new Error("Cannot save allocations for a payday that is no longer upcoming or has been processed.");
         }
 
@@ -367,7 +367,7 @@ export const paydayRouter = {
             await tx
               .update(incomeEvents)
               .set({
-                status: "UPCOMING",
+                status: "PENDING",
                 actualAmount: null,
                 updatedBy: ctx.userId!,
                 updatedAt: new Date(),

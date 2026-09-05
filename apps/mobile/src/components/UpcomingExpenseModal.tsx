@@ -166,7 +166,7 @@ export function UpcomingExpenseModal({
         await overrideMut.mutateAsync({
           eventId: eventToEdit.id,
           eventType: 'EXPENSE',
-          status: 'PAID',
+          status: 'CONFIRMED',
           actualAmount: numAmount.toFixed(2),
           note: note || `Paid ${name}`,
         });

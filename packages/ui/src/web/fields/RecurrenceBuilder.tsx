@@ -58,7 +58,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
             <select
               value={frequency}
               onChange={(e) => {
-                setFrequency(e.target.value as any);
+                setFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY");
                 setInterval(1); // Reset interval when changing frequency
               }}
               className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 bg-white"
@@ -77,10 +77,25 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
               <input
                 type="number"
                 min="1"
-                max="99"
-                value={interval}
+                max="365"
+                value={interval === 0 ? "" : interval}
                 disabled={frequency === "FORTNIGHTLY" || frequency === "ANNUALLY"}
-                onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setInterval(0);
+                  } else {
+                    const parsed = parseInt(val, 10);
+                    if (!isNaN(parsed) && parsed >= 1) {
+                      setInterval(Math.min(365, parsed));
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  if (interval === 0 || isNaN(interval)) {
+                    setInterval(1);
+                  }
+                }}
                 className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 w-full disabled:opacity-50 disabled:bg-zinc-50"
               />
               <span className="text-xs font-bold text-zinc-500 w-16">

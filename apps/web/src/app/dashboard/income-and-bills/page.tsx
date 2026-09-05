@@ -12,6 +12,8 @@ import {
   ResizableTh,
   useResizableColumns,
   Tabs,
+  fmtDate,
+  PoolPicker,
 } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
@@ -19,13 +21,50 @@ import { MatrixPlanTab } from "./components/MatrixPlanTab";
 import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
 import { PaydayActionDrawer } from "../../../components/web/PaydayActionDrawer";
 
+function formatScheduleSummary({
+  rrule,
+  startDate,
+  endDate,
+}: {
+  rrule?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+}): string {
+  if (!rrule && !startDate) return "One-off";
+
+  let freqStr = "Recurring";
+  if (rrule) {
+    const intervalMatch = rrule.match(/INTERVAL=(\d+)/);
+    const interval = intervalMatch ? parseInt(intervalMatch[1], 10) : 1;
+
+    if (rrule.includes("FREQ=WEEKLY;INTERVAL=2") || rrule.includes("FREQ=FORTNIGHTLY")) {
+      freqStr = "every 2 weeks";
+    } else if (rrule.includes("FREQ=WEEKLY")) {
+      freqStr = interval === 1 ? "weekly" : `every ${interval} weeks`;
+    } else if (rrule.includes("FREQ=MONTHLY")) {
+      freqStr = interval === 1 ? "monthly" : `every ${interval} months`;
+    } else if (rrule.includes("FREQ=YEARLY") || rrule.includes("FREQ=ANNUALLY")) {
+      freqStr = interval === 1 ? "yearly" : `every ${interval} years`;
+    }
+  }
+
+  const startFormatted = startDate ? fmtDate(startDate) : null;
+  const endFormatted = endDate ? fmtDate(endDate) : null;
+
+  if (startFormatted && endFormatted) {
+    return `${freqStr} from ${startFormatted} to ${endFormatted}`;
+  } else if (startFormatted) {
+    return `${freqStr} from ${startFormatted}`;
+  }
+  return freqStr;
+}
+
 function IncomeAndBillsContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") || "MATRIX";
   const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
 
   const [activeTab, setActiveTab] = useState(tabParam);
-  const [paydayActionMode, setPaydayActionMode] = useState<"MARK_RECEIVED" | "ALLOCATE">("MARK_RECEIVED");
   const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
   const toast = useToast();
   const utils = trpc.useUtils();
@@ -75,7 +114,7 @@ function IncomeAndBillsContent() {
         expectedDate: e.expectedDate,
         expectedAmount: parseFloat(e.expectedAmount || "0"),
         actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-        status: e.status as "UPCOMING" | "CONFIRMED" | "SKIPPED",
+        status: e.status as "PENDING" | "CONFIRMED" | "SKIPPED",
         sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
       }));
   }, [incomeEvents]);
@@ -87,7 +126,7 @@ function IncomeAndBillsContent() {
         categoryId: e.poolId || e.categoryId || "",
         amount: parseFloat(e.expectedAmount || "0"),
         dueDate: e.expectedDate,
-        status: e.status as "UPCOMING" | "PAID" | "SKIPPED",
+        status: e.status as "PENDING" | "CONFIRMED" | "SKIPPED",
       }));
   }, [expenseEvents]);
 
@@ -247,7 +286,7 @@ function IncomeAndBillsContent() {
         <div className="space-y-6">
           {/* Top Control Bar: Unified Search + Scope Filter */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
-            <div className="w-full md:w-72">
+            <div className="flex-1 w-full max-w-full">
               <SearchInput
                 value={setupSearchQuery}
                 onChange={setSetupSearchQuery}
@@ -407,6 +446,7 @@ function IncomeAndBillsContent() {
                                       receivingAccountId: inc.receivingAccountId || undefined,
                                       rrule: inc.rrule,
                                       startDate: inc.startDate,
+                                      endDate: inc.endDate || undefined,
                                     });
                                     setIsModalOpen(true);
                                   }}
@@ -414,9 +454,9 @@ function IncomeAndBillsContent() {
                                 >
                                   {inc.name}
                                 </button>
-                                <span className="text-[10px] text-zinc-400 font-medium">
-                                  {inc.rrule ? "Recurring schedule" : "One-off deposit"}
-                                </span>
+                                 <span className="text-[10px] text-zinc-400 font-medium">
+                                   {formatScheduleSummary({ rrule: inc.rrule, startDate: inc.startDate, endDate: inc.endDate })}
+                                 </span>
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
@@ -441,19 +481,23 @@ function IncomeAndBillsContent() {
                   <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Expense Schedules</h3>
 
                   <div className="flex items-center gap-2">
-                    {/* Pool Dropdown Filter */}
-                    <select
-                      value={selectedExpensePoolId}
-                      onChange={(e) => setSelectedExpensePoolId(e.target.value)}
-                      className="text-xs px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-medium text-zinc-700 dark:text-zinc-300"
-                    >
-                      <option value="">All Pools</option>
-                      {pools.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
+                    {/* Pool Picker Filter (Pools only, single selection) */}
+                    <div className="w-44 text-xs">
+                      <PoolPicker
+                        pools={[
+                          { id: "", name: "All Pools" },
+                          ...pools.map((p) => ({
+                            id: p.id,
+                            name: p.name,
+                            isPrivate: p.isPrivate ?? undefined,
+                          })),
+                        ]}
+                        selectedPoolId={selectedExpensePoolId || ""}
+                        allowCategorySelection={false}
+                        placeholder="All Pools"
+                        onChange={(sel) => setSelectedExpensePoolId(sel.poolId)}
+                      />
+                    </div>
 
                     <button
                       type="button"
@@ -547,6 +591,7 @@ function IncomeAndBillsContent() {
                                       poolId: exp.poolId || exp.categoryId || undefined,
                                       rrule: exp.rrule,
                                       startDate: exp.startDate,
+                                      endDate: exp.endDate || undefined,
                                     });
                                     setIsModalOpen(true);
                                   }}
@@ -554,9 +599,9 @@ function IncomeAndBillsContent() {
                                 >
                                   {exp.name}
                                 </button>
-                                <span className="text-[10px] text-zinc-400 font-medium">
-                                  {exp.rrule ? "Recurring schedule" : "One-off expense"}
-                                </span>
+                                 <span className="text-[10px] text-zinc-400 font-medium">
+                                   {formatScheduleSummary({ rrule: exp.rrule, startDate: exp.startDate, endDate: exp.endDate })}
+                                 </span>
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
@@ -590,7 +635,6 @@ function IncomeAndBillsContent() {
                 name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
                 accountName: acct?.name || "Bank Account",
                 isPrivate: acct?.isPrivate || false,
-                isSkipped: e.status === "SKIPPED",
               };
             })}
             expenseEvents={expenseEvents.map((e) => {
@@ -600,7 +644,6 @@ function IncomeAndBillsContent() {
                 name: e.name || "Scheduled Expense",
                 categoryName: pool?.name || "Pool",
                 isPrivate: pool?.isPrivate || false,
-                isSkipped: e.status === "SKIPPED",
               };
             })}
             transferEvents={transferEvents.map((e) => ({
@@ -610,7 +653,6 @@ function IncomeAndBillsContent() {
               sourcePoolName: e.sourcePoolName,
               destinationPoolId: e.destinationPoolId,
               destinationPoolName: e.destinationPoolName,
-              isSkipped: e.status === "SKIPPED",
             }))}
             categories={pools.map((p) => ({
               id: p.id,
@@ -627,12 +669,7 @@ function IncomeAndBillsContent() {
                 toast.error(err instanceof Error ? err.message : "Failed to mark spent.");
               }
             }}
-            onMarkIncomeReceived={async (eventId) => {
-              setPaydayActionMode("MARK_RECEIVED");
-              setSelectedIncomeEventIdForModal(eventId);
-            }}
             onAllocateIncome={async (eventId) => {
-              setPaydayActionMode("ALLOCATE");
               setSelectedIncomeEventIdForModal(eventId);
             }}
             onSkipExpense={async (eventId) => {
@@ -644,7 +681,6 @@ function IncomeAndBillsContent() {
                 toast.error(err instanceof Error ? err.message : "Failed to skip.");
               }
             }}
-            onUnskipExpense={() => {}}
             onSkipIncome={async (eventId) => {
               try {
                 await skipIncomeMut.mutateAsync({ eventId });
@@ -654,7 +690,6 @@ function IncomeAndBillsContent() {
                 toast.error(err instanceof Error ? err.message : "Failed to skip.");
               }
             }}
-            onUnskipIncome={() => {}}
             onSkipTransfer={async (eventId) => {
               try {
                 await skipTransferEventMut.mutateAsync({ eventId });
@@ -707,7 +742,6 @@ function IncomeAndBillsContent() {
         <PaydayActionDrawer
           isOpen={Boolean(selectedIncomeEventIdForModal)}
           incomeEventId={selectedIncomeEventIdForModal}
-          mode={paydayActionMode}
           onClose={() => setSelectedIncomeEventIdForModal(null)}
           onSuccess={() => {
             setSelectedIncomeEventIdForModal(null);

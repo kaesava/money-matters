@@ -10,7 +10,6 @@ export interface DashboardModalsProps {
   moveMoneyOpen: boolean;
   onCloseMoveMoney: () => void;
   paydayPreviewEventId: string | null;
-  paydayActionMode?: "MARK_RECEIVED" | "ALLOCATE";
   onClosePaydayPreview: () => void;
   onSuccessPaydayPreview: () => void;
 }
@@ -20,7 +19,6 @@ export function DashboardModals({
   moveMoneyOpen,
   onCloseMoveMoney,
   paydayPreviewEventId,
-  paydayActionMode = "MARK_RECEIVED",
   onClosePaydayPreview,
   onSuccessPaydayPreview,
 }: DashboardModalsProps) {
@@ -41,7 +39,6 @@ export function DashboardModals({
         <PaydayActionDrawer
           isOpen={!!paydayPreviewEventId}
           incomeEventId={paydayPreviewEventId}
-          mode={paydayActionMode}
           onClose={onClosePaydayPreview}
           onSuccess={onSuccessPaydayPreview}
         />

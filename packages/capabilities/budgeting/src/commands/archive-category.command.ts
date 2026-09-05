@@ -46,7 +46,7 @@ export async function archiveCategoryCommand(
     .where(
       and(
         eq(expenseEvents.categoryId, categoryId),
-        eq(expenseEvents.status, "UPCOMING"),
+        eq(expenseEvents.status, "PENDING"),
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );

@@ -77,10 +77,10 @@ describe("listBillCoverageQuery", () => {
       { poolId: "pool-bills-1", categoryId: "cat-1", amount: "200.00", flowType: "CREDIT" },
     ];
     const mockPaychecks = [
-      { expectedDate: "2026-09-01", expectedAmount: "2000.00", status: "UPCOMING" },
+      { expectedDate: "2026-09-01", expectedAmount: "2000.00", status: "PENDING" },
     ];
     const mockUpcomingBills = [
-      { poolId: "pool-bills-1", categoryId: "cat-1", expectedDate: "2026-08-28", expectedAmount: "150.00", status: "UPCOMING" },
+      { poolId: "pool-bills-1", categoryId: "cat-1", expectedDate: "2026-08-28", expectedAmount: "150.00", status: "PENDING" },
     ];
 
     const mockDb = createMockDb(mockCategories, mockTxs, mockPaychecks, mockUpcomingBills);
@@ -103,10 +103,10 @@ describe("listBillCoverageQuery", () => {
       { poolId: "pool-bills-1", categoryId: "cat-1", amount: "100.00", flowType: "CREDIT" },
     ];
     const mockPaychecks = [
-      { expectedDate: "2026-09-01", expectedAmount: "2000.00", status: "UPCOMING" },
+      { expectedDate: "2026-09-01", expectedAmount: "2000.00", status: "PENDING" },
     ];
     const mockUpcomingBills = [
-      { poolId: "pool-bills-1", categoryId: "cat-1", expectedDate: "2026-08-28", expectedAmount: "500.00", status: "UPCOMING" },
+      { poolId: "pool-bills-1", categoryId: "cat-1", expectedDate: "2026-08-28", expectedAmount: "500.00", status: "PENDING" },
     ];
 
     const mockDb = createMockDb(mockCategories, mockTxs, mockPaychecks, mockUpcomingBills);

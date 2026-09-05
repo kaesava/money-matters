@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Spinner, useToast, Button } from "@money-matters/ui/web";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Spinner, useToast, Button, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
-import { ConfirmDialog } from "@money-matters/ui/web";
 
 export interface PaydayActionDrawerProps {
-  incomeEventId?: string;
+  incomeEventId?: string | null;
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  mode: "MARK_RECEIVED" | "ALLOCATE";
 }
 
 interface AllocationLineItem {
@@ -30,13 +28,12 @@ export function PaydayActionDrawer({
   isOpen,
   onClose,
   onSuccess,
-  mode,
 }: PaydayActionDrawerProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
-  const pools = poolsQuery.data ?? [];
+  const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
 
   const activeEventId = incomeEventId;
   const [actualAmount, setActualAmount] = useState<string>("0.00");
@@ -45,7 +42,11 @@ export function PaydayActionDrawer({
     new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date())
   );
 
+  // Collapsible Income Details section - collapsed by default
+  const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
+
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
+  const [isManualOverride, setIsManualOverride] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -65,7 +66,6 @@ export function PaydayActionDrawer({
     if (previewQuery.data) {
       const evt = previewQuery.data.incomeEvent;
       setSourceName(evt.name || "Paycheck");
-      // Use actualAmount if present, else expectedAmount
       setActualAmount(evt.actualAmount || evt.expectedAmount);
       setSelectedDate(evt.expectedDate);
 
@@ -75,42 +75,77 @@ export function PaydayActionDrawer({
         initMap[l.bucketId] = l.proposedAmount.toFixed(2);
       });
       setLinesMap(initMap);
+      const isCustom = (previewQuery.data.engineResult as unknown as { isCustomPlan?: boolean })?.isCustomPlan ?? false;
+      setIsManualOverride(isCustom);
     }
   }, [previewQuery.data]);
 
+  const isFutureDate = selectedDate > todayStr;
+  
+  // Checkbox near save: checked by default if date <= today; disabled and unchecked if date > today
+  const [runSplitsChecked, setRunSplitsChecked] = useState<boolean>(!isFutureDate);
+
+  useEffect(() => {
+    if (isFutureDate) {
+      setRunSplitsChecked(false);
+    } else {
+      setRunSplitsChecked(true);
+    }
+  }, [isFutureDate]);
+
   const handleLineAmountChange = (bucketId: string, val: string) => {
-    setLinesMap((prev) => ({ ...prev, [bucketId]: val }));
+    // Strip invalid characters, clamp to 12 digits
+    const cleaned = val.replace(/[^0-9.]/g, "");
+    setLinesMap((prev) => ({ ...prev, [bucketId]: cleaned }));
+    setIsManualOverride(true);
   };
 
   const engineResult = previewQuery.data?.engineResult;
   const lines: AllocationLineItem[] = (engineResult as unknown as { lines?: AllocationLineItem[] })?.lines ?? [];
 
-  const totalAllocated = Object.values(linesMap).reduce((acc: number, val: string) => acc + (parseFloat(val) || 0), 0);
   const numericActual = parseFloat(actualAmount) || 0;
-  const isFutureDate = selectedDate > todayStr;
+
+  // Identify default Sweep Pool (surplus sweep target or Everyday pool)
+  const sweepPool = useMemo(() => {
+    return pools.find((p) => p.isSurplusTarget) || pools.find((p) => p.poolType === "EVERYDAY") || pools[0];
+  }, [pools]);
+
+  // Non-sweep lines allocated sum
+  const nonSweepAllocatedSum = useMemo(() => {
+    if (!sweepPool) return 0;
+    return Object.entries(linesMap).reduce((acc, [bId, valStr]) => {
+      if (bId === sweepPool.id) return acc;
+      return acc + (parseFloat(valStr) || 0);
+    }, 0);
+  }, [linesMap, sweepPool]);
+
+  // Sweep Pool unallocated remainder balance
+  const sweepPoolRemainder = useMemo(() => {
+    return Math.max(-999999, numericActual - nonSweepAllocatedSum);
+  }, [numericActual, nonSweepAllocatedSum]);
+
+  const isSweepNegative = sweepPoolRemainder < 0;
 
   const everydayAllocated = lines
-    .filter((l: AllocationLineItem) => pools.find((p) => p.id === l.bucketId)?.poolType === "EVERYDAY")
-    .reduce((sum: number, l: AllocationLineItem) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
+    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === "EVERYDAY")
+    .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const regularAllocated = lines
-    .filter((l: AllocationLineItem) => pools.find((p) => p.id === l.bucketId)?.poolType === "REGULAR")
-    .reduce((sum: number, l: AllocationLineItem) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
+    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === "REGULAR")
+    .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
   const goalAllocated = lines
-    .filter((l: AllocationLineItem) => pools.find((p) => p.id === l.bucketId)?.poolType === "GOAL")
-    .reduce((sum: number, l: AllocationLineItem) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
+    .filter((l) => pools.find((p) => p.id === l.bucketId)?.poolType === "GOAL")
+    .reduce((sum, l) => sum + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0), 0);
 
-  const isDirty = React.useMemo(() => {
+  const isDirty = useMemo(() => {
     if (!previewQuery.data) return false;
     const evt = previewQuery.data.incomeEvent;
     
-    // Check if deposit details changed
     if (sourceName !== (evt.name || "Paycheck")) return true;
     if (actualAmount !== (evt.actualAmount || evt.expectedAmount)) return true;
     if (selectedDate !== evt.expectedDate) return true;
 
-    // Check if allocation lines changed
     const rawLines = (previewQuery.data.engineResult as unknown as { lines?: AllocationLineItem[] })?.lines ?? [];
     for (const l of rawLines) {
       if (linesMap[l.bucketId] !== l.proposedAmount.toFixed(2)) return true;
@@ -124,13 +159,12 @@ export function PaydayActionDrawer({
       setErrorMsg("Please enter an income source name.");
       return false;
     }
-    if (isNaN(numericActual) || numericActual < 0) {
-      setErrorMsg("Income amount cannot be less than 0.");
+    if (isNaN(numericActual) || numericActual <= 0) {
+      setErrorMsg("Income amount must be a positive number.");
       return false;
     }
-    // Strict sum validation for mark received. For allocation, we still want it to match.
-    if (Math.abs(numericActual - totalAllocated) > 0.02) {
-      setErrorMsg(`Allocated sum (${fmt(totalAllocated)}) must equal deposit amount (${fmt(numericActual)}).`);
+    if (isSweepNegative) {
+      setErrorMsg("Unallocated remainder (Sweep Pool) cannot be negative. Please adjust pool allocation amounts.");
       return false;
     }
     return true;
@@ -143,58 +177,61 @@ export function PaydayActionDrawer({
     try {
       if (!activeEventId) throw new Error("No active event ID");
 
-      const payloadLines = Object.entries(linesMap).map(([bucketId, amount]) => ({
+      // Prepare allocation payload lines
+      const payloadLines = Object.entries(linesMap).map(([bucketId, amountStr]) => ({
         poolId: bucketId,
-        amount: (parseFloat(amount) || 0).toFixed(2),
+        amount: (parseFloat(amountStr) || 0).toFixed(2),
       }));
 
-      if (mode === "MARK_RECEIVED") {
+      // 1. Always update event details if modified
+      const evt = previewQuery.data?.incomeEvent;
+      if (
+        evt &&
+        (sourceName !== (evt.name || "Paycheck") ||
+          actualAmount !== (evt.actualAmount || evt.expectedAmount) ||
+          selectedDate !== evt.expectedDate)
+      ) {
+        await overrideEventMut.mutateAsync({
+          eventId: activeEventId,
+          eventType: "INCOME",
+          name: sourceName,
+          expectedAmount: parseFloat(actualAmount).toFixed(2),
+          expectedDate: selectedDate,
+        });
+      }
+
+      if (runSplitsChecked) {
+        // Run Splits & mark Income CONFIRMED
         await confirmPaydayMut.mutateAsync({
           incomeEventId: activeEventId,
-          actualAmount: totalAllocated.toFixed(2), // Ensure exactly equal to sum
+          actualAmount: numericActual.toFixed(2),
           markAsReceivedToday: !isFutureDate,
           lines: payloadLines,
         });
+        toast.success("Income splits executed and income confirmed!");
       } else {
-        // ALLOCATE mode
-        // 1. Update event details if changed
-        const evt = previewQuery.data?.incomeEvent;
-        if (
-          evt &&
-          (sourceName !== (evt.name || "Paycheck") ||
-            actualAmount !== (evt.actualAmount || evt.expectedAmount) ||
-            selectedDate !== evt.expectedDate)
-        ) {
-          await overrideEventMut.mutateAsync({
-            eventId: activeEventId,
-            eventType: "INCOME",
-            name: sourceName,
-            expectedAmount: parseFloat(actualAmount).toFixed(2),
-            expectedDate: selectedDate,
-          });
-        }
-        // 2. Save bulk allocations
+        // Save Allocation draft without confirming income
         await saveBulkAllocationsMut.mutateAsync({
           incomeEventId: activeEventId,
-          totalIncomeAmount: totalAllocated.toFixed(2),
-          lines: payloadLines.map(l => ({ poolId: l.poolId, proposedAmount: l.amount })),
+          totalIncomeAmount: numericActual.toFixed(2),
+          lines: payloadLines.map((l) => ({ poolId: l.poolId, proposedAmount: l.amount })),
         });
+        toast.success("Income allocation plan draft saved.");
       }
 
       await utils.listIncomeEvents.invalidate();
       await utils.listPools.invalidate();
       await utils.listAllAllocationPlans.invalidate();
-      toast.success(mode === "MARK_RECEIVED" ? t("toasts.saved") : "Allocation draft saved");
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to process payday action.");
+      setErrorMsg(err instanceof Error ? err.message : "Failed to process income split.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const attemptClose = React.useCallback(() => {
+  const attemptClose = useCallback(() => {
     if (isDirty) {
       setShowDiscardConfirm(true);
     } else {
@@ -215,8 +252,6 @@ export function PaydayActionDrawer({
 
   if (!isOpen) return null;
 
-  const isAllocate = mode === "ALLOCATE";
-
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
@@ -230,13 +265,31 @@ export function PaydayActionDrawer({
           {/* Header */}
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50">
             <div>
-              <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
-                {isAllocate ? "Allocate Upcoming Payday" : "Process Payday Deposit"}
-              </h2>
-              <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                {isAllocate 
-                  ? "Update income details and save allocation draft." 
-                  : "Review allocations and confirm income deposit."}
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
+                  {t("paydayDrawer.title", { defaultValue: "Split Income" })}
+                </h2>
+                {/* AUTO vs MANUAL Badge & Tooltip */}
+                <span
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 ${
+                    isManualOverride
+                      ? "bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200"
+                      : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200"
+                  }`}
+                >
+                  {isManualOverride ? "MANUAL" : "AUTO"}
+                  <InfoTooltip
+                    title={isManualOverride ? "Manual Override" : "Auto Waterfall"}
+                    content={
+                      isManualOverride
+                        ? "Manual override: Allocation amounts were customized by you and saved to your account."
+                        : "Auto-calculated: Allocation amounts were generated automatically from your target pool rules."
+                    }
+                  />
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 font-medium mt-1">
+                {t("paydayDrawer.subtitle", { defaultValue: "Confirm Income & review Income Splits across Pools" })}
               </p>
             </div>
             <button
@@ -248,9 +301,9 @@ export function PaydayActionDrawer({
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {errorMsg && (
-              <div className="mb-6 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
+              <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
                 {errorMsg}
               </div>
             )}
@@ -258,63 +311,73 @@ export function PaydayActionDrawer({
             {previewQuery.isLoading ? (
               <div className="py-12 text-center"><Spinner /></div>
             ) : (
-              <div className="space-y-8">
-                {/* 1. Deposit Details Section */}
-                <section>
-                  <h3 className="text-sm font-extrabold text-[#1B2B4B] dark:text-white mb-4 flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px]">1</span>
-                    {t("modals.paydayPreview.depositDetails", { defaultValue: "Deposit Details" })}
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                        {t("modals.paydayPreview.incomeLabel", { defaultValue: "Income Source Name" })} <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        autoFocus
-                        value={sourceName}
-                        onChange={(e) => setSourceName(e.target.value)}
-                        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900"
-                      />
+              <div className="space-y-6">
+                {/* 1. Income Details Section (Collapsible - Collapsed by default) */}
+                <section className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-800/30">
+                  <button
+                    type="button"
+                    onClick={() => setIsDetailsOpen((prev) => !prev)}
+                    className="w-full flex items-center justify-between text-sm font-extrabold text-[#1B2B4B] dark:text-white"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px]">1</span>
+                      {t("paydayDrawer.incomeDetails", { defaultValue: "Income Details" })}
+                    </span>
+                    <span className="text-xs font-bold text-zinc-400">
+                      {isDetailsOpen ? "▲ Hide" : "▼ Show"}
+                    </span>
+                  </button>
+
+                  {isDetailsOpen && (
+                    <div className="space-y-4 pt-4 mt-3 border-t border-zinc-200 dark:border-zinc-700/60 animate-in fade-in duration-150">
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                          Income Source / Description <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={sourceName}
+                          onChange={(e) => setSourceName(e.target.value)}
+                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                          Income Amount ($) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={actualAmount}
+                          onChange={(e) => setActualAmount(e.target.value)}
+                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                          {t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
+                        </label>
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                        {isAllocate ? "Expected Amount ($)" : "Received Amount ($)"} <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={actualAmount}
-                        onChange={(e) => setActualAmount(e.target.value)}
-                        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                        {isAllocate ? "Expected Date" : t("modals.paydayPreview.depositDate", { defaultValue: "Deposit Date" })}
-                      </label>
-                      <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
-                      />
-                    </div>
-                  </div>
+                  )}
                 </section>
 
-                <hr className="border-zinc-200 dark:border-zinc-800" />
-
-                {/* 2. Waterfall Split Section */}
+                {/* 2. Split Income across Pools Section */}
                 <section>
                   <h3 className="text-sm font-extrabold text-[#1B2B4B] dark:text-white mb-4 flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px]">2</span>
-                    {t("modals.paydayPreview.waterfallSplit", { defaultValue: "Waterfall Split" })}
+                    {t("paydayDrawer.splitIncomeAcrossPools", { defaultValue: "Split Income across Pools" })}
                   </h3>
 
-                  <div className="grid grid-cols-3 gap-2 text-center mb-5 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700/50">
+                  {/* Summary Header: Everyday, Bills, Goals */}
+                  <div className="grid grid-cols-3 gap-2 text-center mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700/50">
                     <div>
                       <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">{t("poolTypes.everyday", { defaultValue: "Everyday" })}</span>
                       <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{fmt(everydayAllocated)}</span>
@@ -329,22 +392,37 @@ export function PaydayActionDrawer({
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    {lines.map((l: AllocationLineItem) => (
-                      <div key={l.bucketId} className="py-2.5 px-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-xl transition-colors flex justify-between items-center group">
-                        <div className="min-w-0 pr-3">
-                          <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">{l.bucketName}</span>
-                          <span className="text-[10px] text-zinc-500 block truncate" title={l.reasoning}>{l.reasoning}</span>
+                  {/* Pool Allocation Inputs */}
+                  <div className="space-y-2">
+                    {lines.map((l: AllocationLineItem) => {
+                      const poolObj = pools.find((p) => p.id === l.bucketId);
+                      const currentBal = poolObj ? parseFloat(String(poolObj.currentBalance || "0")) : 0;
+                      const targetAmt = poolObj?.targetAmount ? parseFloat(poolObj.targetAmount) : 0;
+
+                      return (
+                        <div
+                          key={l.bucketId}
+                          className="py-2.5 px-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl flex justify-between items-center group hover:border-zinc-300 transition-colors"
+                        >
+                          <div className="min-w-0 pr-3">
+                            <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">
+                              {l.bucketName}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-mono block truncate">
+                              Bal: {fmt(currentBal)} · Target: {fmt(targetAmt)}
+                            </span>
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)}
+                            onChange={(e) => handleLineAmountChange(l.bucketId, e.target.value)}
+                            className="w-28 px-2.5 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 tabular-nums"
+                          />
                         </div>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleLineAmountChange(l.bucketId, e.target.value)}
-                          className="w-24 px-2 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 group-hover:border-zinc-400 transition-colors"
-                        />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               </div>
@@ -352,19 +430,61 @@ export function PaydayActionDrawer({
           </div>
 
           {/* Footer Actions */}
-          <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">{t("modals.paydayPreview.totalAllocated", { defaultValue: "Total Allocated" })}</span>
-              <span className={`text-sm font-black font-mono ${Math.abs(numericActual - totalAllocated) > 0.02 ? 'text-red-600' : 'text-[#1B2B4B] dark:text-white'}`}>
-                {fmt(totalAllocated)} <span className="text-zinc-400 font-medium text-xs">/ {fmt(numericActual)}</span>
-              </span>
+          <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4">
+            {/* Total Section & Sweep Pool Unallocated Remainder */}
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200 dark:border-zinc-700/60 space-y-1.5">
+              {sweepPool && (
+                <div className="flex items-center justify-between text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                  <span className="flex items-center gap-1">
+                    <span>🧲 Sweep Target ({sweepPool.name}):</span>
+                  </span>
+                  <span className={`font-mono font-extrabold ${isSweepNegative ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {fmt(sweepPoolRemainder)}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-xs font-bold text-zinc-900 dark:text-white pt-1 border-t border-zinc-200 dark:border-zinc-700/40">
+                <span className="uppercase tracking-wider text-[10px] text-zinc-500">{t("paydayDrawer.totalIncomeAmount", { defaultValue: "Total Income Amount" })}</span>
+                <span className="font-mono font-black text-sm">{fmt(numericActual)}</span>
+              </div>
             </div>
-            
-            <div className="flex justify-end gap-3">
+
+            {/* Checkbox: Run Splits to update Categories and mark Income CONFIRMED */}
+            <div className="flex items-start gap-2.5 pt-1">
+              <input
+                type="checkbox"
+                id="runSplitsCheckbox"
+                checked={runSplitsChecked}
+                disabled={isFutureDate}
+                onChange={(e) => setRunSplitsChecked(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-[#2563eb] focus:ring-[#2563eb] disabled:opacity-50"
+              />
+              <div className="flex-1">
+                <label
+                  htmlFor="runSplitsCheckbox"
+                  className={`text-xs font-bold leading-tight block ${
+                    isFutureDate ? "text-zinc-400 cursor-not-allowed" : "text-[#1B2B4B] dark:text-zinc-200 cursor-pointer"
+                  }`}
+                >
+                  {t("paydayDrawer.runSplitsCheckbox", { defaultValue: "Run Splits to update Categories and mark Income CONFIRMED" })}
+                  <InfoTooltip
+                    title="Run Income Split"
+                    content="When checked, saving will split your income across pools and mark the deposit as confirmed. When unchecked (or for future dates), your allocation plan will be saved as a draft."
+                  />
+                </label>
+                {isFutureDate && (
+                  <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">
+                    (Disabled for future income dates. You can change the date above.)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={attemptClose}
-                className="px-5 py-2.5 border border-zinc-300 dark:border-zinc-700 rounded-xl font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm transition-colors"
+                className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs transition-colors"
               >
                 {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
@@ -372,10 +492,10 @@ export function PaydayActionDrawer({
                 type="button"
                 onClick={handleAction}
                 loading={submitting}
-                disabled={(!isDirty && isAllocate) || submitting} // Require changes to save allocation draft
-                className="px-6 py-2.5 text-sm shadow-md"
+                disabled={isSweepNegative || submitting}
+                className="px-5 py-2 text-xs shadow-md font-bold"
               >
-                {isAllocate ? "Save Allocation" : "Confirm & Deposit"}
+                {runSplitsChecked ? t("paydayDrawer.runSplitAndConfirm", { defaultValue: "Run Split & Confirm" }) : t("paydayDrawer.saveAllocationDraft", { defaultValue: "Save Allocation Draft" })}
               </Button>
             </div>
           </div>
@@ -390,7 +510,7 @@ export function PaydayActionDrawer({
           onClose();
         }}
         title="Discard changes?"
-        description="You have unsaved edits. Are you sure you want to discard them?"
+        description="You have unsaved allocation edits. Are you sure you want to discard them?"
         confirmLabel="Discard"
         variant="danger"
       />

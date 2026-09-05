@@ -75,7 +75,7 @@ export default function HomeScreen() {
     })
     .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.targetAmount || '0'), 0);
 
-  const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'UPCOMING');
+  const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
   const nextPaydayEvent = upcomingIncomeList[0] ?? null;
 
   const nextPaydayData = nextPaydayEvent
@@ -92,7 +92,7 @@ export default function HomeScreen() {
   threeDaysLater.setDate(threeDaysLater.getDate() + 3);
 
   const attentionItems: AttentionItem[] = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === 'UPCOMING')
+    .filter((e) => e.status === 'PENDING')
     .filter((e) => new Date(e.expectedDate) <= threeDaysLater)
     .map((e) => {
       const cat = categories.find((c) => c.id === (e.categoryId || e.poolId));
@@ -114,7 +114,7 @@ export default function HomeScreen() {
       amount: item.expectedAmount,
       is_overdue: item.isOverdue,
     });
-    markPaidMutation.mutate({ eventId: item.id, eventType: 'EXPENSE', status: 'PAID', actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` });
+    markPaidMutation.mutate({ eventId: item.id, eventType: 'EXPENSE', status: 'CONFIRMED', actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` });
   };
 
   const handleBulkDelete = () => {
@@ -122,7 +122,7 @@ export default function HomeScreen() {
   };
 
   const incomeEventsMapped = (incomeEventsQuery.data ?? [])
-    .filter((e) => e.status === 'UPCOMING')
+    .filter((e) => e.status === 'PENDING')
     .map((e) => ({
       id: e.id,
       type: 'INCOME' as const,
@@ -133,7 +133,7 @@ export default function HomeScreen() {
     }));
 
   const expenseEventsMapped = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === 'UPCOMING')
+    .filter((e) => e.status === 'PENDING')
     .map((e) => ({
       id: e.id,
       type: 'EXPENSE' as const,

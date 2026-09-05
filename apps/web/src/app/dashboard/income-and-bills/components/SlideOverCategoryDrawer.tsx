@@ -96,7 +96,7 @@ export function SlideOverCategoryDrawer({
                     </div>
                     {evt.isPaid ? (
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md inline-block mt-1">
-                        PAID
+                        CONFIRMED
                       </span>
                     ) : (
                       onMarkPaid && (

@@ -46,8 +46,6 @@ export default function DashboardPage() {
     canAffordQuery,
     paydayPreviewEventId,
     setPaydayPreviewEventId,
-    paydayActionMode,
-    setPaydayActionMode,
   } = useDashboardData();
 
   const goalCategories = pools.filter((p) => p.poolType === "GOAL");
@@ -100,7 +98,7 @@ export default function DashboardPage() {
     .reduce((sum, p) => sum + parseFloat(p.targetAmount || "0"), 0);
 
   const upcomingIncomeList: WebIncomeItem[] = (incomeEventsQuery.data ?? [])
-    .filter((e) => e.status === "UPCOMING")
+    .filter((e) => e.status === "PENDING")
     .map((e) => ({
       id: e.id,
       name: e.sourceName || "Paycheck Deposit",
@@ -112,7 +110,7 @@ export default function DashboardPage() {
 
   // Guarantee at least 3 upcoming bills (sorted by date)
   const allUpcomingExpenses = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === "UPCOMING")
+    .filter((e) => e.status === "PENDING")
     .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
 
   const attentionItems: WebAttentionItem[] = allUpcomingExpenses.map((e) => {
@@ -161,7 +159,7 @@ export default function DashboardPage() {
   const [isCanAffordModalOpen, setIsCanAffordModalOpen] = useState(false);
 
   const upcomingBillsList = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === "UPCOMING")
+    .filter((e) => e.status === "PENDING")
     .map((e) => ({
       id: e.id,
       name: e.name,
@@ -286,12 +284,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-6">
           <NextPaydayCard
             upcomingIncomes={upcomingIncomeList}
-            onPressMarkReceived={(id: string) => {
-              setPaydayActionMode("MARK_RECEIVED");
-              setPaydayPreviewEventId(id);
-            }}
-            onPressAllocate={(id: string) => {
-              setPaydayActionMode("ALLOCATE");
+            onPressRunSplit={(id: string) => {
               setPaydayPreviewEventId(id);
             }}
             formatAUD={fmt}
@@ -304,7 +297,6 @@ export default function DashboardPage() {
           incomeEventId={paydayPreviewEventId}
           isOpen={!!paydayPreviewEventId}
           onClose={() => setPaydayPreviewEventId(null)}
-          mode={paydayActionMode}
         />
       )}
 

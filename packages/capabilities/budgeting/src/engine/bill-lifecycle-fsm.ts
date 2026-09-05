@@ -4,16 +4,16 @@ import { z } from 'zod';
  * Supported lifecycle states for forward-looking bill allocation and settlement.
  * 
  * Lifecycles govern how bills move from pending payday setup to full settlement:
- * - UPCOMING: Scheduled bill awaiting future payday ring-fencing.
+ * - PENDING: Scheduled bill awaiting future payday ring-fencing.
  * - RING_FENCED: Payday funds successfully reserved into virtual bucket.
- * - PAID: Settlement confirmed against bank ledger transaction.
+ * - CONFIRMED: Settlement confirmed against bank ledger transaction.
  * - OVERDUE: Due date passed without complete ring-fencing or payment.
  * - SKIPPED: Bypassed by user action for the active payday cycle.
  */
 export const BillLifecycleStatusSchema = z.enum([
-  'UPCOMING',
+  'PENDING',
   'RING_FENCED',
-  'PAID',
+  'CONFIRMED',
   'OVERDUE',
   'SKIPPED',
 ]);
@@ -50,10 +50,10 @@ export interface BillLifecycleStatusMeta {
  * Prevents invalid state jumps (e.g. cannot transition directly from SKIPPED to RING_FENCED).
  */
 export const BILL_LIFECYCLE_TRANSITIONS: Record<BillLifecycleStatus, readonly BillLifecycleStatus[]> = {
-  UPCOMING: ['RING_FENCED', 'PAID', 'SKIPPED'],
-  RING_FENCED: ['PAID', 'OVERDUE', 'SKIPPED'],
-  OVERDUE: ['PAID', 'SKIPPED'],
-  PAID: [],
+  PENDING: ['RING_FENCED', 'CONFIRMED', 'SKIPPED'],
+  RING_FENCED: ['CONFIRMED', 'OVERDUE', 'SKIPPED'],
+  OVERDUE: ['CONFIRMED', 'SKIPPED'],
+  CONFIRMED: [],
   SKIPPED: [],
 } as const;
 
@@ -61,10 +61,10 @@ export const BILL_LIFECYCLE_TRANSITIONS: Record<BillLifecycleStatus, readonly Bi
  * Complete metadata catalog for bill lifecycle states, mapped to Serene Finance design tokens.
  */
 export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatusMeta> = {
-  UPCOMING: {
-    code: 'UPCOMING',
-    labelKey: 'billStatus.upcomingLabel',
-    descriptionKey: 'billStatus.upcomingDesc',
+  PENDING: {
+    code: 'PENDING',
+    labelKey: 'expenseStatus.pendingLabel',
+    descriptionKey: 'expenseStatus.pendingDesc',
     isTerminal: false,
     visuals: {
       tokenName: 'primary',
@@ -78,8 +78,8 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
   },
   RING_FENCED: {
     code: 'RING_FENCED',
-    labelKey: 'billStatus.ringFencedLabel',
-    descriptionKey: 'billStatus.ringFencedDesc',
+    labelKey: 'expenseStatus.ringFencedLabel',
+    descriptionKey: 'expenseStatus.ringFencedDesc',
     isTerminal: false,
     visuals: {
       tokenName: 'sereneBlue',
@@ -91,10 +91,10 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
       },
     },
   },
-  PAID: {
-    code: 'PAID',
-    labelKey: 'billStatus.paidLabel',
-    descriptionKey: 'billStatus.paidDesc',
+  CONFIRMED: {
+    code: 'CONFIRMED',
+    labelKey: 'expenseStatus.confirmedLabel',
+    descriptionKey: 'expenseStatus.confirmedDesc',
     isTerminal: true,
     visuals: {
       tokenName: 'success',
@@ -108,8 +108,8 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
   },
   OVERDUE: {
     code: 'OVERDUE',
-    labelKey: 'billStatus.overdueLabel',
-    descriptionKey: 'billStatus.overdueDesc',
+    labelKey: 'expenseStatus.overdueLabel',
+    descriptionKey: 'expenseStatus.overdueDesc',
     isTerminal: false,
     visuals: {
       tokenName: 'burnRed',
@@ -123,8 +123,8 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
   },
   SKIPPED: {
     code: 'SKIPPED',
-    labelKey: 'billStatus.skippedLabel',
-    descriptionKey: 'billStatus.skippedDesc',
+    labelKey: 'expenseStatus.skippedLabel',
+    descriptionKey: 'expenseStatus.skippedDesc',
     isTerminal: true,
     visuals: {
       tokenName: 'surfaceVariant',

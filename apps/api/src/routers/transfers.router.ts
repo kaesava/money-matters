@@ -111,7 +111,7 @@ export const transfersRouter = {
             name: transferName,
             expectedDate: input.startDate,
             expectedAmount: input.amount,
-            status: "UPCOMING",
+            status: "PENDING",
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
             createdBy: ctx.userId!,

@@ -61,7 +61,7 @@ export async function listBillCoverageQuery(
         and(
           eq(incomeEvents.tenantId, tenantId),
           eq(incomeEvents.appId, appId),
-          eq(incomeEvents.status, "UPCOMING"),
+          eq(incomeEvents.status, "PENDING"),
           sql`${incomeEvents.archivedAt} IS NULL`
         )
       )
@@ -87,7 +87,7 @@ export async function listBillCoverageQuery(
       and(
         eq(expenseEvents.tenantId, tenantId),
         eq(expenseEvents.appId, appId),
-        eq(expenseEvents.status, "UPCOMING"),
+        eq(expenseEvents.status, "PENDING"),
         sql`${expenseEvents.expectedDate} >= ${todayStr}`,
         sql`${expenseEvents.expectedDate} <= ${nextPaydayDateStr}`,
         sql`${expenseEvents.archivedAt} IS NULL`

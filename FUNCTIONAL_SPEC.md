@@ -18,10 +18,10 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 - **Everyday Pools**: Discretionary spending pools linked to transaction accounts.
 - **Regular Bills Pools**: Unified pools for recurring obligations. Sub-categories serve as expense sub-tags and monthly target benchmarks.
 - **Goal Pools**: Target sinking funds with target amounts and dates (Emergency Expenses buffer, vehicle maintenance, holidays). GOAL pools operate directly without sub-categories.
-- **3-Tab Income & Bills Command Center (`/dashboard/income-and-bills`)**:
-  1. *Tab 1: Upcoming (Grid)*: Interactive forward-looking 12-month spreadsheet grid for payday planning.
-  2. *Tab 2: Upcoming*: Pending/un-actioned scheduled events queue ordered by ascending date with subtle overdue highlighting, single-row actioning (*Mark Received*, *Mark Paid*, *Skip*), and 100% header-to-cell alignment parity.
-  3. *Tab 3: Setup*: Structured resizable tables for recurring Income Schedules and Bill Schedules with top unified search input, embedded "+ Add" buttons, clickable schedule name edit hyperlinks, and discreet modal archiving.
+- **3-Tab Income & Expenses Command Center (`/dashboard/income-and-bills`)**:
+  1. *Tab 1: Income Allocation Grid*: Interactive forward-looking 12-month spreadsheet grid for payday planning out to 12 months with subtle overdue badges on past columns.
+  2. *Tab 2: Upcoming*: Pending/un-actioned scheduled events queue ordered by ascending date with subtle overdue highlighting, single-row actioning (*Run Split* hyperlinked action for Income launching the unified Split Income drawer, *Mark Spent*, *Skip*), full-width search bar (`w-full md:w-80 flex-1 max-w-md`), and 100% header-to-cell alignment parity.
+  3. *Tab 3: Setup*: Structured resizable tables for recurring Income Schedules and Expense Schedules with custom interval ("Every N") support, top unified search input, embedded "+ Add" buttons, clickable schedule name edit hyperlinks, and discreet modal archiving.
 - **Dynamic Waterfall Allocation Engine & Resolution Hierarchy**:
   - *5-Step Priority Waterfall*: Step 0 (Deficit Repair) $\rightarrow$ Step 1 (Essential Regular / Priority Bills) $\rightarrow$ Step 2 (Standard Regular Bills) $\rightarrow$ Step 3 (Committed Goals) $\rightarrow$ Step 4 (Everyday Allowance Top-Up) $\rightarrow$ Step 5 (Uncommitted Goals & Residual Surplus Sweep).
   - *Unified Resolution Hierarchy*: When evaluating any upcoming payday (via Home Screen "Log Payday" drawer, Timeline, or Bulk Allocate tab), the query checks for saved `allocation_plans` in the database first. If custom overrides exist, it returns the saved plan lines. If no saved plan exists, it dynamically computes the 5-step waterfall on-the-fly.
@@ -38,7 +38,7 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 - **Date Formatting Standard**: All dates rendered in UI views, modals, cards, and tables are formatted in timezone-aware Australian English format (`31 Dec 2026`) via `fmtDate`. Raw ISO date strings (`2026-12-31`) are strictly prohibited in user-facing components.
 - **Resizable Table Columns**: All data tables across the app feature interactive draggable column resizing dividers (`<ResizableTh>` & `useResizableColumns`) with clean, sensible default relative widths.
 - **Quick Action Suggestion Filters**: The Quick Action "Last 3" recent suggestion pickers automatically filter out system Payday waterfall allocations, category transfers, and manual pool balance adjustments.
-- **Paid Bill & Allocated Income Lock**: Once a bill is marked `PAID` or income allocated, core fields are strictly locked from editing with a `🔒 Paid` / `🔒 Allocated` status badge to prevent ledger drift. Undo/reopening is deferred to V2 scope (`FEAT-V2-005`).
+- **Paid Bill & Allocated Income Lock**: Once a bill is marked `CONFIRMED` or income allocated, core fields are strictly locked from editing with a `🔒 Paid` / `🔒 Allocated` status badge to prevent ledger drift. Undo/reopening is deferred to V2 scope (`FEAT-V2-005`).
 
 ---
 
@@ -138,7 +138,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
    - Blocked if there are active upcoming expenses or pending income allocations against the category.
    - Default Everyday category cannot be deleted or archived.
 2. **Income & Expense Source Management**:
-   - Amount changes cascade to unperformed upcoming occurrences (`status === 'UPCOMING'`).
+   - Amount changes cascade to unperformed upcoming occurrences (`status === 'PENDING'`).
    - Archival deletes unperformed future occurrences while retaining historical paid ledger entries.
 3. **Household Governance & Account Erasure**:
    - Role-aware household deletion and leave controls (`/dashboard/settings/delete-account` and public `/privacy/delete-account`).

@@ -62,7 +62,7 @@ export async function canAffordQuery(
       and(
         eq(incomeEvents.tenantId, tenantId),
         eq(incomeEvents.appId, appId),
-        eq(incomeEvents.status, "UPCOMING"),
+        eq(incomeEvents.status, "PENDING"),
         sql`${incomeEvents.archivedAt} IS NULL`
       )
     )

@@ -137,7 +137,7 @@ export const MoveMoneyCommand = z.object({
 export const OverrideEventCommand = z.object({
   eventId: z.string().uuid(),
   eventType: z.enum(["INCOME", "EXPENSE"]),
-  status: z.enum(["UPCOMING", "CONFIRMED", "PAID", "SKIPPED"]).optional(),
+  status: z.enum(["PENDING", "SKIPPED", "CONFIRMED"]).optional(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   expectedAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   actualAmount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),

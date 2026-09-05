@@ -4,7 +4,7 @@ import { pools } from "./pool.js";
 import { categories } from "./category.js";
 import { tenantAndTimestamps } from "./base.js";
 
-export const expenseEventStatusEnum = pgEnum("expense_event_status_enum", ["UPCOMING", "SKIPPED", "PAID", "CANCELLED"]);
+export const expenseEventStatusEnum = pgEnum("expense_event_status_enum", ["PENDING", "CONFIRMED"]);
 
 export const expenseEvents = pgTable("expense_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -18,6 +18,6 @@ export const expenseEvents = pgTable("expense_events", {
   note: varchar("note", { length: 500 }),
   isOverridden: boolean("is_overridden").notNull().default(false),
   paymentMethod: varchar("payment_method", { length: 50 }),
-  status: expenseEventStatusEnum("status").notNull().default("UPCOMING"),
+  status: expenseEventStatusEnum("status").notNull().default("PENDING"),
   ...tenantAndTimestamps,
 });

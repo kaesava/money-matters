@@ -33,7 +33,7 @@ export async function archivePoolCommand(
     .where(
       and(
         eq(expenseEvents.poolId, poolId),
-        sql`${expenseEvents.status} IN ('UPCOMING', 'PENDING')`,
+        sql`${expenseEvents.status} IN ('PENDING', 'PENDING')`,
         sql`${expenseEvents.archivedAt} IS NULL`
       )
     );

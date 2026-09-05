@@ -837,7 +837,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'UPCOMING'"
+          "default": "'PENDING'"
         },
         "tenant_id": {
           "name": "tenant_id",
@@ -1604,7 +1604,7 @@
       "values": [
         "BORROWED",
         "PARTIAL",
-        "REPAID"
+        "RECONFIRMED"
       ]
     },
     "public.transaction_flow_enum": {

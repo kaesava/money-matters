@@ -3,9 +3,9 @@ CREATE TYPE "public"."member_role_enum" AS ENUM('OWNER', 'MEMBER');--> statement
 CREATE TYPE "public"."account_purpose_enum" AS ENUM('INCOME_LANDING', 'SAVINGS', 'EVERYDAY');--> statement-breakpoint
 CREATE TYPE "public"."category_type_enum" AS ENUM('MAJOR', 'RECURRING', 'EVERYDAY');--> statement-breakpoint
 CREATE TYPE "public"."income_source_type_enum" AS ENUM('SALARY', 'FREELANCE', 'OTHER');--> statement-breakpoint
-CREATE TYPE "public"."income_event_status_enum" AS ENUM('UPCOMING', 'DRAFT', 'REVIEWED', 'CONFIRMED');--> statement-breakpoint
+CREATE TYPE "public"."income_event_status_enum" AS ENUM('PENDING', 'DRAFT', 'REVIEWED', 'CONFIRMED');--> statement-breakpoint
 CREATE TYPE "public"."allocation_plan_status_enum" AS ENUM('DRAFT', 'REVIEWED', 'CONFIRMED');--> statement-breakpoint
-CREATE TYPE "public"."shortfall_status_enum" AS ENUM('BORROWED', 'PARTIAL', 'REPAID');--> statement-breakpoint
+CREATE TYPE "public"."shortfall_status_enum" AS ENUM('BORROWED', 'PARTIAL', 'RECONFIRMED');--> statement-breakpoint
 CREATE TYPE "public"."transaction_flow_enum" AS ENUM('DEBIT', 'CREDIT');--> statement-breakpoint
 CREATE TABLE "tenants" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -126,7 +126,7 @@ CREATE TABLE "income_events" (
 	"expected_date" date NOT NULL,
 	"expected_amount" numeric(12, 2) NOT NULL,
 	"actual_amount" numeric(12, 2),
-	"status" "income_event_status_enum" DEFAULT 'UPCOMING' NOT NULL,
+	"status" "income_event_status_enum" DEFAULT 'PENDING' NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"app_id" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -257,7 +257,7 @@ CREATE INDEX IF NOT EXISTS "transaction_ledger_tenant_app_idx" ON "transaction_l
 CREATE INDEX IF NOT EXISTS "income_events_expected_date_idx" ON "income_events" ("income_source_id", "expected_date");
 CREATE INDEX IF NOT EXISTS "allocation_plan_lines_plan_idx" ON "allocation_plan_lines" ("plan_id");
 CREATE INDEX IF NOT EXISTS "transaction_ledger_cat_date_idx" ON "transaction_ledger" ("category_id", "recorded_at" DESC);
-CREATE INDEX IF NOT EXISTS "shortfall_events_active_idx" ON "shortfall_events" ("status") WHERE "status" != 'REPAID';
+CREATE INDEX IF NOT EXISTS "shortfall_events_active_idx" ON "shortfall_events" ("status") WHERE "status" != 'RECONFIRMED';
 
 -- 2. Row Level Security Policies (Enforcing Tenant + App Isolation Bounds)
 ALTER TABLE "tenants" ENABLE ROW LEVEL SECURITY;

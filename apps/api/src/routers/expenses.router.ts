@@ -48,6 +48,7 @@ export const expensesRouter = {
         startDate: z.string().optional(),
         endDate: z.string().nullable().optional(),
         frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+        interval: z.number().min(1).max(365).optional(),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {
@@ -72,10 +73,11 @@ export const expensesRouter = {
 
       let rrule: string | null = null;
       if (input.isRecurring && input.startDate) {
-        if (input.frequency === "WEEKLY") rrule = "FREQ=WEEKLY";
-        else if (input.frequency === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
-        else if (input.frequency === "ANNUALLY") rrule = "FREQ=YEARLY";
-        else rrule = "FREQ=MONTHLY";
+        const intVal = input.interval ?? 1;
+        if (input.frequency === "WEEKLY") rrule = intVal > 1 ? `FREQ=WEEKLY;INTERVAL=${intVal}` : "FREQ=WEEKLY";
+        else if (input.frequency === "FORTNIGHTLY") rrule = `FREQ=WEEKLY;INTERVAL=${intVal * 2}`;
+        else if (input.frequency === "ANNUALLY") rrule = intVal > 1 ? `FREQ=YEARLY;INTERVAL=${intVal}` : "FREQ=YEARLY";
+        else rrule = intVal > 1 ? `FREQ=MONTHLY;INTERVAL=${intVal}` : "FREQ=MONTHLY";
       }
 
       const [source] = await ctx.db
@@ -108,7 +110,7 @@ export const expensesRouter = {
               name: input.name,
               expectedDate: getAestDateString(d),
               expectedAmount: input.amount,
-              status: "UPCOMING" as const,
+              status: "PENDING" as const,
               tenantId: ctx.tenantId!,
               appId: ctx.appId!,
               createdBy: ctx.userId!,
@@ -125,7 +127,7 @@ export const expensesRouter = {
           name: input.name,
           expectedDate: input.startDate,
           expectedAmount: input.amount,
-          status: "UPCOMING",
+          status: "PENDING",
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
           createdBy: ctx.userId!,
@@ -165,6 +167,7 @@ export const expensesRouter = {
           startDate: z.string().optional(),
           endDate: z.string().nullable().optional(),
           frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
+          interval: z.number().min(1).max(365).optional(),
         }).strict(),
       }).strict()
     )
@@ -196,12 +199,14 @@ export const expensesRouter = {
       const isRecurring = input.data.isRecurring !== undefined ? input.data.isRecurring : wasRecurring;
 
       const newFreq = input.data.frequency;
+      const newInt = input.data.interval ?? 1;
       let rrule: string | null = isRecurring ? (source.rrule || "FREQ=MONTHLY") : null;
-      if (isRecurring && newFreq) {
-        if (newFreq === "WEEKLY") rrule = "FREQ=WEEKLY";
-        else if (newFreq === "FORTNIGHTLY") rrule = "FREQ=WEEKLY;INTERVAL=2";
-        else if (newFreq === "MONTHLY") rrule = "FREQ=MONTHLY";
-        else if (newFreq === "ANNUALLY") rrule = "FREQ=YEARLY";
+      if (isRecurring && (newFreq || input.data.interval !== undefined)) {
+        const targetFreq = newFreq || (source.rrule?.includes("FREQ=WEEKLY") ? (source.rrule.includes("INTERVAL=2") ? "FORTNIGHTLY" : "WEEKLY") : source.rrule?.includes("FREQ=YEARLY") ? "ANNUALLY" : "MONTHLY");
+        if (targetFreq === "WEEKLY") rrule = newInt > 1 ? `FREQ=WEEKLY;INTERVAL=${newInt}` : "FREQ=WEEKLY";
+        else if (targetFreq === "FORTNIGHTLY") rrule = `FREQ=WEEKLY;INTERVAL=${newInt * 2}`;
+        else if (targetFreq === "ANNUALLY") rrule = newInt > 1 ? `FREQ=YEARLY;INTERVAL=${newInt}` : "FREQ=YEARLY";
+        else rrule = newInt > 1 ? `FREQ=MONTHLY;INTERVAL=${newInt}` : "FREQ=MONTHLY";
       }
 
       const [updated] = await ctx.db
@@ -232,7 +237,7 @@ export const expensesRouter = {
         .from(expenseEvents)
         .where(eq(expenseEvents.expenseSourceId, source.id));
 
-      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+      const unperformedEvents = events.filter((e) => e.status === "PENDING");
       if (unperformedEvents.length > 0) {
         await ctx.db
           .update(expenseEvents)
@@ -247,7 +252,7 @@ export const expensesRouter = {
           .where(
             and(
               eq(expenseEvents.expenseSourceId, source.id),
-              eq(expenseEvents.status, "UPCOMING")
+              eq(expenseEvents.status, "PENDING")
             )
           );
       }
@@ -357,7 +362,7 @@ export const expensesRouter = {
         .where(
           and(
             eq(expenseEvents.expenseSourceId, source.id),
-            eq(expenseEvents.status, "UPCOMING"),
+            eq(expenseEvents.status, "PENDING"),
             sql`${expenseEvents.archivedAt} IS NULL`
           )
         );
@@ -379,7 +384,7 @@ export const expensesRouter = {
             name: source.name,
             expectedDate: getAestDateString(d),
             expectedAmount: source.amount,
-            status: "UPCOMING" as const,
+            status: "PENDING" as const,
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
             createdBy: ctx.userId!,
@@ -400,7 +405,7 @@ export const expensesRouter = {
         .from(expenseEvents)
         .where(eq(expenseEvents.expenseSourceId, input.id));
 
-      const unperformedEvents = events.filter((e) => e.status === "UPCOMING");
+      const unperformedEvents = events.filter((e) => e.status === "PENDING");
 
       if (unperformedEvents.length > 0) {
         await ctx.db
@@ -444,12 +449,7 @@ export const expensesRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .update(expenseEvents)
-        .set({
-          status: "SKIPPED",
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
+        .delete(expenseEvents)
         .where(
           and(
             eq(expenseEvents.id, input.eventId),
@@ -485,7 +485,7 @@ export const expensesRouter = {
       await ctx.db
         .update(expenseEvents)
         .set({
-          status: "PAID",
+          status: "CONFIRMED",
           updatedAt: new Date(),
           updatedBy: ctx.userId!,
         })

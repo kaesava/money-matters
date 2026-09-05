@@ -18,7 +18,7 @@ export function CategoryActivityModal({
   onClose,
   category,
 }: CategoryActivityModalProps) {
-  const [activeTab, setActiveTab] = useState<"HISTORY" | "UPCOMING">("HISTORY");
+  const [activeTab, setActiveTab] = useState<"HISTORY" | "PENDING">("HISTORY");
   const utils = trpc.useUtils();
 
   const poolId = category?.id ?? "";
@@ -66,9 +66,9 @@ export function CategoryActivityModal({
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab("UPCOMING")}
+          onClick={() => setActiveTab("PENDING")}
           className={`px-4 py-2 font-bold text-xs border-b-2 transition-colors ${
-            activeTab === "UPCOMING"
+            activeTab === "PENDING"
               ? "border-[#2563eb] text-[#2563eb]"
               : "border-transparent text-zinc-400 hover:text-zinc-600"
           }`}
@@ -116,11 +116,11 @@ export function CategoryActivityModal({
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-mono font-bold text-zinc-800">${parseFloat(evt.expectedAmount).toFixed(2)}</span>
-                  {evt.status === "UPCOMING" ? (
+                  {evt.status === "PENDING" ? (
                     <button
                       type="button"
                       onClick={() => {
-                        markPaidMut.mutate({ eventId: evt.id, eventType: "EXPENSE", status: "PAID", actualAmount: evt.expectedAmount });
+                        markPaidMut.mutate({ eventId: evt.id, eventType: "EXPENSE", status: "CONFIRMED", actualAmount: evt.expectedAmount });
                       }}
                       className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px]"
                     >

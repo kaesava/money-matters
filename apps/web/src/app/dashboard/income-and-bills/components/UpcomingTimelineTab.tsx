@@ -9,10 +9,10 @@ import {
   SkeletonTable,
   ResizableTh,
   useResizableColumns,
+  ConfirmDialog,
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
-import { getEarliestPendingIncomeId } from "@money-matters/capability-budgeting";
 
 export interface TimelineEventItem extends EventItem {
   categoryId?: string | null;
@@ -38,15 +38,11 @@ interface UpcomingTimelineTabProps {
     currentBalance: string | number;
   }[];
   initialKindFilter?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
-  onMarkIncomeReceived: (eventId: string, amount: string, date: string) => void;
   onAllocateIncome: (eventId: string) => void;
   onMarkExpensePaid: (eventId: string, amount: string, date: string) => void;
   onSkipIncome: (eventId: string) => void;
   onSkipExpense: (eventId: string) => void;
   onSkipTransfer?: (eventId: string) => void;
-  onUnskipIncome: (eventId: string) => void;
-  onUnskipExpense: (eventId: string) => void;
-  onUnskipTransfer?: (eventId: string) => void;
   onExecuteTransfer?: (
     eventId: string,
     amount: string,
@@ -70,15 +66,11 @@ export function UpcomingTimelineTab({
   transferEvents,
   categories,
   initialKindFilter = "ALL",
-  onMarkIncomeReceived,
   onAllocateIncome,
   onMarkExpensePaid,
   onSkipIncome,
   onSkipExpense,
   onSkipTransfer,
-  onUnskipIncome,
-  onUnskipExpense,
-  onUnskipTransfer,
   onExecuteTransfer,
   onConfirmTransferAndPay,
   onOpenTransferModalWithData,
@@ -104,6 +96,8 @@ export function UpcomingTimelineTab({
     amount: 140,
     actions: 180,
   });
+
+  const [eventToSkip, setEventToSkip] = useState<{ id: string; kind: "INCOME" | "EXPENSE" | "TRANSFER" } | null>(null);
 
   const [insufficientModalState, setInsufficientModalState] = useState<{
     isOpen: boolean;
@@ -176,9 +170,6 @@ export function UpcomingTimelineTab({
       });
   }, [incomeEvents, expenseEvents, transferEvents, kindFilter, scopeFilter, searchQuery, sortField, sortOrder]);
 
-  const earliestPendingIncomeId = useMemo(() => {
-    return getEarliestPendingIncomeId(incomeEvents || []);
-  }, [incomeEvents]);
 
   useEffect(() => {
     setPage(1);
@@ -256,7 +247,7 @@ export function UpcomingTimelineTab({
     <div className="flex flex-col gap-5 w-full">
       {/* Controls Bar: Search, Kind Filter, Scope Filter */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
-        <div className="w-full md:w-72">
+        <div className="w-full md:w-80 flex-1 max-w-md">
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
@@ -534,75 +525,44 @@ export function UpcomingTimelineTab({
                       {/* Actions Column */}
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          {isSkipped ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEventToSkip({
+                                id: evt.id,
+                                kind: isIncome ? "INCOME" : isTransfer ? "TRANSFER" : "EXPENSE",
+                              })
+                            }
+                            className="px-2 py-1 text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 font-semibold text-xs rounded-lg transition-colors"
+                            title="Skip this occurrence"
+                          >
+                            Skip
+                          </button>
+
+                          {isIncome ? (
                             <button
                               type="button"
-                              onClick={() =>
-                                isIncome
-                                  ? onUnskipIncome(evt.id)
-                                  : isTransfer
-                                  ? onUnskipTransfer?.(evt.id)
-                                  : onUnskipExpense(evt.id)
-                              }
-                              className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs rounded-lg transition-colors"
+                              onClick={() => onAllocateIncome(evt.id)}
+                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
                             >
-                              Unskip
+                              {t("common.runSplit", { defaultValue: "Run Split" })}
+                            </button>
+                          ) : isTransfer ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTransferClick(evt)}
+                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
+                            >
+                              Transfer
                             </button>
                           ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  isIncome
-                                    ? onSkipIncome(evt.id)
-                                    : isTransfer
-                                    ? onSkipTransfer?.(evt.id)
-                                    : onSkipExpense(evt.id)
-                                }
-                                className="px-2.5 py-1 text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-semibold text-xs rounded-lg transition-colors"
-                                title="Skip this occurrence"
-                              >
-                                Skip
-                              </button>
-
-                              {isIncome ? (
-                                evt.id === earliestPendingIncomeId ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onMarkIncomeReceived(evt.id, evt.expectedAmount, evt.expectedDate)
-                                    }
-                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
-                                  >
-                                    {t("common.markReceived")}
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => onAllocateIncome(evt.id)}
-                                    className="px-3 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs rounded-lg transition-colors shadow-xs"
-                                  >
-                                    {t("common.allocate")}
-                                  </button>
-                                )
-                              ) : isTransfer ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleTransferClick(evt)}
-                                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
-                                >
-                                  Transfer
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleExpenseMarkPaidClick(evt)}
-                                  className="px-3 py-1 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
-                                >
-                                  {t("common.markSpent", { defaultValue: "Mark Spent" })}
-                                </button>
-                              )}
-                            </>
+                            <button
+                              type="button"
+                              onClick={() => handleExpenseMarkPaidClick(evt)}
+                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
+                            >
+                              {t("common.markSpent", { defaultValue: "Mark Spent" })}
+                            </button>
                           )}
                         </div>
                       </td>
@@ -647,6 +607,23 @@ export function UpcomingTimelineTab({
               : c.currentBalance,
         }))}
         onConfirmTransferAndPay={handleConfirmShortfallTransfer}
+      />
+
+      <ConfirmDialog
+        isOpen={!!eventToSkip}
+        onClose={() => setEventToSkip(null)}
+        onConfirm={() => {
+          if (eventToSkip) {
+            if (eventToSkip.kind === "INCOME") onSkipIncome(eventToSkip.id);
+            else if (eventToSkip.kind === "TRANSFER") onSkipTransfer?.(eventToSkip.id);
+            else onSkipExpense(eventToSkip.id);
+            setEventToSkip(null);
+          }
+        }}
+        title="Skip Scheduled Event?"
+        description="Are you sure you want to skip this event? This scheduled event will be deleted for this cycle."
+        confirmLabel="Skip & Delete"
+        variant="danger"
       />
     </div>
   );

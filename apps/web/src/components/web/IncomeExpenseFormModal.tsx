@@ -65,7 +65,7 @@ export default function IncomeExpenseFormModal({
   const [receivingAccountId, setReceivingAccountId] = useState("");
 
   const recurrenceBuilder = useRecurrenceBuilder();
-  const { frequency, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
+  const { frequency, isRecurring, interval, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
 
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -185,6 +185,7 @@ export default function IncomeExpenseFormModal({
               receivingAccountId: receivingAccountId || undefined,
               isRecurring,
               frequency: isRecurring ? frequency : undefined,
+              interval: isRecurring ? (interval || 1) : undefined,
               startDate: startDate || undefined,
               endDate: isRecurring && endDate ? endDate : undefined,
             },
@@ -196,6 +197,7 @@ export default function IncomeExpenseFormModal({
             receivingAccountId: receivingAccountId || undefined,
             isRecurring,
             frequency: isRecurring ? frequency : undefined,
+            interval: isRecurring ? (interval || 1) : undefined,
             startDate: startDate || undefined,
             endDate: isRecurring && endDate ? endDate : undefined,
           });
@@ -212,6 +214,7 @@ export default function IncomeExpenseFormModal({
               poolId,
               isRecurring,
               frequency: isRecurring ? frequency : undefined,
+              interval: isRecurring ? (interval || 1) : undefined,
               startDate: startDate || undefined,
               endDate: isRecurring && endDate ? endDate : undefined,
             },
@@ -223,6 +226,7 @@ export default function IncomeExpenseFormModal({
             poolId,
             isRecurring,
             frequency: isRecurring ? frequency : undefined,
+            interval: isRecurring ? (interval || 1) : undefined,
             startDate: startDate || undefined,
             endDate: isRecurring && endDate ? endDate : undefined,
           });
@@ -230,7 +234,6 @@ export default function IncomeExpenseFormModal({
         await utils.listExpenseSources.invalidate();
         await utils.listExpenseEvents.invalidate();
       }
-
 
       toast.success(
         isRecurring
@@ -251,13 +254,20 @@ export default function IncomeExpenseFormModal({
     if (!sourceToEdit) {
       return name.trim() !== "" || amount.trim() !== "";
     }
+    const origStartDate = sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : "";
+    const origEndDate = sourceToEdit.endDate ? sourceToEdit.endDate.split("T")[0] : null;
+    const origIsRecurring = !!sourceToEdit.rrule || !!sourceToEdit.startDate;
+
     return (
       name !== (sourceToEdit.name || "") ||
       amount !== (sourceToEdit.amount || "") ||
       poolId !== (sourceToEdit.poolId || "") ||
-      receivingAccountId !== (sourceToEdit.receivingAccountId || "")
+      receivingAccountId !== (sourceToEdit.receivingAccountId || "") ||
+      isRecurring !== origIsRecurring ||
+      startDate !== origStartDate ||
+      (endDate || null) !== origEndDate
     );
-  }, [name, amount, poolId, receivingAccountId, sourceToEdit]);
+  }, [name, amount, poolId, receivingAccountId, isRecurring, startDate, endDate, sourceToEdit]);
 
   const isValid = name.trim() !== "" && amount.trim() !== "" && parseFloat(amount) > 0 && (mode !== "EXPENSE" || !!poolId);
 

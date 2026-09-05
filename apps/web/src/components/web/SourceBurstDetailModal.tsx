@@ -92,7 +92,7 @@ export const SourceBurstDetailModal: React.FC<SourceBurstDetailModalProps> = ({
           ) : (
             <div className="divide-y divide-zinc-100 border border-zinc-200 rounded-xl overflow-hidden bg-white">
               {sourceEvents.map((evt: EventItem) => {
-                const isPaid = evt.status === "PAID";
+                const isPaid = evt.status === "CONFIRMED";
                 const isOverdue = !isPaid && new Date(evt.expectedDate) < new Date();
 
                 return (

@@ -108,9 +108,9 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
   ├── tenant_user_preferences (Scoped to userId, tenantId, appId: appPreferences: JSONB including alert toggles, UI flags, setup_completed state)
   ├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
   ├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
-  │   └── income_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
+  │   └── income_events (expectedDate, expectedAmount, actualAmount, status: PENDING|CONFIRMED)
   ├── expense_sources (name, amount, poolId, categoryId, rrule, startDate, endDate)
-  │   └── expense_events (expectedDate, expectedAmount, actualAmount, status: UPCOMING|PAID)
+  │   └── expense_events (expectedDate, expectedAmount, actualAmount, status: PENDING|CONFIRMED)
   └── file_notes (entityType: POOL|CATEGORY|TRANSACTION, comment, fileKey, fileName, mimeType)
 ```
 
@@ -152,14 +152,14 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 6. **`GOAL` uncommitted / Surplus sweep (Step 5)**: Sweeps residual income strictly into the single designated category where `isSurplusTarget === true` (default: *"Surplus & Offset Reserve"*).
 
 ### 5.2.1 Payday Preview, Rolling Window & Persistence Resolution Hierarchy (`previewPaydayQuery`)
-- **12-Month Materialized Rolling Window (`maintainRollingWindow`)**: On login and event creation, `maintainRollingWindow` materializes 12 months of `UPCOMING` `income_events` using AEST timezone normalization (`Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`) to prevent off-by-one calendar bugs.
-- **Schema Cascade Constraint**: `allocation_plans.incomeEventId` and `allocation_plan_lines.planId` enforce `.onDelete("cascade")`. Changing an income schedule in Setup cascade-deletes obsolete `allocation_plans` and `allocation_plan_lines` without manual script intervention. Restricts `DELETE` operations strictly to `WHERE status = 'UPCOMING'` to prevent destroying historical confirmed paydays.
+- **12-Month Materialized Rolling Window (`maintainRollingWindow`)**: On login and event creation, `maintainRollingWindow` materializes 12 months of `PENDING` `income_events` using AEST timezone normalization (`Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })`) to prevent off-by-one calendar bugs.
+- **Schema Cascade Constraint**: `allocation_plans.incomeEventId` and `allocation_plan_lines.planId` enforce `.onDelete("cascade")`. Changing an income schedule in Setup cascade-deletes obsolete `allocation_plans` and `allocation_plan_lines` without manual script intervention. Restricts `DELETE` operations strictly to `WHERE status = 'PENDING'` to prevent destroying historical confirmed paydays.
 - **Category Pool Immutability Constraint**: Once a Category is created and linked to a Pool, the `poolId` is strictly immutable to preserve historical reporting accuracy and prevent retroactive data shifts. If a user makes a mistake during setup, they must archive the category and create a new one.
 - **Strict Schedule Recurrence Constraint**: The "Add Schedule" flow strictly enforces recurrence. "One-off" frequencies are explicitly banned from schedule creation to prevent orphaned single-execution records from bypassing list views. Users must use the "Quick Add Event" modal for one-off transactions.
 - **Two-Tier Resolution Sequence**:
   1. *Priority 1 (Saved Plan)*: `previewPaydayQuery` queries `allocation_plans` for `incomeEventId`. If a saved plan exists (created via 12-Month Grid *"Save Changes"*), it returns the saved `allocation_plan_lines` from the database.
   2. *Priority 2 (Dynamic Engine Fallback)*: If no saved plan exists (e.g. fresh income events or un-edited paydays), `previewPaydayQuery` executes `runAllocationEngine` on-the-fly.
-- **Bulk Allocate Persistence & Concurrency (`saveBulkAllocations`)**: Custom grid edits write directly to `allocation_plans` (status: `PENDING`) and `allocation_plan_lines`. Editing a cell auto-sweeps the difference into the designated Surplus Target cell to force unallocated cash to $0. Enforces a strict status check (`income_event.status === 'UPCOMING'`) to reject race conditions if an event was confirmed in another session.
+- **Bulk Allocate Persistence & Concurrency (`saveBulkAllocations`)**: Custom grid edits write directly to `allocation_plans` (status: `PENDING`) and `allocation_plan_lines`. Editing a cell auto-sweeps the difference into the designated Surplus Target cell to force unallocated cash to $0. Enforces a strict status check (`income_event.status === 'PENDING'`) to reject race conditions if an event was confirmed in another session.
 - **Revert to Automatic Waterfall (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **↺ Auto** in the grid column header prompts for confirmation and deletes the `allocation_plan` row, restoring dynamic waterfall calculation.
 
 
@@ -197,7 +197,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 - **Unbudgeted Buffer / Reserved Funds:** Excluded from available spendable balance calculation (`Available = Current Balance − Reserved Funds`).
 
 ### 5.6 5-Level "Can We Afford This?" Engine (`@money-matters/capability-transactions`)
-- **Bill Buffer Protection**: Queries `expenseEvents` where `status = 'UPCOMING'` and `expectedDate <= nextPaycheckDate`. Reserves upcoming bill deficits (`billsReserved`) before calculating spendable cash `netAvailableCash = max(0, everydayBalance - billsReserved)`.
+- **Bill Buffer Protection**: Queries `expenseEvents` where `status = 'PENDING'` and `expectedDate <= nextPaycheckDate`. Reserves upcoming bill deficits (`billsReserved`) before calculating spendable cash `netAvailableCash = max(0, everydayBalance - billsReserved)`.
 - **Daily Pacing Velocity**: Computes `dailyPacingAfterSpend = (everydayBalance - amount - billsReserved) / daysUntilPayday`. Triggers `PACING_WARNING` if daily discretionary allowance drops below $15.00/day.
 - **5-Level Discriminated Union Matrix (`CanAffordVerdictDto`)**:
   - `SAFE_YES`: Cash available + healthy daily allowance ($\ge \$15$/day).

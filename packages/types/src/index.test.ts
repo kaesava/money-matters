@@ -137,9 +137,9 @@ describe('Domain Schemas Validation', () => {
       expectedDate: '2026-08-01',
       expectedAmount: '2500.00',
       actualAmount: null,
-      status: 'UPCOMING',
+      status: 'PENDING',
     });
-    expect(incEvent.status).toBe('UPCOMING');
+    expect(incEvent.status).toBe('PENDING');
 
     const plan = AllocationPlanSchema.parse({
       ...mockBase,

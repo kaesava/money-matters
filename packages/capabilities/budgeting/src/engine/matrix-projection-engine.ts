@@ -7,7 +7,7 @@ export interface MatrixIncomeEvent {
   expectedDate: string;
   expectedAmount: number;
   actualAmount: number | null;
-  status: "UPCOMING" | "SKIPPED" | "CONFIRMED" | "DRAFT" | "REVIEWED";
+  status: "PENDING" | "SKIPPED" | "CONFIRMED" | "DRAFT" | "REVIEWED";
   rrule?: string | null;
   userId?: string;
 }
@@ -16,7 +16,7 @@ export interface ScheduledExpenseEvent {
   categoryId: string;
   amount: number;
   dueDate: string;
-  status: "UPCOMING" | "PAID" | "SKIPPED";
+  status: "PENDING" | "CONFIRMED" | "SKIPPED";
 }
 
 export interface MatrixCellData {
@@ -69,12 +69,12 @@ export interface MatrixProjectionOutput {
 export function computeMatrixProjection(input: MatrixProjectionInput): MatrixProjectionOutput {
   const cellOverrides = input.cellOverrides ?? {};
   
-  // Filter for UPCOMING events only to prevent double counting
-  const expenseEvents = (input.expenseEvents ?? []).filter((e) => e && e.status === "UPCOMING" && Boolean(e.dueDate) && String(e.dueDate).length >= 10);
+  // Filter for PENDING events only to prevent double counting
+  const expenseEvents = (input.expenseEvents ?? []).filter((e) => e && e.status === "PENDING" && Boolean(e.dueDate) && String(e.dueDate).length >= 10);
   
-  // Only project UPCOMING incomes, sort chronologically
+  // Only project PENDING incomes, sort chronologically
   const upcomingIncomes = [...input.incomeEvents]
-    .filter((e) => e && e.status === "UPCOMING" && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
+    .filter((e) => e && e.status === "PENDING" && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
     .sort((a, b) => {
       const tA = new Date(a.expectedDate + "T00:00:00").getTime();
       const tB = new Date(b.expectedDate + "T00:00:00").getTime();

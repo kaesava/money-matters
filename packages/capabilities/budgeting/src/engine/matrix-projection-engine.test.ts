@@ -54,7 +54,7 @@ describe("matrix-projection-engine", () => {
       actualAmount: null,
       expectedDate: "2026-09-01",
       rrule: "FREQ=WEEKLY;INTERVAL=2",
-      status: "UPCOMING",
+      status: "PENDING",
       userId: "user-kesh",
     },
     {
@@ -64,7 +64,7 @@ describe("matrix-projection-engine", () => {
       actualAmount: null,
       expectedDate: "2026-09-01",
       rrule: "FREQ=MONTHLY",
-      status: "UPCOMING",
+      status: "PENDING",
       userId: "user-sneha",
     },
     {
@@ -74,7 +74,7 @@ describe("matrix-projection-engine", () => {
       actualAmount: null,
       expectedDate: "2026-09-15",
       rrule: "FREQ=WEEKLY;INTERVAL=2",
-      status: "UPCOMING",
+      status: "PENDING",
       userId: "user-kesh",
     },
   ];
@@ -131,9 +131,9 @@ describe("matrix-projection-engine", () => {
 
     it("should return the earliest pending income event by expectedDate", () => {
       const items = [
-        { id: "evt-2", expectedDate: "2026-09-15", status: "UPCOMING" },
-        { id: "evt-1", expectedDate: "2026-09-01", status: "UPCOMING" },
-        { id: "evt-3", expectedDate: "2026-09-30", status: "UPCOMING" },
+        { id: "evt-2", expectedDate: "2026-09-15", status: "PENDING" },
+        { id: "evt-1", expectedDate: "2026-09-01", status: "PENDING" },
+        { id: "evt-3", expectedDate: "2026-09-30", status: "PENDING" },
       ];
       expect(getEarliestPendingIncomeId(items)).toBe("evt-1");
     });
@@ -143,8 +143,8 @@ describe("matrix-projection-engine", () => {
         { id: "evt-1", expectedDate: "2026-09-01", status: "CONFIRMED" },
         { id: "evt-2", expectedDate: "2026-09-05", status: "SKIPPED" },
         { id: "evt-3", expectedDate: "2026-09-10", expectedAmount: 100, isSkipped: true },
-        { id: "evt-4", expectedDate: "2026-09-15", status: "UPCOMING" },
-        { id: "evt-5", expectedDate: "2026-09-20", status: "UPCOMING" },
+        { id: "evt-4", expectedDate: "2026-09-15", status: "PENDING" },
+        { id: "evt-5", expectedDate: "2026-09-20", status: "PENDING" },
       ];
       expect(getEarliestPendingIncomeId(items)).toBe("evt-4");
     });

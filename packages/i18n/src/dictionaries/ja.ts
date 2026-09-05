@@ -94,8 +94,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "clearAllFilters": "すべてのフィルターを解除",
     "selectPool": "プールを選択...",
     "noPoolsAvailable": "利用可能なプールがありません",
-    "markReceived": "受領済みにする",
-    "allocate": "割り当てる",
+    "markReceived": "振り分け実行",
+    "allocate": "振り分け実行",
+    "runSplit": "振り分け実行",
     "markPaid": "支払済みにする",
     "saveAsPending": "保留として保存",
     "incomeNameSource": "収入名 / 振込元",
@@ -1464,8 +1465,8 @@ export const ja: DeepStringRecord<typeof en> = {
       "content": "生活費プールと貯蓄目標を管理します。生活費と定期請求はプール単位で管理し、貯蓄目標は個別目標を追跡します。"
     },
     "incomeBills": {
-      "title": "収入・請求について",
-      "content": "定期的な給与と請求スケジュールを設定します。給料日にはMoney Mattersが自動的に請求分を確保し、残りを生活費プールへ配分します。"
+      "title": "収入・支出について",
+      "content": "定期的な給与と支出スケジュールを設定します。給料日にはMoney Mattersが自動的に支出分を確保し、残りを生活費プールへ配分します。"
     },
     "cascade": {
       "title": "配分シミュレーターについて",
@@ -1509,17 +1510,17 @@ export const ja: DeepStringRecord<typeof en> = {
     "overrideBadge": "手動変更",
     "projectionWarningTooltip": "警告: 次の給料日までに資金不足が発生する可能性があります。"
   },
-  "billStatus": {
-    "upcomingLabel": "予定",
-    "upcomingDesc": "給与日のリングフェンスを待っている予定の請求",
+  "expenseStatus": {
+    "pendingLabel": "保留中",
+    "pendingDesc": "給与日のリングフェンスを待っている予定の支出",
     "ringFencedLabel": "確保済み",
     "ringFencedDesc": "給与日に仮想プールへ確保された資金",
-    "paidLabel": "支払済み",
-    "paidDesc": "銀行の取引履歴と照合済みの決済",
+    "confirmedLabel": "確定済み",
+    "confirmedDesc": "銀行の取引履歴と照合済みの決済",
     "overdueLabel": "期限切れ",
-    "overdueDesc": "支払いまたは割り当てなしで期日を過ぎた請求",
+    "overdueDesc": "支払いまたは割り当てなしで期日を過ぎた支出",
     "skippedLabel": "スキップ",
-    "skippedDesc": "このサイクルでユーザーによりスキップされた請求"
+    "skippedDesc": "このサイクルでユーザーによりスキップされた支出"
   },
   "actions": {
     "markPaid": "支払済みにする",
@@ -1621,5 +1622,16 @@ export const ja: DeepStringRecord<typeof en> = {
     "recurring": "繰り返し",
     "oneOff": "単発",
     "frequency": "頻度"
+  },
+  "paydayDrawer": {
+    "title": "収入の振り分け",
+    "subtitle": "収入を確認し、プール間での振分額を確認します",
+    "incomeDetails": "収入の詳細",
+    "incomeDate": "受取日",
+    "splitIncomeAcrossPools": "プールへの振分設定",
+    "totalIncomeAmount": "収入合計金額",
+    "runSplitsCheckbox": "振り分けを実行してカテゴリを更新し、収入を確定済みにする",
+    "runSplitAndConfirm": "振り分け実行 & 確定",
+    "saveAllocationDraft": "下書きを保存"
   }
 } as const;
