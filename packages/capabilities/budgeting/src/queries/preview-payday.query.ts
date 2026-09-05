@@ -85,7 +85,9 @@ export async function previewPaydayForEvent(
           status: "OK" as const,
           lines,
           unallocatedAmount: Math.max(0, incomeAmt - totalAllocated),
-          isCustomPlan: true,
+          // SAVED: user has an explicit PENDING draft; CONFIRMED: plan executed and pool balances updated
+          isCustomPlan: existingPlan.status === "PENDING",
+          isConfirmedPlan: existingPlan.status === "CONFIRMED",
         },
       };
     }
@@ -118,6 +120,7 @@ export async function previewPaydayForEvent(
       lines,
       unallocatedAmount: Math.max(0, incomeAmount - totalAllocated),
       isCustomPlan: false,
+      isConfirmedPlan: false,
     },
   };
 }

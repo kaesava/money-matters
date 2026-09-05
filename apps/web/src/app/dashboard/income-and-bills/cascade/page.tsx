@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import { DashboardError } from "../../../../components/web/DashboardError";
 import { InfoTooltip, SkeletonTable } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -95,11 +96,11 @@ export default function CascadePage() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B]">Income Split Priority Rules</h1>
-          <p className="text-sm font-medium text-zinc-500 mt-1">Review and fine-tune step-by-step pool allocations.</p>
+          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("incomeCascade.title", { defaultValue: "Income Split" })}</h1>
+          <p className="text-sm font-medium text-zinc-500 mt-1">{t("incomeCascade.description", { defaultValue: "Review and fine-tune pool allocations for this payday." })}</p>
         </div>
         <div className="text-right">
-          <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">Paycheck Amount</span>
+          <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">{t("incomeCascade.paycheckAmountLabel", { defaultValue: "Paycheck Amount" })}</span>
           <span className="text-2xl font-black text-[#2563eb]">{fmt(amount)}</span>
         </div>
       </div>
@@ -117,9 +118,9 @@ export default function CascadePage() {
               <thead className="bg-zinc-50 text-xs font-bold text-zinc-400 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-3 rounded-l-lg">Pool Target</th>
-                  <th className="px-6 py-3">Income Split Priority / Reason</th>
-                  <th className="px-6 py-3 text-right">Engine Proposed</th>
-                  <th className="px-6 py-3 text-right rounded-r-lg">Confirmed Split</th>
+                  <th className="px-6 py-3">{t("incomeCascade.reasoningHeader", { defaultValue: "Allocation Reasoning" })}</th>
+                  <th className="px-6 py-3 text-right">{t("incomeCascade.engineProposedHeader", { defaultValue: "Engine Proposed" })}</th>
+                  <th className="px-6 py-3 text-right rounded-r-lg">{t("incomeCascade.confirmedSplitHeader", { defaultValue: "Confirmed Split" })}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 font-medium">
@@ -173,7 +174,9 @@ export default function CascadePage() {
           onClick={handleConfirm}
           className="px-6 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm shadow-md transition-colors disabled:opacity-50"
         >
-          {confirmMutation.isPending ? "Confirming..." : "Confirm & Commit Allocation"}
+          {confirmMutation.isPending
+            ? t("incomeCascade.confirmingButton", { defaultValue: "Confirming..." })
+            : t("incomeCascade.confirmButton", { defaultValue: "Confirm Income Split" })}
         </button>
       </div>
     </div>

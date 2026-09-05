@@ -78,6 +78,9 @@ export function PaydayActionDrawer({
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  // Plan state: SAVED = PENDING plan exists, CONFIRMED = executed plan, AUTO = no plan
+  const [isSavedPlan, setIsSavedPlan] = useState<boolean>(false);
+  const [isConfirmedPlan, setIsConfirmedPlan] = useState<boolean>(false);
 
   const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
 
@@ -104,6 +107,10 @@ export function PaydayActionDrawer({
         initMap[l.bucketId] = l.proposedAmount.toFixed(2);
       });
       setLinesMap(initMap);
+
+      const engineResult = previewQuery.data.engineResult as unknown as { isCustomPlan?: boolean; isConfirmedPlan?: boolean };
+      setIsSavedPlan(engineResult?.isCustomPlan ?? false);
+      setIsConfirmedPlan(engineResult?.isConfirmedPlan ?? false);
     }
   }, [previewQuery.data]);
 
@@ -139,7 +146,9 @@ export function PaydayActionDrawer({
         });
         setLinesMap(initMap);
       }
-      toast.success(t("paydayDrawer.revertedToAutoSuccess", { defaultValue: "Reverted to Auto income split plan." }));
+      toast.success(t("paydayDrawer.revertedToAutoSuccess", { defaultValue: "Reverted. Income Split will be recalculated automatically." }));
+      setIsSavedPlan(false);
+      setIsConfirmedPlan(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to revert allocation.";
       toast.error(message);
@@ -364,23 +373,43 @@ export function PaydayActionDrawer({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
-                  Income Split
+                  {t("paydayDrawer.title", { defaultValue: "Income Split" })}
                 </h2>
-                <button
-                  type="button"
-                  onClick={handleRevertToAuto}
-                  disabled={submitting}
-                  className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
-                >
-                  <span>Revert to Auto</span>
-                  <InfoTooltip
-                    title="Revert to Auto"
-                    content="Reverting to Auto will recalculate the income split plan automatically from pool target rules."
-                  />
-                </button>
+                {isSavedPlan && (
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200">
+                    {t("paydayDrawer.savedBadge", { defaultValue: "SAVED" })}
+                    <InfoTooltip
+                      title={t("paydayDrawer.savedBadge", { defaultValue: "SAVED" })}
+                      content={t("paydayDrawer.savedBadgeTooltip", { defaultValue: "Saved: You have a saved Income Split for this payday. Edit amounts or revert to auto-calculate." })}
+                    />
+                  </span>
+                )}
+                {isConfirmedPlan && (
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200">
+                    {t("paydayDrawer.confirmedBadge", { defaultValue: "CONFIRMED" })}
+                    <InfoTooltip
+                      title={t("paydayDrawer.confirmedBadge", { defaultValue: "CONFIRMED" })}
+                      content={t("paydayDrawer.confirmedBadgeTooltip", { defaultValue: "Confirmed: This Income Split has been executed and pool balances updated. Use 'Revert to Auto' to undo." })}
+                    />
+                  </span>
+                )}
+                {(isSavedPlan || isConfirmedPlan) && (
+                  <button
+                    type="button"
+                    onClick={handleRevertToAuto}
+                    disabled={submitting}
+                    className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <span>{t("paydayDrawer.revertToAuto", { defaultValue: "Revert to Auto" })}</span>
+                    <InfoTooltip
+                      title={t("paydayDrawer.revertToAuto", { defaultValue: "Revert to Auto" })}
+                      content={t("paydayDrawer.revertToAutoTooltip", { defaultValue: "Reverting will remove your saved Income Split and recalculate automatically from your target pool rules." })}
+                    />
+                  </button>
+                )}
               </div>
               <p className="text-xs text-zinc-500 font-medium mt-1">
-                Configure your Income Split across Pools
+                {t("paydayDrawer.subtitle", { defaultValue: "Review and confirm your Income Split across Pools" })}
               </p>
             </div>
             <button
@@ -413,14 +442,14 @@ export function PaydayActionDrawer({
                     <span className="text-zinc-500 font-extrabold text-xs">
                       {isDetailsOpen ? "▼" : "▶"}
                     </span>
-                    <span>Review Income</span>
+                    <span>{t("paydayDrawer.reviewIncome", { defaultValue: "Review Income" })}</span>
                   </button>
 
                   {isDetailsOpen && (
                     <div className="space-y-4 pt-4 mt-3 border-t border-zinc-200 dark:border-zinc-700/60 animate-in fade-in duration-150">
                       <div>
                         <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                          Income Source / Description <span className="text-red-500">*</span>
+                          {t("paydayDrawer.incomeSourceLabel", { defaultValue: "Income Source / Description" })} <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -431,7 +460,7 @@ export function PaydayActionDrawer({
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                          Income Amount ($) <span className="text-red-500">*</span>
+                          {t("paydayDrawer.incomeAmountLabel", { defaultValue: "Income Amount ($)" })} <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="number"
@@ -444,7 +473,7 @@ export function PaydayActionDrawer({
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                          Income Date
+                          {t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
                         </label>
                         <input
                           type="date"
@@ -460,21 +489,21 @@ export function PaydayActionDrawer({
                 {/* Split Income across Pools Section */}
                 <section>
                   <h3 className="text-sm font-extrabold text-[#1B2B4B] dark:text-white mb-4 flex items-center gap-2">
-                    Split Income across Pools
+                    {t("paydayDrawer.splitIncomeAcrossPools", { defaultValue: "Split Income across Pools" })}
                   </h3>
 
                   {/* Summary Header: Everyday, Bills, Goals */}
                   <div className="grid grid-cols-3 gap-2 text-center mb-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700/50">
                     <div>
-                      <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">Everyday</span>
+                      <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">{t("paydayDrawer.everyday", { defaultValue: "Everyday" })}</span>
                       <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{fmt(everydayAllocated)}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">Bills</span>
+                      <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">{t("paydayDrawer.bills", { defaultValue: "Bills" })}</span>
                       <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{fmt(regularAllocated)}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">Goals</span>
+                      <span className="text-[10px] text-zinc-500 font-bold block uppercase tracking-wider">{t("paydayDrawer.goals", { defaultValue: "Goals" })}</span>
                       <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{fmt(goalAllocated)}</span>
                     </div>
                   </div>
@@ -526,7 +555,7 @@ export function PaydayActionDrawer({
                                         {l.bucketName}
                                       </span>
                                       <span className="text-[10px] text-zinc-400 font-mono block truncate">
-                                        Current Balance: {fmt(currentBal)}
+                                        {t("paydayDrawer.currentBalance", { defaultValue: "Current Balance:" })} {fmt(currentBal)}
                                       </span>
                                     </div>
                                     <input
@@ -565,18 +594,18 @@ export function PaydayActionDrawer({
                 </div>
               )}
               <div className="flex items-center justify-between text-xs font-bold text-zinc-900 dark:text-white pt-1 border-t border-zinc-200 dark:border-zinc-700/40">
-                <span className="uppercase tracking-wider text-[10px] text-zinc-500">Total Income Amount</span>
+                <span className="uppercase tracking-wider text-[10px] text-zinc-500">{t("paydayDrawer.totalIncomeAmount", { defaultValue: "Total Income Amount" })}</span>
                 <span className="font-mono font-black text-sm">{fmt(numericActual)}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 pt-2">
+              <div className="flex items-center justify-between gap-3 pt-2">
               <button
                 type="button"
                 onClick={attemptClose}
                 className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs transition-colors cursor-pointer"
               >
-                Cancel
+                {t("common.cancel", { defaultValue: "Cancel" })}
               </button>
 
               <div className="flex items-center gap-2">
@@ -588,7 +617,7 @@ export function PaydayActionDrawer({
                       disabled={isSweepNegative || submitting}
                       className="text-xs font-bold text-[#2563eb] hover:underline px-2 py-1 cursor-pointer transition-colors"
                     >
-                      Confirm Income Split
+                      {t("paydayDrawer.confirmIncomeSplit", { defaultValue: "Confirm Income Split" })}
                     </button>
                     <Button
                       type="button"
@@ -597,28 +626,32 @@ export function PaydayActionDrawer({
                       disabled={isSweepNegative || submitting}
                       className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
                     >
-                      Save Income Split
+                      {t("paydayDrawer.saveIncomeSplit", { defaultValue: "Save Income Split" })}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={handleSaveSplit}
-                      disabled={isSweepNegative || submitting}
-                      className="text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline px-2 py-1 cursor-pointer transition-colors"
-                    >
-                      Save as Draft
-                    </button>
-                    <Button
-                      type="button"
-                      onClick={handleConfirmSplit}
-                      loading={submitting}
-                      disabled={isSweepNegative || submitting}
-                      className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
-                    >
-                      Confirm Income Split
-                    </Button>
+                    {!isConfirmedPlan && (
+                      <button
+                        type="button"
+                        onClick={handleSaveSplit}
+                        disabled={isSweepNegative || submitting}
+                        className="text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline px-2 py-1 cursor-pointer transition-colors"
+                      >
+                        {t("paydayDrawer.saveAsDraft", { defaultValue: "Save as Draft" })}
+                      </button>
+                    )}
+                    {!isConfirmedPlan && (
+                      <Button
+                        type="button"
+                        onClick={handleConfirmSplit}
+                        loading={submitting}
+                        disabled={isSweepNegative || submitting}
+                        className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
+                      >
+                        {t("paydayDrawer.confirmIncomeSplit", { defaultValue: "Confirm Income Split" })}
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -634,9 +667,9 @@ export function PaydayActionDrawer({
           setShowDiscardConfirm(false);
           onClose();
         }}
-        title="Discard changes?"
-        description="You have unsaved allocation edits. Are you sure you want to discard them?"
-        confirmLabel="Discard"
+        title={t("common.discardChangesTitle", { defaultValue: "Discard changes?" })}
+        description={t("paydayDrawer.discardDescription", { defaultValue: "You have unsaved Income Split edits. Are you sure you want to discard them?" })}
+        confirmLabel={t("common.discard", { defaultValue: "Discard" })}
         variant="danger"
       />
     </div>

@@ -57,6 +57,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "close": "閉じる",
     "add": "追加",
     "remove": "削除",
+    "discard": "破棄",
+    "discardChangesTitle": "変更を破棄しますか？",
     "markSpent": "支出を記録",
     "searchPlaceholder": "検索...",
     "selectPlaceholder": "選択してください...",
@@ -847,6 +849,9 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "銀行口座残高",
       "update": "更新",
       "lastUpdated": "{time} 前に更新"
+    },
+    "missingSchedulesBanner": {
+      "incomeHint": "収入スケジュールを追加して、自動収入振り分けを有効にしてください"
     }
   },
   "settings": {
@@ -1631,20 +1636,58 @@ export const ja: DeepStringRecord<typeof en> = {
   },
   "paydayDrawer": {
     "title": "収入の振り分け",
-    "subtitle": "収入を確認し、プール間での振分額を確認します",
+    "subtitle": "プール間での収入振り分けを確認・確定します",
     "incomeDetails": "収入の確認",
     "reviewIncome": "収入の確認",
     "incomeDate": "受取日",
+    "incomeSourceLabel": "収入元 / 説明",
+    "incomeAmountLabel": "収入金額（$）",
     "splitIncomeAcrossPools": "プールへの振分設定",
     "totalIncomeAmount": "収入合計金額",
-    "surplusPool": "Surplus Pool",
-    "runSplitsCheckbox": "Run Split to update Pool and Bank Balances and mark CONFIRMED",
-    "runSplitsTooltip": "Check to confirm the income was received. This will trigger your Pool balances and Bank balances to get updated and the income to be marked Confirmed. Once confirmed, this action cannot be undone. When unchecked (or for future dated income), your split plan will be saved but not run.",
-    "futureIncomeWarning": "You cannot run a Split on future income",
-    "revertToAuto": "Revert to Auto",
-    "revertToAutoTooltip": "Reverting to Auto will discard your manual allocation edits and recalculate the 5-step waterfall plan automatically.",
-    "revertedToAutoSuccess": "Reverted to Auto waterfall allocation plan.",
-    "runSplitAndConfirm": "振り分け実行 & 確定",
-    "saveAllocationDraft": "下書きを保存"
+    "everyday": "日常支出",
+    "bills": "請求書",
+    "goals": "目標",
+    "surplusPool": "サープラスプール",
+    "currentBalance": "現在残高：",
+    "savedBadge": "保存済み",
+    "confirmedBadge": "確定済み",
+    "autoBadgeTooltip": "自動計算：目標プールのルールに基づいてエンジンが毎回自動的に算出します。",
+    "savedBadgeTooltip": "保存済み：このお給料日の収入振り分けが保存されています。金額を編集するか、自動計算に戻すことができます。",
+    "confirmedBadgeTooltip": "確定済み：この収入振り分けは実行済みでプール残高が更新されています。「自動に戻す」で取り消せます。",
+    "revertToAuto": "自動に戻す",
+    "revertToAutoTooltip": "保存した収入振り分けを削除し、目標プールのルールから自動的に再計算します。",
+    "revertedToAutoSuccess": "リセット完了。収入振り分けは自動的に再計算されます。",
+    "confirmIncomeSplit": "収入振り分けを確定",
+    "saveIncomeSplit": "収入振り分けを保存",
+    "saveAsDraft": "下書きとして保存",
+    "confirmSuccess": "収入振り分けが確定され、プール残高が更新されました。",
+    "discardDescription": "未保存の収入振り分け編集があります。破棄してもよいですか？",
+    "futureIncomeNote": "収入日が未来の日付です。保存すると下書きとして保存されます。"
+  },
+  "matrix": {
+    "reviewSplit": "振り分けを確認",
+    "saveSplit": "振り分けを保存",
+    "viewSplit": "振り分けを表示",
+    "revert": "元に戻す",
+    "savedBadge": "保存済み",
+    "saveSplitSuccess": "収入振り分けを保存しました。",
+    "revertSuccess": "リセット完了。収入振り分けは自動計算されます。",
+    "revertDialogTitle": "収入振り分けをリセット",
+    "revertDialogDescription": "このお給料日の保存済み収入振り分けを削除し、自動計算に戻します。続行しますか？",
+    "revertDialogConfirm": "リセット",
+    "incomeAllocationGridTitle": "収入振り分け計画グリッド",
+    "incomeAllocationGridTooltip": "今後12ヶ月のプールへの収入振り分けを計画します。「振り分けを確認」をクリックして編集または確定してください。",
+    "showNext5": "次の5回の給料日を表示",
+    "showFull12": "12ヶ月全体を表示（{count}回の給料日）"
+  },
+  "incomeCascade": {
+    "title": "収入振り分け",
+    "description": "このお給料日のプール振り分けを確認・調整します。",
+    "reasoningHeader": "割当理由",
+    "engineProposedHeader": "エンジン提案",
+    "confirmedSplitHeader": "確定振り分け",
+    "confirmButton": "収入振り分けを確定",
+    "confirmingButton": "確定中...",
+    "paycheckAmountLabel": "給与金額"
   }
 } as const;
