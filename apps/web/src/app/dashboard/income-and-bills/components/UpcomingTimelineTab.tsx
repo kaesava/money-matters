@@ -12,6 +12,7 @@ import {
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
+import { getEarliestPendingIncomeId } from "@money-matters/capability-budgeting";
 
 export interface TimelineEventItem extends EventItem {
   categoryId?: string | null;
@@ -176,10 +177,7 @@ export function UpcomingTimelineTab({
   }, [incomeEvents, expenseEvents, transferEvents, kindFilter, scopeFilter, searchQuery, sortField, sortOrder]);
 
   const earliestPendingIncomeId = useMemo(() => {
-    const upcomingIncomes = incomeEvents
-      .filter((e) => e.status !== "CONFIRMED" && e.status !== "SKIPPED" && !e.isSkipped)
-      .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
-    return upcomingIncomes[0]?.id || null;
+    return getEarliestPendingIncomeId(incomeEvents || []);
   }, [incomeEvents]);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent } from "@money-matters/capability-budgeting/engine";
+import { computeMatrixProjection, getEarliestPendingIncomeId, MatrixIncomeEvent, ScheduledExpenseEvent } from "@money-matters/capability-budgeting/engine";
 import { EngineBucket } from "@money-matters/capability-budgeting/engine";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
@@ -118,10 +118,7 @@ export function MatrixPlanTab({
   const [activePaydayEventId, setActivePaydayEventId] = useState<string | null>(null);
   const [paydayActionMode, setPaydayActionMode] = useState<"MARK_RECEIVED" | "ALLOCATE">("MARK_RECEIVED");
   const earliestPendingIncomeId = useMemo(() => {
-    const pendingIncomes = (incomeEvents || []).filter((e) => e.status !== "CONFIRMED" && e.status !== "SKIPPED");
-    if (!pendingIncomes.length) return null;
-    const sorted = [...pendingIncomes].sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
-    return sorted[0]?.id || null;
+    return getEarliestPendingIncomeId(incomeEvents || []);
   }, [incomeEvents]);
 
   // Load saved allocation plans into initial overrides state
@@ -409,7 +406,7 @@ export function MatrixPlanTab({
                           }}
                           className="text-[10px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 px-2 py-1 rounded shadow-sm transition-colors"
                         >
-                          Mark Received
+                          {t("common.markReceived")}
                         </button>
                       ) : (
                         <button
@@ -420,7 +417,7 @@ export function MatrixPlanTab({
                           }}
                           className="text-[10px] font-extrabold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 px-2 py-1 rounded shadow-sm transition-colors"
                         >
-                          Allocate
+                          {t("common.allocate")}
                         </button>
                       )}
                       {hasPlanOverride && (

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeMatrixProjection, MatrixIncomeEvent } from "./matrix-projection-engine.js";
+import { computeMatrixProjection, getEarliestPendingIncomeId, MatrixIncomeEvent } from "./matrix-projection-engine.js";
 import { EngineBucket } from "./allocation-engine.js";
 
 describe("matrix-projection-engine", () => {
@@ -123,4 +123,39 @@ describe("matrix-projection-engine", () => {
     expect(cell.isOverride).toBe(true);
     expect(cell.allocated).toBe(800);
   });
+
+  describe("getEarliestPendingIncomeId", () => {
+    it("should return null for empty or null array", () => {
+      expect(getEarliestPendingIncomeId([])).toBeNull();
+    });
+
+    it("should return the earliest pending income event by expectedDate", () => {
+      const items = [
+        { id: "evt-2", expectedDate: "2026-09-15", status: "UPCOMING" },
+        { id: "evt-1", expectedDate: "2026-09-01", status: "UPCOMING" },
+        { id: "evt-3", expectedDate: "2026-09-30", status: "UPCOMING" },
+      ];
+      expect(getEarliestPendingIncomeId(items)).toBe("evt-1");
+    });
+
+    it("should filter out SKIPPED (status or isSkipped) and CONFIRMED events", () => {
+      const items = [
+        { id: "evt-1", expectedDate: "2026-09-01", status: "CONFIRMED" },
+        { id: "evt-2", expectedDate: "2026-09-05", status: "SKIPPED" },
+        { id: "evt-3", expectedDate: "2026-09-10", expectedAmount: 100, isSkipped: true },
+        { id: "evt-4", expectedDate: "2026-09-15", status: "UPCOMING" },
+        { id: "evt-5", expectedDate: "2026-09-20", status: "UPCOMING" },
+      ];
+      expect(getEarliestPendingIncomeId(items)).toBe("evt-4");
+    });
+
+    it("should return null if all events are confirmed or skipped", () => {
+      const items = [
+        { id: "evt-1", expectedDate: "2026-09-01", status: "CONFIRMED" },
+        { id: "evt-2", expectedDate: "2026-09-05", isSkipped: true },
+      ];
+      expect(getEarliestPendingIncomeId(items)).toBeNull();
+    });
+  });
 });
+

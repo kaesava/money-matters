@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { t } from '@money-matters/i18n';
 import { fmtDate } from '@money-matters/ui/web';
+import { getEarliestPendingIncomeId } from '@money-matters/capability-budgeting';
 
 export interface WebIncomeItem {
   readonly id: string;
@@ -26,10 +27,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
   formatAUD,
 }) => {
   const earliestPendingId = useMemo(() => {
-    // Already filtered by UPCOMING in parent, so we just need the earliest date
-    if (!upcomingIncomes.length) return null;
-    const sorted = [...upcomingIncomes].sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
-    return sorted[0]?.id || null;
+    return getEarliestPendingIncomeId(upcomingIncomes as WebIncomeItem[]);
   }, [upcomingIncomes]);
 
   if (!upcomingIncomes || upcomingIncomes.length === 0) {
@@ -107,7 +105,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   onClick={() => onPressMarkReceived(income.id)}
                   className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shrink-0 shadow-2xs cursor-pointer"
                 >
-                  Mark Received
+                  {t("common.markReceived")}
                 </button>
               ) : (
                 <button
@@ -115,7 +113,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   onClick={() => onPressAllocate(income.id)}
                   className="px-3 py-1.5 text-xs font-bold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-xl transition-colors shrink-0 shadow-2xs cursor-pointer"
                 >
-                  Allocate
+                  {t("common.allocate")}
                 </button>
               )}
             </div>

@@ -13,6 +13,8 @@ import {
   transactionLedger,
   expenseSources,
   expenseEvents,
+  transferSources,
+  transferEvents,
   userPreferences,
   tenantUserPreferences,
   users,
@@ -134,6 +136,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(allocationPlans);
   await db.delete(expenseEvents);
   await db.delete(expenseSources);
+  await db.delete(transferEvents);
+  await db.delete(transferSources);
   await db.delete(incomeEvents);
   await db.delete(incomeSources);
   await db.execute(sql`DELETE FROM public.category_schedules`).catch(() => {});

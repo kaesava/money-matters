@@ -367,3 +367,28 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     groups,
   };
 }
+
+export interface BaseIncomeItem {
+  id: string;
+  expectedDate: string;
+  status?: string;
+  isSkipped?: boolean;
+}
+
+/**
+ * Returns the ID of the earliest pending income event (sorted chronologically by expectedDate).
+ * A pending income event is one that is not skipped (isSkipped !== true and status !== "SKIPPED")
+ * and not confirmed/processed (status !== "CONFIRMED").
+ */
+export function getEarliestPendingIncomeId<T extends BaseIncomeItem>(incomeItems: T[]): string | null {
+  if (!incomeItems || incomeItems.length === 0) return null;
+  const pending = incomeItems.filter((item) => {
+    if (item.isSkipped || item.status === "SKIPPED") return false;
+    if (item.status === "CONFIRMED") return false;
+    return true;
+  });
+  if (pending.length === 0) return null;
+  const sorted = [...pending].sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
+  return sorted[0].id;
+}
+
