@@ -41,7 +41,6 @@ export async function maintainRollingWindowCommand({
       .where(
         and(
           eq(incomeEvents.incomeSourceId, source.id),
-          eq(incomeEvents.status, "UPCOMING"),
           sql`${incomeEvents.archivedAt} IS NULL`
         )
       );
@@ -52,7 +51,7 @@ export async function maintainRollingWindowCommand({
 
     const datesToInsert = horizonDates.filter((d) => {
       const dStr = getAestDateString(d);
-      return dStr >= todayStr && !existingDates.has(dStr);
+      return !existingDates.has(dStr);
     });
 
     if (datesToInsert.length > 0) {
@@ -93,7 +92,6 @@ export async function maintainRollingWindowCommand({
       .where(
         and(
           eq(expenseEvents.expenseSourceId, source.id),
-          eq(expenseEvents.status, "UPCOMING"),
           sql`${expenseEvents.archivedAt} IS NULL`
         )
       );
@@ -104,7 +102,7 @@ export async function maintainRollingWindowCommand({
 
     const datesToInsert = horizonDates.filter((d) => {
       const dStr = getAestDateString(d);
-      return dStr >= todayStr && !existingDates.has(dStr);
+      return !existingDates.has(dStr);
     });
 
     if (datesToInsert.length > 0) {

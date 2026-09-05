@@ -47,12 +47,9 @@ export function generateBurstDates(
 
     const rule = new RRule(options);
 
-    // We only care about occurrences from "today" forwards (even if dtstart was in the past)
-    const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    // Generate dates using rrule. 
-    // We add true as the 3rd argument to `between` to ensure it's inclusive of `todayLocal` and `limitDate`.
-    const generated = rule.between(todayLocal, limitDate, true);
+    // Generate occurrences starting from dtstart up to limitDate
+    // We add true as the 3rd argument to `between` to ensure it's inclusive of `start` and `limitDate`.
+    const generated = rule.between(start, limitDate, true);
 
     return generated.slice(0, maxOccurrences);
   } catch (e) {

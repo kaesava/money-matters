@@ -22,4 +22,12 @@ describe('Recurrence Burst Date Engine', () => {
     const dates = generateBurstDates('FREQ=WEEKLY', '2026-08-01', '2026-08-15', 6);
     expect(dates.length).toBeLessThanOrEqual(3);
   });
+
+  it('includes past occurrences starting from startDate when startDate is in the past', () => {
+    const dates = generateBurstDates('FREQ=WEEKLY', '2026-08-01', null, 2);
+    // 2026-08-01 is in the past; first generated date should match or equal the start date
+    expect(dates.length).toBeGreaterThan(0);
+    const firstDateStr = dates[0].toISOString().split('T')[0];
+    expect(firstDateStr).toBe('2026-08-01');
+  });
 });

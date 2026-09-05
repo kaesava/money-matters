@@ -95,6 +95,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "selectPool": "プールを選択...",
     "noPoolsAvailable": "利用可能なプールがありません",
     "markReceived": "受領済みにする",
+    "allocate": "割り当てる",
     "markPaid": "支払済みにする",
     "saveAsPending": "保留として保存",
     "incomeNameSource": "収入名 / 振込元",

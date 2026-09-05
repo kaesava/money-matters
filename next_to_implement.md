@@ -60,7 +60,11 @@ _________
 ### Quick Action (triggered from multiple places)
 #### Income
 #### Expense
+* When I Quick pick, it doesn't seem to be selecting the Category/Pool. Ensure that it does (unless the Category/Pool have now been Archived/Deleted).
+* When the Pool picker launches from this view, allow users to pick a Pool or Category (show Categories as well). Only one Pool or Category can be selected.  It seems to default to the first one.
 #### Transfer
+* When I Quick pick, it doesn't seem to be picking the From and To Pools. Ensure that it does (unless those Pools have now been Archived/Deleted).
+* When the Pool picker launches from this view, allow users to only pick a Pool (NOT Category) (don't 'show Categories). Only one Pool or Category can be selected. It seems to default to the first one.
 
 
 ## ******* "Pools"
@@ -77,13 +81,31 @@ _________
 ## ******* "Income & Bill Management"
 
 ### Allocate Income (and functionality)
+* Mark past dates with overdue (similar to Upcoming tab)
+* Change "12-Month Allocation Grid" to "Income Allocation Grid" and the (i) hover text to "Allocate upcoming Income into Pools to stay in control of your targets out to 12 months".
+
 ### Upcoming
+* The search bar shouldn't get stunted like it is (width)
+* Actions - Show Mark Spent Mark Received and Allocate Actions as hyperlinks - stay consistent across the app (similar to Pools screenscrteen) - leave Skip as is.
+
 #### Allocate/Mark Received/Mark Paid
 #### Skip Functionality
 #### Income Allocation
 
 ### Setup
-#### Add/Edit modal - Expense Schedule & Income Schedule (applies to both)
+* The search bar shouldn't get stunted like it is (width)
+* Instead of "Recurring schedule" - actually show the recurring schedule - like "every 2 weeks from 01 Jan 26 to 20 Jan 26" (to part is only if it is entered)
+* All Pools filter - show the Pool picker - launch it so you can't pick Categories - only Pools - only pick one Pool
+
+#### Create/Edit modal - Expense Schedule & Income Schedule (applies to both)
+* Expense Schedule: UX for the "Every" number is broken. It won't allow me to clear the field to enter a number.
+* Both: I changed the start date to 01-Jan-26, End date to 31-Dec-26 and "Every" to 3 (and frequency to "Weekly"). When I look at the DB, I see FREQ=WEEKLY	2026-01-01	2026-12-31 (rrule, start_date, end_date) so the "3" is not registered in the rrule.
+* Both: When I re-open the Schedule, the end date and "Every" are blank - not getting picked up from the database?
+* Expense Schedule: (Edit) When I change the Recurring/One-Off, Frequency, Start Date, End date OR "Every" number, it doesn't register the change and so the Update field is read-only. Fix this so a change in any of these fields makes me enables Save (unless there are fields that don't meet format/mandatory).
+* Income Schedule: (Edit) When I open and make no change, it still allows Save. It should only show Save if I made a change in any of the fields: Income Name, Expected Amount,  Bank Account, Recurring/One-Off, Frequency, Every, First Date, End Date.
+* Effectively, these two shoudld operate very similarly - re-use code as much as possible across them.
+
+
 #### Burst logic
 #### Change Start/Frequency/End-date/Amount/Other - check re-burst
 #### Delete - check event delete (archival)

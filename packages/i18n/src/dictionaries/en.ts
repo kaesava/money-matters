@@ -95,6 +95,7 @@ export const en = {
     selectPool: "Select Pool...",
     noPoolsAvailable: "No pools available",
     markReceived: "Mark Received",
+    allocate: "Allocate",
     markPaid: "Mark Paid",
     saveAsPending: "Save as Pending",
     incomeNameSource: "Income Name / Source",
