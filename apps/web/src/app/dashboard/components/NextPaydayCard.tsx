@@ -25,9 +25,17 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
   if (!upcomingIncomes || upcomingIncomes.length === 0) {
     return (
       <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg">💰</span>
-          <h2 className="text-sm font-extrabold text-[#1B2B4B]">Upcoming Income & Paydays</h2>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">💰</span>
+            <h2 className="text-sm font-extrabold text-[#1B2B4B]">Upcoming Income</h2>
+          </div>
+          <a
+            href="/dashboard/income-and-bills?tab=EVENTS&type=INCOME"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            Show More →
+          </a>
         </div>
         <p className="text-xs text-gray-400 py-4 text-center">No upcoming paydays scheduled.</p>
       </div>
@@ -42,14 +50,14 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
         <div className="flex items-center gap-2">
           <span className="text-lg">💰</span>
           <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-            Upcoming Income & Paydays ({upcomingIncomes.length})
+            Upcoming Income ({upcomingIncomes.length})
           </h2>
         </div>
         <a
-          href="/dashboard/income-and-bills?tab=matrix-plan"
+          href="/dashboard/income-and-bills?tab=EVENTS&type=INCOME"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
-          Bulk Plan →
+          Show More →
         </a>
       </div>
 

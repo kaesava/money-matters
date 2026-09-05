@@ -1,18 +1,23 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, fmtDate, Tabs, ConfirmDialog } from "@money-matters/ui/web";
+import { useToast, Spinner, InfoTooltip, SearchInput, ResizableTh, useResizableColumns, Tabs } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import PaydayPreviewModal from "../../../components/web/PaydayPreviewModal";
-
+import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
+import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
 
-const getAestTodayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+function IncomeAndBillsContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") || "MATRIX";
+  const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
 
-export default function IncomeAndBillsPage() {
-  const [activeTab, setActiveTab] = useState("MATRIX");
+  const [activeTab, setActiveTab] = useState(tabParam);
+  const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -22,6 +27,7 @@ export default function IncomeAndBillsPage() {
   const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+  const transferEventsQuery = trpc.listTransferEvents.useQuery();
 
   const isLoading =
     poolsQuery.isLoading ||
@@ -29,7 +35,8 @@ export default function IncomeAndBillsPage() {
     incomeSourcesQuery.isLoading ||
     expenseSourcesQuery.isLoading ||
     incomeEventsQuery.isLoading ||
-    expenseEventsQuery.isLoading;
+    expenseEventsQuery.isLoading ||
+    transferEventsQuery.isLoading;
 
   const rawPools = poolsQuery.data;
   const rawIncomeSources = incomeSourcesQuery.data;
@@ -40,9 +47,11 @@ export default function IncomeAndBillsPage() {
   const expenseSources = useMemo(() => rawExpenseSources || [], [rawExpenseSources]);
   const rawIncomeEvents = incomeEventsQuery.data;
   const rawExpenseEvents = expenseEventsQuery.data;
+  const rawTransferEvents = transferEventsQuery.data;
 
   const incomeEvents = useMemo(() => rawIncomeEvents || [], [rawIncomeEvents]);
   const expenseEvents = useMemo(() => rawExpenseEvents || [], [rawExpenseEvents]);
+  const transferEvents = useMemo(() => rawTransferEvents || [], [rawTransferEvents]);
 
   const matrixIncomeEvents = useMemo(() => {
     return incomeEvents
@@ -68,68 +77,14 @@ export default function IncomeAndBillsPage() {
       }));
   }, [expenseEvents]);
 
-  const todayStr = useMemo(() => getAestTodayStr(), []);
-
-  const poolTypeMap = useMemo(() => {
-    const map = new Map<string, "EVERYDAY" | "REGULAR" | "GOAL">();
-    for (const p of pools) {
-      map.set(p.id, p.poolType);
-    }
-    return map;
-  }, [pools]);
-
-  // Filter Upcoming (Pending / Unactioned) Events Only
-  const pendingEvents = useMemo(() => {
-    const incs = incomeEvents
-      .filter((e) => e.status !== "CONFIRMED" && e.status !== "SKIPPED")
-      .map((e) => ({
-        id: e.id,
-        name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
-        expectedDate: e.expectedDate,
-        expectedAmount: parseFloat(e.expectedAmount || "0"),
-        status: e.status as string,
-        type: "INCOME" as const,
-        poolType: "EVERYDAY" as const,
-        isOverdue: e.expectedDate <= todayStr,
-      }));
-    const exps = expenseEvents
-      .filter((e) => e.status !== "PAID" && e.status !== "SKIPPED")
-      .map((e) => ({
-        id: e.id,
-        name: e.name || "Scheduled Bill",
-        expectedDate: e.expectedDate,
-        expectedAmount: parseFloat(e.expectedAmount || "0"),
-        status: e.status as string,
-        type: "EXPENSE" as const,
-        poolType: poolTypeMap.get(e.poolId || e.categoryId || "") || "REGULAR",
-        isOverdue: e.expectedDate <= todayStr,
-      }));
-    return [...incs, ...exps].sort((a, b) => (a.expectedDate || "").localeCompare(b.expectedDate || ""));
-  }, [incomeEvents, expenseEvents, todayStr, poolTypeMap]);
-
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [sourceToEdit, setSourceToEdit] = useState<React.ComponentProps<typeof IncomeExpenseFormModal>["sourceToEdit"]>(undefined);
+  const [selectedIncomeEventIdForModal, setSelectedIncomeEventIdForModal] = useState<string | null>(null);
 
   // Setup Tab Search State
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
-
-  // Upcoming Table State & Sorting
-  const [eventSearchQuery, setEventSearchQuery] = useState("");
-  const [eventTypeFilter, setEventTypeFilter] = useState<"ALL" | "EVERYDAY" | "REGULAR" | "GOAL">("ALL");
-  const [eventSortColumn, setEventSortColumn] = useState<"type" | "name" | "expectedDate" | "expectedAmount">("expectedDate");
-  const [eventSortDirection, setEventSortDirection] = useState<"asc" | "desc">("asc");
-  const [selectedIncomeEventIdForModal, setSelectedIncomeEventIdForModal] = useState<string | null>(null);
-  const [isBulkSkipping, setIsBulkSkipping] = useState(false);
-
-  const { widths: eventWidths, onMouseDown: onEventMouseDown } = useResizableColumns({
-    type: 110,
-    name: 240,
-    expectedDate: 150,
-    expectedAmount: 140,
-    actions: 180,
-  });
 
   const { widths: setupWidths, onMouseDown: onSetupMouseDown } = useResizableColumns({
     name: 220,
@@ -139,79 +94,12 @@ export default function IncomeAndBillsPage() {
   });
 
   // Action Mutations
-  const markIncomeReceivedMut = trpc.markIncomeReceived.useMutation();
   const markExpensePaidMut = trpc.markExpensePaid.useMutation();
   const skipIncomeMut = trpc.skipIncomeEvent.useMutation();
   const skipExpenseMut = trpc.skipExpenseEvent.useMutation();
-
-  const handleActionReceivedOrPaid = useCallback(
-    async (evt: { id: string; type: "INCOME" | "EXPENSE"; name: string }) => {
-      try {
-        if (evt.type === "INCOME") {
-          await markIncomeReceivedMut.mutateAsync({ eventId: evt.id });
-          toast.success(`Marked "${evt.name}" as received.`);
-        } else {
-          await markExpensePaidMut.mutateAsync({ eventId: evt.id });
-          toast.success(`Marked "${evt.name}" as paid.`);
-        }
-        utils.listIncomeEvents.invalidate();
-        utils.listExpenseEvents.invalidate();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to process event.");
-      }
-    },
-    [markIncomeReceivedMut, markExpensePaidMut, utils, toast]
-  );
-
-  const [eventToSkip, setEventToSkip] = useState<{ id: string; type: "INCOME" | "EXPENSE"; name: string } | null>(null);
-
-  const handleActionSkip = useCallback(
-    (evt: { id: string; type: "INCOME" | "EXPENSE"; name: string }) => {
-      setEventToSkip(evt);
-    },
-    []
-  );
-
-  const confirmSkip = useCallback(async () => {
-    if (!eventToSkip) return;
-    try {
-      if (eventToSkip.type === "INCOME") {
-        await skipIncomeMut.mutateAsync({ eventId: eventToSkip.id });
-      } else {
-        await skipExpenseMut.mutateAsync({ eventId: eventToSkip.id });
-      }
-      toast.success(`Skipped "${eventToSkip.name}".`);
-      utils.listIncomeEvents.invalidate();
-      utils.listExpenseEvents.invalidate();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to skip event.");
-    } finally {
-      setEventToSkip(null);
-    }
-  }, [eventToSkip, skipIncomeMut, skipExpenseMut, utils, toast]);
-
-  const overdueEvents = useMemo(() => pendingEvents.filter((e) => e.isOverdue), [pendingEvents]);
-
-  const handleBulkSkipPastEvents = useCallback(async () => {
-    if (overdueEvents.length === 0) return;
-    setIsBulkSkipping(true);
-    try {
-      await Promise.all(
-        overdueEvents.map((e) =>
-          e.type === "INCOME"
-            ? skipIncomeMut.mutateAsync({ eventId: e.id })
-            : skipExpenseMut.mutateAsync({ eventId: e.id })
-        )
-      );
-      toast.success(`Skipped ${overdueEvents.length} past events.`);
-      utils.listIncomeEvents.invalidate();
-      utils.listExpenseEvents.invalidate();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to bulk skip past events.");
-    } finally {
-      setIsBulkSkipping(false);
-    }
-  }, [overdueEvents, skipIncomeMut, skipExpenseMut, utils, toast]);
+  const executeTransferEventMut = trpc.executeTransferEvent.useMutation();
+  const skipTransferEventMut = trpc.skipTransferEvent.useMutation();
+  const moveMoneyMut = trpc.moveMoney.useMutation();
 
   // Setup Tab Filtered Schedules
   const filteredIncomeSources = useMemo(() => {
@@ -229,35 +117,6 @@ export default function IncomeAndBillsPage() {
       (exp) => exp.name.toLowerCase().includes(q) || String(exp.amount).includes(q) || (exp.poolName || "").toLowerCase().includes(q)
     );
   }, [expenseSources, setupSearchQuery]);
-
-  // Upcoming Filtered & Sorted Events
-  const filteredEvents = useMemo(() => {
-    return pendingEvents.filter((evt) => {
-      if (eventTypeFilter !== "ALL" && evt.poolType !== eventTypeFilter) return false;
-      if (eventSearchQuery.trim()) {
-        const q = eventSearchQuery.toLowerCase().trim();
-        const amtStr = evt.expectedAmount.toFixed(2);
-        return evt.name.toLowerCase().includes(q) || amtStr.includes(q);
-      }
-      return true;
-    });
-  }, [pendingEvents, eventTypeFilter, eventSearchQuery]);
-
-  const sortedEvents = useMemo(() => {
-    return [...filteredEvents].sort((a, b) => {
-      let cmp = 0;
-      if (eventSortColumn === "expectedDate") {
-        cmp = (a.expectedDate || "").localeCompare(b.expectedDate || "");
-      } else if (eventSortColumn === "name") {
-        cmp = a.name.localeCompare(b.name);
-      } else if (eventSortColumn === "type") {
-        cmp = a.type.localeCompare(b.type);
-      } else if (eventSortColumn === "expectedAmount") {
-        cmp = a.expectedAmount - b.expectedAmount;
-      }
-      return eventSortDirection === "asc" ? cmp : -cmp;
-    });
-  }, [filteredEvents, eventSortColumn, eventSortDirection]);
 
   const currentUserId = pools[0]?.id || "default-user";
 
@@ -497,182 +356,101 @@ export default function IncomeAndBillsPage() {
       )}
 
       {activeTab === "EVENTS" && (
-        <div className="space-y-4 p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
-            <SearchInput
-              value={eventSearchQuery}
-              onChange={setEventSearchQuery}
-              placeholder="Search event name or amount..."
-            />
-
-            <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto">
-              {/* Segmented Pill Filter */}
-              <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-zinc-200 shrink-0">
-                {(["ALL", "EVERYDAY", "REGULAR", "GOAL"] as const).map((filterKey) => (
-                  <button
-                    key={filterKey}
-                    type="button"
-                    onClick={() => setEventTypeFilter(filterKey)}
-                    className={`px-3 py-1 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
-                      eventTypeFilter === filterKey
-                        ? "bg-[#2563eb] text-white shadow-2xs"
-                        : "text-zinc-500 hover:text-zinc-800"
-                    }`}
-                  >
-                    {filterKey === "ALL" ? "All" : filterKey === "EVERYDAY" ? "Everyday" : filterKey === "REGULAR" ? "Bills" : "Goals"}
-                  </button>
-                ))}
-              </div>
-
-              {overdueEvents.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBulkSkipPastEvents}
-                  disabled={isBulkSkipping}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
-                >
-                  <span>⏭️</span>
-                  <span>Skip Past ({overdueEvents.length})</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {sortedEvents.length === 0 ? (
-            <div className="py-12 text-center text-zinc-400 text-xs font-semibold">
-              No pending scheduled events found matching your filters.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                    <ResizableTh
-                      width={eventWidths.type}
-                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("type", e)}
-                      className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
-                      onClick={() => {
-                        if (eventSortColumn === "type") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-                        else { setEventSortColumn("type"); setEventSortDirection("asc"); }
-                      }}
-                    >
-                      <div className="flex items-center justify-center gap-1">
-                        <span>Type</span>
-                        {eventSortColumn === "type" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
-                      </div>
-                    </ResizableTh>
-                    <ResizableTh
-                      width={eventWidths.name}
-                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("name", e)}
-                      className="py-3 px-4 text-left cursor-pointer hover:bg-slate-100"
-                      onClick={() => {
-                        if (eventSortColumn === "name") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-                        else { setEventSortColumn("name"); setEventSortDirection("asc"); }
-                      }}
-                    >
-                      <div className="flex items-center gap-1">
-                        <span>Event Name</span>
-                        {eventSortColumn === "name" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
-                      </div>
-                    </ResizableTh>
-                    <ResizableTh
-                      width={eventWidths.expectedDate}
-                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("expectedDate", e)}
-                      className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
-                      onClick={() => {
-                        if (eventSortColumn === "expectedDate") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-                        else { setEventSortColumn("expectedDate"); setEventSortDirection("asc"); }
-                      }}
-                    >
-                      <div className="flex items-center justify-center gap-1">
-                        <span>Expected Date</span>
-                        {eventSortColumn === "expectedDate" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
-                      </div>
-                    </ResizableTh>
-                    <ResizableTh
-                      width={eventWidths.expectedAmount}
-                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("expectedAmount", e)}
-                      className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
-                      onClick={() => {
-                        if (eventSortColumn === "expectedAmount") setEventSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-                        else { setEventSortColumn("expectedAmount"); setEventSortDirection("desc"); }
-                      }}
-                    >
-                      <div className="flex items-center justify-end gap-1">
-                        <span>Amount</span>
-                        {eventSortColumn === "expectedAmount" && <span>{eventSortDirection === "asc" ? "↑" : "↓"}</span>}
-                      </div>
-                    </ResizableTh>
-                    <ResizableTh
-                      width={eventWidths.actions}
-                      onResizeMouseDown={(e: React.MouseEvent) => onEventMouseDown("actions", e)}
-                      className="py-3 px-4 text-center"
-                    >
-                      <span>Actions</span>
-                    </ResizableTh>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100 text-xs font-medium">
-                  {sortedEvents.map((evt) => (
-                    <tr
-                      key={evt.id + evt.type}
-                      className={`transition-colors ${
-                        evt.isOverdue ? "bg-rose-50/30 hover:bg-rose-50/60" : "hover:bg-slate-50/50"
-                      }`}
-                    >
-                      <td className="py-3 px-4 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                          evt.type === "INCOME" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                        }`}>
-                          {evt.type === "INCOME" ? "Income" : "Bill"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-left font-bold text-[#1B2B4B]">{evt.name}</td>
-                      <td className="py-3 px-4 text-center font-mono text-zinc-500">
-                        <div className="inline-flex items-center gap-1.5">
-                          <span>{fmtDate(evt.expectedDate)}</span>
-                          {evt.isOverdue && (
-                            <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 text-[9px] font-black uppercase rounded-md border border-rose-200/80">
-                              OVERDUE
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
-                        evt.type === "INCOME" ? "text-emerald-600" : "text-zinc-900"
-                      }`}>
-                        {evt.type === "INCOME" ? "+" : "-"}${evt.expectedAmount.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (evt.type === "INCOME") {
-                                setSelectedIncomeEventIdForModal(evt.id);
-                              } else {
-                                handleActionReceivedOrPaid(evt);
-                              }
-                            }}
-                            className="px-2.5 py-1 bg-[#2563eb] text-white hover:bg-[#1d4ed8] rounded-lg font-extrabold text-[10px] transition-colors shadow-xs cursor-pointer"
-                          >
-                            {evt.type === "INCOME" ? "Mark Received" : "Mark Paid"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleActionSkip(evt)}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[10px] transition-colors border border-slate-200"
-                          >
-                            Skip
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <div className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-sm">
+          <UpcomingTimelineTab
+            initialKindFilter={typeParam === "INCOME" || typeParam === "EXPENSE" || typeParam === "TRANSFER" ? typeParam : "ALL"}
+            incomeEvents={incomeEvents.map((e) => ({
+              ...e,
+              name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
+              isSkipped: e.status === "SKIPPED",
+            }))}
+            expenseEvents={expenseEvents.map((e) => ({
+              ...e,
+              name: e.name || "Scheduled Bill",
+              categoryName: pools.find((p) => p.id === (e.poolId || e.categoryId))?.name || "Pool",
+              isSkipped: e.status === "SKIPPED",
+            }))}
+            transferEvents={transferEvents.map((e) => ({
+              ...e,
+              name: e.name || "Pool Transfer",
+              sourcePoolId: e.sourcePoolId,
+              sourcePoolName: e.sourcePoolName,
+              destinationPoolId: e.destinationPoolId,
+              destinationPoolName: e.destinationPoolName,
+              isSkipped: e.status === "SKIPPED",
+            }))}
+            categories={pools.map((p) => ({
+              id: p.id,
+              name: p.name,
+              currentBalance: parseFloat(String(p.currentBalance || "0")),
+            }))}
+            searchQuery=""
+            onMarkExpensePaid={async (eventId) => {
+              try {
+                await markExpensePaidMut.mutateAsync({ eventId });
+                toast.success("Bill marked as paid.");
+                utils.listExpenseEvents.invalidate();
+                utils.listPools.invalidate();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to mark paid.");
+              }
+            }}
+            onMarkIncomeReceived={async (eventId) => {
+              setSelectedIncomeEventIdForModal(eventId);
+            }}
+            onSkipExpense={async (eventId) => {
+              try {
+                await skipExpenseMut.mutateAsync({ eventId });
+                toast.success("Bill skipped.");
+                utils.listExpenseEvents.invalidate();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to skip.");
+              }
+            }}
+            onUnskipExpense={() => {}}
+            onSkipIncome={async (eventId) => {
+              try {
+                await skipIncomeMut.mutateAsync({ eventId });
+                toast.success("Income skipped.");
+                utils.listIncomeEvents.invalidate();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to skip.");
+              }
+            }}
+            onUnskipIncome={() => {}}
+            onSkipTransfer={async (eventId) => {
+              try {
+                await skipTransferEventMut.mutateAsync({ eventId });
+                toast.success("Transfer skipped.");
+                utils.listTransferEvents.invalidate();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to skip.");
+              }
+            }}
+            onExecuteTransfer={async (eventId, amount, date, sourcePoolId, destinationPoolId) => {
+              try {
+                await executeTransferEventMut.mutateAsync({ eventId, amount, sourcePoolId, destinationPoolId });
+                toast.success("Transfer completed successfully!");
+                utils.listTransferEvents.invalidate();
+                utils.listPools.invalidate();
+                utils.listTransactions.invalidate();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to execute transfer.");
+              }
+            }}
+            onOpenTransferModalWithData={() => {
+              setIsTransferDrawerOpen(true);
+            }}
+            onConfirmTransferAndPay={async (sourceCategoryId, destinationCategoryId, amount) => {
+              await moveMoneyMut.mutateAsync({
+                sourcePoolId: sourceCategoryId,
+                destinationPoolId: destinationCategoryId,
+                amount,
+                note: "Shortfall Top Up",
+              });
+              utils.listPools.invalidate();
+            }}
+          />
         </div>
       )}
 
@@ -688,16 +466,6 @@ export default function IncomeAndBillsPage() {
         />
       )}
 
-      <ConfirmDialog
-        isOpen={!!eventToSkip}
-        onClose={() => setEventToSkip(null)}
-        onConfirm={confirmSkip}
-        title={`Skip ${eventToSkip?.type === "INCOME" ? "Income" : "Bill"}`}
-        description={t("common.skipConfirmationText", { defaultValue: "Mark this as Skipped to ignore this record. You can Unskip it later if you need to." })}
-        confirmLabel="Skip Record"
-        variant="warning"
-      />
-
       {selectedIncomeEventIdForModal && (
         <PaydayPreviewModal
           isOpen={Boolean(selectedIncomeEventIdForModal)}
@@ -710,6 +478,21 @@ export default function IncomeAndBillsPage() {
           }}
         />
       )}
+
+      {isTransferDrawerOpen && (
+        <QuickExpenseDrawer
+          initialTab="TRANSFER"
+          onClose={() => setIsTransferDrawerOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+export default function IncomeAndBillsPage() {
+  return (
+    <Suspense fallback={<div className="flex h-96 items-center justify-center"><Spinner /></div>}>
+      <IncomeAndBillsContent />
+    </Suspense>
   );
 }

@@ -80,18 +80,18 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
         </div>
       )}
 
-      {/* Mini goals cards/progress bars list */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      {/* Full-row goals list */}
+      <div className="flex flex-col gap-3">
         {processedGoals.slice(0, 3).map((goal) => (
           <div
             key={goal.id}
-            className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3 space-y-1.5"
+            className="bg-slate-50/70 border border-slate-200/70 rounded-xl p-3 space-y-2 hover:border-slate-300 transition-colors"
           >
             <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-gray-800 truncate max-w-[130px]">{goal.name}</span>
+              <span className="font-bold text-gray-800 truncate">{goal.name}</span>
               <span className="font-mono text-gray-600 font-semibold">{goal.pct}%</span>
             </div>
-            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-300 ${
                   goal.pct >= 100

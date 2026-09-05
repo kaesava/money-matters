@@ -9,38 +9,54 @@ export interface TimelineEventItem extends EventItem {
   categoryId?: string | null;
   categoryName?: string | null;
   accountName?: string | null;
+  sourcePoolId?: string | null;
+  sourcePoolName?: string | null;
+  destinationPoolId?: string | null;
+  destinationPoolName?: string | null;
   isSkipped?: boolean;
 }
 
 interface UpcomingTimelineTabProps {
   incomeEvents: TimelineEventItem[];
   expenseEvents: TimelineEventItem[];
+  transferEvents?: TimelineEventItem[];
   categories: CategoryOption[];
   searchQuery: string;
+  initialKindFilter?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
   onMarkExpensePaid: (eventId: string, amount: string, date: string) => void;
   onMarkIncomeReceived: (eventId: string, amount: string, date: string) => void;
   onSkipExpense: (eventId: string) => void;
   onUnskipExpense: (eventId: string) => void;
   onSkipIncome: (eventId: string) => void;
   onUnskipIncome: (eventId: string) => void;
+  onSkipTransfer?: (eventId: string) => void;
+  onUnskipTransfer?: (eventId: string) => void;
+  onExecuteTransfer?: (eventId: string, amount: string, date: string, sourcePoolId?: string, destinationPoolId?: string) => Promise<void>;
+  onOpenTransferModalWithData?: (data: { sourcePoolId?: string; destinationPoolId?: string; amount?: string; date?: string }) => void;
   onConfirmTransferAndPay: (sourceCategoryId: string, destinationCategoryId: string, amount: string) => Promise<void>;
 }
 
 export function UpcomingTimelineTab({
   incomeEvents,
   expenseEvents,
+  transferEvents = [],
   categories,
   searchQuery,
+  initialKindFilter = "ALL",
   onMarkExpensePaid,
   onMarkIncomeReceived,
   onSkipExpense,
   onUnskipExpense,
   onSkipIncome,
   onUnskipIncome,
+  onSkipTransfer,
+  onUnskipTransfer,
+  onExecuteTransfer,
+  onOpenTransferModalWithData,
   onConfirmTransferAndPay,
 }: UpcomingTimelineTabProps) {
-  // Segmented Type Filter: ALL | INCOME | EXPENSE
-  const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  // Segmented Type Filter: ALL | INCOME | EXPENSE | TRANSFER
+  const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -69,11 +85,12 @@ export function UpcomingTimelineTab({
     const all = [
       ...incomeEvents.map((e) => ({ ...e, eventKind: "INCOME" as const })),
       ...expenseEvents.map((e) => ({ ...e, eventKind: "EXPENSE" as const })),
+      ...transferEvents.map((e) => ({ ...e, eventKind: "TRANSFER" as const })),
     ];
 
     return all
       .filter((e) => {
-        // 1. Kind filter (INCOME / EXPENSE)
+        // 1. Kind filter (INCOME / EXPENSE / TRANSFER)
         if (kindFilter !== "ALL" && e.eventKind !== kindFilter) return false;
         // 2. Search query filter
         if (!searchQuery) return true;
@@ -82,11 +99,13 @@ export function UpcomingTimelineTab({
           (e.name || "").toLowerCase().includes(q) ||
           (e.note || "").toLowerCase().includes(q) ||
           (e.categoryName || "").toLowerCase().includes(q) ||
-          (e.accountName || "").toLowerCase().includes(q)
+          (e.accountName || "").toLowerCase().includes(q) ||
+          (e.sourcePoolName || "").toLowerCase().includes(q) ||
+          (e.destinationPoolName || "").toLowerCase().includes(q)
         );
       })
       .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
-  }, [incomeEvents, expenseEvents, kindFilter, searchQuery]);
+  }, [incomeEvents, expenseEvents, transferEvents, kindFilter, searchQuery]);
 
   // Find the earliest upcoming income event date to enforce sequential chronological order
   const earliestUpcomingIncomeDate = useMemo(() => {
@@ -129,6 +148,33 @@ export function UpcomingTimelineTab({
     }
   };
 
+  const handleTransferClick = async (evt: TimelineEventItem) => {
+    const amt = parseFloat(evt.expectedAmount || "0");
+    const srcCat = categories.find((c) => c.id === evt.sourcePoolId);
+    const srcBalance = srcCat?.currentBalance ?? 0;
+
+    if (amt > srcBalance) {
+      if (onOpenTransferModalWithData) {
+        onOpenTransferModalWithData({
+          sourcePoolId: evt.sourcePoolId || undefined,
+          destinationPoolId: evt.destinationPoolId || undefined,
+          amount: evt.expectedAmount,
+          date: evt.expectedDate,
+        });
+      }
+    } else {
+      if (onExecuteTransfer) {
+        await onExecuteTransfer(
+          evt.id,
+          evt.expectedAmount,
+          evt.expectedDate,
+          evt.sourcePoolId || undefined,
+          evt.destinationPoolId || undefined
+        );
+      }
+    }
+  };
+
   const handleConfirmShortfallTransfer = async (fundingCategoryId: string) => {
     await onConfirmTransferAndPay(
       fundingCategoryId,
@@ -152,7 +198,7 @@ export function UpcomingTimelineTab({
             <span>Upcoming Events</span>
           </h2>
           <p className="text-xs text-zinc-500 font-medium mt-0.5">
-            Full chronological schedule of income deposits and bill obligations.
+            Full chronological schedule of income deposits, bill obligations, and transfers.
           </p>
         </div>
 
@@ -186,7 +232,17 @@ export function UpcomingTimelineTab({
                 : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
-            Bills Only
+            Expense Only
+          </button>
+          <button
+            onClick={() => setKindFilter("TRANSFER")}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              kindFilter === "TRANSFER"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+            }`}
+          >
+            Transfer Only
           </button>
         </div>
       </div>
@@ -202,6 +258,7 @@ export function UpcomingTimelineTab({
         <div className="space-y-2.5">
           {paginatedEvents.map((evt) => {
             const isIncome = evt.eventKind === "INCOME";
+            const isTransfer = evt.eventKind === "TRANSFER";
             const isSkipped = evt.status === "SKIPPED" || evt.isSkipped;
             const dateObj = new Date(evt.expectedDate + "T00:00:00");
             const formattedDate = new Intl.DateTimeFormat("en-AU", {
@@ -219,6 +276,8 @@ export function UpcomingTimelineTab({
                     ? "opacity-50 bg-zinc-50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800"
                     : isIncome
                     ? "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40"
+                    : isTransfer
+                    ? "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200/60 dark:border-indigo-900/40"
                     : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
                 }`}
               >
@@ -231,16 +290,18 @@ export function UpcomingTimelineTab({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                        {evt.name || (isIncome ? "Income Deposit" : "Scheduled Bill")}
+                        {evt.name || (isIncome ? "Income Deposit" : isTransfer ? "Pool Transfer" : "Scheduled Expense")}
                       </span>
                       <span
                         className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                           isIncome
                             ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300"
+                            : isTransfer
+                            ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300"
                             : "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
                         }`}
                       >
-                        {isIncome ? "Income Deposit" : evt.categoryName || "Bill"}
+                        {isIncome ? "Income Deposit" : isTransfer ? "Transfer" : evt.categoryName || "Expense"}
                       </span>
                       {isSkipped && (
                         <span className="text-[9px] font-extrabold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
@@ -256,7 +317,11 @@ export function UpcomingTimelineTab({
                       </p>
                     )}
                     <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
-                      {isIncome ? `Receiving: ${evt.accountName || "Main Account"}` : `Category: ${evt.categoryName || "Uncategorized"}`}
+                      {isIncome
+                        ? `Receiving: ${evt.accountName || "Main Account"}`
+                        : isTransfer
+                        ? `From: ${evt.sourcePoolName || "Source"} ➔ To: ${evt.destinationPoolName || "Destination"}`
+                        : `Pool: ${evt.categoryName || "Uncategorized"}`}
                     </p>
                   </div>
                 </div>
@@ -264,13 +329,17 @@ export function UpcomingTimelineTab({
                 <div className="flex items-center gap-3">
                   <span
                     className={`text-sm font-black font-mono tabular-nums ${
-                      isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-[#1B2B4B] dark:text-white"
+                      isIncome
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : isTransfer
+                        ? "text-indigo-600 dark:text-indigo-400"
+                        : "text-[#1B2B4B] dark:text-white"
                     }`}
                   >
-                    {isIncome ? "+" : "-"}${parseFloat(evt.expectedAmount || "0").toFixed(2)}
+                    {isIncome ? "+" : isTransfer ? "↔" : "-"}${parseFloat(evt.expectedAmount || "0").toFixed(2)}
                   </span>
 
-                  {/* Actions: Skip / Unskip & Mark Paid */}
+                  {/* Actions: Skip / Unskip & Mark Paid / Transfer */}
                   <div className="flex items-center gap-1.5">
                     {(() => {
                       const isIncomeLocked =
@@ -296,7 +365,13 @@ export function UpcomingTimelineTab({
                         return (
                           <button
                             type="button"
-                            onClick={() => (isIncome ? onUnskipIncome(evt.id) : onUnskipExpense(evt.id))}
+                            onClick={() =>
+                              isIncome
+                                ? onUnskipIncome(evt.id)
+                                : isTransfer
+                                ? onUnskipTransfer?.(evt.id)
+                                : onUnskipExpense(evt.id)
+                            }
                             className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs rounded-lg transition-colors"
                           >
                             Unskip
@@ -308,7 +383,13 @@ export function UpcomingTimelineTab({
                         <>
                           <button
                             type="button"
-                            onClick={() => (isIncome ? onSkipIncome(evt.id) : onSkipExpense(evt.id))}
+                            onClick={() =>
+                              isIncome
+                                ? onSkipIncome(evt.id)
+                                : isTransfer
+                                ? onSkipTransfer?.(evt.id)
+                                : onSkipExpense(evt.id)
+                            }
                             className="px-2.5 py-1 text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 font-semibold text-xs rounded-lg transition-colors"
                             title="Skip this single occurrence"
                           >
@@ -321,6 +402,14 @@ export function UpcomingTimelineTab({
                               className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
                             >
                               Mark Received
+                            </button>
+                          ) : isTransfer ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTransferClick(evt)}
+                              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-colors shadow-xs"
+                            >
+                              Transfer
                             </button>
                           ) : (
                             <button

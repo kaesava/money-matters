@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { t } from '@money-matters/i18n';
-import Link from 'next/link';
 import { Button } from '@money-matters/ui/web';
 
 export interface BentoPoolsSectionProps {
@@ -16,11 +15,6 @@ export interface BentoPoolsSectionProps {
   readonly billsDue14DaysCount: number;
   readonly totalBillsDue14Days: number;
 
-  readonly needsAttentionCount: number;
-  readonly behindCount: number;
-  readonly onTrackCount: number;
-  
-  readonly onSelectFilter?: (health: string) => void;
   readonly onMoveMoney: () => void;
   
   readonly formatAUD: (val: number | string) => string;
@@ -37,10 +31,6 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
-  needsAttentionCount,
-  behindCount,
-  onTrackCount,
-  onSelectFilter,
   onMoveMoney,
   formatAUD,
   onUpdatePoolBalance,
@@ -308,47 +298,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
         </div>
       </div>
 
-      {/* Category Health Filter Chips */}
-      <div className="bg-white border border-gray-200/80 rounded-2xl p-3.5 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-1">
-            Category Health:
-          </span>
-          <button
-            type="button"
-            onClick={() => onSelectFilter?.('RED')}
-            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors text-xs font-bold text-rose-800 cursor-pointer"
-          >
-            <span className="w-2 h-2 rounded-full bg-rose-600" />
-            <span>Behind ({behindCount})</span>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => onSelectFilter?.('AMBER')}
-            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-xs font-bold text-amber-800 cursor-pointer"
-          >
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>Attention ({needsAttentionCount})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectFilter?.('GREEN')}
-            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors text-xs font-bold text-emerald-800 cursor-pointer"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>On Track ({onTrackCount})</span>
-          </button>
-        </div>
-
-        <Link
-          href="/dashboard/pools"
-          className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors shrink-0"
-        >
-          View All Pools →
-        </Link>
-      </div>
 
       {/* Pool Balance Adjustment Confirmation Modal */}
       {showConfirmModal && confirmDetails && (

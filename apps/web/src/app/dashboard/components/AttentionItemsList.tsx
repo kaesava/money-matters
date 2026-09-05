@@ -37,7 +37,27 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   const [editDate, setEditDate] = React.useState("");
   const { showIcons } = useIconVisibility();
 
-  if (!items || items.length === 0) return null;
+  if (!items || items.length === 0) {
+    return (
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 mb-6 shadow-xs">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            {showIcons && <span className="text-lg">⚠️</span>}
+            <h2 className="text-sm font-extrabold text-[#1B2B4B]">
+              Upcoming Expenses
+            </h2>
+          </div>
+          <a
+            href="/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            Show More →
+          </a>
+        </div>
+        <p className="text-xs text-zinc-400 py-4 text-center">No upcoming bills scheduled.</p>
+      </div>
+    );
+  }
 
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
 
@@ -46,15 +66,23 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
     if (a.isOverdue && !b.isOverdue) return -1;
     if (!a.isOverdue && b.isOverdue) return 1;
     return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
-  });
+  }).slice(0, 3);
 
   return (
     <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 mb-6 shadow-xs">
-      <div className="flex items-center gap-2 mb-4">
-        {showIcons && <span className="text-lg">⚠️</span>}
-        <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-          Bills Needing Attention ({items.length})
-        </h2>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          {showIcons && <span className="text-lg">⚠️</span>}
+          <h2 className="text-sm font-extrabold text-[#1B2B4B]">
+            Upcoming Expenses ({items.length})
+          </h2>
+        </div>
+        <a
+          href="/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE"
+          className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          Show More →
+        </a>
       </div>
 
       <div className="divide-y divide-zinc-100">

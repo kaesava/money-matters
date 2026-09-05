@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, InfoTooltip } from "@money-matters/ui/web";
@@ -29,7 +28,6 @@ interface AppPreferencesMap {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const toast = useToast();
 
   const poolsQuery = trpc.listPools.useQuery();
@@ -49,9 +47,6 @@ export default function DashboardPage() {
   } = useDashboardData();
 
   const goalCategories = pools.filter((p) => p.poolType === "GOAL");
-  const needsAttentionCount = pools.filter((p) => p.healthStatus === "AMBER").length;
-  const behindCount = pools.filter((p) => p.healthStatus === "RED").length;
-  const onTrackCount = pools.filter((p) => p.healthStatus === "GREEN").length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || "0");
   const everydayMonthlyBudget = pools
     .filter((p) => p.poolType === "EVERYDAY")
@@ -252,10 +247,6 @@ export default function DashboardPage() {
             billsShortfall={billsShortfall}
             billsDue14DaysCount={billsDue14Days.length}
             totalBillsDue14Days={totalBillsDue14Days}
-            needsAttentionCount={needsAttentionCount}
-            behindCount={behindCount}
-            onTrackCount={onTrackCount}
-            onSelectFilter={(health: string) => router.push(`/dashboard/pools?health=${health}`)}
             onMoveMoney={() => setIsMoveMoneyOpen(true)}
             formatAUD={fmt}
             onUpdatePoolBalance={handleUpdatePoolBalance}
@@ -278,9 +269,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 2: Cashflow Stream (Upcoming Bills & Upcoming Paydays) */}
+      {/* Row 2: Cashflow Stream (Two-Column Split: Upcoming Expenses & Upcoming Income) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-6">
           <AttentionItemsList
             items={attentionItems}
             onMarkPaid={handleMarkPaidItem}
@@ -289,7 +280,7 @@ export default function DashboardPage() {
             formatAUD={fmt}
           />
         </div>
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-6">
           <NextPaydayCard
             upcomingIncomes={upcomingIncomeList}
             onPressNextPay={(id: string) => setPaydayPreviewEventId(id)}
