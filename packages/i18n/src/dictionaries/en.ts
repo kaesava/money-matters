@@ -56,6 +56,7 @@ export const en = {
     close: "Close",
     add: "Add",
     remove: "Remove",
+    markSpent: "Mark Spent",
     searchPlaceholder: "Search...",
     selectPlaceholder: "Select option...",
     tapToSelect: "Tap to select...",
@@ -328,7 +329,9 @@ export const en = {
     privatePoolTooltip: "Only visible to you. Your household member cannot see this category's name, balance, or transactions — enforced at the database level.",
     priorityBillLabel: "⭐ Priority Bill (Funded before standard bills)",
     prioritiseCategory: "Prioritise this category when allocating income",
+    priorityCategoryInfo: "Priority categories are funded upfront during payday allocation.",
     immutabilityWarning: "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.",
+    immutabilityWarningCategory: "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.",
     shortfallTargetTooltip: "This pool acts as a safety net. If you don't have enough money in your Everyday pool to cover a transaction, it will automatically pull the shortfall from here. Any leftover money at the end of your pay cycle will also sweep into here.",
     shortfallTargetDisabledWarning: "This is currently your Shortfall/Surplus target. To change this, edit the pool you want to be the new target and check the box there.",
     calculatedTargetNotice: "For Everyday and Bills pools, your monthly target is automatically calculated by adding up all the individual categories you've set up.",
@@ -396,7 +399,9 @@ export const en = {
       billCoverageNextDue: "Next due {date}",
     },
     actions: {
-      moveMoney: "Transfer between Categories",
+      moveMoney: "Transfer between Pools",
+      markReceived: "Mark Received",
+      markSpent: "Mark Spent",
     },
   },
   landing: {
@@ -1248,6 +1253,7 @@ export const en = {
     returnToApp: "Return to Money Matters",
   },
   modals: {
+    theseCanBeUpdatedLater: "These can be updated later",
     categoryActivity: {
       noUpcoming: "No upcoming bills linked to this pool.",
       noHistory: "No transaction history for this category.",
@@ -1596,6 +1602,8 @@ export const en = {
       overview: "Overview",
     },
     quickExpense: {
+      oneOffIncome: "One-off Income",
+      oneOffExpense: "One-off Expense",
       tabExpense: "Expense",
       tabIncome: "Income",
       tabTransfer: "Transfer",

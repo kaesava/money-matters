@@ -50,7 +50,8 @@ _________
 ### User and Sign out
 ### Provide Feedback
 
-## Home
+
+## ******* Home
 
 ### Manually adjusting Bills or Everyday.
 ### Account Reconciliation (Transaction flowthrough)
@@ -61,44 +62,36 @@ _________
 #### Expense
 #### Transfer
 
-## "Pools"
+
+## ******* "Pools"
+* Mark the default Shortfall/Surplus target in the Category list with a simple self-explanatory icon, on hover says "Shortfall/Surplus target"
+* Change "Transfer between Categories" to "Transfer between Pools"
 ### Projection Timeline
 ### Pool Create/Edit Modal
+* (i)) icon hover text is cut off
+* Change "Create Financial Pool" to "Create Pool"
 ### Category Create/Edit Modal
 ### Pool/Category picker
 
-## "Income & Bill Management"
+
+## ******* "Income & Bill Management"
 
 ### Allocate Income (and functionality)
 ### Upcoming
-
 #### Allocate/Mark Received/Mark Paid
 #### Skip Functionality
 #### Income Allocation
 
 ### Setup
-* Extend the Search bar across both tables and include a All|Shared|Private filter (same look and feel as the Pools Screen). In the Expense schedule table, it would filter private/shared pools (i.e., pools linked to private bank accounts). In the Income schedule table, it would filter private/shared bank accounts.
-* For Income Schedules table, instead of recurrance, show the Bank Account
-* Change "Bill Schedules" to "Expense Schedules" and "Add Bill Schedule" to "Add Expense Schedule" button label and table column uname from "BILL NAME" to "SCHEDULE NAME".
-* Allow sort by Schedule Name, Bank Account/Assigned Pool and Amount in both tables
-* In the Expense Schedules table, show a drop-down filter with all Pools, similar to the History screen.  This drop-down should be responsive to the Private/Shared filter.
-* In the Income Schedules table, show a drop-down filter with all Bank Accounts. This drop-down should be responsive to the Private/Shared filter.
-* In both tables, under the Schedule Name, show the recurrence (every 2 weeks starting 09 Aug 26 until 14-Sep 27) - show conspicuously so the screen is still clean.
-
 #### Add/Edit modal - Expense Schedule & Income Schedule (applies to both)
-* For both Expense Schedule & Income Schedule modals, Next to the expected amount, show an information icon with the text "These can be updated later"
-* For Expense Schedule, change "Add Bill Schedule" to "Add Expense Schedule" and "Bill Name" to "Expense Name"
-* In the Pool drop-down, use the Pool picker - can only pick one pool, and cannot pick categories.
-* When I saved an Expense schedule (applies to Income Schedule too) for every 2 months and set and end date, it said it saved, but when I reopened, these two fields had defaulted to 1 and blank respectively.
-* It shouldn't allow me to enter and end date prior to the start date on both modals.
-
 #### Burst logic
 #### Change Start/Frequency/End-date/Amount/Other - check re-burst
 #### Delete - check event delete (archival)
 #### Burst Event Regeneration (Check Transactions)
 
 
-## Bank Accounts
+## ******* "Bank Accounts"
+
 ### Edit Modal 
 #### Reconciliation
 #### Linked Pools popup
@@ -112,19 +105,17 @@ _________
 ##### Step 2
 ##### Step 3
 
-## "History"###
-### Transactions
-* Pools drop-down should show Pools, not Pool Types for filtering.
-* CHange "Income" to "Received" in filter
-* Change "Mark Paid" to "Mark Spent" across the app - 
-* Extend Search to include Amount
 
+## ******* "History"
+
+### Transactions
 #### Export CSV
 ### Payday Allocations
 #### Payday Allocation Details sidebar
 #### Export CSV
 
-## "Settings"
+
+## ******* "Settings"
 
 ### My Details
 #### Change and Save Settings (Name, Notification Email, Mobile Phone Number (AU), Mobile Phone Number (Other)), Display Timezone, Show Icons

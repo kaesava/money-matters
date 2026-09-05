@@ -57,6 +57,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "close": "閉じる",
     "add": "追加",
     "remove": "削除",
+    "markSpent": "支出を記録",
     "searchPlaceholder": "検索...",
     "selectPlaceholder": "選択してください...",
     "tapToSelect": "タップして選択...",
@@ -327,7 +328,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "privatePoolTooltip": "あなただけに表示されます。パートナーのAPIや画面には表示されません。",
     "priorityBillLabel": "⭐ 優先支払（一般請求書より優先配分）",
     "prioritiseCategory": "Prioritise this category when allocating income",
+    "priorityCategoryInfo": "Priority categories are funded upfront during payday allocation.",
     "immutabilityWarning": "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.",
+    "immutabilityWarningCategory": "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.",
     "shortfallTargetTooltip": "This pool acts as a safety net. If you don't have enough money in your Everyday pool to cover a transaction, it will automatically pull the shortfall from here. Any leftover money at the end of your pay cycle will also sweep into here.",
     "shortfallTargetDisabledWarning": "This is currently your Shortfall/Surplus target. To change this, edit the pool you want to be the new target and check the box there.",
     "calculatedTargetNotice": "For Everyday and Bills pools, your monthly target is automatically calculated by adding up all the individual categories you've set up.",
@@ -395,7 +398,9 @@ export const ja: DeepStringRecord<typeof en> = {
       "billCoverageNextDue": "次回期日 {date}"
     },
     "actions": {
-      "moveMoney": "カテゴリー間送金"
+      "moveMoney": "プール間送金",
+      "markReceived": "入金を完了",
+      "markSpent": "支出を完了"
     }
   },
   "landing": {
@@ -1237,6 +1242,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "returnToApp": "Return to Money Matters"
   },
   "modals": {
+    "theseCanBeUpdatedLater": "これらは後から更新できます",
     "categoryActivity": {
       "noUpcoming": "このプールにリンクされた今後の請求はありません。"
     },
@@ -1545,6 +1551,8 @@ export const ja: DeepStringRecord<typeof en> = {
       "overview": "概要"
     },
     "quickExpense": {
+      "oneOffIncome": "単発の収入",
+      "oneOffExpense": "単発の支出",
       "tabExpense": "支出",
       "tabIncome": "収入",
       "tabTransfer": "振替",

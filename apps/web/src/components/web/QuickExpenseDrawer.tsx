@@ -287,11 +287,11 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     ? isFutureDate
                       ? t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
                       : runAllocation
-                      ? t("actions.markReceived", { defaultValue: "Mark Received" })
+                      ? t("common.confirm", { defaultValue: "Mark Received" })
                       : t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
                     : isFutureDate
                     ? t("drawers.quickExpense.oneOffExpense", { defaultValue: "One-off Expense" })
-                    : t("actions.markSpent", { defaultValue: "Mark Spent" })}
+                    : t("common.markSpent", { defaultValue: "Mark Spent" })}
                 </Button>
               </div>
         </form>

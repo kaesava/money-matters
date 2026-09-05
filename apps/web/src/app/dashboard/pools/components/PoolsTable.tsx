@@ -391,6 +391,14 @@ export function PoolsTable({
                                     >
                                       <span>•</span>
                                       <span>{cat.name}</span>
+                                      {(cat.isEssential || cat.monthlyAmount) && (
+                                        <span
+                                          title="Shortfall/Surplus target"
+                                          className="text-[11px] text-zinc-400 hover:text-zinc-600 cursor-help"
+                                        >
+                                          🎯
+                                        </span>
+                                      )}
                                     </button>
                                   </td>
 
