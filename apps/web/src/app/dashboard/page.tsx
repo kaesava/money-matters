@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, InfoTooltip } from "@money-matters/ui/web";
-import { DashboardHeroCard } from "./components/DashboardHeroCard";
+import { BentoPoolsSection } from "./components/BentoPoolsSection";
 import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
 import { NextPaydayCard } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
-import { ShortfallAlertCard } from "./components/ShortfallAlertCard";
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
 import PaydayPreviewModal from "../../components/web/PaydayPreviewModal";
@@ -184,15 +183,43 @@ export default function DashboardPage() {
   const billsShortfall = Math.max(0, totalBillsDue14Days - billsBalance);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6 animate-in fade-in duration-200">
-      <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-bold text-[#1B2B4B]">
-          {t("nav.dashboard") || "Dashboard"}
-        </h1>
-        <InfoTooltip
-          title={t("tooltips.dashboard.title")}
-          content={t("tooltips.dashboard.content")}
-        />
+    <div className="max-w-6xl mx-auto space-y-6 pb-12 px-4 sm:px-6 animate-in fade-in duration-200">
+      {/* Top Header Row with Prominent Quick Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-[#1B2B4B]">
+            {t("nav.dashboard") || "Dashboard"}
+          </h1>
+          <InfoTooltip
+            title={t("tooltips.dashboard.title")}
+            content={t("tooltips.dashboard.content")}
+          />
+        </div>
+
+        {/* Quick Action Header Strip */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsCanAffordModalOpen(true)}
+            className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>🤔 Can I Afford It?</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickDrawerOpen(true)}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>⚡ Quick Expense</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsMoveMoneyOpen(true)}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>💸 Move Money</span>
+          </button>
+        </div>
       </div>
 
       <MissingSchedulesBanner
@@ -200,31 +227,47 @@ export default function DashboardPage() {
         billsCount={expenseEventsQuery.data?.length ?? 0}
       />
 
-      <ShortfallAlertCard
-        billsShortfall={billsShortfall}
-        billsDue14DaysCount={billsDue14Days.length}
-        totalBillsDue14Days={totalBillsDue14Days}
-        billsBalance={billsBalance}
-        formatAUD={fmt}
-        onMoveMoney={() => setIsMoveMoneyOpen(true)}
-      />
+      {/* Row 1: Action Queue (Upcoming Bills & Next Payday) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-7">
+          <AttentionItemsList
+            items={attentionItems}
+            onMarkPaid={handleMarkPaidItem}
+            onSkip={handleSkipItem}
+            onSave={handleSaveItem}
+            formatAUD={fmt}
+          />
+        </div>
+        <div className="lg:col-span-5">
+          <NextPaydayCard
+            nextPayday={nextPaydayData}
+            onPressNextPay={(id: string) => setPaydayPreviewEventId(id)}
+            formatAUD={fmt}
+          />
+        </div>
+      </div>
 
-      <DashboardHeroCard
+      {/* Row 2: Secondary Pool Balances (Everyday & Bills) */}
+      <BentoPoolsSection
         everydayBalance={everydayBalance}
         everydayMonthlyBudget={everydayMonthlyBudget}
         billsBalance={billsBalance}
         billsMonthlyBudget={billsMonthlyBudget}
+        billsShortfall={billsShortfall}
+        billsDue14DaysCount={billsDue14Days.length}
+        totalBillsDue14Days={totalBillsDue14Days}
         needsAttentionCount={needsAttentionCount}
         behindCount={behindCount}
         onTrackCount={onTrackCount}
-        onOpenCanAfford={() => setIsCanAffordModalOpen(true)}
         onSelectFilter={(health: string) => router.push(`/dashboard/pools?health=${health}`)}
+        onMoveMoney={() => setIsMoveMoneyOpen(true)}
         formatAUD={fmt}
         onUpdatePoolBalance={handleUpdatePoolBalance}
         skipConfirmation={skipConfirmation}
         onSaveSkipConfirmation={handleSaveSkipConfirmation}
       />
 
+      {/* Row 3: Goals Progress */}
       <GoalsProgressStrip
         goalCategories={goalCategories.map((g) => ({
           id: g.id,
@@ -235,45 +278,7 @@ export default function DashboardPage() {
         formatAUD={fmt}
       />
 
-      <NextPaydayCard
-        nextPayday={nextPaydayData}
-        onPressNextPay={(id: string) => setPaydayPreviewEventId(id)}
-        formatAUD={fmt}
-      />
-
-      <AttentionItemsList
-        items={attentionItems}
-        onMarkPaid={handleMarkPaidItem}
-        onSkip={handleSkipItem}
-        onSave={handleSaveItem}
-        formatAUD={fmt}
-      />
-
-      {/* Floating Action Bar */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-[#1B2B4B]/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-xl z-30 border border-slate-700/50">
-        <button
-          type="button"
-          onClick={() => setIsCanAffordModalOpen(true)}
-          className="px-4 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
-        >
-          <span>💡 Can I Afford It?</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setQuickDrawerOpen(true)}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
-        >
-          <span>⚡ Quick Action</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsMoveMoneyOpen(true)}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
-        >
-          <span>💸 Move Money</span>
-        </button>
-      </div>
-
+      {/* Modals & Drawers */}
       {paydayPreviewEventId && (
         <PaydayPreviewModal
           incomeEventId={paydayPreviewEventId}
@@ -307,7 +312,7 @@ export default function DashboardPage() {
           canAffordData={canAffordQuery.data}
         />
       )}
-
     </div>
   );
 }
+
