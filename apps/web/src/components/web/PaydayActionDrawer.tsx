@@ -266,7 +266,12 @@ export function PaydayActionDrawer({
         });
       }
 
-      const payloadLines = Object.entries(linesMap).map(([bucketId, amountStr]) => ({
+      const effectiveLinesMap = { ...linesMap };
+      if (sweepPool) {
+        effectiveLinesMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
+      }
+
+      const payloadLines = Object.entries(effectiveLinesMap).map(([bucketId, amountStr]) => ({
         poolId: bucketId,
         proposedAmount: (parseFloat(amountStr) || 0).toFixed(2),
       }));
@@ -313,7 +318,12 @@ export function PaydayActionDrawer({
         });
       }
 
-      const payloadLines = Object.entries(linesMap).map(([bucketId, amountStr]) => ({
+      const effectiveLinesMap = { ...linesMap };
+      if (sweepPool) {
+        effectiveLinesMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
+      }
+
+      const payloadLines = Object.entries(effectiveLinesMap).map(([bucketId, amountStr]) => ({
         poolId: bucketId,
         amount: (parseFloat(amountStr) || 0).toFixed(2),
       }));
@@ -544,6 +554,10 @@ export function PaydayActionDrawer({
                               {group.items.map((l: AllocationLineItem) => {
                                 const poolObj = pools.find((p) => p.id === l.bucketId);
                                 const currentBal = poolObj ? parseFloat(String(poolObj.currentBalance || "0")) : 0;
+                                const isSweepRow = Boolean(sweepPool && l.bucketId === sweepPool.id);
+                                const displayVal = isSweepRow
+                                  ? sweepPoolRemainder.toFixed(2)
+                                  : (linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2));
 
                                 return (
                                   <div
@@ -551,9 +565,16 @@ export function PaydayActionDrawer({
                                     className="py-2.5 px-3 pl-6 flex justify-between items-center group hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors"
                                   >
                                     <div className="min-w-0 pr-3">
-                                      <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">
-                                        {l.bucketName}
-                                      </span>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">
+                                          {l.bucketName}
+                                        </span>
+                                        {isSweepRow && (
+                                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                            Auto-Surplus
+                                          </span>
+                                        )}
+                                      </div>
                                       <span className="text-[10px] text-zinc-400 font-mono block truncate">
                                         {t("paydayDrawer.currentBalance", { defaultValue: "Current Balance:" })} {fmt(currentBal)}
                                       </span>
@@ -561,9 +582,14 @@ export function PaydayActionDrawer({
                                     <input
                                       type="text"
                                       inputMode="decimal"
-                                      value={linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)}
-                                      onChange={(e) => handleLineAmountChange(l.bucketId, e.target.value)}
-                                      className="w-28 px-2.5 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 tabular-nums"
+                                      readOnly={isSweepRow}
+                                      value={displayVal}
+                                      onChange={(e) => !isSweepRow && handleLineAmountChange(l.bucketId, e.target.value)}
+                                      className={`w-28 px-2.5 py-1.5 border rounded-lg text-right font-mono font-bold text-xs focus:outline-none tabular-nums ${
+                                        isSweepRow
+                                          ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300"
+                                          : "border-zinc-300 dark:border-zinc-700 focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                                      }`}
                                     />
                                   </div>
                                 );

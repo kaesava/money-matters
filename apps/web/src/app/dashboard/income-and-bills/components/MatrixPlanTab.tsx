@@ -254,7 +254,7 @@ export function MatrixPlanTab({
                   <th
                     key={col.id}
                     className={`p-3 text-center border-r border-zinc-200 dark:border-zinc-800 min-w-[170px] transition-colors ${
-                      isSaved ? "bg-blue-50/40 dark:bg-blue-950/20" : ""
+                      isSaved ? "bg-slate-100 dark:bg-zinc-800/90" : "bg-zinc-50 dark:bg-zinc-800/80"
                     }`}
                   >
                     <div className="flex flex-col items-center justify-center gap-0.5">
@@ -380,7 +380,7 @@ export function MatrixPlanTab({
                             <td
                               key={col.id}
                               className={`p-2 border-r border-zinc-200 dark:border-zinc-800 text-center transition-colors ${
-                                isSavedCol ? "bg-blue-50/20 dark:bg-blue-950/10" : ""
+                                isSavedCol ? "bg-slate-100/60 dark:bg-zinc-800/40" : ""
                               }`}
                             >
                               <div className="flex flex-col items-center">
