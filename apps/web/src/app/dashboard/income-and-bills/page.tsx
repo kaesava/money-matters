@@ -338,15 +338,29 @@ function IncomeAndBillsContent() {
             {/* Income Schedules Card */}
             <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                {/* Row 1: Title & Add Button */}
+                <div className="flex items-center justify-between gap-3 mb-3">
                   <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Income Schedules</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalMode("INCOME");
+                      setSourceToEdit(undefined);
+                      setIsModalOpen(true);
+                    }}
+                    className="px-3.5 py-2 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-[#1d4ed8] transition-colors shrink-0 cursor-pointer"
+                  >
+                    + Add Income Schedule
+                  </button>
+                </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Bank Account Dropdown Filter */}
+                {/* Row 2: Bank Account Filter (Right-aligned, matching style & width) */}
+                <div className="flex justify-end mb-4">
+                  <div className="w-64 sm:w-72 text-xs">
                     <select
                       value={selectedIncomeBankAccountId}
                       onChange={(e) => setSelectedIncomeBankAccountId(e.target.value)}
-                      className="text-xs px-2.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-medium text-zinc-700 dark:text-zinc-300"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left text-xs font-medium text-slate-900 transition-colors cursor-pointer dark:border-slate-800 dark:bg-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                     >
                       <option value="">All Bank Accounts</option>
                       {bankAccounts.map((b) => (
@@ -355,18 +369,6 @@ function IncomeAndBillsContent() {
                         </option>
                       ))}
                     </select>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setModalMode("INCOME");
-                        setSourceToEdit(undefined);
-                        setIsModalOpen(true);
-                      }}
-                      className="px-3 py-1.5 bg-[#2563eb] text-white rounded-xl font-bold text-xs shadow-xs hover:bg-[#1d4ed8] transition-colors"
-                    >
-                      + Add Income Schedule
-                    </button>
                   </div>
                 </div>
 
@@ -479,41 +481,41 @@ function IncomeAndBillsContent() {
             {/* Expense Schedules Card */}
             <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                {/* Row 1: Title & Add Button */}
+                <div className="flex items-center justify-between gap-3 mb-3">
                   <h3 className="font-bold text-[#1B2B4B] dark:text-white text-base">Expense Schedules</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalMode("EXPENSE");
+                      setSourceToEdit(undefined);
+                      setIsModalOpen(true);
+                    }}
+                    className="px-3.5 py-2 bg-[#1B2B4B] dark:bg-zinc-800 text-white rounded-xl font-bold text-xs shadow-2xs hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+                  >
+                    + Add Expense Schedule
+                  </button>
+                </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Pool Picker Filter (Pools only, single selection) */}
-                    <div className="w-56 sm:w-64 text-xs">
-                      <PoolPicker
-                        pools={[
-                          { id: "", name: "All Pools" },
-                          ...pools.map((p) => ({
-                            id: p.id,
-                            name: p.name,
-                            poolType: p.poolType,
-                            currentBalance: p.currentBalance,
-                            isPrivate: p.isPrivate ?? undefined,
-                          })),
-                        ]}
-                        selectedPoolId={selectedExpensePoolId || ""}
-                        allowCategorySelection={false}
-                        placeholder="All Pools"
-                        onChange={(sel) => setSelectedExpensePoolId(sel.poolId)}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setModalMode("EXPENSE");
-                        setSourceToEdit(undefined);
-                        setIsModalOpen(true);
-                      }}
-                      className="px-3 py-1.5 bg-[#1B2B4B] dark:bg-zinc-800 text-white rounded-xl font-bold text-xs shadow-xs hover:bg-slate-800 transition-colors"
-                    >
-                      + Add Expense Schedule
-                    </button>
+                {/* Row 2: Pool Picker Filter (Wider, right-aligned) */}
+                <div className="flex justify-end mb-4">
+                  <div className="w-64 sm:w-72 text-xs">
+                    <PoolPicker
+                      pools={[
+                        { id: "", name: "All Pools" },
+                        ...pools.map((p) => ({
+                          id: p.id,
+                          name: p.name,
+                          poolType: p.poolType,
+                          currentBalance: p.currentBalance,
+                          isPrivate: p.isPrivate ?? undefined,
+                        })),
+                      ]}
+                      selectedPoolId={selectedExpensePoolId || ""}
+                      allowCategorySelection={false}
+                      placeholder="All Pools"
+                      onChange={(sel) => setSelectedExpensePoolId(sel.poolId)}
+                    />
                   </div>
                 </div>
 
