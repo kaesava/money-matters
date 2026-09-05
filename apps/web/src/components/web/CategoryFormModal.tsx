@@ -200,6 +200,7 @@ export function CategoryFormModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
+      isDirty={isDirty}
       title={isEdit ? `Edit Pool — ${categoryToEdit?.name}` : "Create Financial Pool"}
       maxWidth="max-w-md"
     >

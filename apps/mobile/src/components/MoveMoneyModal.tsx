@@ -53,26 +53,6 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
       return;
     }
 
-    const sourceCat = categories.find((c) => c.id === fromCategoryId);
-    const transferAmt = parseFloat(amount);
-    if (sourceCat) {
-      const sourceBal = getBalance(sourceCat);
-      if (transferAmt > sourceBal) {
-        Alert.alert(
-          'Overdrawn Warning',
-          `Moving ${formatAUD(transferAmt)} will take "${sourceCat.name}" into negative (${formatAUD(sourceBal - transferAmt)}). Do you wish to proceed?`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Proceed',
-              onPress: () => performTransfer(),
-            },
-          ]
-        );
-        return;
-      }
-    }
-
     performTransfer();
   };
 

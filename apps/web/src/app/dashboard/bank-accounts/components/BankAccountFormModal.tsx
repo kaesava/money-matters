@@ -166,12 +166,14 @@ export function BankAccountFormModal({
           onChange={(e) => setAccName(e.target.value)}
           placeholder="e.g. Smart Access Savings"
           required
+          autoFocus
         />
 
         <div className="flex flex-col gap-3 p-3.5 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
           <Input
             label="Current Balance ($)"
             type="number"
+            min="0"
             step="0.01"
             value={accBalance}
             onChange={(e) => setAccBalance(e.target.value)}
@@ -181,6 +183,7 @@ export function BankAccountFormModal({
           <Input
             label="Unbudgeted Buffer / Reserved Funds ($)"
             type="number"
+            min="0"
             step="0.01"
             value={accBuffer}
             onChange={(e) => setAccBuffer(e.target.value)}
@@ -306,8 +309,8 @@ export function BankAccountFormModal({
             <Button
               type="submit"
               loading={isSaving}
-              disabled={!accName.trim() || isNegativeAvailable || (Boolean(editingAccount) && !isDirty)}
-              title={isNegativeAvailable ? "Reserved funds cannot exceed Current Balance" : editingAccount && !isDirty ? "No changes to save" : undefined}
+              disabled={!accName.trim() || isNegativeAvailable || !isDirty}
+              title={isNegativeAvailable ? "Reserved funds cannot exceed Current Balance" : !isDirty ? "No changes to save" : undefined}
             >
               {editingAccount ? "Save Changes" : "Create Account"}
             </Button>

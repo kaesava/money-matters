@@ -74,6 +74,20 @@ export default function UpcomingExpenseModal({
     setErrorMsg("");
   }, [eventToEdit, isOpen, pools]);
 
+  const isDirty = useMemo(() => {
+    if (!eventToEdit) {
+      return name.trim() !== "" || amount.trim() !== "" || note.trim() !== "";
+    }
+    return (
+      name !== (eventToEdit.name || "") ||
+      amount !== (eventToEdit.expectedAmount || "") ||
+      poolId !== (eventToEdit.poolId || eventToEdit.categoryId || pools[0]?.id || "") ||
+      note !== (eventToEdit.note || "")
+    );
+  }, [eventToEdit, name, amount, poolId, note, pools]);
+
+  const isValid = name.trim() !== "" && amount.trim() !== "" && parseFloat(amount) > 0;
+
   if (!isOpen) return null;
 
   const numAmount = parseFloat(amount) || 0;
@@ -176,6 +190,7 @@ export default function UpcomingExpenseModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
+      isDirty={isDirty}
       title={eventToEdit?.id ? `Manage Bill — ${eventToEdit.name}` : "Schedule Upcoming Bill"}
       maxWidth="max-w-md"
     >
@@ -187,34 +202,42 @@ export default function UpcomingExpenseModal({
         )}
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Bill / Merchant Name</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">
+            Bill / Merchant Name <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
+            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Energy Australia, Netflix, Gym"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           />
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Amount ($)</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">
+            Amount ($) <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
+            min="0"
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           />
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.incomeExpenseForm.assignPool", { defaultValue: "Assign to Pool" })}</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">
+            {t("modals.incomeExpenseForm.assignPool", { defaultValue: "Assign to Pool" })} <span className="text-red-500">*</span>
+          </label>
           <select
             value={poolId}
             onChange={(e) => setPoolId(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           >
             {pools.map((p) => (
               <option key={p.id} value={p.id}>
@@ -230,7 +253,7 @@ export default function UpcomingExpenseModal({
             type="date"
             value={expectedDate}
             onChange={(e) => setExpectedDate(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           />
         </div>
 
@@ -241,7 +264,7 @@ export default function UpcomingExpenseModal({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Reference or memo"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           />
         </div>
 
@@ -258,7 +281,7 @@ export default function UpcomingExpenseModal({
             variant="secondary"
             onClick={handleSaveUpcoming}
             loading={submitting}
-            disabled={!name.trim() || !amount.trim() || parseFloat(amount) <= 0}
+            disabled={!isDirty || !isValid || submitting}
           >
             {t("modals.upcomingExpense.saveUpcoming", { defaultValue: "Save Upcoming" })}
           </Button>
@@ -266,7 +289,7 @@ export default function UpcomingExpenseModal({
             type="button"
             onClick={handleMarkPaid}
             loading={submitting}
-            disabled={!name.trim() || !amount.trim() || parseFloat(amount) <= 0}
+            disabled={!isDirty || !isValid || submitting}
           >
             {t("actions.markPaid", { defaultValue: "Mark Paid" })}
           </Button>

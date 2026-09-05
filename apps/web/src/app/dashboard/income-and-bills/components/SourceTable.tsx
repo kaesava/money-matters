@@ -187,7 +187,9 @@ export function SourceTable({
       </div>
 
 
-      <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} totalItems={sorted.length} pageSizeOptions={[10, 25, 50]} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+      {sorted.length >= 5 && (
+        <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} totalItems={sorted.length} pageSizeOptions={[10, 25, 50]} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+      )}
 
       {burstSource && (
         <BurstModal

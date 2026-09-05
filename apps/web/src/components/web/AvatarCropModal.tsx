@@ -126,8 +126,10 @@ export function AvatarCropModal({
 
   if (!isOpen || !imageSrc) return null;
 
+  const isDirty = zoom !== 1 || offset.x !== 0 || offset.y !== 0;
+
   return (
-    <ModalDialog isOpen={isOpen} onClose={onClose} title={t("settings.positionZoomAvatar")}>
+    <ModalDialog isOpen={isOpen} onClose={onClose} isDirty={isDirty} title={t("settings.positionZoomAvatar")}>
       <div className="flex flex-col items-center gap-5 p-2">
         <p className="text-xs text-slate-500 font-medium text-center">
           {t("settings.cropInstruction")}

@@ -180,6 +180,11 @@ export function useQuickActionState(
     onError: (err) => setError(err.message),
   });
 
+  const createTransferSourceMut = trpc.createTransferSource.useMutation({
+    onSuccess: () => handleDone(),
+    onError: (err) => setError(err.message),
+  });
+
   const createIncomeSourceMut = trpc.createIncomeSource.useMutation({
     onSuccess: (res) => {
       handleDone();
@@ -198,6 +203,7 @@ export function useQuickActionState(
     utils.listExpenseSources.invalidate();
     utils.listIncomeEvents.invalidate();
     utils.listExpenseEvents.invalidate();
+    utils.listTransferEvents.invalidate();
     utils.listBankAccountsWithExpected.invalidate();
     setSuccess(true);
     setTimeout(() => onClose(), 1200);
@@ -248,32 +254,29 @@ export function useQuickActionState(
         setError("Source and destination pools must be different.");
         return;
       }
-      const sourceCat = categories.find((c) => c.id === sourceCategoryId);
-      if (sourceCat && !skipBalanceCheck) {
-        const catBal = parseFloat(String(sourceCat.currentBalance || "0"));
-        if (amountNum > catBal) {
-          setConfirmState({
-            isOpen: true,
-            title: "Insufficient Pool Balance",
-            description: `Warning: Transferring $${amountNum.toFixed(2)} exceeds "${sourceCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`,
-            onConfirm: () => {
-              setConfirmState(null);
-              executeSubmit(true);
-            },
-          });
-          return;
-        }
+      // Direct transfer via moveMoneyMutation (for today/past) or transfer event creation (for future)
+
+      if (isFutureDate) {
+        createTransferSourceMut.mutate({
+          sourcePoolId: sourceCategoryId,
+          destinationPoolId: destinationCategoryId,
+          amount: amountNum.toFixed(2),
+          name: name || undefined,
+          startDate: date,
+        });
+      } else {
+        moveMoneyMutation.mutate({
+          sourcePoolId: sourceCategoryId,
+          destinationPoolId: destinationCategoryId,
+          amount: amountNum.toFixed(2),
+          note: name || "Pool Transfer",
+        });
       }
-      moveMoneyMutation.mutate({
-        sourcePoolId: sourceCategoryId,
-        destinationPoolId: destinationCategoryId,
-        amount: amountNum.toFixed(2),
-        note: name || "Pool Transfer",
-      });
       posthog.capture("money_moved_between_categories", {
         amount: amountNum,
         source_category_id: sourceCategoryId,
         destination_category_id: destinationCategoryId,
+        is_future: isFutureDate,
       });
       return;
     }

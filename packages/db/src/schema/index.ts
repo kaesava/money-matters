@@ -15,6 +15,8 @@ export * from "./user_preference.js";
 export * from "./tenant_user_preference.js";
 export * from "./expense_source.js";
 export * from "./expense_event.js";
+export * from "./transfer_source.js";
+export * from "./transfer_event.js";
 export * from "./app.js";
 export * from "./app_category.js";
 export * from "./early_access.js";

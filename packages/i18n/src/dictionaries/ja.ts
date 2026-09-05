@@ -341,7 +341,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "sweepSurplus": "Mark this pool as Shortfall/Surplus target",
     "poolNameLabel": "Pool Name",
     "poolTypeLabel": "Pool Type",
-    "targetPoolLabel": "Target Pool",
+    "targetPoolLabel": "プール",
     "selectBankAccount": "Select Bank Account",
     "selectPool": "Select Pool",
     "calculatedTarget": "Calculated Target",
@@ -1285,7 +1285,11 @@ export const ja: DeepStringRecord<typeof en> = {
       "saveDetailsOnly": "詳細のみ保存",
       "runWaterfall": "配分を実行",
       "incomeNamePlaceholder": "例: 給与、副収入",
-      "notesPlaceholder": "メモを追加..."
+      "notesPlaceholder": "メモを追加...",
+      "tabDeposit": "給与振込",
+      "tabWaterfall": "ウォーターフォール配分",
+      "incomeLabel": "収入元",
+      "depositDate": "振込日"
     },
     "eventOverride": {
       "title": "予定の変更・オーバーライド",

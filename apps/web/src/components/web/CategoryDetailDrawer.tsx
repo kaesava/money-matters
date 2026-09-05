@@ -157,7 +157,7 @@ export function CategoryDetailDrawer({ categoryId, onClose, onEdit, onArchive }:
                 <button
                   type="button"
                   onClick={() => onArchive(cat)}
-                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 hover:underline transition-colors"
+                  className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {t("common.archive")}
                 </button>

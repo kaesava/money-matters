@@ -457,18 +457,20 @@ function TransactionsPageContent() {
             )}
           </div>
 
-          <PaginationBar
-            page={page}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={sortedTransactions.length}
-            pageSizeOptions={[10, 25, 50, 100]}
-            onPageChange={setPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setPage(1);
-            }}
-          />
+          {sortedTransactions.length >= 5 && (
+            <PaginationBar
+              page={page}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={sortedTransactions.length}
+              pageSizeOptions={[10, 25, 50, 100]}
+              onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+            />
+          )}
         </div>
       )}
 

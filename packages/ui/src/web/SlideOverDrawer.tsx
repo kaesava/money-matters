@@ -10,6 +10,7 @@ interface SlideOverDrawerProps {
   children: React.ReactNode;
   headerActions?: React.ReactNode;
   widthClass?: string; // e.g. "max-w-md", "max-w-lg"
+  isDirty?: boolean;
 }
 
 export function SlideOverDrawer({
@@ -20,6 +21,7 @@ export function SlideOverDrawer({
   children,
   headerActions,
   widthClass = 'max-w-md',
+  isDirty: _isDirty = false,
 }: SlideOverDrawerProps) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {

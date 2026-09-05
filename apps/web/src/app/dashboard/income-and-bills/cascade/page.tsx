@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import { DashboardError } from "../../../../components/web/DashboardError";
-import { Spinner, InfoTooltip } from "@money-matters/ui/web";
+import { InfoTooltip, SkeletonTable } from "@money-matters/ui/web";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -107,8 +107,8 @@ export default function CascadePage() {
       {errorMessage && <DashboardError message={errorMessage} />}
 
       {previewQuery.isLoading ? (
-        <div className="p-12 text-center">
-          <Spinner />
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-200/80">
+          <SkeletonTable cols={4} rows={5} />
         </div>
       ) : (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-zinc-200/80">

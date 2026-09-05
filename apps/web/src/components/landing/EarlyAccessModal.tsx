@@ -53,12 +53,13 @@ export function EarlyAccessModal({
           className="space-y-3 pt-2"
         >
           <label className="text-xs font-bold text-zinc-700 block">
-            {t("landing.earlyAccess.notifyLabel", { defaultValue: "Get notified when we launch:" })}
+            {t("landing.earlyAccess.notifyLabel", { defaultValue: "Get notified when we launch:" })} <span className="text-red-500">*</span>
           </label>
           <div className="flex gap-2">
             <input
               type="email"
               required
+              autoFocus
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="you@example.com"
@@ -67,7 +68,7 @@ export function EarlyAccessModal({
             <Button
               type="submit"
               loading={isPending}
-              disabled={!emailInput.trim()}
+              disabled={!emailInput.trim() || isPending}
               className="shrink-0"
             >
               {t("landing.earlyAccess.notifyBtn")}

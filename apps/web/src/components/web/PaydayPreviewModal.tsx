@@ -140,14 +140,26 @@ export default function PaydayPreviewModal({
     }
   };
 
+  const isDirty = React.useMemo(() => {
+    if (!previewQuery.data) return false;
+    const evt = previewQuery.data.incomeEvent;
+    return (
+      sourceName !== (evt.name || "Paycheck") ||
+      actualAmount !== (evt.actualAmount || evt.expectedAmount) ||
+      selectedDate !== evt.expectedDate
+    );
+  }, [previewQuery.data, sourceName, actualAmount, selectedDate]);
+
   if (!isOpen) return null;
 
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={`Confirm Payday — ${sourceName}`}
-      maxWidth="max-w-xl"
+      isDirty={isDirty}
+      title={`Process Payday Deposit — ${sourceName}`}
+      subtitle="Review allocations and confirm income deposit"
+      maxWidth="max-w-md"
     >
       <div className="space-y-4 text-xs font-medium text-zinc-700">
         {errorMsg && (
@@ -160,42 +172,40 @@ export default function PaydayPreviewModal({
           <button
             type="button"
             onClick={() => setActiveTab("DEPOSIT")}
-            className={`px-4 py-2 font-bold border-b-2 transition-colors ${
-              activeTab === "DEPOSIT"
-                ? "border-[#2563eb] text-[#2563eb]"
-                : "border-transparent text-zinc-400 hover:text-zinc-600"
-            }`}
+            className={`flex-1 py-2 font-bold text-center border-b-2 transition-colors ${activeTab === "DEPOSIT" ? "border-[#2563eb] text-[#2563eb]" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
           >
-            {t("modals.paydayPreview.tabDeposit", { defaultValue: "Paycheck Deposit" })}
+            {t("modals.paydayPreview.tabDeposit", { defaultValue: "1. Deposit Details" })}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("ALLOCATION")}
-            className={`px-4 py-2 font-bold border-b-2 transition-colors ${
-              activeTab === "ALLOCATION"
-                ? "border-[#2563eb] text-[#2563eb]"
-                : "border-transparent text-zinc-400 hover:text-zinc-600"
-            }`}
+            className={`flex-1 py-2 font-bold text-center border-b-2 transition-colors ${activeTab === "ALLOCATION" ? "border-[#2563eb] text-[#2563eb]" : "border-transparent text-zinc-400 hover:text-zinc-600"}`}
           >
-            Pool Allocations ({lines.length})
+            {t("modals.paydayPreview.tabWaterfall", { defaultValue: "2. Waterfall Split" })}
           </button>
         </div>
 
         {activeTab === "DEPOSIT" ? (
           <div className="space-y-3">
             <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.paydayPreview.incomeLabel", { defaultValue: "Income Stream Label" })}</label>
+              <label className="block font-bold text-[#1B2B4B] mb-1">
+                {t("modals.paydayPreview.incomeLabel", { defaultValue: "Income Source Name" })} <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
+                autoFocus
                 value={sourceName}
                 onChange={(e) => setSourceName(e.target.value)}
                 className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
               />
             </div>
             <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">Received Paycheck Amount ($)</label>
+              <label className="block font-bold text-[#1B2B4B] mb-1">
+                Received Amount ($) <span className="text-red-500">*</span>
+              </label>
               <input
                 type="number"
+                min="0"
                 step="0.01"
                 value={actualAmount}
                 onChange={(e) => setActualAmount(e.target.value)}

@@ -70,6 +70,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     ? "Log unexpected income, cash deposits, or side hustle earnings. Funds are added to your Everyday pool or allocated via payday waterfall."
     : "Log an out-of-pocket spend. Money Matters deducts this from your Everyday pool balance so your bill buffer and savings goals stay 100% protected.";
 
+  const isDirty = name.trim() !== "" || amount.trim() !== "" || categoryId !== "";
+
   return (
     <>
       <SlideOverDrawer
@@ -80,6 +82,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
           </div>
         }
         onClose={onClose}
+        isDirty={isDirty}
         widthClass="max-w-xl"
       >
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
@@ -287,11 +290,13 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 <Button
                   type="submit"
                   loading={isPending}
-                  disabled={!amount.trim() || parseFloat(amount) <= 0 || (isTransfer ? (!sourceCategoryId || !destinationCategoryId) : (!isIncome && !categoryId))}
+                  disabled={!isDirty || !amount.trim() || parseFloat(amount) <= 0 || (isTransfer ? (!sourceCategoryId || !destinationCategoryId) : (!isIncome && !categoryId))}
                   variant="primary"
                 >
                   {isTransfer
-                    ? "Confirm Transfer"
+                    ? isFutureDate
+                      ? "Setup Transfer"
+                      : "Confirm Transfer"
                     : isIncome
                     ? isFutureDate
                       ? "Setup Income"

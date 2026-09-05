@@ -240,12 +240,27 @@ export default function IncomeExpenseFormModal({
     }
   };
 
+  const isDirty = useMemo(() => {
+    if (!sourceToEdit) {
+      return name.trim() !== "" || amount.trim() !== "";
+    }
+    return (
+      name !== (sourceToEdit.name || "") ||
+      amount !== (sourceToEdit.amount || "") ||
+      poolId !== (sourceToEdit.poolId || "") ||
+      receivingAccountId !== (sourceToEdit.receivingAccountId || "")
+    );
+  }, [name, amount, poolId, receivingAccountId, sourceToEdit]);
+
+  const isValid = name.trim() !== "" && amount.trim() !== "" && parseFloat(amount) > 0 && (mode !== "EXPENSE" || !!poolId);
+
   if (!isOpen) return null;
 
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
+      isDirty={isDirty}
       title={isEdit ? `Edit ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}` : `Add ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}`}
       maxWidth="max-w-md"
     >
@@ -258,10 +273,11 @@ export default function IncomeExpenseFormModal({
 
         <div>
           <label className="block font-bold text-[#1B2B4B] mb-1">
-            {mode === "INCOME" ? "Income Name" : "Bill Name"}
+            {mode === "INCOME" ? "Income Name" : "Bill Name"} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
+            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={mode === "INCOME" ? "e.g. Salary, Client Retainer" : "e.g. Rent, Netflix, Energy"}
@@ -270,9 +286,12 @@ export default function IncomeExpenseFormModal({
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Expected Amount ($)</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">
+            Expected Amount ($) <span className="text-red-500">*</span>
+          </label>
           <input
             type="number"
+            min="0"
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -306,7 +325,7 @@ export default function IncomeExpenseFormModal({
         {mode === "EXPENSE" && (
           <div>
             <label className="block font-bold text-[#1B2B4B] mb-1">
-              {t("modals.incomeExpenseForm.assignedPool", { defaultValue: "Assigned Pool" })}
+              {t("modals.incomeExpenseForm.assignedPool", { defaultValue: "Assigned Pool" })} <span className="text-red-500">*</span>
             </label>
             <select
               value={poolId}
@@ -314,7 +333,7 @@ export default function IncomeExpenseFormModal({
               className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             >
               <option value="">
-                {t("modals.incomeExpenseForm.selectTargetPool", { defaultValue: "Select Target Pool..." })}
+                {t("modals.incomeExpenseForm.selectTargetPool", { defaultValue: "Select Pool..." })}
               </option>
               {pools.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -333,7 +352,7 @@ export default function IncomeExpenseFormModal({
               type="button"
               onClick={handleArchive}
               disabled={archiving || submitting}
-              className="text-xs font-bold text-rose-600 hover:text-rose-800 hover:underline px-2 py-1.5 transition-colors disabled:opacity-50"
+              className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition-colors disabled:opacity-50"
             >
               {archiving ? "Archiving..." : "Archive Schedule"}
             </button>
@@ -353,7 +372,7 @@ export default function IncomeExpenseFormModal({
               type="button"
               onClick={handleSave}
               loading={submitting || archiving}
-              disabled={!name.trim() || !amount.trim() || parseFloat(amount) <= 0 || (mode === "EXPENSE" && !poolId)}
+              disabled={!isDirty || !isValid || submitting || archiving}
             >
               {isEdit ? "Update" : "Create"}
             </Button>

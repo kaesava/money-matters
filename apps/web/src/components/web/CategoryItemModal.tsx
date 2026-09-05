@@ -169,12 +169,15 @@ export function CategoryItemModal({
     }
   };
 
+  const isValid = name.trim() !== "" && selectedPoolId !== "" && enteredAmount !== "" && parseFloat(enteredAmount) > 0;
+
   if (!isOpen) return null;
 
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
+      isDirty={isDirty}
       title={isEdit ? `Edit Category — ${categoryToEdit?.name}` : t("categories.addCategory")}
       maxWidth="max-w-md"
     >
@@ -186,7 +189,9 @@ export function CategoryItemModal({
         )}
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.nameLabel")}</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">
+            {t("categories.nameLabel")} <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             value={name}
@@ -198,7 +203,9 @@ export function CategoryItemModal({
         </div>
 
         <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetPoolLabel")}</label>
+          <label className="block font-bold text-[#1B2B4B] mb-1">
+            {t("categories.targetPoolLabel")} <span className="text-red-500">*</span>
+          </label>
           <select
             value={selectedPoolId}
             disabled={isEdit}
@@ -222,7 +229,9 @@ export function CategoryItemModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.targetAmountLabel")}</label>
+            <label className="block font-bold text-[#1B2B4B] mb-1">
+              {t("categories.targetAmountLabel")} <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               step="0.01"
@@ -287,7 +296,7 @@ export function CategoryItemModal({
             </button>
             <button
               type="submit"
-              disabled={submitting || !isDirty}
+              disabled={submitting || !isDirty || !isValid}
               className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {submitting ? "Saving..." : t("categories.saveCategory")}

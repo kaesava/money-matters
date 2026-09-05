@@ -128,6 +128,14 @@ export function PoolsTable({
     };
   });
 
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
+        <SkeletonTable cols={6} rows={6} />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-xs overflow-hidden">
       <div className="overflow-x-auto">

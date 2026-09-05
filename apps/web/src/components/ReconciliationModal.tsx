@@ -256,6 +256,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                           type="number"
                           step="0.01"
                           min="0"
+                          autoFocus={visiblePools.indexOf(pool) === 0}
                           max={!isSurplus ? pool.currentBalance : undefined}
                           value={val}
                           onChange={(e) => handleAdjustmentChange(pool.id, e.target.value, pool.currentBalance)}

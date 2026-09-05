@@ -260,15 +260,17 @@ export default function HistoryPage() {
         )}
       </div>
 
-      <PaginationBar
-        page={page}
-        totalPages={_totalPages}
-        pageSize={pageSize}
-        totalItems={sorted.length}
-        pageSizeOptions={[10, 25, 50, 100]}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-      />
+      {sorted.length >= 5 && (
+        <PaginationBar
+          page={page}
+          totalPages={_totalPages}
+          pageSize={pageSize}
+          totalItems={sorted.length}
+          pageSizeOptions={[10, 25, 50, 100]}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
     </div>
   );
 }

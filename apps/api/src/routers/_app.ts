@@ -7,6 +7,7 @@ import { paydayRouter } from './payday.router.js';
 import { transactionsRouter } from './transactions.router.js';
 import { notificationsRouter } from './notifications.router.js';
 import { billingRouter } from './billing.router.js';
+import { transfersRouter } from './transfers.router.js';
 
 export const appRouter = router({
   ...tenantRouter,
@@ -17,6 +18,7 @@ export const appRouter = router({
   ...transactionsRouter,
   ...notificationsRouter,
   ...billingRouter,
+  ...transfersRouter,
 });
 
 

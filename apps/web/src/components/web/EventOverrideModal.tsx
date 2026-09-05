@@ -68,13 +68,16 @@ export default function EventOverrideModal({
     }
   };
 
+  const isDirty = amount !== (eventToEdit.expectedAmount || "") || expectedDate !== (eventToEdit.expectedDate || "");
+  const isValid = amount.trim() !== "" && parseFloat(amount) > 0 && expectedDate.trim() !== "";
+
   return (
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
+      isDirty={isDirty}
       title={`${t('modals.eventOverride.title')}: ${eventToEdit.name}`}
       subtitle="Modify amount, date, or payment parameters for this occurrence"
-      isDirty={false}
       onSave={handleSave}
     >
       <form
@@ -113,11 +116,13 @@ export default function EventOverrideModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {t('modals.eventOverride.overrideAmount')}
+              {t('modals.eventOverride.overrideAmount')} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
+              min="0"
               step="0.01"
+              autoFocus
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
@@ -125,7 +130,7 @@ export default function EventOverrideModal({
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {t('modals.eventOverride.overrideDate')}
+              {t('modals.eventOverride.overrideDate')} <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -147,7 +152,7 @@ export default function EventOverrideModal({
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !isDirty || !isValid}
             className="px-5 py-2 text-xs font-black rounded-xl bg-[#00B4A6] hover:bg-[#009b8f] text-white shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {submitting && <Spinner size="sm" />}
