@@ -10,6 +10,7 @@ import {
   ResizableTh,
   useResizableColumns,
   ConfirmDialog,
+  fmtDate,
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
@@ -248,7 +249,7 @@ export function UpcomingTimelineTab({
     <div className="flex flex-col gap-5 w-full">
       {/* Controls Bar: Search, Kind Filter, Scope Filter */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
-        <div className="w-full md:w-80 flex-1 max-w-md">
+        <div className="flex-1 w-full max-w-full">
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
@@ -426,13 +427,7 @@ export function UpcomingTimelineTab({
 
                   // Past Date calculation
                   const isPast = evt.expectedDate < todayStr;
-                  const dateObj = new Date(evt.expectedDate + "T00:00:00");
-                  const formattedDate = new Intl.DateTimeFormat("en-AU", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                    timeZone: "Australia/Sydney",
-                  }).format(dateObj);
+                  const formattedDate = fmtDate(evt.expectedDate);
 
                   return (
                     <tr

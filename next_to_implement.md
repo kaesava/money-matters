@@ -69,40 +69,22 @@ _________
 ### Category Create/Edit Modal
 ### Pool/Category picker
 
+
 ## ******* "Income & Expense Management"
-#### Run Splits Sidebar
-#### Skip Functionality
-* Warn the user that the skipped event will be deleted. Actually delete it when skipped.
 
 #### Income Allocation
 
 ### Setup
-* All Pools filter - show the Pool picker - launch it so you can't pick Categories - only Pools - only pick one Pool
-
 #### Create/Edit modal - Expense Schedule & Income Schedule (applies to both)
-* Expense Schedule: UX for the "Every" number is broken. It won't allow me to clear the field to enter a number.
-* Both: I changed the start date to 01-Jan-26, End date to 31-Dec-26 and "Every" to 3 (and frequency to "Weekly"). When I look at the DB, I see FREQ=WEEKLY	2026-01-01	2026-12-31 (rrule, start_date, end_date) so the "3" is not registered in the rrule.
-* Both: When I re-open the Schedule, the end date and "Every" are blank - not getting picked up from the database?
-* Expense Schedule: (Edit) When I change the Recurring/One-Off, Frequency, Start Date, End date OR "Every" number, it doesn't register the change and so the Update field is read-only. Fix this so a change in any of these fields makes me enables Save (unless there are fields that don't meet format/mandatory).
-* Income Schedule: (Edit) When I open and make no change, it still allows Save. It should only show Save if I made a change in any of the fields: Income Name, Expected Amount,  Bank Account, Recurring/One-Off, Frequency, Every, First Date, End Date.
-* Effectively, these two shoudld operate very similarly - re-use code as much as possible across them.
-
 #### Change Start/Frequency/End-date/Amount/Other - check re-burst
 #### Delete - check event delete (archival)
 #### Burst Event Regeneration (Check Transactions)
 
-### Allocate Income Sidebar
-* Remove all icons from the screen (including in the tables)
-* For column 1, Re-use the expand/collapse of Pool Types & Pools from the Pools screen (but don't show Categories). Show the Current Balance
+#### Run Splits Sidebar
 
 ### Upcoming
-* The search bar shouldn't get stunted like it is (width)
-* Actions - Show Mark Spent Mark Received and Allocate Actions as hyperlinks - stay consistent across the app (similar to Pools screenscrteen) - leave Skip as is.
-* There are many Income Events, one on 1 July another on 15 July, etc. (part of the same series). For some reason, the one on 15-Jul allows "Mark Received" while the 1 July has Allocate. I am expecting the earliest (PENDING Status) income record in this list.
-
 
 ## ******* "Bank Accounts"
-* Remove "+"" from the "Add Bank Account" button label
 ### Edit Modal 
 #### Reconciliation
 #### Linked Pools popup

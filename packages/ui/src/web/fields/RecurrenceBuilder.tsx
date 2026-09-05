@@ -71,7 +71,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {frequency === "MONTHLY" || frequency === "WEEKLY" ? "Every" : "Interval"}
+              {t("forms.every", { defaultValue: "Every" })}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -79,7 +79,6 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
                 min="1"
                 max="365"
                 value={interval === 0 ? "" : interval}
-                disabled={frequency === "FORTNIGHTLY" || frequency === "ANNUALLY"}
                 onChange={(e) => {
                   const val = e.target.value;
                   if (val === "") {
@@ -96,10 +95,16 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
                     setInterval(1);
                   }
                 }}
-                className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 w-full disabled:opacity-50 disabled:bg-zinc-50"
+                className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 w-full"
               />
-              <span className="text-xs font-bold text-zinc-500 w-16">
-                {frequency === "WEEKLY" ? "Weeks" : frequency === "MONTHLY" ? "Months" : ""}
+              <span className="text-xs font-bold text-zinc-500 w-20">
+                {frequency === "WEEKLY"
+                  ? "Weeks"
+                  : frequency === "FORTNIGHTLY"
+                  ? "Fortnights"
+                  : frequency === "MONTHLY"
+                  ? "Months"
+                  : "Years"}
               </span>
             </div>
           </div>

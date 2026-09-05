@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, InfoTooltip } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, InfoTooltip, fmtDate } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 
 import { t } from "@money-matters/i18n";
@@ -48,13 +48,14 @@ function parseSourceRecurrence(source?: SourceToEdit | null) {
     const match = source.rrule.match(/INTERVAL=(\d+)/);
     const parsedInterval = match ? parseInt(match[1], 10) : 1;
 
-    if (source.rrule.includes("FREQ=WEEKLY;INTERVAL=2") || source.rrule.includes("FREQ=FORTNIGHTLY")) {
-      return {
-        origIsRecurring,
-        origFrequency: "FORTNIGHTLY" as const,
-        origInterval: 1,
-      };
-    } else if (source.rrule.includes("FREQ=WEEKLY")) {
+    if (source.rrule.includes("FREQ=WEEKLY")) {
+      if (source.rrule.includes("FREQ=WEEKLY;INTERVAL=2") || (parsedInterval > 1 && parsedInterval % 2 === 0)) {
+        return {
+          origIsRecurring,
+          origFrequency: "FORTNIGHTLY" as const,
+          origInterval: Math.max(1, Math.floor(parsedInterval / 2)),
+        };
+      }
       return {
         origIsRecurring,
         origFrequency: "WEEKLY" as const,
@@ -66,7 +67,7 @@ function parseSourceRecurrence(source?: SourceToEdit | null) {
         origFrequency: "ANNUALLY" as const,
         origInterval: parsedInterval,
       };
-    } else {
+    } else if (source.rrule.includes("FREQ=MONTHLY")) {
       return {
         origIsRecurring,
         origFrequency: "MONTHLY" as const,
@@ -119,6 +120,8 @@ export default function IncomeExpenseFormModal({
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   useEffect(() => {
     if (sourceToEdit) {
@@ -149,8 +152,6 @@ export default function IncomeExpenseFormModal({
     setErrorMsg("");
   }, [sourceToEdit, isOpen, bankAccounts, pools, setEndDate, setFrequency, setInterval, setIsRecurring, setStartDate]);
 
-  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-
   const confirmArchive = async () => {
     if (!sourceToEdit) return;
     setArchiving(true);
@@ -178,29 +179,8 @@ export default function IncomeExpenseFormModal({
     setShowArchiveConfirm(true);
   };
 
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      setErrorMsg("Name is required.");
-      return;
-    }
-    if (!amount || parseFloat(amount) <= 0) {
-      setErrorMsg("Please enter a valid positive amount.");
-      return;
-    }
-
-    if (mode === "EXPENSE" && !poolId) {
-      setErrorMsg("Expense sources MUST be assigned to a Pool.");
-      return;
-    }
-
-    if (isRecurring && endDate && startDate && endDate < startDate) {
-      setErrorMsg("End date cannot be prior to start date.");
-      return;
-    }
-
+  const executeSave = async () => {
     const formattedAmount = cleanAmount(amount);
-
     setSubmitting(true);
     setErrorMsg("");
 
@@ -266,17 +246,49 @@ export default function IncomeExpenseFormModal({
       }
 
       toast.success(
-        isRecurring
+        isEdit
+          ? (mode === "INCOME" ? "Income schedule updated successfully." : "Bill schedule updated successfully.")
+          : isRecurring
           ? t("toasts.saved")
           : mode === "INCOME"
           ? "One-off income saved to Upcoming Timeline."
           : "One-off bill saved to Upcoming Timeline."
       );
+      setShowUpdateConfirm(false);
       onClose();
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || "Failed to save stream");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      setErrorMsg("Name is required.");
+      return;
+    }
+    if (!amount || parseFloat(amount) <= 0) {
+      setErrorMsg("Please enter a valid positive amount.");
+      return;
+    }
+
+    if (mode === "EXPENSE" && !poolId) {
+      setErrorMsg("Expense sources MUST be assigned to a Pool.");
+      return;
+    }
+
+    if (isRecurring && endDate && startDate && endDate < startDate) {
+      setErrorMsg("End date cannot be prior to start date.");
+      return;
+    }
+
+    setErrorMsg("");
+
+    if (isEdit) {
+      setShowUpdateConfirm(true);
+    } else {
+      executeSave();
     }
   };
 
@@ -302,149 +314,191 @@ export default function IncomeExpenseFormModal({
     );
   }, [name, amount, poolId, receivingAccountId, isRecurring, frequency, interval, startDate, endDate, sourceToEdit]);
 
+  const isScheduleRuleChanged = useMemo(() => {
+    if (!sourceToEdit) return false;
+    const defaultToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+    const origStartDate = sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : defaultToday;
+    const origEndDate = sourceToEdit.endDate ? sourceToEdit.endDate.split("T")[0] : null;
+    const { origIsRecurring, origFrequency, origInterval } = parseSourceRecurrence(sourceToEdit);
+
+    return (
+      isRecurring !== origIsRecurring ||
+      frequency !== origFrequency ||
+      (interval || 1) !== origInterval ||
+      startDate !== origStartDate ||
+      (endDate || null) !== origEndDate
+    );
+  }, [isRecurring, frequency, interval, startDate, endDate, sourceToEdit]);
+
   const isValid = name.trim() !== "" && amount.trim() !== "" && parseFloat(amount) > 0 && (mode !== "EXPENSE" || !!poolId);
 
   if (!isOpen) return null;
 
   return (
-    <ModalDialog
-      isOpen={isOpen}
-      onClose={onClose}
-      isDirty={isDirty}
-      title={isEdit ? `Edit ${mode === "INCOME" ? "Income Schedule" : "Expense Schedule"}` : `Add ${mode === "INCOME" ? "Income Schedule" : "Expense Schedule"}`}
-      maxWidth="max-w-md"
-    >
-      <div className="space-y-4 pt-2 text-xs font-medium text-zinc-700">
-        {errorMsg && (
-          <div className="p-3 bg-red-50 text-red-700 font-bold rounded-xl border border-red-200">
-            {errorMsg}
-          </div>
-        )}
-
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">
-            {mode === "INCOME" ? "Income Name" : "Expense Name"} <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={mode === "INCOME" ? "e.g. Salary, Client Retainer" : "e.g. Rent, Netflix, Energy"}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          />
-        </div>
-
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1 flex items-center gap-1">
-            <span>Expected Amount ($)</span> <span className="text-red-500">*</span>
-            <InfoTooltip
-              title="Expected Amount"
-              content={t("modals.theseCanBeUpdatedLater", { defaultValue: "These can be updated later" })}
-            />
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          />
-        </div>
-
-        {mode === "INCOME" && (
-          <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">
-              {t("modals.incomeExpenseForm.receivingBankAccount", { defaultValue: "Receiving Bank Account" })}
-            </label>
-            <select
-              value={receivingAccountId}
-              onChange={(e) => setReceivingAccountId(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            >
-              <option value="">
-                {t("modals.incomeExpenseForm.defaultMainAccount", { defaultValue: "Default Main Account" })}
-              </option>
-              {bankAccounts.map((acct) => (
-                <option key={acct.id} value={acct.id}>
-                  {acct.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {mode === "EXPENSE" && (
-          <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">
-              {t("modals.incomeExpenseForm.assignedPool", { defaultValue: "Assigned Pool" })} <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={poolId}
-              onChange={(e) => setPoolId(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            >
-              <option value="">
-                {t("modals.incomeExpenseForm.selectTargetPool", { defaultValue: "Select Pool..." })}
-              </option>
-              {pools.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.poolType})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <RecurrenceBuilder builder={recurrenceBuilder} />
-
-        <div className="flex items-center justify-between gap-2 pt-4 border-t border-zinc-200">
-          {isEdit ? (
-            <button
-              type="button"
-              onClick={handleArchive}
-              disabled={archiving || submitting}
-              className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition-colors disabled:opacity-50"
-            >
-              {archiving ? "Archiving..." : "Archive Schedule"}
-            </button>
-          ) : (
-            <div />
+    <>
+      <ModalDialog
+        isOpen={isOpen}
+        onClose={onClose}
+        isDirty={isDirty}
+        title={isEdit ? `Edit ${mode === "INCOME" ? "Income Schedule" : "Expense Schedule"}` : `Add ${mode === "INCOME" ? "Income Schedule" : "Expense Schedule"}`}
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4 pt-2 text-xs font-medium text-zinc-700">
+          {errorMsg && (
+            <div className="p-3 bg-red-50 text-red-700 font-bold rounded-xl border border-red-200">
+              {errorMsg}
+            </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50 transition-colors"
-            >
-              {t("common.cancel", { defaultValue: "Cancel" })}
-            </button>
-            <Button
-              type="button"
-              onClick={handleSave}
-              loading={submitting || archiving}
-              disabled={!isDirty || !isValid || submitting || archiving}
-            >
-              {isEdit ? "Update" : "Create"}
-            </Button>
+          <div>
+            <label className="block font-bold text-[#1B2B4B] mb-1">
+              {mode === "INCOME" ? "Income Name" : "Expense Name"} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={mode === "INCOME" ? "e.g. Salary, Client Retainer" : "e.g. Rent, Netflix, Energy"}
+              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-[#1B2B4B] mb-1 flex items-center gap-1">
+              <span>Expected Amount ($)</span> <span className="text-red-500">*</span>
+              <InfoTooltip
+                title="Expected Amount"
+                content={t("modals.theseCanBeUpdatedLater", { defaultValue: "These can be updated later" })}
+              />
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+            />
+          </div>
+
+          {mode === "INCOME" && (
+            <div>
+              <label className="block font-bold text-[#1B2B4B] mb-1">
+                {t("modals.incomeExpenseForm.receivingBankAccount", { defaultValue: "Receiving Bank Account" })}
+              </label>
+              <select
+                value={receivingAccountId}
+                onChange={(e) => setReceivingAccountId(e.target.value)}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+              >
+                <option value="">
+                  {t("modals.incomeExpenseForm.defaultMainAccount", { defaultValue: "Default Main Account" })}
+                </option>
+                {bankAccounts.map((acct) => (
+                  <option key={acct.id} value={acct.id}>
+                    {acct.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {mode === "EXPENSE" && (
+            <div>
+              <label className="block font-bold text-[#1B2B4B] mb-1">
+                {t("modals.incomeExpenseForm.assignedPool", { defaultValue: "Assigned Pool" })} <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={poolId}
+                onChange={(e) => setPoolId(e.target.value)}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+              >
+                <option value="">
+                  {t("modals.incomeExpenseForm.selectTargetPool", { defaultValue: "Select Pool..." })}
+                </option>
+                {pools.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.poolType})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <RecurrenceBuilder builder={recurrenceBuilder} />
+
+          <div className="flex items-center justify-between gap-2 pt-4 border-t border-zinc-200">
+            {isEdit ? (
+              <button
+                type="button"
+                onClick={handleArchive}
+                disabled={archiving || submitting}
+                className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition-colors disabled:opacity-50"
+              >
+                {archiving ? "Archiving..." : "Archive Schedule"}
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50 transition-colors"
+              >
+                {t("common.cancel", { defaultValue: "Cancel" })}
+              </button>
+              <Button
+                type="button"
+                onClick={handleSave}
+                loading={submitting || archiving}
+                disabled={!isDirty || !isValid || submitting || archiving}
+              >
+                {isEdit ? "Update" : "Create"}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+
+        <ConfirmDialog
+          isOpen={showArchiveConfirm}
+          onClose={() => setShowArchiveConfirm(false)}
+          onConfirm={confirmArchive}
+          title={`Archive ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}`}
+          description={`Archiving this ${mode === "INCOME" ? "income schedule" : "bill schedule"} will cancel all future upcoming events. Continue?`}
+          confirmLabel="Archive Schedule"
+          variant="danger"
+          isLoading={archiving}
+        />
+      </ModalDialog>
 
       <ConfirmDialog
-        isOpen={showArchiveConfirm}
-        onClose={() => setShowArchiveConfirm(false)}
-        onConfirm={confirmArchive}
-        title={`Archive ${mode === "INCOME" ? "Income Schedule" : "Bill Schedule"}`}
-        description={`Archiving this ${mode === "INCOME" ? "income schedule" : "bill schedule"} will cancel all future upcoming events. Continue?`}
-        confirmLabel="Archive Schedule"
-        variant="danger"
-        isLoading={archiving}
+        isOpen={showUpdateConfirm}
+        onClose={() => setShowUpdateConfirm(false)}
+        onConfirm={executeSave}
+        title={
+          mode === "INCOME"
+            ? t("modals.updateSchedule.confirmTitleIncome", { defaultValue: "Update Income Schedule?" })
+            : t("modals.updateSchedule.confirmTitleExpense", { defaultValue: "Update Bill Schedule?" })
+        }
+        description={
+          isScheduleRuleChanged
+            ? t("modals.updateSchedule.confirmDescRuleChange", {
+                startDate: fmtDate(startDate),
+                defaultValue: `Updating schedule settings (frequency, interval, or start date) will refresh your upcoming timeline. All unconfirmed future events will be recreated starting from ${fmtDate(startDate)}. Confirmed past transactions stay 100% safe and untouched.`,
+              })
+            : t("modals.updateSchedule.confirmDescDetailChange", {
+                defaultValue: "Updating schedule details will apply your new amount to all unconfirmed future events on your timeline. Confirmed past transactions stay 100% safe and untouched.",
+              })
+        }
+        confirmLabel={t("modals.updateSchedule.confirmCta", { defaultValue: "Update Schedule" })}
+        variant="primary"
+        isLoading={submitting}
       />
-    </ModalDialog>
+    </>
   );
 }
 

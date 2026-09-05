@@ -1047,6 +1047,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "recurring": "定期",
     "oneOff": "単発",
     "frequency": "頻度",
+    "every": "間隔",
     "weekly": "毎週",
     "fortnightly": "隔週",
     "monthly": "毎月",
@@ -1244,6 +1245,13 @@ export const ja: DeepStringRecord<typeof en> = {
     "returnToApp": "Return to Money Matters"
   },
   "modals": {
+    "updateSchedule": {
+      "confirmTitleIncome": "収入スケジュールを更新しますか？",
+      "confirmTitleExpense": "支出スケジュールを更新しますか？",
+      "confirmDescRuleChange": "スケジュール設定（頻度、間隔、開始日）を変更すると、今後のタイムラインが再計算されます。未確定の未来の予定は{startDate}から再作成されます。確定済みの過去の履歴は影響を受けず安全に保持されます。",
+      "confirmDescDetailChange": "スケジュール情報を更新すると、今後の未確定の予定に新しい内容が適用されます。確定済みの過去の履歴は影響を受けず安全に保持されます。",
+      "confirmCta": "スケジュールを更新"
+    },
     "theseCanBeUpdatedLater": "これらは後から更新できます",
     "categoryActivity": {
       "noUpcoming": "このプールにリンクされた今後の請求はありません。"
@@ -1465,8 +1473,8 @@ export const ja: DeepStringRecord<typeof en> = {
       "content": "生活費プールと貯蓄目標を管理します。生活費と定期請求はプール単位で管理し、貯蓄目標は個別目標を追跡します。"
     },
     "incomeBills": {
-      "title": "収入・支出について",
-      "content": "定期的な給与と支出スケジュールを設定します。給料日にはMoney Mattersが自動的に支出分を確保し、残りを生活費プールへ配分します。"
+      "title": "収入・支出",
+      "content": "収入と定期的な支出を設定します。給料日に収入が適切なプールに分割分配され、支払い期限に焦る心配がなくなります。"
     },
     "cascade": {
       "title": "配分シミュレーターについて",

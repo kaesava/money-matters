@@ -1055,6 +1055,7 @@ export const en = {
     recurring: "Recurring",
     oneOff: "One-off",
     frequency: "Frequency",
+    every: "Every",
     weekly: "Weekly",
     fortnightly: "Fortnightly",
     monthly: "Monthly",
@@ -1256,6 +1257,13 @@ export const en = {
   },
   modals: {
     theseCanBeUpdatedLater: "These can be updated later",
+    updateSchedule: {
+      confirmTitleIncome: "Update Income Schedule?",
+      confirmTitleExpense: "Update Bill Schedule?",
+      confirmDescRuleChange: "Updating schedule settings (frequency, interval, or start date) will refresh your upcoming timeline. All unconfirmed future events will be recreated starting from {startDate}. Confirmed past transactions stay 100% safe and untouched.",
+      confirmDescDetailChange: "Updating schedule details will apply your new amount to all unconfirmed future events on your timeline. Confirmed past transactions stay 100% safe and untouched.",
+      confirmCta: "Update Schedule",
+    },
     categoryActivity: {
       noUpcoming: "No upcoming bills linked to this pool.",
       noHistory: "No transaction history for this category.",
@@ -1510,8 +1518,8 @@ export const en = {
       content: "Manage your spending pools and savings goals. The 5-Step Waterfall automatically fills your Bills pool and savings upfront on payday.",
     },
     incomeBills: {
-      title: "About Income & Expenses",
-      content: "Set up paychecks and recurring expenses. On payday, upcoming expenses are automatically protected so you never get caught out by surprise due dates.",
+      title: "Income & Expenses",
+      content: "Setup income and recurring expenses. On payday, upcoming expenses are protected by splittig your income into the right Pools so you never get caught out by surprise due dates.",
     },
     cascade: {
       title: "About Cascade Simulator",

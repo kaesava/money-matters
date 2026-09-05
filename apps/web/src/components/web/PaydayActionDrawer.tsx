@@ -45,6 +45,17 @@ export function PaydayActionDrawer({
   // Collapsible Income Details section - collapsed by default
   const [isDetailsOpen, setIsDetailsOpen] = useState<boolean>(false);
 
+  // Expansion state for Pool Types
+  const [expandedTypes, setExpandedTypes] = useState<Record<string, boolean>>({
+    EVERYDAY: true,
+    REGULAR: true,
+    GOAL: true,
+  });
+
+  const toggleType = (type: string) => {
+    setExpandedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
+  };
+
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
   const [isManualOverride, setIsManualOverride] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -452,10 +463,9 @@ export function PaydayActionDrawer({
                   )}
                 </section>
 
-                {/* 2. Split Income across Pools Section */}
+                {/* Split Income across Pools Section */}
                 <section>
                   <h3 className="text-sm font-extrabold text-[#1B2B4B] dark:text-white mb-4 flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px]">2</span>
                     {t("paydayDrawer.splitIncomeAcrossPools", { defaultValue: "Split Income across Pools" })}
                   </h3>
 
@@ -475,46 +485,71 @@ export function PaydayActionDrawer({
                     </div>
                   </div>
 
-                  {/* Grouped Pool Allocation Inputs */}
-                  <div className="space-y-4">
-                    {groupedLines.map((group) => (
-                      <div key={group.type} className="space-y-1.5">
-                        <div className="flex items-center gap-1.5 px-1 text-[11px] font-extrabold uppercase tracking-wider text-[#1B2B4B] dark:text-blue-300">
-                          <span>•</span>
-                          <span>{group.label}</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {group.items.map((l: AllocationLineItem) => {
-                            const poolObj = pools.find((p) => p.id === l.bucketId);
-                            const currentBal = poolObj ? parseFloat(String(poolObj.currentBalance || "0")) : 0;
-                            const targetAmt = poolObj?.targetAmount ? parseFloat(poolObj.targetAmount) : 0;
+                  {/* Grouped Pool Allocation Inputs with Expand/Collapse */}
+                  <div className="space-y-3">
+                    {groupedLines.map((group) => {
+                      const isExpanded = Boolean(expandedTypes[group.type]);
+                      const groupSum = group.items.reduce(
+                        (acc, l) => acc + (parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0),
+                        0
+                      );
 
-                            return (
-                              <div
-                                key={l.bucketId}
-                                className="py-2.5 px-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl flex justify-between items-center group hover:border-zinc-300 transition-colors"
-                              >
-                                <div className="min-w-0 pr-3">
-                                  <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">
-                                    {l.bucketName}
-                                  </span>
-                                  <span className="text-[10px] text-zinc-400 font-mono block truncate">
-                                    Bal: {fmt(currentBal)} · Target: {fmt(targetAmt)}
-                                  </span>
-                                </div>
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)}
-                                  onChange={(e) => handleLineAmountChange(l.bucketId, e.target.value)}
-                                  className="w-28 px-2.5 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 tabular-nums"
-                                />
-                              </div>
-                            );
-                          })}
+                      return (
+                        <div key={group.type} className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-2xs">
+                          {/* Pool Type Collapsible Header */}
+                          <button
+                            type="button"
+                            onClick={() => toggleType(group.type)}
+                            className="w-full py-2.5 px-3 bg-slate-100/90 dark:bg-zinc-800/70 hover:bg-slate-200/80 dark:hover:bg-zinc-800 flex items-center justify-between font-bold text-xs text-[#1B2B4B] dark:text-white cursor-pointer select-none transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-zinc-500 font-black text-[10px]">
+                                {isExpanded ? "▼" : "▶"}
+                              </span>
+                              <span className="font-black uppercase tracking-wider text-[11px]">
+                                {group.label} ({group.items.length})
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-xs text-zinc-700 dark:text-zinc-300">
+                              {fmt(groupSum)}
+                            </span>
+                          </button>
+
+                          {/* Pool Rows */}
+                          {isExpanded && (
+                            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
+                              {group.items.map((l: AllocationLineItem) => {
+                                const poolObj = pools.find((p) => p.id === l.bucketId);
+                                const currentBal = poolObj ? parseFloat(String(poolObj.currentBalance || "0")) : 0;
+
+                                return (
+                                  <div
+                                    key={l.bucketId}
+                                    className="py-2.5 px-3 pl-6 flex justify-between items-center group hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors"
+                                  >
+                                    <div className="min-w-0 pr-3">
+                                      <span className="text-xs font-bold text-[#1B2B4B] dark:text-white block truncate">
+                                        {l.bucketName}
+                                      </span>
+                                      <span className="text-[10px] text-zinc-400 font-mono block truncate">
+                                        Current Balance: {fmt(currentBal)}
+                                      </span>
+                                    </div>
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)}
+                                      onChange={(e) => handleLineAmountChange(l.bucketId, e.target.value)}
+                                      className="w-28 px-2.5 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 tabular-nums"
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               </div>
@@ -528,7 +563,7 @@ export function PaydayActionDrawer({
               {sweepPool && (
                 <div className="flex items-center justify-between text-xs font-bold text-zinc-600 dark:text-zinc-300">
                   <span className="flex items-center gap-1">
-                    <span>🎯 {t("paydayDrawer.surplusPool", { defaultValue: "Surplus Pool" })} ({sweepPool.name}):</span>
+                    <span>{t("paydayDrawer.surplusPool", { defaultValue: "Surplus Pool" })} ({sweepPool.name}):</span>
                   </span>
                   <span className={`font-mono font-extrabold ${isSweepNegative ? 'text-red-600' : 'text-emerald-600 dark:text-emerald-400'}`}>
                     {fmt(sweepPoolRemainder)}

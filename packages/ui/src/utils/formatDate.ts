@@ -27,9 +27,9 @@ export function fmtDate(
     if (isNaN(dateObj.getTime())) return "N/A";
 
     return new Intl.DateTimeFormat("en-AU", {
-      day: "numeric",
+      day: "2-digit",
       month: "short",
-      year: "numeric",
+      year: "2-digit",
       timeZone,
     }).format(dateObj);
   } catch {
