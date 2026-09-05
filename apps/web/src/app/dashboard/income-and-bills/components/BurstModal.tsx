@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { ConfirmDialog } from "@money-matters/ui/web";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -18,43 +19,37 @@ function parseSchedule(rrule?: string | null, startDate?: string | null) {
   const isRecurring = Boolean(rrule && rrule.trim().length > 0);
   let frequencyLabel = "One-off";
   if (isRecurring) {
-    if (rrule?.includes("INTERVAL=2") && rrule?.includes("WEEKLY")) frequencyLabel = "Fortnightly";
-    else if (rrule?.includes("FREQ=WEEKLY")) frequencyLabel = "Weekly";
-    else if (rrule?.includes("FREQ=MONTHLY")) frequencyLabel = "Monthly";
-    else if (rrule?.includes("FREQ=YEARLY") || rrule?.includes("ANNUALLY")) frequencyLabel = "Annually";
+    const r = (rrule || "").toUpperCase();
+    if (r.includes("FREQ=WEEKLY") && r.includes("INTERVAL=2")) frequencyLabel = "Fortnightly";
+    else if (r.includes("FREQ=WEEKLY")) frequencyLabel = "Weekly";
+    else if (r.includes("FREQ=MONTHLY")) frequencyLabel = "Monthly";
+    else if (r.includes("FREQ=YEARLY")) frequencyLabel = "Annually";
     else frequencyLabel = "Recurring";
   }
-  const dateLabel = startDate ? fmtDate(startDate) : null;
+  const dateLabel = fmtDate(startDate);
   return { isRecurring, frequencyLabel, dateLabel };
 }
 
 export interface SourceItem {
   id: string;
   name: string;
-  amount: string;
+  amount: string | number;
   rrule?: string | null;
   startDate?: string | null;
-  categoryId?: string | null;
-  receivingAccountId?: string | null;
-  categoryName?: string | null;
+  categoryName?: string;
   accountName?: string;
 }
 
 export interface EventItem {
   id: string;
-  incomeSourceId?: string | null;
-  expenseSourceId?: string | null;
-  categoryId?: string | null;
-  categoryName?: string | null;
-  accountName?: string | null;
-  status: string;
   expectedDate: string;
   expectedAmount: string;
   actualAmount?: string | null;
-  note?: string | null;
+  status: string;
+  incomeSourceId?: string | null;
+  expenseSourceId?: string | null;
   name?: string | null;
-  rrule?: string | null;
-  userId?: string | null;
+  note?: string | null;
 }
 
 export interface BurstModalProps {
@@ -66,20 +61,21 @@ export interface BurstModalProps {
   onArchive: () => void;
   onMarkPaid: (eventId: string, amount: string, date: string) => void;
   onSkip: (eventId: string) => void;
-  onUnskip: (eventId: string) => void;
+  onUnskip?: (eventId: string) => void;
   onUpdateEvent: (eventId: string, amount: string, date: string) => void;
   isPendingMarkPaid: boolean;
-  isPendingSkip: boolean;
+  isPendingSkip?: boolean;
 }
 
 export function BurstModal({
-  mode, source, events, onClose, onEdit, onArchive, onMarkPaid, onSkip, onUnskip, onUpdateEvent, isPendingMarkPaid, isPendingSkip,
+  mode, source, events, onClose, onEdit, onArchive, onMarkPaid, onSkip, onUpdateEvent, isPendingMarkPaid,
 }: BurstModalProps) {
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
   const sched = parseSchedule(source.rrule, source.startDate);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [eventToDeleteId, setEventToDeleteId] = useState<string | null>(null);
 
   const startEdit = (evt: EventItem) => {
     setEditingEventId(evt.id);
@@ -133,18 +129,16 @@ export function BurstModal({
           ) : (
             <div className="flex flex-col gap-2">
               {sourceEvents.map((evt) => {
-                const isPaid = evt.status === "CONFIRMED" || evt.status === "CONFIRMED";
-                const isSkipped = evt.status === "SKIPPED";
+                const isPaid = evt.status === "CONFIRMED";
                 const isEditing = editingEventId === evt.id;
                 const isFutureSaveMode = isEditing && isDateFuture(editDate);
 
                 let statusIcon = "📅";
                 let statusLabel = "";
                 if (isPaid) { statusIcon = "✅"; statusLabel = mode === "INCOME" ? "Received" : "Paid"; }
-                else if (isSkipped) { statusIcon = "⏭️"; statusLabel = "Skipped"; }
 
                 return (
-                  <div key={evt.id} className={`rounded-xl border p-3.5 transition-colors ${isPaid ? "bg-emerald-50/40 border-emerald-100" : isSkipped ? "bg-zinc-50 border-zinc-100 opacity-60" : "bg-white border-zinc-100 hover:bg-zinc-50/50"}`}>
+                  <div key={evt.id} className={`rounded-xl border p-3.5 transition-colors ${isPaid ? "bg-emerald-50/40 border-emerald-100" : "bg-white border-zinc-100 hover:bg-zinc-50/50"}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="text-base shrink-0">{statusIcon}</span>
@@ -188,23 +182,12 @@ export function BurstModal({
                             </button>
                             <button type="button" onClick={cancelEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">Cancel</button>
                           </>
-                        ) : isSkipped ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onUnskip(evt.id);
-                              startEdit(evt);
-                            }}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors"
-                          >
-                            Unskip
-                          </button>
                         ) : (
                           <>
                             <button type="button" onClick={() => startEdit(evt)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
                               Edit
                             </button>
-                            <button type="button" onClick={() => onSkip(evt.id)} disabled={isPendingSkip} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200 transition-colors">Skip</button>
+                            <button type="button" onClick={() => setEventToDeleteId(evt.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-100 text-zinc-600 hover:bg-rose-600 hover:text-white border border-zinc-200 transition-colors">Delete</button>
                           </>
                         )}
                       </div>
@@ -216,17 +199,30 @@ export function BurstModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-zinc-100 flex justify-between items-center bg-zinc-50/50 rounded-b-2xl">
-          <button type="button" onClick={onArchive} className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 hover:underline transition-colors">
-            Archive {mode === "INCOME" ? "Income Source" : "Expense Bill"}
+          <button type="button" onClick={onArchive} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
+            Archive {mode === "INCOME" ? "Income" : "Expense"}
           </button>
-
-          <button type="button" onClick={onClose} className="px-4 py-1.5 rounded-xl text-xs font-bold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-200 bg-zinc-100 rounded-xl transition-colors">
             Close
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!eventToDeleteId}
+        onClose={() => setEventToDeleteId(null)}
+        onConfirm={() => {
+          if (eventToDeleteId) {
+            onSkip(eventToDeleteId);
+            setEventToDeleteId(null);
+          }
+        }}
+        title={mode === "INCOME" ? "Delete Income" : "Delete Expense"}
+        description={mode === "INCOME" ? "Are you sure you want to Delete this Income?" : "Are you sure you want to Delete this Expense?"}
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

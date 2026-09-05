@@ -8,14 +8,12 @@ import { z } from 'zod';
  * - RING_FENCED: Payday funds successfully reserved into virtual bucket.
  * - CONFIRMED: Settlement confirmed against bank ledger transaction.
  * - OVERDUE: Due date passed without complete ring-fencing or payment.
- * - SKIPPED: Bypassed by user action for the active payday cycle.
  */
 export const BillLifecycleStatusSchema = z.enum([
   'PENDING',
   'RING_FENCED',
   'CONFIRMED',
   'OVERDUE',
-  'SKIPPED',
 ]);
 
 export type BillLifecycleStatus = z.infer<typeof BillLifecycleStatusSchema>;
@@ -47,14 +45,12 @@ export interface BillLifecycleStatusMeta {
 
 /**
  * Strict transition map defining valid state progressions.
- * Prevents invalid state jumps (e.g. cannot transition directly from SKIPPED to RING_FENCED).
  */
 export const BILL_LIFECYCLE_TRANSITIONS: Record<BillLifecycleStatus, readonly BillLifecycleStatus[]> = {
-  PENDING: ['RING_FENCED', 'CONFIRMED', 'SKIPPED'],
-  RING_FENCED: ['CONFIRMED', 'OVERDUE', 'SKIPPED'],
-  OVERDUE: ['CONFIRMED', 'SKIPPED'],
+  PENDING: ['RING_FENCED', 'CONFIRMED'],
+  RING_FENCED: ['CONFIRMED', 'OVERDUE'],
+  OVERDUE: ['CONFIRMED'],
   CONFIRMED: [],
-  SKIPPED: [],
 } as const;
 
 /**
@@ -118,21 +114,6 @@ export const BILL_LIFECYCLE_META: Record<BillLifecycleStatus, BillLifecycleStatu
         badge: 'bg-rose-50 text-rose-700',
         text: 'text-rose-700',
         border: 'border-rose-500',
-      },
-    },
-  },
-  SKIPPED: {
-    code: 'SKIPPED',
-    labelKey: 'expenseStatus.skippedLabel',
-    descriptionKey: 'expenseStatus.skippedDesc',
-    isTerminal: true,
-    visuals: {
-      tokenName: 'surfaceVariant',
-      hex: '#6B7280', // Text Muted
-      web: {
-        badge: 'bg-gray-100 text-gray-600',
-        text: 'text-gray-600',
-        border: 'border-gray-300',
       },
     },
   },

@@ -124,6 +124,26 @@ export const transfersRouter = {
       return { ...source, firstEventId };
     }),
 
+  deleteTransferEvent: privateTenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      await ctx.db
+        .delete(transferEvents)
+        .where(
+          and(
+            eq(transferEvents.id, input.eventId),
+            eq(transferEvents.tenantId, ctx.tenantId!),
+            eq(transferEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
+
   skipTransferEvent: privateTenantProcedure
     .input(
       z.object({
@@ -133,12 +153,7 @@ export const transfersRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .update(transferEvents)
-        .set({
-          status: "SKIPPED",
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
+        .delete(transferEvents)
         .where(
           and(
             eq(transferEvents.id, input.eventId),
@@ -193,7 +208,7 @@ export const transfersRouter = {
       await ctx.db
         .update(transferEvents)
         .set({
-          status: "COMPLETED",
+          status: "CONFIRMED",
           actualAmount: amountToTransfer,
           sourcePoolId,
           destinationPoolId,

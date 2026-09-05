@@ -105,7 +105,6 @@ export const ja: DeepStringRecord<typeof en> = {
     "billOrIncomeName": "請求書 / 収入名",
     "poolOrBankAccount": "プール / 銀行口座",
     "billsAndIncomeHistory": "請求書と収入の履歴",
-    "skipConfirmationText": "この記録を無効にするにはスキップにしてください。必要に応じて後で解除できます。",
     "reservedFunds": "保留資金 ($)",
     "reservedFundsHelp": "保留資金は予算管理から除外されます",
     "privateAccountLabel": "プライベート口座 (他のユーザーから非表示)",
@@ -644,7 +643,7 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "銀行口座とプールルーティング",
       "tooltip": "実際の銀行口座を予算プール（日常支出、固定費、貯蓄目標）にリンクします。各世帯には少なくとも1つのアクティブな銀行口座が必要です。",
       "subtitle": "デフォルトの「メイン口座」を設定しました。追加の口座を登録するか、資金プールのルーティングを調整できます。",
-      "addAccount": "+ 銀行口座を追加",
+      "addAccount": "銀行口座を追加",
       "balance": "残高",
       "edit": "編集",
       "unlinked": "未リンク",
@@ -1519,9 +1518,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "confirmedLabel": "確定済み",
     "confirmedDesc": "銀行の取引履歴と照合済みの決済",
     "overdueLabel": "期限切れ",
-    "overdueDesc": "支払いまたは割り当てなしで期日を過ぎた支出",
-    "skippedLabel": "スキップ",
-    "skippedDesc": "このサイクルでユーザーによりスキップされた支出"
+    "overdueDesc": "支払いまたは割り当てなしで期日を過ぎた支出"
   },
   "actions": {
     "markPaid": "支払済みにする",

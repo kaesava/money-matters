@@ -28,20 +28,19 @@ async function migrateDb(envFile: string, label: string) {
     // 2. Update existing rows from legacy status values
     await sql`UPDATE income_events SET status = 'PENDING' WHERE status = 'UPCOMING';`;
     await sql`UPDATE income_events SET status = 'CONFIRMED' WHERE status = 'PAID';`;
-    await sql`UPDATE income_events SET status = 'PENDING' WHERE status NOT IN ('PENDING', 'SKIPPED', 'CONFIRMED');`;
+    await sql`DELETE FROM income_events WHERE status = 'SKIPPED' OR status NOT IN ('PENDING', 'CONFIRMED');`;
 
     await sql`UPDATE expense_events SET status = 'PENDING' WHERE status = 'UPCOMING';`;
     await sql`UPDATE expense_events SET status = 'CONFIRMED' WHERE status = 'PAID';`;
-    await sql`UPDATE expense_events SET status = 'SKIPPED' WHERE status = 'CANCELLED';`;
-    await sql`UPDATE expense_events SET status = 'PENDING' WHERE status NOT IN ('PENDING', 'SKIPPED', 'CONFIRMED');`;
+    await sql`DELETE FROM expense_events WHERE status = 'SKIPPED' OR status NOT IN ('PENDING', 'CONFIRMED');`;
 
     // 3. Drop old enum types if they exist
     await sql`DROP TYPE IF EXISTS income_event_status_enum CASCADE;`;
     await sql`DROP TYPE IF EXISTS expense_event_status_enum CASCADE;`;
 
     // 4. Recreate enum types with exact new values
-    await sql`CREATE TYPE income_event_status_enum AS ENUM ('PENDING', 'SKIPPED', 'CONFIRMED');`;
-    await sql`CREATE TYPE expense_event_status_enum AS ENUM ('PENDING', 'SKIPPED', 'CONFIRMED');`;
+    await sql`CREATE TYPE income_event_status_enum AS ENUM ('PENDING', 'CONFIRMED');`;
+    await sql`CREATE TYPE expense_event_status_enum AS ENUM ('PENDING', 'CONFIRMED');`;
 
     // 5. Cast columns back to the new enum type with default 'PENDING'
     await sql`ALTER TABLE income_events ALTER COLUMN status TYPE income_event_status_enum USING status::income_event_status_enum;`;

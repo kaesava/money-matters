@@ -9,7 +9,6 @@ export interface CategoryScheduledEvent {
   amount: string;
   dueDate: string;
   isPaid?: boolean;
-  isSkipped?: boolean;
 }
 
 interface SlideOverCategoryDrawerProps {
@@ -18,7 +17,6 @@ interface SlideOverCategoryDrawerProps {
   categoryName: string;
   events: CategoryScheduledEvent[];
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
-  _onSkip?: (eventId: string) => void;
 }
 
 export function SlideOverCategoryDrawer({
@@ -27,7 +25,6 @@ export function SlideOverCategoryDrawer({
   categoryName,
   events,
   onMarkPaid,
-  _onSkip,
 }: SlideOverCategoryDrawerProps) {
   // ESC key dismissal (AGENTS.md Rule 13)
   useEffect(() => {

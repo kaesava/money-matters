@@ -519,6 +519,26 @@ export const incomeRouter = {
       return { success: true, message: "Income marked as received." };
     }),
 
+  deleteIncomeEvent: privateTenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      await ctx.db
+        .delete(incomeEvents)
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
+
   skipIncomeEvent: privateTenantProcedure
     .input(
       z.object({

@@ -20,6 +20,7 @@ describe("Router protections & procedure sanity checks", () => {
     expect(transfersRouter).toBeDefined();
     expect(transfersRouter.listTransferEvents).toBeDefined();
     expect(transfersRouter.createTransferSource).toBeDefined();
+    expect(transfersRouter.deleteTransferEvent).toBeDefined();
     expect(transfersRouter.skipTransferEvent).toBeDefined();
     expect(transfersRouter.executeTransferEvent).toBeDefined();
   });

@@ -3,7 +3,7 @@ import { transferSources } from "./transfer_source.js";
 import { pools } from "./pool.js";
 import { tenantAndTimestamps } from "./base.js";
 
-export const transferEventStatusEnum = pgEnum("transfer_event_status_enum", ["PENDING", "SKIPPED", "COMPLETED", "CANCELLED"]);
+export const transferEventStatusEnum = pgEnum("transfer_event_status_enum", ["PENDING", "CONFIRMED"]);
 
 export const transferEvents = pgTable("transfer_events", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -208,7 +208,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                           onClick={() => onSkip(item)}
                           className="bg-zinc-100 text-zinc-700 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-zinc-200 border border-zinc-200 transition-colors"
                         >
-                          Skip
+                          Dismiss
                         </button>
                       )}
                     </>

@@ -114,7 +114,7 @@ function IncomeAndBillsContent() {
         expectedDate: e.expectedDate,
         expectedAmount: parseFloat(e.expectedAmount || "0"),
         actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-        status: e.status as "PENDING" | "CONFIRMED" | "SKIPPED",
+        status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
         sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
       }));
   }, [incomeEvents]);
@@ -126,7 +126,7 @@ function IncomeAndBillsContent() {
         categoryId: e.poolId || e.categoryId || "",
         amount: parseFloat(e.expectedAmount || "0"),
         dueDate: e.expectedDate,
-        status: e.status as "PENDING" | "CONFIRMED" | "SKIPPED",
+        status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
       }));
   }, [expenseEvents]);
 
@@ -156,10 +156,10 @@ function IncomeAndBillsContent() {
 
   // Action Mutations
   const markExpensePaidMut = trpc.markExpensePaid.useMutation();
-  const skipIncomeMut = trpc.skipIncomeEvent.useMutation();
-  const skipExpenseMut = trpc.skipExpenseEvent.useMutation();
+  const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
+  const deleteExpenseMut = trpc.deleteExpenseEvent.useMutation();
   const executeTransferEventMut = trpc.executeTransferEvent.useMutation();
-  const skipTransferEventMut = trpc.skipTransferEvent.useMutation();
+  const deleteTransferEventMut = trpc.deleteTransferEvent.useMutation();
   const moveMoneyMut = trpc.moveMoney.useMutation();
 
   // Setup Tab Filtered & Sorted Income Schedules
@@ -674,29 +674,29 @@ function IncomeAndBillsContent() {
             }}
             onSkipExpense={async (eventId) => {
               try {
-                await skipExpenseMut.mutateAsync({ eventId });
-                toast.success("Expense skipped.");
+                await deleteExpenseMut.mutateAsync({ eventId });
+                toast.success("Expense deleted.");
                 utils.listExpenseEvents.invalidate();
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to skip.");
+                toast.error(err instanceof Error ? err.message : "Failed to delete.");
               }
             }}
             onSkipIncome={async (eventId) => {
               try {
-                await skipIncomeMut.mutateAsync({ eventId });
-                toast.success("Income skipped.");
+                await deleteIncomeMut.mutateAsync({ eventId });
+                toast.success("Income deleted.");
                 utils.listIncomeEvents.invalidate();
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to skip.");
+                toast.error(err instanceof Error ? err.message : "Failed to delete.");
               }
             }}
             onSkipTransfer={async (eventId) => {
               try {
-                await skipTransferEventMut.mutateAsync({ eventId });
-                toast.success("Transfer skipped.");
+                await deleteTransferEventMut.mutateAsync({ eventId });
+                toast.success("Transfer deleted.");
                 utils.listTransferEvents.invalidate();
               } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to skip.");
+                toast.error(err instanceof Error ? err.message : "Failed to delete.");
               }
             }}
             onExecuteTransfer={async (eventId, amount, date, sourcePoolId, destinationPoolId) => {

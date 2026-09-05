@@ -440,6 +440,26 @@ export const expensesRouter = {
       };
     }),
 
+  deleteExpenseEvent: privateTenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      await ctx.db
+        .delete(expenseEvents)
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
+
   skipExpenseEvent: privateTenantProcedure
     .input(
       z.object({

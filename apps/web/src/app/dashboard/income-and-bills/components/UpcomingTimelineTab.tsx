@@ -15,6 +15,8 @@ import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
 
 export interface TimelineEventItem extends EventItem {
+  name?: string | null;
+  note?: string | null;
   categoryId?: string | null;
   categoryName?: string | null;
   accountId?: string | null;
@@ -23,7 +25,6 @@ export interface TimelineEventItem extends EventItem {
   sourcePoolName?: string | null;
   destinationPoolId?: string | null;
   destinationPoolName?: string | null;
-  isSkipped?: boolean;
   isPrivate?: boolean;
 }
 
@@ -97,7 +98,7 @@ export function UpcomingTimelineTab({
     actions: 180,
   });
 
-  const [eventToSkip, setEventToSkip] = useState<{ id: string; kind: "INCOME" | "EXPENSE" | "TRANSFER" } | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<{ id: string; kind: "INCOME" | "EXPENSE" | "TRANSFER" } | null>(null);
 
   const [insufficientModalState, setInsufficientModalState] = useState<{
     isOpen: boolean;
@@ -422,7 +423,6 @@ export function UpcomingTimelineTab({
                 {paginatedEvents.map((evt) => {
                   const isIncome = evt.eventKind === "INCOME";
                   const isTransfer = evt.eventKind === "TRANSFER";
-                  const isSkipped = evt.status === "SKIPPED" || evt.isSkipped;
 
                   // Past Date calculation
                   const isPast = evt.expectedDate < todayStr;
@@ -437,9 +437,7 @@ export function UpcomingTimelineTab({
                   return (
                     <tr
                       key={`${evt.eventKind}_${evt.id}`}
-                      className={`hover:bg-slate-50/60 dark:hover:bg-zinc-800/50 transition-colors ${
-                        isSkipped ? "opacity-50 bg-zinc-50/50 dark:bg-zinc-900/40" : ""
-                      }`}
+                      className="hover:bg-slate-50/60 dark:hover:bg-zinc-800/50 transition-colors"
                     >
                       {/* Date Column */}
                       <td className="py-3 px-4 text-left font-mono font-medium">
@@ -453,7 +451,7 @@ export function UpcomingTimelineTab({
                           >
                             {formattedDate}
                           </span>
-                          {isPast && !isSkipped && (
+                          {isPast && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300">
                               Overdue
                             </span>
@@ -490,12 +488,6 @@ export function UpcomingTimelineTab({
                                 ? `${evt.sourcePoolName || "Source"} ➔ ${evt.destinationPoolName || "Destination"}`
                                 : evt.categoryName || "Pool"}
                             </span>
-
-                            {isSkipped && (
-                              <span className="text-[9px] font-extrabold uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md">
-                                SKIPPED
-                              </span>
-                            )}
                           </div>
 
                           {evt.note && (
@@ -528,15 +520,15 @@ export function UpcomingTimelineTab({
                           <button
                             type="button"
                             onClick={() =>
-                              setEventToSkip({
+                              setEventToDelete({
                                 id: evt.id,
                                 kind: isIncome ? "INCOME" : isTransfer ? "TRANSFER" : "EXPENSE",
                               })
                             }
-                            className="px-2 py-1 text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 font-semibold text-xs rounded-lg transition-colors"
-                            title="Skip this occurrence"
+                            className="px-2 py-1 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 font-semibold text-xs rounded-lg transition-colors"
+                            title="Delete this event"
                           >
-                            Skip
+                            Delete
                           </button>
 
                           {isIncome ? (
@@ -610,19 +602,31 @@ export function UpcomingTimelineTab({
       />
 
       <ConfirmDialog
-        isOpen={!!eventToSkip}
-        onClose={() => setEventToSkip(null)}
+        isOpen={!!eventToDelete}
+        onClose={() => setEventToDelete(null)}
         onConfirm={() => {
-          if (eventToSkip) {
-            if (eventToSkip.kind === "INCOME") onSkipIncome(eventToSkip.id);
-            else if (eventToSkip.kind === "TRANSFER") onSkipTransfer?.(eventToSkip.id);
-            else onSkipExpense(eventToSkip.id);
-            setEventToSkip(null);
+          if (eventToDelete) {
+            if (eventToDelete.kind === "INCOME") onSkipIncome(eventToDelete.id);
+            else if (eventToDelete.kind === "TRANSFER") onSkipTransfer?.(eventToDelete.id);
+            else onSkipExpense(eventToDelete.id);
+            setEventToDelete(null);
           }
         }}
-        title="Skip Scheduled Event?"
-        description="Are you sure you want to skip this event? This scheduled event will be deleted for this cycle."
-        confirmLabel="Skip & Delete"
+        title={
+          eventToDelete?.kind === "INCOME"
+            ? "Delete Income"
+            : eventToDelete?.kind === "TRANSFER"
+            ? "Delete Transfer"
+            : "Delete Expense"
+        }
+        description={
+          eventToDelete?.kind === "INCOME"
+            ? "Are you sure you want to Delete this Income?"
+            : eventToDelete?.kind === "TRANSFER"
+            ? "Are you sure you want to Delete this Transfer?"
+            : "Are you sure you want to Delete this Expense?"
+        }
+        confirmLabel="Delete"
         variant="danger"
       />
     </div>

@@ -20,7 +20,7 @@ interface SetupSourcesTabProps {
   onEditExpense: (item: SourceItem) => void;
   onMarkPaid: (eventId: string, amount: string, date: string) => void;
   onSkip: (eventId: string) => void;
-  onUnskip: (eventId: string) => void;
+  onUnskip?: (eventId: string) => void;
   onUpdateEvent: (eventId: string, amount: string, date: string) => void;
   isPendingMarkPaid?: boolean;
   isPendingSkip?: boolean;

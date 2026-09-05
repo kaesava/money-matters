@@ -396,7 +396,6 @@ function BankAccountsDashboardContent() {
             onClick={openAddModal}
             className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
           >
-            <span>➕</span>
             <span>Add Bank Account</span>
           </button>
         </div>

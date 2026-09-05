@@ -60,10 +60,10 @@ export interface SourceTableProps {
   onEdit: (item: SourceItem) => void;
   onMarkPaid: (eventId: string, amount: string, date: string, sourceId: string) => void;
   onSkip: (eventId: string) => void;
-  onUnskip: (eventId: string) => void;
+  onUnskip?: (eventId: string) => void;
   onUpdateEvent: (eventId: string, amount: string, date: string) => void;
   isPendingMarkPaid: boolean;
-  isPendingSkip: boolean;
+  isPendingSkip?: boolean;
   isLoading?: boolean;
 }
 
@@ -90,13 +90,13 @@ export function SourceTable({
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
     const bucket = mode === "INCOME" ? item.accountName : item.categoryName;
-    return item.name.toLowerCase().includes(q) || (bucket || "").toLowerCase().includes(q) || item.amount.includes(q);
+    return item.name.toLowerCase().includes(q) || (bucket || "").toLowerCase().includes(q) || String(item.amount).includes(q);
   });
 
   const sorted = [...filtered].sort((a, b) => {
     let cmp = 0;
     if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-    else if (sortKey === "amount") cmp = parseFloat(a.amount) - parseFloat(b.amount);
+    else if (sortKey === "amount") cmp = parseFloat(String(a.amount)) - parseFloat(String(b.amount));
     else if (sortKey === "schedule") cmp = parseSchedule(a.rrule, a.startDate).frequencyLabel.localeCompare(parseSchedule(b.rrule, b.startDate).frequencyLabel);
     else if (sortKey === "bucket") cmp = (mode === "INCOME" ? (a.accountName || "") : (a.categoryName || "")).localeCompare(mode === "INCOME" ? (b.accountName || "") : (b.categoryName || ""));
     return sortDir === "asc" ? cmp : -cmp;

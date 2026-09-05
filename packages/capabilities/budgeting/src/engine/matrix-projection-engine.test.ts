@@ -138,21 +138,18 @@ describe("matrix-projection-engine", () => {
       expect(getEarliestPendingIncomeId(items)).toBe("evt-1");
     });
 
-    it("should filter out SKIPPED (status or isSkipped) and CONFIRMED events", () => {
+    it("should filter out CONFIRMED events", () => {
       const items = [
         { id: "evt-1", expectedDate: "2026-09-01", status: "CONFIRMED" },
-        { id: "evt-2", expectedDate: "2026-09-05", status: "SKIPPED" },
-        { id: "evt-3", expectedDate: "2026-09-10", expectedAmount: 100, isSkipped: true },
         { id: "evt-4", expectedDate: "2026-09-15", status: "PENDING" },
         { id: "evt-5", expectedDate: "2026-09-20", status: "PENDING" },
       ];
       expect(getEarliestPendingIncomeId(items)).toBe("evt-4");
     });
 
-    it("should return null if all events are confirmed or skipped", () => {
+    it("should return null if all events are confirmed", () => {
       const items = [
         { id: "evt-1", expectedDate: "2026-09-01", status: "CONFIRMED" },
-        { id: "evt-2", expectedDate: "2026-09-05", isSkipped: true },
       ];
       expect(getEarliestPendingIncomeId(items)).toBeNull();
     });
