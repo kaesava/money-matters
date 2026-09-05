@@ -105,10 +105,11 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - Dates: Dates are stored in UTC and rendered in timezone-aware AEST/en-AU format via `Intl.DateTimeFormat`.
   - Web Shell: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views, responsive `width=device-width` viewport for standalone PWA / Android shortcut rendering.
   - Mobile Shell: Header (`TopAppBar`) + bottom tab bar (`BottomNavBar`).
-- **Dashboard Hierarchy & Visualizations**:
-  - **Hero Card (`DashboardHeroCard`)**: Dominates top of screen. Features an integrated dual-arc SVG Donut Ring visualization (`DonutRing` on Web, `MobileDonutRing` on Mobile via `react-native-svg`) displaying time elapsed vs Everyday pool spent percentage, wrapping the central Everyday Balance metric. Symmetric health status badges (Behind/Attention/On Track) sit adjacent to the ring.
-  - **Pool Pacing Bars (`DualPoolBar`)**: Dual-track stacked progress bars integrated into section headers on the Categories screen for Everyday Spending and Regular Bills, tracking month elapsed vs pool spent percentage with color-coded warning thresholds.
-  - **Goal Progress & Pace Cards**: Enhanced goal card progress tracking with 8px animated progress bars, target date countdowns ("X days left"), and dynamic required monthly contribution calculations ("$Y/mo needed").
+- **Dashboard Hierarchy & Visualizations (Action-First Bento Grid)**:
+  - **Top-Header Actions**: Instant 1-tap quick action triggers (`🤔 Can I Afford It?`, `⚡ Quick Expense`, `💸 Move Money`) positioned in the top header adjacent to the page title, eliminating the bottom floating action bar.
+  - **Action Queue (Top Row)**: Front-and-center focus on immediate user actions upon logging in. The top row pairs `AttentionItemsList` (Bills due soon requiring actioning or marking paid) on the left with `NextPaydayCard` (Upcoming Income allocation preview) on the right.
+  - **Secondary Bento Pools Section (`BentoPoolsSection`)**: Located in the middle row. Houses the dark Serene Navy (`#1B2B4B`) Everyday Spending card with a sleek horizontal pacing bar, and the clean white Bills Pool card featuring integrated 14-day shortfall warning status (`⚠️ Shortfall of $X` vs `✅ Next 14 days covered!`). Includes interactive pool balance adjustment with safety confirmation modals and Category Health filter chips (`Behind`, `Attention`, `On Track`).
+  - **Goal Progress & Pace Cards**: Enhanced goal card progress tracking with 8px progress bars (`GoalsProgressStrip`), target date countdowns, and celebration banners for near-completion goals.
   - **Attention Items (`AttentionItemsList`)**: Two-tier severity presentation (Red for overdue items; Amber for upcoming-only items due within 3 days). Clean text labels with icon-visibility toggle support.
   - **Quick Expense Card (`QuickExpenseCard`)**: Symmetric Expense/Income active state toggles, collapsed date selector (defaults to today), and inline feedback messaging.
   - **Bank Reconciliation (`BankReconcileCard` & `BankReconcileModal`)**: Static status indicators with direct wiring to the `reconcileBankBalance` tRPC mutation.
