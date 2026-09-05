@@ -1,6 +1,6 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer, SearchableCategorySelect, InfoTooltip, useIconVisibility, ConfirmDialog, Button } from "@money-matters/ui/web";
+import { SlideOverDrawer, PoolPicker, InfoTooltip, useIconVisibility, ConfirmDialog, Button } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 import { PaydayActionDrawer } from "@/components/web/PaydayActionDrawer";
@@ -20,6 +20,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     setAmount,
     categoryId,
     setCategoryId,
+    selectedSubCategoryId,
+    setSelectedSubCategoryId,
     sourceCategoryId,
     setSourceCategoryId,
     destinationCategoryId,
@@ -148,11 +150,16 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
                       From Pool (Source)
                     </label>
-                    <SearchableCategorySelect
-                      categories={categories}
-                      value={sourceCategoryId}
-                      onChange={setSourceCategoryId}
+                    <PoolPicker
+                      pools={categories.map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        isPrivate: p.isPrivate ?? undefined,
+                      }))}
+                      selectedPoolId={sourceCategoryId || null}
+                      allowCategorySelection={false}
                       placeholder="Select Source Pool..."
+                      onChange={(sel) => setSourceCategoryId(sel.poolId)}
                     />
                   </div>
 
@@ -160,11 +167,16 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
                       To Pool (Destination)
                     </label>
-                    <SearchableCategorySelect
-                      categories={categories}
-                      value={destinationCategoryId}
-                      onChange={setDestinationCategoryId}
+                    <PoolPicker
+                      pools={categories.map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        isPrivate: p.isPrivate ?? undefined,
+                      }))}
+                      selectedPoolId={destinationCategoryId || null}
+                      allowCategorySelection={false}
                       placeholder="Select Destination Pool..."
+                      onChange={(sel) => setDestinationCategoryId(sel.poolId)}
                     />
                   </div>
                 </>
@@ -189,11 +201,21 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
                         {t("drawers.quickExpense.category", { defaultValue: "Pool" })}
                       </label>
-                      <SearchableCategorySelect
-                        categories={categories}
-                        value={categoryId}
-                        onChange={setCategoryId}
-                        placeholder="Select Pool..."
+                      <PoolPicker
+                        pools={categories.map((p) => ({
+                          id: p.id,
+                          name: p.name,
+                          isPrivate: p.isPrivate ?? undefined,
+                          categories: p.categories,
+                        }))}
+                        selectedPoolId={categoryId || null}
+                        selectedCategoryId={selectedSubCategoryId || null}
+                        allowCategorySelection={true}
+                        placeholder="Select Pool or Category..."
+                        onChange={(sel) => {
+                          setCategoryId(sel.poolId);
+                          setSelectedSubCategoryId(sel.categoryId);
+                        }}
                       />
                     </div>
                   )}

@@ -18,6 +18,7 @@ export function useQuickActionState(
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string | null>(null);
   const [sourceCategoryId, setSourceCategoryId] = useState("");
   const [destinationCategoryId, setDestinationCategoryId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
@@ -39,12 +40,31 @@ export function useQuickActionState(
   const isTransfer = type === "TRANSFER";
   const isFutureDate = date > todayStr;
 
-  const categoriesQuery = trpc.listPools.useQuery();
+  const poolsQuery = trpc.listPools.useQuery();
+  const subCategoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 100 });
 
-  const rawCategories = categoriesQuery.data;
-  const categories = useMemo(() => (rawCategories ?? []).map((p) => ({ ...p, type: p.poolType })), [rawCategories]);
+  const rawPools = poolsQuery.data;
+  const rawSubCategories = subCategoriesQuery.data;
+
+  const categories = useMemo(() => {
+    const poolsList = rawPools ?? [];
+    const catList = rawSubCategories ?? [];
+
+    return poolsList.map((p) => {
+      const childCategories = catList
+        .filter((c) => c.poolId === p.id)
+        .map((c) => ({ id: c.id, name: c.name }));
+
+      return {
+        ...p,
+        type: p.poolType,
+        categories: childCategories,
+      };
+    });
+  }, [rawPools, rawSubCategories]);
+
   const rawBankAccounts = bankAccountsQuery.data;
   const bankAccounts = useMemo(() => rawBankAccounts ?? [], [rawBankAccounts]);
   const rawTxList = transactionsQuery.data;
@@ -55,6 +75,7 @@ export function useQuickActionState(
     setName("");
     setAmount("");
     setCategoryId("");
+    setSelectedSubCategoryId(null);
     setSourceCategoryId("");
     setDestinationCategoryId("");
     setReceivingAccountId("");
@@ -219,20 +240,55 @@ export function useQuickActionState(
     if (preset.amount) setAmount(preset.amount);
 
     if (preset.categoryId) {
-      const match = categories.find((c) => c.id === preset.categoryId);
-      if (match) setCategoryId(match.id);
+      let poolMatch = categories.find((c) => c.id === preset.categoryId);
+      let catMatchId: string | null = null;
+
+      if (!poolMatch) {
+        for (const p of categories) {
+          const childCat = p.categories?.find((cat: { id: string }) => cat.id === preset.categoryId);
+          if (childCat) {
+            poolMatch = p;
+            catMatchId = childCat.id;
+            break;
+          }
+        }
+      }
+
+      if (poolMatch) {
+        setCategoryId(poolMatch.id);
+        setSelectedSubCategoryId(catMatchId);
+      }
     }
+
     if (preset.receivingAccountId) {
       const match = bankAccounts.find((b) => b.id === preset.receivingAccountId);
       if (match) setReceivingAccountId(match.id);
     }
+
     if (preset.sourceCategoryId) {
-      const match = categories.find((c) => c.id === preset.sourceCategoryId);
-      if (match) setSourceCategoryId(match.id);
+      let srcPoolMatch = categories.find((c) => c.id === preset.sourceCategoryId);
+      if (!srcPoolMatch) {
+        for (const p of categories) {
+          if (p.categories?.some((cat: { id: string }) => cat.id === preset.sourceCategoryId)) {
+            srcPoolMatch = p;
+            break;
+          }
+        }
+      }
+      if (srcPoolMatch) setSourceCategoryId(srcPoolMatch.id);
     }
+
     if (preset.destinationCategoryId) {
-      const match = categories.find((c) => c.id === preset.destinationCategoryId);
-      if (match) setDestinationCategoryId(match.id);
+      let dstPoolMatch = categories.find((c) => c.id === preset.destinationCategoryId);
+      if (!dstPoolMatch) {
+        for (const p of categories) {
+          if (p.categories?.some((cat: { id: string }) => cat.id === preset.destinationCategoryId)) {
+            dstPoolMatch = p;
+            break;
+          }
+        }
+      }
+      if (dstPoolMatch) setDestinationCategoryId(dstPoolMatch.id);
     }
   }
 
@@ -361,6 +417,8 @@ export function useQuickActionState(
     setAmount,
     categoryId,
     setCategoryId,
+    selectedSubCategoryId,
+    setSelectedSubCategoryId,
     sourceCategoryId,
     setSourceCategoryId,
     destinationCategoryId,
