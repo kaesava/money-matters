@@ -50,10 +50,8 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
-  const monthName = today.toLocaleString('default', { month: 'short' });
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const currentDay = today.getDate();
-  const daysLeft = daysInMonth - currentDay;
   const elapsedPct = (currentDay / daysInMonth) * 100;
 
   // Everyday pacing calculation
@@ -130,19 +128,19 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Everyday Spending Pool Card */}
-        <div className="bg-[#1B2B4B] text-white rounded-3xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
-          <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Everyday Spending Pool Card (Light Theme) */}
+        <div className="bg-white border border-gray-200/90 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:border-gray-300 transition-all">
+          <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-300">
-                {t('dashboard.hero.everydayBalance') || 'Everyday Spending'}
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
+                {t('dashboard.hero.everydayBalance') || 'Everyday Spending Pool'}
               </span>
               {editingPool !== 'EVERYDAY' ? (
                 <button
                   type="button"
                   onClick={() => handleEditClick('EVERYDAY', everydayBalance)}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold cursor-pointer"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold cursor-pointer"
                 >
                   Edit
                 </button>
@@ -151,11 +149,11 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
 
             {editingPool === 'EVERYDAY' ? (
               <div className="flex items-center gap-2 py-1">
-                <span className="text-xl font-bold text-white">$</span>
+                <span className="text-xl font-bold text-gray-800">$</span>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-32 px-3 py-1.5 text-sm bg-slate-800 text-white border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-28 px-2.5 py-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   autoFocus
@@ -167,45 +165,45 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSaveClick('EVERYDAY')}
-                  className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 cursor-pointer"
+                  className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 cursor-pointer"
                 >
                   Save
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingPool(null)}
-                  className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200 font-semibold cursor-pointer"
+                  className="px-1.5 py-1 text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
             ) : (
               <div>
-                <div className="text-4xl font-extrabold font-mono tabular-nums tracking-tight text-white">
+                <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
                   {formatAUD(everydayBalance)}
                 </div>
-                <p className="text-xs text-slate-300 mt-1">
-                  Guilt-Free Spending Pool ({daysLeft} days left in {monthName})
+                <p className="text-xs text-gray-500 mt-1">
+                  Discretionary spending balance
                 </p>
               </div>
             )}
           </div>
 
-          {/* Pacing Timeline Visual */}
-          <div className="space-y-1.5 pt-6 mt-auto">
-            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          {/* Pacing Bar */}
+          <div className="space-y-1.5 pt-4 mt-auto border-t border-gray-100">
+            <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
               <span>Monthly Budget: {formatAUD(everydayMonthlyBudget)}</span>
               <span>{Math.round(everydaySpentPct)}% spent</span>
             </div>
-            <div className="relative h-2 bg-slate-700/80 rounded-full overflow-visible">
+            <div className="relative h-2 bg-gray-100 rounded-full overflow-visible">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
-                  isEverydayPacingOk ? 'bg-emerald-400' : 'bg-rose-400'
+                  isEverydayPacingOk ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}
                 style={{ width: `${everydaySpentPct}%` }}
               />
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-3.5 bg-blue-400 rounded-full shadow-xs pointer-events-none"
+                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-3.5 bg-blue-600 rounded-full shadow-2xs pointer-events-none"
                 style={{ left: `${elapsedPct}%` }}
                 title="Today"
               />
@@ -213,18 +211,18 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           </div>
         </div>
 
-        {/* Bills Pool Card */}
-        <div className="bg-white border border-gray-200/90 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
-          <div className="space-y-4">
+        {/* Bills Pool Card (Light Theme) */}
+        <div className="bg-white border border-gray-200/90 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:border-gray-300 transition-all">
+          <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
-                Bills & Commitments
+                Bills & Commitments Pool
               </span>
               {editingPool !== 'REGULAR' ? (
                 <button
                   type="button"
                   onClick={() => handleEditClick('REGULAR', billsBalance)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold cursor-pointer"
                 >
                   Edit
                 </button>
@@ -237,7 +235,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 <input
                   type="number"
                   step="0.01"
-                  className="w-32 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  className="w-28 px-2.5 py-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   autoFocus
@@ -249,34 +247,34 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSaveClick('REGULAR')}
-                  className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 cursor-pointer"
+                  className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 cursor-pointer"
                 >
                   Save
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingPool(null)}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
+                  className="px-1.5 py-1 text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
             ) : (
               <div>
-                <div className="text-4xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
+                <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
                   {formatAUD(billsBalance)}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Ring-fenced for upcoming bills & regular commitments
+                  Ring-fenced for committed bills
                 </p>
               </div>
             )}
 
             {/* Shortfall or Coverage Status Banner */}
             {billsShortfall > 0 ? (
-              <div className="p-3 bg-rose-50 border border-rose-200/80 rounded-2xl flex items-center justify-between">
+              <div className="p-2.5 bg-rose-50 border border-rose-200/80 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">⚠️</span>
+                  <span className="text-sm">⚠️</span>
                   <div>
                     <span className="text-[11px] font-bold text-rose-800 block">
                       Shortfall of {formatAUD(billsShortfall)}
@@ -289,21 +287,21 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 <button
                   type="button"
                   onClick={onMoveMoney}
-                  className="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shrink-0 cursor-pointer"
+                  className="px-2.5 py-1 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shrink-0 cursor-pointer"
                 >
                   Cover →
                 </button>
               </div>
             ) : (
-              <div className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center gap-2 text-xs font-bold text-emerald-800">
-                <span className="text-base">✅</span>
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center gap-2 text-xs font-bold text-emerald-800">
+                <span className="text-sm">✅</span>
                 <span>Next 14 days of bills are fully covered!</span>
               </div>
             )}
           </div>
 
           {/* Monthly Cap Footnote */}
-          <div className="pt-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
+          <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500 mt-auto">
             <span>Target Monthly Bills:</span>
             <span className="font-mono font-semibold">{formatAUD(billsMonthlyBudget)}</span>
           </div>
@@ -311,7 +309,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
       </div>
 
       {/* Category Health Filter Chips */}
-      <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white border border-gray-200/80 rounded-2xl p-3.5 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-1">
             Category Health:
@@ -319,7 +317,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           <button
             type="button"
             onClick={() => onSelectFilter?.('RED')}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors text-xs font-bold text-rose-800 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors text-xs font-bold text-rose-800 cursor-pointer"
           >
             <span className="w-2 h-2 rounded-full bg-rose-600" />
             <span>Behind ({behindCount})</span>
@@ -328,7 +326,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           <button
             type="button"
             onClick={() => onSelectFilter?.('AMBER')}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-xs font-bold text-amber-800 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-xs font-bold text-amber-800 cursor-pointer"
           >
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             <span>Attention ({needsAttentionCount})</span>
@@ -337,7 +335,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           <button
             type="button"
             onClick={() => onSelectFilter?.('GREEN')}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors text-xs font-bold text-emerald-800 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors text-xs font-bold text-emerald-800 cursor-pointer"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>On Track ({onTrackCount})</span>

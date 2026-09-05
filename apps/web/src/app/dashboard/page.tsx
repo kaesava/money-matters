@@ -7,7 +7,7 @@ import { t } from "@money-matters/i18n";
 import { useToast, InfoTooltip } from "@money-matters/ui/web";
 import { BentoPoolsSection } from "./components/BentoPoolsSection";
 import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
-import { NextPaydayCard } from "./components/NextPaydayCard";
+import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
@@ -100,41 +100,38 @@ export default function DashboardPage() {
     .filter((p) => p.poolType === "REGULAR")
     .reduce((sum, p) => sum + parseFloat(p.targetAmount || "0"), 0);
 
-  const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === "UPCOMING");
-  const nextPaydayEvent = upcomingIncomeList[0] ?? null;
-
-  const nextPaydayData = nextPaydayEvent
-    ? {
-        id: nextPaydayEvent.id,
-        name: nextPaydayEvent.sourceName || "Paycheck Deposit",
-        amount: parseFloat(nextPaydayEvent.expectedAmount),
-        expectedDate: nextPaydayEvent.expectedDate,
-      }
-    : null;
+  const upcomingIncomeList: WebIncomeItem[] = (incomeEventsQuery.data ?? [])
+    .filter((e) => e.status === "UPCOMING")
+    .map((e) => ({
+      id: e.id,
+      name: e.sourceName || "Paycheck Deposit",
+      amount: parseFloat(e.expectedAmount),
+      expectedDate: e.expectedDate,
+    }));
 
   const todayObj = new Date(todayStr);
-  const threeDaysLater = new Date(todayObj);
-  threeDaysLater.setDate(threeDaysLater.getDate() + 3);
 
-  const attentionItems: WebAttentionItem[] = (expenseEventsQuery.data ?? [])
+  // Guarantee at least 3 upcoming bills (sorted by date)
+  const allUpcomingExpenses = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === "UPCOMING")
-    .filter((e) => new Date(e.expectedDate) <= threeDaysLater)
-    .map((e) => {
-      const pool = pools.find((p) => p.id === e.poolId);
-      const catBal = pool ? parseFloat(String(pool.currentBalance)) : 0;
-      const isOverdue = new Date(e.expectedDate) < todayObj;
+    .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
 
-      return {
-        id: e.id,
-        name: e.name,
-        expectedAmount: parseFloat(e.expectedAmount),
-        expectedDate: e.expectedDate,
-        categoryId: pool?.id ?? null,
-        categoryName: pool?.name ?? "Regular Bill",
-        isOverdue,
-        categoryBalance: catBal,
-      };
-    });
+  const attentionItems: WebAttentionItem[] = allUpcomingExpenses.map((e) => {
+    const pool = pools.find((p) => p.id === e.poolId);
+    const catBal = pool ? parseFloat(String(pool.currentBalance)) : 0;
+    const isOverdue = new Date(e.expectedDate) < todayObj;
+
+    return {
+      id: e.id,
+      name: e.name,
+      expectedAmount: parseFloat(e.expectedAmount),
+      expectedDate: e.expectedDate,
+      categoryId: pool?.id ?? null,
+      categoryName: pool?.name ?? "Regular Bill",
+      isOverdue,
+      categoryBalance: catBal,
+    };
+  });
 
   const handleMarkPaidItem = async (item: WebAttentionItem, amount: number, date: string) => {
     await recordExpenseMutation.mutateAsync({
@@ -161,6 +158,7 @@ export default function DashboardPage() {
 
   const [paydayPreviewEventId, setPaydayPreviewEventId] = useState<string | null>(null);
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
+  const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
   const [isCanAffordModalOpen, setIsCanAffordModalOpen] = useState(false);
 
@@ -184,8 +182,8 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 px-4 sm:px-6 animate-in fade-in duration-200">
-      {/* Top Header Row with Prominent Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Header Row with Side-by-Side Quick Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold text-[#1B2B4B]">
             {t("nav.dashboard") || "Dashboard"}
@@ -196,28 +194,44 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Quick Action Header Strip */}
+        {/* Header Action Strip */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setIsCanAffordModalOpen(true)}
+            onClick={() => {
+              setQuickDrawerInitialTab("DEBIT");
+              setQuickDrawerOpen(true);
+            }}
             className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
-            <span>🤔 Can I Afford It?</span>
+            <span>+ Quick Expense</span>
           </button>
+
           <button
             type="button"
-            onClick={() => setQuickDrawerOpen(true)}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            onClick={() => {
+              setQuickDrawerInitialTab("CREDIT");
+              setQuickDrawerOpen(true);
+            }}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
-            <span>⚡ Quick Expense</span>
+            <span>+ Quick Income</span>
           </button>
+
           <button
             type="button"
             onClick={() => setIsMoveMoneyOpen(true)}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
             <span>💸 Move Money</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCanAffordModalOpen(true)}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>🤔 Can I Afford It?</span>
           </button>
         </div>
       </div>
@@ -227,7 +241,44 @@ export default function DashboardPage() {
         billsCount={expenseEventsQuery.data?.length ?? 0}
       />
 
-      {/* Row 1: Action Queue (Upcoming Bills & Next Payday) */}
+      {/* Row 1: Hero Balances (Left) + Goals Motivation (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <div className="lg:col-span-7">
+          <BentoPoolsSection
+            everydayBalance={everydayBalance}
+            everydayMonthlyBudget={everydayMonthlyBudget}
+            billsBalance={billsBalance}
+            billsMonthlyBudget={billsMonthlyBudget}
+            billsShortfall={billsShortfall}
+            billsDue14DaysCount={billsDue14Days.length}
+            totalBillsDue14Days={totalBillsDue14Days}
+            needsAttentionCount={needsAttentionCount}
+            behindCount={behindCount}
+            onTrackCount={onTrackCount}
+            onSelectFilter={(health: string) => router.push(`/dashboard/pools?health=${health}`)}
+            onMoveMoney={() => setIsMoveMoneyOpen(true)}
+            formatAUD={fmt}
+            onUpdatePoolBalance={handleUpdatePoolBalance}
+            skipConfirmation={skipConfirmation}
+            onSaveSkipConfirmation={handleSaveSkipConfirmation}
+          />
+        </div>
+
+        {/* Goals Progress: Motivation Front & Center */}
+        <div className="lg:col-span-5 flex flex-col justify-between">
+          <GoalsProgressStrip
+            goalCategories={goalCategories.map((g) => ({
+              id: g.id,
+              name: g.name,
+              currentBalance: String(g.currentBalance || "0"),
+              healthStatus: g.healthStatus,
+            }))}
+            formatAUD={fmt}
+          />
+        </div>
+      </div>
+
+      {/* Row 2: Cashflow Stream (Upcoming Bills & Upcoming Paydays) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-7">
           <AttentionItemsList
@@ -240,43 +291,12 @@ export default function DashboardPage() {
         </div>
         <div className="lg:col-span-5">
           <NextPaydayCard
-            nextPayday={nextPaydayData}
+            upcomingIncomes={upcomingIncomeList}
             onPressNextPay={(id: string) => setPaydayPreviewEventId(id)}
             formatAUD={fmt}
           />
         </div>
       </div>
-
-      {/* Row 2: Secondary Pool Balances (Everyday & Bills) */}
-      <BentoPoolsSection
-        everydayBalance={everydayBalance}
-        everydayMonthlyBudget={everydayMonthlyBudget}
-        billsBalance={billsBalance}
-        billsMonthlyBudget={billsMonthlyBudget}
-        billsShortfall={billsShortfall}
-        billsDue14DaysCount={billsDue14Days.length}
-        totalBillsDue14Days={totalBillsDue14Days}
-        needsAttentionCount={needsAttentionCount}
-        behindCount={behindCount}
-        onTrackCount={onTrackCount}
-        onSelectFilter={(health: string) => router.push(`/dashboard/pools?health=${health}`)}
-        onMoveMoney={() => setIsMoveMoneyOpen(true)}
-        formatAUD={fmt}
-        onUpdatePoolBalance={handleUpdatePoolBalance}
-        skipConfirmation={skipConfirmation}
-        onSaveSkipConfirmation={handleSaveSkipConfirmation}
-      />
-
-      {/* Row 3: Goals Progress */}
-      <GoalsProgressStrip
-        goalCategories={goalCategories.map((g) => ({
-          id: g.id,
-          name: g.name,
-          currentBalance: String(g.currentBalance || "0"),
-          healthStatus: g.healthStatus,
-        }))}
-        formatAUD={fmt}
-      />
 
       {/* Modals & Drawers */}
       {paydayPreviewEventId && (
@@ -290,6 +310,7 @@ export default function DashboardPage() {
       {quickDrawerOpen && (
         <QuickActionDrawer
           onClose={() => setQuickDrawerOpen(false)}
+          initialTab={quickDrawerInitialTab}
         />
       )}
 
@@ -315,4 +336,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
