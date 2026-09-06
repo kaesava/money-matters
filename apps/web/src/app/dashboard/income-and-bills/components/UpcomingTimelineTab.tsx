@@ -42,6 +42,11 @@ interface UpcomingTimelineTabProps {
     name: string;
     currentBalance: string | number;
   }[];
+  pools?: {
+    id: string;
+    name: string;
+    currentBalance: string | number;
+  }[];
   initialKindFilter?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
   initialSearchQuery?: string;
   onAllocateIncome: (eventId: string) => void;
@@ -72,6 +77,7 @@ export function UpcomingTimelineTab({
   transferEvents,
   savedIncomeEventIds,
   categories,
+  pools = [],
   initialKindFilter = "ALL",
   initialSearchQuery = "",
   onAllocateIncome,
@@ -207,8 +213,13 @@ export function UpcomingTimelineTab({
 
   const handleExpenseMarkPaidClick = (evt: TimelineEventItem) => {
     const amt = parseFloat(evt.expectedAmount || "0");
-    const cat = categories.find((c) => c.id === evt.categoryId);
-    const currBalance = typeof cat?.currentBalance === "string" ? parseFloat(cat.currentBalance || "0") : (cat?.currentBalance ?? 0);
+    const targetPoolId = evt.sourcePoolId || evt.categoryId;
+    const targetPool = pools.find((p) => p.id === targetPoolId);
+    const currBalance = targetPool
+      ? typeof targetPool.currentBalance === "string"
+        ? parseFloat(targetPool.currentBalance || "0")
+        : (targetPool.currentBalance ?? 0)
+      : 0;
 
     if (amt > currBalance) {
       const shortfall = amt - currBalance;
@@ -364,15 +375,6 @@ export function UpcomingTimelineTab({
               Transfer
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => onOpenTransferModalWithData?.({ amount: "", date: todayStr })}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs"
-          >
-            <span>🔄</span>
-            <span>Transfer between Pools</span>
-          </button>
         </div>
       </div>
 

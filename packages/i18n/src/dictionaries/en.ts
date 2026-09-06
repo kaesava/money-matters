@@ -1727,7 +1727,7 @@ export const en = {
     title: "Pool Details",
     historyLink: "View History",
     seeFullHistory: "See Full History",
-    seeAllUpcomingExpenses: "See All Upcoming Expenses",
+    seeAllUpcomingExpenses: "Show All Expenses",
     targetDate: "Target Date",
     tabs: {
       categories: "Categories",

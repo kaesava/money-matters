@@ -73,7 +73,7 @@ function TransactionsPageContent() {
       const cName = txObj.categoryName || "";
       const displayLabel = pName && cName ? `${pName} (${cName})` : pName || cName || "Everyday Pool";
 
-      const isTransfer = Boolean(tx.transferGroupId) || tx.note?.startsWith("Transferred") || tx.note?.includes("➔");
+      const isTransfer = Boolean(tx.transferGroupId) || tx.note?.startsWith("Transferred") || tx.note?.startsWith("Transfer from") || tx.note?.includes("➔");
 
       return {
         id: tx.id,
@@ -400,7 +400,7 @@ function TransactionsPageContent() {
                         <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
                           tx.type === "TRANSFER" ? "text-blue-600" : tx.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"
                         }`}>
-                          {tx.type === "TRANSFER" ? "🔄 " : tx.type === "CREDIT" ? "+" : "-"}{formatAUD(tx.amount)}
+                          {tx.flowType === "CREDIT" ? "+" : "-"}{formatAUD(tx.amount)}
                         </td>
                       </tr>
                     ))}

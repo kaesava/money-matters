@@ -30,8 +30,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     setReceivingAccountId,
     date,
     setDate,
-    runAllocation,
-    setRunAllocation,
     paydayModalEventId,
     setPaydayModalEventId,
     error,
@@ -277,20 +275,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                   />
                 </div>
-
-                {isIncome && !isFutureDate && (
-                  <label className="col-span-2 flex items-center gap-2 pt-1 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={runAllocation}
-                      onChange={(e) => setRunAllocation(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-                    />
-                    <span className="text-xs font-bold text-zinc-800">
-                      {t("modals.quickExpense.runPaydayAllocation", { defaultValue: "Run Payday Allocation for this pay" })}
-                    </span>
-                  </label>
-                )}
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">
@@ -312,11 +296,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       ? "Setup Transfer"
                       : "Confirm Transfer"
                     : isIncome
-                    ? isFutureDate
-                      ? t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
-                      : runAllocation
-                      ? t("common.confirm", { defaultValue: "Mark Received" })
-                      : t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
+                    ? "Split Income"
                     : isFutureDate
                     ? t("drawers.quickExpense.oneOffExpense", { defaultValue: "One-off Expense" })
                     : t("common.markSpent", { defaultValue: "Mark Spent" })}

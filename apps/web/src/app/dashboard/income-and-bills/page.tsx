@@ -736,6 +736,11 @@ function IncomeAndBillsContent() {
               name: p.name,
               currentBalance: parseFloat(String(p.currentBalance || "0")),
             }))}
+            pools={pools.map((p) => ({
+              id: p.id,
+              name: p.name,
+              currentBalance: parseFloat(String(p.currentBalance || "0")),
+            }))}
             onMarkExpensePaid={async (eventId) => {
               try {
                 await markExpensePaidMut.mutateAsync({ eventId });

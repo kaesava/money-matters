@@ -1,40 +1,13 @@
 
-
-All text below is suggestion. Ensure wording is consistent, user friendly and targeted at a typical user.
-
-In the Home Screen:
-* When I click "Show More", it is refreshing the whole app - just direct the user to the "Income Split" screen.
-
-In Income Split tab:
-* Change "Income Split Planning Grid" to "Income Split Planning"
-* Change "Income Split Planning Grid Plan upcoming Income Splits across Pools out to 12 months. Click Review to edit. Saving will lock-in the splits. You can easily revert to automatic calculations.""
-* Add hover text "Revew" hyperlink (not jus in this tab but also in the Upcoming tab and the Home screen): "Review and Edit Splits"
-* Add hover text "Save" hyperlink "Lock in Splits to prevent automatic calculation. You can easily revert to automatic splits with the Un-Save option.""
-* Add hover text "Delete" hyperlink (not just in this tab but also in the Upcoming tab): "Delete Income record"
-
-In the Income & Expenses > Upcoming tab:
-* Remove the Unsave option. User can always revert from the Run Split side drawer.
-
-In the Split Income Sidebar,
-* Show Pool target in a new line (not on the same line as the Balance)
-* Make the Unsave hyperlink (if allocation was saved) more prominent (maybe blue).
-* Ensure the Balance is the accumulated balance assuming all prior splits had occurred (even if they were not saved) - so any allocationg + calculations since earliest unconfirmed income event
-* Change "Save as Draft" to "Save" and "Confirm Income Split" as "Run Income Split" and make the latter button red
-* Warn the user (Pool balances and Bank balances will be updated, etc.). Right now, it simply confirms.
-* Remove the word "G'day!" from "G'day! Running this payday split will update your pool and bank balances immediately, and mark this income as processed. Once processed, this split cannot be changed. Ready to split your income into your Pools?"
-
-
-# RULES
-
+# Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
 * Ignore mobile app
-* OUtput - detailed implementation plan that can be unambiguously carried out by a low token agent. No need for reports.
+* [/grill-me](slashCommand;grill-me) instead of making assumptions.
 * Make multiple passes if needed - as there may be cross-dependencies you'll miss if you don't
 * Be critical, think deep - review code if you're not sure.
+* OUTPUT: Create a detailed implementation plan detailed enough for an agent like Gemini 3.6 Medium to unambiguously interprent and execute.
 * If section below is blank, it means I don't have any updates for you to make - leave it alone.
-* [/grill-me](slashCommand;grill-me) instead of making assumptions.
-
 
 
 # AGENT - In progress...
@@ -89,15 +62,21 @@ _________
 
 
 ## ******* "Pools"
+
 ### Projection Timeline
+
 ### Pool Create/Edit Modal
 ### Category Create/Edit Modal
 ### Pool/Category picker
 
 
-## ******* "Income & Expense Management"
+## ******* "Income & Expenses"
 
-#### Income Allocation
+### Income Splits
+#### Run Splits Sidebar Drawer
+#### Pools hyperlink click Sidebar Drawer
+
+### Upcoming
 
 ### Setup
 #### Create/Edit modal - Expense Schedule & Income Schedule (applies to both)
@@ -105,9 +84,6 @@ _________
 #### Delete - check event delete (archival)
 #### Burst Event Regeneration (Check Transactions)
 
-#### Run Splits Sidebar
-
-### Upcoming
 
 
 ## ******* "Bank Accounts"

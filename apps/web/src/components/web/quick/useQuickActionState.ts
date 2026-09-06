@@ -23,7 +23,6 @@ export function useQuickActionState(
   const [destinationCategoryId, setDestinationCategoryId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
   const [date, setDate] = useState(todayStr);
-  const [runAllocation, setRunAllocation] = useState(true);
   const [paydayModalEventId, setPaydayModalEventId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -80,7 +79,6 @@ export function useQuickActionState(
     setDestinationCategoryId("");
     setReceivingAccountId("");
     setDate(todayStr);
-    setRunAllocation(true);
     setError(null);
     setSuccess(false);
   }
@@ -211,8 +209,7 @@ export function useQuickActionState(
 
   const createIncomeSourceMut = trpc.createIncomeSource.useMutation({
     onSuccess: (res) => {
-      if (runAllocation && !isFutureDate && res?.firstEventId) {
-        // Trigger Payday Allocation preview modal instead of closing immediately
+      if (res?.firstEventId) {
         setPaydayModalEventId(res.firstEventId);
       } else {
         handleDone();
@@ -430,8 +427,6 @@ export function useQuickActionState(
     setReceivingAccountId,
     date,
     setDate,
-    runAllocation,
-    setRunAllocation,
     paydayModalEventId,
     setPaydayModalEventId,
     error,

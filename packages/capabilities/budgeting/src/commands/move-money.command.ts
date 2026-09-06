@@ -61,9 +61,9 @@ export async function moveMoneyCommand(
 
 
     const cleanUserNote = input.note?.trim();
-    let note = `${sourcePool.name} ➔ ${destPool.name}`;
-    if (cleanUserNote && !cleanUserNote.includes("➔")) {
-      note = `${sourcePool.name} ➔ ${destPool.name} - ${cleanUserNote}`;
+    let note = `Transfer from ${sourcePool.name} to ${destPool.name}`;
+    if (cleanUserNote && !cleanUserNote.startsWith("Transfer from")) {
+      note = `Transfer from ${sourcePool.name} to ${destPool.name} - ${cleanUserNote}`;
     } else if (cleanUserNote) {
       note = cleanUserNote;
     }

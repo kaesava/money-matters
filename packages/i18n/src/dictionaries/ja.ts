@@ -1703,7 +1703,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "title": "プール詳細",
     "historyLink": "履歴を表示",
     "seeFullHistory": "すべての履歴を表示",
-    "seeAllUpcomingExpenses": "すべての予定支出を表示",
+    "seeAllUpcomingExpenses": "すべての今後の支出を表示",
     "targetDate": "目標期日",
     "tabs": {
       "categories": "カテゴリー",
