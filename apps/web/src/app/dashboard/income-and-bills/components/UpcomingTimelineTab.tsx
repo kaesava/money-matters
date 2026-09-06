@@ -538,33 +538,20 @@ export function UpcomingTimelineTab({
                               })
                             }
                             className="px-2 py-1 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 font-semibold text-xs rounded-lg transition-colors"
-                            title="Delete this event"
+                            title={isIncome ? "Delete Income record" : "Delete this event"}
                           >
                             Delete
                           </button>
 
                           {isIncome ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => onAllocateIncome(evt.id)}
-                                className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1.5 py-1"
-                              >
-                                {t("common.runSplit", { defaultValue: "Run Split" })}
-                              </button>
-                              {savedIncomeEventIds?.has(evt.id) && (
-                                <>
-                                  <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setIncomeToUnsaveId(evt.id)}
-                                    className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors px-1.5 py-1"
-                                  >
-                                    {t("matrix.unsave", { defaultValue: "Unsave" })}
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onAllocateIncome(evt.id)}
+                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1.5 py-1"
+                              title="Review and Edit Splits"
+                            >
+                              {t("common.runSplit", { defaultValue: "Run Split" })}
+                            </button>
                           ) : isTransfer ? (
                             <button
                               type="button"

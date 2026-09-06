@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { fmtDate, Button } from "@money-matters/ui/web";
 import { useIconVisibility } from '@money-matters/ui';
 
@@ -47,12 +48,12 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
               Upcoming Expenses
             </h2>
           </div>
-          <a
+          <Link
             href="/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
             Show More →
-          </a>
+          </Link>
         </div>
         <p className="text-xs text-zinc-400 py-4 text-center">No upcoming bills scheduled.</p>
       </div>
@@ -77,12 +78,12 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
             Upcoming Expenses ({items.length})
           </h2>
         </div>
-        <a
+        <Link
           href="/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
           Show More →
-        </a>
+        </Link>
       </div>
 
       <div className="divide-y divide-zinc-100">

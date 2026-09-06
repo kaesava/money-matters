@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Link from 'next/link';
 import { t } from '@money-matters/i18n';
 import { fmtDate } from '@money-matters/ui/web';
 import { getEarliestPendingIncomeId } from '@money-matters/capability-budgeting';
@@ -10,7 +11,8 @@ export interface WebIncomeItem {
   readonly name: string;
   readonly amount: number;
   readonly expectedDate: string;
-  readonly status?: string; // Add status to determine pending
+  readonly status?: string; // Add status to determine pending vs saved/draft
+  readonly isSaved?: boolean;
 }
 
 export interface NextPaydayCardProps {
@@ -46,12 +48,12 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             <span className="text-lg">💰</span>
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">Upcoming Income</h2>
           </div>
-          <a
-            href="/dashboard/income-and-bills?tab=EVENTS&type=INCOME"
+          <Link
+            href="/dashboard/income-and-bills?tab=MATRIX"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
             Show More →
-          </a>
+          </Link>
         </div>
         <p className="text-xs text-gray-400 py-4 text-center">No upcoming paydays scheduled.</p>
       </div>
@@ -69,12 +71,12 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             Upcoming Income ({upcomingIncomes.length})
           </h2>
         </div>
-        <a
-          href="/dashboard/income-and-bills?tab=EVENTS&type=INCOME"
+        <Link
+          href="/dashboard/income-and-bills?tab=MATRIX"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
           Show More →
-        </a>
+        </Link>
       </div>
 
       <div className="space-y-3">
@@ -92,6 +94,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
           }
 
           const isEarliest = income.id === earliestPendingId;
+          const isSaved = income.isSaved || income.status === "DRAFT" || income.status === "SAVED";
 
           return (
             <div
@@ -99,13 +102,18 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
               className="bg-emerald-50/40 border border-emerald-200/60 rounded-xl p-3 flex items-center justify-between gap-3 hover:bg-emerald-50/70 transition-colors"
             >
               <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-xs font-bold text-[#1B2B4B] block truncate">
                     {income.name}
                   </span>
                   {isEarliest && (
                     <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold text-[9px] rounded uppercase tracking-wider">
                       Next Payday
+                    </span>
+                  )}
+                  {isSaved && (
+                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-blue-200">
+                      Saved
                     </span>
                   )}
                 </div>
@@ -118,6 +126,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                 type="button"
                 onClick={() => handleSplitClick(income.id)}
                 className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
+                title="Review and Edit Splits"
               >
                 {t("common.runSplit", { defaultValue: "Run Split" })}
               </button>

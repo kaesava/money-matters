@@ -1,4 +1,29 @@
 
+
+All text below is suggestion. Ensure wording is consistent, user friendly and targeted at a typical user.
+
+In the Home Screen:
+* When I click "Show More", it is refreshing the whole app - just direct the user to the "Income Split" screen.
+
+In Income Split tab:
+* Change "Income Split Planning Grid" to "Income Split Planning"
+* Change "Income Split Planning Grid Plan upcoming Income Splits across Pools out to 12 months. Click Review to edit. Saving will lock-in the splits. You can easily revert to automatic calculations.""
+* Add hover text "Revew" hyperlink (not jus in this tab but also in the Upcoming tab and the Home screen): "Review and Edit Splits"
+* Add hover text "Save" hyperlink "Lock in Splits to prevent automatic calculation. You can easily revert to automatic splits with the Un-Save option.""
+* Add hover text "Delete" hyperlink (not just in this tab but also in the Upcoming tab): "Delete Income record"
+
+In the Income & Expenses > Upcoming tab:
+* Remove the Unsave option. User can always revert from the Run Split side drawer.
+
+In the Split Income Sidebar,
+* Show Pool target in a new line (not on the same line as the Balance)
+* Make the Unsave hyperlink (if allocation was saved) more prominent (maybe blue).
+* Ensure the Balance is the accumulated balance assuming all prior splits had occurred (even if they were not saved) - so any allocationg + calculations since earliest unconfirmed income event
+* Change "Save as Draft" to "Save" and "Confirm Income Split" as "Run Income Split" and make the latter button red
+* Warn the user (Pool balances and Bank balances will be updated, etc.). Right now, it simply confirms.
+* Remove the word "G'day!" from "G'day! Running this payday split will update your pool and bank balances immediately, and mark this income as processed. Once processed, this split cannot be changed. Ready to split your income into your Pools?"
+
+
 # RULES
 
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
@@ -83,6 +108,7 @@ _________
 #### Run Splits Sidebar
 
 ### Upcoming
+
 
 ## ******* "Bank Accounts"
 ### Edit Modal 

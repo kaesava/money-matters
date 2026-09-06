@@ -115,7 +115,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "apply": "適用",
     "bankAccountOrPool": "銀行口座 / プール",
     "expensePool": "支出プール",
-    "deleteIncomeTitle": "収入を削除"
+    "deleteIncomeTitle": "収入を削除",
+    "unsave": "保存解除"
   },
 
   "toasts": {
@@ -1654,9 +1655,10 @@ export const ja: DeepStringRecord<typeof en> = {
     "currentBalance": "残高:",
     "balance": "残高:",
     "targetLabel": "目標:",
-    "confirmWarningTitle": "給料割当を確定しますか？",
-    "confirmWarningDescription": "この給料割当を確定すると、プールと口座の残高が即座に更新され、この収入は処理済みとして記録されます。確定後の変更はできません。給料割当を実行しますか？",
-    "confirmWarningConfirm": "確定して実行",
+    "confirmWarningTitle": "収入振り分けを実行しますか？",
+    "confirmWarningDescription": "この収入振り分けを実行すると、プールと口座の残高が即座に更新され、この収入が処理済みとしてマークされます。処理後は変更できません。プールに収入を振り分ける準備はできましたか？",
+    "confirmWarningConfirm": "収入振り分けを実行",
+    "runIncomeSplit": "収入振り分けを実行",
     "autoSurplusBadge": "自動サープラス",
     "savedBadge": "保存済み",
     "confirmedBadge": "確定済み",
@@ -1674,6 +1676,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "futureIncomeNote": "収入日が未来の日付です。保存すると下書きとして保存されます。"
   },
   "matrix": {
+    "saved": "保存済み",
     "review": "確認",
     "save": "保存",
     "unsave": "保存解除",
@@ -1690,8 +1693,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "revertDialogTitle": "収入振り分けをリセット",
     "revertDialogDescription": "このお給料日の保存済み収入振り分けを削除し、自動計算に戻します。続行しますか？",
     "revertDialogConfirm": "リセット",
-    "incomeAllocationGridTitle": "収入振り分け計画グリッド",
-    "incomeAllocationGridTooltip": "今後12ヶ月のプールへの収入振り分けを計画します。「確認」をクリックして編集または保存してください。",
+    "incomeAllocationGridTitle": "収入振り分け計画",
+    "incomeAllocationGridTooltip": "今後12ヶ月のプールへの収入振り分けを計画します。「確認」をクリックして編集します。保存すると振り分けが固定されます。自動計算には簡単に戻せます。",
     "showNext5": "次の5回の給料日を表示",
     "showFull12": "12ヶ月全体を表示（{count}回の給料日）",
     "showFull12Events": "12ヶ月全体を表示（{count}件の収入イベント）"

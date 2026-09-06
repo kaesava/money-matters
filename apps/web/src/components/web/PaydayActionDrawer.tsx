@@ -482,7 +482,7 @@ export function PaydayActionDrawer({
                             type="button"
                             onClick={handleRevertToAuto}
                             disabled={submitting}
-                            className="font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors"
+                            className="font-bold text-xs text-[#2563eb] hover:underline cursor-pointer transition-colors"
                           >
                             {t("matrix.unsave", { defaultValue: "Unsave" })}
                           </button>
@@ -611,7 +611,6 @@ export function PaydayActionDrawer({
                                   : null;
                                 const targetNum = targetRaw ? parseFloat(targetRaw) : 0;
                                 const targetSuffix = poolObj?.poolType === "GOAL" ? "" : "/mo";
-                                const targetStr = targetNum > 0 ? ` • ${t("paydayDrawer.targetLabel", { defaultValue: "Target:" })} ${fmt(targetNum)}${targetSuffix}` : "";
 
                                 return (
                                   <div
@@ -630,8 +629,13 @@ export function PaydayActionDrawer({
                                         )}
                                       </div>
                                       <span className="text-[10px] text-zinc-400 font-mono block truncate">
-                                        {t("paydayDrawer.balance", { defaultValue: "Balance:" })} {fmt(currentBal)}{targetStr}
+                                        {t("paydayDrawer.balance", { defaultValue: "Balance:" })} {fmt(currentBal)}
                                       </span>
+                                      {targetNum > 0 && (
+                                        <span className="text-[10px] text-zinc-400 font-mono block truncate">
+                                          {t("paydayDrawer.targetLabel", { defaultValue: "Target:" })} {fmt(targetNum)}{targetSuffix}
+                                        </span>
+                                      )}
                                     </div>
                                     <input
                                       type="text"
@@ -697,7 +701,7 @@ export function PaydayActionDrawer({
                     disabled={isSweepNegative || submitting}
                     className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
                   >
-                    {t("paydayDrawer.saveIncomeSplit", { defaultValue: "Save Income Split" })}
+                    {t("common.save", { defaultValue: "Save" })}
                   </Button>
                 ) : (
                   <>
@@ -708,7 +712,7 @@ export function PaydayActionDrawer({
                         disabled={isSweepNegative || submitting}
                         className="text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline px-2 py-1 cursor-pointer transition-colors"
                       >
-                        {t("paydayDrawer.saveAsDraft", { defaultValue: "Save as Draft" })}
+                        {t("common.save", { defaultValue: "Save" })}
                       </button>
                     )}
                     {!isConfirmedPlan && (
@@ -717,9 +721,10 @@ export function PaydayActionDrawer({
                         onClick={handleConfirmSplit}
                         loading={submitting}
                         disabled={isSweepNegative || submitting}
+                        variant="danger"
                         className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
                       >
-                        {t("paydayDrawer.confirmIncomeSplit", { defaultValue: "Confirm Income Split" })}
+                        {t("paydayDrawer.runIncomeSplit", { defaultValue: "Run Income Split" })}
                       </Button>
                     )}
                   </>
@@ -747,10 +752,10 @@ export function PaydayActionDrawer({
         isOpen={showConfirmWarning}
         onClose={() => setShowConfirmWarning(false)}
         onConfirm={executeConfirmSplit}
-        title={t("paydayDrawer.confirmWarningTitle", { defaultValue: "Confirm Income Split?" })}
-        description={t("paydayDrawer.confirmWarningDescription", { defaultValue: "G'day! Confirming this payday split will update your pool and bank balances immediately, and mark this income as processed. Once processed, this confirmed split cannot be changed. Ready to split your paycheck?" })}
-        confirmLabel={t("paydayDrawer.confirmWarningConfirm", { defaultValue: "Confirm & Process Payday" })}
-        variant="warning"
+        title={t("paydayDrawer.confirmWarningTitle", { defaultValue: "Run Income Split?" })}
+        description={t("paydayDrawer.confirmWarningDescription", { defaultValue: "Running this payday split will update your pool and bank balances immediately, and mark this income as processed. Once processed, this split cannot be changed. Ready to split your income into your Pools?" })}
+        confirmLabel={t("paydayDrawer.confirmWarningConfirm", { defaultValue: "Run Income Split" })}
+        variant="danger"
       />
 
       <ConfirmDialog

@@ -232,8 +232,8 @@ export function MatrixPlanTab({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
-            <span>{t("matrix.incomeAllocationGridTitle", { defaultValue: "Income Split Planning Grid" })}</span>
-            <InfoTooltip content={t("matrix.incomeAllocationGridTooltip", { defaultValue: "Plan upcoming Income Splits across Pools out to 12 months. Click 'Review' to edit or save." })} />
+            <span>{t("matrix.incomeAllocationGridTitle", { defaultValue: "Income Split Planning" })}</span>
+            <InfoTooltip content={t("matrix.incomeAllocationGridTooltip", { defaultValue: "Plan upcoming Income Splits across Pools out to 12 months. Click Review to edit. Saving will lock-in the splits. You can easily revert to automatic calculations." })} />
           </h2>
         </div>
 
@@ -332,6 +332,7 @@ export function MatrixPlanTab({
                           type="button"
                           onClick={() => setActivePaydayEventId(col.id)}
                           className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
+                          title="Review and Edit Splits"
                         >
                           {t("matrix.review", { defaultValue: "Review" })}
                         </button>
@@ -344,6 +345,7 @@ export function MatrixPlanTab({
                             disabled={savingColId === col.id}
                             onClick={() => handleSaveAutoSplit(col.id)}
                             className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
+                            title="Lock in Splits to prevent automatic calculation. You can easily revert to automatic splits with the Un-Save option."
                           >
                             {savingColId === col.id ? "…" : t("matrix.save", { defaultValue: "Save" })}
                           </button>
@@ -352,6 +354,7 @@ export function MatrixPlanTab({
                             type="button"
                             onClick={() => setColToUnsave(col.id)}
                             className="font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors"
+                            title="Revert saved split to automatic calculation"
                           >
                             {t("matrix.unsave", { defaultValue: "Unsave" })}
                           </button>
@@ -363,6 +366,7 @@ export function MatrixPlanTab({
                           type="button"
                           onClick={() => setIncomeToDelete(col.id)}
                           className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
+                          title="Delete Income record"
                         >
                           Delete
                         </button>
