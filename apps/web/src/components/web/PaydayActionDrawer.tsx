@@ -139,6 +139,11 @@ export function PaydayActionDrawer({
     try {
       setSubmitting(true);
       await revertAllocationPlanMut.mutateAsync({ incomeEventId: activeEventId });
+      await utils.listAllAllocationPlans.invalidate();
+      await utils.listIncomeEvents.invalidate();
+      await utils.listExpenseEvents.invalidate();
+      await utils.listPools.invalidate();
+      await utils.listTransactions.invalidate();
       const refetched = await previewQuery.refetch();
       if (refetched.data) {
         const rawLines = extractLinesFromEngineResult(refetched.data.engineResult);
@@ -148,7 +153,7 @@ export function PaydayActionDrawer({
         });
         setLinesMap(initMap);
       }
-      toast.success(t("paydayDrawer.revertedToAutoSuccess", { defaultValue: "Reverted. Income Split will be recalculated automatically." }));
+      toast.success(t("matrix.revertSuccess", { defaultValue: "Reverted. Income Split will be auto calculated" }));
       setIsSavedPlan(false);
       setIsConfirmedPlan(false);
     } catch (err: unknown) {
@@ -378,12 +383,16 @@ export function PaydayActionDrawer({
   };
 
   const attemptClose = useCallback(() => {
+    utils.listAllAllocationPlans.invalidate();
+    utils.listIncomeEvents.invalidate();
+    utils.listExpenseEvents.invalidate();
+    utils.listPools.invalidate();
     if (isDirty) {
       setShowDiscardConfirm(true);
     } else {
       onClose();
     }
-  }, [isDirty, onClose]);
+  }, [isDirty, onClose, utils]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

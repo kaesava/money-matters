@@ -26,6 +26,8 @@ export interface CategoryItem {
   budgetFrequency?: string | null;
   isEssential?: boolean;
   monthlySpent?: number;
+  hasHistory?: boolean;
+  hasUpcomingExpenses?: boolean;
 }
 
 export interface PoolTableRow {
@@ -43,4 +45,6 @@ export interface PoolTableRow {
   progressText: string;
   progressPercentage?: number | null;
   rawPool: CategorySummaryItem;
+  hasHistory?: boolean;
+  hasUpcomingExpenses?: boolean;
 }

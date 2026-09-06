@@ -195,46 +195,53 @@ describe('Domain Schemas Validation', () => {
     const safeYesVerdict = CanAffordVerdictDto.parse({
       verdict: 'SAFE_YES',
       availableCash: '1000.00',
+      effectiveSpendable: '800.00',
       everydayRemaining: '680.00',
       daysUntilPayday: 10,
       dailyPacingAfterSpend: '68.00',
+      dailyPacingFloor: '15.00',
+      upcomingBillsBeforePayday: '200.00',
       rationaleSteps: ['Available cash: $1,000.00'],
     });
     expect(safeYesVerdict.verdict).toBe('SAFE_YES');
 
-    const pacingWarningVerdict = CanAffordVerdictDto.parse({
-      verdict: 'PACING_WARNING',
+    const pacingTightVerdict = CanAffordVerdictDto.parse({
+      verdict: 'PACING_TIGHT',
       availableCash: '200.00',
+      effectiveSpendable: '50.00',
       everydayRemaining: '30.00',
       daysUntilPayday: 5,
       dailyPacingAfterSpend: '6.00',
-      rationaleSteps: ['Pacing warning: $6.00/day'],
+      dailyPacingFloor: '15.00',
+      upcomingBillsBeforePayday: '150.00',
+      rationaleSteps: ['Pacing tight: $6.00/day'],
     });
-    expect(pacingWarningVerdict.verdict).toBe('PACING_WARNING');
+    expect(pacingTightVerdict.verdict).toBe('PACING_TIGHT');
 
-    const impactGoalsVerdict = CanAffordVerdictDto.parse({
-      verdict: 'IMPACT_GOALS',
-      availableCash: '50.00',
-      affectedGoalName: 'Emergency Buffer',
-      affectedGoalId: '11111111-1111-4111-8111-111111111111',
-      goalSurplusUsed: '70.00',
-      newGoalBalance: '430.00',
-      rationaleSteps: ['Dips into Emergency Buffer'],
+    const billsRiskVerdict = CanAffordVerdictDto.parse({
+      verdict: 'BILLS_RISK',
+      availableCash: '500.00',
+      upcomingBillsBeforePayday: '450.00',
+      effectiveAfterBills: '50.00',
+      billsDueItems: [{ name: 'Electricity', amount: '450.00', dueDate: '2026-09-10' }],
+      rationaleSteps: ['Upcoming bills consume buffer'],
     });
-    expect(impactGoalsVerdict.verdict).toBe('IMPACT_GOALS');
+    expect(billsRiskVerdict.verdict).toBe('BILLS_RISK');
 
     const waitVerdict = CanAffordVerdictDto.parse({
-      verdict: 'WAIT_FOR_PAYDAY',
-      daysUntilNextPaycheck: 3,
-      amountExpected: '2000.00',
-      shortfall: '50.00',
-      rationaleSteps: ['Payday arrives in 3 days'],
+      verdict: 'WAIT_FOR_PAYCYCLE',
+      canAffordAt: '2026-09-15',
+      paycyclesAway: 1,
+      projectedEverydayAtThatDate: '1200.00',
+      shortfallToday: '50.00',
+      rationaleSteps: ['Next paycycle arrives in 5 days'],
     });
-    expect(waitVerdict.verdict).toBe('WAIT_FOR_PAYDAY');
+    expect(waitVerdict.verdict).toBe('WAIT_FOR_PAYCYCLE');
 
     const hardNoVerdict = CanAffordVerdictDto.parse({
       verdict: 'HARD_NO',
       shortfall: '70.00',
+      horizonMonths: 12,
       rationaleSteps: ['Insufficient funds'],
     });
     expect(hardNoVerdict.verdict).toBe('HARD_NO');

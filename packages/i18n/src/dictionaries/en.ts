@@ -1568,7 +1568,7 @@ export const en = {
     projectedBalanceAt: "Projected Balance at {{date}}",
     timelineSliderLabel: "Timeline Projection Slider",
     insufficientModalTitle: "Insufficient Funds in Pool",
-    insufficientModalMessage: "You are short {{amount}} to mark this bill as paid.",
+    insufficientModalMessage: "The Expense {{billName}} cannot be paid as the {{poolType}} Pool {{poolName}} is short {{amount}}. Select the Pools to transfer funds from to ensure sufficient balance.",
     fundingSourceSelectLabel: "Select Funding Source to cover shortfall:",
     surplusBufferLabel: "Surplus Buffer (Recommended)",
     confirmTransferAndPay: "Confirm Transfer & Mark Paid",

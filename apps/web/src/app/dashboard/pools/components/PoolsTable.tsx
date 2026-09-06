@@ -204,13 +204,13 @@ export function PoolsTable({
                 <span>Progress</span>
               </ResizableTh>
 
-              {/* History */}
+              {/* Actions */}
               <ResizableTh
                 width={widths.actions}
                 onResizeMouseDown={(e) => onMouseDown("actions", e)}
                 className="py-3.5 px-4 text-center"
               >
-                <span>History</span>
+                <span>Actions</span>
               </ResizableTh>
             </tr>
           </thead>
@@ -380,14 +380,32 @@ export function PoolsTable({
                                 </span>
                               </td>
 
-                              {/* History Link */}
+                              {/* Actions */}
                               <td className="py-2.5 px-4 text-center">
-                                <Link
-                                  href={`/dashboard/history?search=${encodeURIComponent(pool.name)}`}
-                                  className="text-xs font-bold text-[#2563eb] hover:underline"
-                                >
-                                  History
-                                </Link>
+                                <div className="flex items-center justify-center gap-1.5 text-xs font-bold">
+                                  {pool.hasHistory && (
+                                    <Link
+                                      href={`/dashboard/history?search=${encodeURIComponent(pool.name)}`}
+                                      className="text-[#2563eb] hover:underline"
+                                    >
+                                      History
+                                    </Link>
+                                  )}
+                                  {pool.hasHistory && pool.hasUpcomingExpenses && (
+                                    <span className="text-zinc-300 font-normal">|</span>
+                                  )}
+                                  {pool.hasUpcomingExpenses && (
+                                    <Link
+                                      href={`/dashboard/income-and-bills?search=${encodeURIComponent(pool.name)}`}
+                                      className="text-[#2563eb] hover:underline"
+                                    >
+                                      Expenses
+                                    </Link>
+                                  )}
+                                  {!pool.hasHistory && !pool.hasUpcomingExpenses && (
+                                    <span className="text-zinc-400 font-normal">—</span>
+                                  )}
+                                </div>
                               </td>
                             </tr>
 
@@ -429,14 +447,32 @@ export function PoolsTable({
 
                                   <td className="py-2 px-4 text-center text-zinc-400">—</td>
 
-                                  {/* Category History */}
+                                  {/* Category Actions */}
                                   <td className="py-2 px-4 text-center">
-                                    <Link
-                                      href={`/dashboard/history?search=${encodeURIComponent(cat.name)}`}
-                                      className="text-[11px] font-bold text-zinc-500 hover:text-[#2563eb] hover:underline"
-                                    >
-                                      History
-                                    </Link>
+                                    <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold">
+                                      {cat.hasHistory && (
+                                        <Link
+                                          href={`/dashboard/history?search=${encodeURIComponent(cat.name)}`}
+                                          className="text-zinc-500 hover:text-[#2563eb] hover:underline"
+                                        >
+                                          History
+                                        </Link>
+                                      )}
+                                      {cat.hasHistory && cat.hasUpcomingExpenses && (
+                                        <span className="text-zinc-300 font-normal">|</span>
+                                      )}
+                                      {cat.hasUpcomingExpenses && (
+                                        <Link
+                                          href={`/dashboard/income-and-bills?search=${encodeURIComponent(cat.name)}`}
+                                          className="text-zinc-500 hover:text-[#2563eb] hover:underline"
+                                        >
+                                          Expenses
+                                        </Link>
+                                      )}
+                                      {!cat.hasHistory && !cat.hasUpcomingExpenses && (
+                                        <span className="text-zinc-400 font-normal">—</span>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               ))}

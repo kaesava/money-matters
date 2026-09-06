@@ -34,20 +34,17 @@ export function CanAffordCard({
             styles.verdictBox,
             canAffordData.verdict === 'SAFE_YES'
               ? styles.yesBox
-              : canAffordData.verdict === 'PACING_WARNING'
-              ? styles.impactBox
-              : canAffordData.verdict === 'IMPACT_GOALS'
-              ? styles.impactBox
-              : canAffordData.verdict === 'WAIT_FOR_PAYDAY'
-              ? styles.impactBox
-              : styles.noBox,
+              : canAffordData.verdict === 'HARD_NO'
+              ? styles.noBox
+              : styles.impactBox,
           ]}
         >
           <Text style={styles.verdictTitle}>
             {canAffordData.verdict === 'SAFE_YES' && '🟢 Yes, Safe to Buy'}
-            {canAffordData.verdict === 'PACING_WARNING' && '🟡 Yes, but Tight Daily Pacing'}
-            {canAffordData.verdict === 'IMPACT_GOALS' && '🟠 Yes, Dips into Savings'}
-            {canAffordData.verdict === 'WAIT_FOR_PAYDAY' && '🔵 Wait for Payday'}
+            {canAffordData.verdict === 'PACING_TIGHT' && '🟡 Yes, but Tight Daily Pacing'}
+            {canAffordData.verdict === 'BILLS_RISK' && '⚠️ Bills Risk: Buffer Consumed'}
+            {canAffordData.verdict === 'WAIT_FOR_PAYCYCLE' && '🔵 Wait for Paycycle'}
+            {canAffordData.verdict === 'GOAL_DELAYED' && '🟠 Delays Savings Goal'}
             {canAffordData.verdict === 'HARD_NO' && '🔴 No, Do Not Buy'}
           </Text>
 

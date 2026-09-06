@@ -263,29 +263,15 @@ export function useQuickActionState(
     }
 
     if (preset.sourceCategoryId) {
-      let srcPoolMatch = categories.find((c) => c.id === preset.sourceCategoryId);
-      if (!srcPoolMatch) {
-        for (const p of categories) {
-          if (p.categories?.some((cat: { id: string }) => cat.id === preset.sourceCategoryId)) {
-            srcPoolMatch = p;
-            break;
-          }
-        }
-      }
-      if (srcPoolMatch) setSourceCategoryId(srcPoolMatch.id);
+      const srcPoolMatch = categories.find((c) => c.id === preset.sourceCategoryId) ||
+        categories.find((p) => p.categories?.some((cat: { id: string }) => cat.id === preset.sourceCategoryId));
+      setSourceCategoryId(srcPoolMatch ? srcPoolMatch.id : preset.sourceCategoryId);
     }
 
     if (preset.destinationCategoryId) {
-      let dstPoolMatch = categories.find((c) => c.id === preset.destinationCategoryId);
-      if (!dstPoolMatch) {
-        for (const p of categories) {
-          if (p.categories?.some((cat: { id: string }) => cat.id === preset.destinationCategoryId)) {
-            dstPoolMatch = p;
-            break;
-          }
-        }
-      }
-      if (dstPoolMatch) setDestinationCategoryId(dstPoolMatch.id);
+      const dstPoolMatch = categories.find((c) => c.id === preset.destinationCategoryId) ||
+        categories.find((p) => p.categories?.some((cat: { id: string }) => cat.id === preset.destinationCategoryId));
+      setDestinationCategoryId(dstPoolMatch ? dstPoolMatch.id : preset.destinationCategoryId);
     }
   }
 

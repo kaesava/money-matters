@@ -40,6 +40,7 @@ interface UpcomingTimelineTabProps {
   categories: {
     id: string;
     name: string;
+    poolId?: string;
     currentBalance: string | number;
   }[];
   pools?: {
@@ -133,6 +134,8 @@ export function UpcomingTimelineTab({
     isOpen: boolean;
     eventId: string;
     billName: string;
+    poolName?: string;
+    poolType?: string;
     amount: string;
     date: string;
     shortfall: number;
@@ -141,6 +144,8 @@ export function UpcomingTimelineTab({
     isOpen: false,
     eventId: "",
     billName: "",
+    poolName: "Pool",
+    poolType: "EVERYDAY",
     amount: "0.00",
     date: "",
     shortfall: 0,
@@ -217,8 +222,11 @@ export function UpcomingTimelineTab({
 
   const handleExpenseMarkPaidClick = (evt: TimelineEventItem) => {
     const amt = parseFloat(evt.expectedAmount || "0");
-    const targetPoolId = evt.sourcePoolId || evt.categoryId;
-    const targetPool = pools.find((p) => p.id === targetPoolId);
+    const effectivePoolId =
+      evt.sourcePoolId ||
+      categories.find((c) => c.id === evt.categoryId)?.poolId ||
+      evt.categoryId;
+    const targetPool = pools.find((p) => p.id === effectivePoolId);
     const currBalance = targetPool
       ? typeof targetPool.currentBalance === "string"
         ? parseFloat(targetPool.currentBalance || "0")
@@ -231,10 +239,12 @@ export function UpcomingTimelineTab({
         isOpen: true,
         eventId: evt.id,
         billName: evt.name || "Bill",
+        poolName: targetPool?.name || "Pool",
+        poolType: (targetPool as { poolType?: string })?.poolType || "EVERYDAY",
         amount: evt.expectedAmount,
         date: evt.expectedDate,
         shortfall,
-        destinationCategoryId: evt.categoryId || "",
+        destinationCategoryId: effectivePoolId || "",
       });
     } else {
       setMarkPaidConfirmEvent(evt);
@@ -519,12 +529,6 @@ export function UpcomingTimelineTab({
                                 ? `${evt.sourcePoolName || "Source"} ➔ ${evt.destinationPoolName || "Destination"}`
                                 : evt.categoryName || "Pool"}
                             </span>
-
-                            {isIncome && savedIncomeEventIds?.has(evt.id) && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
-                                {t("matrix.saved", { defaultValue: "Saved" })}
-                              </span>
-                            )}
                           </div>
 
                           {evt.note && (
@@ -569,7 +573,7 @@ export function UpcomingTimelineTab({
                           </button>
 
                           {isIncome ? (
-                            <div className="flex flex-col items-center justify-center gap-0.5">
+                            <div className="flex flex-row items-center justify-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => onAllocateIncome(evt.id)}
@@ -635,6 +639,8 @@ export function UpcomingTimelineTab({
         isOpen={insufficientModalState.isOpen}
         onClose={() => setInsufficientModalState((prev) => ({ ...prev, isOpen: false }))}
         billName={insufficientModalState.billName}
+        poolName={insufficientModalState.poolName}
+        poolType={insufficientModalState.poolType}
         shortfallAmount={insufficientModalState.shortfall}
         availableCategories={pools.map((p) => ({
           ...p,

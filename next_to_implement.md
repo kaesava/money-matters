@@ -1,3 +1,6 @@
+You are now going to do a full audit on the waterfall functionality to ensure it calculates splits based on what the user  would reasonably expect, given goals, bills, Priority Bills, Everyday expenses, private pools, etc. What gaps do you see betwene what gets projected and the reality the user might expect (of course, within reason)? Functionally, does it account for (and account correctly for) various circumstances and edge cases like expense events, income irregularity, prioritisation based on due dates, etc. Make recommendations. Be critical. Review through internet research user expectations. 
+
+
 
 # Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.

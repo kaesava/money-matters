@@ -81,11 +81,11 @@ export const CanAffordModal: React.FC<CanAffordModalProps> = ({
             className={`p-4 rounded-2xl text-xs font-semibold flex flex-col gap-3 transition-all ${
               canAffordData.verdict === 'SAFE_YES'
                 ? 'bg-emerald-50 border border-emerald-200 text-emerald-950'
-                : canAffordData.verdict === 'PACING_WARNING'
+                : canAffordData.verdict === 'PACING_TIGHT'
                 ? 'bg-amber-50 border border-amber-200 text-amber-950'
-                : canAffordData.verdict === 'IMPACT_GOALS'
+                : canAffordData.verdict === 'BILLS_RISK' || canAffordData.verdict === 'GOAL_DELAYED'
                 ? 'bg-orange-50 border border-orange-200 text-orange-950'
-                : canAffordData.verdict === 'WAIT_FOR_PAYDAY'
+                : canAffordData.verdict === 'WAIT_FOR_PAYCYCLE'
                 ? 'bg-blue-50 border border-blue-200 text-blue-950'
                 : 'bg-rose-50 border border-rose-200 text-rose-950'
             }`}
@@ -93,16 +93,18 @@ export const CanAffordModal: React.FC<CanAffordModalProps> = ({
             <div className="flex items-center justify-between font-bold text-sm">
               <span>
                 {canAffordData.verdict === 'SAFE_YES' && '🟢 Yes, Safe to Buy'}
-                {canAffordData.verdict === 'PACING_WARNING' && '🟡 Yes, but Tight Daily Pacing'}
-                {canAffordData.verdict === 'IMPACT_GOALS' && '🟠 Yes, Dips into Savings'}
-                {canAffordData.verdict === 'WAIT_FOR_PAYDAY' && '🔵 Wait for Payday'}
+                {canAffordData.verdict === 'PACING_TIGHT' && '🟡 Yes, but Tight Daily Pacing'}
+                {canAffordData.verdict === 'BILLS_RISK' && '⚠️ Bills Risk: Buffer Consumed'}
+                {canAffordData.verdict === 'WAIT_FOR_PAYCYCLE' && '🔵 Wait for Paycycle'}
+                {canAffordData.verdict === 'GOAL_DELAYED' && '🟠 Delays Savings Goal'}
                 {canAffordData.verdict === 'HARD_NO' && '🔴 No, Do Not Buy'}
               </span>
               <span className="font-mono text-xs opacity-90">
                 {canAffordData.verdict === 'SAFE_YES' && `$${canAffordData.dailyPacingAfterSpend}/day left`}
-                {canAffordData.verdict === 'PACING_WARNING' && `$${canAffordData.dailyPacingAfterSpend}/day left`}
-                {canAffordData.verdict === 'IMPACT_GOALS' && `$${canAffordData.goalSurplusUsed} from ${canAffordData.affectedGoalName}`}
-                {canAffordData.verdict === 'WAIT_FOR_PAYDAY' && `${canAffordData.daysUntilNextPaycheck}d away`}
+                {canAffordData.verdict === 'PACING_TIGHT' && `$${canAffordData.dailyPacingAfterSpend}/day left`}
+                {canAffordData.verdict === 'BILLS_RISK' && `After bills: $${canAffordData.effectiveAfterBills}`}
+                {canAffordData.verdict === 'WAIT_FOR_PAYCYCLE' && `Can afford on ${canAffordData.canAffordAt}`}
+                {canAffordData.verdict === 'GOAL_DELAYED' && `Monthly impact $${canAffordData.recurringMonthlyImpact}`}
                 {canAffordData.verdict === 'HARD_NO' && `Shortfall -$${canAffordData.shortfall}`}
               </span>
             </div>

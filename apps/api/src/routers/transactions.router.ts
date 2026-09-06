@@ -3,11 +3,11 @@ import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
 import { tenants } from "@money-matters/db";
 import { eq } from "drizzle-orm";
+import { canAffordSimulationQuery } from "@money-matters/capability-simulation";
 import {
   recordExpenseCommand,
   listTransactionsQuery,
   listCategoryTransactionsQuery,
-  canAffordQuery,
   parseBankCsv,
   checkCsvDuplicatesQuery,
   commitCsvImportCommand,
@@ -80,8 +80,7 @@ export const transactionsRouter = {
   canAfford: privateTenantProcedure
     .input(CanAffordQuery)
     .query(async ({ input, ctx }) => {
-      const amt = parseFloat(input.amount);
-      return await canAffordQuery(amt, ctx.tenantId!, ctx.appId!, ctx.db, input.includePersonal);
+      return await canAffordSimulationQuery(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   parseCsv: privateTenantProcedure

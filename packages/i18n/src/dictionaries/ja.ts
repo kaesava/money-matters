@@ -1517,7 +1517,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "projectedBalanceAt": "{{date}} 時点の予測残高",
     "timelineSliderLabel": "タイムライン予測スライダー",
     "insufficientModalTitle": "プール残高不足",
-    "insufficientModalMessage": "この請求を支払済みにするには {{amount}} 不足しています。",
+    "insufficientModalMessage": "支出 {{billName}} は {{poolType}} プール {{poolName}} の残高が {{amount}} 不足しているため支払えません。十分な残高を確保するために振替元のプールを選択してください。",
     "fundingSourceSelectLabel": "不足分を補填する資金源を選択:",
     "surplusBufferLabel": "余剰バッファー（推奨）",
     "confirmTransferAndPay": "振替を確認して支払済みにする",

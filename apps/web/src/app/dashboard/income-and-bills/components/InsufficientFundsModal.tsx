@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
 import { Button } from "@money-matters/ui/web";
+import { ModalDialog } from "../../../../components/web/ModalDialog";
 
 export interface CategoryOption {
   id: string;
@@ -21,6 +22,8 @@ interface InsufficientFundsModalProps {
   isOpen: boolean;
   onClose: () => void;
   billName: string;
+  poolName?: string;
+  poolType?: string;
   shortfallAmount: number;
   availableCategories: CategoryOption[];
   onConfirmTransferAndPay: (transfers: ShortfallTransferItem[]) => Promise<void>;
@@ -34,6 +37,8 @@ export function InsufficientFundsModal({
   isOpen,
   onClose,
   billName,
+  poolName,
+  poolType,
   shortfallAmount,
   availableCategories,
   onConfirmTransferAndPay,
@@ -108,7 +113,6 @@ export function InsufficientFundsModal({
       setTransferAmounts((prev) => ({ ...prev, [poolId]: "0.00" }));
       return;
     }
-    // Cap at pool's available balance
     const capped = Math.min(parsed, maxBal);
     setTransferAmounts((prev) => ({ ...prev, [poolId]: capped.toString() }));
   };
@@ -120,7 +124,7 @@ export function InsufficientFundsModal({
     }, 0);
   }, [transferAmounts]);
 
-  const isFulfilled = totalAllocated >= shortfallAmount - 0.001; // Epsilon tolerance for floating point
+  const isFulfilled = totalAllocated >= shortfallAmount - 0.001;
 
   if (!isOpen) return null;
 
@@ -143,145 +147,146 @@ export function InsufficientFundsModal({
     }
   };
 
+  const formattedPoolType = poolType ? (poolType === "EVERYDAY" ? "Everyday" : poolType === "REGULAR" ? "Bills" : "Goal") : "Everyday";
+  const formattedPoolName = poolName || "Pool";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs animate-in fade-in" onClick={onClose} />
-      <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-xl w-full shadow-2xl z-10 animate-in zoom-in-95 duration-150">
-        <h3 className="text-lg font-black text-[#1B2B4B] dark:text-white">
-          {t("incomeBillsTabs.insufficientModalTitle", { defaultValue: "Insufficient Funds in Pool" })}
-        </h3>
+    <ModalDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("incomeBillsTabs.insufficientModalTitle", { defaultValue: "Insufficient Funds in Pool" })}
+      maxWidth="max-w-xl"
+    >
+      <div className="flex flex-col gap-4">
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl">
+          <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 leading-relaxed">
+            {t("incomeBillsTabs.insufficientModalMessage", {
+              billName: billName || "Expense",
+              poolType: formattedPoolType,
+              poolName: formattedPoolName,
+              amount: fmt(shortfallAmount),
+              defaultValue: `The Expense ${billName || "Expense"} cannot be paid as the ${formattedPoolType} Pool ${formattedPoolName} is short ${fmt(shortfallAmount)}. Select the Pools to transfer funds from to ensure sufficient balance.`,
+            })}
+          </p>
+        </div>
 
-        <div className="flex flex-col gap-4 py-3">
-          <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl">
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-              {t("incomeBillsTabs.insufficientModalMessage", {
-                amount: fmt(shortfallAmount),
-                defaultValue: `You are short ${fmt(shortfallAmount)} to mark this bill as paid.`,
-              })}
-            </p>
-            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-              Paying <strong>{billName}</strong> requires an additional {fmt(shortfallAmount)} to avoid a negative pool balance.
-            </p>
-          </div>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-[#1B2B4B] dark:text-zinc-200 uppercase tracking-wider">
+            {t("incomeBillsTabs.fundingSourceSelectLabel", { defaultValue: "Select Funding Source to cover shortfall:" })}
+          </label>
+          <span className="text-[11px] text-zinc-400 italic">
+            {t("incomeBillsTabs.hiddenZeroBalanceNote", { defaultValue: "Pools with a $0 balance are hidden." })}
+          </span>
+        </div>
 
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-[#1B2B4B] dark:text-zinc-200 uppercase tracking-wider">
-              {t("incomeBillsTabs.fundingSourceSelectLabel", { defaultValue: "Select Funding Source to cover shortfall:" })}
-            </label>
-            <span className="text-[11px] text-zinc-400 italic">
-              {t("incomeBillsTabs.hiddenZeroBalanceNote", { defaultValue: "Pools with a $0 balance are hidden." })}
-            </span>
-          </div>
-
-          {/* Grouped Table Accordion with Scroll Container */}
-          <div className="max-h-[45vh] overflow-y-auto border border-zinc-200 dark:border-zinc-800 rounded-xl divide-y divide-zinc-200 dark:divide-zinc-800">
-            {Object.keys(groupedPools).length === 0 ? (
-              <div className="p-6 text-center text-xs text-zinc-500 font-semibold">
-                No pools with available balances found to cover the shortfall.
-              </div>
-            ) : (
-              Object.entries(groupedPools).map(([typeKey, poolsInGroup]) => {
-                const isExpanded = !!expandedGroups[typeKey];
-                return (
-                  <div key={typeKey} className="bg-white dark:bg-zinc-900">
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(typeKey)}
-                      className="w-full px-4 py-2.5 flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 transition-colors"
-                    >
-                      <span className="flex items-center gap-2">
-                        <span>{typeKey} Pools</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
-                          {poolsInGroup.length}
-                        </span>
+        {/* Grouped Table Accordion with Scroll Container */}
+        <div className="max-h-[40vh] overflow-y-auto border border-zinc-200 dark:border-zinc-800 rounded-xl divide-y divide-zinc-200 dark:divide-zinc-800">
+          {Object.keys(groupedPools).length === 0 ? (
+            <div className="p-6 text-center text-xs text-zinc-500 font-semibold">
+              No pools with available balances found to cover the shortfall.
+            </div>
+          ) : (
+            Object.entries(groupedPools).map(([typeKey, poolsInGroup]) => {
+              const isExpanded = !!expandedGroups[typeKey];
+              return (
+                <div key={typeKey} className="bg-white dark:bg-zinc-900">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(typeKey)}
+                    className="w-full px-4 py-2.5 flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{typeKey} Pools</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
+                        {poolsInGroup.length}
                       </span>
-                      <span>{isExpanded ? "▲" : "▼"}</span>
-                    </button>
+                    </span>
+                    <span>{isExpanded ? "▲" : "▼"}</span>
+                  </button>
 
-                    {isExpanded && (
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-zinc-400 uppercase tracking-wider bg-zinc-50/40 dark:bg-zinc-900">
-                            <th className="py-2 px-4 text-left">Pool</th>
-                            <th className="py-2 px-4 text-right">Available</th>
-                            <th className="py-2 px-4 text-right">Transfer ($)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
-                          {poolsInGroup.map((pool) => {
-                            const bal = typeof pool.currentBalance === "string"
-                              ? parseFloat(pool.currentBalance || "0")
-                              : (pool.currentBalance ?? 0);
-                            const currentVal = transferAmounts[pool.id] ?? "";
+                  {isExpanded && (
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-zinc-400 uppercase tracking-wider bg-zinc-50/40 dark:bg-zinc-900">
+                          <th className="py-2 px-4 text-left">Pool</th>
+                          <th className="py-2 px-4 text-right">Available</th>
+                          <th className="py-2 px-4 text-right">Transfer ($)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
+                        {poolsInGroup.map((pool) => {
+                          const bal = typeof pool.currentBalance === "string"
+                            ? parseFloat(pool.currentBalance || "0")
+                            : (pool.currentBalance ?? 0);
+                          const currentVal = transferAmounts[pool.id] ?? "";
 
-                            return (
-                              <tr key={pool.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40">
-                                <td className="py-2.5 px-4 text-left font-medium text-zinc-900 dark:text-white">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span>{pool.name}</span>
-                                    {pool.isSurplusTarget && (
-                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                                        Surplus
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="py-2.5 px-4 text-right font-mono text-zinc-600 dark:text-zinc-400">
-                                  {fmt(bal)}
-                                </td>
-                                <td className="py-2.5 px-4 text-right">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={bal}
-                                    step="0.01"
-                                    value={currentVal}
-                                    onChange={(e) => handleAmountChange(pool.id, bal, e.target.value)}
-                                    placeholder="0.00"
-                                    className="w-24 px-2 py-1 text-right font-mono font-bold border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
-                                  />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
+                          return (
+                            <tr key={pool.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40">
+                              <td className="py-2.5 px-4 text-left font-medium text-zinc-900 dark:text-white">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span>{pool.name}</span>
+                                  {pool.isSurplusTarget && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                                      Surplus
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-4 text-right font-mono text-zinc-600 dark:text-zinc-400">
+                                {fmt(bal)}
+                              </td>
+                              <td className="py-2.5 px-4 text-right">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={bal}
+                                  step="0.01"
+                                  value={currentVal}
+                                  onChange={(e) => handleAmountChange(pool.id, bal, e.target.value)}
+                                  placeholder="0.00"
+                                  className="w-24 px-2 py-1 text-right font-mono font-bold border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
 
-          {/* Allocation Progress Bar / Summary */}
-          <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-xs font-bold">
-            <span className="text-zinc-600 dark:text-zinc-400">
-              Total Allocated: <span className="font-mono text-zinc-900 dark:text-white">{fmt(totalAllocated)}</span>
-            </span>
-            <span className={isFulfilled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
-              {isFulfilled ? "✓ Shortfall Covered" : `Remaining: ${fmt(Math.max(0, shortfallAmount - totalAllocated))}`}
-            </span>
-          </div>
+        {/* Allocation Progress Bar / Summary */}
+        <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-xs font-bold">
+          <span className="text-zinc-600 dark:text-zinc-400">
+            Total Allocated: <span className="font-mono text-zinc-900 dark:text-white">{fmt(totalAllocated)}</span>
+          </span>
+          <span className={isFulfilled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
+            {isFulfilled ? "✓ Shortfall Covered" : `Remaining: ${fmt(Math.max(0, shortfallAmount - totalAllocated))}`}
+          </span>
+        </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-            >
-              Cancel
-            </button>
-            <Button
-              type="button"
-              loading={isSubmitting}
-              disabled={!isFulfilled || isSubmitting}
-              onClick={handleConfirm}
-            >
-              {t("incomeBillsTabs.confirmTransferAndPay", { defaultValue: "Confirm Transfer & Mark Paid" })}
-            </Button>
-          </div>
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+          >
+            Cancel
+          </button>
+          <Button
+            type="button"
+            loading={isSubmitting}
+            disabled={!isFulfilled || isSubmitting}
+            onClick={handleConfirm}
+          >
+            {t("incomeBillsTabs.confirmTransferAndPay", { defaultValue: "Confirm Transfer & Mark Paid" })}
+          </Button>
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }

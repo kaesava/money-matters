@@ -76,6 +76,9 @@ importers:
       '@money-matters/capability-notifications':
         specifier: workspace:*
         version: link:../../packages/capabilities/notifications
+      '@money-matters/capability-simulation':
+        specifier: workspace:*
+        version: link:../../packages/capabilities/simulation
       '@money-matters/capability-tenant':
         specifier: workspace:*
         version: link:../../packages/capabilities/tenant
@@ -460,6 +463,31 @@ importers:
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.18
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/capabilities/simulation:
+    dependencies:
+      '@money-matters/capability-budgeting':
+        specifier: workspace:*
+        version: link:../budgeting
+      '@money-matters/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@money-matters/db':
+        specifier: workspace:*
+        version: link:../../db
+      '@money-matters/types':
+        specifier: workspace:*
+        version: link:../../types
+      drizzle-orm:
+        specifier: ^0.39.0
+        version: 0.39.3(@neondatabase/serverless@0.9.5)(@opentelemetry/api@1.9.1)(@types/pg@8.15.6)(expo-sqlite@16.0.10(expo@54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.1.0))(react@19.1.0)(typescript@6.0.3))(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.1.0))(react@19.1.0))(kysely@0.29.4)
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -15084,7 +15112,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@20.14.9)(@vitest/coverage-v8@4.1.10)(vite@6.4.3(@types/node@20.14.9)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.7.1)(yaml@2.9.0))
+      vitest: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.10)(vite@6.4.3(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.49.2)(tsx@4.7.1)(yaml@2.9.0))
 
   '@vitest/expect@4.1.10':
     dependencies:

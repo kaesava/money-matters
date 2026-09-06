@@ -205,7 +205,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
                       {sortField === "monthlyAmount" && <span>{sortDir === "asc" ? "▲" : "▼"}</span>}
                     </div>
                   </th>
-                  <th className="py-3 px-4 text-right">HISTORY</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
@@ -229,13 +229,32 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <Link
-                        href={`/dashboard/history?search=${encodeURIComponent(cat.name)}`}
-                        className="font-semibold text-[#2563eb] hover:underline text-xs"
-                        title={`View history for ${cat.name}`}
-                      >
-                        History
-                      </Link>
+                      <div className="flex items-center justify-end gap-1.5 text-xs font-bold">
+                        {cat.hasHistory && (
+                          <Link
+                            href={`/dashboard/history?search=${encodeURIComponent(cat.name)}`}
+                            className="font-semibold text-[#2563eb] hover:underline"
+                            title={`View history for ${cat.name}`}
+                          >
+                            History
+                          </Link>
+                        )}
+                        {cat.hasHistory && cat.hasUpcomingExpenses && (
+                          <span className="text-zinc-300 font-normal">|</span>
+                        )}
+                        {cat.hasUpcomingExpenses && (
+                          <Link
+                            href={`/dashboard/income-and-bills?search=${encodeURIComponent(cat.name)}`}
+                            className="font-semibold text-[#2563eb] hover:underline"
+                            title={`View upcoming expenses for ${cat.name}`}
+                          >
+                            Expenses
+                          </Link>
+                        )}
+                        {!cat.hasHistory && !cat.hasUpcomingExpenses && (
+                          <span className="text-zinc-400 font-normal">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

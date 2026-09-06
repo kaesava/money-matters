@@ -119,11 +119,37 @@ function PoolsPageContent() {
     return matchingCol.id;
   }, [targetDateISO, projectionQuery.data]);
 
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 1000 });
+
   // Map raw pools + categories into table rows
   const tableRows: PoolTableRow[] = useMemo(() => {
     const rawPools = poolsQuery.data ?? [];
     const rawCategories = categoriesQuery.data ?? [];
+    const rawExpenseEvents = expenseEventsQuery.data ?? [];
+    const rawTransactions = transactionsQuery.data ?? [];
     const poolBalances = projectionQuery.data?.poolBalances;
+
+    const checkHasHistory = (id: string, name: string) => {
+      const qName = name.toLowerCase();
+      return rawTransactions.some(
+        (t) =>
+          t.categoryId === id ||
+          t.poolId === id ||
+          (t.note && t.note.toLowerCase().includes(qName))
+      );
+    };
+
+    const checkHasUpcoming = (id: string, name: string) => {
+      const qName = name.toLowerCase();
+      return rawExpenseEvents.some(
+        (e) =>
+          e.status !== "CONFIRMED" &&
+          (e.poolId === id ||
+            e.categoryId === id ||
+            (e.name && e.name.toLowerCase().includes(qName)))
+      );
+    };
 
     return rawPools.map((p) => {
       const poolCats: CategoryItem[] = rawCategories
@@ -137,6 +163,8 @@ function PoolsPageContent() {
           budgetFrequency: c.budgetFrequency,
           isEssential: c.isEssential,
           monthlySpent: c.monthlySpent,
+          hasHistory: checkHasHistory(c.id, c.name),
+          hasUpcomingExpenses: checkHasUpcoming(c.id, c.name),
         }));
 
       let targetAmountNum: number | null = null;
@@ -211,6 +239,8 @@ function PoolsPageContent() {
         progressText,
         progressPercentage,
         rawPool: rawSummaryItem,
+        hasHistory: checkHasHistory(p.id, p.name),
+        hasUpcomingExpenses: checkHasUpcoming(p.id, p.name),
       };
     });
   }, [poolsQuery.data, categoriesQuery.data, showProjectionMatrix, projectionMonths, activeProjectionColId, projectionQuery.data]);

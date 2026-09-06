@@ -230,54 +230,107 @@ export const ListCategoryTransactionsQuery = z.object({
 }).strict();
 
 /**
- * Input query schema for checking expense affordability ("Can We Afford This?").
+ * Sub-schema for an upcoming bill item shown in affordability simulation breakdowns.
+ */
+export const UpcomingBillItemSchema = z.object({
+  name: z.string(),
+  amount: z.string(),
+  dueDate: z.string(),
+}).strict();
+export type UpcomingBillItem = z.infer<typeof UpcomingBillItemSchema>;
+
+/**
+ * Sub-schema describing how a goal's target date is impacted by a purchase or recurring commitment.
+ */
+export const GoalDelayImpactSchema = z.object({
+  goalId: z.string().uuid(),
+  goalName: z.string(),
+  isCommitted: z.boolean(),
+  originalTargetDate: z.string().nullable(),
+  newTargetDate: z.string().nullable(),
+  delayDays: z.number().int(),
+}).strict();
+export type GoalDelayImpact = z.infer<typeof GoalDelayImpactSchema>;
+
+/**
+ * Input query schema for the "Can I Afford It?" simulation.
+ * Supports one-off purchases and recurring commitments with frequency.
  */
 export const CanAffordQuery = z.object({
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/).refine((v) => parseFloat(v) > 0, { message: "Amount must be greater than 0" }),
+  mode: z.enum(["ONE_OFF", "RECURRING"]).default("ONE_OFF"),
+  frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).optional(),
   includePersonal: z.boolean().default(false).optional(),
+  itemName: z.string().max(100).optional(),
 }).strict();
 
 /**
- * Discriminated union DTO defining potential affordability decision outcomes.
+ * Discriminated union DTO defining all affordability simulation outcomes.
+ * Produced by the simulation capability's canAffordSimulationQuery.
  */
 export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
+  // SAFE_YES: affordable now, comfortable pacing (≥ 25% of daily floor)
   z.object({
     verdict: z.literal("SAFE_YES"),
     availableCash: z.string(),
+    effectiveSpendable: z.string(),
     everydayRemaining: z.string(),
     daysUntilPayday: z.number().int(),
     dailyPacingAfterSpend: z.string(),
+    dailyPacingFloor: z.string(),
+    upcomingBillsBeforePayday: z.string(),
     rationaleSteps: z.array(z.string()),
-  }),
+  }).strict(),
+
+  // PACING_TIGHT: affordable now, pacing < 25% of daily floor
   z.object({
-    verdict: z.literal("PACING_WARNING"),
+    verdict: z.literal("PACING_TIGHT"),
     availableCash: z.string(),
+    effectiveSpendable: z.string(),
     everydayRemaining: z.string(),
     daysUntilPayday: z.number().int(),
     dailyPacingAfterSpend: z.string(),
+    dailyPacingFloor: z.string(),
+    upcomingBillsBeforePayday: z.string(),
     rationaleSteps: z.array(z.string()),
-  }),
+  }).strict(),
+
+  // BILLS_RISK: balance sufficient but upcoming bills eat the buffer
   z.object({
-    verdict: z.literal("IMPACT_GOALS"),
+    verdict: z.literal("BILLS_RISK"),
     availableCash: z.string(),
-    affectedGoalName: z.string(),
-    affectedGoalId: z.string(),
-    goalSurplusUsed: z.string(),
-    newGoalBalance: z.string(),
+    upcomingBillsBeforePayday: z.string(),
+    effectiveAfterBills: z.string(),
+    billsDueItems: z.array(UpcomingBillItemSchema),
     rationaleSteps: z.array(z.string()),
-  }),
+  }).strict(),
+
+  // WAIT_FOR_PAYCYCLE: find earliest income event step where Everyday covers amount
   z.object({
-    verdict: z.literal("WAIT_FOR_PAYDAY"),
-    daysUntilNextPaycheck: z.number().int(),
-    amountExpected: z.string(),
-    shortfall: z.string(),
+    verdict: z.literal("WAIT_FOR_PAYCYCLE"),
+    canAffordAt: z.string(),
+    paycyclesAway: z.number().int(),
+    projectedEverydayAtThatDate: z.string(),
+    shortfallToday: z.string(),
     rationaleSteps: z.array(z.string()),
-  }),
+  }).strict(),
+
+  // GOAL_DELAYED: recurring commitment delays one or more goals
+  z.object({
+    verdict: z.literal("GOAL_DELAYED"),
+    isAffordable: z.boolean(),
+    goalDelays: z.array(GoalDelayImpactSchema),
+    recurringMonthlyImpact: z.string(),
+    rationaleSteps: z.array(z.string()),
+  }).strict(),
+
+  // HARD_NO: 12-month projection exhausted, no affordable paycycle found
   z.object({
     verdict: z.literal("HARD_NO"),
     shortfall: z.string(),
+    horizonMonths: z.number().int(),
     rationaleSteps: z.array(z.string()),
-  }),
+  }).strict(),
 ]);
 
 /**
