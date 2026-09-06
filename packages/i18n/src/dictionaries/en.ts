@@ -115,6 +115,7 @@ export const en = {
     apply: "Apply",
     bankAccountOrPool: "Bank Account / Pool",
     expensePool: "Expense Pool",
+    deleteIncomeTitle: "Delete Income",
   },
 
   toasts: {
@@ -250,7 +251,7 @@ export const en = {
   transactions: {
     tabs: {
       transactions: "History",
-      allocatePendingIncome: "Allocate Income",
+      allocatePendingIncome: "Income Split",
       pendingList: "Upcoming",
       setup: "Setup",
       paydayAllocations: "Payday Allocations",
@@ -1666,6 +1667,8 @@ export const en = {
     incomeDate: "Income Date",
     incomeSourceLabel: "Income Source / Description",
     incomeAmountLabel: "Income Amount ($)",
+    errorLoading: "Failed to load Income Split preview: ",
+    deleteDescription: "Are you sure you want to delete this Income?",
     splitIncomeAcrossPools: "Split Income across Pools",
     totalIncomeAmount: "Total Income Amount",
     everyday: "Everyday",

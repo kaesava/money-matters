@@ -337,6 +337,7 @@ export const incomeRouter = {
       const events = await ctx.db
         .select({
           id: incomeEvents.id,
+          name: sql<string>`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
           expectedDate: incomeEvents.expectedDate,
           expectedAmount: incomeEvents.expectedAmount,
           actualAmount: incomeEvents.actualAmount,

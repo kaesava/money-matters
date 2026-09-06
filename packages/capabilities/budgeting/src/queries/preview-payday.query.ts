@@ -1,4 +1,4 @@
-import { incomeEvents, DbOrTx } from "@money-matters/db";
+import { incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { previewAllocationQuery } from "./preview-allocation.query.js";
 
@@ -9,8 +9,15 @@ export async function previewPaydayQuery(
   dbClient: DbOrTx
 ) {
   const [targetEvent] = await dbClient
-    .select()
+    .select({
+      id: incomeEvents.id,
+      expectedDate: incomeEvents.expectedDate,
+      expectedAmount: incomeEvents.expectedAmount,
+      actualAmount: incomeEvents.actualAmount,
+      name: sql<string>`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
+    })
     .from(incomeEvents)
+    .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
     .where(
       and(
         eq(incomeEvents.id, incomeEventId),

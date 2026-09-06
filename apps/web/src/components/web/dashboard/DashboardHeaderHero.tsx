@@ -5,6 +5,7 @@ import { t } from "@money-matters/i18n";
 interface DashboardHeaderHeroProps {
   nextPaydayEvent: {
     id: string;
+    name?: string | null;
     sourceName?: string | null;
     actualAmount?: string | null;
     expectedAmount: string;
@@ -46,7 +47,7 @@ export function DashboardHeaderHero({
             </span>
           </div>
           <h3 className="text-lg font-black text-white">
-            {nextPaydayEvent.sourceName || "Income Deposit"} — {fmt(nextPaydayEvent.actualAmount || nextPaydayEvent.expectedAmount)} AUD
+            {nextPaydayEvent.name || nextPaydayEvent.sourceName || "Income Deposit"} — {fmt(nextPaydayEvent.actualAmount || nextPaydayEvent.expectedAmount)} AUD
           </h3>
           <p className="text-xs text-slate-300 font-semibold">
             Scheduled for {fmtDate(nextPaydayEvent.expectedDate)}

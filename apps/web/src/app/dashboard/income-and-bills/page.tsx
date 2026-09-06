@@ -259,7 +259,7 @@ function IncomeAndBillsContent() {
 
       <Tabs
         tabs={[
-          { id: "MATRIX", label: t("transactions.tabs.allocatePendingIncome", { defaultValue: "Allocate Pending Income" }) },
+          { id: "MATRIX", label: t("transactions.tabs.allocatePendingIncome", { defaultValue: "Income Split" }) },
           { id: "EVENTS", label: t("transactions.tabs.pendingList", { defaultValue: "Pending List" }) },
           { id: "STREAMS", label: t("transactions.tabs.setup", { defaultValue: "Setup" }) },
         ]}

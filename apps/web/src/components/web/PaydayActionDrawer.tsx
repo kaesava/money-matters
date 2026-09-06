@@ -78,6 +78,7 @@ export function PaydayActionDrawer({
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // Plan state: SAVED = PENDING plan exists, CONFIRMED = executed plan, AUTO = no plan
   const [isSavedPlan, setIsSavedPlan] = useState<boolean>(false);
   const [isConfirmedPlan, setIsConfirmedPlan] = useState<boolean>(false);
@@ -93,6 +94,7 @@ export function PaydayActionDrawer({
   const overrideEventMut = trpc.overrideEvent.useMutation();
   const saveBulkAllocationsMut = trpc.saveBulkAllocations.useMutation();
   const revertAllocationPlanMut = trpc.revertAllocationPlan.useMutation();
+  const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
 
   useEffect(() => {
     if (previewQuery.data) {
@@ -154,6 +156,24 @@ export function PaydayActionDrawer({
       toast.error(message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteIncome = async () => {
+    if (!activeEventId) return;
+    try {
+      setSubmitting(true);
+      await deleteIncomeMut.mutateAsync({ eventId: activeEventId });
+      toast.success("Income deleted.");
+      await utils.listIncomeEvents.invalidate();
+      await utils.listAllAllocationPlans.invalidate();
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete income.");
+    } finally {
+      setSubmitting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -392,7 +412,7 @@ export function PaydayActionDrawer({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
-                  {t("paydayDrawer.title", { defaultValue: "Income Split" })}
+                  {sourceName || t("paydayDrawer.title", { defaultValue: "Income Split" })}
                 </h2>
                 {isSavedPlan && (
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200">
@@ -408,23 +428,9 @@ export function PaydayActionDrawer({
                     {t("paydayDrawer.confirmedBadge", { defaultValue: "CONFIRMED" })}
                     <InfoTooltip
                       title={t("paydayDrawer.confirmedBadge", { defaultValue: "CONFIRMED" })}
-                      content={t("paydayDrawer.confirmedBadgeTooltip", { defaultValue: "Confirmed: This Income Split has been executed and pool balances updated. Use 'Revert to Auto' to undo." })}
+                      content={t("paydayDrawer.confirmedBadgeTooltip", { defaultValue: "Confirmed: This Income Split has been executed and pool balances updated. Use 'Unsave' to undo." })}
                     />
                   </span>
-                )}
-                {(isSavedPlan || isConfirmedPlan) && (
-                  <button
-                    type="button"
-                    onClick={handleRevertToAuto}
-                    disabled={submitting}
-                    className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
-                  >
-                    <span>{t("paydayDrawer.revertToAuto", { defaultValue: "Revert to Auto" })}</span>
-                    <InfoTooltip
-                      title={t("paydayDrawer.revertToAuto", { defaultValue: "Revert to Auto" })}
-                      content={t("paydayDrawer.revertToAutoTooltip", { defaultValue: "Reverting will remove your saved Income Split and recalculate automatically from your target pool rules." })}
-                    />
-                  </button>
                 )}
               </div>
               <p className="text-xs text-zinc-500 font-medium mt-1">
@@ -449,20 +455,50 @@ export function PaydayActionDrawer({
 
             {previewQuery.isLoading ? (
               <div className="py-12 text-center"><Spinner /></div>
+            ) : previewQuery.isError ? (
+              <div className="py-12 px-6 text-center text-red-600 dark:text-red-400 font-bold border-2 border-dashed border-red-200 dark:border-red-900/50 rounded-2xl mx-4">
+                {t("paydayDrawer.errorLoading", { defaultValue: "Failed to load Income Split preview: " })} {previewQuery.error?.message}
+              </div>
             ) : (
               <div className="space-y-6">
                 {/* 1. Review Income Section (Collapsible - Collapsed by default) */}
                 <section className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50/50 dark:bg-zinc-800/30">
-                  <button
-                    type="button"
-                    onClick={() => setIsDetailsOpen((prev) => !prev)}
-                    className="w-full flex items-center gap-2 text-sm font-extrabold text-[#1B2B4B] dark:text-white text-left cursor-pointer"
-                  >
-                    <span className="text-zinc-500 font-extrabold text-xs">
-                      {isDetailsOpen ? "▼" : "▶"}
-                    </span>
-                    <span>{t("paydayDrawer.reviewIncome", { defaultValue: "Review Income" })}</span>
-                  </button>
+                  <div className="w-full flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setIsDetailsOpen((prev) => !prev)}
+                      className="flex items-center gap-2 text-sm font-extrabold text-[#1B2B4B] dark:text-white text-left cursor-pointer"
+                    >
+                      <span className="text-zinc-500 font-extrabold text-xs">
+                        {isDetailsOpen ? "▼" : "▶"}
+                      </span>
+                      <span>{t("paydayDrawer.reviewIncome", { defaultValue: "Review Income" })}</span>
+                    </button>
+                    
+                    <div className="flex items-center gap-2 text-xs font-medium">
+                      {(isSavedPlan || isConfirmedPlan) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleRevertToAuto}
+                            disabled={submitting}
+                            className="font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors"
+                          >
+                            {t("matrix.unsave", { defaultValue: "Unsave" })}
+                          </button>
+                          <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={submitting}
+                        className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
+                      >
+                        {t("common.delete", { defaultValue: "Delete" })}
+                      </button>
+                    </div>
+                  </div>
 
                   {isDetailsOpen && (
                     <div className="space-y-4 pt-4 mt-3 border-t border-zinc-200 dark:border-zinc-700/60 animate-in fade-in duration-150">
@@ -654,25 +690,15 @@ export function PaydayActionDrawer({
 
               <div className="flex items-center gap-2">
                 {isFutureDate ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleConfirmSplit}
-                      disabled={isSweepNegative || submitting}
-                      className="text-xs font-bold text-[#2563eb] hover:underline px-2 py-1 cursor-pointer transition-colors"
-                    >
-                      {t("paydayDrawer.confirmIncomeSplit", { defaultValue: "Confirm Income Split" })}
-                    </button>
-                    <Button
-                      type="button"
-                      onClick={handleSaveSplit}
-                      loading={submitting}
-                      disabled={isSweepNegative || submitting}
-                      className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
-                    >
-                      {t("paydayDrawer.saveIncomeSplit", { defaultValue: "Save Income Split" })}
-                    </Button>
-                  </>
+                  <Button
+                    type="button"
+                    onClick={handleSaveSplit}
+                    loading={submitting}
+                    disabled={isSweepNegative || submitting}
+                    className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
+                  >
+                    {t("paydayDrawer.saveIncomeSplit", { defaultValue: "Save Income Split" })}
+                  </Button>
                 ) : (
                   <>
                     {!isConfirmedPlan && (
@@ -725,6 +751,16 @@ export function PaydayActionDrawer({
         description={t("paydayDrawer.confirmWarningDescription", { defaultValue: "G'day! Confirming this payday split will update your pool and bank balances immediately, and mark this income as processed. Once processed, this confirmed split cannot be changed. Ready to split your paycheck?" })}
         confirmLabel={t("paydayDrawer.confirmWarningConfirm", { defaultValue: "Confirm & Process Payday" })}
         variant="warning"
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteIncome}
+        title={t("common.deleteIncomeTitle", { defaultValue: "Delete Income" })}
+        description={t("paydayDrawer.deleteDescription", { defaultValue: "Are you sure you want to delete this Income?" })}
+        confirmLabel={t("common.delete", { defaultValue: "Delete" })}
+        variant="danger"
       />
     </div>
   );

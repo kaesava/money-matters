@@ -114,7 +114,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "flipIncomeExpense": "収入/支出を反転",
     "apply": "適用",
     "bankAccountOrPool": "銀行口座 / プール",
-    "expensePool": "支出プール"
+    "expensePool": "支出プール",
+    "deleteIncomeTitle": "収入を削除"
   },
 
   "toasts": {
@@ -1640,9 +1641,11 @@ export const ja: DeepStringRecord<typeof en> = {
     "incomeDetails": "収入の確認",
     "reviewIncome": "収入の確認",
     "incomeDate": "受取日",
-    "incomeSourceLabel": "収入元 / 説明",
-    "incomeAmountLabel": "収入金額（$）",
-    "splitIncomeAcrossPools": "プールへの振分設定",
+    "incomeSourceLabel": "収入源 / 説明",
+    "incomeAmountLabel": "収入金額 ($)",
+    "errorLoading": "給料日の振り分けプレビューの読み込みに失敗しました：",
+    "deleteDescription": "この収入を削除してもよろしいですか？",
+    "splitIncomeAcrossPools": "プール間で収入を振り分ける",
     "totalIncomeAmount": "収入合計金額",
     "everyday": "日常支出",
     "bills": "請求書",
