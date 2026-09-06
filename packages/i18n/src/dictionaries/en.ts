@@ -1726,10 +1726,13 @@ export const en = {
   categoryDrawer: {
     title: "Pool Details",
     historyLink: "View History",
+    seeFullHistory: "See Full History",
+    seeAllUpcomingExpenses: "See All Upcoming Expenses",
+    targetDate: "Target Date",
     tabs: {
       categories: "Categories",
-      relatedExpenses: "Related Expenses",
-      recentActivity: "Recent Activity",
+      upcomingExpenses: "Upcoming Expenses",
+      history: "History",
     },
     noCategories: "No sub-categories found for this pool.",
     noExpenses: "No scheduled expense events found for this pool.",

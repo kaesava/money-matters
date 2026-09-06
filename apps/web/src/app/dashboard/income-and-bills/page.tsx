@@ -149,6 +149,46 @@ function IncomeAndBillsContent() {
       }));
   }, [expenseEvents]);
 
+  const matrixCategories = useMemo(() => {
+    const catTargetMap = new Map<string, number>();
+    if (categoriesQuery.data) {
+      for (const cat of categoriesQuery.data) {
+        if (cat.monthlyAmount) {
+          const val = parseFloat(cat.monthlyAmount);
+          catTargetMap.set(cat.poolId, (catTargetMap.get(cat.poolId) || 0) + val);
+        }
+      }
+    }
+
+    return pools.map((p) => {
+      const catTargetSum = catTargetMap.get(p.id) || 0;
+      const monthlyAmt =
+        p.poolType === "REGULAR"
+          ? catTargetSum > 0
+            ? catTargetSum
+            : p.targetAmount
+            ? parseFloat(p.targetAmount)
+            : null
+          : p.targetAmount
+          ? parseFloat(p.targetAmount)
+          : null;
+
+      return {
+        id: p.id,
+        name: p.name,
+        type: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
+        currentBalance: parseFloat(String(p.currentBalance || "0")),
+        monthlyAmount: monthlyAmt,
+        targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
+        everydayAllowanceAmount: p.everydayAllowanceAmount ? parseFloat(p.everydayAllowanceAmount) : null,
+        isCommitted: p.isCommitted ?? undefined,
+        isSurplusTarget: p.isSurplusTarget ?? undefined,
+        isPrivate: p.isPrivate ?? undefined,
+        targetDate: p.targetDate || null,
+      };
+    });
+  }, [pools, categoriesQuery.data]);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
@@ -289,15 +329,7 @@ function IncomeAndBillsContent() {
       {activeTab === "MATRIX" && (
         <MatrixPlanTab
           currentUserId={currentUserId}
-          categories={pools.map((p) => ({
-            id: p.id,
-            name: p.name,
-            type: p.poolType,
-            currentBalance: parseFloat(String(p.currentBalance || "0")),
-            targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : 0,
-            isSurplusTarget: p.isSurplusTarget ?? undefined,
-            isPrivate: p.isPrivate ?? undefined,
-          }))}
+          categories={matrixCategories}
           incomeEvents={matrixIncomeEvents}
           expenseEvents={matrixExpenseEvents}
         />

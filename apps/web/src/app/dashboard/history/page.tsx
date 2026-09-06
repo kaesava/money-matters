@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable, PoolPicker } from "@money-matters/ui/web";
 import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
 import { getTenantDateString } from "@money-matters/core";
 
@@ -310,16 +310,24 @@ function TransactionsPageContent() {
                 placeholder={t("transactions.searchPlaceholder") || "Search description or category name..."}
               />
 
-              <select
-                value={selectedPool}
-                onChange={(e) => setSelectedPool(e.target.value)}
-                className="w-full sm:w-56 px-3 py-2 text-xs bg-white border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-zinc-700"
-              >
-                <option value="ALL">All Pools</option>
-                {pools.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+              <div className="w-full sm:w-56 text-xs">
+                <PoolPicker
+                  pools={[
+                    { id: "ALL", name: "All Pools" },
+                    ...pools.map((p) => ({
+                      id: p.id,
+                      name: p.name,
+                      poolType: p.poolType,
+                      currentBalance: p.currentBalance,
+                      isPrivate: p.isPrivate ?? undefined,
+                    })),
+                  ]}
+                  selectedPoolId={selectedPool || "ALL"}
+                  allowCategorySelection={false}
+                  placeholder="All Pools"
+                  onChange={(sel) => setSelectedPool(sel.poolId || "ALL")}
+                />
+              </div>
 
               <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
                 {(["ALL", "DEBIT", "CREDIT", "TRANSFER"] as const).map((tType) => (

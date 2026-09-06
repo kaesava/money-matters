@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { Tabs } from "@money-matters/ui/web";
+import { Tabs, fmtDate } from "@money-matters/ui/web";
 
 export interface CategoryScheduledEvent {
   id: string;
@@ -52,6 +52,36 @@ export function SlideOverCategoryDrawer({
     return categoriesQuery.data.filter((c) => c.poolId === targetPool.id);
   }, [categoriesQuery.data, targetPool]);
 
+  // Sum of category monthly target amounts for this pool
+  const categoryTargetSum = useMemo(() => {
+    return relatedCategories.reduce((sum, c) => {
+      const val = c.monthlyAmount ? parseFloat(c.monthlyAmount) : c.enteredAmount ? parseFloat(c.enteredAmount) : 0;
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+  }, [relatedCategories]);
+
+  // Calculate effective monthly target amount for Everyday & Bills, or pool target amount
+  const targetAmt = useMemo(() => {
+    if (!targetPool) return null;
+    if (targetPool.poolType === "REGULAR") {
+      return categoryTargetSum > 0
+        ? categoryTargetSum
+        : targetPool.targetAmount
+        ? parseFloat(String(targetPool.targetAmount))
+        : null;
+    }
+    if (targetPool.poolType === "EVERYDAY") {
+      return targetPool.everydayAllowanceAmount
+        ? parseFloat(String(targetPool.everydayAllowanceAmount))
+        : categoryTargetSum > 0
+        ? categoryTargetSum
+        : targetPool.targetAmount
+        ? parseFloat(String(targetPool.targetAmount))
+        : null;
+    }
+    return targetPool.targetAmount ? parseFloat(String(targetPool.targetAmount)) : null;
+  }, [targetPool, categoryTargetSum]);
+
   // Related transactions
   const relatedTransactions = useMemo(() => {
     if (!transactionsQuery.data || !targetPool) return [];
@@ -60,6 +90,20 @@ export function SlideOverCategoryDrawer({
       (tx) => tx.poolId === targetPool.id || (tx.categoryId && poolCategoryIds.has(tx.categoryId))
     );
   }, [transactionsQuery.data, targetPool, relatedCategories]);
+
+  // Upcoming Expenses limited to 5 latest
+  const upcomingExpensesList = useMemo(() => {
+    return [...events]
+      .sort((a, b) => new Date(b.dueDate + "T00:00:00").getTime() - new Date(a.dueDate + "T00:00:00").getTime())
+      .slice(0, 5);
+  }, [events]);
+
+  // History Transactions limited to 5 latest
+  const historyTransactionsList = useMemo(() => {
+    return [...relatedTransactions]
+      .sort((a, b) => new Date(b.recordedAt || 0).getTime() - new Date(a.recordedAt || 0).getTime())
+      .slice(0, 5);
+  }, [relatedTransactions]);
 
   // ESC key dismissal (AGENTS.md Rule 13)
   useEffect(() => {
@@ -75,7 +119,7 @@ export function SlideOverCategoryDrawer({
   if (!isOpen) return null;
 
   const currentBal = targetPool ? parseFloat(String(targetPool.currentBalance || "0")) : 0;
-  const targetAmt = targetPool?.targetAmount ? parseFloat(String(targetPool.targetAmount)) : null;
+  const isGoalPool = targetPool?.poolType === "GOAL";
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -107,16 +151,6 @@ export function SlideOverCategoryDrawer({
                     </span>
                   )}
                 </div>
-                <div className="mt-1">
-                  <Link
-                    href={`/dashboard/history?search=${encodeURIComponent(categoryName)}`}
-                    onClick={onClose}
-                    className="text-xs font-bold text-zinc-500 hover:text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
-                  >
-                    <span>{t("categoryDrawer.historyLink", { defaultValue: "View History" })}</span>
-                    <span>→</span>
-                  </Link>
-                </div>
               </div>
               <button
                 type="button"
@@ -142,15 +176,19 @@ export function SlideOverCategoryDrawer({
                   Target Amount
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetAmt ? `$${targetAmt.toFixed(2)}` : "—"}
+                  {targetAmt ? `$${targetAmt.toFixed(2)}${targetPool?.poolType !== "GOAL" ? " / mo" : ""}` : "—"}
                 </span>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  Sub-Categories
+                  {isGoalPool ? t("categoryDrawer.targetDate", { defaultValue: "Target Date" }) : "Pool Type"}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {relatedCategories.length}
+                  {isGoalPool
+                    ? targetPool?.targetDate
+                      ? fmtDate(targetPool.targetDate)
+                      : "—"
+                    : targetPool?.poolType ?? "—"}
                 </span>
               </div>
             </div>
@@ -159,8 +197,8 @@ export function SlideOverCategoryDrawer({
             <Tabs
               tabs={[
                 { id: "categories", label: `${t("categoryDrawer.tabs.categories", { defaultValue: "Categories" })} (${relatedCategories.length})` },
-                { id: "expenses", label: `${t("categoryDrawer.tabs.relatedExpenses", { defaultValue: "Related Expenses" })} (${events.length})` },
-                { id: "activity", label: `${t("categoryDrawer.tabs.recentActivity", { defaultValue: "Recent Activity" })} (${relatedTransactions.length})` },
+                { id: "expenses", label: `${t("categoryDrawer.tabs.upcomingExpenses", { defaultValue: "Upcoming Expenses" })} (${events.length})` },
+                { id: "activity", label: `${t("categoryDrawer.tabs.history", { defaultValue: "History" })} (${relatedTransactions.length})` },
               ]}
               activeTab={activeTab}
               onChange={(id) => setActiveTab(id as "categories" | "expenses" | "activity")}
@@ -197,7 +235,15 @@ export function SlideOverCategoryDrawer({
                           return (
                             <tr key={cat.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
                               <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100">
-                                {cat.name}
+                                <Link
+                                  href={`/dashboard/pools?search=${encodeURIComponent(cat.name)}`}
+                                  onClick={onClose}
+                                  className="text-[#2563eb] hover:underline font-bold transition-colors inline-flex items-center gap-1"
+                                  title="View in Pools screen"
+                                >
+                                  <span>{cat.name}</span>
+                                  <span className="text-[10px] font-normal text-zinc-400">↗</span>
+                                </Link>
                               </td>
                               <td className="p-3 text-right font-mono font-bold text-zinc-700 dark:text-zinc-300">
                                 {budgetAmt !== null ? `$${budgetAmt.toFixed(2)}` : "—"}
@@ -215,10 +261,21 @@ export function SlideOverCategoryDrawer({
               </div>
             )}
 
-            {/* Tab 2: Related Expenses Table */}
+            {/* Tab 2: Upcoming Expenses Table */}
             {activeTab === "expenses" && (
               <div className="space-y-4">
-                {events.length === 0 ? (
+                <div className="flex justify-end">
+                  <Link
+                    href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&search=${encodeURIComponent(categoryName)}`}
+                    onClick={onClose}
+                    className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
+                  >
+                    <span>{t("categoryDrawer.seeAllUpcomingExpenses", { defaultValue: "See All Upcoming Expenses" })}</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+
+                {upcomingExpensesList.length === 0 ? (
                   <div className="text-center py-12 text-zinc-400 text-xs font-medium">
                     {t("categoryDrawer.noExpenses", { defaultValue: "No scheduled expense events found for this pool." })}
                   </div>
@@ -234,7 +291,7 @@ export function SlideOverCategoryDrawer({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        {events.map((evt) => (
+                        {upcomingExpensesList.map((evt) => (
                           <tr key={evt.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
                             <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100">
                               {evt.name}
@@ -273,10 +330,21 @@ export function SlideOverCategoryDrawer({
               </div>
             )}
 
-            {/* Tab 3: Recent Activity Table */}
+            {/* Tab 3: History Table */}
             {activeTab === "activity" && (
               <div className="space-y-4">
-                {relatedTransactions.length === 0 ? (
+                <div className="flex justify-end">
+                  <Link
+                    href={`/dashboard/history?search=${encodeURIComponent(categoryName)}`}
+                    onClick={onClose}
+                    className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
+                  >
+                    <span>{t("categoryDrawer.seeFullHistory", { defaultValue: "See Full History" })}</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+
+                {historyTransactionsList.length === 0 ? (
                   <div className="text-center py-12 text-zinc-400 text-xs font-medium">
                     {t("categoryDrawer.noTransactions", { defaultValue: "No recent activity found for this pool." })}
                   </div>
@@ -292,7 +360,7 @@ export function SlideOverCategoryDrawer({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        {relatedTransactions.map((tx) => {
+                        {historyTransactionsList.map((tx) => {
                           const noteText = tx.note || tx.categoryName || tx.poolName || "Transaction";
                           const isDebit = tx.flowType === "DEBIT";
 

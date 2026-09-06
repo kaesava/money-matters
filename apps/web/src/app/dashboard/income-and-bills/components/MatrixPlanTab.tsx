@@ -413,12 +413,25 @@ export function MatrixPlanTab({
                       >
                         {/* Sticky Category Name — ONLY the pool/category name is a hyperlink */}
                         <td className="sticky left-0 z-10 bg-white dark:bg-zinc-900 p-3 border-r border-zinc-200 dark:border-zinc-800">
-                          <span
-                            onClick={() => setActiveCategoryForDrawer({ id: row.categoryId, name: row.categoryName })}
-                            className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
-                          >
-                            {row.categoryName}
-                          </span>
+                          <div className="flex flex-col">
+                            <span
+                              onClick={() => setActiveCategoryForDrawer({ id: row.categoryId, name: row.categoryName })}
+                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
+                            >
+                              {row.categoryName}
+                            </span>
+                            {(() => {
+                              const cat = categories.find((c) => c.id === row.categoryId);
+                              const curBal = cat ? cat.currentBalance : 0;
+                              const targetVal = cat ? cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount : null;
+                              return (
+                                <div className="text-[10px] font-medium text-zinc-500 font-mono mt-0.5">
+                                  Bal: ${curBal.toFixed(2)}
+                                  {targetVal != null && targetVal > 0 ? ` / Target: $${targetVal.toFixed(2)}` : ""}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </td>
 
                         {/* Payday Allocation Cells (no full-row hyperlink, clean un-cluttered cells) */}
