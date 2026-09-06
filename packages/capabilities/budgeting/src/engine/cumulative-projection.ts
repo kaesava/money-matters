@@ -233,7 +233,27 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
 
     for (const cat of input.categories) {
       const afterAlloc = balancesAfterAlloc.get(cat.id) ?? 0;
-      const afterExp = runningBalances.get(cat.id) ?? 0;
+      let afterExp = runningBalances.get(cat.id) ?? 0;
+
+      // 1. Pro-Rata Burn for EVERYDAY pools (assumed discretionary spending over daysUntilNext)
+      if (cat.type === "EVERYDAY") {
+        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount ?? 0;
+        if (monthlyTarget > 0) {
+          const burnAmount = Number(((monthlyTarget / 30) * daysUntilNext).toFixed(2));
+          afterExp = Math.max(0, Number((afterExp - burnAmount).toFixed(2)));
+        }
+      }
+
+      // 2. Anti-Runaway Cap for REGULAR pools (prevents infinite build-up if expenses are unscheduled)
+      if (cat.type === "REGULAR") {
+        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? 0;
+        if (monthlyTarget > 0 && afterExp > monthlyTarget * 1.5) {
+          afterExp = Number((monthlyTarget * 1.5).toFixed(2));
+        }
+      }
+
+      runningBalances.set(cat.id, afterExp);
+
       balancesAfterExpenses.set(cat.id, Number(afterExp.toFixed(2)));
       minProjectedBalances.set(cat.id, Number(Math.min(afterAlloc, afterExp).toFixed(2)));
     }

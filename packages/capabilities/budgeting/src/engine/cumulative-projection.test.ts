@@ -109,4 +109,45 @@ describe("cumulative-projection engine", () => {
     expect(step1.allocations.get("pool-bills")?.proposedAmount).toBe(1200);
     expect(step1.allocations.get("pool-bills")?.isOverride).toBe(true);
   });
+
+  it("should apply pro-rata burn to EVERYDAY pools and 1.5x cap to REGULAR pools", () => {
+    const result = runCumulativeProjection({
+      categories: [
+        {
+          id: "pool-everyday",
+          name: "Everyday Expenses",
+          type: "EVERYDAY",
+          everydayAllowanceAmount: 600, // $600/mo = $20/day
+          currentBalance: 500,
+        },
+        {
+          id: "pool-bills",
+          name: "Rent & Housing Bills",
+          type: "REGULAR",
+          monthlyAmount: 1000, // 1.5x cap = $1500
+          currentBalance: 1400,
+        },
+        {
+          id: "pool-surplus",
+          name: "Surplus Target",
+          type: "GOAL",
+          isSurplusTarget: true,
+          currentBalance: 0,
+        },
+      ],
+      incomeEvents: [
+        { id: "evt-1", expectedDate: "2026-09-01", expectedAmount: 2000, status: "PENDING" },
+        { id: "evt-2", expectedDate: "2026-09-15", expectedAmount: 2000, status: "PENDING" }, // 14-day gap ($280 burn)
+      ],
+    });
+
+    const step1 = result.steps[0];
+    // Everyday: $500 balance + $280 alloc (14 days gap) - $280 burn (14 days @ $20/day) = $500
+    const everydayAfterExp = step1.balancesAfterExpenses.get("pool-everyday");
+    expect(everydayAfterExp).toBeLessThan(500 + 280);
+
+    // Bills: balance after alloc will exceed $1500, so it gets capped at $1500
+    const billsAfterExp = step1.balancesAfterExpenses.get("pool-bills");
+    expect(billsAfterExp).toBe(1500);
+  });
 });
