@@ -11,7 +11,7 @@
 
 
 # AGENT - In progress...
-    
+
 _________
 
 # Questions for CLAUDE
@@ -30,7 +30,7 @@ _________
 ## Waterfall Audit
 You are now going to do a full audit on the waterfall functionality to ensure it calculates splits based on what the user  would reasonably expect, given goals, bills, Priority Bills, Everyday expenses, private pools, etc. What gaps do you see betwene what gets projected and the reality the user might expect (of course, within reason)? Functionally, does it account for (and account correctly for) various circumstances and edge cases like expense events, income irregularity, prioritisation based on due dates, etc. Make recommendations. Be critical. Review through internet research user expectations. 
 
-## 
+
 
 # General
 ## Behaviour of tables across the web app

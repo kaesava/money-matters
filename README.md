@@ -103,5 +103,5 @@ cd apps/api && pnpm cf-deploy
 
 ## 📜 Documentation
 - [TECHNICAL_SPEC.md](file:///home/kaesava/projects/money-matters/TECHNICAL_SPEC.md) — Technical architecture, Drizzle ERD, and infrastructure specs.
-- [FUNCTIONAL_SPEC.md](file:///home/kaesava/projects/money-matters/FUNCTIONAL_SPEC.md) — Product requirements, onboarding quiz details, and 5-step waterfall logic.
+- [FUNCTIONAL_SPEC.md](file:///home/kaesava/projects/money-matters/FUNCTIONAL_SPEC.md) — Product requirements, onboarding estimation details, and Two-Horizon Waterfall allocation logic.
 - [AGENTS.md](file:///home/kaesava/projects/money-matters/AGENTS.md) — Architectural rules, MECE principles, and coding standards.

@@ -36,10 +36,14 @@ export async function previewAllocationQuery(
 
   // Map sub-category monthly amounts to pool
   const poolCategoryTargetsMap = new Map<string, number>();
+  const poolIsEssentialMap = new Map<string, boolean>();
   for (const cat of dbCats) {
     if (cat.monthlyAmount) {
       const val = parseFloat(cat.monthlyAmount);
       poolCategoryTargetsMap.set(cat.poolId, (poolCategoryTargetsMap.get(cat.poolId) || 0) + val);
+    }
+    if (cat.isEssential) {
+      poolIsEssentialMap.set(cat.poolId, true);
     }
   }
 
@@ -103,8 +107,10 @@ export async function previewAllocationQuery(
       id: pool.id,
       name: pool.name,
       type: pool.poolType,
+      isEssential: poolIsEssentialMap.get(pool.id) ?? false,
       isCommitted: pool.isCommitted,
       isSurplusTarget: pool.isSurplusTarget,
+      rolloverRule: pool.rolloverRule,
       monthlyAmount: monthlyAmt,
       targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,

@@ -1,4 +1,4 @@
-import { pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
+import { pools, categories, allocationPlans, allocationPlanLines, transactionLedger, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
 import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
 
@@ -66,10 +66,14 @@ export async function runAllocationCommand(
     );
 
   const poolCategoryTargetsMap = new Map<string, number>();
+  const poolIsEssentialMap = new Map<string, boolean>();
   for (const cat of dbCats) {
     if (cat.monthlyAmount) {
       const val = parseFloat(cat.monthlyAmount);
       poolCategoryTargetsMap.set(cat.poolId, (poolCategoryTargetsMap.get(cat.poolId) || 0) + val);
+    }
+    if (cat.isEssential) {
+      poolIsEssentialMap.set(cat.poolId, true);
     }
   }
 
@@ -96,6 +100,30 @@ export async function runAllocationCommand(
   const eventDateStr = eventWithSource ? eventWithSource.expectedDate : todayStr;
   const isFuturePlanned = eventDateStr > todayStr && !markAsReceivedToday;
 
+  // 5. Fetch upcoming expenses due before the next cycle cutoff
+  const eventTime = eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00").getTime() : Date.now();
+  const nextCutoffDateStr = getAestDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000));
+
+  const pendingExpenses = await dbClient
+    .select({
+      id: expenseEvents.id,
+      poolId: expenseEvents.poolId,
+      categoryId: expenseEvents.categoryId,
+      name: expenseEvents.name,
+      amount: expenseEvents.expectedAmount,
+      dueDate: expenseEvents.expectedDate,
+    })
+    .from(expenseEvents)
+    .where(
+      and(
+        eq(expenseEvents.tenantId, tenantId),
+        eq(expenseEvents.appId, appId),
+        eq(expenseEvents.status, "PENDING"),
+        sql`${expenseEvents.expectedDate} <= ${nextCutoffDateStr}`,
+        sql`${expenseEvents.archivedAt} IS NULL`
+      )
+    );
+
   // Map to engine models
   const engineBuckets: EngineBucket[] = dbPools.map((pool) => {
     const balance = balancesMap[pool.id] || 0;
@@ -109,8 +137,10 @@ export async function runAllocationCommand(
       id: pool.id,
       name: pool.name,
       type: pool.poolType,
+      isEssential: poolIsEssentialMap.get(pool.id) ?? false,
       isCommitted: pool.isCommitted,
       isSurplusTarget: pool.isSurplusTarget,
+      rolloverRule: pool.rolloverRule,
       monthlyAmount: monthlyAmt,
       targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,
@@ -124,6 +154,13 @@ export async function runAllocationCommand(
     buckets: engineBuckets,
     paycheckDate: eventWithSource ? new Date(eventWithSource.expectedDate + "T00:00:00+10:00") : new Date(),
     paycheckFrequencyDays: freqDays,
+    upcomingExpenses: pendingExpenses.map((e) => ({
+      poolId: e.poolId,
+      categoryId: e.categoryId,
+      name: e.name,
+      amount: parseFloat(e.amount),
+      dueDate: e.dueDate,
+    })),
   });
 
   const customLinesMap = customLines
@@ -190,10 +227,12 @@ export async function runAllocationCommand(
         : line.proposedAmount;
 
       if (!isFuturePlanned && confirmedVal > 0 && insertedLine) {
+        const pool = dbPools.find((p) => p.id === line.bucketId);
         ledgerEntriesToInsert.push({
           tenantId,
           appId,
           poolId: line.bucketId,
+          bankAccountId: pool?.bankAccountId || null,
           planLineId: insertedLine.id,
           flowType: "CREDIT" as const,
           amount: confirmedVal.toFixed(2),

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Spinner, useToast, Button, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+import { PaydayTransferCard, PaydayTransferLine } from "./PaydayTransferCard";
 
 export interface PaydayActionDrawerProps {
   incomeEventId?: string | null;
@@ -235,6 +236,21 @@ export function PaydayActionDrawer({
 
     return groups.filter((g) => g.items.length > 0);
   }, [lines, pools]);
+
+  const transferLines: PaydayTransferLine[] = useMemo(() => {
+    return lines
+      .map((l) => {
+        const poolObj = pools.find((p) => p.id === l.bucketId);
+        const amount = parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0;
+        return {
+          categoryName: l.bucketName,
+          categoryType: (poolObj?.poolType || "REGULAR") as "REGULAR" | "GOAL" | "EVERYDAY",
+          targetAccountName: poolObj?.name ? `${poolObj.name} Account` : "Linked Bank Account",
+          amount,
+        };
+      })
+      .filter((l) => l.amount > 0);
+  }, [lines, pools, linesMap]);
 
   const isDirty = useMemo(() => {
     if (!previewQuery.data) return false;
@@ -571,6 +587,17 @@ export function PaydayActionDrawer({
                       <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">{fmt(goalAllocated)}</span>
                     </div>
                   </div>
+
+                  {/* Confirmed 1-Tap Payday Transfer Plan */}
+                  {isConfirmedPlan && transferLines.length > 0 && (
+                    <div className="mb-4">
+                      <PaydayTransferCard
+                        paycheckAmount={numericActual}
+                        paycheckDate={selectedDate}
+                        lines={transferLines}
+                      />
+                    </div>
+                  )}
 
                   {/* Grouped Pool Allocation Inputs with Expand/Collapse */}
                   <div className="space-y-3">

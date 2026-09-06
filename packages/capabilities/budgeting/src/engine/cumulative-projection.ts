@@ -116,11 +116,24 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
     }
 
     let daysUntilNext = 30;
+    let nextDateObj: Date | undefined;
     if (i < upcomingIncomes.length - 1) {
-      const nextDateObj = new Date(upcomingIncomes[i + 1].expectedDate + "T00:00:00");
+      nextDateObj = new Date(upcomingIncomes[i + 1].expectedDate + "T00:00:00");
       const currDateObj = new Date(evt.expectedDate + "T00:00:00");
       daysUntilNext = Math.max(1, Math.round((nextDateObj.getTime() - currDateObj.getTime()) / (1000 * 60 * 60 * 24)));
     }
+
+    // Pre-compute expense deductions up until the next payday date
+    const nextCutoffDate = i < upcomingIncomes.length - 1 ? upcomingIncomes[i + 1].expectedDate : "9999-12-31";
+
+    const relevantExpenses = upcomingExpenses.filter((e) => {
+      const matchCat = e.categoryId || e.poolId;
+      if (!matchCat) return false;
+      if (i === 0) {
+        return e.dueDate < nextCutoffDate;
+      }
+      return e.dueDate >= evt.expectedDate && e.dueDate < nextCutoffDate;
+    });
 
     const allocations = new Map<string, CumulativeAllocationDetail>();
 
@@ -148,7 +161,7 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
         }
       }
     } else {
-      // Run allocation engine against current simulated running balances
+      // Run allocation engine against current simulated running balances and upcoming expenses
       const currentBuckets: EngineBucket[] = input.categories.map((c) => ({
         ...c,
         currentBalance: runningBalances.get(c.id) ?? (c.currentBalance || 0),
@@ -160,6 +173,13 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
         paycheckDate: new Date(evt.expectedDate + "T00:00:00"),
         paycheckFrequencyDays: freqDays,
         daysUntilNextIncome: daysUntilNext,
+        nextPaycheckDate: nextDateObj,
+        upcomingExpenses: relevantExpenses.map((e) => ({
+          poolId: e.poolId || e.categoryId,
+          categoryId: e.categoryId,
+          amount: e.amount,
+          dueDate: e.dueDate,
+        })),
       });
 
       const engineLinesMap = new Map<string, AllocationLine>();
@@ -200,18 +220,6 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
       runningBalances.set(cat.id, afterAlloc);
     }
 
-    // Calculate expense deductions up until the next payday date
-    const nextCutoffDate = i < upcomingIncomes.length - 1 ? upcomingIncomes[i + 1].expectedDate : "9999-12-31";
-
-    const relevantExpenses = upcomingExpenses.filter((e) => {
-      const matchCat = e.categoryId || e.poolId;
-      if (!matchCat) return false;
-      if (i === 0) {
-        return e.dueDate < nextCutoffDate;
-      }
-      return e.dueDate >= evt.expectedDate && e.dueDate < nextCutoffDate;
-    });
-
     const deductedExpenses: Array<{ bucketId: string; amount: number; dueDate: string }> = [];
 
     for (const exp of relevantExpenses) {
@@ -227,32 +235,48 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
       runningBalances.set(targetBucketId, Number((currBal - exp.amount).toFixed(2)));
     }
 
+    // 1. Pro-Rata Burn for EVERYDAY pools (assumed discretionary spending over daysUntilNext)
+    for (const cat of input.categories) {
+      if (cat.type === "EVERYDAY") {
+        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount ?? 0;
+        if (monthlyTarget > 0) {
+          const burnAmount = Number(((monthlyTarget / 30) * daysUntilNext).toFixed(2));
+          const curBal = runningBalances.get(cat.id) ?? 0;
+          runningBalances.set(cat.id, Math.max(0, Number((curBal - burnAmount).toFixed(2))));
+        }
+      }
+    }
+
+    // 2. Anti-Runaway Cap for REGULAR pools (prevents infinite build-up if expenses are unscheduled)
+    // Conserves household wealth by sweeping trimmed excess directly into designated Surplus Target
+    let totalTrimmedExcess = 0;
+    for (const cat of input.categories) {
+      if (cat.type === "REGULAR") {
+        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? 0;
+        const cap = monthlyTarget * 1.5;
+        const curBal = runningBalances.get(cat.id) ?? 0;
+        if (monthlyTarget > 0 && curBal > cap) {
+          totalTrimmedExcess += Number((curBal - cap).toFixed(2));
+          runningBalances.set(cat.id, Number(cap.toFixed(2)));
+        }
+      }
+    }
+
+    if (totalTrimmedExcess > 0) {
+      const surplusBucket = input.categories.find((c) => c.isSurplusTarget) || input.categories.find((c) => c.type === "GOAL");
+      if (surplusBucket) {
+        const curSurplus = runningBalances.get(surplusBucket.id) ?? 0;
+        runningBalances.set(surplusBucket.id, Number((curSurplus + totalTrimmedExcess).toFixed(2)));
+      }
+    }
+
     // Snapshot balances AFTER expenses and min projected balance
     const balancesAfterExpenses = new Map<string, number>();
     const minProjectedBalances = new Map<string, number>();
 
     for (const cat of input.categories) {
       const afterAlloc = balancesAfterAlloc.get(cat.id) ?? 0;
-      let afterExp = runningBalances.get(cat.id) ?? 0;
-
-      // 1. Pro-Rata Burn for EVERYDAY pools (assumed discretionary spending over daysUntilNext)
-      if (cat.type === "EVERYDAY") {
-        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? cat.everydayAllowanceAmount ?? 0;
-        if (monthlyTarget > 0) {
-          const burnAmount = Number(((monthlyTarget / 30) * daysUntilNext).toFixed(2));
-          afterExp = Math.max(0, Number((afterExp - burnAmount).toFixed(2)));
-        }
-      }
-
-      // 2. Anti-Runaway Cap for REGULAR pools (prevents infinite build-up if expenses are unscheduled)
-      if (cat.type === "REGULAR") {
-        const monthlyTarget = cat.monthlyAmount ?? cat.targetAmount ?? 0;
-        if (monthlyTarget > 0 && afterExp > monthlyTarget * 1.5) {
-          afterExp = Number((monthlyTarget * 1.5).toFixed(2));
-        }
-      }
-
-      runningBalances.set(cat.id, afterExp);
+      const afterExp = runningBalances.get(cat.id) ?? 0;
 
       balancesAfterExpenses.set(cat.id, Number(afterExp.toFixed(2)));
       minProjectedBalances.set(cat.id, Number(Math.min(afterAlloc, afterExp).toFixed(2)));

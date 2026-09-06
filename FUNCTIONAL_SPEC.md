@@ -23,10 +23,10 @@ Money Matters is a forward-looking allocation budget app designed for Australian
   2. *Tab 2: Upcoming*: Pending/un-actioned scheduled events queue ordered by ascending date with subtle overdue highlighting, single-row actioning (*Run Split* hyperlinked action for Income launching the unified Split Income drawer, *Mark Spent*, *Delete*), full-width search bar (`w-full md:w-80 flex-1 max-w-md`), and 100% header-to-cell alignment parity.
   3. *Tab 3: Setup*: Structured resizable tables for recurring Income Schedules and Expense Schedules with custom interval ("Every N") support, top unified search input, embedded "+ Add" buttons, clickable schedule name edit hyperlinks, and discreet modal archiving.
 - **Dynamic Waterfall Allocation Engine & Resolution Hierarchy**:
-  - *5-Step Priority Waterfall*: Step 0 (Deficit Repair) $\rightarrow$ Step 1 (Essential Regular / Priority Bills) $\rightarrow$ Step 2 (Standard Regular Bills) $\rightarrow$ Step 3 (Committed Goals) $\rightarrow$ Step 4 (Everyday Allowance Top-Up) $\rightarrow$ Step 5 (Uncommitted Goals & Residual Surplus Sweep).
-  - *Unified Resolution Hierarchy*: When evaluating any upcoming payday (via Home Screen "Log Payday" drawer, Timeline, or Bulk Allocate tab), the query checks for saved `allocation_plans` in the database first. If custom overrides exist, it returns the saved plan lines. If no saved plan exists, it dynamically computes the 5-step waterfall on-the-fly.
+  - *Two-Horizon Priority Waterfall*: Step 1 (Immediate Cashflow Feasibility Guard: 100% funding for upcoming bills due before next payday, essential bills first) $\rightarrow$ Step 2 (Reserve Sinking Funds: Pro-rata cycle accumulation for future bills) $\rightarrow$ Step 3 (Deficit Repair: Negative balance restorations) $\rightarrow$ Step 4 (Committed Goals: Imminent gaps funded 100%, future gaps paced) $\rightarrow$ Step 5 (Everyday Allowance: Cap-aware top-up or full deposit) $\rightarrow$ Step 6 (Uncommitted Goals & Residual Surplus Sweep).
+  - *Unified Resolution Hierarchy*: When evaluating any upcoming payday (via Home Screen "Log Payday" drawer, Timeline, or Bulk Allocate tab), the query checks for saved `allocation_plans` in the database first. If custom overrides exist, it returns the saved plan lines. If no saved plan exists, it dynamically computes the Two-Horizon waterfall on-the-fly.
   - *Automatic Recalculation*: Changing category targets/allowances in Setup automatically recalculates unsaved future paydays when opened. Changing income schedules cascade-deletes obsolete `allocation_plans` (`ON DELETE CASCADE`), presenting fresh dynamic allocations for the new schedule without requiring manual background jobs.
-  - *Stateless vs Cumulative Math*: Bills and Everyday allowances evaluate time-based per-paycheck math statelessly. Savings goals with target dates evaluate cumulative timeline progress.
+  - *Stateless vs Cumulative Math*: Bills evaluate both immediate due-date feasibility and pro-rata cycle math. Everyday allowances evaluate cap-aware top-ups or rollover sweeps. Savings goals evaluate cumulative timeline progress.
 - **Zero-Deficit Hard Constraint & Lowest Watermark Validation**: The projection engine evaluates `minProjectedBalance` *between* payday columns to catch intra-cycle cashflow crunches caused by ill-timed bills, rejecting edits that would cause a hidden bounce.
 - **Stealth Privacy RLS Math Balancing**: Returns an opaque `hiddenAllocationsTotal` per column so partner views maintain exact zero-sum math without leaking private category names, IDs, or balances.
 - **Categories Forward Timeline Slider**: Draggable slider (Today → +12 Months) on `/dashboard/categories` for scrubbing forward in time to inspect projected category balances.
@@ -42,7 +42,164 @@ Money Matters is a forward-looking allocation budget app designed for Australian
 
 ---
 
-## 2. Onboarding Experience (Full Interactive Estimation & Setup Engine)
+## 2. The Two-Horizon Waterfall Allocation Engine (Comprehensive Functional Specification)
+
+The core innovation of Money Matters is the **Two-Horizon Waterfall Engine** (`@money-matters/capability-budgeting`). It automates payday income allocation across household pools, eliminating both intra-cycle overdrafts and forward sinking fund shortfalls.
+
+### 2.1 The Two-Horizon Architecture: Core Philosophy & Design Intent
+
+Traditional budgeting apps fail Australian households due to a fundamental structural dichotomy:
+1. **The Pure Sinking-Fund Failure**: Traditional budgeting systems divide monthly bills evenly across paychecks (e.g. a \$2,000 monthly rent divided into \$1,000 per fortnightly pay). When rent is due 3 days after Payday 1, the user only has \$1,000 in their bills pool, causing direct debits to bounce and incurring bank overdraft fees.
+2. **The Pure Cashflow Failure**: Traditional cashflow trackers only look at bills due immediately, leaving future irregular obligations (quarterly council rates, annual vehicle registration, car insurance) un-funded until the week they arrive, creating massive financial shockwaves.
+
+Money Matters resolves this tension with a **Two-Horizon Hybrid Allocation Engine**:
+- **Horizon 1 (Immediate Cashflow Feasibility)**: Evaluates upcoming scheduled obligations due on or before the next paycheck cutoff date (`expectedDate <= nextPaydayCutoff`). If any pool faces a shortfall, the engine allocates 100% of the required cash immediately, prioritizing essential living shelter (rent, mortgage, utilities) first.
+- **Horizon 2 (Reserve Sinking Funds)**: For bills due beyond the next paycheck, the engine smoothly accrues pro-rata cycle targets using exact calendar factors ($\frac{1}{26}$ fortnightly, $\frac{1}{52}$ weekly, $\frac{1}{12}$ monthly), ensuring long-term obligations are fully funded well ahead of time.
+
+This guarantees that:
+- **Direct Debits Never Bounce**: Imminent bills are ring-fenced 100% upfront.
+- **Everyday Spending is Guilt-Free**: The remaining Everyday pool is purely discretionary and safe to spend to zero.
+- **Zero Mental Math**: The user never has to calculate how much to leave behind for next week's bills.
+
+---
+
+### 2.2 The 6-Step Priority Cascade Hierarchy
+
+When an incoming paycheck (or ad-hoc deposit) is processed, the engine executes a strict 6-step sequential cascade. At each step, funds are deducted from `remainingNetPay` until depleted:
+
+```
+[ Incoming Net Paycheck ]
+           │
+           ▼
+[ Step 1: Immediate Cashflow Feasibility Guard ] ──► 100% funding for bills due <= next payday (Essential first)
+           │
+           ▼
+[ Step 2: Reserve Sinking Funds ] ───────────────► Pro-rata accrual for future bills (1/26, 1/52, 1/12)
+           │
+           ▼
+[ Step 3: Deficit Repair ] ──────────────────────► Clears negative pool balances back to $0.00
+           │
+           ▼
+[ Step 4: Committed Savings Goals ] ─────────────► Target-date pacing (100% if due <= next pay, paced otherwise)
+           │
+           ▼
+[ Step 5: Everyday Allowance ] ──────────────────► Discretionary living pool (Top-up to cap vs Fresh deposit)
+           │
+           ▼
+[ Step 6: Uncommitted Goals & Surplus Sweep ] ───► Voluntary goals funded & 100% residual swept to Surplus Target
+           │
+           ▼
+[ Unallocated Cash ≡ $0.00 ]
+```
+
+#### Step 1: Immediate Cashflow Feasibility Guard (Due-Date Aware)
+- **Objective**: Guarantee that all scheduled bills due on or before the next incoming paycheck are 100% funded, preventing direct debit rejections and late fees.
+- **Cutoff Horizon**: `nextPaydayCutoff`. Determined by finding the chronological date of the next incoming scheduled paycheck for the household. If no subsequent paycheck exists in the schedule, defaults to the current paycheck date.
+- **Shortfall Calculation**:
+  For each `REGULAR` pool, the engine aggregates all pending expense events (`status === 'PENDING'`) where `expectedDate <= nextPaydayCutoff`:
+  $$\text{Due Amount} = \sum_{e \in \text{PendingEvents}} e.\text{amount}$$
+  $$\text{Net Shortfall} = \max(0, \text{Due Amount} - \text{currentPoolBalance})$$
+- **Priority Tier Sorting**:
+  1. **Essential Bills First** (`isEssential: true`): Derived automatically from child categories marked essential (e.g. Rent, Mortgage, Electricity, Gas, Water, Internet). Sorted chronologically by `expectedDate` ASC.
+  2. **Standard Bills Second** (`isEssential: false`): Discretionary subscriptions and lifestyle bills (e.g. Gym, Streaming, Club memberships). Sorted chronologically by `expectedDate` ASC.
+- **Allocation Rule**:
+  $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Net Shortfall}_i)$$
+  $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
+  $$\text{runningBalance}_i \leftarrow \text{runningBalance}_i + \text{Allocated}_i$$
+
+#### Step 2: Reserve Sinking Funds (Pro-Rata Cycle Accumulation)
+- **Objective**: Accumulate smooth reserves for future obligations due beyond `nextPaydayCutoff`, transforming large quarterly, semi-annual, and annual bills into steady, bite-sized paycheck contributions.
+- **Exact Calendar Cycle Factors**:
+  To eliminate the 1.1% annual underfunding error inherent in legacy $\frac{364}{30}$ divisors, the engine applies exact calendar cycle multipliers:
+  - Fortnightly Pay (26 cycles/year): $\text{Cycle Target} = \frac{\text{monthlyTarget} \times 12}{26}$
+  - Weekly Pay (52 cycles/year): $\text{Cycle Target} = \frac{\text{monthlyTarget} \times 12}{52}$
+  - Monthly Pay (12 cycles/year): $\text{Cycle Target} = \text{monthlyTarget}$
+- **Incremental Delta Funding**:
+  Because a pool may have already received funds in Step 1 to cover an imminent bill, Step 2 only allocates the remaining incremental need:
+  $$\text{Incremental Need}_i = \max(0, \text{Cycle Target}_i - \text{Step1Allocated}_i)$$
+  $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Incremental Need}_i)$$
+  $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
+
+#### Step 3: Deficit Repair (Negative Balance Clearing)
+- **Objective**: Restore overdrawn pool balances back to \$0.00.
+- **Architectural Rationale**: Essential shelter and utilities (Step 1) and baseline sinking reserves (Step 2) take precedence over overdraft recovery, ensuring families remain housed and powered during financial distress. However, deficit repair occurs strictly *before* discretionary Everyday allowances or voluntary savings are distributed.
+- **Allocation Rule**:
+  For any pool where $\text{currentBalance} < 0$:
+  $$\text{Deficit}_i = |\text{currentBalance}_i|$$
+  $$\text{Allocated}_i = \min(\text{remainingNetPay}, \text{Deficit}_i)$$
+  $$\text{remainingNetPay} \leftarrow \text{remainingNetPay} - \text{Allocated}_i$$
+
+#### Step 4: Committed Savings Goals (Target-Date Horizon Pacing)
+- **Objective**: Fund high-priority committed goals (Emergency Fund, Car Maintenance, Tax Provision) according to their contractual deadlines.
+- **Sorting**: Sorted chronologically by `targetDate` ASC (most urgent deadlines first).
+- **Dual-Horizon Pacing**:
+  - *Imminent Horizon* ($\text{targetDate} \le \text{nextPaydayCutoff}$): The goal deadline arrives before the next paycheck. The full remaining gap must be funded immediately:
+    $$\text{Shortfall} = \max(0, \text{targetAmount} - \text{currentBalance})$$
+    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Shortfall})$$
+  - *Future Horizon* ($\text{targetDate} > \text{nextPaydayCutoff}$): The deadline is in the future. The gap is smoothly paced across remaining paychecks:
+    $$\text{Remaining Paychecks} = \max\left(1, \left\lfloor \frac{\text{targetDate} - \text{paydayDate}}{\text{payCycleDays}} \right\rfloor\right)$$
+    $$\text{Paced Need} = \frac{\max(0, \text{targetAmount} - \text{currentBalance})}{\text{Remaining Paychecks}}$$
+    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Paced Need})$$
+
+#### Step 5: Everyday Allowance (Living Pool Funding)
+- **Objective**: Fund the household's primary transaction account for discretionary groceries, transport, dining, and daily living expenses.
+- **Frequency-Adjusted Allowance**:
+  $$\text{Cycle Allowance} = \frac{\text{monthlyTarget} \times 12}{\text{payCycleDivisor}}$$
+- **Rollover Rule Modes**:
+  - `RESET` (Top-up to cap): If the user has leftover funds from the prior period, the engine tops up only what is needed to reach the cap:
+    $$\text{Top-Up Need} = \max(0, \text{Cycle Allowance} - \text{currentBalance})$$
+    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Top-Up Need})$$
+  - `ROLLOVER` / `SWEEP` (Default): The engine deposits the full cycle allowance unconditionally, allowing unspent funds to accumulate for future discretionary rewards:
+    $$\text{Allocated} = \min(\text{remainingNetPay}, \text{Cycle Allowance})$$
+
+#### Step 6: Uncommitted Goals & 100% Residual Surplus Sweep
+- **Objective**: Direct every single leftover cent to productive wealth generation, ensuring zero unallocated cash.
+- **Uncommitted Goals**: Any flexible `GOAL` pools without explicit target dates receive funding up to their configured target amounts if funds remain.
+- **100% Residual Surplus Sweep**:
+  The engine designates a single primary surplus pool (`isSurplusTarget === true`, such as a Mortgage Offset account, High-Yield Emergency Buffer, or Investment bucket):
+  $$\text{Surplus} = \text{remainingNetPay}$$
+  $$\text{Allocated}_{\text{SurplusTarget}} \leftarrow \text{Allocated}_{\text{SurplusTarget}} + \text{Surplus}$$
+  $$\text{remainingNetPay} \equiv 0.00$$
+- **Invariant**: The engine guarantees $\text{unallocatedAmount} \equiv 0.00$. Zero cents are orphaned or left unaccounted for.
+
+---
+
+### 2.3 Multi-User Household & Partner Income Pooling
+
+Money Matters natively supports shared households without compromising personal autonomy:
+1. **Universal Household Pooling**: All income sources in the household flow into a single unified waterfall cascade. Joint household bills (rent, power, groceries) are funded collectively based on household cashflow.
+2. **Orthogonal Stealth Privacy**:
+   - Individual partners can link private bank accounts and private pools (`isPrivate: true`).
+   - Private pools participate fully in the waterfall according to their configured targets.
+   - In the partner's dashboard view, private pool details, names, and individual allocations are completely masked and aggregated into a single opaque `hiddenAllocationsTotal` figure.
+   - This ensures 100% mathematical zero-sum ledger balance without exposing personal financial independence.
+3. **Staggered Multi-Income Scheduling**:
+   - If Partner A is paid fortnightly on Thursdays and Partner B is paid monthly on the 15th, each incoming paycheck independently evaluates immediate feasibility and pro-rata smoothing against the unified household obligations.
+
+---
+
+### 2.4 12-Month Cumulative Projection Engine & Wealth Conservation
+
+The forward-looking **Income Split Planning Matrix** (`runCumulativeProjection`) projects pool balances across a rolling 12-month window:
+1. **Chronological Iteration**: Iterates through all pending income events (`status !== 'CONFIRMED'`) ordered chronologically.
+2. **Intermediate Scheduled Expense Deductions**: Between each payday $T_i$ and $T_{i+1}$, all scheduled expense events occurring within that date window are deducted from their respective pool running balances.
+3. **Everyday Pro-Rata Discretionary Burn**: Discretionary Everyday spending occurs continuously. To prevent Everyday balances from compounding unrealistically, a daily burn rate $\frac{\text{monthlyTarget}}{30} \times \text{daysElapsed}$ is simulated between paydays, decaying the balance back toward baseline.
+4. **Anti-Runaway Cap with Wealth Conservation**: Regular bill pools are clamped at a maximum ceiling of $1.5\times$ monthly target. Unlike simplistic models that discard excess, Money Matters automatically routes 100% of any trimmed excess into the designated `isSurplusTarget` pool. Household wealth is strictly conserved across the entire 12-month simulation.
+
+---
+
+### 2.5 Operational Payday Experience: The Actionable Transfer Plan
+
+Once a user reviews and confirms an allocation plan:
+1. **Atomic Ledger Execution**: The system generates immutable `CREDIT` entries in `transactionLedger` with linked `bankAccountId` values, instantly updating current pool balances.
+2. **Actionable Payday Transfer Plan (`PaydayTransferCard`)**:
+   - The UI immediately renders a clean, actionable transfer card.
+   - Identifies the required inter-account bank transfers (e.g. *"Transfer \$850 from Salary Account to Bills Account"*).
+   - Features 1-tap `[Copy Amount]` buttons formatted for Australian mobile banking apps (Osko / PayID), enabling the user to complete physical bank transfers in under 15 seconds.
+
+---
+
+## 3. Onboarding Experience (Full Interactive Estimation & Setup Engine)
 
 The onboarding flow delivers an engaging interactive estimation experience completing in under 60 seconds with 2025/2026 ABS benchmark estimates across both Web & Mobile:
 
@@ -72,7 +229,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 3. Bank Statement CSV Import (V1 Launch Feature)
+## 4. Bank Statement CSV Import (V1 Launch Feature)
 
 - **Supported Banks**: Commonwealth Bank (CBA), Westpac, ANZ, National Australia Bank (NAB), ING, and Macquarie.
 - **Import Flow**:
@@ -85,7 +242,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 4. Household & Partner Collaboration & Security
+## 5. Household & Partner Collaboration & Security
 
 - **Partner Invitation & Async Email Delivery**: Household owner generates a secure invite token (`invitePartner`) with a strict 48-hour expiration lifetime (`expiresAt`). The API worker dispatches a non-blocking `partner/invited` event to Inngest, which delivers the invitation email via Resend with 3 automatic retries.
 - **Acceptance & Identity Flow**: Partner receives email, clicks link (`/invite/[token]`), signs in/up, and automatically joins the household tenant (`tenant_users`) and is redirected to the dashboard. The system enforces email identity matching (accepting user's email must match `inviteEmail`) and blocks expired tokens. Expired or mismatched invites are rejected and require re-invitation by the household owner.
@@ -97,7 +254,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 5. Dashboard & UI Experience (Serene Finance Design System)
+## 6. Dashboard & UI Experience (Serene Finance Design System)
 
 - **Design System ("Serene Finance")**:
   - Color Tokens: Serene Blue (`#2563eb`), Primary Navy (`#1B2B4B`), Surface Bright (`#ffffff`), Surface Dim (`#F7F8FA`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
@@ -122,7 +279,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 6. Smart Notification System (Habit Loop)
+## 7. Smart Notification System (Habit Loop)
 
 1. **Payday Reminders (`notify-payday-incoming`)**: Daily alert at 6pm AEST for upcoming payday tomorrow.
 2. **Bill Due Soon Alerts (`notify-bill-due-soon`)**: Daily alert at 9am AEST for bills due in 3 days with category funding status (`Funded ✓` vs `Short by $X ⚠️`).
@@ -133,7 +290,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 7. Lifecycle & Governance Rules
+## 8. Lifecycle & Governance Rules
 
 1. **Category Archival**:
    - Blocked if there are active upcoming expenses or pending income allocations against the category.
@@ -158,7 +315,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 8. "Can I Afford It?" Simulation Engine
+## 9. "Can I Afford It?" Simulation Engine
 
 The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow evaluation engine (`packages/capabilities/simulation` and `/dashboard/afford-check`).
 

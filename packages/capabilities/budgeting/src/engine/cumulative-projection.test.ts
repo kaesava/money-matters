@@ -149,5 +149,9 @@ describe("cumulative-projection engine", () => {
     // Bills: balance after alloc will exceed $1500, so it gets capped at $1500
     const billsAfterExp = step1.balancesAfterExpenses.get("pool-bills");
     expect(billsAfterExp).toBe(1500);
+
+    // Surplus: receives the trimmed excess from bills pool capping ($361.54) plus residual allocation
+    const surplusAfterExp = step1.balancesAfterExpenses.get("pool-surplus");
+    expect(surplusAfterExp).toBeGreaterThan(0);
   });
 });
