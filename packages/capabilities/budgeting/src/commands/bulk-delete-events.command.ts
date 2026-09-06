@@ -16,7 +16,13 @@ export async function bulkDeleteEventsCommand(
 
     if (input.incomeEventIds.length > 0) {
       const deleted = await tx
-        .delete(incomeEvents)
+        .update(incomeEvents)
+        .set({
+          archivedAt: new Date(),
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        })
         .where(
           and(
             inArray(incomeEvents.id, input.incomeEventIds),
@@ -30,7 +36,13 @@ export async function bulkDeleteEventsCommand(
 
     if (input.expenseEventIds.length > 0) {
       const deleted = await tx
-        .delete(expenseEvents)
+        .update(expenseEvents)
+        .set({
+          archivedAt: new Date(),
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        })
         .where(
           and(
             inArray(expenseEvents.id, input.expenseEventIds),

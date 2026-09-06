@@ -312,7 +312,7 @@ export default function UpcomingExpenseModal({
             type="button"
             onClick={handleMarkPaidClick}
             loading={submitting}
-            disabled={!isDirty || !isValid || submitting}
+            disabled={!isValid || submitting}
           >
             {t("actions.markPaid", { defaultValue: "Mark Paid" })}
           </Button>

@@ -39,7 +39,6 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           type={type}
-          required={required}
           onChange={handleChange}
           className={`ui-input ${className}`}
           {...props}

@@ -45,7 +45,7 @@ export default function AcceptInvitePage() {
       <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-sm border border-gray-200 text-center">
         {(status === 'loading' && isPending) && (
           <div className="space-y-4">
-            <Spinner size="lg" className="text-[#00B4A6] mx-auto" />
+            <Spinner size="lg" className="text-[#2563eb] mx-auto" />
             <h1 className="text-xl font-bold text-gray-900">{t("partner.acceptTitle")}</h1>
             <p className="text-sm text-gray-500">{t("partner.acceptSubtitle")}</p>
           </div>
@@ -59,7 +59,7 @@ export default function AcceptInvitePage() {
               <button
                 type="button"
                 onClick={() => router.push(`/sign-up?redirect=/invite/${token}`)}
-                className="bg-[#00B4A6] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-teal-600 transition-colors w-full"
+                className="bg-[#2563eb] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors w-full"
               >
                 Sign Up
               </button>
@@ -68,7 +68,7 @@ export default function AcceptInvitePage() {
                 <button
                   type="button"
                   onClick={() => router.push(`/sign-in?redirect=/invite/${token}`)}
-                  className="font-bold text-[#00B4A6] hover:underline"
+                  className="font-bold text-[#2563eb] hover:underline"
                 >
                   Sign In
                 </button>

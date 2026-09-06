@@ -3,6 +3,7 @@
 import React from "react";
 import { IncomeItem } from "@money-matters/types";
 import { InfoTooltip } from "@money-matters/ui";
+import { t } from "@money-matters/i18n";
 
 interface SetupIncomeStepProps {
   incomes: IncomeItem[];
@@ -104,9 +105,9 @@ export function SetupIncomeStep({
         <button
           type="button"
           onClick={onAddIncome}
-          className="py-2.5 px-4 bg-teal-50 border border-teal-200 text-[#00B4A6] text-xs font-bold rounded-xl hover:bg-teal-100 transition-colors flex items-center justify-center gap-2"
+          className="py-2.5 px-4 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
         >
-          + Add Another Income Source
+          + {t("setup.income.addIncomeSchedule", { defaultValue: "Add Income Schedule" })}
         </button>
       </div>
 

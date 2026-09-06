@@ -11,7 +11,7 @@ function isAllowedHost(hostname: string): boolean {
   );
 }
 
-export default function DevCallbackPage() {
+function DevCallbackContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 
@@ -53,5 +53,19 @@ export default function DevCallbackPage() {
       <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-[#2563eb]" />
       <p className="text-sm font-medium text-zinc-600">Redirecting to development server...</p>
     </div>
+  );
+}
+
+export default function DevCallbackPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 gap-4">
+          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-[#2563eb]" />
+        </div>
+      }
+    >
+      <DevCallbackContent />
+    </React.Suspense>
   );
 }

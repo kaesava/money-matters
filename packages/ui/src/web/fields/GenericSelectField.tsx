@@ -34,7 +34,6 @@ export function GenericSelectField({
         {label} {required && <span className="text-rose-500">*</span>}
       </label>
       <select
-        required={required}
         disabled={disabled}
         value={value}
         onChange={(e) => onChange(e.target.value)}

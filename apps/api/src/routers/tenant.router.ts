@@ -594,10 +594,19 @@ export const tenantRouter = {
           const privatePoolIds = privatePoolsList.map((p) => p.id);
 
           if (privatePoolIds.length > 0) {
-            await ctx.db.delete(categories).where(inArray(categories.poolId, privatePoolIds));
-            await ctx.db.delete(pools).where(inArray(pools.id, privatePoolIds));
+            await ctx.db
+              .update(categories)
+              .set({ archivedAt: new Date(), updatedAt: new Date(), updatedBy: ctx.userId! })
+              .where(inArray(categories.poolId, privatePoolIds));
+            await ctx.db
+              .update(pools)
+              .set({ archivedAt: new Date(), updatedAt: new Date(), updatedBy: ctx.userId! })
+              .where(inArray(pools.id, privatePoolIds));
           }
-          await ctx.db.delete(bankAccounts).where(inArray(bankAccounts.id, privateBankAccIds));
+          await ctx.db
+            .update(bankAccounts)
+            .set({ archivedAt: new Date(), updatedAt: new Date(), updatedBy: ctx.userId! })
+            .where(inArray(bankAccounts.id, privateBankAccIds));
         }
 
         await ctx.db.delete(tenantUserPreferences).where(and(eq(tenantUserPreferences.tenantId, ctx.tenantId!), eq(tenantUserPreferences.userId, targetUserId)));

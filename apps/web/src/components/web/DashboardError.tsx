@@ -96,8 +96,7 @@ export function DashboardError({ error, message, onRetry, compact = false }: Das
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-2 px-5 py-2 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: "var(--dash-teal)" }}
+          className="mt-2 px-5 py-2 rounded-xl text-sm font-bold text-white bg-[#2563eb] hover:bg-blue-700 transition-colors"
         >
           {t("common.retry")}
         </button>

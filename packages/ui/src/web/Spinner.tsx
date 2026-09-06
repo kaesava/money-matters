@@ -18,7 +18,7 @@ export function Spinner({ size = "md", className = "", color, label, direction =
   };
 
   const currentDim = dimensions[size] || dimensions.md;
-  const accentColor = color || "var(--dash-teal, #00B4A6)";
+  const accentColor = color || "var(--dash-accent, #2563eb)";
   const primaryColor = "var(--dash-navy, #1B2B4B)";
 
   const flexDirClass = direction === "col" ? "flex-col" : "flex-row";

@@ -199,10 +199,11 @@ export const incomeRouter = {
             )
           );
 
-        // 2. Delete pending unperformed events
+        // 2. Soft-delete pending unperformed events
         if (unperformedEvents.length > 0) {
           await ctx.db
-            .delete(incomeEvents)
+            .update(incomeEvents)
+            .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
             .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
         }
 
@@ -222,9 +223,10 @@ export const incomeRouter = {
           })
           .returning();
 
-        // 4. Delete the schedule record from incomeSources database table
+        // 4. Soft-delete the schedule record from incomeSources database table
         await ctx.db
-          .delete(incomeSources)
+          .update(incomeSources)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(
             and(
               eq(incomeSources.id, source.id),
@@ -255,7 +257,8 @@ export const incomeRouter = {
 
       if (unperformedEvents.length > 0) {
         await ctx.db
-          .delete(incomeEvents)
+          .update(incomeEvents)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
@@ -404,7 +407,8 @@ export const incomeRouter = {
 
       if (unperformedEvents.length > 0) {
         await ctx.db
-          .delete(incomeEvents)
+          .update(incomeEvents)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
@@ -645,7 +649,8 @@ export const incomeRouter = {
 
       if (unperformedEvents.length > 0) {
         await ctx.db
-          .delete(incomeEvents)
+          .update(incomeEvents)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(inArray(incomeEvents.id, unperformedEvents.map((e) => e.id)));
       }
 

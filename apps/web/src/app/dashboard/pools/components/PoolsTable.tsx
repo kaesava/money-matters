@@ -367,17 +367,29 @@ export function PoolsTable({
 
                               {/* Progress Status */}
                               <td className="py-2.5 px-4 text-center">
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                                    pool.progressText.includes("On Track") || pool.progressText.includes("Ready") || pool.progressText.includes("100%") || pool.progressText.includes("Fully")
-                                      ? "bg-emerald-100 text-emerald-800"
-                                      : pool.progressText.includes("Risk") || pool.progressText.includes("Needs")
-                                      ? "bg-amber-100 text-amber-800"
-                                      : "bg-rose-100 text-rose-800"
-                                  }`}
-                                >
-                                  {pool.progressText}
-                                </span>
+                                <div className="flex flex-col items-center justify-center gap-0.5">
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                                      pool.progressText.includes("On Track") || pool.progressText.includes("Ready") || pool.progressText.includes("100%") || pool.progressText.includes("Fully")
+                                        ? "bg-emerald-100 text-emerald-800"
+                                        : pool.progressText.includes("Risk") || pool.progressText.includes("Needs")
+                                        ? "bg-amber-100 text-amber-800"
+                                        : "bg-rose-100 text-rose-800"
+                                    }`}
+                                  >
+                                    {pool.progressText}
+                                  </span>
+                                  {pool.poolType === "GOAL" && pool.targetDate && (
+                                    <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 font-mono">
+                                      {new Intl.DateTimeFormat("en-AU", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                        timeZone: "Australia/Sydney",
+                                      }).format(new Date(pool.targetDate + "T00:00:00"))}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
 
                               {/* Actions */}

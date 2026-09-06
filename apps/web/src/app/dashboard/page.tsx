@@ -199,7 +199,7 @@ export default function DashboardPage() {
             }}
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
-            <span>+ Quick Income</span>
+            <span>+ {t("dashboard.quickIncome", { defaultValue: "Quick Income" })}</span>
           </button>
 
           <button
@@ -207,14 +207,14 @@ export default function DashboardPage() {
             onClick={() => setIsMoveMoneyOpen(true)}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
-            <span>💸 Move Money</span>
+            <span>{t("dashboard.moveMoney", { defaultValue: "Move Money" })}</span>
           </button>
 
           <Link
             href="/dashboard/afford-check"
             className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <span>🤔 {t("canIAfford.title")}</span>
+            <span>{t("canIAfford.title")}</span>
           </Link>
         </div>
       </div>

@@ -226,7 +226,7 @@ function SignInContent() {
                   type="button"
                   onClick={handleResendVerification}
                   disabled={loading}
-                  className="text-xs font-bold text-[#00B4A6] hover:underline text-left mt-1"
+                  className="text-xs font-bold text-[#2563eb] hover:underline text-left mt-1"
                 >
                   ✉️ {t("auth.resendCodeTo", { email: unverifiedEmail })}
                 </button>
@@ -324,7 +324,7 @@ function SignInContent() {
           <button
             type="button"
             onClick={() => router.push(`/sign-up${redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`)}
-            className="font-bold text-[#00B4A6] hover:underline"
+            className="font-bold text-[#2563eb] hover:underline"
           >
             {t("auth.signUpCta")}
           </button>

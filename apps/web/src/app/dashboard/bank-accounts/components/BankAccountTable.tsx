@@ -98,7 +98,7 @@ export function BankAccountTable({
               <th className="py-3.5 px-4 text-center">
                 <span>Linked Pools</span>
               </th>
-              <th className="py-3.5 px-4 text-right">Actions</th>
+              <th className="py-3.5 px-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
@@ -206,8 +206,8 @@ export function BankAccountTable({
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => openImportModal(acc)}

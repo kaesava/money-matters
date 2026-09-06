@@ -309,7 +309,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-2">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
-                style={{ backgroundColor: "var(--dash-teal)" }}
+                style={{ backgroundColor: "#2563eb" }}
               >
                 {initials}
               </div>

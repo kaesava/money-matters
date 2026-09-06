@@ -75,7 +75,7 @@ export function ListViewToolbar({
             <button
               type="button"
               onClick={onAddClick}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#00B4A6] hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#2563eb] hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>{addButtonLabel || t('common.addItem')}</span>
@@ -95,7 +95,7 @@ export function ListViewToolbar({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6]"
+              className="w-full pl-10 pr-4 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
 
@@ -103,7 +103,7 @@ export function ListViewToolbar({
             <select
               value={categoryValue}
               onChange={(e) => onCategoryChange(e.target.value)}
-              className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white text-zinc-700"
+              className="px-3.5 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-zinc-700"
             >
               {categoryOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -138,7 +138,7 @@ export function ListViewToolbar({
             <select
               value={sortBy}
               onChange={(e) => onSortByChange(e.target.value)}
-              className="px-3 py-1.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] bg-white text-zinc-700"
+              className="px-3 py-1.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-zinc-700"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>

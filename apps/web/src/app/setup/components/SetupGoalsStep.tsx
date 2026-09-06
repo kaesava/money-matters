@@ -130,15 +130,15 @@ export function SetupGoalsStep({
                 onClick={() => togglePreset(preset)}
                 className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all ${
                   active
-                    ? "bg-teal-50/90 border-[#00B4A6] shadow-sm ring-1 ring-[#00B4A6]"
-                    : "bg-white border-zinc-200 hover:border-teal-300 hover:bg-slate-50/50"
+                    ? "bg-blue-50/90 border-[#2563eb] shadow-sm ring-1 ring-[#2563eb]"
+                    : "bg-white border-zinc-200 hover:border-blue-300 hover:bg-slate-50/50"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   {showIcons ? <span className="text-xl">{preset.icon}</span> : <span />}
                   <span
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${
-                      active ? "bg-[#00B4A6] text-white" : "bg-slate-100 text-slate-400"
+                      active ? "bg-[#2563eb] text-white" : "bg-slate-100 text-slate-400"
                     }`}
                   >
                     {active ? "✓" : "+"}
@@ -161,7 +161,7 @@ export function SetupGoalsStep({
         <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-2xl border border-zinc-200/80">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-[#1B2B4B]">Your Savings Targets ({goals.length})</span>
-            <span className="text-xs font-extrabold text-[#00B4A6]">
+            <span className="text-xs font-extrabold text-[#2563eb]">
               Total Target: ${totalTargetGoals.toLocaleString()}
             </span>
           </div>
@@ -276,7 +276,7 @@ export function SetupGoalsStep({
             type="button"
             onClick={handleAddCustom}
             disabled={!customName.trim()}
-            className="px-4 py-2 bg-teal-50 border border-teal-200 text-[#00B4A6] text-xs font-bold rounded-xl hover:bg-teal-100 transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors disabled:opacity-50"
           >
             + Add Goal
           </button>

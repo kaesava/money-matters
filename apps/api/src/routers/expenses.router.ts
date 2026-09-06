@@ -238,9 +238,10 @@ export const expensesRouter = {
             )
           );
 
-        // 2. Delete unperformed pending events linked to this schedule
+        // 2. Soft-delete unperformed pending events linked to this schedule
         await ctx.db
-          .delete(expenseEvents)
+          .update(expenseEvents)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(
             and(
               eq(expenseEvents.expenseSourceId, source.id),
@@ -268,9 +269,10 @@ export const expensesRouter = {
           })
           .returning();
 
-        // 4. Delete the schedule record from expenseSources database table
+        // 4. Soft-delete the schedule record from expenseSources database table
         await ctx.db
-          .delete(expenseSources)
+          .update(expenseSources)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(
             and(
               eq(expenseSources.id, source.id),
@@ -341,7 +343,8 @@ export const expensesRouter = {
       const unperformedEvents = events.filter((e) => e.status !== "CONFIRMED");
       if (unperformedEvents.length > 0) {
         await ctx.db
-          .delete(expenseEvents)
+          .update(expenseEvents)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
@@ -478,7 +481,8 @@ export const expensesRouter = {
 
       if (unperformedEvents.length > 0) {
         await ctx.db
-          .delete(expenseEvents)
+          .update(expenseEvents)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
@@ -518,7 +522,8 @@ export const expensesRouter = {
 
       if (unperformedEvents.length > 0) {
         await ctx.db
-          .delete(expenseEvents)
+          .update(expenseEvents)
+          .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
           .where(inArray(expenseEvents.id, unperformedEvents.map((e) => e.id)));
       }
 
@@ -558,7 +563,8 @@ export const expensesRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .delete(expenseEvents)
+        .update(expenseEvents)
+        .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
         .where(
           and(
             eq(expenseEvents.id, input.eventId),
@@ -578,7 +584,8 @@ export const expensesRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .delete(expenseEvents)
+        .update(expenseEvents)
+        .set({ archivedAt: new Date(), updatedBy: ctx.userId!, updatedAt: new Date() })
         .where(
           and(
             eq(expenseEvents.id, input.eventId),
@@ -593,6 +600,8 @@ export const expensesRouter = {
     .input(
       z.object({
         eventId: z.string().uuid(),
+        amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Amount must be greater than 0").optional(),
+        date: z.string().optional(),
         note: z.string().optional(),
       }).strict()
     )
@@ -611,10 +620,15 @@ export const expensesRouter = {
 
       if (!evt) throw new Error("Expense event not found.");
 
+      const paidAmount = input.amount || evt.expectedAmount;
+      const paidDate = input.date || evt.expectedDate;
+
       await ctx.db
         .update(expenseEvents)
         .set({
           status: "CONFIRMED",
+          actualAmount: paidAmount,
+          note: input.note || evt.note,
           updatedAt: new Date(),
           updatedBy: ctx.userId!,
         })
@@ -626,10 +640,10 @@ export const expensesRouter = {
             poolId: evt.poolId,
             categoryId: evt.categoryId || undefined,
             flowType: "DEBIT",
-            amount: evt.expectedAmount,
+            amount: paidAmount,
             source: "MANUAL",
             note: input.note || `Paid scheduled bill: ${evt.name}`,
-            date: evt.expectedDate,
+            date: paidDate,
           },
           ctx.tenantId!,
           ctx.appId!,

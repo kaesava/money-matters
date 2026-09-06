@@ -261,7 +261,7 @@ function SignUpContent() {
               type="button"
               onClick={handleResendOtp}
               disabled={loading}
-              className="text-xs font-semibold text-[#00B4A6] hover:underline py-1 disabled:opacity-50"
+              className="text-xs font-semibold text-[#2563eb] hover:underline py-1 disabled:opacity-50"
             >
               {t("auth.resendVerificationLink", { defaultValue: "Didn't receive a code? Resend code" })}
             </button>
@@ -425,7 +425,7 @@ function SignUpContent() {
           <button
             type="button"
             onClick={() => router.push(`/sign-in${redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`)}
-            className="font-bold text-[#00B4A6] hover:underline"
+            className="font-bold text-[#2563eb] hover:underline"
           >
             {t("auth.signInCta")}
           </button>

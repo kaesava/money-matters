@@ -24,7 +24,6 @@ export function DatePickerField({
       </label>
       <input
         type="date"
-        required={required}
         value={value}
         onKeyDown={(e) => {
           if (e.key !== 'Tab' && e.key !== 'Escape') {

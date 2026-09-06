@@ -103,7 +103,7 @@ function normalizeDate(rawDate: string): string {
   }
 
   // Fallback to today if unparseable or calendar invalid
-  return new Date().toISOString().split("T")[0];
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
 }
 
 /**

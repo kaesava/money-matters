@@ -1,7 +1,8 @@
-import { pools, categories, transactionLedger, incomeEvents, incomeSources, DbOrTx } from "@money-matters/db";
+import { pools, categories, incomeEvents, incomeSources, expenseEvents, getPoolBalancesMap, DbOrTx } from "@money-matters/db";
 import { eq, and, sql } from "drizzle-orm";
-import { runAllocationEngine, EngineBucket } from "../engine/allocation-engine.js";
+import { runAllocationEngine, EngineBucket, UpcomingExpenseItem } from "../engine/allocation-engine.js";
 import { parseRruleFrequencyDays } from "../commands/run-allocation.command.js";
+import { getTenantDateString } from "@money-matters/core";
 
 export async function previewAllocationQuery(
   tenantId: string,
@@ -47,37 +48,10 @@ export async function previewAllocationQuery(
     }
   }
 
-  // 3. Compute balances from ledger per poolId
-  const txs = await dbClient
-    .select({
-      poolId: transactionLedger.poolId,
-      amount: transactionLedger.amount,
-      flowType: transactionLedger.flowType,
-    })
-    .from(transactionLedger)
-    .where(
-      and(
-        eq(transactionLedger.tenantId, tenantId),
-        eq(transactionLedger.appId, appId),
-        sql`${transactionLedger.archivedAt} IS NULL`
-      )
-    );
+  // 3. Compute balances using DB-side aggregate SUM(CASE WHEN...)
+  const balancesMap = await getPoolBalancesMap(tenantId, appId, dbClient);
 
-  const poolBalancesMap: Record<string, number> = {};
-  for (const pool of dbPools) {
-    poolBalancesMap[pool.id] = 0;
-  }
-  for (const tx of txs) {
-    if (!tx.poolId) continue;
-    const val = parseFloat(tx.amount);
-    if (tx.flowType === "CREDIT") {
-      poolBalancesMap[tx.poolId] = (poolBalancesMap[tx.poolId] || 0) + val;
-    } else {
-      poolBalancesMap[tx.poolId] = (poolBalancesMap[tx.poolId] || 0) - val;
-    }
-  }
-
-  // 4. Fetch income event to resolve dates & recurrence
+  // 4. Fetch income event joined with income source to resolve dates & recurrence
   const [event] = await dbClient
     .select()
     .from(incomeEvents)
@@ -94,9 +68,43 @@ export async function previewAllocationQuery(
     }
   }
 
+  const todayStr = getTenantDateString();
+  const eventDateStr = event ? event.expectedDate : todayStr;
+  const eventTime = event ? new Date(event.expectedDate + "T00:00:00+10:00").getTime() : Date.now();
+  const nextCutoffDateStr = getTenantDateString(new Date(eventTime + freqDays * 24 * 60 * 60 * 1000));
+
+  // 5. Fetch upcoming expenses due before next cycle cutoff for Cashflow Guard parity
+  const pendingExpenses = await dbClient
+    .select({
+      id: expenseEvents.id,
+      poolId: expenseEvents.poolId,
+      categoryId: expenseEvents.categoryId,
+      name: expenseEvents.name,
+      amount: expenseEvents.expectedAmount,
+      dueDate: expenseEvents.expectedDate,
+    })
+    .from(expenseEvents)
+    .where(
+      and(
+        eq(expenseEvents.tenantId, tenantId),
+        eq(expenseEvents.appId, appId),
+        eq(expenseEvents.status, "PENDING"),
+        sql`${expenseEvents.expectedDate} <= ${nextCutoffDateStr}`,
+        sql`${expenseEvents.archivedAt} IS NULL`
+      )
+    );
+
+  const upcomingExpenses: UpcomingExpenseItem[] = pendingExpenses.map((e) => ({
+    id: e.id,
+    poolId: e.poolId,
+    categoryId: e.categoryId,
+    name: e.name || undefined,
+    amount: parseFloat(e.amount),
+    dueDate: e.dueDate,
+  }));
 
   const engineBuckets: EngineBucket[] = dbPools.map((pool) => {
-    const balance = poolBalancesMap[pool.id] || 0;
+    const balance = balancesMap[pool.id] || 0;
     const catTargetSum = poolCategoryTargetsMap.get(pool.id) || 0;
 
     const monthlyAmt = pool.poolType === "REGULAR" 
@@ -122,13 +130,14 @@ export async function previewAllocationQuery(
   const engineOutput = runAllocationEngine({
     incomeAmount,
     buckets: engineBuckets,
-    paycheckDate: event ? new Date(event.expectedDate) : new Date(),
+    paycheckDate: event ? new Date(event.expectedDate + "T00:00:00+10:00") : new Date(),
     paycheckFrequencyDays: freqDays,
+    upcomingExpenses,
   });
 
   return engineOutput.lines.map((line) => {
     const pool = dbPools.find((p) => p.id === line.bucketId);
-    const balance = poolBalancesMap[line.bucketId] || 0;
+    const balance = balancesMap[line.bucketId] || 0;
     const target = pool?.targetAmount ? parseFloat(pool.targetAmount) : (poolCategoryTargetsMap.get(line.bucketId) || null);
     const progress = target && target > 0 ? Math.min(100, Math.round((balance / target) * 100)) : 0;
 

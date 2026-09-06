@@ -39,7 +39,7 @@ export default function SubscriptionManagePage() {
           </>
         ) : (
           <>
-            <Spinner size="lg" className="text-[#00B4A6]" />
+            <Spinner size="lg" className="text-[#2563eb]" />
             <p className="text-sm font-semibold text-zinc-700">Opening Stripe Billing Portal…</p>
           </>
         )}

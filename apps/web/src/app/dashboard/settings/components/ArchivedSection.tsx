@@ -3,11 +3,11 @@
 import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { PaginationBar, Spinner, InfoTooltip, SearchInput } from "@money-matters/ui/web";
+import { PaginationBar, Spinner, InfoTooltip, SearchInput, SkeletonTable } from "@money-matters/ui/web";
 
 export function ArchivedSection() {
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "POOL" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -47,23 +47,26 @@ export function ArchivedSection() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Search archived categories or bills..."
+          placeholder="Search archived categories, pools or bills..."
         />
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl">
-          {(["ALL", "CATEGORY", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
+          {(["ALL", "CATEGORY", "POOL", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
             <button
               key={type}
               type="button"
-              onClick={() => setFilterType(type)}
+              onClick={() => {
+                setFilterType(type);
+                setPage(1);
+              }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 filterType === type
                   ? "bg-white text-[#1B2B4B] shadow-xs font-extrabold"
                   : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
-              {type === "ALL" ? "All" : type === "CATEGORY" ? "Categories" : type === "INCOME_SOURCE" ? "Income" : type === "EXPENSE_SOURCE" ? "Expenses" : "Accounts"}
+              {type === "ALL" ? "All" : type === "CATEGORY" ? "Categories" : type === "POOL" ? "Pools" : type === "INCOME_SOURCE" ? "Income" : type === "EXPENSE_SOURCE" ? "Expenses" : "Accounts"}
             </button>
           ))}
         </div>
@@ -71,16 +74,12 @@ export function ArchivedSection() {
 
       {/* Content list */}
       {archivedQuery.isLoading ? (
-        <div className="flex flex-col gap-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-16 rounded-xl animate-pulse bg-zinc-100" />
-          ))}
-        </div>
+        <SkeletonTable rows={3} cols={2} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-zinc-200 shadow-xs gap-2">
           <span className="text-3xl">📦</span>
           <p className="text-sm font-bold text-[#1B2B4B]">No archived data found</p>
-          <p className="text-xs text-slate-500">Categories, bills, and accounts you soft-delete will appear here for restoration.</p>
+          <p className="text-xs text-slate-500">Categories, pools, bills, and accounts you soft-delete will appear here for restoration.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -110,7 +109,7 @@ export function ArchivedSection() {
                   })
                 }
                 disabled={restoreMutation.isPending}
-                className="px-3 py-1.5 rounded-xl border border-[#00B4A6] text-[#00B4A6] text-xs font-bold hover:bg-[#00B4A6]/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl border border-[#2563eb] text-[#2563eb] text-xs font-bold hover:bg-[#2563eb]/10 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {restoreMutation.isPending && restoreMutation.variables?.itemId === item.id && (
                   <Spinner size="sm" />
@@ -123,15 +122,17 @@ export function ArchivedSection() {
       )}
 
       {/* Pagination Footer */}
-      <PaginationBar
-        page={page}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        totalItems={filtered.length}
-        pageSizeOptions={[10, 25, 50]}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-      />
+      {filtered.length >= 5 && (
+        <PaginationBar
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={filtered.length}
+          pageSizeOptions={[10, 25, 50]}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
     </div>
   );
 }

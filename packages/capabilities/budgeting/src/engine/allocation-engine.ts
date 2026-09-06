@@ -49,6 +49,7 @@ export interface AllocationLine {
 
 export interface AllocationEngineInput {
   incomeAmount: number;
+  incomeUserId?: string; // Tenant User ID who earned this income event (for private pool stealth isolation)
   buckets: EngineBucket[];
   paycheckDate: Date;
   paycheckFrequencyDays: number; // 7 = weekly, 14 = fortnightly, 30 = monthly
@@ -128,8 +129,17 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   const step1AllocatedCentsMap = new Map<string, number>();
 
+  const isBucketEligible = (bucket: EngineBucket) => {
+    // Stealth privacy isolation: A partner's private pool can only receive allocations from their own income
+    if (bucket.isPrivate && bucket.userId && input.incomeUserId && bucket.userId !== input.incomeUserId) {
+      return false;
+    }
+    return true;
+  };
+
   const allocateToBucket = (bucket: EngineBucket, amountCents: number, reasoning: string) => {
     if (amountCents <= 0) return;
+    if (!isBucketEligible(bucket)) return;
     const line = linesMap.get(bucket.id)!;
     line.amountCents += amountCents;
     line.reasonings.push(reasoning);
@@ -163,7 +173,23 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
     }
   }
 
-  // STEP 2: RESERVE SINKING FUNDS (Pro-Rata Future Bills)
+  // STEP 2: DEFICIT REPAIR — Restores any overdrawn/negative bucket balances to $0
+  // Repaired BEFORE future sinking bills to prevent carrying overdraft holes while accruing distant funds.
+  for (const bucket of input.buckets) {
+    if (bucket.currentBalance < 0) {
+      const deficitCents = Math.abs(toCents(bucket.currentBalance));
+      const toAllocate = Math.min(remainingCents, deficitCents);
+      if (toAllocate > 0) {
+        allocateToBucket(
+          bucket,
+          toAllocate,
+          `Deficit repair for negative balance (-$${Math.abs(bucket.currentBalance).toFixed(2)}): $${toDollars(toAllocate).toFixed(2)} allocated.`
+        );
+      }
+    }
+  }
+
+  // STEP 3: RESERVE SINKING FUNDS (Pro-Rata Future Bills)
   // For bills due beyond next payday, smoothly accrue cycle target.
   const fundSinkingBills = (bucketsList: EngineBucket[]) => {
     const sorted = [...bucketsList].sort((a, b) => {
@@ -199,22 +225,6 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
 
   const standardBills = regularBuckets.filter((b) => !b.isEssential);
   fundSinkingBills(standardBills);
-
-  // STEP 3: DEFICIT REPAIR — Restores any overdrawn/negative bucket balances
-  // Housing and essential bills are protected first; now restore overdrafts to $0.
-  for (const bucket of input.buckets) {
-    if (bucket.currentBalance < 0) {
-      const deficitCents = Math.abs(toCents(bucket.currentBalance));
-      const toAllocate = Math.min(remainingCents, deficitCents);
-      if (toAllocate > 0) {
-        allocateToBucket(
-          bucket,
-          toAllocate,
-          `Deficit repair for negative balance (-$${Math.abs(bucket.currentBalance).toFixed(2)}): $${toDollars(toAllocate).toFixed(2)} allocated.`
-        );
-      }
-    }
-  }
 
   // STEP 4: COMMITTED SAVINGS GOALS (Target-Date & Imminent Gap Prioritized)
   const fundGoalsList = (goalsList: EngineBucket[]) => {

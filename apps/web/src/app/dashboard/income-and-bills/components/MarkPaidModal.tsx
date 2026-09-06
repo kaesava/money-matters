@@ -57,18 +57,26 @@ export function MarkPaidModal({
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const todayStr = useMemo(() => {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       const amt = typeof initialAmount === "number" ? initialAmount.toFixed(2) : String(initialAmount || "0.00");
       setAmountStr(amt);
-      setDateStr(initialDate || new Date().toISOString().split("T")[0]);
+      const chosenDate = initialDate && initialDate <= todayStr ? initialDate : todayStr;
+      setDateStr(chosenDate);
     }
-  }, [isOpen, initialAmount, initialDate]);
+  }, [isOpen, initialAmount, initialDate, todayStr]);
 
   const numAmount = useMemo(() => {
     const parsed = parseFloat(amountStr);
     return isNaN(parsed) || parsed < 0 ? 0 : parsed;
   }, [amountStr]);
+
+  const isDateValid = Boolean(dateStr && dateStr <= todayStr);
+  const isAmountValid = numAmount > 0;
 
   // Find target pool balance
   const targetPool = useMemo(() => {
@@ -152,6 +160,7 @@ export function MarkPaidModal({
       setTransferAmounts((prev) => ({ ...prev, [pId]: "" }));
       return;
     }
+    if (rawVal.startsWith("-")) return;
     const parsed = parseFloat(rawVal);
     if (isNaN(parsed) || parsed < 0) {
       setTransferAmounts((prev) => ({ ...prev, [pId]: "0.00" }));
@@ -169,11 +178,12 @@ export function MarkPaidModal({
   }, [transferAmounts]);
 
   const isFulfilled = !hasShortfall || totalAllocated >= shortfallAmount - 0.001;
+  const isValid = isAmountValid && isDateValid && isFulfilled;
 
   if (!isOpen) return null;
 
   const handleConfirm = async () => {
-    if (numAmount <= 0 || !isFulfilled) return;
+    if (!isValid || isSubmitting) return;
     setIsSubmitting(true);
 
     const transfers: ShortfallTransferItem[] = hasShortfall
@@ -219,9 +229,16 @@ export function MarkPaidModal({
               step="0.01"
               min="0.01"
               value={amountStr}
-              onChange={(e) => setAmountStr(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.startsWith("-")) return;
+                setAmountStr(val);
+              }}
               className="w-full px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm font-mono font-bold focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
             />
+            {!isAmountValid && Boolean(amountStr) && (
+              <p className="text-[11px] text-rose-500 font-medium mt-1">Amount must be greater than $0.00</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
@@ -229,10 +246,14 @@ export function MarkPaidModal({
             </label>
             <input
               type="date"
+              max={todayStr}
               value={dateStr}
               onChange={(e) => setDateStr(e.target.value)}
               className="w-full px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
             />
+            {!isDateValid && Boolean(dateStr) && (
+              <p className="text-[11px] text-rose-500 font-medium mt-1">Date cannot be in the future.</p>
+            )}
           </div>
         </div>
 
@@ -253,7 +274,7 @@ export function MarkPaidModal({
 
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-[#1B2B4B] dark:text-zinc-200 uppercase tracking-wider">
-                {t("incomeBillsTabs.fundingSourceSelectLabel", { defaultValue: "Select Funding Source to cover shortfall:" })}
+                {t("incomeBillsTabs.fundingSourceSelectLabel", { defaultValue: "Select Funding Pools to cover shortfall:" })}
               </label>
               <span className="text-[11px] text-zinc-400 italic">
                 {t("incomeBillsTabs.hiddenZeroBalanceNote", { defaultValue: "Pools with a $0 balance are hidden." })}
@@ -323,7 +344,11 @@ export function MarkPaidModal({
                                       max={bal}
                                       step="0.01"
                                       value={currentVal}
-                                      onChange={(e) => handleAmountChange(pool.id, bal, e.target.value)}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val.startsWith("-")) return;
+                                        handleAmountChange(pool.id, bal, val);
+                                      }}
                                       placeholder="0.00"
                                       className="w-24 px-2 py-1 text-right font-mono font-bold border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
                                     />
@@ -362,14 +387,14 @@ export function MarkPaidModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl font-bold text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
           >
-            Cancel
+            {t("common.cancel", { defaultValue: "Cancel" })}
           </button>
           <Button
             type="button"
             loading={isSubmitting}
-            disabled={numAmount <= 0 || !isFulfilled || isSubmitting}
+            disabled={!isValid || isSubmitting}
             onClick={handleConfirm}
           >
             {hasShortfall

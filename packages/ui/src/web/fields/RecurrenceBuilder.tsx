@@ -61,7 +61,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
                 setFrequency(e.target.value as "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY");
                 setInterval(1); // Reset interval when changing frequency
               }}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 bg-white"
+              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 bg-white"
             >
               <option value="WEEKLY">{t("forms.weekly")}</option>
               <option value="FORTNIGHTLY">{t("forms.fortnightly")}</option>
@@ -95,7 +95,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
                     setInterval(1);
                   }
                 }}
-                className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 w-full"
+                className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full"
               />
               <span className="text-xs font-bold text-zinc-500 w-20">
                 {frequency === "WEEKLY"
@@ -116,7 +116,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 w-full bg-white"
+              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full bg-white"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -127,7 +127,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
               type="date"
               value={endDate || ""}
               onChange={(e) => setEndDate(e.target.value || null)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 w-full bg-white"
+              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full bg-white"
             />
           </div>
         </div>
@@ -141,7 +141,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] text-zinc-900 w-full bg-white"
+              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full bg-white"
             />
           </div>
           <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] font-semibold leading-relaxed">

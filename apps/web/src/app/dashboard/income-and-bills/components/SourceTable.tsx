@@ -122,8 +122,7 @@ export function SourceTable({
           <span>{isIncome ? "Income" : "Bills & Expenses"}</span>
         </h2>
         <button type="button" onClick={onAdd} className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm ${isIncome ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200" : "bg-[#1B2B4B] text-white hover:bg-slate-800"}`}>
-          <span>➕</span>
-          <span>{isIncome ? "Add Income" : "Add Expense"}</span>
+          <span>{isIncome ? "Add Income Schedule" : "Add Expense Schedule"}</span>
         </button>
       </div>
 

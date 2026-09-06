@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { t } from "@money-matters/i18n";
 import { Button } from "@money-matters/ui/web";
 
@@ -26,9 +27,14 @@ export function ModalDialog({
   maxWidthClass,
   maxWidth = "max-w-lg",
 }: ModalDialogProps) {
+  const [mounted, setMounted] = useState(false);
   const effectiveMaxWidth = maxWidthClass || maxWidth;
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleRequestClose = useCallback(() => {
     if (isDirty) {
@@ -78,9 +84,9 @@ export function ModalDialog({
 
   const titleId = React.useId();
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       {/* Backdrop */}
       <div
@@ -155,6 +161,7 @@ export function ModalDialog({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

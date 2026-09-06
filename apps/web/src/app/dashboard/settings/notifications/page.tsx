@@ -96,7 +96,7 @@ export default function NotificationSettingsPage() {
             <button
               onClick={() => handleToggle("paydayAlertsEnabled", pref?.paydayAlertsEnabled ?? true)}
               className={`w-12 h-6 rounded-full transition-colors relative flex items-center p-1 ${
-                pref?.paydayAlertsEnabled ?? true ? "bg-[#00B4A6]" : "bg-zinc-300"
+                pref?.paydayAlertsEnabled ?? true ? "bg-[#2563eb]" : "bg-zinc-300"
               }`}
             >
               <div
@@ -123,7 +123,7 @@ export default function NotificationSettingsPage() {
             <button
               onClick={() => handleToggle("shortfallAlertsEnabled", pref?.shortfallAlertsEnabled ?? true)}
               className={`w-12 h-6 rounded-full transition-colors relative flex items-center p-1 ${
-                pref?.shortfallAlertsEnabled ?? true ? "bg-[#00B4A6]" : "bg-zinc-300"
+                pref?.shortfallAlertsEnabled ?? true ? "bg-[#2563eb]" : "bg-zinc-300"
               }`}
             >
               <div
@@ -150,7 +150,7 @@ export default function NotificationSettingsPage() {
             <button
               onClick={() => handleToggle("billRemindersEnabled", pref?.billRemindersEnabled ?? true)}
               className={`w-12 h-6 rounded-full transition-colors relative flex items-center p-1 ${
-                pref?.billRemindersEnabled ?? true ? "bg-[#00B4A6]" : "bg-zinc-300"
+                pref?.billRemindersEnabled ?? true ? "bg-[#2563eb]" : "bg-zinc-300"
               }`}
             >
               <div

@@ -4,7 +4,7 @@ import { DESIGN_TOKENS } from './tokens.js';
 describe('UI Design Tokens', () => {
   it('exposes palette colors matching specification', () => {
     expect(DESIGN_TOKENS.colors.primary).toBe('#1B2B4B');
-    expect(DESIGN_TOKENS.colors.accent).toBe('#00B4A6');
+    expect(DESIGN_TOKENS.colors.accent).toBe('#2563eb');
     expect(DESIGN_TOKENS.colors.success).toBe('#22C55E');
     expect(DESIGN_TOKENS.colors.warning).toBe('#F59E0B');
     expect(DESIGN_TOKENS.colors.critical).toBe('#EF4444');

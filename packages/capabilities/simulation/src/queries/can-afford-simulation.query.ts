@@ -490,7 +490,7 @@ export async function canAffordSimulationQuery(
         goalName: pool.name,
         isCommitted: pool.isCommitted ?? false,
         originalTargetDate: pool.targetDate,
-        newTargetDate: newDate.toISOString().split("T")[0],
+        newTargetDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(newDate),
         delayDays,
       });
     }

@@ -87,7 +87,7 @@ export function SidebarContent({
                     : "text-[#9EACC7] hover:text-white hover:bg-white/5"
                 }`}
                 style={{
-                  backgroundColor: isActive ? "var(--dash-teal)" : "transparent",
+                  backgroundColor: isActive ? "#2563eb" : "transparent",
                 }}
                 title={sidebarCollapsed ? item.label() : undefined}
               >
@@ -116,7 +116,7 @@ export function SidebarContent({
           className={`flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors ${sidebarCollapsed ? "justify-center" : ""}`}
           title="View User Profile in Settings"
         >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15" style={{ backgroundColor: "var(--dash-teal)" }}>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15" style={{ backgroundColor: "#2563eb" }}>
             {initials}
           </div>
           {!sidebarCollapsed && (

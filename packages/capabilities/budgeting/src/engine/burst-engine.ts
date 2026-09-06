@@ -14,7 +14,7 @@
  * @returns Array of Date instances for expected future occurrences
  */
 import * as rruleNs from "rrule";
-const rrulePkg: any = rruleNs;
+const rrulePkg = rruleNs as unknown as { RRule?: typeof rruleNs.RRule; default?: { RRule?: typeof rruleNs.RRule } };
 const RRule = (rrulePkg.RRule || rrulePkg["default"]?.RRule || rrulePkg["default"]) as typeof rruleNs.RRule;
 
 export function generateBurstDates(

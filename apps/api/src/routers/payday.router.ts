@@ -413,7 +413,12 @@ export const paydayRouter = {
           }
 
           await tx
-            .delete(allocationPlans)
+            .update(allocationPlans)
+            .set({
+              archivedAt: new Date(),
+              updatedAt: new Date(),
+              updatedBy: ctx.userId!,
+            })
             .where(eq(allocationPlans.id, plan.id));
         }
 

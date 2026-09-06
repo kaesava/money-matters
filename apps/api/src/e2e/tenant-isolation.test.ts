@@ -103,7 +103,7 @@ describe("E2E Core Monorepo Integration & Multi-Tenant Isolation Suite", () => {
     };
 
     await expect(
-      ensurePremiumAccess(mockDb as any, "tenant-123", "Partner Invites")
+      ensurePremiumAccess(mockDb as unknown as Parameters<typeof ensurePremiumAccess>[0], "tenant-123", "Partner Invites")
     ).rejects.toThrow("requires an active subscription");
   });
 });

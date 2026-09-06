@@ -13,7 +13,13 @@ export async function deleteUpcomingEventCommand(
   return await dbClient.transaction(async (tx) => {
     if (input.eventType === "INCOME") {
       const [deleted] = await tx
-        .delete(incomeEvents)
+        .update(incomeEvents)
+        .set({
+          archivedAt: new Date(),
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        })
         .where(
           and(
             eq(incomeEvents.id, input.eventId),
@@ -26,7 +32,13 @@ export async function deleteUpcomingEventCommand(
       return { success: true, id: deleted.id };
     } else {
       const [deleted] = await tx
-        .delete(expenseEvents)
+        .update(expenseEvents)
+        .set({
+          archivedAt: new Date(),
+          archivedBy: userId,
+          updatedBy: userId,
+          updatedAt: new Date(),
+        })
         .where(
           and(
             eq(expenseEvents.id, input.eventId),

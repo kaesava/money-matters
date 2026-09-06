@@ -18,7 +18,7 @@ export function QuickActionFab({ pathname, onOpenModal }: QuickActionFabProps) {
       id="global-quick-add-btn"
       type="button"
       onClick={onOpenModal}
-      style={{ backgroundColor: "var(--dash-teal)", boxShadow: "0 6px 20px rgba(0,180,166,0.3)" }}
+      style={{ backgroundColor: "#2563eb", boxShadow: "0 6px 20px rgba(37,99,235,0.3)" }}
       className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-all shadow-lg group cursor-pointer"
       title="Quick Modal: Expense / Income / Transfer (Shortcut: n)"
       aria-label="Quick Record Expense or Transfer"

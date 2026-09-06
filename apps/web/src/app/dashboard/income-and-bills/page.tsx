@@ -718,6 +718,7 @@ function IncomeAndBillsContent() {
               const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
               return {
                 ...e,
+                poolId: e.poolId || e.categoryId,
                 name: e.name || "Scheduled Expense",
                 categoryName: pool?.name || "Pool",
                 isPrivate: pool?.isPrivate || false,
@@ -749,6 +750,8 @@ function IncomeAndBillsContent() {
               try {
                 await markExpensePaidMut.mutateAsync({
                   eventId,
+                  amount: amount ? String(amount) : undefined,
+                  date: date || undefined,
                   note: date ? `Paid on ${date}` : undefined,
                 });
                 toast.success("Expense marked as spent.");
@@ -757,6 +760,7 @@ function IncomeAndBillsContent() {
                 await utils.listTransactions.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to mark spent.");
+                throw err;
               }
             }}
             onAllocateIncome={async (eventId) => {
@@ -804,9 +808,15 @@ function IncomeAndBillsContent() {
               setIsTransferDrawerOpen(true);
             }}
             onConfirmTransferAndPay={async (transfers, destinationCategoryId) => {
+              if (!destinationCategoryId) {
+                toast.error("Invalid target pool for transfer.");
+                throw new Error("Invalid target pool for transfer.");
+              }
+              const validTransfers = transfers.filter((t) => parseFloat(t.amount) > 0);
+              if (validTransfers.length === 0) return;
               try {
                 await Promise.all(
-                  transfers.map((t) =>
+                  validTransfers.map((t) =>
                     moveMoneyMut.mutateAsync({
                       sourcePoolId: t.poolId,
                       destinationPoolId: destinationCategoryId,
@@ -815,10 +825,11 @@ function IncomeAndBillsContent() {
                     })
                   )
                 );
-                utils.listPools.invalidate();
-                utils.listTransactions.invalidate();
+                await utils.listPools.invalidate();
+                await utils.listTransactions.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to execute transfers.");
+                throw err;
               }
             }}
           />

@@ -61,7 +61,7 @@ export function SearchInput({
         placeholder={placeholder}
         className={`w-full ${
           showIcon ? "pl-10" : "pl-3.5"
-        } pr-10 py-2.5 text-xs font-semibold rounded-xl bg-white border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#00B4A6] transition-all text-zinc-900 placeholder-zinc-400`}
+        } pr-10 py-2.5 text-xs font-semibold rounded-xl bg-white border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] transition-all text-zinc-900 placeholder-zinc-400`}
       />
       {value.trim().length > 0 && (
         <button

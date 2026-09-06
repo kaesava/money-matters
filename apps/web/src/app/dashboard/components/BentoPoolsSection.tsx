@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { t } from '@money-matters/i18n';
-import { Button } from '@money-matters/ui/web';
+import { ConfirmDialog } from '@money-matters/ui/web';
 
 export interface BentoPoolsSectionProps {
   readonly everydayBalance: number;
@@ -302,42 +302,31 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
 
       {/* Pool Balance Adjustment Confirmation Modal */}
       {showConfirmModal && confirmDetails && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl border border-gray-100">
-            <h3 className="text-base font-bold text-gray-900">Confirm Pool Balance Adjustment</h3>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Adjusting the <strong>{confirmDetails.poolType === 'EVERYDAY' ? 'Everyday' : 'Bills'} Pool</strong> balance from <span className="font-mono">{formatAUD(confirmDetails.oldVal)}</span> to <span className="font-mono">{formatAUD(confirmDetails.newVal)}</span> will record an adjustment transaction of <span className="font-mono font-bold text-gray-950">{formatAUD(Math.abs(confirmDetails.diff))}</span> ({confirmDetails.diff > 0 ? 'Top-Up' : 'Spend'}) dated today.
-            </p>
-            
-            <label className="flex items-center gap-2.5 py-1 select-none cursor-pointer">
-              <input
-                type="checkbox"
-                checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-              />
-              <span className="text-xs font-semibold text-gray-700">Don&apos;t show this again</span>
-            </label>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleCancelAdjustment}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <Button
-                type="button"
-                onClick={handleConfirmAdjustment}
-                loading={isAdjusting}
-                disabled={!editValue.trim() || isNaN(parseFloat(editValue))}
-              >
-                Confirm
-              </Button>
+        <ConfirmDialog
+          isOpen={showConfirmModal}
+          onClose={handleCancelAdjustment}
+          onConfirm={handleConfirmAdjustment}
+          title="Confirm Pool Balance Adjustment"
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+          isLoading={isAdjusting}
+          description={
+            <div className="space-y-3">
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Adjusting the <strong>{confirmDetails.poolType === 'EVERYDAY' ? 'Everyday' : 'Bills'} Pool</strong> balance from <span className="font-mono">{formatAUD(confirmDetails.oldVal)}</span> to <span className="font-mono">{formatAUD(confirmDetails.newVal)}</span> will record an adjustment transaction of <span className="font-mono font-bold text-gray-950">{formatAUD(Math.abs(confirmDetails.diff))}</span> ({confirmDetails.diff > 0 ? 'Top-Up' : 'Spend'}) dated today.
+              </p>
+              <label className="flex items-center gap-2.5 py-1 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-gray-700">Don&apos;t show this again</span>
+              </label>
             </div>
-          </div>
-        </div>
+          }
+        />
       )}
     </div>
   );

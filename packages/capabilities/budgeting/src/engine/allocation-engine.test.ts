@@ -401,4 +401,50 @@ describe("paycheck cascade allocation engine", () => {
     // Fortnightly allowance = $700 * 12 / 26 = $323.08. Since balance is $200, top-up needed = $323.08 - $200 = $123.08!
     expect(everydayLine?.proposedAmount).toBe(123.08);
   });
+
+  it("isolates private pools: partner A income never allocates to partner B private pool", () => {
+    const buckets: EngineBucket[] = [
+      {
+        id: "shared-rent",
+        name: "Shared Rent",
+        type: "REGULAR",
+        isEssential: true,
+        monthlyAmount: 1200,
+        currentBalance: 0,
+      },
+      {
+        id: "partner-b-private-pool",
+        name: "Partner B Private Savings",
+        type: "GOAL",
+        isPrivate: true,
+        userId: "user-b",
+        monthlyAmount: null,
+        targetAmount: 1000,
+        currentBalance: 0,
+      },
+      {
+        id: "partner-a-everyday",
+        name: "Partner A Everyday",
+        type: "EVERYDAY",
+        isSurplusTarget: true,
+        userId: "user-a",
+        currentBalance: 0,
+      },
+    ];
+
+    const result = runAllocationEngine({
+      incomeAmount: 2000,
+      incomeUserId: "user-a", // Partner A earned this paycheck
+      buckets,
+      paycheckDate: new Date("2026-09-01T00:00:00Z"),
+      paycheckFrequencyDays: 14,
+    });
+
+    expect(result.status).toBe("OK");
+    const partnerBLine = result.lines.find((l) => l.bucketId === "partner-b-private-pool");
+    // Partner B's private pool receives $0 from Partner A's paycheck!
+    expect(partnerBLine?.proposedAmount).toBe(0);
+    const sharedRentLine = result.lines.find((l) => l.bucketId === "shared-rent");
+    expect(sharedRentLine?.proposedAmount).toBeGreaterThan(0);
+  });
 });

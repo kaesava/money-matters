@@ -353,7 +353,7 @@ export function SlideOverCategoryDrawer({
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
                         <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                          <th className="p-3">Date</th>
+                          <th className="p-3 text-center">Date</th>
                           <th className="p-3">Description</th>
                           <th className="p-3 text-center">Type</th>
                           <th className="p-3 text-right">Amount</th>
@@ -366,8 +366,8 @@ export function SlideOverCategoryDrawer({
 
                           return (
                             <tr key={tx.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
-                              <td className="p-3 font-mono text-zinc-500 text-[11px]">
-                                {tx.recordedAt ? String(tx.recordedAt).split("T")[0] : "—"}
+                              <td className="p-3 font-mono text-zinc-500 text-[11px] text-center">
+                                {tx.recordedAt ? fmtDate(tx.recordedAt) : "—"}
                               </td>
                               <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100 max-w-[180px] truncate">
                                 {noteText}

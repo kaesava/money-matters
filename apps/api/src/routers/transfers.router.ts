@@ -133,7 +133,12 @@ export const transfersRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .delete(transferEvents)
+        .update(transferEvents)
+        .set({
+          archivedAt: new Date(),
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
         .where(
           and(
             eq(transferEvents.id, input.eventId),
@@ -153,7 +158,12 @@ export const transfersRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .delete(transferEvents)
+        .update(transferEvents)
+        .set({
+          archivedAt: new Date(),
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
         .where(
           and(
             eq(transferEvents.id, input.eventId),

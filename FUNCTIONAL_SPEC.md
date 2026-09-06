@@ -23,7 +23,7 @@ Money Matters is a forward-looking allocation budget app designed for Australian
   2. *Tab 2: Upcoming*: Pending/un-actioned scheduled events queue ordered by ascending date with subtle overdue highlighting, single-row actioning (*Run Split* hyperlinked action for Income launching the unified Split Income drawer, *Mark Spent*, *Delete*), full-width search bar (`w-full md:w-80 flex-1 max-w-md`), and 100% header-to-cell alignment parity.
   3. *Tab 3: Setup*: Structured resizable tables for recurring Income Schedules and Expense Schedules with custom interval ("Every N") support, top unified search input, embedded "+ Add" buttons, clickable schedule name edit hyperlinks, and discreet modal archiving.
 - **Dynamic Waterfall Allocation Engine & Resolution Hierarchy**:
-  - *Two-Horizon Priority Waterfall*: Step 1 (Immediate Cashflow Feasibility Guard: 100% funding for upcoming bills due before next payday, essential bills first) $\rightarrow$ Step 2 (Reserve Sinking Funds: Pro-rata cycle accumulation for future bills) $\rightarrow$ Step 3 (Deficit Repair: Negative balance restorations) $\rightarrow$ Step 4 (Committed Goals: Imminent gaps funded 100%, future gaps paced) $\rightarrow$ Step 5 (Everyday Allowance: Cap-aware top-up or full deposit) $\rightarrow$ Step 6 (Uncommitted Goals & Residual Surplus Sweep).
+  - *Two-Horizon Priority Waterfall*: Step 0 (Deficit Repair: Negative balance restorations to $0) $\rightarrow$ Step 1 (Immediate Cashflow Feasibility Guard: 100% funding for upcoming bills due before next payday, essential bills first) $\rightarrow$ Step 2 (Reserve Sinking Funds: Pro-rata cycle accumulation for future bills) $\rightarrow$ Step 3 (Committed Goals: Imminent gaps funded 100%, future gaps paced) $\rightarrow$ Step 4 (Everyday Allowance: Cap-aware top-up or full deposit) $\rightarrow$ Step 5 (Uncommitted Goals & Residual Surplus Sweep).
   - *Unified Resolution Hierarchy*: When evaluating any upcoming payday (via Home Screen "Log Payday" drawer, Timeline, or Bulk Allocate tab), the query checks for saved `allocation_plans` in the database first. If custom overrides exist, it returns the saved plan lines. If no saved plan exists, it dynamically computes the Two-Horizon waterfall on-the-fly.
   - *Automatic Recalculation*: Changing category targets/allowances in Setup automatically recalculates unsaved future paydays when opened. Changing income schedules cascade-deletes obsolete `allocation_plans` (`ON DELETE CASCADE`), presenting fresh dynamic allocations for the new schedule without requiring manual background jobs.
   - *Stateless vs Cumulative Math*: Bills evaluate both immediate due-date feasibility and pro-rata cycle math. Everyday allowances evaluate cap-aware top-ups or rollover sweeps. Savings goals evaluate cumulative timeline progress.
@@ -71,22 +71,22 @@ When an incoming paycheck (or ad-hoc deposit) is processed, the engine executes 
 [ Incoming Net Paycheck ]
            │
            ▼
+[ Step 0: Deficit Repair ] ──────────────────────► Clears negative pool balances back to $0.00
+           │
+           ▼
 [ Step 1: Immediate Cashflow Feasibility Guard ] ──► 100% funding for bills due <= next payday (Essential first)
            │
            ▼
 [ Step 2: Reserve Sinking Funds ] ───────────────► Pro-rata accrual for future bills (1/26, 1/52, 1/12)
            │
            ▼
-[ Step 3: Deficit Repair ] ──────────────────────► Clears negative pool balances back to $0.00
+[ Step 3: Committed Savings Goals ] ─────────────► Target-date pacing (100% if due <= next pay, paced otherwise)
            │
            ▼
-[ Step 4: Committed Savings Goals ] ─────────────► Target-date pacing (100% if due <= next pay, paced otherwise)
+[ Step 4: Everyday Allowance ] ──────────────────► Discretionary living pool (Top-up to cap vs Fresh deposit)
            │
            ▼
-[ Step 5: Everyday Allowance ] ──────────────────► Discretionary living pool (Top-up to cap vs Fresh deposit)
-           │
-           ▼
-[ Step 6: Uncommitted Goals & Surplus Sweep ] ───► Voluntary goals funded & 100% residual swept to Surplus Target
+[ Step 5: Uncommitted Goals & Surplus Sweep ] ───► Voluntary goals funded & 100% residual swept to Surplus Target
            │
            ▼
 [ Unallocated Cash ≡ $0.00 ]

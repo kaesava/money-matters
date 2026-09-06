@@ -5,7 +5,8 @@ import { deleteUpcomingEventCommand } from "./delete-upcoming-event.command.js";
 describe("deleteUpcomingEventCommand", () => {
   it("deletes upcoming income event using tenant isolation", async () => {
     const mockTx = {
-      delete: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([{ id: "event-1" }]),
     };
@@ -22,12 +23,13 @@ describe("deleteUpcomingEventCommand", () => {
     );
 
     expect(res).toEqual({ success: true, id: "event-1" });
-    expect(mockTx.delete).toHaveBeenCalled();
+    expect(mockTx.update).toHaveBeenCalled();
   });
 
   it("deletes upcoming expense event using tenant isolation", async () => {
     const mockTx = {
-      delete: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       returning: vi.fn().mockResolvedValue([{ id: "event-2" }]),
     };
@@ -44,6 +46,6 @@ describe("deleteUpcomingEventCommand", () => {
     );
 
     expect(res).toEqual({ success: true, id: "event-2" });
-    expect(mockTx.delete).toHaveBeenCalled();
+    expect(mockTx.update).toHaveBeenCalled();
   });
 });

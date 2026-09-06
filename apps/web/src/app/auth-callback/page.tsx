@@ -22,8 +22,7 @@ export default function AuthCallbackPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-50 gap-4">
       <div
-        className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-        style={{ borderColor: "var(--dash-teal, #00B4A6)" }}
+        className="w-8 h-8 rounded-full border-2 border-[#2563eb] border-t-transparent animate-spin"
       />
       <p className="text-sm font-medium text-zinc-600">Authenticating mobile application...</p>
     </div>

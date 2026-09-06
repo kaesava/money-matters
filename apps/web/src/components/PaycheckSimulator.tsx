@@ -63,7 +63,7 @@ export const PaycheckSimulator: React.FC = () => {
         {/* Left Column: Interactive Controls */}
         <div className="md:col-span-5 flex flex-col gap-6 sticky top-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] tracking-wider uppercase w-fit">
-            Interactive Waterfall Demo
+            {t("landing.interactiveDemo", { defaultValue: "Interactive Waterfall Demo" })}
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-[#1B2B4B]">
             {t("landing.simulatorTitle")}
@@ -107,7 +107,7 @@ export const PaycheckSimulator: React.FC = () => {
               {t("landing.realTimeRecs")}
             </h3>
             <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
-              Auto-Cascading Waterfall
+              {t("landing.autoCascading", { defaultValue: "Auto-Cascading Waterfall" })}
             </span>
           </div>
 
@@ -264,7 +264,7 @@ export const PaycheckSimulator: React.FC = () => {
                 <span className="font-extrabold text-[#1B2B4B] text-sm block">
                   {t("landing.waterfallStep3")}
                 </span>
-                <span className="text-[11px] text-zinc-400">Safe-to-spend debit allowance</span>
+                <span className="text-[11px] text-zinc-400">{t("landing.safeToSpend", { defaultValue: "Safe-to-spend debit allowance" })}</span>
               </div>
               <span className={`${everydayAlloc >= everydayTargetCap ? "text-[#22c55e]" : "text-[#2563eb]"} font-mono font-bold text-sm`}>
                 ${everydayAlloc.toFixed(0)} / ${everydayTargetCap.toLocaleString()}
@@ -301,7 +301,7 @@ export const PaycheckSimulator: React.FC = () => {
                 <span className="font-extrabold text-[#1B2B4B] text-sm block">
                   {t("landing.waterfallStep4")}
                 </span>
-                <span className="text-[11px] text-zinc-400">100% of residual income automatically swept</span>
+                <span className="text-[11px] text-zinc-400">{t("landing.autoSwept", { defaultValue: "100% of residual income automatically swept" })}</span>
               </div>
               <span className="text-[#22c55e] font-mono font-extrabold text-base">
                 +${surplusSweepAlloc.toFixed(0)}

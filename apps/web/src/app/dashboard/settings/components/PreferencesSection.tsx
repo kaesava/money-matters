@@ -76,7 +76,7 @@ export function PreferencesSection({ currentTimezone }: PreferencesSectionProps)
               updateUserPrefMut.mutate({ appPreferences: { ui: { showIcons: nextVal } } });
             }}
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              showIcons ? "bg-[#00B4A6]" : "bg-zinc-300"
+              showIcons ? "bg-[#2563eb]" : "bg-zinc-300"
             }`}
           >
             <span

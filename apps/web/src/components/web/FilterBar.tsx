@@ -64,7 +64,7 @@ export function FilterBar({
             onClick={() => setExpanded(!expanded)}
             className={`px-3.5 py-2 text-xs font-extrabold rounded-xl border transition-all flex items-center gap-2 ${
               expanded
-                ? "bg-[#00B4A6] text-white border-[#00B4A6] shadow-sm"
+                ? "bg-[#2563eb] text-white border-[#2563eb] shadow-sm"
                 : "bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100"
             }`}
           >

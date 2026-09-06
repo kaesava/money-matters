@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useId } from "react";
+import React, { useEffect, useState, useId } from "react";
+import { createPortal } from "react-dom";
 import { t } from "@money-matters/i18n";
 import { Button } from "./Button";
 
@@ -27,8 +28,13 @@ export function ConfirmDialog({
   variant = "primary",
   isLoading = false,
 }: ConfirmDialogProps) {
+  const [mounted, setMounted] = useState(false);
   const titleId = useId();
   const descId = useId();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -43,12 +49,12 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose, isLoading]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const defaultConfirmLabel = t("common.confirm");
   const defaultCancelLabel = t("common.cancel");
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       role="dialog"
@@ -94,6 +100,7 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

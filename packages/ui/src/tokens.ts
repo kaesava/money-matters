@@ -8,9 +8,10 @@ export const DESIGN_TOKENS = {
   colors: {
     // Brand Colors
     primary: "#1B2B4B",     // Deep Navy
+    primaryHover: "#1d4ed8",// Blue 700
     onPrimary: "#FFFFFF",
     sereneBlue: "#2563eb",  // Serene Blue
-    accent: "#00B4A6",      // Warm Teal
+    accent: "#2563eb",      // Serene Blue (standardized)
     onAccent: "#FFFFFF",
     
     // Surface Colors

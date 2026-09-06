@@ -167,6 +167,8 @@ function TransactionsPageContent() {
   const [selectedBankFilter, setSelectedBankFilter] = useState("ALL");
   const [planSortColumn, setPlanSortColumn] = useState<"date" | "incomeName" | "receivingAccount" | "trigger" | "amount">("date");
   const [planSortDirection, setPlanSortDirection] = useState<"asc" | "desc">("desc");
+  const [planPage, setPlanPage] = useState(1);
+  const [planPageSize, setPlanPageSize] = useState(25);
 
   const { widths: planWidths, onMouseDown: onPlanMouseDown } = useResizableColumns({
     date: 140,
@@ -224,6 +226,12 @@ function TransactionsPageContent() {
       return planSortDirection === "asc" ? cmp : -cmp;
     });
   }, [filteredPaydayPlans, planSortColumn, planSortDirection]);
+
+  const planTotalPages = Math.ceil(sortedPaydayPlans.length / planPageSize) || 1;
+  const paginatedPaydayPlans = useMemo(() => {
+    const start = (planPage - 1) * planPageSize;
+    return sortedPaydayPlans.slice(start, start + planPageSize);
+  }, [sortedPaydayPlans, planPage, planPageSize]);
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl pb-16 animate-in fade-in duration-200">
@@ -398,7 +406,7 @@ function TransactionsPageContent() {
                           )}
                         </td>
                         <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
-                          tx.type === "TRANSFER" ? "text-blue-600" : tx.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"
+                          tx.flowType === "CREDIT" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                         }`}>
                           {tx.flowType === "CREDIT" ? "+" : "-"}{formatAUD(tx.amount)}
                         </td>
@@ -581,7 +589,7 @@ function TransactionsPageContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 text-xs">
-                    {sortedPaydayPlans.map((plan) => (
+                    {paginatedPaydayPlans.map((plan) => (
                       <tr key={plan.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 text-center font-mono text-zinc-500">
                           {fmtDate(plan.expectedDate || plan.createdAt)}
@@ -611,6 +619,23 @@ function TransactionsPageContent() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {sortedPaydayPlans.length >= 5 && (
+              <div className="p-3 border-t border-zinc-200">
+                <PaginationBar
+                  page={planPage}
+                  totalPages={planTotalPages}
+                  pageSize={planPageSize}
+                  totalItems={sortedPaydayPlans.length}
+                  pageSizeOptions={[10, 25, 50]}
+                  onPageChange={setPlanPage}
+                  onPageSizeChange={(newSize) => {
+                    setPlanPageSize(newSize);
+                    setPlanPage(1);
+                  }}
+                />
               </div>
             )}
           </div>
