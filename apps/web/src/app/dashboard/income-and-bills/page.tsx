@@ -77,6 +77,8 @@ function IncomeAndBillsContent() {
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const transferEventsQuery = trpc.listTransferEvents.useQuery();
+  const userProfileQuery = trpc.getUserProfile.useQuery();
+  const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
 
   const isLoading =
     poolsQuery.isLoading ||
@@ -106,18 +108,35 @@ function IncomeAndBillsContent() {
   const expenseEvents = useMemo(() => rawExpenseEvents || [], [rawExpenseEvents]);
   const transferEvents = useMemo(() => rawTransferEvents || [], [rawTransferEvents]);
 
+  const savedIncomeEventIds = useMemo(() => {
+    const set = new Set<string>();
+    if (allPlansQuery.data) {
+      for (const plan of allPlansQuery.data) {
+        if (plan.status !== "CONFIRMED") {
+          set.add(plan.incomeEventId);
+        }
+      }
+    }
+    return set;
+  }, [allPlansQuery.data]);
+
   const matrixIncomeEvents = useMemo(() => {
     return incomeEvents
       .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
-      .map((e) => ({
-        id: e.id,
-        expectedDate: e.expectedDate,
-        expectedAmount: parseFloat(e.expectedAmount || "0"),
-        actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-        status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
-        sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
-      }));
-  }, [incomeEvents]);
+      .map((e) => {
+        const receivingAccountId = (e as unknown as { receivingAccountId?: string }).receivingAccountId;
+        const acct = bankAccounts.find((b) => b.id === receivingAccountId);
+        return {
+          id: e.id,
+          expectedDate: e.expectedDate,
+          expectedAmount: parseFloat(e.expectedAmount || "0"),
+          actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
+          status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
+          sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
+          isPrivate: acct?.isPrivate || false,
+        };
+      });
+  }, [incomeEvents, bankAccounts]);
 
   const matrixExpenseEvents = useMemo(() => {
     return expenseEvents
@@ -236,7 +255,7 @@ function IncomeAndBillsContent() {
     });
   }, [expenseSources, pools, setupScopeFilter, selectedExpensePoolId, setupSearchQuery, expSortField, expSortOrder]);
 
-  const currentUserId = pools[0]?.id || "default-user";
+  const currentUserId = userProfileQuery.data?.id || pools[0]?.id || "default-user";
 
   if (isLoading) {
     return (
@@ -632,6 +651,7 @@ function IncomeAndBillsContent() {
         <div className="p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
           <UpcomingTimelineTab
             isLoading={isLoading}
+            savedIncomeEventIds={savedIncomeEventIds}
             initialKindFilter={typeParam === "INCOME" || typeParam === "EXPENSE" || typeParam === "TRANSFER" ? typeParam : "ALL"}
             incomeEvents={incomeEvents.map((e) => {
               const receivingAccountId = (e as unknown as { receivingAccountId?: string }).receivingAccountId;

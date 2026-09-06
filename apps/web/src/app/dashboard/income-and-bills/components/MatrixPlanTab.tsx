@@ -76,6 +76,7 @@ export function MatrixPlanTab({
   const revertPlanMut = trpc.revertAllocationPlan.useMutation();
 
   const [showFullHorizon, setShowFullHorizon] = useState(false);
+  const [scopeFilter, setScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
   const [activeCategoryForDrawer, setActiveCategoryForDrawer] = useState<{
     id: string;
     name: string;
@@ -89,6 +90,19 @@ export function MatrixPlanTab({
   const upcomingIncomeEvents = useMemo(() => {
     return incomeEvents.filter((e) => e.status !== "CONFIRMED");
   }, [incomeEvents]);
+
+  // Filter income events and pools by scope filter (All | Shared | Private)
+  const filteredIncomeEvents = useMemo(() => {
+    if (scopeFilter === "PRIVATE") return upcomingIncomeEvents.filter((e) => e.isPrivate);
+    if (scopeFilter === "SHARED") return upcomingIncomeEvents.filter((e) => !e.isPrivate);
+    return upcomingIncomeEvents;
+  }, [upcomingIncomeEvents, scopeFilter]);
+
+  const filteredCategories = useMemo(() => {
+    if (scopeFilter === "PRIVATE") return categories.filter((c) => c.isPrivate);
+    if (scopeFilter === "SHARED") return categories.filter((c) => !c.isPrivate);
+    return categories;
+  }, [categories, scopeFilter]);
 
   // Derive read-only cell values from saved/confirmed plan data.
   const savedPlanOverrides = React.useMemo(() => {
@@ -124,13 +138,13 @@ export function MatrixPlanTab({
   const projection = useMemo(() => {
     return computeMatrixProjection({
       currentUserId,
-      categories,
-      incomeEvents: upcomingIncomeEvents,
+      categories: filteredCategories,
+      incomeEvents: filteredIncomeEvents,
       expenseEvents,
       cellOverrides: savedPlanOverrides,
       monthsAhead: 12,
     });
-  }, [currentUserId, categories, upcomingIncomeEvents, expenseEvents, savedPlanOverrides]);
+  }, [currentUserId, filteredCategories, filteredIncomeEvents, expenseEvents, savedPlanOverrides]);
 
   // Default view: Next 5 paydays (or full horizon if expanded)
   const visibleColumns = useMemo(() => {
@@ -166,7 +180,7 @@ export function MatrixPlanTab({
         .filter((e) => billsIds.has(e.categoryId))
         .map((e, idx) => ({
           id: `exp_bills_${idx}_${e.dueDate}`,
-          name: categories.find((c) => c.id === e.categoryId)?.name || "Bill Event",
+          name: categories.find((c) => c.id === e.categoryId)?.name || "Bill Expense",
           amount: e.amount.toFixed(2),
           dueDate: e.dueDate,
         }));
@@ -215,7 +229,7 @@ export function MatrixPlanTab({
   return (
     <div className="flex flex-col gap-6">
       {/* Controls & Expansion Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
             <span>{t("matrix.incomeAllocationGridTitle", { defaultValue: "Income Split Planning Grid" })}</span>
@@ -223,15 +237,54 @@ export function MatrixPlanTab({
           </h2>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowFullHorizon(!showFullHorizon)}
-          className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[#1B2B4B] dark:text-white font-bold text-xs rounded-xl transition-colors shadow-xs cursor-pointer"
-        >
-          {showFullHorizon
-            ? t("matrix.showNext5", { defaultValue: "Show Next 5 Paydays" })
-            : t("matrix.showFull12Events", { defaultValue: `Show Full 12 Months (${projection.columns.length} Income Events)` }).replace("{count}", String(projection.columns.length))}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Scope Filter Pills: All | Shared | Private */}
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setScopeFilter("ALL")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                scopeFilter === "ALL"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeFilter("SHARED")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                scopeFilter === "SHARED"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              Shared
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeFilter("PRIVATE")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                scopeFilter === "PRIVATE"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              Private
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowFullHorizon(!showFullHorizon)}
+            className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[#1B2B4B] dark:text-white font-bold text-xs rounded-xl transition-colors shadow-xs cursor-pointer"
+          >
+            {showFullHorizon
+              ? t("matrix.showNext5", { defaultValue: "Show Next 5 Paydays" })
+              : t("matrix.showFull12Events", { defaultValue: `Show Full 12 Months (${projection.columns.length} Income Events)` }).replace("{count}", String(projection.columns.length))}
+          </button>
+        </div>
       </div>
 
       {/* Matrix Table */}

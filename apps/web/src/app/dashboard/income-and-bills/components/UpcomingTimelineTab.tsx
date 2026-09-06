@@ -10,10 +10,12 @@ import {
   ResizableTh,
   useResizableColumns,
   ConfirmDialog,
+  useToast,
   fmtDate,
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
+import { trpc } from "../../../../lib/trpc";
 
 export interface TimelineEventItem extends EventItem {
   name?: string | null;
@@ -34,6 +36,7 @@ interface UpcomingTimelineTabProps {
   incomeEvents: TimelineEventItem[];
   expenseEvents: TimelineEventItem[];
   transferEvents: TimelineEventItem[];
+  savedIncomeEventIds?: Set<string>;
   categories: {
     id: string;
     name: string;
@@ -66,6 +69,7 @@ export function UpcomingTimelineTab({
   incomeEvents,
   expenseEvents,
   transferEvents,
+  savedIncomeEventIds,
   categories,
   initialKindFilter = "ALL",
   onAllocateIncome,
@@ -77,7 +81,11 @@ export function UpcomingTimelineTab({
   onConfirmTransferAndPay,
   onOpenTransferModalWithData,
 }: UpcomingTimelineTabProps) {
+  const toast = useToast();
+  const utils = trpc.useUtils();
+  const revertPlanMut = trpc.revertAllocationPlan.useMutation();
   const todayStr = useMemo(() => getTenantDateString(new Date()), []);
+  const [incomeToUnsaveId, setIncomeToUnsaveId] = useState<string | null>(null);
 
   // Filter States
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
@@ -486,6 +494,12 @@ export function UpcomingTimelineTab({
                                 ? `${evt.sourcePoolName || "Source"} ➔ ${evt.destinationPoolName || "Destination"}`
                                 : evt.categoryName || "Pool"}
                             </span>
+
+                            {isIncome && savedIncomeEventIds?.has(evt.id) && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
+                                {t("matrix.saved", { defaultValue: "Saved" })}
+                              </span>
+                            )}
                           </div>
 
                           {evt.note && (
@@ -530,13 +544,27 @@ export function UpcomingTimelineTab({
                           </button>
 
                           {isIncome ? (
-                            <button
-                              type="button"
-                              onClick={() => onAllocateIncome(evt.id)}
-                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
-                            >
-                              {t("common.runSplit", { defaultValue: "Run Split" })}
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onAllocateIncome(evt.id)}
+                                className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1.5 py-1"
+                              >
+                                {t("common.runSplit", { defaultValue: "Run Split" })}
+                              </button>
+                              {savedIncomeEventIds?.has(evt.id) && (
+                                <>
+                                  <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setIncomeToUnsaveId(evt.id)}
+                                    className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors px-1.5 py-1"
+                                  >
+                                    {t("matrix.unsave", { defaultValue: "Unsave" })}
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           ) : isTransfer ? (
                             <button
                               type="button"
@@ -625,6 +653,31 @@ export function UpcomingTimelineTab({
             : "Are you sure you want to Delete this Expense?"
         }
         confirmLabel="Delete"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={!!incomeToUnsaveId}
+        onClose={() => setIncomeToUnsaveId(null)}
+        onConfirm={async () => {
+          if (incomeToUnsaveId) {
+            try {
+              await revertPlanMut.mutateAsync({ incomeEventId: incomeToUnsaveId });
+              await utils.listAllAllocationPlans.invalidate();
+              await utils.listIncomeEvents.invalidate();
+              await utils.listExpenseEvents.invalidate();
+              await utils.listPools.invalidate();
+              toast.success(t("matrix.revertSuccess", { defaultValue: "Reverted. Income Split will be auto-calculated." }));
+            } catch (_err) {
+              toast.error("Failed to unsave payday.");
+            } finally {
+              setIncomeToUnsaveId(null);
+            }
+          }
+        }}
+        title={t("matrix.unsaveDialogTitle", { defaultValue: "Unsave Income Split" })}
+        description={t("matrix.unsaveDialogDescription", { defaultValue: "Your saved Income Split will be lost and will be auto-calculated. Continue?" })}
+        confirmLabel={t("common.unsave", { defaultValue: "Unsave" })}
         variant="danger"
       />
     </div>

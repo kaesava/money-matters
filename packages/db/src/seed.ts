@@ -20,6 +20,10 @@ import {
   users,
   apps,
   deviceTokens,
+  appCategories,
+  earlyAccessSubscribers,
+  processedWebhooks,
+  appVersions,
 } from "@money-matters/db";
 import { sql } from "drizzle-orm";
 import dotenv from "dotenv";
@@ -142,12 +146,16 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(incomeSources);
   await db.execute(sql`DELETE FROM public.category_schedules`).catch(() => {});
   await db.delete(categories);
+  await db.delete(appCategories).catch(() => {});
   await db.delete(pools);
   await db.delete(userPreferences);
   await db.delete(tenantUserPreferences);
   await db.delete(bankAccounts);
   await db.delete(tenantUsers);
   await db.delete(tenants);
+  await db.delete(earlyAccessSubscribers).catch(() => {});
+  await db.delete(processedWebhooks).catch(() => {});
+  await db.delete(appVersions).catch(() => {});
   await db.delete(users);
   await db.delete(apps);
 

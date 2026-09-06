@@ -10,6 +10,7 @@ export interface MatrixIncomeEvent {
   status: "PENDING" | "CONFIRMED" | "DRAFT" | "REVIEWED";
   rrule?: string | null;
   userId?: string;
+  isPrivate?: boolean;
 }
 
 export interface ScheduledExpenseEvent {
@@ -81,9 +82,9 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
       return (isNaN(tA) ? 0 : tA) - (isNaN(tB) ? 0 : tB);
     });
 
-  // Filter categories by Stealth Privacy RLS: (isPrivate = false OR userId = currentUserId)
+  // Filter categories by Stealth Privacy RLS: (isPrivate = false OR !c.userId OR c.userId === input.currentUserId)
   const visibleCategories = input.categories.filter(
-    (c) => !c.isPrivate || (c.userId && c.userId === input.currentUserId)
+    (c) => !c.isPrivate || !c.userId || (c.userId && c.userId === input.currentUserId)
   );
   const hiddenCategories = input.categories.filter(
     (c) => c.isPrivate && c.userId && c.userId !== input.currentUserId
@@ -118,21 +119,13 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     });
   }
 
-  // 2. Track running balances: Everyday Pool, Bills Pool, and individual Goals
-  let runningEverydayBalance = everydayCats.reduce((sum, c) => sum + (c.currentBalance || 0), 0);
-  let runningBillsBalance = billsCats.reduce((sum, c) => sum + (c.currentBalance || 0), 0);
+  // 2. Track running balances per pool category
+  const runningPoolBalances = new Map<string, number>();
+  const poolCellsMap = new Map<string, Map<string, MatrixCellData>>(); // categoryId -> (incomeEventId -> MatrixCellData)
 
-  const runningGoalBalances = new Map<string, number>();
-  for (const cat of [...goalCats, ...surplusCats]) {
-    runningGoalBalances.set(cat.id, cat.currentBalance || 0);
-  }
-
-  const everydayCellsMap = new Map<string, MatrixCellData>(); // keyed by incomeEventId
-  const billsCellsMap = new Map<string, MatrixCellData>();
-  const goalCellsMap = new Map<string, Map<string, MatrixCellData>>(); // categoryId -> (incomeEventId -> MatrixCellData)
-
-  for (const cat of [...goalCats, ...surplusCats]) {
-    goalCellsMap.set(cat.id, new Map());
+  for (const cat of visibleCategories) {
+    runningPoolBalances.set(cat.id, cat.currentBalance || 0);
+    poolCellsMap.set(cat.id, new Map());
   }
 
   // 3. Sequential timeline simulation
@@ -161,11 +154,7 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
 
     const currentBuckets: EngineBucket[] = input.categories.map((c) => ({
       ...c,
-      currentBalance: c.type === "EVERYDAY"
-        ? runningEverydayBalance
-        : c.type === "REGULAR"
-        ? runningBillsBalance
-        : (runningGoalBalances.get(c.id) ?? 0),
+      currentBalance: runningPoolBalances.get(c.id) ?? (c.currentBalance || 0),
     }));
 
     const waterfallResult = runAllocationEngine({
@@ -190,80 +179,37 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
 
     // Calculate expense deductions up until the next payday date
     const nextColDate = i < columns.length - 1 ? columns[i + 1].date : "9999-12-31";
-    
-    // A. Everyday Pool Allocation & Balance
-    const everydayCalculated = everydayCats.reduce((sum, c) => sum + (columnAllocations.get(c.id) ?? 0), 0);
-    const everydayOverrideKey = `${col.id}_pool_everyday`;
-    const hasEverydayOverride = typeof cellOverrides[everydayOverrideKey] === "number";
-    const finalEverydayAlloc = hasEverydayOverride ? cellOverrides[everydayOverrideKey] : everydayCalculated;
 
-    const everydayCatIds = new Set(everydayCats.map((c) => c.id));
-    const relevantEverydayExp = expenseEvents.filter(
-      (e) => (everydayCatIds.has(e.categoryId) || everydayCatIds.has((e as unknown as { poolId?: string }).poolId || "")) &&
-             (i === 0 ? e.dueDate < nextColDate : (e.dueDate >= col.date && e.dueDate < nextColDate))
-    );
-    const totalEverydayExp = relevantEverydayExp.reduce((sum, e) => sum + e.amount, 0);
-
-    const startEvBalance = runningEverydayBalance;
-    const endEvBalance = startEvBalance + finalEverydayAlloc - totalEverydayExp;
-    const minEvBalance = Math.min(startEvBalance + finalEverydayAlloc, endEvBalance);
-    runningEverydayBalance = endEvBalance;
-
-    everydayCellsMap.set(col.id, {
-      allocated: Number(finalEverydayAlloc.toFixed(2)),
-      projectedBalance: Number(endEvBalance.toFixed(2)),
-      minProjectedBalance: Number(minEvBalance.toFixed(2)),
-      isOverride: hasEverydayOverride,
-      hasWarning: minEvBalance < 0,
-    });
-
-    // B. Bills Pool Allocation & Balance
-    const billsCalculated = billsCats.reduce((sum, c) => sum + (columnAllocations.get(c.id) ?? 0), 0);
-    const billsOverrideKey = `${col.id}_pool_bills`;
-    const hasBillsOverride = typeof cellOverrides[billsOverrideKey] === "number";
-    const finalBillsAlloc = hasBillsOverride ? cellOverrides[billsOverrideKey] : billsCalculated;
-
-    const billsCatIds = new Set(billsCats.map((c) => c.id));
-    const relevantBillsExp = expenseEvents.filter(
-      (e) => (billsCatIds.has(e.categoryId) || billsCatIds.has((e as unknown as { poolId?: string }).poolId || "")) &&
-             (i === 0 ? e.dueDate < nextColDate : (e.dueDate >= col.date && e.dueDate < nextColDate))
-    );
-    const totalBillsExp = relevantBillsExp.reduce((sum, e) => sum + e.amount, 0);
-
-    const startBillsBalance = runningBillsBalance;
-    const endBillsBalance = startBillsBalance + finalBillsAlloc - totalBillsExp;
-    const minBillsBalance = Math.min(startBillsBalance + finalBillsAlloc, endBillsBalance);
-    runningBillsBalance = endBillsBalance;
-
-    billsCellsMap.set(col.id, {
-      allocated: Number(finalBillsAlloc.toFixed(2)),
-      projectedBalance: Number(endBillsBalance.toFixed(2)),
-      minProjectedBalance: Number(minBillsBalance.toFixed(2)),
-      isOverride: hasBillsOverride,
-      hasWarning: minBillsBalance < 0,
-    });
-
-    // C. Individual Goals & Surplus Target
-    for (const cat of [...goalCats, ...surplusCats]) {
+    for (const cat of visibleCategories) {
       const overrideKey = `${col.id}_${cat.id}`;
-      const hasOverride = typeof cellOverrides[overrideKey] === "number";
-      const finalAllocation = hasOverride ? cellOverrides[overrideKey] : (columnAllocations.get(cat.id) ?? 0);
+      const hasDirectOverride = typeof cellOverrides[overrideKey] === "number";
+      const fallbackKey =
+        cat.type === "EVERYDAY" ? `${col.id}_pool_everyday` : cat.type === "REGULAR" ? `${col.id}_pool_bills` : null;
+      const hasFallbackOverride = fallbackKey ? typeof cellOverrides[fallbackKey] === "number" : false;
 
-      const startBalance = runningGoalBalances.get(cat.id) ?? 0;
+      const hasOverride = hasDirectOverride || hasFallbackOverride;
+      const finalAllocation = hasDirectOverride
+        ? cellOverrides[overrideKey]
+        : hasFallbackOverride && fallbackKey
+        ? cellOverrides[fallbackKey]
+        : (columnAllocations.get(cat.id) ?? 0);
+
+      const startBalance = runningPoolBalances.get(cat.id) ?? 0;
       const balanceAfterAlloc = startBalance + finalAllocation;
 
       const relevantExpenses = expenseEvents.filter(
-        (e) => (e.categoryId === cat.id || (e as unknown as { poolId?: string }).poolId === cat.id) &&
-               (i === 0 ? e.dueDate < nextColDate : (e.dueDate >= col.date && e.dueDate < nextColDate))
+        (e) =>
+          (e.categoryId === cat.id || (e as unknown as { poolId?: string }).poolId === cat.id) &&
+          (i === 0 ? e.dueDate < nextColDate : (e.dueDate >= col.date && e.dueDate < nextColDate))
       );
       const totalExpenses = relevantExpenses.reduce((sum, e) => sum + e.amount, 0);
 
       const endBalance = balanceAfterAlloc - totalExpenses;
       const minProjectedBalance = Math.min(balanceAfterAlloc, endBalance);
 
-      runningGoalBalances.set(cat.id, endBalance);
+      runningPoolBalances.set(cat.id, endBalance);
 
-      const cellMap = goalCellsMap.get(cat.id)!;
+      const cellMap = poolCellsMap.get(cat.id)!;
       cellMap.set(col.id, {
         allocated: Number(finalAllocation.toFixed(2)),
         projectedBalance: Number(endBalance.toFixed(2)),
@@ -274,81 +220,41 @@ export function computeMatrixProjection(input: MatrixProjectionInput): MatrixPro
     }
   }
 
-  // 4. Structure into 4 Clean Accordion Row Groups (Everyday & Bills at Pool Level)
-  const everydayCellsRecord: Record<string, MatrixCellData> = {};
-  const billsCellsRecord: Record<string, MatrixCellData> = {};
-  for (const col of columns) {
-    everydayCellsRecord[col.id] = everydayCellsMap.get(col.id)!;
-    billsCellsRecord[col.id] = billsCellsMap.get(col.id)!;
-  }
+  // 4. Structure into 4 Clean Accordion Row Groups by Pool Type
+  const buildRowsForCats = (cats: EngineBucket[], isPoolRow: boolean): MatrixRow[] => {
+    return cats.map((cat) => {
+      const rowCells: Record<string, MatrixCellData> = {};
+      const cellMap = poolCellsMap.get(cat.id)!;
+      for (const col of columns) {
+        rowCells[col.id] = cellMap.get(col.id)!;
+      }
 
-  const everydayRows: MatrixRow[] = [
-    {
-      categoryId: "pool_everyday",
-      categoryName: "Everyday Pool",
-      type: "EVERYDAY",
-      isPrivate: false,
-      isPoolRow: true,
-      cells: everydayCellsRecord,
-    },
-  ];
+      return {
+        categoryId: cat.id,
+        categoryName: cat.name,
+        type: cat.type,
+        isPrivate: cat.isPrivate ?? false,
+        isSurplusTarget: cat.isSurplusTarget,
+        isPoolRow,
+        cells: rowCells,
+      };
+    });
+  };
 
-  const billsRows: MatrixRow[] = [
-    {
-      categoryId: "pool_bills",
-      categoryName: "Bills Pool",
-      type: "REGULAR",
-      isPrivate: false,
-      isPoolRow: true,
-      cells: billsCellsRecord,
-    },
-  ];
-
-  const goalsRows: MatrixRow[] = goalCats.map((cat) => {
-    const rowCells: Record<string, MatrixCellData> = {};
-    const cellMap = goalCellsMap.get(cat.id)!;
-    for (const col of columns) {
-      rowCells[col.id] = cellMap.get(col.id)!;
-    }
-
-    return {
-      categoryId: cat.id,
-      categoryName: cat.name,
-      type: cat.type,
-      isPrivate: cat.isPrivate ?? false,
-      isSurplusTarget: cat.isSurplusTarget,
-      isPoolRow: false,
-      cells: rowCells,
-    };
-  });
-
-  const surplusRows: MatrixRow[] = surplusCats.map((cat) => {
-    const rowCells: Record<string, MatrixCellData> = {};
-    const cellMap = goalCellsMap.get(cat.id)!;
-    for (const col of columns) {
-      rowCells[col.id] = cellMap.get(col.id)!;
-    }
-
-    return {
-      categoryId: cat.id,
-      categoryName: cat.name,
-      type: cat.type,
-      isPrivate: cat.isPrivate ?? false,
-      isSurplusTarget: cat.isSurplusTarget,
-      isPoolRow: false,
-      cells: rowCells,
-    };
-  });
+  const everydayRows = buildRowsForCats(everydayCats, true);
+  const billsRows = buildRowsForCats(billsCats, true);
+  const goalsRows = buildRowsForCats(goalCats, false);
+  const surplusRows = buildRowsForCats(surplusCats, false);
 
   const groups: MatrixAccordionGroup[] = [
     {
       id: "everyday",
-      title: "Everyday Pool",
+      title: "Everyday Pools",
       rows: everydayRows,
     },
     {
       id: "bills",
-      title: "Bills Pool",
+      title: "Bills Pools",
       rows: billsRows,
     },
     {
