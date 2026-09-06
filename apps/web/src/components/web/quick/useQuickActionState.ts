@@ -315,7 +315,10 @@ export function useQuickActionState(
         setError("Source and destination pools must be different.");
         return;
       }
-      // Direct transfer via moveMoneyMutation (for today/past) or transfer event creation (for future)
+      if (date < todayStr) {
+        setError("Transfers cannot be performed for past dates.");
+        return;
+      }
 
       if (isFutureDate) {
         createTransferSourceMut.mutate({
@@ -330,7 +333,7 @@ export function useQuickActionState(
           sourcePoolId: sourceCategoryId,
           destinationPoolId: destinationCategoryId,
           amount: amountNum.toFixed(2),
-          note: name || "Pool Transfer",
+          note: name || undefined,
         });
       }
       posthog.capture("money_moved_between_categories", {

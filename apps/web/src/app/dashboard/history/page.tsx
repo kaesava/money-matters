@@ -62,89 +62,34 @@ function TransactionsPageContent() {
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
   const poolMap = useMemo(() => new Map(pools.map((p) => [p.id, p.name])), [pools]);
 
-  // Map transaction ledger items for spacious display and group internal transfer pairs
+  // Map transaction ledger items for spacious display without grouping transfer pairs
   const allTransactions = useMemo(() => {
     const rawTransactions = transactionsQuery.data ?? [];
-    const result: Array<{
-      id: string;
-      recordedAt: string | Date;
-      date: string;
-      description: string;
-      categoryName: string;
-      poolName?: string;
-      rawCategoryName?: string;
-      categoryType?: "EVERYDAY" | "REGULAR" | "GOAL";
-      amount: string;
-      type: "DEBIT" | "CREDIT" | "TRANSFER";
-      source?: string;
-    }> = [];
-
-    const processedIds = new Set<string>();
     const categoryMap = new Map(categories.map((c) => [c.name, (c as unknown as { poolType?: string; type?: string }).poolType || (c as unknown as { poolType?: string; type?: string }).type]));
 
-    for (let i = 0; i < rawTransactions.length; i++) {
-      const tx = rawTransactions[i];
-      if (processedIds.has(tx.id)) continue;
+    return rawTransactions.map((tx) => {
+      const txObj = tx as unknown as { poolId?: string; poolName?: string; categoryName?: string };
+      const pName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || "";
+      const cName = txObj.categoryName || "";
+      const displayLabel = pName && cName ? `${pName} (${cName})` : pName || cName || "Everyday Pool";
 
-      const isTransferNote = Boolean(tx.transferGroupId) || tx.note?.startsWith("Transferred");
-      const partner = isTransferNote
-        ? rawTransactions.find(
-            (other) =>
-              other.id !== tx.id &&
-              !processedIds.has(other.id) &&
-              other.amount === tx.amount &&
-              other.flowType !== tx.flowType &&
-              other.note === tx.note
-          )
-        : null;
+      const isTransfer = Boolean(tx.transferGroupId) || tx.note?.startsWith("Transferred") || tx.note?.includes("➔");
 
-      if (partner) {
-        processedIds.add(tx.id);
-        processedIds.add(partner.id);
-
-        const txObj = tx as unknown as { poolId?: string; poolName?: string; categoryName?: string };
-        const partnerObj = partner as unknown as { poolId?: string; poolName?: string; categoryName?: string };
-
-        const txPoolName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || txObj.categoryName;
-        const partnerPoolName = partnerObj.poolName || (partner.poolId ? poolMap.get(partner.poolId) : undefined) || partnerObj.categoryName;
-
-        const sourceCatName = (tx.flowType === "DEBIT" ? txPoolName : partnerPoolName) || "Everyday Pool";
-        const destCatName = (tx.flowType === "CREDIT" ? txPoolName : partnerPoolName) || "Destination Pool";
-
-        result.push({
-          id: tx.id,
-          recordedAt: tx.recordedAt,
-          date: fmtDate(tx.recordedAt),
-          description: tx.note || "Pool Transfer",
-          categoryName: `${sourceCatName} ➔ ${destCatName}`,
-          amount: tx.amount,
-          type: "TRANSFER",
-          source: tx.source || "MANUAL",
-        });
-      } else {
-        processedIds.add(tx.id);
-        const txObj = tx as unknown as { poolId?: string; poolName?: string; categoryName?: string };
-        const pName = txObj.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || "";
-        const cName = txObj.categoryName || "";
-        const displayLabel = pName && cName ? `${pName} (${cName})` : pName || cName || "Everyday Pool";
-
-        result.push({
-          id: tx.id,
-          recordedAt: tx.recordedAt,
-          date: fmtDate(tx.recordedAt),
-          description: tx.note || `Transaction (${tx.source || "MANUAL"})`,
-          categoryName: displayLabel,
-          poolName: pName,
-          rawCategoryName: cName,
-          categoryType: categoryMap.get(pName || cName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,
-          amount: tx.amount,
-          type: tx.flowType as "DEBIT" | "CREDIT",
-          source: tx.source || "MANUAL",
-        });
-      }
-    }
-
-    return result;
+      return {
+        id: tx.id,
+        recordedAt: tx.recordedAt,
+        date: fmtDate(tx.recordedAt),
+        description: tx.note || `Transaction (${tx.source || "MANUAL"})`,
+        categoryName: displayLabel,
+        poolName: pName,
+        rawCategoryName: cName,
+        categoryType: categoryMap.get(pName || cName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,
+        amount: tx.amount,
+        type: isTransfer ? ("TRANSFER" as const) : (tx.flowType as "DEBIT" | "CREDIT"),
+        flowType: tx.flowType as "DEBIT" | "CREDIT",
+        source: tx.source || "MANUAL",
+      };
+    });
   }, [transactionsQuery.data, categories, poolMap]);
 
   const filteredTransactions = useMemo(() => {
@@ -214,7 +159,7 @@ function TransactionsPageContent() {
 
   const tabsList = [
     { id: "transactions", label: t("transactions.tabs.transactions") || "Transactions" },
-    { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") || "Payday Allocations" },
+    { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") || "Income Splits" },
   ];
 
   // Payday Allocations Table State
@@ -400,7 +345,6 @@ function TransactionsPageContent() {
                         </div>
                       </ResizableTh>
                       <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4 text-left">Pool</ResizableTh>
-                      <ResizableTh width={widths.source} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("source", e)} className="py-3 px-4 text-center">Source</ResizableTh>
                       <ResizableTh
                         width={widths.amount}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)}
@@ -452,11 +396,6 @@ function TransactionsPageContent() {
                               {tx.categoryName}
                             </Link>
                           )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-zinc-100 text-zinc-500 border border-zinc-200">
-                            {tx.source || "MANUAL"}
-                          </span>
                         </td>
                         <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
                           tx.type === "TRANSFER" ? "text-blue-600" : tx.type === "CREDIT" ? "text-emerald-600" : "text-rose-600"
@@ -618,21 +557,6 @@ function TransactionsPageContent() {
                       </ResizableTh>
 
                       <ResizableTh
-                        width={planWidths.trigger}
-                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("trigger", e)}
-                        className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
-                        onClick={() => {
-                          if (planSortColumn === "trigger") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-                          else { setPlanSortColumn("trigger"); setPlanSortDirection("asc"); }
-                        }}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          <span>Status</span>
-                          {planSortColumn === "trigger" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
-                        </div>
-                      </ResizableTh>
-
-                      <ResizableTh
                         width={planWidths.amount}
                         onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("amount", e)}
                         className="py-3 px-4 text-right cursor-pointer hover:bg-slate-100"
@@ -663,23 +587,12 @@ function TransactionsPageContent() {
                           {fmtDate(plan.expectedDate || plan.createdAt)}
                         </td>
                         <td className="py-3 px-4 text-left font-bold text-[#1B2B4B]">
-                          {plan.incomeName || "Income Deposit"}
+                          {`Income Split - ${fmtDate(plan.expectedDate || plan.createdAt)} - ${plan.incomeName || "Income Deposit"}`}
                         </td>
                         <td className="py-3 px-4 text-left font-semibold">
                           <Link href="/dashboard/bank-accounts" className="text-[#2563eb] hover:underline">
                             {plan.receivingAccountName || "Main Account"}
                           </Link>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${
-                              plan.status === "CONFIRMED"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-blue-50 text-blue-700 border-blue-200"
-                            }`}
-                          >
-                            {plan.status === "CONFIRMED" ? "CONFIRMED" : "SAVED"}
-                          </span>
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">
                           {formatAUD(plan.totalIncomeAmount)}

@@ -28,10 +28,11 @@ export function SearchInput({
   const actualRef = inputRef || internalRef;
 
   React.useEffect(() => {
-    if (value && actualRef.current) {
+    if (value && actualRef.current && autoFocus) {
+      actualRef.current.focus();
       actualRef.current.select();
     }
-  }, []);
+  }, [value, autoFocus]);
 
   return (
     <div className={`relative flex-1 ${className}`}>

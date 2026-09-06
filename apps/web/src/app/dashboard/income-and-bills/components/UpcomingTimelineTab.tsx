@@ -364,6 +364,15 @@ export function UpcomingTimelineTab({
               Transfer
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => onOpenTransferModalWithData?.({ amount: "", date: todayStr })}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs"
+          >
+            <span>🔄</span>
+            <span>Transfer between Pools</span>
+          </button>
         </div>
       </div>
 

@@ -315,12 +315,23 @@ function IncomeAndBillsContent() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-black text-[#1B2B4B]">{t("tooltips.incomeBills.title", { defaultValue: "Income & Expenses" })}</h1>
-        <InfoTooltip
-          title={t("tooltips.incomeBills.title", { defaultValue: "Income & Expenses" })}
-          content={t("tooltips.incomeBills.content", { defaultValue: "Manage schedules and your upcoming income & expenses" })}
-        />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("tooltips.incomeBills.title", { defaultValue: "Income & Expenses" })}</h1>
+          <InfoTooltip
+            title={t("tooltips.incomeBills.title", { defaultValue: "Income & Expenses" })}
+            content={t("tooltips.incomeBills.content", { defaultValue: "Manage schedules and your upcoming income & expenses" })}
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsTransferDrawerOpen(true)}
+          className="px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+        >
+          <span>🔄</span>
+          <span>Transfer between Pools</span>
+        </button>
       </div>
 
       <Tabs

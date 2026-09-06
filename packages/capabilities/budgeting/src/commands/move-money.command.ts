@@ -60,7 +60,13 @@ export async function moveMoneyCommand(
     }
 
 
-    const note = input.note || `Transferred $${input.amount} from ${sourcePool.name} to ${destPool.name}`;
+    const cleanUserNote = input.note?.trim();
+    let note = `${sourcePool.name} ➔ ${destPool.name}`;
+    if (cleanUserNote && !cleanUserNote.includes("➔")) {
+      note = `${sourcePool.name} ➔ ${destPool.name} - ${cleanUserNote}`;
+    } else if (cleanUserNote) {
+      note = cleanUserNote;
+    }
     const timestamp = new Date();
     const commonId = randomUUID();
 

@@ -13,6 +13,7 @@ import {
   listBillCoverageQuery,
   getMonthlySummaryQuery,
   listArchivedItemsQuery,
+  getProjectedPoolBalancesQuery,
 } from "@money-matters/capability-budgeting";
 import {
   CreatePoolCommand,
@@ -138,5 +139,10 @@ export const budgetingRouter = {
     )
     .query(async ({ input, ctx }) => {
       return await getMonthlySummaryQuery(input.year, input.month, ctx.tenantId!, ctx.appId!, ctx.db);
+    }),
+
+  getProjectedPoolBalances: privateTenantProcedure
+    .query(async ({ ctx }) => {
+      return await getProjectedPoolBalancesQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 };

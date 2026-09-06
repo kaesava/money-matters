@@ -132,7 +132,19 @@ export const MoveMoneyCommand = z.object({
   destinationPoolId: z.string().uuid(),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/).refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
   note: z.string().optional(),
-}).strict();
+  targetDate: z.string().optional(),
+}).strict().superRefine((data, ctx) => {
+  if (data.targetDate) {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+    if (data.targetDate < today) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Transfers cannot be recorded for past dates.",
+        path: ["targetDate"],
+      });
+    }
+  }
+});
 
 export const OverrideEventCommand = z.object({
   eventId: z.string().uuid(),

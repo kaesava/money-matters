@@ -116,28 +116,37 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-xs pt-1 border-t border-zinc-200/60">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-zinc-200/60">
             <div>
               <span className="text-zinc-400 font-semibold block text-[11px]">Bank Account</span>
               <span className="font-bold text-zinc-700">{pool.bankAccountName || "Unlinked"}</span>
             </div>
-            <div className="text-right">
-              <span className="text-zinc-400 font-semibold block text-[11px]">
-                {pool.poolType !== "GOAL" ? "Current Balance / Monthly Target" : "Current Balance"}
+            <div>
+              <span className="text-zinc-400 font-semibold block text-[11px]">Current Balance</span>
+              <span className="font-mono font-black text-[#1B2B4B] block text-sm">
+                ${pool.currentBalance.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
-              <div className="flex items-center justify-end gap-1 font-mono font-black text-[#1B2B4B]">
-                <span>
-                  ${pool.currentBalance.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                {pool.poolType !== "GOAL" && (() => {
+            </div>
+            <div>
+              <span className="text-zinc-400 font-semibold block text-[11px]">
+                {pool.poolType === "GOAL" ? "Target Date" : "Target Amount"}
+              </span>
+              <div className="font-mono font-bold text-zinc-700 block text-xs">
+                {pool.poolType === "GOAL" ? (
+                  pool.targetDate ? (
+                    new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" }).format(new Date(pool.targetDate + "T00:00:00"))
+                  ) : (
+                    "—"
+                  )
+                ) : (() => {
                   const target = pool.poolType === "EVERYDAY"
                     ? (pool.rawPool.everydayAllowanceAmount ? parseFloat(pool.rawPool.everydayAllowanceAmount) : pool.targetAmount)
                     : pool.targetAmount;
                   return target != null && target > 0 ? (
-                    <span className="text-xs text-zinc-500 font-semibold">
-                      / ${target.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  ) : null;
+                    `$${target.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / month`
+                  ) : (
+                    "—"
+                  );
                 })()}
               </div>
             </div>

@@ -92,10 +92,38 @@ function PoolsPageContent() {
     });
   }, []);
 
+  const projectionQuery = trpc.getProjectedPoolBalances.useQuery(undefined, {
+    enabled: showProjectionMatrix,
+  });
+
+  // Target date YYYY-MM-DD for projection query matching
+  const targetDateISO = useMemo(() => {
+    if (projectionMonths <= 0.05) return null;
+    const d = new Date();
+    d.setDate(d.getDate() + Math.round(projectionMonths * 30.4375));
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
+  }, [projectionMonths]);
+
+  // Find projected column ID matching targetDateISO
+  const activeProjectionColId = useMemo(() => {
+    if (!targetDateISO || !projectionQuery.data?.columns || projectionQuery.data.columns.length === 0) return null;
+    const sortedCols = [...projectionQuery.data.columns].sort((a, b) => a.date.localeCompare(b.date));
+    let matchingCol = sortedCols[0];
+    for (const col of sortedCols) {
+      if (col.date <= targetDateISO) {
+        matchingCol = col;
+      } else {
+        break;
+      }
+    }
+    return matchingCol.id;
+  }, [targetDateISO, projectionQuery.data]);
+
   // Map raw pools + categories into table rows
   const tableRows: PoolTableRow[] = useMemo(() => {
     const rawPools = poolsQuery.data ?? [];
     const rawCategories = categoriesQuery.data ?? [];
+    const poolBalances = projectionQuery.data?.poolBalances;
 
     return rawPools.map((p) => {
       const poolCats: CategoryItem[] = rawCategories
@@ -119,12 +147,17 @@ function PoolsPageContent() {
         targetAmountNum = catSum > 0 ? catSum : (p.targetAmount ? parseFloat(p.targetAmount) : null);
       }
 
+      let currentBal = p.currentBalance || 0;
+      if (showProjectionMatrix && projectionMonths > 0.05 && activeProjectionColId && poolBalances?.[p.id]) {
+        currentBal = poolBalances[p.id][activeProjectionColId] ?? currentBal;
+      }
+
       let progressText = "—";
       let progressPercentage: number | null = null;
 
       if (p.poolType === "GOAL") {
         if (targetAmountNum && targetAmountNum > 0) {
-          const pct = Math.min(100, Math.round(((p.currentBalance || 0) / targetAmountNum) * 100));
+          const pct = Math.min(100, Math.round((currentBal / targetAmountNum) * 100));
           progressPercentage = pct;
           progressText = `${pct}%`;
         } else {
@@ -132,17 +165,15 @@ function PoolsPageContent() {
         }
       } else if (p.poolType === "REGULAR") {
         const target = targetAmountNum || 0;
-        const cur = p.currentBalance || 0;
-        if (target > 0 && cur >= target) {
+        if (target > 0 && currentBal >= target) {
           progressText = t("categories.fullyFunded");
-        } else if (cur > 0) {
+        } else if (currentBal > 0) {
           progressText = t("categories.onTrack");
         } else {
           progressText = t("categories.shortfall");
         }
       } else if (p.poolType === "EVERYDAY") {
-        const cur = p.currentBalance || 0;
-        if (cur >= 0) {
+        if (currentBal >= 0) {
           progressText = t("categories.readyToSpend");
         } else {
           progressText = t("categories.needsAttention");
@@ -157,7 +188,7 @@ function PoolsPageContent() {
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
-        currentBalance: String(p.currentBalance || "0"),
+        currentBalance: String(currentBal),
         everydayAllowanceAmount: p.everydayAllowanceAmount,
         targetAmount: p.targetAmount,
         targetDate: p.targetDate,
@@ -172,7 +203,7 @@ function PoolsPageContent() {
         bankAccountId: p.bankAccountId,
         bankAccountName: p.bankAccountName || null,
         isPrivate: p.isPrivate,
-        currentBalance: p.currentBalance || 0,
+        currentBalance: currentBal,
         targetAmount: targetAmountNum,
         targetDate: p.targetDate || null,
         categoryCount: poolCats.length,
@@ -182,7 +213,7 @@ function PoolsPageContent() {
         rawPool: rawSummaryItem,
       };
     });
-  }, [poolsQuery.data, categoriesQuery.data]);
+  }, [poolsQuery.data, categoriesQuery.data, showProjectionMatrix, projectionMonths, activeProjectionColId, projectionQuery.data]);
 
   // Filter logic: Type filter + Privacy filter + Search
   const filteredRows = useMemo(() => {
