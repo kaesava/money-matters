@@ -568,7 +568,12 @@ export const incomeRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .delete(incomeEvents)
+        .update(incomeEvents)
+        .set({
+          archivedAt: new Date(),
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
         .where(
           and(
             eq(incomeEvents.id, input.eventId),
@@ -588,7 +593,12 @@ export const incomeRouter = {
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
       await ctx.db
-        .delete(incomeEvents)
+        .update(incomeEvents)
+        .set({
+          archivedAt: new Date(),
+          updatedAt: new Date(),
+          updatedBy: ctx.userId!,
+        })
         .where(
           and(
             eq(incomeEvents.id, input.eventId),

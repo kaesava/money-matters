@@ -243,6 +243,8 @@ export function PaydayActionDrawer({
     return true;
   };
 
+  const [showConfirmWarning, setShowConfirmWarning] = useState(false);
+
   const handleSaveSplit = async () => {
     setErrorMsg("");
     if (!validateInput()) return;
@@ -286,6 +288,7 @@ export function PaydayActionDrawer({
       await utils.listIncomeEvents.invalidate();
       await utils.listPools.invalidate();
       await utils.listAllAllocationPlans.invalidate();
+      await utils.previewPayday.invalidate();
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -295,9 +298,14 @@ export function PaydayActionDrawer({
     }
   };
 
-  const handleConfirmSplit = async () => {
+  const handleConfirmSplit = () => {
     setErrorMsg("");
     if (!validateInput()) return;
+    setShowConfirmWarning(true);
+  };
+
+  const executeConfirmSplit = async () => {
+    setShowConfirmWarning(false);
     setSubmitting(true);
     try {
       if (!activeEventId) throw new Error("No active event ID");
@@ -335,10 +343,11 @@ export function PaydayActionDrawer({
         lines: payloadLines,
       });
 
-      toast.success("Income Split confirmed.");
+      toast.success(t("paydayDrawer.confirmSuccess", { defaultValue: "Income Split confirmed and pool balances updated." }));
       await utils.listIncomeEvents.invalidate();
       await utils.listPools.invalidate();
       await utils.listAllAllocationPlans.invalidate();
+      await utils.previewPayday.invalidate();
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -559,6 +568,15 @@ export function PaydayActionDrawer({
                                   ? sweepPoolRemainder.toFixed(2)
                                   : (linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2));
 
+                                const targetRaw = poolObj
+                                  ? (poolObj.poolType === "EVERYDAY"
+                                      ? (poolObj.everydayAllowanceAmount || poolObj.targetAmount)
+                                      : poolObj.targetAmount)
+                                  : null;
+                                const targetNum = targetRaw ? parseFloat(targetRaw) : 0;
+                                const targetSuffix = poolObj?.poolType === "GOAL" ? "" : "/mo";
+                                const targetStr = targetNum > 0 ? ` • ${t("paydayDrawer.targetLabel", { defaultValue: "Target:" })} ${fmt(targetNum)}${targetSuffix}` : "";
+
                                 return (
                                   <div
                                     key={l.bucketId}
@@ -571,12 +589,12 @@ export function PaydayActionDrawer({
                                         </span>
                                         {isSweepRow && (
                                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                            Auto-Surplus
+                                            {t("paydayDrawer.autoSurplusBadge", { defaultValue: "Auto-Surplus" })}
                                           </span>
                                         )}
                                       </div>
                                       <span className="text-[10px] text-zinc-400 font-mono block truncate">
-                                        {t("paydayDrawer.currentBalance", { defaultValue: "Current Balance:" })} {fmt(currentBal)}
+                                        {t("paydayDrawer.balance", { defaultValue: "Balance:" })} {fmt(currentBal)}{targetStr}
                                       </span>
                                     </div>
                                     <input
@@ -697,6 +715,16 @@ export function PaydayActionDrawer({
         description={t("paydayDrawer.discardDescription", { defaultValue: "You have unsaved Income Split edits. Are you sure you want to discard them?" })}
         confirmLabel={t("common.discard", { defaultValue: "Discard" })}
         variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={showConfirmWarning}
+        onClose={() => setShowConfirmWarning(false)}
+        onConfirm={executeConfirmSplit}
+        title={t("paydayDrawer.confirmWarningTitle", { defaultValue: "Confirm Income Split?" })}
+        description={t("paydayDrawer.confirmWarningDescription", { defaultValue: "G'day! Confirming this payday split will update your pool and bank balances immediately, and mark this income as processed. Once processed, this confirmed split cannot be changed. Ready to split your paycheck?" })}
+        confirmLabel={t("paydayDrawer.confirmWarningConfirm", { defaultValue: "Confirm & Process Payday" })}
+        variant="warning"
       />
     </div>
   );
