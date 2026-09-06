@@ -43,6 +43,7 @@ interface UpcomingTimelineTabProps {
     currentBalance: string | number;
   }[];
   initialKindFilter?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
+  initialSearchQuery?: string;
   onAllocateIncome: (eventId: string) => void;
   onMarkExpensePaid: (eventId: string, amount: string, date: string) => void;
   onSkipIncome: (eventId: string) => void;
@@ -72,6 +73,7 @@ export function UpcomingTimelineTab({
   savedIncomeEventIds,
   categories,
   initialKindFilter = "ALL",
+  initialSearchQuery = "",
   onAllocateIncome,
   onMarkExpensePaid,
   onSkipIncome,
@@ -90,7 +92,15 @@ export function UpcomingTimelineTab({
   // Filter States
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
   const [scopeFilter, setScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+
+  useEffect(() => {
+    if (initialKindFilter) setKindFilter(initialKindFilter);
+  }, [initialKindFilter]);
+
+  useEffect(() => {
+    if (typeof initialSearchQuery === "string") setSearchQuery(initialSearchQuery);
+  }, [initialSearchQuery]);
 
   // Sort State
   const [sortField, setSortField] = useState<"date" | "name" | "amount">("date");
@@ -265,6 +275,7 @@ export function UpcomingTimelineTab({
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Search events, pools, accounts, amount..."
+            autoFocus={Boolean(initialSearchQuery)}
           />
         </div>
 
@@ -544,14 +555,21 @@ export function UpcomingTimelineTab({
                           </button>
 
                           {isIncome ? (
-                            <button
-                              type="button"
-                              onClick={() => onAllocateIncome(evt.id)}
-                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1.5 py-1"
-                              title="Review and Edit Splits"
-                            >
-                              {t("common.runSplit", { defaultValue: "Run Split" })}
-                            </button>
+                            <div className="flex flex-col items-center justify-center gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() => onAllocateIncome(evt.id)}
+                                className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1.5 py-0.5"
+                                title="Review and Edit Splits"
+                              >
+                                {t("common.runSplit", { defaultValue: "Run Split" })}
+                              </button>
+                              {savedIncomeEventIds?.has(evt.id) && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
+                                  {t("matrix.saved", { defaultValue: "Saved" })}
+                                </span>
+                              )}
+                            </div>
                           ) : isTransfer ? (
                             <button
                               type="button"

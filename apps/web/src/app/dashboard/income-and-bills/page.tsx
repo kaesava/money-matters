@@ -63,9 +63,16 @@ function IncomeAndBillsContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") || "MATRIX";
   const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
+  const searchParam = searchParams.get("search") || "";
 
   const [activeTab, setActiveTab] = useState(tabParam);
   const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -685,6 +692,7 @@ function IncomeAndBillsContent() {
             isLoading={isLoading}
             savedIncomeEventIds={savedIncomeEventIds}
             initialKindFilter={typeParam === "INCOME" || typeParam === "EXPENSE" || typeParam === "TRANSFER" ? typeParam : "ALL"}
+            initialSearchQuery={searchParam}
             incomeEvents={incomeEvents.map((e) => {
               const receivingAccountId = (e as unknown as { receivingAccountId?: string }).receivingAccountId;
               const acct = bankAccounts.find((b) => b.id === receivingAccountId);
