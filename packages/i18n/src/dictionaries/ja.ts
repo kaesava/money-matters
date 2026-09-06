@@ -790,8 +790,6 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "クイック操作",
       "addExpense": "支出を記録",
       "reconcile": "残高を確認・調整",
-      "canAfford": "これ買える？",
-      "canAffordTitle": "これ買える？",
       "enterAmountPlaceholder": "金額を入力 ($)",
       "moveMoney": "お金を移動"
     },
@@ -1068,8 +1066,49 @@ export const ja: DeepStringRecord<typeof en> = {
   "reconcile": {
     "title": "銀行残高 & 照合"
   },
-  "canAfford": {
-    "title": "購入可能判定"
+  "canIAfford": {
+    "title": "これ買える？",
+    "modeOneOff": "単発",
+    "modeRecurring": "継続",
+    "freqWeekly": "毎週",
+    "freqFortnightly": "隔週",
+    "freqMonthly": "毎月",
+    "freqAnnually": "毎年",
+    "amountPlaceholder": "0.00",
+    "itemNamePlaceholder": "用途（任意）",
+    "itemNameLabel": "購入名",
+    "includePersonal": "個人プールを含める",
+    "seeBreakdown": "計算の内訳を見る",
+    "hideBreakdown": "内訳を隠す",
+    "billsBeforePayday": "給料日までの請求書",
+    "committedGoalsThisCycle": "今サイクルの確定貯蓄",
+    "netEffectiveSpendable": "本日使える実質予算",
+    "dailyPacingRemaining": "1日あたりの残額ペース",
+    "goalDelayedCommittedBadge": "必須目標",
+    "goalDelayedOptionalBadge": "任意目標",
+    "goalDelayedBy": "{days}日遅延",
+    "goalOriginalDate": "元の目標日",
+    "goalNewDate": "新しい目標日",
+    "horizonNote": "12ヶ月の収入予定に基づく推計です",
+    "horizonExceededNote": "この購入は12ヶ月の収入予測を超えています。貯蓄目標としての設定をご検討ください。",
+    "dataCompletenessNote": "今後の請求書を追加すると精度が向上します",
+    "verdictSafeYes": "はい — 余裕で購入できます",
+    "verdictPacingTight": "はい — ただし給料日までカツカツです",
+    "verdictBillsRisk": "危険 — 近い支払いにこのお金が必要です",
+    "verdictWaitForPaycycle": "まだです — {date} に購入可能になります",
+    "verdictGoalDelayed": "可能ですが、目標の達成が遅れます",
+    "verdictHardNo": "12ヶ月の予測範囲内では不可能です",
+    "verdictEmojiSafeYes": "✅",
+    "verdictEmojiPacingTight": "🟡",
+    "verdictEmojiBillsRisk": "⚠️",
+    "verdictEmojiWaitForPaycycle": "🔵",
+    "verdictEmojiGoalDelayed": "⚠️",
+    "verdictEmojiHardNo": "🔴",
+    "paycyclesAwayLabel": "あと{n}回給料日",
+    "dailyPaceLabel": "${amount}/日",
+    "shortfallLabel": "不足額: -${amount}",
+    "projectedEverydayLabel": "その時点のEveryday予測: ${amount}",
+    "recurringMonthlyImpactLabel": "${amount}/月"
   },
   "upcoming": {
     "singleOccurrenceEdit": "単発変更",
@@ -1556,9 +1595,6 @@ export const ja: DeepStringRecord<typeof en> = {
     "bankTransfer": {
       "badge": "銀行口座のアクションが必要です",
       "transferLabel": "振替"
-    },
-    "canAfford": {
-      "includePersonal": "個人プールを含める"
     }
   },
   "drawers": {

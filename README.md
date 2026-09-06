@@ -19,6 +19,7 @@ money-matters/
 │   │   ├── bug-reports/     # In-app Beta bug report persistence & diagnostic metadata capture
 │   │   ├── file-notes/      # Notes & attachments via Cloudflare R2
 │   │   ├── notifications/   # Expo push & 6 scheduled Inngest background jobs
+│   │   ├── simulation/      # Stateless "Can I Afford It?" simulation query engine & goal delay impact calculator
 │   │   ├── tenant/          # Household creation, partner invite, member removal, 12-table Zipped CSV data backup
 │   │   └── transactions/    # Ledger, Big 4 AU bank CSV statement parser, velocity check
 │   ├── config/        # Validated Zod environment configurations

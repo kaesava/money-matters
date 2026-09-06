@@ -26,7 +26,6 @@ export function useDashboardData() {
   const [quickNote, setQuickNote] = useState("");
   const [quickMsg, setQuickMsg] = useState<string | null>(null);
 
-  const [canAffordAmount, setCanAffordAmount] = useState("");
   const [reconcilingAccountId, setReconcilingAccountId] = useState<string | null>(null);
   const [reconcileActualAmount, setReconcileActualAmount] = useState("");
   const [reconcileTargetCategoryId, setReconcileTargetCategoryId] = useState("");
@@ -37,10 +36,6 @@ export function useDashboardData() {
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const canAffordQuery = trpc.canAfford.useQuery(
-    { amount: canAffordAmount },
-    { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
-  );
 
   const reconcileMutation = trpc.reconcileBankBalance.useMutation({
     onSuccess: () => {
@@ -120,8 +115,6 @@ export function useDashboardData() {
     quickNote,
     setQuickNote,
     quickMsg,
-    canAffordAmount,
-    setCanAffordAmount,
     reconcilingAccountId,
     setReconcilingAccountId,
     reconcileActualAmount,
@@ -134,7 +127,6 @@ export function useDashboardData() {
     bankAccountsQuery,
     incomeEventsQuery,
     expenseEventsQuery,
-    canAffordQuery,
     reconcileMutation,
     recordExpenseMutation,
     markPaidMutation,

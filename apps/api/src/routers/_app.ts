@@ -8,6 +8,7 @@ import { transactionsRouter } from './transactions.router.js';
 import { notificationsRouter } from './notifications.router.js';
 import { billingRouter } from './billing.router.js';
 import { transfersRouter } from './transfers.router.js';
+import { simulationRouter } from './simulation.router.js';
 
 export const appRouter = router({
   ...tenantRouter,
@@ -19,7 +20,7 @@ export const appRouter = router({
   ...notificationsRouter,
   ...billingRouter,
   ...transfersRouter,
+  ...simulationRouter,
 });
-
 
 export type AppRouter = typeof appRouter;

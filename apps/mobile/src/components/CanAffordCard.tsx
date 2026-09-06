@@ -18,7 +18,7 @@ export function CanAffordCard({
 }: CanAffordCardProps) {
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{t("dashboard.quickActions.canAffordTitle")}</Text>
+      <Text style={styles.title}>{t("canIAfford.title")}</Text>
       <TextInput
         keyboardType="decimal-pad"
         placeholder={t("dashboard.quickActions.enterAmountPlaceholder")}

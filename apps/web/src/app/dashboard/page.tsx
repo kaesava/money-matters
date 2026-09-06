@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, InfoTooltip } from "@money-matters/ui/web";
@@ -11,7 +12,6 @@ import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItem
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
 import { PaydayActionDrawer } from "../../components/web/PaydayActionDrawer";
-import { CanAffordModal } from "./components/CanAffordModal";
 import { useDashboardData } from "./hooks/useDashboardData";
 import posthog from "../../lib/posthog-client";
 
@@ -41,9 +41,6 @@ export default function DashboardPage() {
     recordExpenseMutation,
     skipUpcomingExpenseMutation,
     updateUpcomingExpenseMutation,
-    canAffordAmount,
-    setCanAffordAmount,
-    canAffordQuery,
     paydayPreviewEventId,
     setPaydayPreviewEventId,
   } = useDashboardData();
@@ -156,7 +153,6 @@ export default function DashboardPage() {
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
   const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
-  const [isCanAffordModalOpen, setIsCanAffordModalOpen] = useState(false);
 
   const upcomingBillsList = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === "PENDING")
@@ -222,13 +218,12 @@ export default function DashboardPage() {
             <span>💸 Move Money</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setIsCanAffordModalOpen(true)}
+          <Link
+            href="/dashboard/afford-check"
             className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <span>🤔 Can I Afford It?</span>
-          </button>
+            <span>🤔 {t("canIAfford.title")}</span>
+          </Link>
         </div>
       </div>
 
@@ -314,16 +309,6 @@ export default function DashboardPage() {
             poolsQuery.refetch();
           }}
           initialTab="TRANSFER"
-        />
-      )}
-
-      {isCanAffordModalOpen && (
-        <CanAffordModal
-          isOpen={isCanAffordModalOpen}
-          onClose={() => setIsCanAffordModalOpen(false)}
-          canAffordAmount={canAffordAmount}
-          setCanAffordAmount={setCanAffordAmount}
-          canAffordData={canAffordQuery.data}
         />
       )}
     </div>

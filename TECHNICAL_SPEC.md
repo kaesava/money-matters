@@ -45,7 +45,8 @@ money-matters/
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD, bank balance reconciliation
 │   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), immutable pool-bank linking, unbudgeted buffer validation, 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, payday allocation revert ledger reversals, cascading pool archival, last-category guard
-│   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), canAfford calculator using getPoolBalancesMap
+│   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), spending velocity
+│   │   ├── simulation/      # Stateless "Can I Afford It?" engine with 6-verdict cumulative waterfall simulation & goal timeline impact analysis
 │   │   ├── notifications/   # Expo push + scheduled weekly digest Inngest workflow
 │   │   ├── file-notes/      # Notes, comments, attachments via Cloudflare R2
 

@@ -3,7 +3,6 @@ import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
 import { tenants } from "@money-matters/db";
 import { eq } from "drizzle-orm";
-import { canAffordSimulationQuery } from "@money-matters/capability-simulation";
 import {
   recordExpenseCommand,
   listTransactionsQuery,
@@ -21,7 +20,6 @@ import {
   RecordExpenseCommand,
   ListTransactionsQuery,
   ListCategoryTransactionsQuery,
-  CanAffordQuery,
   CommitCsvImportCommand,
 } from "@money-matters/types";
 
@@ -75,12 +73,6 @@ export const transactionsRouter = {
     .input(ListCategoryTransactionsQuery)
     .query(async ({ input, ctx }) => {
       return await listCategoryTransactionsQuery(input.categoryId || "", ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db);
-    }),
-
-  canAfford: privateTenantProcedure
-    .input(CanAffordQuery)
-    .query(async ({ input, ctx }) => {
-      return await canAffordSimulationQuery(input, ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
     }),
 
   parseCsv: privateTenantProcedure
