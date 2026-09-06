@@ -205,17 +205,18 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 - **Unfunded Bill Shortfall Protection**: Queries `expenseEvents` where `status = 'PENDING'` and `expectedDate <= nextPaycheckDate`. Evaluates bills per REGULAR pool against pool balance to compute unfunded shortfall (`unfundedBillsShortfall`), preserving Everyday cash for bills that are already funded in their respective pools (`effectiveSpendable = max(0, everydayBalance - unfundedBillsShortfall)`).
 - **Dynamic Pacing Safety Buffer**: Computes `dailyPacingAfterSpend = (effectiveSpendable - amount) / daysUntilPayday`. Ensures daily discretionary allowance meets recommended daily safety buffer (`25%` of `everydayAllowanceAmount / 30`, fallback `$15.00`/day). Triggers `PACING_TIGHT` if pacing drops below buffer.
 - **RECURRING Commitment Simulation**:
-  - **Day-1 Immediate Liquidity Check**: Validates upfront payment availability before running 12-month projections (`BILLS_RISK`, `PACING_TIGHT`, or `HARD_NO`).
-  - **Phantom Expense Injection**: Injects 52 weekly, 26 fortnightly, 12 monthly, or 1 annual phantom expense events into `cumExpenses` across the 12-month horizon to measure true ongoing cashflow drain.
+  - **Day-1 Immediate Liquidity Check**: Validates upfront payment availability today (`BILLS_RISK` or `PACING_TIGHT`). If Day-1 cash is insufficient, evaluates the 12-month forecast horizon; if long-term affordable, returns `WAIT_FOR_PAYCYCLE` starting next payday instead of immediate `HARD_NO`.
+  - **Calendar-Matched Phantom Expense Injection**: Injects 52 weekly, 26 fortnightly, 12 monthly (using calendar month addition), or 1 annual phantom expense events into `cumExpenses` across the 12-month horizon to eliminate date drift.
+  - **Phantom Bucket Deficit Check (`HARD_NO`)**: Verifies `phantomFinalBalance >= -1`. Rejects commitments where projected 12-month income is insufficient to fund the recurring expense, preventing silent phantom bucket deficits.
   - **Goal Delay Impact Calculation (`GOAL_DELAYED`)**: Projects balance drops across committed savings targets and flexible goals.
-  - **Everyday Starvation Detection (`HARD_NO`)**: Compares 12-month total allocated Everyday cash against required living allowances. Rejects commitments that starve basic daily living needs even when no savings goals exist.
+  - **Everyday Starvation Detection (`HARD_NO`)**: Evaluates `balancesAfterExpenses` across Everyday pools at every step of the 12-month projection. Rejects commitments that cause Everyday cash to drop below `$0.00` on any step.
 - **6-Branch Discriminated Union Matrix (`CanAffordVerdictDto`)**:
   - `SAFE_YES`: Cash available + comfortable daily safety buffer.
   - `PACING_TIGHT`: Cash available, but tight daily spending pace.
   - `BILLS_RISK`: Raw balance sufficient, but unfunded upcoming bills consume the safety buffer.
-  - `WAIT_FOR_PAYCYCLE`: Future paycycle accumulates sufficient Everyday balance after daily living expenses.
+  - `WAIT_FOR_PAYCYCLE`: Future paycycle accumulates sufficient Everyday balance (leaving enough surplus after purchase to maintain the daily safety buffer).
   - `GOAL_DELAYED`: Recurring item is affordable but delays savings goal target dates.
-  - `HARD_NO`: Purchase exhausts 12-month forecast horizon or starves daily living allowance.
+  - `HARD_NO`: Purchase exhausts 12-month forecast horizon, creates a forecasted deficit, or starves daily living allowance.
 - **Human-Centric Trust Copy**: All rationale step messages use clear, jargon-free financial phrasing (`recommended daily safety buffer`, `added to your 12-month budget forecast`, `committed savings target`).
 
 ### 5.7 Stripe Billing & 7-Day Read-Only Grace Period (`@money-matters/capability-billing`)

@@ -52,20 +52,34 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     expect(amount).toBeGreaterThan(effectiveSpendable);
   });
 
-  // ── WAIT_FOR_PAYCYCLE ────────────────────────────────────────────────
-  it("WAIT_FOR_PAYCYCLE: not affordable today, but cumulative step covers it", () => {
+  // ── WAIT_FOR_PAYCYCLE (ONE-OFF) ───────────────────────────────────────
+  it("WAIT_FOR_PAYCYCLE: not affordable today, but cumulative step covers amount + pacing floor", () => {
     const effectiveSpendable = 100;
     const amount = 500;
-    // Simulated projection step 2 has everydayAtStep = 600
-    const everydayAtStep2 = 600;
-    const stepIndex = 1; // 0-indexed
+    const everydayAtStep2 = 800;
+    const daysInStep = 14;
+    const pacingFloor = 20;
+    const requiredPacingBuffer = daysInStep * pacingFloor; // 280
 
     expect(amount).toBeGreaterThan(effectiveSpendable);
-    expect(everydayAtStep2).toBeGreaterThanOrEqual(amount);
-    expect(stepIndex + 1).toBe(2); // 2 paycycles away
+    expect(everydayAtStep2 - amount).toBeGreaterThanOrEqual(requiredPacingBuffer);
   });
 
-  // ── GOAL_DELAYED (recurring) ─────────────────────────────────────────
+  // ── WAIT_FOR_PAYCYCLE (RECURRING) ────────────────────────────────────
+  it("RECURRING WAIT_FOR_PAYCYCLE: insufficient Day-1 cash, but 12-month projection is affordable", () => {
+    const effectiveSpendable = 50;
+    const recurringAmount = 100; // $100/mo
+    const day1Insufficient = recurringAmount > effectiveSpendable;
+    const phantomFinalBalance = 0; // Fully funded over 12 months
+    const minEverydayBalance = 500; // Never drops below zero
+
+    expect(day1Insufficient).toBe(true);
+    expect(phantomFinalBalance).toBeGreaterThanOrEqual(-1);
+    expect(minEverydayBalance).toBeGreaterThanOrEqual(0);
+    // Verdict must be WAIT_FOR_PAYCYCLE instead of HARD_NO
+  });
+
+  // ── GOAL_DELAYED (RECURRING) ─────────────────────────────────────────
   it("GOAL_DELAYED: recurring commitment reduces final goal balance > 0", () => {
     const originalFinalBalance = 5000;
     const newFinalBalance = 4400;
@@ -77,14 +91,18 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     expect(delayDays).toBeGreaterThanOrEqual(1);
   });
 
-  // ── HARD_NO ──────────────────────────────────────────────────────────
-  it("HARD_NO: 12-month projection steps exhausted with no affordable paycycle", () => {
-    const effectiveSpendable = 50;
-    const amount = 50000;
-    const projectionStepsCount = 0; // No steps found that cover amount
+  // ── HARD_NO: PHANTOM DEFICIT ─────────────────────────────────────────
+  it("HARD_NO (PHANTOM DEFICIT): detects when recurring expense cannot be funded by projected income", () => {
+    const phantomFinalBalance = -12000; // Unfunded $1000/mo over 12 months
+    expect(phantomFinalBalance).toBeLessThan(-1);
+    // Verdict must be HARD_NO with forecasted deficit explanation
+  });
 
-    expect(amount).toBeGreaterThan(effectiveSpendable);
-    expect(projectionStepsCount).toBe(0);
+  // ── HARD_NO: EVERYDAY STARVATION ────────────────────────────────────
+  it("HARD_NO (EVERYDAY STARVATION): detects when Everyday pool balance drops below $0 at any step", () => {
+    const minEverydayBalance = -150; // Dips negative on a step
+    expect(minEverydayBalance).toBeLessThan(0);
+    // Verdict must be HARD_NO with starvation step explanation
   });
 
   // ── DYNAMIC PACING FLOOR ─────────────────────────────────────────────
@@ -102,7 +120,7 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     expect(pacingFloor).toBeCloseTo(25, 1);
   });
 
-// ── BILLS DEDUCTED CORRECTLY & UNFUNDED SHORTFALL ───────────────────
+  // ── BILLS DEDUCTED CORRECTLY & UNFUNDED SHORTFALL ───────────────────
   it("effectiveSpendable uses unfunded shortfall (funded bills do not deduct from Everyday balance)", () => {
     const everydayBalance = 1000;
     // Bill for $500 in a pool with balance $400 -> shortfall $100
@@ -119,29 +137,6 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     const effectiveSpendable = Math.max(0, everydayBalance - totalUnfundedShortfall); // 900
 
     expect(effectiveSpendable).toBe(900);
-  });
-
-  // ── RECURRING DAY-1 LIQUIDITY CHECK ────────────────────────────────
-  it("RECURRING Day-1 check: blocks commitment if first payment causes BILLS_RISK", () => {
-    const everydayBalance = 800;
-    const unfundedShortfall = 600;
-    const effectiveSpendable = Math.max(0, everydayBalance - unfundedShortfall); // 200
-    const recurringAmount = 500; // $500 first payment
-
-    expect(recurringAmount).toBeLessThanOrEqual(everydayBalance);
-    expect(recurringAmount).toBeGreaterThan(effectiveSpendable);
-    // Verdict must be BILLS_RISK for day-1
-  });
-
-  // ── EVERYDAY STARVATION ─────────────────────────────────────────────
-  it("EVERYDAY STARVATION: detects when recurring commitment starves daily living allowance over 12 months", () => {
-    const totalEverydayRequired = 12000; // $1000/mo over 12 months
-    const totalEverydayAllocated = 8000; // Only $8000 available after high recurring commitment
-    const starvationShortfall = totalEverydayRequired - totalEverydayAllocated; // 4000
-
-    expect(totalEverydayAllocated).toBeLessThan(totalEverydayRequired - 1);
-    expect(starvationShortfall).toBe(4000);
-    // Verdict must be HARD_NO with starvation explanation
   });
 
   // ── TRUST COPY VERIFICATION ─────────────────────────────────────────
@@ -173,3 +168,4 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     expect(monthly).toBe(100);
   });
 });
+

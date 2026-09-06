@@ -281,8 +281,9 @@ export async function canAffordSimulationQuery(
   // ── 8. RECURRING MODE ─────────────────────────────────────────────────
   if (mode === "RECURRING") {
     const monthlyAmount = toMonthlyAmount(amount, frequency);
+    let day1Insufficient = false;
 
-    // --- Day-1 Immediate Liquidity Check ---
+    // --- Day-1 Immediate Liquidity Check (starting today) ---
     if (amount <= everydayBalance && amount > effectiveSpendable) {
       const billsDueItems = billsDueBeforePayday.map((e) => ({
         name: e.name,
@@ -328,18 +329,9 @@ export async function canAffordSimulationQuery(
         };
       }
     } else {
-      // amount > effectiveSpendable and amount > everydayBalance
-      const shortfall = Math.max(0, amount - effectiveSpendable);
-      return {
-        verdict: "HARD_NO",
-        shortfall: shortfall.toFixed(2),
-        horizonMonths: 12,
-        rationaleSteps: [
-          `Recurring ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo).`,
-          `Everyday balance: $${everydayBalance.toFixed(2)}. Net safe-to-spend today: $${effectiveSpendable.toFixed(2)}.`,
-          `Insufficient cash today to cover the initial payment of $${amount.toFixed(2)} (shortfall: -$${shortfall.toFixed(2)}).`,
-        ],
-      };
+      // Net safe-to-spend today is insufficient for the first payment.
+      // We flag this, but evaluate the 12-month projection to see if they can afford it starting next payday!
+      day1Insufficient = true;
     }
 
     // --- 12-Month Projection Setup ---
@@ -365,26 +357,29 @@ export async function canAffordSimulationQuery(
       status: e.status as "PENDING" | "CONFIRMED",
     }));
 
-    // Inject frequency-matched phantom expense events over 12-month horizon
+    // Inject calendar-matched phantom expense events over 12-month horizon
     const phantomExpenses: CumulativeProjectionExpenseEvent[] = [];
-    let intervalDays = 30;
     let count = 12;
-    if (frequency === "WEEKLY") {
-      intervalDays = 7;
-      count = 52;
-    } else if (frequency === "FORTNIGHTLY") {
-      intervalDays = 14;
-      count = 26;
-    } else if (frequency === "MONTHLY") {
-      intervalDays = 30;
-      count = 12;
-    } else if (frequency === "ANNUALLY") {
-      intervalDays = 365;
-      count = 1;
-    }
+    if (frequency === "WEEKLY") count = 52;
+    else if (frequency === "FORTNIGHTLY") count = 26;
+    else if (frequency === "MONTHLY") count = 12;
+    else if (frequency === "ANNUALLY") count = 1;
 
     for (let k = 0; k < count; k++) {
-      const d = new Date(today.getTime() + k * intervalDays * 24 * 60 * 60 * 1000);
+      let d: Date;
+      if (frequency === "MONTHLY") {
+        d = new Date(today);
+        d.setMonth(d.getMonth() + k);
+      } else if (frequency === "ANNUALLY") {
+        d = new Date(today);
+        d.setFullYear(d.getFullYear() + k);
+      } else if (frequency === "WEEKLY") {
+        d = new Date(today.getTime() + k * 7 * 24 * 60 * 60 * 1000);
+      } else {
+        // FORTNIGHTLY
+        d = new Date(today.getTime() + k * 14 * 24 * 60 * 60 * 1000);
+      }
+
       phantomExpenses.push({
         poolId: phantomBucket.id,
         amount,
@@ -417,6 +412,52 @@ export async function canAffordSimulationQuery(
       expenseEvents: [...baseExpenses, ...phantomExpenses],
     });
 
+    // --- CHECK 1: PHANTOM BUCKET DEFICIT ("The Silent Killer") ---
+    const phantomFinalBal = projectionWith.finalBalances.get(phantomBucket.id) ?? 0;
+    if (phantomFinalBal < -1) {
+      const totalDeficit = Math.abs(phantomFinalBal);
+      return {
+        verdict: "HARD_NO",
+        shortfall: totalDeficit.toFixed(2),
+        horizonMonths: 12,
+        rationaleSteps: [
+          `Over a 12-month budget forecast, your projected income is insufficient to cover this ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo).`,
+          `Forecasted deficit: -$${totalDeficit.toFixed(2)}.`,
+          `Consider reviewing your income schedule or reducing existing commitments before adding this recurring expense.`,
+        ],
+      };
+    }
+
+    // --- CHECK 2: EVERYDAY STARVATION (Everyday pool balance drops below $0 at any step) ---
+    const everydayPoolIds = new Set(everydayPools.map((p) => p.id));
+    let minEverydayBalance = Infinity;
+    let starvationStepDate = "";
+
+    for (const step of projectionWith.steps) {
+      let everydayAtStep = 0;
+      for (const poolId of everydayPoolIds) {
+        everydayAtStep += step.balancesAfterExpenses.get(poolId) ?? 0;
+      }
+      if (everydayAtStep < minEverydayBalance) {
+        minEverydayBalance = everydayAtStep;
+        starvationStepDate = step.date;
+      }
+    }
+
+    if (minEverydayBalance < 0) {
+      const deficit = Math.abs(minEverydayBalance);
+      return {
+        verdict: "HARD_NO",
+        shortfall: deficit.toFixed(2),
+        horizonMonths: 12,
+        rationaleSteps: [
+          `Over a 12-month budget forecast, this ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo) would cause your Everyday balance to drop below $0.00 (projected balance on ${starvationStepDate}: -$${deficit.toFixed(2)}).`,
+          `This commitment starves your essential daily spending allowance.`,
+        ],
+      };
+    }
+
+    // --- CHECK 3: GOAL DELAYS ---
     const goalDelays: Array<{
       goalId: string;
       goalName: string;
@@ -471,36 +512,19 @@ export async function canAffordSimulationQuery(
       };
     }
 
-    // --- Check 12-Month Everyday Starvation ---
-    const everydayPoolIds = new Set(everydayPools.map((p) => p.id));
-    let totalEverydayAllocated = 0;
-    let totalEverydayRequired = 0;
-
-    for (let i = 0; i < projectionWith.steps.length; i++) {
-      const step = projectionWith.steps[i];
-      for (const poolId of everydayPoolIds) {
-        totalEverydayAllocated += step.allocations.get(poolId)?.proposedAmount ?? 0;
-      }
-
-      let daysInStep = 30;
-      if (i < projectionWith.steps.length - 1) {
-        const tCurr = new Date(step.date + "T00:00:00").getTime();
-        const tNext = new Date(projectionWith.steps[i + 1].date + "T00:00:00").getTime();
-        daysInStep = Math.max(1, Math.round((tNext - tCurr) / (1000 * 60 * 60 * 24)));
-      }
-      totalEverydayRequired += dailyAllowance * daysInStep;
-    }
-
-    if (dailyAllowance > 0 && totalEverydayAllocated < totalEverydayRequired - 1) {
-      const starvationShortfall = totalEverydayRequired - totalEverydayAllocated;
+    // If day 1 cash was insufficient, but 12-month projection proves it's affordable long-term
+    if (day1Insufficient) {
+      const shortfallToday = Math.max(0, amount - effectiveSpendable);
       return {
-        verdict: "HARD_NO",
-        shortfall: starvationShortfall.toFixed(2),
-        horizonMonths: 12,
+        verdict: "WAIT_FOR_PAYCYCLE",
+        canAffordAt: nextPaycheckDateStr,
+        paycyclesAway: 1,
+        projectedEverydayAtThatDate: everydayBalance.toFixed(2),
+        shortfallToday: shortfallToday.toFixed(2),
         rationaleSteps: [
-          `Over a 12-month budget forecast, this ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo) leaves you without enough cash to meet your daily living allowance.`,
-          `Expected daily living expenses: $${totalEverydayRequired.toFixed(2)}. Projected income allocated for daily living: $${totalEverydayAllocated.toFixed(2)}.`,
-          `Forecast deficit: -$${starvationShortfall.toFixed(2)}.`,
+          `Recurring ${frequency.toLowerCase()} commitment of $${amount.toFixed(2)} ($${monthlyAmount.toFixed(2)}/mo).`,
+          `Net safe-to-spend today ($${effectiveSpendable.toFixed(2)}) is insufficient for the initial payment of $${amount.toFixed(2)} (shortfall: -$${shortfallToday.toFixed(2)}).`,
+          `Your 12-month budget forecast shows this commitment is fully affordable long-term without impacting your goals. Start this commitment after your next payday (${nextPaycheckDateStr}).`,
         ],
       };
     }
@@ -622,7 +646,15 @@ export async function canAffordSimulationQuery(
       everydayAtStep += step.balancesAfterExpenses.get(poolId) ?? 0;
     }
 
-    if (everydayAtStep >= amount) {
+    let daysInStep = 14;
+    if (i < projection.steps.length - 1) {
+      const tCurr = new Date(step.date + "T00:00:00").getTime();
+      const tNext = new Date(projection.steps[i + 1].date + "T00:00:00").getTime();
+      daysInStep = Math.max(1, Math.round((tNext - tCurr) / (1000 * 60 * 60 * 24)));
+    }
+    const requiredPacingBuffer = daysInStep * pacingFloor;
+
+    if (everydayAtStep - amount >= requiredPacingBuffer) {
       const paycyclesAway = i + 1;
       const ordinal = ordinals[i] ?? "th";
       return {
@@ -634,7 +666,7 @@ export async function canAffordSimulationQuery(
         rationaleSteps: [
           `Current Everyday balance: $${everydayBalance.toFixed(2)}. Safe-to-spend after bills: $${effectiveSpendable.toFixed(2)}.`,
           `Shortfall today: -$${Math.max(0, amount - effectiveSpendable).toFixed(2)}`,
-          `By your ${paycyclesAway === 1 ? "next" : `${paycyclesAway}${ordinal}`} paycycle (${step.date}), your Everyday balance will reach ~$${everydayAtStep.toFixed(2)} after covering your expected daily living expenses.`,
+          `By your ${paycyclesAway === 1 ? "next" : `${paycyclesAway}${ordinal}`} paycycle (${step.date}), your Everyday balance will reach ~$${everydayAtStep.toFixed(2)}, leaving enough surplus after purchase ($${(everydayAtStep - amount).toFixed(2)}) to maintain your recommended daily safety buffer ($${pacingFloor.toFixed(2)}/day).`,
         ],
       };
     }
