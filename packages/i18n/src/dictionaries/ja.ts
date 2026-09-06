@@ -31,6 +31,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "joinOrInvite": "+ パートナーを招待・参加"
   },
   "common": {
+    "amount": "金額 ($)",
+    "date": "支払日",
     "save": "保存",
     "saving": "保存中...",
     "cancel": "キャンセル",
@@ -1057,7 +1059,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "fortnightly": "隔週",
     "monthly": "毎月",
     "firstDate": "初回日付",
-    "eventDate": "イベント日付"
+    "eventDate": "イベント日付",
+    "oneOffNotice": "単発項目は定期スケジュールを作成せず、今後の予定タイムラインに直接表示されます。"
   },
   "location": {
     "selectState": "州を選択...",
@@ -1330,7 +1333,8 @@ export const ja: DeepStringRecord<typeof en> = {
       "categoryPlaceholder": "タップしてカテゴリーを選択",
       "dateLabel": "日付 (YYYY-MM-DD)",
       "amountPlaceholder": "0.00",
-      "submit": "支出を記録"
+      "submit": "支出を記録",
+      "runPaydayAllocation": "この給与日の自動分配を実行"
     },
     "upcomingExpense": {
       "title": "予定の編集",
@@ -1471,7 +1475,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "pageUrl": "ページルート",
     "deviceInfo": "デバイス / OS情報",
     "contactConsentLabel": "このチケットに関する進捗と控えをメールで受け取る",
-    "ticketRef": "チケット番号: #BUG-{{ref}}",
+    "ticketRef": "チケット番号: #BUG-{ref}",
     "submitBtn": "フィードバックを送信",
     "submitting": "送信中...",
     "successMsg": "フィードバックを送信しました！",
@@ -1553,16 +1557,17 @@ export const ja: DeepStringRecord<typeof en> = {
     "setupSources": "設定",
     "showFullHorizon": "全12ヶ月を表示",
     "showNext10Paydays": "次の10回の給与日を表示",
-    "projectedBalanceAt": "{{date}} 時点の予測残高",
+    "projectedBalanceAt": "{date} 時点の予測残高",
     "timelineSliderLabel": "タイムライン予測スライダー",
     "insufficientModalTitle": "プール残高不足",
-    "insufficientModalMessage": "支出 {{billName}} は {{poolType}} プール {{poolName}} の残高が {{amount}} 不足しているため支払えません。十分な残高を確保するために振替元のプールを選択してください。",
+    "markPaidModalTitle": "支出を支払済みにマーク",
+    "insufficientModalMessage": "支出 {billName} は {poolType} プール \"{poolName}\" の残高が {amount} 不足しているため支払えません。十分な残高を確保するために振替元のプールを選択してください。",
     "fundingSourceSelectLabel": "不足分を補填する資金源を選択:",
     "surplusBufferLabel": "余剰バッファー（推奨）",
     "confirmTransferAndPay": "振替を確認して支払済みにする",
     "hiddenZeroBalanceNote": "残高が$0のプールは非表示になっています。",
     "confirmMarkPaidTitle": "支払済みの確認",
-    "confirmMarkPaidDesc": "{{name}} ({{amount}}) を支払済みにマークしてもよろしいですか？これによりプールの残高が引き落とされます。",
+    "confirmMarkPaidDesc": "{name} ({amount}) を支払済みにマークしてもよろしいですか？これによりプールの残高が引き落とされます。",
     "drawerTitle": "カテゴリの予定支出",
     "overrideBadge": "手動変更",
     "projectionWarningTooltip": "警告: 次の給料日までに資金不足が発生する可能性があります。"
@@ -1613,7 +1618,13 @@ export const ja: DeepStringRecord<typeof en> = {
       "transferName": "振替名",
       "category": "カテゴリ",
       "defaultEverydayAccount": "デフォルト日常口座",
-      "scheduledPaydayWaterfall": "給料日ウォーターフォールにスケジュール済み"
+      "scheduledPaydayWaterfall": "給料日ウォーターフォールにスケジュール済み",
+      "validAmountError": "有効な金額を入力してください。",
+      "nameRequired": "名前を入力してください。",
+      "poolsRequired": "送金元プールと送金先プールの両方が必要です。",
+      "poolsDifferent": "送金元と送金先のプールは異なる必要があります。",
+      "pastDateError": "過去の日付で振替を行うことはできません。",
+      "poolSelectionRequired": "プールを選択してください。"
     }
   },
   "frequencies": {

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { EventItem } from "./BurstModal";
-import { InsufficientFundsModal, ShortfallTransferItem } from "./InsufficientFundsModal";
+import { MarkPaidModal, ShortfallTransferItem } from "./MarkPaidModal";
 import {
   PaginationBar,
   SearchInput,
@@ -89,16 +89,15 @@ export function UpcomingTimelineTab({
   onSkipIncome,
   onSkipExpense,
   onSkipTransfer,
-  onExecuteTransfer,
+  onExecuteTransfer: _onExecuteTransfer,
   onConfirmTransferAndPay,
-  onOpenTransferModalWithData,
+  onOpenTransferModalWithData: _onOpenTransferModalWithData,
 }: UpcomingTimelineTabProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
   const revertPlanMut = trpc.revertAllocationPlan.useMutation();
   const todayStr = useMemo(() => getTenantDateString(new Date()), []);
   const [incomeToUnsaveId, setIncomeToUnsaveId] = useState<string | null>(null);
-  const [markPaidConfirmEvent, setMarkPaidConfirmEvent] = useState<TimelineEventItem | null>(null);
 
   // Filter States
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
@@ -129,28 +128,7 @@ export function UpcomingTimelineTab({
   });
 
   const [eventToDelete, setEventToDelete] = useState<{ id: string; kind: "INCOME" | "EXPENSE" | "TRANSFER" } | null>(null);
-
-  const [insufficientModalState, setInsufficientModalState] = useState<{
-    isOpen: boolean;
-    eventId: string;
-    billName: string;
-    poolName?: string;
-    poolType?: string;
-    amount: string;
-    date: string;
-    shortfall: number;
-    destinationCategoryId: string;
-  }>({
-    isOpen: false,
-    eventId: "",
-    billName: "",
-    poolName: "Pool",
-    poolType: "EVERYDAY",
-    amount: "0.00",
-    date: "",
-    shortfall: 0,
-    destinationCategoryId: "",
-  });
+  const [markPaidModalEvent, setMarkPaidModalEvent] = useState<TimelineEventItem | null>(null);
 
   const handleSort = (field: "date" | "name" | "amount") => {
     if (sortField === field) {
@@ -221,34 +199,7 @@ export function UpcomingTimelineTab({
   const totalPages = Math.max(1, Math.ceil(filteredTimeline.length / pageSize));
 
   const handleExpenseMarkPaidClick = (evt: TimelineEventItem) => {
-    const amt = parseFloat(evt.expectedAmount || "0");
-    const effectivePoolId =
-      evt.sourcePoolId ||
-      categories.find((c) => c.id === evt.categoryId)?.poolId ||
-      evt.categoryId;
-    const targetPool = pools.find((p) => p.id === effectivePoolId);
-    const currBalance = targetPool
-      ? typeof targetPool.currentBalance === "string"
-        ? parseFloat(targetPool.currentBalance || "0")
-        : (targetPool.currentBalance ?? 0)
-      : 0;
-
-    if (amt > currBalance) {
-      const shortfall = amt - currBalance;
-      setInsufficientModalState({
-        isOpen: true,
-        eventId: evt.id,
-        billName: evt.name || "Bill",
-        poolName: targetPool?.name || "Pool",
-        poolType: (targetPool as { poolType?: string })?.poolType || "EVERYDAY",
-        amount: evt.expectedAmount,
-        date: evt.expectedDate,
-        shortfall,
-        destinationCategoryId: effectivePoolId || "",
-      });
-    } else {
-      setMarkPaidConfirmEvent(evt);
-    }
+    setMarkPaidModalEvent(evt);
   };
 
   const handleTransferClick = async (evt: TimelineEventItem) => {
@@ -257,8 +208,8 @@ export function UpcomingTimelineTab({
     const srcBalance = typeof srcCat?.currentBalance === "string" ? parseFloat(srcCat.currentBalance || "0") : (srcCat?.currentBalance ?? 0);
 
     if (amt > srcBalance) {
-      if (onOpenTransferModalWithData) {
-        onOpenTransferModalWithData({
+      if (_onOpenTransferModalWithData) {
+        _onOpenTransferModalWithData({
           sourcePoolId: evt.sourcePoolId || undefined,
           destinationPoolId: evt.destinationPoolId || undefined,
           amount: evt.expectedAmount,
@@ -266,8 +217,8 @@ export function UpcomingTimelineTab({
         });
       }
     } else {
-      if (onExecuteTransfer) {
-        await onExecuteTransfer(
+      if (_onExecuteTransfer) {
+        await _onExecuteTransfer(
           evt.id,
           evt.expectedAmount,
           evt.expectedDate,
@@ -276,18 +227,6 @@ export function UpcomingTimelineTab({
         );
       }
     }
-  };
-
-  const handleConfirmShortfallTransfer = async (transfers: ShortfallTransferItem[]) => {
-    await onConfirmTransferAndPay(
-      transfers,
-      insufficientModalState.destinationCategoryId
-    );
-    onMarkExpensePaid(
-      insufficientModalState.eventId,
-      insufficientModalState.amount,
-      insufficientModalState.date
-    );
   };
 
   return (
@@ -634,46 +573,7 @@ export function UpcomingTimelineTab({
         </div>
       )}
 
-      {/* Operational Shortfall Resolution Modal */}
-      <InsufficientFundsModal
-        isOpen={insufficientModalState.isOpen}
-        onClose={() => setInsufficientModalState((prev) => ({ ...prev, isOpen: false }))}
-        billName={insufficientModalState.billName}
-        poolName={insufficientModalState.poolName}
-        poolType={insufficientModalState.poolType}
-        shortfallAmount={insufficientModalState.shortfall}
-        availableCategories={pools.map((p) => ({
-          ...p,
-          currentBalance:
-            typeof p.currentBalance === "string"
-              ? parseFloat(p.currentBalance || "0")
-              : (p.currentBalance ?? 0),
-        }))}
-        onConfirmTransferAndPay={handleConfirmShortfallTransfer}
-      />
-
-      <ConfirmDialog
-        isOpen={!!markPaidConfirmEvent}
-        onClose={() => setMarkPaidConfirmEvent(null)}
-        onConfirm={() => {
-          if (markPaidConfirmEvent) {
-            onMarkExpensePaid(
-              markPaidConfirmEvent.id,
-              markPaidConfirmEvent.expectedAmount,
-              markPaidConfirmEvent.expectedDate
-            );
-            setMarkPaidConfirmEvent(null);
-          }
-        }}
-        title={t("incomeBillsTabs.confirmMarkPaidTitle", { defaultValue: "Confirm Mark Paid" })}
-        description={t("incomeBillsTabs.confirmMarkPaidDesc", {
-          name: markPaidConfirmEvent?.name || "Expense",
-          amount: markPaidConfirmEvent?.expectedAmount ? `$${parseFloat(markPaidConfirmEvent.expectedAmount).toFixed(2)}` : "$0.00",
-          defaultValue: `Are you sure you want to mark ${markPaidConfirmEvent?.name || "Expense"} as paid? This will draw down the pool balance.`,
-        })}
-        confirmLabel={t("actions.markPaid", { defaultValue: "Mark Paid" })}
-        variant="primary"
-      />
+      {/* Delete Event Confirmation */}
 
       <ConfirmDialog
         isOpen={!!eventToDelete}
@@ -728,6 +628,60 @@ export function UpcomingTimelineTab({
         confirmLabel={t("common.unsave", { defaultValue: "Unsave" })}
         variant="danger"
       />
+      {markPaidModalEvent && (
+        <MarkPaidModal
+          isOpen={Boolean(markPaidModalEvent)}
+          onClose={() => setMarkPaidModalEvent(null)}
+          billName={markPaidModalEvent.name || "Expense"}
+          poolId={
+            markPaidModalEvent.sourcePoolId ||
+            categories.find((c) => c.id === markPaidModalEvent.categoryId)?.poolId ||
+            markPaidModalEvent.categoryId ||
+            ""
+          }
+          poolName={
+            pools.find(
+              (p) =>
+                p.id ===
+                (markPaidModalEvent.sourcePoolId ||
+                  categories.find((c) => c.id === markPaidModalEvent.categoryId)?.poolId ||
+                  markPaidModalEvent.categoryId)
+            )?.name
+          }
+          poolType={
+            (
+              pools.find(
+                (p) =>
+                  p.id ===
+                  (markPaidModalEvent.sourcePoolId ||
+                    categories.find((c) => c.id === markPaidModalEvent.categoryId)?.poolId ||
+                    markPaidModalEvent.categoryId)
+              ) as { poolType?: string }
+            )?.poolType
+          }
+          initialAmount={markPaidModalEvent.expectedAmount || "0"}
+          initialDate={markPaidModalEvent.expectedDate}
+          availableCategories={pools.map((p) => ({
+            ...p,
+            currentBalance:
+              typeof p.currentBalance === "string"
+                ? parseFloat(p.currentBalance || "0")
+                : (p.currentBalance ?? 0),
+          }))}
+          onConfirmMarkPaid={async ({ amount, date, transfers }) => {
+            const effectivePoolId =
+              markPaidModalEvent.sourcePoolId ||
+              categories.find((c) => c.id === markPaidModalEvent.categoryId)?.poolId ||
+              markPaidModalEvent.categoryId ||
+              "";
+            if (transfers && transfers.length > 0) {
+              await onConfirmTransferAndPay(transfers, effectivePoolId);
+            }
+            await onMarkExpensePaid(markPaidModalEvent.id, amount.toFixed(2), date);
+            setMarkPaidModalEvent(null);
+          }}
+        />
+      )}
     </div>
   );
 }

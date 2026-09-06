@@ -29,6 +29,8 @@ interface AppPreferencesMap {
 
 export default function DashboardPage() {
   const toast = useToast();
+  const utils = trpc.useUtils();
+  const moveMoneyMut = trpc.moveMoney.useMutation();
 
   const poolsQuery = trpc.listPools.useQuery();
   const pools = poolsQuery.data ?? [];
@@ -40,7 +42,6 @@ export default function DashboardPage() {
     expenseEventsQuery,
     recordExpenseMutation,
     skipUpcomingExpenseMutation,
-    updateUpcomingExpenseMutation,
     paydayPreviewEventId,
     setPaydayPreviewEventId,
   } = useDashboardData();
@@ -139,15 +140,6 @@ export default function DashboardPage() {
 
   const handleSkipItem = async (item: WebAttentionItem) => {
     await skipUpcomingExpenseMutation.mutateAsync({ eventId: item.id, eventType: "EXPENSE", status: "SKIPPED" });
-  };
-
-  const handleSaveItem = async (item: WebAttentionItem, amount: number, date: string) => {
-    await updateUpcomingExpenseMutation.mutateAsync({
-      eventId: item.id,
-      eventType: "EXPENSE",
-      expectedAmount: amount.toFixed(2),
-      expectedDate: date,
-    });
   };
 
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
@@ -270,9 +262,29 @@ export default function DashboardPage() {
         <div className="lg:col-span-6">
           <AttentionItemsList
             items={attentionItems}
+            availableCategories={pools.map((p) => ({
+              id: p.id,
+              name: p.name,
+              poolType: p.poolType,
+              currentBalance: parseFloat(String(p.currentBalance || "0")),
+              isSurplusTarget: p.isSurplusTarget,
+            }))}
             onMarkPaid={handleMarkPaidItem}
             onSkip={handleSkipItem}
-            onSave={handleSaveItem}
+            onConfirmTransferAndPay={async (transfers, destinationCategoryId) => {
+              await Promise.all(
+                transfers.map((t) =>
+                  moveMoneyMut.mutateAsync({
+                    sourcePoolId: t.poolId,
+                    destinationPoolId: destinationCategoryId,
+                    amount: t.amount,
+                    note: "Shortfall Top Up",
+                  })
+                )
+              );
+              await utils.listPools.invalidate();
+              await utils.listTransactions.invalidate();
+            }}
             formatAUD={fmt}
           />
         </div>

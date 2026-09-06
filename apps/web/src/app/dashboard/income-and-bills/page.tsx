@@ -745,12 +745,16 @@ function IncomeAndBillsContent() {
               currentBalance: parseFloat(String(p.currentBalance || "0")),
               isSurplusTarget: p.isSurplusTarget,
             }))}
-            onMarkExpensePaid={async (eventId) => {
+            onMarkExpensePaid={async (eventId, amount, date) => {
               try {
-                await markExpensePaidMut.mutateAsync({ eventId });
+                await markExpensePaidMut.mutateAsync({
+                  eventId,
+                  note: date ? `Paid on ${date}` : undefined,
+                });
                 toast.success("Expense marked as spent.");
-                utils.listExpenseEvents.invalidate();
-                utils.listPools.invalidate();
+                await utils.listExpenseEvents.invalidate();
+                await utils.listPools.invalidate();
+                await utils.listTransactions.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to mark spent.");
               }
@@ -837,11 +841,19 @@ function IncomeAndBillsContent() {
         <PaydayActionDrawer
           isOpen={Boolean(selectedIncomeEventIdForModal)}
           incomeEventId={selectedIncomeEventIdForModal}
-          onClose={() => setSelectedIncomeEventIdForModal(null)}
-          onSuccess={() => {
+          onClose={() => {
             setSelectedIncomeEventIdForModal(null);
+            utils.listAllAllocationPlans.invalidate();
             utils.listIncomeEvents.invalidate();
             utils.listExpenseEvents.invalidate();
+            utils.listPools.invalidate();
+          }}
+          onSuccess={() => {
+            setSelectedIncomeEventIdForModal(null);
+            utils.listAllAllocationPlans.invalidate();
+            utils.listIncomeEvents.invalidate();
+            utils.listExpenseEvents.invalidate();
+            utils.listPools.invalidate();
           }}
         />
       )}

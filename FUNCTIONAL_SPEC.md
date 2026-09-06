@@ -162,18 +162,20 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow evaluation engine (`packages/capabilities/simulation` and `/dashboard/afford-check`).
 
-1. **Dual Simulation Modes**:
-   - *One-Off Purchase*: Evaluates immediate balance liquidity, upcoming bill obligations before payday, and daily pacing floor after spend.
-   - *Recurring Commitment*: Injects a phantom regular bucket into the cumulative 12-month waterfall projection matrix to evaluate ongoing affordability and savings goal timeline delays.
+1. **Dual Simulation Modes & Liquidity Rules**:
+   - *One-Off Purchase*: Evaluates immediate balance liquidity, upcoming bill obligations before payday (deducting only unfunded bill shortfalls from Everyday cash), and daily pacing safety buffer after spend.
+   - *Recurring Commitment*: Runs Day-1 immediate liquidity checks, injects a phantom regular bucket and 52/26/12/1 frequency-matched phantom expense events into the cumulative 12-month projection matrix, evaluating goal target delays (`GOAL_DELAYED`) and Everyday living allowance starvation (`HARD_NO`).
 2. **6-Verdict Classification**:
-   - `SAFE_YES` (Green): Sufficient liquidity and post-spend daily pace $\ge$ 25% floor.
-   - `PACING_TIGHT` (Amber): Sufficient liquidity but daily pace < 25% floor (stretched until payday).
-   - `BILLS_RISK` (Orange): Current cash balance appears sufficient, but upcoming bills due before payday consume the buffer. Itemises bills due.
-   - `WAIT_FOR_PAYCYCLE` (Blue): Shortfall today, but cumulative income projection step $N$ reaches sufficient Everyday balance by date $D$.
-   - `GOAL_DELAYED` (Orange): Recurring commitment is affordable, but delays target dates of committed or optional goals across 12-month forecast.
-   - `HARD_NO` (Red): Shortfall exceeds cumulative Everyday balance across the entire 12-month forecast.
-3. **Dynamic Pacing Floor**:
-   - Calculated dynamically as 25% of `(everydayAllowanceAmount / 30)`. Adapts automatically to household budget size.
-4. **Pure Stateless Execution**:
+   - `SAFE_YES` (Green): Sufficient liquidity and post-spend daily pace $\ge$ recommended daily safety buffer (25% of daily living allowance).
+   - `PACING_TIGHT` (Amber): Sufficient liquidity but daily pace < recommended safety buffer (tight daily living pace until payday).
+   - `BILLS_RISK` (Orange): Current cash balance appears sufficient, but unfunded bills due before payday consume the buffer. Itemises upcoming bills.
+   - `WAIT_FOR_PAYCYCLE` (Blue): Shortfall today, but projected income by paycycle $N$ reaches sufficient Everyday balance after daily living expenses.
+   - `GOAL_DELAYED` (Orange): Recurring commitment is affordable, but pushes back target dates of committed savings targets or flexible goals across 12-month forecast.
+   - `HARD_NO` (Red): Shortfall exceeds cumulative Everyday balance across the 12-month forecast or starves basic daily living allowances.
+3. **Dynamic Pacing Safety Buffer**:
+   - Calculated dynamically as 25% of `(everydayAllowanceAmount / 30)`. Adapts automatically to household budget size (fallback $15/day).
+4. **Human-Centric Trust Copy**:
+   - All user rationale steps are rendered in clear, jargon-free financial phrasing (`recommended daily safety buffer`, `added to your 12-month budget forecast`, `committed savings target`).
+5. **Pure Stateless Execution**:
    - Performs zero database mutations. State is ephemeral and client-driven.
 

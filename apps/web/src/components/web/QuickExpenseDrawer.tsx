@@ -43,6 +43,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     quickTransferPresets,
     handleSelectPreset,
     handleSubmit,
+    executeSubmit,
     isPending,
     confirmState,
     setConfirmState,
@@ -285,10 +286,20 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 >
                   {t("common.cancel", { defaultValue: "Cancel" })}
                 </button>
+                {isIncome && (
+                  <button
+                    type="button"
+                    disabled={isPending || !amount.trim() || parseFloat(amount) <= 0}
+                    onClick={() => executeSubmit(false, true)}
+                    className="px-4 py-2.5 text-xs font-bold text-[#2563eb] hover:text-blue-800 underline cursor-pointer disabled:opacity-50 transition-all"
+                  >
+                    {t("common.save", { defaultValue: "Save" })}
+                  </button>
+                )}
                 <Button
                   type="submit"
                   loading={isPending}
-                  disabled={!isDirty || !amount.trim() || parseFloat(amount) <= 0 || (isTransfer ? (!sourceCategoryId || !destinationCategoryId) : (!isIncome && !categoryId))}
+                  disabled={!amount.trim() || parseFloat(amount) <= 0 || (isTransfer ? (!sourceCategoryId || !destinationCategoryId) : (!isIncome && !categoryId))}
                   variant="primary"
                 >
                   {isTransfer

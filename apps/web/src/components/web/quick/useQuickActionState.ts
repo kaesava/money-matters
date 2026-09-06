@@ -154,9 +154,9 @@ export function useQuickActionState(
           amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : "0.00",
         };
         if (tx.flowType === "DEBIT") {
-          existing.sourceCatId = tx.categoryId || undefined;
+          existing.sourceCatId = tx.categoryId || tx.poolId || undefined;
         } else if (tx.flowType === "CREDIT") {
-          existing.destCatId = tx.categoryId || undefined;
+          existing.destCatId = tx.categoryId || tx.poolId || undefined;
         }
         transferMap.set(groupKey, existing);
       }
@@ -208,13 +208,6 @@ export function useQuickActionState(
   });
 
   const createIncomeSourceMut = trpc.createIncomeSource.useMutation({
-    onSuccess: (res) => {
-      if (res?.firstEventId) {
-        setPaydayModalEventId(res.firstEventId);
-      } else {
-        handleDone();
-      }
-    },
     onError: (err) => setError(err.message),
   });
 
@@ -238,28 +231,17 @@ export function useQuickActionState(
 
     if (preset.categoryId) {
       let poolMatch = categories.find((c) => c.id === preset.categoryId);
-      let catMatchId: string | null = null;
-
       if (!poolMatch) {
-        for (const p of categories) {
-          const childCat = p.categories?.find((cat: { id: string }) => cat.id === preset.categoryId);
-          if (childCat) {
-            poolMatch = p;
-            catMatchId = childCat.id;
-            break;
-          }
-        }
+        poolMatch = categories.find((p) => p.categories?.some((cat: { id: string }) => cat.id === preset.categoryId));
       }
+      setCategoryId(poolMatch ? poolMatch.id : preset.categoryId);
 
-      if (poolMatch) {
-        setCategoryId(poolMatch.id);
-        setSelectedSubCategoryId(catMatchId);
+      const hasSubCat = poolMatch?.categories?.some((cat: { id: string }) => cat.id === preset.categoryId);
+      if (hasSubCat) {
+        setSelectedSubCategoryId(preset.categoryId);
+      } else {
+        setSelectedSubCategoryId(null);
       }
-    }
-
-    if (preset.receivingAccountId) {
-      const match = bankAccounts.find((b) => b.id === preset.receivingAccountId);
-      if (match) setReceivingAccountId(match.id);
     }
 
     if (preset.sourceCategoryId) {
@@ -267,39 +249,41 @@ export function useQuickActionState(
         categories.find((p) => p.categories?.some((cat: { id: string }) => cat.id === preset.sourceCategoryId));
       setSourceCategoryId(srcPoolMatch ? srcPoolMatch.id : preset.sourceCategoryId);
     }
-
     if (preset.destinationCategoryId) {
       const dstPoolMatch = categories.find((c) => c.id === preset.destinationCategoryId) ||
         categories.find((p) => p.categories?.some((cat: { id: string }) => cat.id === preset.destinationCategoryId));
       setDestinationCategoryId(dstPoolMatch ? dstPoolMatch.id : preset.destinationCategoryId);
     }
+    if (preset.receivingAccountId) {
+      setReceivingAccountId(preset.receivingAccountId);
+    }
   }
 
-  function executeSubmit(skipBalanceCheck = false) {
+  function executeSubmit(skipBalanceCheck = false, skipSplit = false) {
     setError(null);
 
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      setError("Please enter a valid positive amount.");
+      setError(t("drawers.quickExpense.validAmountError", { defaultValue: "Please enter a valid amount." }));
       return;
     }
 
     if (!isTransfer && !name.trim()) {
-      setError("Name is required.");
+      setError(t("drawers.quickExpense.nameRequired", { defaultValue: "Name is required." }));
       return;
     }
 
     if (isTransfer) {
       if (!sourceCategoryId || !destinationCategoryId) {
-        setError("Both source and destination pools are required.");
+        setError(t("drawers.quickExpense.poolsRequired", { defaultValue: "Both Source Pool and Destination Pool are required for transfers." }));
         return;
       }
       if (sourceCategoryId === destinationCategoryId) {
-        setError("Source and destination pools must be different.");
+        setError(t("drawers.quickExpense.poolsDifferent", { defaultValue: "Source Pool and Destination Pool must be different." }));
         return;
       }
       if (date < todayStr) {
-        setError("Transfers cannot be performed for past dates.");
+        setError(t("drawers.quickExpense.pastDateError", { defaultValue: "Transfers cannot be performed for past dates." }));
         return;
       }
 
@@ -330,7 +314,7 @@ export function useQuickActionState(
 
     if (!isIncome) {
       if (!categoryId) {
-        setError("Pool selection is required.");
+        setError(t("drawers.quickExpense.poolSelectionRequired", { defaultValue: "Pool selection is required." }));
         return;
       }
       const targetCat = categories.find((c) => c.id === categoryId);
@@ -343,7 +327,7 @@ export function useQuickActionState(
             description: `Warning: Expense of $${amountNum.toFixed(2)} exceeds available "${targetCat.name}" pool balance ($${catBal.toFixed(2)}). Proceed?`,
             onConfirm: () => {
               setConfirmState(null);
-              executeSubmit(true);
+              executeSubmit(true, skipSplit);
             },
           });
           return;
@@ -352,7 +336,6 @@ export function useQuickActionState(
 
 
       if (isFutureDate) {
-        // Create pending Expense Event for future date
         createExpenseSourceMut.mutate({
           name,
           amount: amountNum.toFixed(2),
@@ -361,7 +344,6 @@ export function useQuickActionState(
           startDate: date,
         });
       } else {
-        // Record immediate transaction for past/today expense
         recordExpenseMutation.mutate({
           poolId: categoryId,
           categoryId,
@@ -371,21 +353,31 @@ export function useQuickActionState(
         });
       }
     } else {
-      // Create pending Income Event (shows up in Income & Bills > Pending List)
-      createIncomeSourceMut.mutate({
-        name,
-        amount: amountNum.toFixed(2),
-        isRecurring: false,
-        startDate: date,
-        receivingAccountId: receivingAccountId || undefined,
-      });
+      createIncomeSourceMut.mutate(
+        {
+          name,
+          amount: amountNum.toFixed(2),
+          isRecurring: false,
+          startDate: date,
+          receivingAccountId: receivingAccountId || undefined,
+        },
+        {
+          onSuccess: (res) => {
+            if (!skipSplit && res?.firstEventId) {
+              setPaydayModalEventId(res.firstEventId);
+            } else {
+              handleDone();
+            }
+          },
+        }
+      );
     }
   }
 
 
   function handleSubmit(e?: React.FormEvent) {
     if (e) e.preventDefault();
-    executeSubmit(false);
+    executeSubmit(false, false);
   }
 
 
@@ -432,6 +424,7 @@ export function useQuickActionState(
     handleTabChange,
     handleSelectPreset,
     handleSubmit,
+    executeSubmit,
   };
 }
 

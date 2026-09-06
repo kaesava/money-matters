@@ -243,7 +243,7 @@ function PoolsPageContent() {
         hasUpcomingExpenses: checkHasUpcoming(p.id, p.name),
       };
     });
-  }, [poolsQuery.data, categoriesQuery.data, showProjectionMatrix, projectionMonths, activeProjectionColId, projectionQuery.data]);
+  }, [poolsQuery.data, categoriesQuery.data, showProjectionMatrix, projectionMonths, activeProjectionColId, projectionQuery.data, expenseEventsQuery.data, transactionsQuery.data]);
 
   // Filter logic: Type filter + Privacy filter + Search
   const filteredRows = useMemo(() => {

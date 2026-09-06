@@ -201,16 +201,22 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 - **Privacy Controls:** Marking an account Private or Shared triggers an amber confirmation warning dialog detailing partner visibility implications before state changes.
 - **Unbudgeted Buffer / Reserved Funds:** Excluded from available spendable balance calculation (`Available = Current Balance − Reserved Funds`).
 
-### 5.6 5-Level "Can We Afford This?" Engine (`@money-matters/capability-transactions`)
-- **Bill Buffer Protection**: Queries `expenseEvents` where `status = 'PENDING'` and `expectedDate <= nextPaycheckDate`. Reserves upcoming bill deficits (`billsReserved`) before calculating spendable cash `netAvailableCash = max(0, everydayBalance - billsReserved)`.
-- **Daily Pacing Velocity**: Computes `dailyPacingAfterSpend = (everydayBalance - amount - billsReserved) / daysUntilPayday`. Triggers `PACING_WARNING` if daily discretionary allowance drops below $15.00/day.
-- **5-Level Discriminated Union Matrix (`CanAffordVerdictDto`)**:
-  - `SAFE_YES`: Cash available + healthy daily allowance ($\ge \$15$/day).
-  - `PACING_WARNING`: Cash available, but tight daily spending allowance ($< \$15$/day).
-  - `IMPACT_GOALS`: Everyday cash short, but covers purchase by dipping into uncommitted goal surplus.
-  - `WAIT_FOR_PAYDAY`: Incoming paycheck within 14 days will cover shortfall.
-  - `HARD_NO`: Purchase causes an unavoidable bill default or debt deficit.
-- **Rationale Step Breakdown**: Returns a step-by-step array of formatted cashflow strings rendered directly in the UI.
+### 5.6 5-Level "Can We Afford This?" Engine (`@money-matters/capability-simulation`)
+- **Unfunded Bill Shortfall Protection**: Queries `expenseEvents` where `status = 'PENDING'` and `expectedDate <= nextPaycheckDate`. Evaluates bills per REGULAR pool against pool balance to compute unfunded shortfall (`unfundedBillsShortfall`), preserving Everyday cash for bills that are already funded in their respective pools (`effectiveSpendable = max(0, everydayBalance - unfundedBillsShortfall)`).
+- **Dynamic Pacing Safety Buffer**: Computes `dailyPacingAfterSpend = (effectiveSpendable - amount) / daysUntilPayday`. Ensures daily discretionary allowance meets recommended daily safety buffer (`25%` of `everydayAllowanceAmount / 30`, fallback `$15.00`/day). Triggers `PACING_TIGHT` if pacing drops below buffer.
+- **RECURRING Commitment Simulation**:
+  - **Day-1 Immediate Liquidity Check**: Validates upfront payment availability before running 12-month projections (`BILLS_RISK`, `PACING_TIGHT`, or `HARD_NO`).
+  - **Phantom Expense Injection**: Injects 52 weekly, 26 fortnightly, 12 monthly, or 1 annual phantom expense events into `cumExpenses` across the 12-month horizon to measure true ongoing cashflow drain.
+  - **Goal Delay Impact Calculation (`GOAL_DELAYED`)**: Projects balance drops across committed savings targets and flexible goals.
+  - **Everyday Starvation Detection (`HARD_NO`)**: Compares 12-month total allocated Everyday cash against required living allowances. Rejects commitments that starve basic daily living needs even when no savings goals exist.
+- **6-Branch Discriminated Union Matrix (`CanAffordVerdictDto`)**:
+  - `SAFE_YES`: Cash available + comfortable daily safety buffer.
+  - `PACING_TIGHT`: Cash available, but tight daily spending pace.
+  - `BILLS_RISK`: Raw balance sufficient, but unfunded upcoming bills consume the safety buffer.
+  - `WAIT_FOR_PAYCYCLE`: Future paycycle accumulates sufficient Everyday balance after daily living expenses.
+  - `GOAL_DELAYED`: Recurring item is affordable but delays savings goal target dates.
+  - `HARD_NO`: Purchase exhausts 12-month forecast horizon or starves daily living allowance.
+- **Human-Centric Trust Copy**: All rationale step messages use clear, jargon-free financial phrasing (`recommended daily safety buffer`, `added to your 12-month budget forecast`, `committed savings target`).
 
 ### 5.7 Stripe Billing & 7-Day Read-Only Grace Period (`@money-matters/capability-billing`)
 - **Decoupled Capability Architecture**: Stripe Checkout (`createCheckoutSessionCommand`), Customer Portal (`createCustomerPortalSessionCommand`), and Webhooks (`handleStripeWebhook`) isolated inside `packages/capabilities/billing`.

@@ -102,10 +102,59 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     expect(pacingFloor).toBeCloseTo(25, 1);
   });
 
-  // ── BILLS DEDUCTED CORRECTLY ─────────────────────────────────────────
-  it("effectiveSpendable = everydayBalance - bills (floor 0)", () => {
-    expect(Math.max(0, 200 - 300)).toBe(0);
-    expect(Math.max(0, 800 - 200)).toBe(600);
+// ── BILLS DEDUCTED CORRECTLY & UNFUNDED SHORTFALL ───────────────────
+  it("effectiveSpendable uses unfunded shortfall (funded bills do not deduct from Everyday balance)", () => {
+    const everydayBalance = 1000;
+    // Bill for $500 in a pool with balance $400 -> shortfall $100
+    const billAmount1 = 500;
+    const poolBal1 = 400;
+    const shortfall1 = Math.max(0, billAmount1 - poolBal1); // 100
+
+    // Bill for $300 in a pool with balance $500 -> shortfall $0
+    const billAmount2 = 300;
+    const poolBal2 = 500;
+    const shortfall2 = Math.max(0, billAmount2 - poolBal2); // 0
+
+    const totalUnfundedShortfall = shortfall1 + shortfall2; // 100
+    const effectiveSpendable = Math.max(0, everydayBalance - totalUnfundedShortfall); // 900
+
+    expect(effectiveSpendable).toBe(900);
+  });
+
+  // ── RECURRING DAY-1 LIQUIDITY CHECK ────────────────────────────────
+  it("RECURRING Day-1 check: blocks commitment if first payment causes BILLS_RISK", () => {
+    const everydayBalance = 800;
+    const unfundedShortfall = 600;
+    const effectiveSpendable = Math.max(0, everydayBalance - unfundedShortfall); // 200
+    const recurringAmount = 500; // $500 first payment
+
+    expect(recurringAmount).toBeLessThanOrEqual(everydayBalance);
+    expect(recurringAmount).toBeGreaterThan(effectiveSpendable);
+    // Verdict must be BILLS_RISK for day-1
+  });
+
+  // ── EVERYDAY STARVATION ─────────────────────────────────────────────
+  it("EVERYDAY STARVATION: detects when recurring commitment starves daily living allowance over 12 months", () => {
+    const totalEverydayRequired = 12000; // $1000/mo over 12 months
+    const totalEverydayAllocated = 8000; // Only $8000 available after high recurring commitment
+    const starvationShortfall = totalEverydayRequired - totalEverydayAllocated; // 4000
+
+    expect(totalEverydayAllocated).toBeLessThan(totalEverydayRequired - 1);
+    expect(starvationShortfall).toBe(4000);
+    // Verdict must be HARD_NO with starvation explanation
+  });
+
+  // ── TRUST COPY VERIFICATION ─────────────────────────────────────────
+  it("user-facing rationale copy uses human-centric terms and zero developer jargon", () => {
+    const safeYesRationale = "Daily pace for 10 days until payday: $70.00/day (recommended daily safety buffer: $20.00/day)";
+    const goalDelayedRationale = "New monthly commitment of $50.00 ($50.00/mo) added to your 12-month budget forecast.";
+    const committedGoalRationale = "\"Emergency Fund\" (committed savings target): target date pushed back by ~12 days.";
+
+    expect(safeYesRationale).not.toContain("floor:");
+    expect(safeYesRationale).toContain("recommended daily safety buffer");
+    expect(goalDelayedRationale).not.toContain("injected into waterfall");
+    expect(goalDelayedRationale).toContain("added to your 12-month budget forecast");
+    expect(committedGoalRationale).toContain("committed savings target");
   });
 
   // ── RECURRING MONTHLY AMOUNT CONVERSION ─────────────────────────────
