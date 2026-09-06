@@ -1521,6 +1521,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "fundingSourceSelectLabel": "不足分を補填する資金源を選択:",
     "surplusBufferLabel": "余剰バッファー（推奨）",
     "confirmTransferAndPay": "振替を確認して支払済みにする",
+    "hiddenZeroBalanceNote": "残高が$0のプールは非表示になっています。",
+    "confirmMarkPaidTitle": "支払済みの確認",
+    "confirmMarkPaidDesc": "{{name}} ({{amount}}) を支払済みにマークしてもよろしいですか？これによりプールの残高が引き落とされます。",
     "drawerTitle": "カテゴリの予定支出",
     "overrideBadge": "手動変更",
     "projectionWarningTooltip": "警告: 次の給料日までに資金不足が発生する可能性があります。"

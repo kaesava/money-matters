@@ -734,12 +734,16 @@ function IncomeAndBillsContent() {
             categories={pools.map((p) => ({
               id: p.id,
               name: p.name,
+              poolType: p.poolType,
               currentBalance: parseFloat(String(p.currentBalance || "0")),
+              isSurplusTarget: p.isSurplusTarget,
             }))}
             pools={pools.map((p) => ({
               id: p.id,
               name: p.name,
+              poolType: p.poolType,
               currentBalance: parseFloat(String(p.currentBalance || "0")),
+              isSurplusTarget: p.isSurplusTarget,
             }))}
             onMarkExpensePaid={async (eventId) => {
               try {
@@ -795,14 +799,23 @@ function IncomeAndBillsContent() {
             onOpenTransferModalWithData={() => {
               setIsTransferDrawerOpen(true);
             }}
-            onConfirmTransferAndPay={async (sourceCategoryId, destinationCategoryId, amount) => {
-              await moveMoneyMut.mutateAsync({
-                sourcePoolId: sourceCategoryId,
-                destinationPoolId: destinationCategoryId,
-                amount,
-                note: "Shortfall Top Up",
-              });
-              utils.listPools.invalidate();
+            onConfirmTransferAndPay={async (transfers, destinationCategoryId) => {
+              try {
+                await Promise.all(
+                  transfers.map((t) =>
+                    moveMoneyMut.mutateAsync({
+                      sourcePoolId: t.poolId,
+                      destinationPoolId: destinationCategoryId,
+                      amount: t.amount,
+                      note: "Shortfall Top Up",
+                    })
+                  )
+                );
+                utils.listPools.invalidate();
+                utils.listTransactions.invalidate();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to execute transfers.");
+              }
             }}
           />
         </div>

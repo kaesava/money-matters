@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { EventItem } from "./BurstModal";
-import { InsufficientFundsModal } from "./InsufficientFundsModal";
+import { InsufficientFundsModal, ShortfallTransferItem } from "./InsufficientFundsModal";
 import {
   PaginationBar,
   SearchInput,
@@ -61,7 +61,10 @@ interface UpcomingTimelineTabProps {
     sourcePoolId?: string,
     destinationPoolId?: string
   ) => void;
-  onConfirmTransferAndPay: (fundingCategoryId: string, destCategoryId: string, amountStr: string) => Promise<void>;
+  onConfirmTransferAndPay: (
+    transfers: ShortfallTransferItem[],
+    destCategoryId: string
+  ) => Promise<void>;
   onOpenTransferModalWithData?: (data: {
     sourcePoolId?: string;
     destinationPoolId?: string;
@@ -94,6 +97,7 @@ export function UpcomingTimelineTab({
   const revertPlanMut = trpc.revertAllocationPlan.useMutation();
   const todayStr = useMemo(() => getTenantDateString(new Date()), []);
   const [incomeToUnsaveId, setIncomeToUnsaveId] = useState<string | null>(null);
+  const [markPaidConfirmEvent, setMarkPaidConfirmEvent] = useState<TimelineEventItem | null>(null);
 
   // Filter States
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
@@ -233,7 +237,7 @@ export function UpcomingTimelineTab({
         destinationCategoryId: evt.categoryId || "",
       });
     } else {
-      onMarkExpensePaid(evt.id, evt.expectedAmount, evt.expectedDate);
+      setMarkPaidConfirmEvent(evt);
     }
   };
 
@@ -264,11 +268,10 @@ export function UpcomingTimelineTab({
     }
   };
 
-  const handleConfirmShortfallTransfer = async (fundingCategoryId: string) => {
+  const handleConfirmShortfallTransfer = async (transfers: ShortfallTransferItem[]) => {
     await onConfirmTransferAndPay(
-      fundingCategoryId,
-      insufficientModalState.destinationCategoryId,
-      insufficientModalState.shortfall.toFixed(2)
+      transfers,
+      insufficientModalState.destinationCategoryId
     );
     onMarkExpensePaid(
       insufficientModalState.eventId,
@@ -633,14 +636,37 @@ export function UpcomingTimelineTab({
         onClose={() => setInsufficientModalState((prev) => ({ ...prev, isOpen: false }))}
         billName={insufficientModalState.billName}
         shortfallAmount={insufficientModalState.shortfall}
-        availableCategories={categories.map((c) => ({
-          ...c,
+        availableCategories={pools.map((p) => ({
+          ...p,
           currentBalance:
-            typeof c.currentBalance === "string"
-              ? parseFloat(c.currentBalance || "0")
-              : c.currentBalance,
+            typeof p.currentBalance === "string"
+              ? parseFloat(p.currentBalance || "0")
+              : (p.currentBalance ?? 0),
         }))}
         onConfirmTransferAndPay={handleConfirmShortfallTransfer}
+      />
+
+      <ConfirmDialog
+        isOpen={!!markPaidConfirmEvent}
+        onClose={() => setMarkPaidConfirmEvent(null)}
+        onConfirm={() => {
+          if (markPaidConfirmEvent) {
+            onMarkExpensePaid(
+              markPaidConfirmEvent.id,
+              markPaidConfirmEvent.expectedAmount,
+              markPaidConfirmEvent.expectedDate
+            );
+            setMarkPaidConfirmEvent(null);
+          }
+        }}
+        title={t("incomeBillsTabs.confirmMarkPaidTitle", { defaultValue: "Confirm Mark Paid" })}
+        description={t("incomeBillsTabs.confirmMarkPaidDesc", {
+          name: markPaidConfirmEvent?.name || "Expense",
+          amount: markPaidConfirmEvent?.expectedAmount ? `$${parseFloat(markPaidConfirmEvent.expectedAmount).toFixed(2)}` : "$0.00",
+          defaultValue: `Are you sure you want to mark ${markPaidConfirmEvent?.name || "Expense"} as paid? This will draw down the pool balance.`,
+        })}
+        confirmLabel={t("actions.markPaid", { defaultValue: "Mark Paid" })}
+        variant="primary"
       />
 
       <ConfirmDialog

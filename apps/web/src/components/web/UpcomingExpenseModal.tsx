@@ -6,6 +6,7 @@ import { useToast, ConfirmDialog, Button } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+import { InsufficientFundsModal, ShortfallTransferItem } from "../../app/dashboard/income-and-bills/components/InsufficientFundsModal";
 
 
 interface UpcomingExpenseModalProps {
@@ -48,13 +49,14 @@ export default function UpcomingExpenseModal({
   const [note, setNote] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showNegativeConfirm, setShowNegativeConfirm] = useState(false);
-
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  const [showConfirmPaid, setShowConfirmPaid] = useState(false);
 
   const overrideMut = trpc.overrideEvent.useMutation();
   const markPaidMut = trpc.overrideEvent.useMutation();
   const createExpenseSourceMut = trpc.createExpenseSource.useMutation();
   const recordExpenseMut = trpc.recordExpense.useMutation();
+  const moveMoneyMut = trpc.moveMoney.useMutation();
 
   useEffect(() => {
     const currentTodayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
@@ -138,22 +140,7 @@ export default function UpcomingExpenseModal({
     }
   };
 
-  const handleMarkPaid = async () => {
-    if (!name.trim()) {
-      setErrorMsg("Expense name is required.");
-      return;
-    }
-    if (isNaN(numAmount) || numAmount <= 0) {
-      setErrorMsg("Please enter a valid positive amount.");
-      return;
-    }
-
-    if (isNegativeWarning && selectedPool && !showNegativeConfirm) {
-      setShowNegativeConfirm(true);
-      return;
-    }
-
-
+  const executeMarkPaid = async () => {
     setSubmitting(true);
     try {
       if (eventToEdit?.id) {
@@ -183,6 +170,42 @@ export default function UpcomingExpenseModal({
       setErrorMsg((err as Error).message || "Failed to mark expense paid.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleMarkPaidClick = () => {
+    if (!name.trim()) {
+      setErrorMsg("Expense name is required.");
+      return;
+    }
+    if (isNaN(numAmount) || numAmount <= 0) {
+      setErrorMsg("Please enter a valid positive amount.");
+      return;
+    }
+
+    if (isNegativeWarning) {
+      setShowInsufficientModal(true);
+    } else {
+      setShowConfirmPaid(true);
+    }
+  };
+
+  const handleConfirmShortfallTransfers = async (transfers: ShortfallTransferItem[]) => {
+    const destPoolId = poolId || pools[0]?.id || "";
+    try {
+      await Promise.all(
+        transfers.map((t) =>
+          moveMoneyMut.mutateAsync({
+            sourcePoolId: t.poolId,
+            destinationPoolId: destPoolId,
+            amount: t.amount,
+            note: "Shortfall Top Up",
+          })
+        )
+      );
+      await executeMarkPaid();
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || "Failed to execute shortfall transfers.");
     }
   };
 
@@ -287,7 +310,7 @@ export default function UpcomingExpenseModal({
           </Button>
           <Button
             type="button"
-            onClick={handleMarkPaid}
+            onClick={handleMarkPaidClick}
             loading={submitting}
             disabled={!isDirty || !isValid || submitting}
           >
@@ -297,17 +320,33 @@ export default function UpcomingExpenseModal({
         </div>
       </div>
 
+      <InsufficientFundsModal
+        isOpen={showInsufficientModal}
+        onClose={() => setShowInsufficientModal(false)}
+        billName={name}
+        shortfallAmount={numAmount - currentPoolBalance}
+        availableCategories={pools.map((p) => ({
+          ...p,
+          currentBalance: parseFloat(String(p.currentBalance || "0")),
+        }))}
+        onConfirmTransferAndPay={handleConfirmShortfallTransfers}
+      />
+
       <ConfirmDialog
-        isOpen={showNegativeConfirm}
-        onClose={() => setShowNegativeConfirm(false)}
+        isOpen={showConfirmPaid}
+        onClose={() => setShowConfirmPaid(false)}
         onConfirm={() => {
-          setShowNegativeConfirm(false);
-          handleMarkPaid();
+          setShowConfirmPaid(false);
+          executeMarkPaid();
         }}
-        title="Insufficient Pool Balance"
-        description={`Payment of ${fmt(parseFloat(amount || "0"))} exceeds "${selectedPool?.name || ""}" pool balance (${fmt(currentPoolBalance)}). Are you sure you want to proceed?`}
-        confirmLabel="Proceed & Mark Paid"
-        variant="warning"
+        title={t("incomeBillsTabs.confirmMarkPaidTitle", { defaultValue: "Confirm Mark Paid" })}
+        description={t("incomeBillsTabs.confirmMarkPaidDesc", {
+          name: name || "Expense",
+          amount: fmt(numAmount),
+          defaultValue: `Are you sure you want to mark ${name} as paid? This will draw down the pool balance.`,
+        })}
+        confirmLabel={t("actions.markPaid", { defaultValue: "Mark Paid" })}
+        variant="primary"
       />
     </ModalDialog>
   );
