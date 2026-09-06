@@ -328,7 +328,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   const todayStr = new Date().toISOString().split("T")[0];
   const [firstIncomeEvent] = await db
     .insert(incomeEvents)
-    .values({ incomeSourceId: salarySource.id, expectedDate: "2026-07-01", expectedAmount: "5200.00", actualAmount: "5200.00", status: "CONFIRMED", tenantId, appId, createdBy: userId, updatedBy: userId })
+    .values({ incomeSourceId: salarySource.id, name: salarySource.name, expectedDate: "2026-07-01", expectedAmount: "5200.00", actualAmount: "5200.00", status: "CONFIRMED", tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   // 9. Payday Allocation Plan

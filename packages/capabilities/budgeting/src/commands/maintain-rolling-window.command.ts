@@ -58,6 +58,7 @@ export async function maintainRollingWindowCommand({
       await db.insert(incomeEvents).values(
         datesToInsert.map((d) => ({
           incomeSourceId: source.id,
+          name: source.name,
           expectedDate: getAestDateString(d),
           expectedAmount: source.amount,
           status: "PENDING" as const,

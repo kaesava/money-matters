@@ -97,6 +97,7 @@ export const incomeRouter = {
           const insertedEvents = await ctx.db.insert(incomeEvents).values(
             dates.map((d) => ({
               incomeSourceId: source.id,
+              name: input.name,
               expectedDate: getAestDateString(d),
               expectedAmount: input.amount,
               status: "PENDING" as const,
@@ -340,7 +341,6 @@ export const incomeRouter = {
           expectedAmount: incomeEvents.expectedAmount,
           actualAmount: incomeEvents.actualAmount,
           isOverridden: incomeEvents.isOverridden,
-          paymentMethod: incomeEvents.paymentMethod,
           status: incomeEvents.status,
           note: incomeEvents.note,
           incomeSourceId: incomeEvents.incomeSourceId,
