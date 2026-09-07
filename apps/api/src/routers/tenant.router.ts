@@ -171,8 +171,12 @@ export const tenantRouter = {
         userId: ctx.userId!,
         tenantId: ctx.tenantId!,
         appId,
-        timezone: currentTenant?.timezone ?? "Australia/Sydney",
-        locale: currentTenant?.country ? `en-${currentTenant.country}` : "en-AU",
+        timezone: globalPref?.timezone || currentTenant?.timezone || "Australia/Sydney",
+        tenantTimezone: currentTenant?.timezone || "Australia/Sydney",
+        currency: currentTenant?.currency || "AUD",
+        country: currentTenant?.country || "AU",
+        language: (globalPref?.language as "en" | "ja") || "en",
+        locale: globalPref?.locale || (currentTenant?.country ? `en-${currentTenant.country}` : "en-AU"),
         theme: globalPref?.theme ?? "system",
         showIcons: globalPref?.showIcons ?? appBlob?.show_icons ?? true,
         notificationEmail: globalPref?.notificationEmail ?? null,
@@ -194,6 +198,7 @@ export const tenantRouter = {
       z.object({
         quickActionsCollapsed: z.boolean().optional(),
         timezone: z.string().optional(),
+        language: z.enum(["en", "ja"]).optional(),
         locale: z.string().optional(),
         theme: z.string().optional(),
         showIcons: z.boolean().optional(),
@@ -220,6 +225,9 @@ export const tenantRouter = {
           .set({
             theme: input.theme ?? existingGlobal.theme,
             showIcons: input.showIcons ?? existingGlobal.showIcons,
+            language: input.language ?? existingGlobal.language,
+            locale: input.locale ?? existingGlobal.locale,
+            timezone: input.timezone !== undefined ? input.timezone : existingGlobal.timezone,
             updatedAt: new Date(),
           })
           .where(eq(userPreferences.id, existingGlobal.id));
@@ -230,6 +238,9 @@ export const tenantRouter = {
             userId: ctx.userId!,
             theme: input.theme ?? "system",
             showIcons: input.showIcons ?? true,
+            language: input.language ?? "en",
+            locale: input.locale ?? "auto",
+            timezone: input.timezone || null,
           });
       }
 
@@ -532,6 +543,8 @@ export const tenantRouter = {
         memberCount: dbMembers.length,
         partnerEmail: partnerMember?.inviteEmail ?? partnerMember?.email ?? null,
         country: tenant?.country ?? "AU",
+        currency: tenant?.currency ?? "AUD",
+        timezone: tenant?.timezone ?? "Australia/Sydney",
         state: tenant?.state ?? null,
         postcode: tenant?.postcode ?? null,
         membersList,
@@ -626,6 +639,8 @@ export const tenantRouter = {
       z.object({
         name: z.string().min(1, "Household name is required"),
         country: z.string().optional(),
+        currency: z.string().length(3).optional(),
+        timezone: z.string().optional(),
         state: z.string().optional(),
         postcode: z.string().optional(),
       }).strict()
@@ -648,6 +663,8 @@ export const tenantRouter = {
         .set({
           name: input.name,
           country: input.country ?? "AU",
+          ...(input.currency ? { currency: input.currency } : {}),
+          ...(input.timezone ? { timezone: input.timezone } : {}),
           state: input.state || null,
           postcode: input.postcode || null,
           updatedAt: new Date(),

@@ -1,15 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PaginationBar, useIconVisibility, useResizableColumns, ResizableTh, fmtDate, SkeletonTable } from "@money-matters/ui/web";
+import { PaginationBar, useIconVisibility, useResizableColumns, ResizableTh, SkeletonTable } from "@money-matters/ui/web";
 import { BurstModal, SourceItem, EventItem } from "./BurstModal";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
-function fmt(val: string | number) {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function parseSchedule(rrule?: string | null, startDate?: string | null) {
+function parseSchedule(rrule?: string | null, startDate?: string | null, formatDate?: (d?: string | null) => string) {
   const isRecurring = Boolean(rrule && rrule.trim().length > 0);
   let frequencyLabel = "One-off";
   if (isRecurring) {
@@ -19,7 +15,7 @@ function parseSchedule(rrule?: string | null, startDate?: string | null) {
     else if (rrule?.includes("FREQ=YEARLY") || rrule?.includes("ANNUALLY")) frequencyLabel = "Annually";
     else frequencyLabel = "Recurring";
   }
-  const dateLabel = startDate ? fmtDate(startDate) : null;
+  const dateLabel = formatDate && startDate ? formatDate(startDate) : startDate ? String(startDate) : null;
   return { isRecurring, frequencyLabel, dateLabel };
 }
 
@@ -72,6 +68,7 @@ export function SourceTable({
   _categories, _bankAccounts, onAdd, onArchive, onEdit, onMarkPaid, onSkip, onUnskip, onUpdateEvent,
   isPendingMarkPaid, isPendingSkip, isLoading,
 }: SourceTableProps) {
+  const { fmt, fmtDate: formatLocaleDate } = useLocale();
   const { showIcons } = useIconVisibility();
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -147,7 +144,7 @@ export function SourceTable({
                 </td>
               </tr>
             ) : paginated.map((item) => {
-              const sched = parseSchedule(item.rrule, item.startDate);
+              const sched = parseSchedule(item.rrule, item.startDate, formatLocaleDate);
               const bucket = isIncome ? item.accountName : item.categoryName;
               return (
                 <tr key={item.id} className="hover:bg-zinc-50/50 transition-colors">
@@ -167,7 +164,7 @@ export function SourceTable({
                           <span>{sched.frequencyLabel}</span>
                         </span>
                       </button>
-                      {sched.dateLabel && <span className="text-[11px] text-zinc-500 font-medium">{sched.isRecurring ? "Starting" : "Expected"} {fmtDate(item.startDate)}</span>}
+                      {sched.dateLabel && <span className="text-[11px] text-zinc-500 font-medium">{sched.isRecurring ? "Starting" : "Expected"} {formatLocaleDate(item.startDate)}</span>}
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-zinc-600">

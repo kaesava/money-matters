@@ -13,12 +13,8 @@ import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
 import { PaydayActionDrawer } from "../../components/web/PaydayActionDrawer";
 import { useDashboardData } from "./hooks/useDashboardData";
+import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
-
-function fmt(val: string | number) {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 interface AppPreferencesMap {
   [appId: string]: {
@@ -30,6 +26,7 @@ interface AppPreferencesMap {
 export default function DashboardPage() {
   const toast = useToast();
   const utils = trpc.useUtils();
+  const { fmt } = useLocale();
   const moveMoneyMut = trpc.moveMoney.useMutation();
 
   const poolsQuery = trpc.listPools.useQuery();

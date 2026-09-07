@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { trpc } from "../../../../lib/trpc";
-import { Spinner, InfoTooltip, useToast, LocationFields, validateAustralianPostcode, isFormDirty } from "@money-matters/ui/web";
-
+import { Spinner, InfoTooltip, useToast, LocationFields, validateAustralianPostcode, isFormDirty, ConfirmDialog } from "@money-matters/ui/web";
+import { SUPPORTED_CURRENCIES } from "@money-matters/types";
+import { t } from "@money-matters/i18n";
 
 export function HouseholdDetailsSection() {
   const toast = useToast();
@@ -14,6 +15,9 @@ export function HouseholdDetailsSection() {
   
   const [householdName, setHouseholdName] = useState("");
   const [country, setCountry] = useState("AU");
+  const [currency, setCurrency] = useState("AUD");
+  const [timezone, setTimezone] = useState("Australia/Sydney");
+  const [pendingCurrency, setPendingCurrency] = useState<string | null>(null);
   const [state, setState] = useState("");
   const [postcode, setPostcode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,6 +26,8 @@ export function HouseholdDetailsSection() {
     if (gov) {
       setHouseholdName(gov.householdName || "");
       setCountry(gov.country || "AU");
+      setCurrency(gov.currency || "AUD");
+      setTimezone(gov.timezone || "Australia/Sydney");
       setState(gov.state || "");
       setPostcode(gov.postcode || "");
     }
@@ -30,6 +36,7 @@ export function HouseholdDetailsSection() {
   const updateHouseholdMut = trpc.updateHousehold.useMutation({
     onSuccess: () => {
       utils.getHouseholdGovernanceInfo.invalidate();
+      utils.getUserPreferences.invalidate();
       toast.success("Household details updated successfully");
     },
     onError: (err) => {
@@ -56,6 +63,8 @@ export function HouseholdDetailsSection() {
       await updateHouseholdMut.mutateAsync({
         name: householdName.trim(),
         country: country.trim(),
+        currency: currency.trim(),
+        timezone: timezone.trim(),
         state: state.trim(),
         postcode: postcode.trim(),
       });
@@ -68,18 +77,20 @@ export function HouseholdDetailsSection() {
   const initialState = gov ? {
     householdName: gov.householdName || "",
     country: gov.country || "AU",
+    currency: gov.currency || "AUD",
+    timezone: gov.timezone || "Australia/Sydney",
     state: gov.state || "",
     postcode: gov.postcode || "",
   } : null;
   const currentState = {
     householdName,
     country,
+    currency,
+    timezone,
     state,
     postcode,
   };
   const isDirty = isFormDirty(initialState, currentState);
-
-
 
   return (
     <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-5">
@@ -87,7 +98,7 @@ export function HouseholdDetailsSection() {
         <h2 className="text-base font-extrabold text-[#1B2B4B]">
           Household Profile & Location
         </h2>
-        <InfoTooltip content="Update your household name and location details. Location details are shared across household members (family or housemates)." />
+        <InfoTooltip content="Update your household name, base currency, and location details. Shared across household members." />
       </div>
 
       <form onSubmit={handleSave} className="flex flex-col gap-5 w-full">
@@ -104,6 +115,59 @@ export function HouseholdDetailsSection() {
             placeholder="e.g. Smith Household"
             className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-slate-50 disabled:text-slate-400"
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-[#1B2B4B]">
+              {t("settings.currency")} <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={currency}
+              disabled={!isOwner}
+              onChange={(e) => {
+                const nextCurr = e.target.value;
+                if (nextCurr !== (gov?.currency || "AUD")) {
+                  setPendingCurrency(nextCurr);
+                } else {
+                  setCurrency(nextCurr);
+                }
+              }}
+              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              {Object.values(SUPPORTED_CURRENCIES).map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name} ({c.symbol})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-[#1B2B4B]">
+              {t("settings.timezone")} <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={timezone}
+              disabled={!isOwner}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="Australia/Sydney">Sydney / Melbourne (AEST/AEDT)</option>
+              <option value="Australia/Brisbane">Brisbane (AEST)</option>
+              <option value="Australia/Adelaide">Adelaide (ACST/ACDT)</option>
+              <option value="Australia/Perth">Perth (AWST)</option>
+              <option value="Pacific/Auckland">Auckland / Wellington (NZST/NZDT)</option>
+              <option value="Europe/London">London (GMT/BST)</option>
+              <option value="America/New_York">New York (EST/EDT)</option>
+              <option value="America/Chicago">Chicago (CST/CDT)</option>
+              <option value="America/Denver">Denver (MST/MDT)</option>
+              <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+              <option value="Asia/Tokyo">Tokyo (JST)</option>
+              <option value="Asia/Singapore">Singapore (SGT)</option>
+              <option value="UTC">UTC (Universal Coordinated Time)</option>
+            </select>
+          </div>
         </div>
 
         <LocationFields
@@ -143,7 +207,27 @@ export function HouseholdDetailsSection() {
           </div>
         )}
       </form>
+
+      {pendingCurrency && (
+        <ConfirmDialog
+          isOpen={!!pendingCurrency}
+          title={t("settings.currencyConfirmTitle")}
+          description={t("settings.currencyConfirmBody", {
+            oldCurrency: gov?.currency || "AUD",
+            newCurrency: pendingCurrency,
+          })}
+          confirmLabel={t("common.confirm")}
+          cancelLabel={t("common.cancel")}
+          variant="warning"
+          onConfirm={() => {
+            setCurrency(pendingCurrency);
+            setPendingCurrency(null);
+          }}
+          onClose={() => {
+            setPendingCurrency(null);
+          }}
+        />
+      )}
     </section>
   );
-
 }

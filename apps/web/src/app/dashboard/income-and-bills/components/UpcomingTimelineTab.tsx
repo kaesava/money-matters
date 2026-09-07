@@ -11,12 +11,12 @@ import {
   useResizableColumns,
   ConfirmDialog,
   useToast,
-  fmtDate,
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
 import { trpc } from "../../../../lib/trpc";
 import { TransferModal } from "../../../../components/web/TransferModal";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface TimelineEventItem extends EventItem {
   name?: string | null;
@@ -103,6 +103,7 @@ export function UpcomingTimelineTab({
   onOpenTransferModalWithData: _onOpenTransferModalWithData,
 }: UpcomingTimelineTabProps) {
   const toast = useToast();
+  const { fmt, fmtDate: formatLocaleDate } = useLocale();
   const utils = trpc.useUtils();
   const revertPlanMut = trpc.revertAllocationPlan.useMutation();
   const todayStr = useMemo(() => getTenantDateString(new Date()), []);
@@ -396,10 +397,12 @@ export function UpcomingTimelineTab({
                 {paginatedEvents.map((evt) => {
                   const isIncome = evt.eventKind === "INCOME";
                   const isTransfer = evt.eventKind === "TRANSFER";
+                  const isSavedIncome = isIncome && Boolean(savedIncomeEventIds?.has(evt.id));
+                  const isPending = evt.status === "PENDING" || !evt.status;
 
                   // Past Date calculation
                   const isPast = evt.expectedDate < todayStr;
-                  const formattedDate = fmtDate(evt.expectedDate);
+                  const formattedDate = formatLocaleDate(evt.expectedDate);
 
                   return (
                     <tr
@@ -455,14 +458,36 @@ export function UpcomingTimelineTab({
                                 ? `${evt.sourcePoolName || "Source"} ➔ ${evt.destinationPoolName || "Destination"}`
                                 : evt.categoryName || "Pool"}
                             </span>
-                          </div>
 
+                            {isPending && (
+                              <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded-md">
+                                Pending
+                              </span>
+                            )}
+                            {isSavedIncome && (
+                              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded-md">
+                                Saved
+                              </span>
+                            )}
+                          </div>
                           {evt.note && (
                             <span className="text-[11px] text-zinc-400 italic">
                               {evt.note}
                             </span>
                           )}
                         </div>
+                      </td>
+
+                      {/* Category/Pool Column */}
+                      <td className="py-3 px-4 text-xs text-zinc-600 dark:text-zinc-400">
+                        {isTransfer
+                          ? `${evt.sourcePoolName || "Source"} ➔ ${evt.destinationPoolName || "Destination"}`
+                          : evt.categoryName || evt.sourcePoolName || "—"}
+                      </td>
+
+                      {/* Account Column */}
+                      <td className="py-3 px-4 text-xs text-zinc-500 dark:text-zinc-400">
+                        {evt.accountName || "—"}
                       </td>
 
                       {/* Amount Column */}
@@ -476,8 +501,8 @@ export function UpcomingTimelineTab({
                               : "text-[#1B2B4B] dark:text-white"
                           }
                         >
-                          {isIncome ? "+" : isTransfer ? "↔" : "-"}$
-                          {parseFloat(evt.expectedAmount || "0").toFixed(2)}
+                          {isIncome ? "+" : isTransfer ? "↔" : "-"}
+                          {fmt(parseFloat(evt.expectedAmount || "0"))}
                         </span>
                       </td>
 
@@ -698,12 +723,7 @@ export function UpcomingTimelineTab({
             }
             setTransferModalEvent(null);
           }}
-          formatAUD={(val) =>
-            `$${(typeof val === "string" ? parseFloat(val) : val).toLocaleString("en-AU", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`
-          }
+          formatAUD={fmt}
         />
       )}
     </div>

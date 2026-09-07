@@ -1,11 +1,15 @@
 export interface FormatterTenant {
   country?: string | null;
+  currency?: string | null;
   timezone?: string | null;
+  locale?: string | null;
 }
 
 export const DEFAULT_TENANT_FORMATTER: FormatterTenant = {
   country: "AU",
+  currency: "AUD",
   timezone: "Australia/Sydney",
+  locale: "en-AU",
 };
 
 export function getLocaleFromCountry(countryCode?: string | null): string {
@@ -21,6 +25,12 @@ export function getCurrencyFromCountry(countryCode?: string | null): string {
       return "GBP";
     case "NZ":
       return "NZD";
+    case "JP":
+      return "JPY";
+    case "CA":
+      return "CAD";
+    case "SG":
+      return "SGD";
     case "AU":
     default:
       return "AUD";
@@ -51,8 +61,8 @@ export function formatCurrency(
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (isNaN(num)) return "";
 
-  const locale = getLocaleFromCountry(tenant?.country);
-  const currency = getCurrencyFromCountry(tenant?.country);
+  const locale = tenant?.locale || getLocaleFromCountry(tenant?.country);
+  const currency = tenant?.currency || getCurrencyFromCountry(tenant?.country);
 
   return new Intl.NumberFormat(locale, {
     style: "currency",
@@ -72,7 +82,7 @@ export function formatDate(
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
 
-  const locale = getLocaleFromCountry(tenant?.country);
+  const locale = tenant?.locale || getLocaleFromCountry(tenant?.country);
   const timezone = tenant?.timezone || DEFAULT_TENANT_FORMATTER.timezone!;
 
   return new Intl.DateTimeFormat(locale, {
@@ -95,7 +105,7 @@ export function formatDateTime(
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
 
-  const locale = getLocaleFromCountry(tenant?.country);
+  const locale = tenant?.locale || getLocaleFromCountry(tenant?.country);
   const timezone = tenant?.timezone || DEFAULT_TENANT_FORMATTER.timezone!;
 
   return new Intl.DateTimeFormat(locale, {

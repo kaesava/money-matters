@@ -31,12 +31,15 @@ export function getAestIsoDate(date: Date = new Date()): string {
  * @param date - The date to check
  * @returns True if the date is a weekend or public holiday
  */
-export function isNonBankingDay(date: Date): boolean {
+export function isNonBankingDay(date: Date, countryCode: string = "AU"): boolean {
   const dayOfWeek = date.getUTCDay();
   if (dayOfWeek === 0 || dayOfWeek === 6) return true; // Sunday = 0, Saturday = 6
 
-  const isoDate = getAestIsoDate(date);
-  return isoDate ? AU_NATIONAL_HOLIDAYS.has(isoDate) : false;
+  if (countryCode === "AU") {
+    const isoDate = getAestIsoDate(date);
+    return isoDate ? AU_NATIONAL_HOLIDAYS.has(isoDate) : false;
+  }
+  return false;
 }
 
 /**
@@ -44,16 +47,18 @@ export function isNonBankingDay(date: Date): boolean {
  *
  * @param scheduledDate - Initial scheduled date
  * @param shiftDirection - Direction to shift: PREVIOUS_BUSINESS_DAY (default) or NEXT_BUSINESS_DAY
+ * @param countryCode - Country code (default 'AU')
  * @returns Adjusted business day Date
  */
 export function adjustForBankingCalendar(
   scheduledDate: Date,
-  shiftDirection: "PREVIOUS_BUSINESS_DAY" | "NEXT_BUSINESS_DAY" = "PREVIOUS_BUSINESS_DAY"
+  shiftDirection: "PREVIOUS_BUSINESS_DAY" | "NEXT_BUSINESS_DAY" = "PREVIOUS_BUSINESS_DAY",
+  countryCode: string = "AU"
 ): Date {
   const result = new Date(scheduledDate.getTime());
   const step = shiftDirection === "PREVIOUS_BUSINESS_DAY" ? -1 : 1;
 
-  while (isNonBankingDay(result)) {
+  while (isNonBankingDay(result, countryCode)) {
     result.setUTCDate(result.getUTCDate() + step);
   }
 

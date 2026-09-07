@@ -9,16 +9,10 @@ import { t } from "@money-matters/i18n";
 import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable, PoolPicker } from "@money-matters/ui/web";
 import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
 import { getTenantDateString } from "@money-matters/core";
-
-const formatAUD = (val: number | string): string => {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  if (isNaN(num)) return "$0.00";
-  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(num);
-};
-
-
+import { useLocale } from "../../../providers/LocaleProvider";
 
 function TransactionsPageContent() {
+  const { fmt } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "transactions";
@@ -408,7 +402,7 @@ function TransactionsPageContent() {
                         <td className={`py-3 px-4 text-right font-mono font-bold tabular-nums ${
                           tx.flowType === "CREDIT" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                         }`}>
-                          {tx.flowType === "CREDIT" ? "+" : "-"}{formatAUD(tx.amount)}
+                          {tx.flowType === "CREDIT" ? "+" : "-"}{fmt(tx.amount)}
                         </td>
                       </tr>
                     ))}
@@ -603,7 +597,7 @@ function TransactionsPageContent() {
                           </Link>
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">
-                          {formatAUD(plan.totalIncomeAmount)}
+                          {fmt(plan.totalIncomeAmount)}
                         </td>
 
                         <td className="py-3 px-4 text-center">

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { fmtDate } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../providers/LocaleProvider";
 
 export interface PaydayTransferLine {
   categoryName: string;
@@ -18,18 +18,17 @@ export interface PaydayTransferCardProps {
   readonly onDismiss?: () => void;
 }
 
-const fmt = (val: number) => `$${val.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
 export function PaydayTransferCard({
   paycheckAmount,
   paycheckDate,
   lines,
   onDismiss,
 }: PaydayTransferCardProps) {
+  const { fmt, fmtDate: formatLocaleDate, currencySymbol, minorUnits } = useLocale();
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const handleCopy = (amount: number, idx: number) => {
-    navigator.clipboard.writeText(amount.toFixed(2));
+    navigator.clipboard.writeText(amount.toFixed(minorUnits));
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 2000);
   };
@@ -44,7 +43,7 @@ export function PaydayTransferCard({
             {t("cards.paydayTransfer.badge", { defaultValue: "1-Tap Payday Transfer Plan" })}
           </span>
           <h3 className="text-sm font-extrabold text-[#1B2B4B] mt-1">
-            Allocate {fmt(paycheckAmount)} Received on {fmtDate(paycheckDate)}
+            Allocate {fmt(paycheckAmount)} Received on {formatLocaleDate(paycheckDate)}
           </h3>
         </div>
         {onDismiss && (
@@ -84,7 +83,7 @@ export function PaydayTransferCard({
                 className="px-2.5 py-1 text-[11px] font-bold text-[#2563eb] bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg transition-colors flex items-center gap-1"
                 title="Copy amount to clipboard for bank app"
               >
-                {copiedIdx === idx ? "✓ Copied" : "Copy $"}
+                {copiedIdx === idx ? "✓ Copied" : `Copy ${currencySymbol}`}
               </button>
             </div>
           </div>

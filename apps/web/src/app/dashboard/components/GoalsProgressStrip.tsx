@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { t } from '@money-matters/i18n';
+import { useLocale } from '../../../providers/LocaleProvider';
 
 export interface GoalCategoryItem {
   readonly id: string;
@@ -20,13 +21,15 @@ export interface GoalCategoryItem {
 
 export interface GoalsProgressStripProps {
   readonly goalCategories: readonly GoalCategoryItem[];
-  readonly formatAUD: (val: number | string) => string;
+  readonly formatAUD?: (val: number | string) => string;
 }
 
 export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
   goalCategories,
   formatAUD,
 }) => {
+  const { fmt } = useLocale();
+  const format = formatAUD ?? fmt;
   const totalGoals = goalCategories?.length ?? 0;
   const onTrackGoals = (goalCategories ?? []).filter(
     (g) => g.healthStatus === 'GREEN' || !g.healthStatus
@@ -153,7 +156,7 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
 
                 <div className="flex justify-between items-center text-[11px] font-mono text-gray-500 dark:text-zinc-400">
                   <span>
-                    {formatAUD(goal.balanceNum)} {goal.targetNum > 0 && `/ ${formatAUD(goal.targetNum)}`}
+                    {format(goal.balanceNum)} {goal.targetNum > 0 && `/ ${format(goal.targetNum)}`}
                   </span>
                   {goal.isOverdue ? (
                     <span className="text-rose-600 font-bold font-sans">Overdue</span>

@@ -2,11 +2,34 @@ import { z } from "zod";
 
 export const CreateTenantCommand = z.object({
   name: z.string().min(1),
+  country: z.string().length(2).optional(),
+  currency: z.string().length(3).optional(),
+  timezone: z.string().optional(),
 }).strict();
 
 export const UpdateTenantCommand = z.object({
   name: z.string().min(1).optional(),
+  country: z.string().length(2).optional(),
+  currency: z.string().length(3).optional(),
+  timezone: z.string().optional(),
+  state: z.string().optional(),
+  postcode: z.string().optional(),
   fyEndMonthDay: z.string().regex(/^\d{2}-\d{2}$/).optional(),
+}).strict();
+
+export const UpdateUserPreferencesCommand = z.object({
+  quickActionsCollapsed: z.boolean().optional(),
+  timezone: z.string().optional(),
+  language: z.enum(["en", "ja"]).optional(),
+  locale: z.string().optional(),
+  theme: z.string().optional(),
+  showIcons: z.boolean().optional(),
+  paydayAlertsEnabled: z.boolean().optional(),
+  shortfallAlertsEnabled: z.boolean().optional(),
+  billRemindersEnabled: z.boolean().optional(),
+  weeklyDigestEnabled: z.boolean().optional(),
+  setupCompleted: z.boolean().optional(),
+  appPreferences: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
 }).strict();
 
 export const CreateBankAccountCommand = z.object({

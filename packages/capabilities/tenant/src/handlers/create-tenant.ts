@@ -33,6 +33,10 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .onConflictDoNothing();
 
+    const country = input.country || "AU";
+    const currency = input.currency || "AUD";
+    const timezone = input.timezone || "Australia/Sydney";
+
     // 1. Insert the tenant
     await db
       .insert(tenants)
@@ -40,6 +44,9 @@ export function createTenantHandler(db: DbOrTx) {
         id: tenantId,
         appId,
         name: input.name,
+        country,
+        currency,
+        timezone,
         subscriptionStatus: "TRIAL_ACTIVE",
         trialStartedAt,
         trialEndsAt,

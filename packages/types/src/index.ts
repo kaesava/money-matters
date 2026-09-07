@@ -27,6 +27,7 @@ export * from "./commands.types.js";
 export * from "./setup-presets.js";
 export * from "./app-preferences.js";
 export * from "./onboarding-quiz.js";
+export * from "./locale.types.js";
 
 /**
  * Subscription status lifecycle state machine.
@@ -46,6 +47,9 @@ export type SubscriptionStatus = z.infer<typeof SubscriptionStatus>;
  */
 export const TenantSchema = BaseSchema.extend({
   name: z.string().min(1),
+  country: z.string().length(2).default("AU"),
+  currency: z.string().length(3).default("AUD"),
+  timezone: z.string().default("Australia/Sydney"),
   fyEndMonthDay: z.string().regex(/^\d{2}-\d{2}$/).default("06-30"),
   premiumEnabled: z.boolean().default(false),
   subscriptionStatus: SubscriptionStatus.default("TRIAL_ACTIVE"),
@@ -384,6 +388,8 @@ export const ConfirmPlanCommand = z.object({
 export const UserPreferencesSchema = z.object({
   quickActionsCollapsed: z.boolean().default(false),
   timezone: z.string().default("UTC"),
+  language: z.enum(["en", "ja"]).default("en"),
+  locale: z.string().default("auto"),
 }).strict();
 
 export type TenantType = z.infer<typeof TenantSchema>;

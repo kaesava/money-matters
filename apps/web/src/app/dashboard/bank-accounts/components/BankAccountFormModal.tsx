@@ -2,8 +2,8 @@
 
 import React, { useId, useEffect, useState } from "react";
 import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField, AmountField } from "@money-matters/ui/web";
-
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
 
@@ -68,6 +68,7 @@ export function BankAccountFormModal({
   onArchive,
   errorMsg,
 }: BankAccountFormModalProps) {
+  const { currency, currencySymbol, minorUnits } = useLocale();
   const toast = useToast();
   const modalId = useId();
   const privateCheckId = useId();
@@ -171,19 +172,25 @@ export function BankAccountFormModal({
 
         <div className="flex flex-col gap-3 p-3.5 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
           <AmountField
-            label="Current Balance ($)"
+            label={`Current Balance (${currencySymbol})`}
             value={accBalance}
             onChange={setAccBalance}
             required
             allowNegative={true}
+            currency={currency}
+            currencySymbol={currencySymbol}
+            minorUnits={minorUnits}
           />
 
           <AmountField
-            label="Unbudgeted Buffer / Reserved Funds ($)"
+            label={`Unbudgeted Buffer / Reserved Funds (${currencySymbol})`}
             value={accBuffer}
             onChange={setAccBuffer}
             placeholder="0.00"
             allowNegative={false}
+            currency={currency}
+            currencySymbol={currencySymbol}
+            minorUnits={minorUnits}
           />
 
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs font-bold">

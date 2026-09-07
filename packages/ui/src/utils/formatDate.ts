@@ -4,7 +4,8 @@
  */
 export function fmtDate(
   input: string | Date | number | null | undefined,
-  timeZone: string = "Australia/Sydney"
+  timeZone: string = "Australia/Sydney",
+  locale: string = "en-AU"
 ): string {
   if (!input) return "N/A";
 
@@ -26,7 +27,7 @@ export function fmtDate(
 
     if (isNaN(dateObj.getTime())) return "N/A";
 
-    return new Intl.DateTimeFormat("en-AU", {
+    return new Intl.DateTimeFormat(locale, {
       day: "2-digit",
       month: "short",
       year: "2-digit",

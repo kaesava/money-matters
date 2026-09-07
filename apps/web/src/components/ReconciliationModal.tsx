@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
 import { InfoTooltip, Button, AmountField } from "@money-matters/ui/web";
 import posthog from "../lib/posthog-client";
+import { useLocale } from "../providers/LocaleProvider";
 
 export interface PoolItem {
   id: string;
@@ -25,10 +26,6 @@ export interface ReconciliationModalProps {
   onOpenTransferModal?: () => void;
 }
 
-function fmtMoney(num: number) {
-  return `$${Math.abs(num).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   isOpen,
   onClose,
@@ -40,6 +37,8 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   onConfirm,
   onOpenTransferModal,
 }) => {
+  const { fmt, currency, currencySymbol, minorUnits } = useLocale();
+  const fmtMoney = (num: number) => fmt(Math.abs(num));
   const newAvailableToBudget = Math.max(0, newBalance - unbudgetedBuffer);
   const variance = Number((newAvailableToBudget - expectedBalance).toFixed(2));
   const isSurplus = variance > 0;
@@ -260,6 +259,9 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                             autoFocus={visiblePools.indexOf(pool) === 0}
                             placeholder="0.00"
                             allowNegative={false}
+                            currency={currency}
+                            currencySymbol={currencySymbol}
+                            minorUnits={minorUnits}
                           />
                         </div>
                       </td>

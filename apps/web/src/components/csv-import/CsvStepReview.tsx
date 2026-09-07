@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { fmtDate, useResizableColumns, ResizableTh } from "@money-matters/ui/web";
+import { useResizableColumns, ResizableTh } from "@money-matters/ui/web";
+import { useLocale } from "../../providers/LocaleProvider";
 
 export interface ParsedTx {
   date: string;
@@ -89,6 +90,7 @@ export function CsvStepReview({
   setFlowTypeOverrideMap,
   getEffectiveFlowType,
 }: CsvStepReviewProps) {
+  const { fmt, fmtDate: formatLocaleDate } = useLocale();
   // Bulk Action Local Tool States
   const [bulkPoolTarget, setBulkPoolTarget] = useState<"EVERYDAY" | "REGULAR" | "GOAL">("EVERYDAY");
   const [bulkStatusTarget, setBulkStatusTarget] = useState<boolean>(true);
@@ -156,7 +158,7 @@ export function CsvStepReview({
             <span className="flex items-center gap-1.5">
               <span>📅</span>
               <span>
-                Statement Period: {fmtDate(parsedData.statementStartDate)} — {fmtDate(parsedData.statementEndDate)}
+                Statement Period: {formatLocaleDate(parsedData.statementStartDate)} — {formatLocaleDate(parsedData.statementEndDate)}
               </span>
             </span>
             <span className="text-[#2563eb] text-[11px] font-bold">
@@ -171,7 +173,7 @@ export function CsvStepReview({
               {t("csvImport.review.includedExpenses", { defaultValue: "Included Expenses" })}
             </span>
             <span className="text-base font-black text-rose-400 tabular-nums">
-              -${selectedExpenses.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              -{fmt(selectedExpenses)}
             </span>
           </div>
           <div className="flex flex-col">
@@ -179,7 +181,7 @@ export function CsvStepReview({
               {t("csvImport.review.includedIncome", { defaultValue: "Included Income" })}
             </span>
             <span className="text-base font-black text-emerald-400 tabular-nums">
-              +${selectedIncome.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              +{fmt(selectedIncome)}
             </span>
           </div>
           <div className="flex flex-col">
@@ -187,7 +189,7 @@ export function CsvStepReview({
               {t("csvImport.review.netImpact", { defaultValue: "Net Impact" })}
             </span>
             <span className={`text-base font-black tabular-nums ${netImpact >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-              {netImpact >= 0 ? "+" : ""}${netImpact.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {netImpact >= 0 ? "+" : "-"}{fmt(Math.abs(netImpact))}
             </span>
           </div>
         </div>
@@ -341,7 +343,7 @@ export function CsvStepReview({
                       />
                     </td>
                     <td className="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">
-                      {fmtDate(tx.date)}
+                      {formatLocaleDate(tx.date)}
                     </td>
                     <td className="p-3">
                       <div className="flex flex-col gap-1">

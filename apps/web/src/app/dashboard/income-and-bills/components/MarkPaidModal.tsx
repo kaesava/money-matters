@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
 import { Button, AmountField, DatePickerField } from "@money-matters/ui/web";
 import { ModalDialog } from "../../../../components/web/ModalDialog";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface CategoryOption {
   id: string;
@@ -35,10 +36,6 @@ export interface MarkPaidModalProps {
   }) => Promise<void>;
 }
 
-function fmt(val: number) {
-  return `$${val.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 export function MarkPaidModal({
   isOpen,
   onClose,
@@ -51,6 +48,7 @@ export function MarkPaidModal({
   availableCategories,
   onConfirmMarkPaid,
 }: MarkPaidModalProps) {
+  const { fmt, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
   const [amountStr, setAmountStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
   const [transferAmounts, setTransferAmounts] = useState<Record<string, string>>({});
@@ -58,8 +56,8 @@ export function MarkPaidModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
-  }, []);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: contextTz || "Australia/Sydney" }).format(new Date());
+  }, [contextTz]);
 
   useEffect(() => {
     if (isOpen) {
@@ -221,12 +219,15 @@ export function MarkPaidModal({
         {/* Editable Amount & Date Inputs */}
         <div className="grid grid-cols-2 gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
           <AmountField
-            label={t("common.amount", { defaultValue: "Amount ($)" })}
+            label={t("common.amount", { defaultValue: `Amount (${currencySymbol})` })}
             required
             value={amountStr}
             onChange={setAmountStr}
             allowNegative={false}
-            error={!isAmountValid && Boolean(amountStr) ? "Amount must be greater than $0.00" : undefined}
+            currency={currency}
+            currencySymbol={currencySymbol}
+            minorUnits={minorUnits}
+            error={!isAmountValid && Boolean(amountStr) ? `Amount must be greater than ${currencySymbol}0` : undefined}
           />
           <DatePickerField
             label={t("common.date", { defaultValue: "Date Paid" })}
@@ -325,6 +326,9 @@ export function MarkPaidModal({
                                         max={bal}
                                         placeholder="0.00"
                                         allowNegative={false}
+                                        currency={currency}
+                                        currencySymbol={currencySymbol}
+                                        minorUnits={minorUnits}
                                       />
                                     </div>
                                   </td>

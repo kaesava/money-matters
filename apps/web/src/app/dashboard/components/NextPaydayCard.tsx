@@ -3,8 +3,8 @@
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { t } from '@money-matters/i18n';
-import { fmtDate } from '@money-matters/ui/web';
 import { getEarliestPendingIncomeId } from '@money-matters/capability-budgeting';
+import { useLocale } from '../../../providers/LocaleProvider';
 
 export interface WebIncomeItem {
   readonly id: string;
@@ -20,7 +20,7 @@ export interface NextPaydayCardProps {
   readonly onPressRunSplit?: (eventId: string) => void;
   readonly onPressMarkReceived?: (eventId: string) => void;
   readonly onPressAllocate?: (eventId: string) => void;
-  readonly formatAUD: (val: number | string) => string;
+  readonly formatAUD?: (val: number | string) => string;
 }
 
 export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
@@ -30,6 +30,8 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
   onPressAllocate,
   formatAUD,
 }) => {
+  const { fmt, fmtDate: formatLocaleDate } = useLocale();
+  const format = formatAUD ?? fmt;
   const handleSplitClick = (id: string) => {
     if (onPressRunSplit) onPressRunSplit(id);
     else if (onPressMarkReceived) onPressMarkReceived(id);
@@ -118,7 +120,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   )}
                 </div>
                 <p className="text-[11px] text-gray-500 font-mono">
-                  <span className="font-semibold text-gray-900">{formatAUD(income.amount)}</span> · {daysAwayText} ({fmtDate(income.expectedDate)})
+                  <span className="font-semibold text-gray-900">{format(income.amount)}</span> · {daysAwayText} ({formatLocaleDate(income.expectedDate)})
                 </p>
               </div>
 

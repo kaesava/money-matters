@@ -5,13 +5,10 @@ import { trpc } from "../../../../lib/trpc";
 import { DashboardError } from "../../../../components/web/DashboardError";
 import { SkeletonTable, AmountField } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
-
-function fmt(val: string | number) {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 function CascadeContent() {
+  const { fmt, currency, currencySymbol, minorUnits } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("eventId") || "";
@@ -159,6 +156,9 @@ function CascadeContent() {
                         value={currentVal}
                         onChange={(val) => handleAmountChange(line.poolId, val)}
                         allowNegative={false}
+                        currency={currency}
+                        currencySymbol={currencySymbol}
+                        minorUnits={minorUnits}
                       />
                     </div>
                   </td>

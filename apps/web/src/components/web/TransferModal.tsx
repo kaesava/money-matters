@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useId } from "react";
 import { t } from "@money-matters/i18n";
 import { ModalDialog } from "./ModalDialog";
 import { ConfirmDialog, Button, AmountField, DatePickerField } from "@money-matters/ui/web";
+import { useLocale } from "../../providers/LocaleProvider";
 
 export interface TransferModalItem {
   readonly id: string;
@@ -41,7 +42,7 @@ export interface TransferModalProps {
     destinationPoolId?: string;
   }) => Promise<void>;
   readonly onDeleteTransfer: (eventId: string) => Promise<void>;
-  readonly formatAUD: (val: number | string) => string;
+  readonly formatAUD?: (val: number | string) => string;
 }
 
 export function TransferModal({
@@ -54,11 +55,13 @@ export function TransferModal({
   onDeleteTransfer,
   formatAUD,
 }: TransferModalProps) {
+  const { fmt, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
+  const format = formatAUD ?? fmt;
   const nameInputId = useId();
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
-  }, []);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: contextTz || "Australia/Sydney" }).format(new Date());
+  }, [contextTz]);
 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -190,8 +193,8 @@ export function TransferModal({
               </span>
               <span className="text-[11px] text-slate-500 font-mono">
                 {t("modals.transfer.available", {
-                  amount: formatAUD(sourceBalance),
-                  defaultValue: `${formatAUD(sourceBalance)} available`,
+                  amount: format(sourceBalance),
+                  defaultValue: `${format(sourceBalance)} available`,
                 })}
               </span>
             </div>
@@ -227,15 +230,18 @@ export function TransferModal({
             onChange={setAmount}
             required
             allowNegative={false}
+            currency={currency}
+            currencySymbol={currencySymbol}
+            minorUnits={minorUnits}
           />
 
           {isInsufficient && (
             <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300">
               {t("modals.transfer.insufficientBalanceWarning", {
                 poolName: sourcePool?.name || "Source Pool",
-                available: formatAUD(sourceBalance),
-                amount: formatAUD(numAmount),
-                defaultValue: `Insufficient balance in ${sourcePool?.name || "Source Pool"}. Available: ${formatAUD(sourceBalance)}, requested: ${formatAUD(numAmount)}.`,
+                available: format(sourceBalance),
+                amount: format(numAmount),
+                defaultValue: `Insufficient balance in ${sourcePool?.name || "Source Pool"}. Available: ${format(sourceBalance)}, requested: ${format(numAmount)}.`,
               })}
             </div>
           )}

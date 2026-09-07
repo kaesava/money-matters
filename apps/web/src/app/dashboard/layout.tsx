@@ -11,6 +11,7 @@ import { TrialEndedModal } from "../../components/TrialEndedModal";
 import { IconVisibilityProvider } from "@money-matters/ui";
 import { Spinner } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
+import { LocaleProvider } from "../../providers/LocaleProvider";
 import { trpc } from "../../lib/trpc";
 import { SidebarContent } from "./components/SidebarContent";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
@@ -233,8 +234,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <IconVisibilityProvider initialShowIcons={initialShowIcons}>
-      <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
+    <LocaleProvider>
+      <IconVisibilityProvider initialShowIcons={initialShowIcons}>
+        <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
         {/* ── Desktop Sidebar (Hidden on mobile) ── */}
         <aside
           style={{ backgroundColor: "var(--dash-navy)" }}
@@ -414,6 +416,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           />
         </div>
       </div>
-    </IconVisibilityProvider>
+      </IconVisibilityProvider>
+    </LocaleProvider>
   );
 }

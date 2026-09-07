@@ -98,14 +98,14 @@ All persistent domain tables include: `id`, `tenantId`, `appId`, `createdAt`, `c
 apps (id PK [stable UUID], name, slug UNIQUE)
   │ FK (appId)
   ▼
-tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
+tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], timezone [default Australia/Sydney], country [default AU], subscriptionStatus, trial*, stripe*)
   │
   ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id [nullable for PENDING], role: OWNER|MEMBER, inviteEmail, inviteToken, inviteStatus: PENDING|ACCEPTED|REVOKED, invitedAt)
   ├── bank_accounts (lastKnownBalance, unbudgetedBuffer, isPrivate, userId)
   │   └── pools (tenantId, appId, name, poolType: EVERYDAY|REGULAR|GOAL, bankAccountId, everydayAllowanceAmount, rolloverRule, targetAmount, targetDate, isCommitted, isSurplusTarget)
   │       ├── categories (tenantId, appId, poolId, name, icon, colour, monthlyAmount, budgetFrequency, isEssential)
   │       └── transaction_ledger (poolId, categoryId [nullable], flowType: DEBIT|CREDIT, source: MANUAL|IMPORT, recordedAt, note)
-  ├── user_preferences (Global 1:1 per userId: userId UNIQUE, timezone, locale, theme, showIcons)
+  ├── user_preferences (Global 1:1 per userId: userId UNIQUE, language [varchar(10), default en], locale [varchar(20), default auto], timezone [varchar(100)], theme, showIcons)
   ├── tenant_user_preferences (Scoped to userId, tenantId, appId: appPreferences: JSONB including alert toggles, UI flags, setup_completed state)
   ├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
   ├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
@@ -115,7 +115,13 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
   └── file_notes (entityType: POOL|CATEGORY|TRANSACTION, comment, fileKey, fileName, mimeType)
 ```
 
-> **Tenant-App Relationship**: Every tenant belongs to exactly one app via `tenants.app_id → apps.id`. `tenant_users` links users to tenants and derives `appId` via JOIN to `tenants`. If a user requires access to multiple apps, separate tenant IDs are provisioned for each app context.
+> **Tenant-App Relationship & Currency/Locale Architecture**:
+> - Every tenant belongs to exactly one app via `tenants.app_id → apps.id`.
+> - **Tenant Base Currency (`tenants.currency`)**: A single base currency is assigned per household (`AUD`, `USD`, `EUR`, `GBP`, `CAD`, `JPY`, `NZD`, `SGD`, defaulting to `AUD`). All financial calculations, pool balances, targets, and transaction ledger amounts operate in this single currency (no in-app multi-currency FX conversions). Household owners may edit the base currency in Household Details, triggering a confirmation dialog warning that historical numbers are not converted.
+> - **User Presentation Locale & Language (`user_preferences`)**: Language (`en`, `ja`) and formatting locale (`auto`, `en-AU`, `en-US`, `en-GB`, `ja-JP`) are cleanly decoupled in `user_preferences`. The web app's `LocaleProvider` dynamically computes `Intl.NumberFormat` and `Intl.DateTimeFormat` configurations based on the user's active preferences and tenant base currency.
+> - **Timezone Execution vs Presentation**: Scheduled paydays, rolling window materialization (`maintainRollingWindow`), and recurring event intervals execute strictly in `tenants.timezone` (default `Australia/Sydney`), guaranteeing household financial consistency regardless of where individual users log in. Display dates and times respect tenant timezone with optional user override.
+> - **Zero-Decimal Currencies & AmountField**: Currencies with zero minor units (`JPY`) automatically suppress decimal points across all displays and block decimal point input in `<AmountField />`.
+> - **Modular Banking Calendar**: Settlement adjustments (`adjustForBankingCalendar`, `isNonBankingDay`) support national holiday rules parameterized by `countryCode` (Australian BECS holidays for `AU`; weekend-only settlement adjustment fallback for international tenants).
 
 ### 4.1 Managed Identity (`neon_auth`) vs Domain Schema (`public`) Architecture
 

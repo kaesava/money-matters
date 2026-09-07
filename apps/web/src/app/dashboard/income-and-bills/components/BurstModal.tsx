@@ -2,20 +2,9 @@
 
 import React, { useState } from "react";
 import { ConfirmDialog, AmountField } from "@money-matters/ui/web";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
-function fmt(val: string | number) {
-  const num = typeof val === "string" ? parseFloat(val) : val;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function fmtDate(dStr?: string | null): string {
-  if (!dStr) return "";
-  const parts = dStr.split("T")[0].split("-");
-  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  return dStr;
-}
-
-function parseSchedule(rrule?: string | null, startDate?: string | null) {
+function parseSchedule(rrule?: string | null, startDate?: string | null, formatDate?: (d?: string | null) => string) {
   const isRecurring = Boolean(rrule && rrule.trim().length > 0);
   let frequencyLabel = "One-off";
   if (isRecurring) {
@@ -26,7 +15,7 @@ function parseSchedule(rrule?: string | null, startDate?: string | null) {
     else if (r.includes("FREQ=YEARLY")) frequencyLabel = "Annually";
     else frequencyLabel = "Recurring";
   }
-  const dateLabel = fmtDate(startDate);
+  const dateLabel = formatDate && startDate ? formatDate(startDate) : startDate || "";
   return { isRecurring, frequencyLabel, dateLabel };
 }
 
@@ -70,8 +59,9 @@ export interface BurstModalProps {
 export function BurstModal({
   mode, source, events, onClose, onEdit, onArchive, onMarkPaid, onSkip, onUpdateEvent, isPendingMarkPaid,
 }: BurstModalProps) {
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
-  const sched = parseSchedule(source.rrule, source.startDate);
+  const { fmt, fmtDate: formatLocaleDate, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: contextTz || 'Australia/Sydney' }).format(new Date());
+  const sched = parseSchedule(source.rrule, source.startDate, formatLocaleDate);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editDate, setEditDate] = useState("");
@@ -147,7 +137,7 @@ export function BurstModal({
                             <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="px-2 py-1 text-xs border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                           ) : (
                             <p className="text-xs font-bold text-[#1B2B4B]">
-                              {fmtDate(evt.expectedDate)}
+                              {formatLocaleDate(evt.expectedDate)}
                               {statusLabel && <span className={`ml-2 text-[10px] font-black px-1.5 py-0.5 rounded-full ${isPaid ? "bg-emerald-100 text-emerald-700" : "bg-zinc-200 text-zinc-600"}`}>{statusLabel}</span>}
                             </p>
                           )}
@@ -160,6 +150,9 @@ export function BurstModal({
                               value={editAmount}
                               onChange={setEditAmount}
                               allowNegative={false}
+                              currency={currency}
+                              currencySymbol={currencySymbol}
+                              minorUnits={minorUnits}
                             />
                           </div>
                         ) : (

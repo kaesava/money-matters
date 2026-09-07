@@ -13,6 +13,8 @@ import { CsvImportModal } from "../../../components/CsvImportModal";
 import { ReconciliationModal } from "../../../components/ReconciliationModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 
+import { useLocale } from "../../../providers/LocaleProvider";
+
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
   { key: "CBA", label: "Commonwealth Bank (CBA)", logoBg: "bg-amber-400", textColor: "text-zinc-950" },
   { key: "Westpac", label: "Westpac", logoBg: "bg-red-600", textColor: "text-white" },
@@ -23,12 +25,12 @@ const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textCo
   { key: "Other", label: "Other / Custom Bank", logoBg: "bg-slate-500", textColor: "text-white" },
 ];
 
-function fmtMoney(val: string | number | undefined) {
-  const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 function BankAccountsDashboardContent() {
+  const { fmt } = useLocale();
+  const fmtMoney = (val: string | number | undefined) => {
+    const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
+    return fmt(num);
+  };
   const searchParams = useSearchParams();
   const { status: subStatus } = useSubscriptionStatus();
   const isTrialExpired = subStatus?.isTrialExpired ?? false;

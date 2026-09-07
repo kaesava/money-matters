@@ -26,6 +26,12 @@ export interface AmountFieldProps {
   className?: string;
   containerClassName?: string;
   labelClassName?: string;
+  /** Currency code (e.g. 'AUD', 'USD', 'JPY'). Default: 'AUD' */
+  currency?: string;
+  /** Currency symbol (e.g. '$', '€', '¥'). Derived from currency if not passed */
+  currencySymbol?: string;
+  /** Decimal places for currency minor units (e.g. 0 for JPY, 2 for AUD/USD). Derived if omitted */
+  minorUnits?: number;
   /** Min value enforced on blur (default: 0 when allowNegative is false) */
   min?: number;
   /** Max value enforced on blur */
@@ -35,12 +41,12 @@ export interface AmountFieldProps {
 /**
  * Canonical amount input for the Serene Finance design system.
  *
- * - Leading $ prefix (positioned, not concatenated into value string).
- * - On blur: formats to 2dp if any numeric content present; keeps empty if blank.
+ * - Dynamic currency prefix (positioned, not concatenated into value string).
+ * - On blur: formats to minorUnits dp (0dp for JPY, 2dp for AUD) if numeric; keeps empty if blank.
  * - Custom stacked ChevronUp/ChevronDown steppers (hides native browser spinners).
  * - allowNegative=true renders -$X.XX in rose-600 bold (e.g. bank balance adjustments).
  * - allowNegative=false (default): strips minus characters; clamps to >= 0.
- * - 12-character total input cap; max 2 decimal digits.
+ * - 12-character total input cap; currency-aware decimal digits.
  */
 export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
   (
@@ -54,6 +60,9 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
       allowNegative = false,
       step = 1,
       maxIntegerDigits = 10,
+      currency = 'AUD',
+      currencySymbol,
+      minorUnits,
       required = false,
       disabled = false,
       autoFocus = false,
@@ -70,6 +79,23 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
     const generatedId = useId();
     const inputId = id ?? name ?? generatedId;
 
+    const effectiveMinorUnits =
+      minorUnits !== undefined
+        ? minorUnits
+        : currency?.toUpperCase() === 'JPY'
+        ? 0
+        : 2;
+
+    const effectiveSymbol =
+      currencySymbol ??
+      (currency?.toUpperCase() === 'JPY'
+        ? '¥'
+        : currency?.toUpperCase() === 'EUR'
+        ? '€'
+        : currency?.toUpperCase() === 'GBP'
+        ? '£'
+        : '$');
+
     const effectiveMin = min !== undefined ? min : allowNegative ? undefined : 0;
 
     /** Sanitise raw user keystrokes — enforce digit/sign/decimal rules. */
@@ -81,17 +107,27 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
           v = v.replace(/-/g, '');
         }
 
+        // For zero-decimal currencies (e.g. JPY), disallow decimal points entirely
+        if (effectiveMinorUnits === 0) {
+          const negPrefix = allowNegative && v.startsWith('-') ? '-' : '';
+          v = v.replace(/[^0-9]/g, '');
+          if (v.length > maxIntegerDigits) {
+            v = v.slice(0, maxIntegerDigits);
+          }
+          return negPrefix + v;
+        }
+
         // Allow digits, at most one decimal point, and (if allowNegative) leading minus
         const negPrefix = allowNegative && v.startsWith('-') ? '-' : '';
         v = v.replace(/[^0-9.]/g, '');
 
-        // Allow at most one decimal point, and at most 2 decimal digits
+        // Allow at most one decimal point, and at most effectiveMinorUnits decimal digits
         const parts = v.split('.');
         if (parts.length > 2) {
           v = parts[0] + '.' + parts.slice(1).join('');
         }
         if (parts[1] !== undefined) {
-          v = parts[0] + '.' + parts[1].slice(0, 2);
+          v = parts[0] + '.' + parts[1].slice(0, effectiveMinorUnits);
         }
 
         // Cap integer part length
@@ -102,7 +138,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
 
         return negPrefix + v;
       },
-      [allowNegative, maxIntegerDigits]
+      [allowNegative, maxIntegerDigits, effectiveMinorUnits]
     );
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +152,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
           let clamped = num;
           if (effectiveMin !== undefined && clamped < effectiveMin) clamped = effectiveMin;
           if (max !== undefined && clamped > max) clamped = max;
-          onChange(clamped.toFixed(2));
+          onChange(clamped.toFixed(effectiveMinorUnits));
         }
       }
       onBlur?.();
@@ -130,7 +166,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
         effectiveMin !== undefined ? Math.max(effectiveMin, next) :
         max !== undefined ? Math.min(max, next) : next;
       const final = max !== undefined ? Math.min(max, clamped) : clamped;
-      onChange(final.toFixed(2));
+      onChange(final.toFixed(effectiveMinorUnits));
     };
 
     const isNegative = allowNegative && parseFloat(value) < 0;
@@ -154,7 +190,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
               isNegative ? 'text-rose-600 font-bold' : 'text-slate-400'
             }`}
           >
-            $
+            {effectiveSymbol}
           </span>
 
           {/* Numeric input — native spinners hidden via Tailwind arbitrary variants */}

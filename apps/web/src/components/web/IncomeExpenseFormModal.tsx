@@ -6,6 +6,7 @@ import { ModalDialog } from "./ModalDialog";
 
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
+import { useLocale } from "../../providers/LocaleProvider";
 
 interface SourceToEdit {
   id: string;
@@ -89,6 +90,7 @@ export default function IncomeExpenseFormModal({
   mode,
   sourceToEdit,
 }: IncomeExpenseFormModalProps) {
+  const { currency, currencySymbol, minorUnits } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -365,10 +367,13 @@ export default function IncomeExpenseFormModal({
           </div>
 
           <AmountField
-            label="Expected Amount ($)"
+            label={`Expected Amount (${currencySymbol})`}
             required
             value={amount}
             onChange={setAmount}
+            currency={currency}
+            currencySymbol={currencySymbol}
+            minorUnits={minorUnits}
           />
 
           {mode === "INCOME" && (

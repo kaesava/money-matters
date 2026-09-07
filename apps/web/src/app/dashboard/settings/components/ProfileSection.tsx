@@ -6,6 +6,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
 import { PhoneInput, validateMobileNumber, useToast, InfoTooltip, Button } from "@money-matters/ui/web";
+import { SUPPORTED_LOCALES } from "@money-matters/types";
 import { AvatarCropModal } from "../../../../components/web/AvatarCropModal";
 
 interface ProfileSectionProps {
@@ -35,6 +36,8 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState<string | undefined>();
   const [timezone, setTimezone] = useState(currentTimezone);
+  const [language, setLanguageState] = useState<"en" | "ja">("en");
+  const [locale, setLocale] = useState("auto");
   const [showIcons, setShowIcons] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -44,6 +47,8 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
     phoneCountryCode: "+61",
     phoneNumber: "",
     timezone: currentTimezone,
+    language: "en" as "en" | "ja",
+    locale: "auto",
     showIcons: true,
     avatarUrl: user?.image || "",
   });
@@ -58,12 +63,17 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
       const tZone = userProfileQuery.data.timezone || "Australia/Sydney";
       const sIcons = userProfileQuery.data.showIcons ?? true;
 
+      const lang = (userPrefQuery.data?.language as "en" | "ja") || "en";
+      const loc = userPrefQuery.data?.locale || "auto";
+
       setDisplayName(dName);
       setAvatarUrl(aUrl);
       setNotificationEmail(nEmail);
       setPhoneCountryCode(pCode);
       setPhoneNumber(pNum);
       setTimezone(tZone);
+      setLanguageState(lang);
+      setLocale(loc);
       setShowIcons(sIcons);
 
       initialDataRef.current = {
@@ -72,11 +82,13 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
         phoneCountryCode: pCode,
         phoneNumber: pNum,
         timezone: tZone,
+        language: lang,
+        locale: loc,
         showIcons: sIcons,
         avatarUrl: aUrl,
       };
     }
-  }, [userProfileQuery.data, user]);
+  }, [userProfileQuery.data, userPrefQuery.data, user]);
 
   const isDirty =
     displayName !== initialDataRef.current.displayName ||
@@ -84,6 +96,8 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
     phoneCountryCode !== initialDataRef.current.phoneCountryCode ||
     phoneNumber !== initialDataRef.current.phoneNumber ||
     timezone !== initialDataRef.current.timezone ||
+    language !== initialDataRef.current.language ||
+    locale !== initialDataRef.current.locale ||
     showIcons !== initialDataRef.current.showIcons ||
     avatarUrl !== initialDataRef.current.avatarUrl;
 
@@ -146,6 +160,8 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
       });
 
       await updatePrefMutation.mutateAsync({
+        language: language as "en" | "ja",
+        locale,
         timezone,
         showIcons,
       });
@@ -296,6 +312,36 @@ export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
               label={t("settings.phoneNumberLabel")}
               error={phoneError}
             />
+          </div>
+
+          {/* Language & Date Format */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-[#1B2B4B]">{t("settings.language")}</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguageState(e.target.value as "en" | "ja")}
+                className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+              >
+                <option value="en">English (en)</option>
+                <option value="ja">日本語 (ja)</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-[#1B2B4B]">{t("settings.dateFormat")}</label>
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value)}
+                className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+              >
+                {SUPPORTED_LOCALES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label} ({l.dateFormatExample})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Timezone */}

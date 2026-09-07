@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SlideOverDrawer, SearchInput } from "@money-matters/ui/web";
 import { trpc } from "../../../../lib/trpc";
 import { CategoryItem, PoolTableRow } from "../types";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 interface CategoryDrawerProps {
   pool: PoolTableRow | null;
@@ -14,6 +15,7 @@ interface CategoryDrawerProps {
 }
 
 export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }: CategoryDrawerProps) {
+  const { fmt, fmtDate: formatLocaleDate } = useLocale();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<"name" | "monthlyAmount">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -124,7 +126,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
             <div>
               <span className="text-zinc-400 font-semibold block text-[11px]">Current Balance</span>
               <span className="font-mono font-black text-[#1B2B4B] block text-sm">
-                ${pool.currentBalance.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {fmt(pool.currentBalance)}
               </span>
             </div>
             <div>
@@ -134,7 +136,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
               <div className="font-mono font-bold text-zinc-700 block text-xs">
                 {pool.poolType === "GOAL" ? (
                   pool.targetDate ? (
-                    new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" }).format(new Date(pool.targetDate + "T00:00:00"))
+                    formatLocaleDate(pool.targetDate)
                   ) : (
                     "—"
                   )
@@ -143,7 +145,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
                     ? (pool.rawPool.everydayAllowanceAmount ? parseFloat(pool.rawPool.everydayAllowanceAmount) : pool.targetAmount)
                     : pool.targetAmount;
                   return target != null && target > 0 ? (
-                    `$${target.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / month`
+                    `${fmt(target)} / month`
                   ) : (
                     "—"
                   );
@@ -223,7 +225,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono tabular-nums font-semibold text-zinc-700">
                       {cat.monthlyAmount ? (
-                        `$${parseFloat(cat.monthlyAmount).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        fmt(cat.monthlyAmount)
                       ) : (
                         <span className="text-zinc-400 font-normal">—</span>
                       )}

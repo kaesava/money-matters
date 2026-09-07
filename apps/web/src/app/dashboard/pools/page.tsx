@@ -13,10 +13,12 @@ import { CategoryItemModal } from "../../../components/web/CategoryItemModal";
 import { CategorySummaryItem, CategoryItem, PoolTableRow } from "./types";
 import { PoolsTable } from "./components/PoolsTable";
 import { CategoryDrawer } from "./components/CategoryDrawer";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 type PoolTypeFilter = "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
 
 function PoolsPageContent() {
+  const { fmt } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
   const searchParams = useSearchParams();
@@ -324,7 +326,7 @@ function PoolsPageContent() {
 
   const fmtMoney = (val: number | null | undefined) => {
     if (val === null || val === undefined) return "—";
-    return `$${val.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return fmt(val);
   };
 
   const confirmArchivePool = async () => {

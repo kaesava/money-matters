@@ -309,6 +309,9 @@ The onboarding flow delivers an engaging interactive estimation experience compl
    - Enforces multi-tenant RLS and stealth privacy (partner's private pools/bank accounts are never included in export).
 5. **Redesigned 3-Tab Settings & 2-Tab History Layout**:
    - Settings page expanded to `max-w-5xl` container width with 3 sleek tabs (`Profile`, `Household`, `Account & Data`).
+   - **Profile Tab**: Supports user Display Name, Email, Theme (`Light` / `Dark`), User Language (`English`, `日本語`), Date & Number Format (`Browser Default`, `Australia (DD/MM/YYYY)`, `United States (MM/DD/YYYY)`, `United Kingdom (DD/MM/YYYY)`, `Japan (YYYY/MM/DD)`), and optional user Timezone override.
+   - **Household Tab**: Household Name, Country selection (`CountrySelect`), Base Currency (`AUD`, `USD`, `EUR`, `GBP`, `CAD`, `JPY`, `NZD`, `SGD`), Household Timezone, and member collaboration management. Currency changes trigger a Serene Finance `<ConfirmDialog>` warning that historical transaction records and category limits are not converted via foreign exchange rates.
+   - **Zero-Decimal Currencies**: For currencies without minor units (e.g. `JPY`), monetary values are rendered without decimal places, and amount inputs (`<AmountField />`) disallow entering the decimal point.
    - History page organized into 2 tabs (`Transactions` ledger & `Payday Allocations` audit history).
 6. **i18n Externalization & Parity**:
    - 100% of user-facing UI labels, error messages, headings, modal prompts, placeholders, and tooltips are externalized in `@money-matters/i18n`.

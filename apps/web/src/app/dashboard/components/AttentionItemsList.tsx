@@ -2,10 +2,11 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { fmtDate, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
+import { ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { MarkPaidModal, ShortfallTransferItem } from "../income-and-bills/components/MarkPaidModal";
 import { TransferModal } from "../../../components/web/TransferModal";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 export interface WebAttentionItem {
   readonly id: string;
@@ -54,7 +55,7 @@ export interface WebAttentionItemsListProps {
     transfers: ShortfallTransferItem[],
     destinationCategoryId: string
   ) => Promise<void>;
-  readonly formatAUD: (val: number | string) => string;
+  readonly formatAUD?: (val: number | string) => string;
 }
 
 export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
@@ -68,13 +69,15 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   onConfirmTransferAndPay,
   formatAUD,
 }) => {
+  const { fmt, fmtDate: formatLocaleDate, timezone: contextTz } = useLocale();
+  const format = formatAUD ?? fmt;
   const [selectedMarkPaidItem, setSelectedMarkPaidItem] = useState<WebAttentionItem | null>(null);
   const [selectedTransferItem, setSelectedTransferItem] = useState<WebAttentionItem | null>(null);
   const [selectedDeleteItem, setSelectedDeleteItem] = useState<WebAttentionItem | null>(null);
 
   const todayStr = useMemo(() => {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
-  }, []);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: contextTz || "Australia/Sydney" }).format(new Date());
+  }, [contextTz]);
 
   if (!items || items.length === 0) {
     return (
@@ -203,8 +206,8 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                   )}
                 </div>
                 <p className="text-[11px] text-gray-500 font-mono">
-                  <span className="font-semibold text-gray-900 tabular-nums">{formatAUD(item.expectedAmount)}</span> ·{" "}
-                  {daysAwayText} ({fmtDate(item.expectedDate)})
+                  <span className="font-semibold text-gray-900 tabular-nums">{format(item.expectedAmount)}</span> ·{" "}
+                  {daysAwayText} ({formatLocaleDate(item.expectedDate)})
                   {isTransfer && item.sourcePoolName && item.destinationPoolName && (
                     <span className="block text-[10px] text-slate-500 font-sans mt-0.5">
                       {item.sourcePoolName} ➔ {item.destinationPoolName}
@@ -215,8 +218,8 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       {item.categoryName}
                       {typeof item.categoryBalance === "number" &&
                         ` ${t("dashboard.upcomingExpensesTransfers.availableSuffix", {
-                          amount: formatAUD(item.categoryBalance),
-                          defaultValue: `· ${formatAUD(item.categoryBalance)} available`,
+                          amount: format(item.categoryBalance),
+                          defaultValue: `· ${format(item.categoryBalance)} available`,
                         })}`}
                     </span>
                   )}
@@ -322,7 +325,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
             }
             setSelectedTransferItem(null);
           }}
-          formatAUD={formatAUD}
+          formatAUD={format}
         />
       )}
 

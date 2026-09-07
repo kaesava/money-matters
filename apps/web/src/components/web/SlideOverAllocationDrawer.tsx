@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { fmtDate } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../providers/LocaleProvider";
 
 export interface PaydayPlanLineRecord {
   planId: string;
@@ -38,6 +38,8 @@ export function SlideOverAllocationDrawer({
   onClose,
   plan,
 }: SlideOverAllocationDrawerProps) {
+  const { fmt, fmtDate } = useLocale();
+
   // ESC key dismissal (AGENTS.md Rule 13)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -50,12 +52,6 @@ export function SlideOverAllocationDrawer({
   }, [isOpen, onClose]);
 
   if (!isOpen || !plan) return null;
-
-  const formatAUD = (val: number | string): string => {
-    const num = typeof val === "string" ? parseFloat(val) : val;
-    if (isNaN(num)) return "$0.00";
-    return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(num);
-  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -105,7 +101,7 @@ export function SlideOverAllocationDrawer({
           <div className="p-6 bg-slate-50 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
             <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{t("payday.totalIncomeNet")}</span>
             <span className="text-lg font-black font-mono text-[#2563eb]">
-              {formatAUD(plan.totalIncomeAmount)}
+              {fmt(plan.totalIncomeAmount)}
             </span>
           </div>
 
@@ -124,7 +120,7 @@ export function SlideOverAllocationDrawer({
                     {line.poolName || line.categoryName || "Pool Allocation"}
                   </h4>
                   <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    {formatAUD(line.confirmedAmount || line.proposedAmount)}
+                    {fmt(line.confirmedAmount || line.proposedAmount)}
                   </span>
                 </div>
                 {line.reasoning && (

@@ -289,7 +289,7 @@ export function BankAccountTable({
                           {p.poolType === "EVERYDAY" ? "Everyday" : p.poolType === "REGULAR" ? "Bills" : "Goal"}
                         </span>
                       </div>
-                      <span className="font-mono font-bold text-zinc-800">${(p.currentBalance || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className="font-mono font-bold text-zinc-800">{fmtMoney(p.currentBalance || 0)}</span>
                     </div>
                   ))}
                 </>

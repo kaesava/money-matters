@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { t } from '@money-matters/i18n';
 import { ConfirmDialog, AmountField } from '@money-matters/ui/web';
+import { useLocale } from '../../../providers/LocaleProvider';
 
 export interface BentoPoolsSectionProps {
   readonly everydayBalance: number;
@@ -17,7 +18,7 @@ export interface BentoPoolsSectionProps {
 
   readonly onMoveMoney: () => void;
   
-  readonly formatAUD: (val: number | string) => string;
+  readonly formatAUD?: (val: number | string) => string;
   readonly onUpdatePoolBalance: (poolType: 'EVERYDAY' | 'REGULAR', newAmount: number) => Promise<void>;
   readonly skipConfirmation: boolean;
   readonly onSaveSkipConfirmation: () => Promise<void>;
@@ -37,6 +38,8 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   skipConfirmation,
   onSaveSkipConfirmation,
 }) => {
+  const { fmt, currency, currencySymbol, minorUnits } = useLocale();
+  const format = formatAUD ?? fmt;
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -145,6 +148,9 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                     onChange={setEditValue}
                     allowNegative={true}
                     autoFocus
+                    currency={currency}
+                    currencySymbol={currencySymbol}
+                    minorUnits={minorUnits}
                   />
                 </div>
                 <button
@@ -165,7 +171,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             ) : (
               <div>
                 <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
-                  {formatAUD(everydayBalance)}
+                  {format(everydayBalance)}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Discretionary spending balance
@@ -177,7 +183,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           {/* Pacing Bar */}
           <div className="space-y-1.5 pt-4 mt-auto border-t border-gray-100">
             <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-              <span>Monthly Budget: {formatAUD(everydayMonthlyBudget)}</span>
+              <span>Monthly Budget: {format(everydayMonthlyBudget)}</span>
               <span>{Math.round(everydaySpentPct)}% spent</span>
             </div>
             <div className="relative h-2 bg-gray-100 rounded-full overflow-visible">
@@ -222,6 +228,9 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                     onChange={setEditValue}
                     allowNegative={true}
                     autoFocus
+                    currency={currency}
+                    currencySymbol={currencySymbol}
+                    minorUnits={minorUnits}
                   />
                 </div>
                 <button
@@ -242,7 +251,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             ) : (
               <div>
                 <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
-                  {formatAUD(billsBalance)}
+                  {format(billsBalance)}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Ring-fenced for committed bills
@@ -257,10 +266,10 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                   <span className="text-sm">⚠️</span>
                   <div>
                     <span className="text-[11px] font-bold text-rose-800 block">
-                      Shortfall of {formatAUD(billsShortfall)}
+                      Shortfall of {format(billsShortfall)}
                     </span>
                     <span className="text-[10px] text-rose-700 block">
-                      {billsDue14DaysCount} bill(s) totaling {formatAUD(totalBillsDue14Days)} due in 14 days
+                      {billsDue14DaysCount} bill(s) totaling {format(totalBillsDue14Days)} due in 14 days
                     </span>
                   </div>
                 </div>
@@ -283,7 +292,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           {/* Monthly Cap Footnote */}
           <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500 mt-auto">
             <span>Target Monthly Bills:</span>
-            <span className="font-mono font-semibold">{formatAUD(billsMonthlyBudget)}</span>
+            <span className="font-mono font-semibold">{format(billsMonthlyBudget)}</span>
           </div>
         </div>
       </div>
@@ -303,7 +312,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           description={
             <div className="space-y-3">
               <p className="text-xs text-gray-600 leading-relaxed">
-                Adjusting the <strong>{confirmDetails.poolType === 'EVERYDAY' ? 'Everyday' : 'Bills'} Pool</strong> balance from <span className="font-mono">{formatAUD(confirmDetails.oldVal)}</span> to <span className="font-mono">{formatAUD(confirmDetails.newVal)}</span> will record an adjustment transaction of <span className="font-mono font-bold text-gray-950">{formatAUD(Math.abs(confirmDetails.diff))}</span> ({confirmDetails.diff > 0 ? 'Top-Up' : 'Spend'}) dated today.
+                Adjusting the <strong>{confirmDetails.poolType === 'EVERYDAY' ? 'Everyday' : 'Bills'} Pool</strong> balance from <span className="font-mono">{format(confirmDetails.oldVal)}</span> to <span className="font-mono">{format(confirmDetails.newVal)}</span> will record an adjustment transaction of <span className="font-mono font-bold text-gray-950">{format(Math.abs(confirmDetails.diff))}</span> ({confirmDetails.diff > 0 ? 'Top-Up' : 'Spend'}) dated today.
               </p>
               <label className="flex items-center gap-2.5 py-1 select-none cursor-pointer">
                 <input

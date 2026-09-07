@@ -1,6 +1,6 @@
 # Money Matters — Production Monorepo Platform
 
-Money Matters is an active, forward-looking household money management platform for Australian professionals and families. It replaces spreadsheets with a self-healing 5-step waterfall allocation engine, a single pooled Everyday spending balance, bank statement CSV import, and partner collaboration.
+Money Matters is an active, forward-looking household money management platform for Australian and international households. It replaces spreadsheets with a self-healing 5-step waterfall allocation engine, a single pooled Everyday spending balance, bank statement CSV import, multi-currency household governance, decoupled user display locales & timezones, and partner collaboration.
 
 ---
 
