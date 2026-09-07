@@ -1,36 +1,161 @@
+# MOBILE AUDIT
+Do a thorough audit of the mobile app capability and web app capability with the aim of getting the mobile app up to production readiness. The Web app has advanced significantly while the mobile app has stalled. This was intention so I could focus on the web app. However, now I want to mobile app to get to par with the webb App. I want you to do a thorough deep dive into the relative capabilities and identify every single update that needs to be made in the mobile app to bring the functionality in par with the web app. When I say every capability, I literally mean every screen, modal, filter, drop-down, button, input field, workflow, hover text, hyperlink, navigation, search, sort, table, loading animation, field, error message, confirmation modal, label, title, warning message, close button, cancel button, etc. Of course, you will need to translate these into mobile app specific UX/UI to ensure native look and feel. Further, there is already a significant amount of build complete. The ask is not to rebuild from scratch, though if you do find discrpenecies, fix them
+
+# FUNCTIONAL AUDIT
+
+### 2. Lead Business Analyst (V1 Functional Completeness)
+- Identify all the Apps Capabilities (partially listed below), and ensure there are 0 Functional Gaps (Built per spec), no edge cases, no Code bugs, no duplicated code where it can be rationalised.
+
+### General
+* Connection interrupted message - validity, retry
+* Behaviour of tables across the web app (sort, search, pagination, skeleton loading, reasonable widths, etc.
+* Behaviour of modal screens (in particular ones with editable fields) across the web app (defensive field checks to prevent malicious or rubbish data entry), Cancel, Escape to Cancel, Errors, Warnings, COnfirmations, Success toasts, etc.
+* Landing Page (Not signed in)
+* Privacy Page (Not signed in)
+* Sign-Up through Google, Apple, Email/password (and what if they already have one but try another)
+* Verify Password capability initiation
+* Verify Password capability email trigger
+* Sign-In through Email, Google, Apple (and what if they registered via anotehr method)
+* Setup Flows - Steps 1-4
+### Navigation
+* Navigation (including User Details & Sign Out)
+* Tenant Switching
+* Provide Feedback feature
+### Common
+* Quick Action (Income)
+* Quick Action (Expense)
+* Quick Action (Transfer)
+* Quick Action - save and pick from Last three & Most frequent 3 previous
+* Pool/Category picker (functionality based on where it was called from to show/hide categories, single pick vs multi pick)
+* information tooltip icons - user-friendly and targeted at user base (no technical or overly financial jargon)
+### Dashboard
+* Signed in Landing Page (Dashboard)
+* Manually adjusting Bills or Everyday.
+* Account Reconciliation (Transaction flowthrough)
+* Mark Spent
+* Split Income
+* Can I afford
+### Pools
+* Pools - Projection Timeline (on mode vs off mode)
+* Pool table list (including hyperlinks to History & Upcoming Expenses, expand/collapse) - Sort, Search, Filters (All/Everyday/Bills/Goals and All/Shared/Private), Pagination
+* Add Pool (from button or from within Pool Type)
+* Create Pool
+* Edit Pool (including preventing re-linking with Bank Account or Pool Type) and Save/Cancel
+* Archive Pool, Unarchive Pool
+* Add Category (from button next to Pool)
+* Create Category
+* Edit Category (including preventing re-linking with Pool) and Save/Cancel
+* Archive Category, Unarchive Category
+* Behaviour of Prioritised Categories
+* Behaviour of Private Pools
+### Income & expenses
+#### Income Split
+* Pools list (including hyperlinks that open Pool side drawer, expand/collapse) - Sort, Search, Filters (All/Shared/Private & Show 5 vs. Show full)
+* Save, Unsave, Delete, Review each Split - correct Behvaiour
+* Pool sidebar - details (including Pool hyperlink), Category list (with hyperlinks), Upcoming Expenses (including Show All Expenses), History (including See Full History) tabs
+#### Income Split sidebar
+* Update of Name, Amount or Date and functional implications
+* Pool list (collapse/expand, allow correct entry of split )
+* Surplus pool and behaviour
+* waterfall triggers
+* Correct load of allocation lines if saved
+* Save, Unsave, Delete, Run Income Split, Cancel
+
+### Upcoming
+* Mark Spent (including allowing change in amount or date - but not future)
+* Mark Spent confirmation (including allowing transfer from non-zero pools up to their balance, defaulting to surplus target, allow updating pools)
+* Mark Spent action (triggering all transfers - should end up as transactions, then confirming and marking spent and drawing down on pool)
+
+******* Setup
+Create/Edit modal - Expense Schedule & Income Schedule (applies to both)
+Change Start/Frequency/End-date/Amount/Other - check re-burst
+Delete - check event delete (archival)
+Burst Event Regeneration (Check Transactions)
+
+******* "Bank Accounts"
+Edit Modal 
+Reconciliation
+Linked Pools popup
+
+Private Bank Accounts
+
+Bank Account & Statement csv Import
+CSV Import Log
+CSV Import Flow - Step 1,Step 2, Step 3
+
+
+******* "History"
+Transactions
+Export CSV
+Payday Allocations
+Payday Allocation Details sidebar
+Export CSV
+
+******* "Settings"
+
+******** My Details
+Change and Save Settings (Name, Notification Email, Mobile Phone Number (AU), Mobile Phone Number (Other)), Display Timezone, Show Icons
+Notification Settings?
+Weekly Digest Email?
+Profile upload of Avatar
+Avatar View
+Avatar Replace (Zoom, Pan)
+Show/Hide Icon setting & Flowthrough
+
+***** Household
+Change and Save Settings
+Add Household Member
+Remove Household Member
+Invited Household Member - acceptance
+Leave Household - Transfer Ownership
+Delete Household and Data 
+Delete Household and Data - Delete Household popup
+
+***** Archived Data
+Archive/Unarchive - feature by feature - Account, Category, Transaction(?), Income/Expense schedule, Income/Expense Item, Quick Add Expense/Income/Transfer, etc. (Check Transactions)
+ata & Subscription
+Upgrade or Change (including Cancel)
+Payment Success
+Payment Fail
+Recurring Payment deduction
+Billing Portal
+ Data Sovereignty & Zipped CSV Backup
+
+
+
+These may include Waterfall engine, CSV Bank Statement input, Setup flow, Mark Spent capability, Income Split, New/Edit various entities (like Bank Accounts, Allocations, Allocation Plans,), Personal Settings, Household Settings, Household Member Invite, Free Trial Expiry, Subscription purchase, Subscription Update/Cancel & Grace Period
+
+
 
 # Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
 * Ignore mobile app
-* [/grill-me](slashCommand;grill-me) instead of making assumptions.
+* Create a detailed implementation plan detailed enough for an agent like Gemini 3.6 Medium to unambiguously interprent and execute.
+
+
+
+
+
+
+# RULES
+
+* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
+* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
+* Ignore mobile app
+* OUtput - detailed implementation plan that can be unambiguously carried out by a low token agent. No need for reports.
 * Make multiple passes if needed - as there may be cross-dependencies you'll miss if you don't
 * Be critical, think deep - review code if you're not sure.
-* OUTPUT: Create a detailed implementation plan detailed enough for an agent like Gemini 3.6 Medium to unambiguously interprent and execute.
 * If section below is blank, it means I don't have any updates for you to make - leave it alone.
+* [/grill-me](slashCommand;grill-me) instead of making assumptions.
+
 
 
 # AGENT - In progress...
-
+    
 _________
 
-# Questions for CLAUDE
-
-## Consistency Audit
-**Role & Scope:** Act as the Principal Software Architect and UI/UX Expert for the V1 Money Matters web platform. Scope is strictly limited to `apps/web`, `apps/api`, `packages/db`, and all capability packages. Completely ignore `apps/mobile` and any features explicitly deferred in `V2_SCOPE.md`. Your primary directive is zero-redundancy code maintenance and strict vertical slice composability.
-
-**Execution Rules:**
-*   **UI & UX Consistency:** Strictly utilize existing Serene Finance design tokens and reusable primitives within `@money-matters/ui`. Do not invent new components, modals, layout flows, or error states if a MECE-compliant component already exists.
-*   **Localization & Terminology:** 100% of user-facing text must be externalized via `@money-matters/i18n`. Hardcoded string literals in components are strictly forbidden.
-*   **Code Optimization:** Enforce DRY principles aggressively. Before generating new functional or UI code, evaluate existing capabilities and extract logic into flexible, argument-driven shared blocks. Ensure data tables, form validations, and error handling are completely uniform across the app.
-*   **Documentation:** Implement "Smart Commenting." Document the *why* for complex business logic, waterfall math, and edge cases. Trivial *what* comments (e.g., `// increments count`) are explicitly forbidden.
-*   **Governance:** Strictly adhere to all architectural rules in `AGENTS.md`. After any structural or logic change, you must automatically update `README.md`, `FUNCTIONAL_SPEC.md`, and `TECHNICAL_SPEC.md` to perfectly reflect the current state of the codebase.
-
-
-## Waterfall Audit
-You are now going to do a full audit on the waterfall functionality to ensure it calculates splits based on what the user  would reasonably expect, given goals, bills, Priority Bills, Everyday expenses, private pools, etc. What gaps do you see betwene what gets projected and the reality the user might expect (of course, within reason)? Functionally, does it account for (and account correctly for) various circumstances and edge cases like expense events, income irregularity, prioritisation based on due dates, etc. Make recommendations. Be critical. Review through internet research user expectations. 
-
-
+# Questions
 
 # General
 ## Behaviour of tables across the web app

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { IncomeItem } from "@money-matters/types";
-import { InfoTooltip } from "@money-matters/ui";
+import { InfoTooltip, AmountField } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 interface SetupIncomeStepProps {
@@ -76,15 +76,12 @@ export function SetupIncomeStep({
                   placeholder="e.g. Salary, Consulting"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-zinc-500">Take-Home Amount ($)</label>
-                <input
-                  type="number"
-                  value={inc.amount}
-                  onChange={(e) => onUpdateIncome(inc.id, "amount", parseFloat(e.target.value) || 0)}
-                  className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
-                />
-              </div>
+              <AmountField
+                label="Take-Home Amount ($)"
+                value={String(inc.amount ?? "")}
+                onChange={(val) => onUpdateIncome(inc.id, "amount", parseFloat(val) || 0)}
+                allowNegative={false}
+              />
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-bold text-zinc-500">Frequency</label>
                 <select

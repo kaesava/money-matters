@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { t } from '@money-matters/i18n';
-import { ConfirmDialog } from '@money-matters/ui/web';
+import { ConfirmDialog, AmountField } from '@money-matters/ui/web';
 
 export interface BentoPoolsSectionProps {
   readonly everydayBalance: number;
@@ -139,19 +139,14 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
 
             {editingPool === 'EVERYDAY' ? (
               <div className="flex items-center gap-2 py-1">
-                <span className="text-xl font-bold text-gray-800">$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-28 px-2.5 py-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveClick('EVERYDAY');
-                    if (e.key === 'Escape') setEditingPool(null);
-                  }}
-                />
+                <div className="w-32">
+                  <AmountField
+                    value={editValue}
+                    onChange={setEditValue}
+                    allowNegative={true}
+                    autoFocus
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => handleSaveClick('EVERYDAY')}
@@ -221,19 +216,14 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
 
             {editingPool === 'REGULAR' ? (
               <div className="flex items-center gap-2 py-1">
-                <span className="text-xl font-bold text-gray-800">$</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-28 px-2.5 py-1 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveClick('REGULAR');
-                    if (e.key === 'Escape') setEditingPool(null);
-                  }}
-                />
+                <div className="w-32">
+                  <AmountField
+                    value={editValue}
+                    onChange={setEditValue}
+                    allowNegative={true}
+                    autoFocus
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => handleSaveClick('REGULAR')}

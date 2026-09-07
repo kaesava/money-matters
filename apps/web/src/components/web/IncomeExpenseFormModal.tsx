@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, InfoTooltip, fmtDate } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, fmtDate, AmountField } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 
 import { t } from "@money-matters/i18n";
@@ -364,24 +364,12 @@ export default function IncomeExpenseFormModal({
             />
           </div>
 
-          <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1 flex items-center gap-1">
-              <span>Expected Amount ($)</span> <span className="text-red-500">*</span>
-              <InfoTooltip
-                title="Expected Amount"
-                content={t("modals.theseCanBeUpdatedLater", { defaultValue: "These can be updated later" })}
-              />
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
-          </div>
+          <AmountField
+            label="Expected Amount ($)"
+            required
+            value={amount}
+            onChange={setAmount}
+          />
 
           {mode === "INCOME" && (
             <div>

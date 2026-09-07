@@ -40,8 +40,13 @@ export default function DashboardPage() {
     summaryQuery,
     incomeEventsQuery,
     expenseEventsQuery,
+    transferEventsQuery,
     recordExpenseMutation,
-    skipUpcomingExpenseMutation,
+    markExpensePaidMutation,
+    deleteExpenseEventMutation,
+    deleteTransferEventMutation,
+    executeTransferEventMutation,
+    updateTransferEventMutation,
     paydayPreviewEventId,
     setPaydayPreviewEventId,
   } = useDashboardData();
@@ -106,40 +111,107 @@ export default function DashboardPage() {
 
   const todayObj = new Date(todayStr);
 
-  // Guarantee at least 3 upcoming bills (sorted by date)
-  const allUpcomingExpenses = (expenseEventsQuery.data ?? [])
+  const expenseAttentionItems: WebAttentionItem[] = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === "PENDING")
-    .sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
+    .map((e) => {
+      const pool = pools.find((p) => p.id === e.poolId);
+      const catBal = pool ? parseFloat(String(pool.currentBalance)) : 0;
+      const isOverdue = new Date(e.expectedDate) < todayObj;
 
-  const attentionItems: WebAttentionItem[] = allUpcomingExpenses.map((e) => {
-    const pool = pools.find((p) => p.id === e.poolId);
-    const catBal = pool ? parseFloat(String(pool.currentBalance)) : 0;
-    const isOverdue = new Date(e.expectedDate) < todayObj;
+      return {
+        id: e.id,
+        type: "EXPENSE" as const,
+        name: e.name,
+        expectedAmount: parseFloat(e.expectedAmount),
+        expectedDate: e.expectedDate,
+        categoryId: pool?.id ?? null,
+        categoryName: pool?.name ?? "Regular Bill",
+        isOverdue,
+        categoryBalance: catBal,
+      };
+    });
 
-    return {
-      id: e.id,
-      name: e.name,
-      expectedAmount: parseFloat(e.expectedAmount),
-      expectedDate: e.expectedDate,
-      categoryId: pool?.id ?? null,
-      categoryName: pool?.name ?? "Regular Bill",
-      isOverdue,
-      categoryBalance: catBal,
-    };
-  });
+  const transferAttentionItems: WebAttentionItem[] = (transferEventsQuery.data ?? [])
+    .filter((e) => e.status === "PENDING")
+    .map((e) => {
+      const srcPool = pools.find((p) => p.id === e.sourcePoolId);
+      const destPool = pools.find((p) => p.id === e.destinationPoolId);
+      const isOverdue = new Date(e.expectedDate) < todayObj;
+
+      return {
+        id: e.id,
+        type: "TRANSFER" as const,
+        name: e.name || `Transfer: ${srcPool?.name ?? "Source"} ➔ ${destPool?.name ?? "Destination"}`,
+        expectedAmount: parseFloat(e.expectedAmount),
+        expectedDate: e.expectedDate,
+        sourcePoolId: e.sourcePoolId,
+        sourcePoolName: srcPool?.name ?? e.sourcePoolName ?? "Source Pool",
+        destinationPoolId: e.destinationPoolId,
+        destinationPoolName: destPool?.name ?? e.destinationPoolName ?? "Destination Pool",
+        isOverdue,
+      };
+    });
+
+  const attentionItems: WebAttentionItem[] = [...expenseAttentionItems, ...transferAttentionItems]
+    .sort((a, b) => {
+      const aOverdue = a.isOverdue || a.expectedDate < todayStr;
+      const bOverdue = b.isOverdue || b.expectedDate < todayStr;
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
+    });
 
   const handleMarkPaidItem = async (item: WebAttentionItem, amount: number, date: string) => {
-    await recordExpenseMutation.mutateAsync({
-      poolId: item.categoryId || pools[0]?.id || "",
+    await markExpensePaidMutation.mutateAsync({
+      eventId: item.id,
       amount: amount.toFixed(2),
-      note: `Bill Paid: ${item.name}`,
-      recordedAt: date,
+      date,
+      note: `${item.name} (Paid on ${date})`,
     });
+    toast.success(t("toasts.expenseMarkedPaid", { defaultValue: "Expense marked as spent." }));
     posthog.capture("bill_paid");
   };
 
-  const handleSkipItem = async (item: WebAttentionItem) => {
-    await skipUpcomingExpenseMutation.mutateAsync({ eventId: item.id, eventType: "EXPENSE", status: "SKIPPED" });
+  const handleSkipExpense = async (item: WebAttentionItem) => {
+    await deleteExpenseEventMutation.mutateAsync({ eventId: item.id });
+    toast.success(t("toasts.expenseDeleted", { defaultValue: "Expense deleted." }));
+  };
+
+  const handleSaveTransferDraft = async (params: {
+    eventId: string;
+    name: string;
+    amount: string;
+    expectedDate: string;
+  }) => {
+    await updateTransferEventMutation.mutateAsync({
+      eventId: params.eventId,
+      name: params.name,
+      amount: params.amount,
+      expectedDate: params.expectedDate,
+    });
+    toast.success(t("toasts.transferSaved", { defaultValue: "Transfer saved" }));
+  };
+
+  const handleExecuteTransfer = async (params: {
+    eventId: string;
+    name: string;
+    amount: string;
+    sourcePoolId?: string;
+    destinationPoolId?: string;
+  }) => {
+    await executeTransferEventMutation.mutateAsync({
+      eventId: params.eventId,
+      name: params.name,
+      amount: params.amount,
+      sourcePoolId: params.sourcePoolId,
+      destinationPoolId: params.destinationPoolId,
+    });
+    toast.success(t("toasts.transferCompleted", { defaultValue: "Transfer completed" }));
+  };
+
+  const handleDeleteTransfer = async (eventId: string) => {
+    await deleteTransferEventMutation.mutateAsync({ eventId });
+    toast.success(t("toasts.transferDeleted", { defaultValue: "Transfer deleted" }));
   };
 
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
@@ -251,6 +323,9 @@ export default function DashboardPage() {
               name: g.name,
               currentBalance: String(g.currentBalance || "0"),
               healthStatus: g.healthStatus,
+              targetAmount: g.targetAmount,
+              targetDate: g.targetDate,
+              createdAt: g.createdAt,
             }))}
             formatAUD={fmt}
           />
@@ -270,7 +345,10 @@ export default function DashboardPage() {
               isSurplusTarget: p.isSurplusTarget,
             }))}
             onMarkPaid={handleMarkPaidItem}
-            onSkip={handleSkipItem}
+            onSkipExpense={handleSkipExpense}
+            onSaveTransferDraft={handleSaveTransferDraft}
+            onExecuteTransfer={handleExecuteTransfer}
+            onDeleteTransfer={handleDeleteTransfer}
             onConfirmTransferAndPay={async (transfers, destinationCategoryId) => {
               await Promise.all(
                 transfers.map((t) =>

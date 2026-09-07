@@ -337,3 +337,52 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
 5. **Pure Stateless Execution**:
    - Performs zero database mutations. State is ephemeral and client-driven.
 
+---
+
+## 10. UI Standardization, AmountField & Transfer Confirmation Workflow
+
+1. **Canonical `<AmountField />` Component (`packages/ui`)**:
+   - Universal monetary input primitive implementing Serene Finance design tokens (`#2563eb`, `#1B2B4B`).
+   - Integrated stacked chevron steppers (`ChevronUp`, `ChevronDown`) for `$1.00` increments/decrements, hiding native browser spinner controls.
+   - On blur formatting: converts values to 2 decimal places (`toFixed(2)`), keeping blank if empty.
+   - Negative value handling: `allowNegative={true}` renders negative amounts with `text-rose-600 font-bold`.
+   - Defensive limits: 12-character maximum input length with at most 2 decimal digits.
+   - Rolled out across all 18 input locations across `apps/web` (modals, setup wizards, drawers, reconciliation).
+
+2. **DatePicker Boundaries (`DatePickerField`)**:
+   - Enhanced `DatePickerField` in `@money-matters/ui` to support `min` and `max` constraints.
+   - Prevents selecting past dates on future-oriented actions (e.g. transfers with `min={todayStr}`).
+   - Prevents selecting future dates on historical confirmations (e.g. Mark Paid with `max={todayStr}`).
+
+3. **Transfer Confirmation Modal & Workflow**:
+   - When triggering a transfer from the Upcoming timeline or Home dashboard, displays `TransferModal` instead of instant execution.
+   - Editable fields: Transfer Name, Amount (`<AmountField />`), and Transfer Date (`<DatePickerField min={todayStr} />`).
+   - Past-date auto-adjustment: Opening an event scheduled in the past auto-adjusts its date to `todayStr` and renders an informative blue notice banner.
+   - Source pool liquidity guard: Compares entered amount against available source pool balance; renders an inline warning banner and disables submission if balance is insufficient.
+   - Dynamic action button:
+     - Future dates (`date > today`): Button displays `"Save"`, calling `updateTransferEvent` (draft save without ledger impact) and showing toast `"Transfer saved"`.
+     - Today (`date === today`): Button displays `"Confirm"`, executing the transfer via `executeTransferEvent` and showing toast `"Transfer completed"`.
+   - Delete action: Inconspicuous bottom-left delete button triggering a `<ConfirmDialog />` and showing toast `"Transfer deleted"`.
+   - Form discard protection: Prompts discard confirmation if closed with uncommitted edits (`isDirty`).
+
+4. **Upcoming Expenses & Transfers Dashboard Card**:
+   - Re-architected `AttentionItemsList.tsx` into clean pill-card design matching `NextPaydayCard.tsx`.
+   - Displays combined upcoming Expense and Transfer events with priority sorting (Overdue first, then by ascending date).
+   - Distinct badge pills: `Overdue` (rose), `Transfer` (indigo), and `Due Soon` (amber).
+   - Contextual actions: "Mark Paid" + "Delete" for expenses; "Transfer" + "Delete" for transfers.
+
+5. **Goals Progress Card (`GoalsProgressStrip`)**:
+   - Renamed title from "Savings Goals" to `"Goals"`.
+   - Container height alignment (`h-full flex flex-col justify-between`) aesthetically aligned with adjacent `BentoPoolsSection`.
+   - Attention-filtered display: Shows only the top 2 goals needing attention (Overdue > Red health > Amber health > Lagging pace > Lowest funded %).
+   - Progress bar with vertical time-elapsed pacing needle:
+     - Filled bar width represents funded percentage.
+     - Vertical marker placed at `timeElapsedPct` (elapsed time between creation and target date).
+     - Color coding: Green (`bg-emerald-500`) when on or ahead of pace, Amber (`bg-amber-500`) when within 20% behind, Red (`bg-rose-500`) when lagging or overdue.
+   - Fixes 0% default calculation bug so unstarted goals display 0% instead of 100%.
+
+6. **Mark Spent Workflow Refinements**:
+   - Transaction ledger note automatically prepends the Expense event name.
+   - Allows past dates to support retroactive entry of paid bills, while strictly forbidding future dates (`max={todayStr}`).
+
+

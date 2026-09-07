@@ -35,6 +35,7 @@ export function useDashboardData() {
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+  const transferEventsQuery = trpc.listTransferEvents.useQuery();
   const userPrefQuery = trpc.getUserPreferences.useQuery();
 
   const reconcileMutation = trpc.reconcileBankBalance.useMutation({
@@ -93,6 +94,40 @@ export function useDashboardData() {
     },
   });
 
+  const deleteTransferEventMutation = trpc.deleteTransferEvent.useMutation({
+    onSuccess: () => {
+      transferEventsQuery.refetch();
+    },
+  });
+
+  const executeTransferEventMutation = trpc.executeTransferEvent.useMutation({
+    onSuccess: () => {
+      transferEventsQuery.refetch();
+      poolsQuery.refetch();
+      utils.listTransactions.invalidate();
+    },
+  });
+
+  const updateTransferEventMutation = trpc.updateTransferEvent.useMutation({
+    onSuccess: () => {
+      transferEventsQuery.refetch();
+    },
+  });
+
+  const markExpensePaidMutation = trpc.markExpensePaid.useMutation({
+    onSuccess: () => {
+      expenseEventsQuery.refetch();
+      poolsQuery.refetch();
+      utils.listTransactions.invalidate();
+    },
+  });
+
+  const deleteExpenseEventMutation = trpc.deleteExpenseEvent.useMutation({
+    onSuccess: () => {
+      expenseEventsQuery.refetch();
+    },
+  });
+
   return {
     router,
     todayStr,
@@ -127,9 +162,15 @@ export function useDashboardData() {
     bankAccountsQuery,
     incomeEventsQuery,
     expenseEventsQuery,
+    transferEventsQuery,
     reconcileMutation,
     recordExpenseMutation,
     markPaidMutation,
+    markExpensePaidMutation,
+    deleteExpenseEventMutation,
+    deleteTransferEventMutation,
+    executeTransferEventMutation,
+    updateTransferEventMutation,
     skipUpcomingExpenseMutation: overrideEventMutation,
     updateUpcomingExpenseMutation: overrideEventMutation,
   };

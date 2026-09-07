@@ -118,7 +118,14 @@ export const ja: DeepStringRecord<typeof en> = {
     "bankAccountOrPool": "銀行口座 / プール",
     "expensePool": "支出プール",
     "deleteIncomeTitle": "収入を削除",
-    "unsave": "保存解除"
+    "deleteExpenseTitle": "支出を削除",
+    "deleteExpensePrompt": "「{name}」を削除してもよろしいですか？",
+    "unsave": "保存解除",
+    "available": "利用可能",
+    "showMore": "詳細を見る →",
+    "overdue": "期限超過",
+    "transfer": "振替",
+    "dueSoon": "期日間近"
   },
 
   "toasts": {
@@ -139,7 +146,12 @@ export const ja: DeepStringRecord<typeof en> = {
     "accountArchived": "銀行口座をアーカイブしました",
     "csvImported": "CSV明細を正常にインポートしました",
     "exportSuccess": "データを正常にエクスポートしました",
-    "bugReportSuccess": "フィードバックを送信しました。ご協力ありがとうございます。"
+    "bugReportSuccess": "フィードバックを送信しました。ご協力ありがとうございます。",
+    "transferSaved": "振替予定を保存しました",
+    "transferCompleted": "振替を完了しました",
+    "transferDeleted": "振替予定を削除しました",
+    "expenseMarkedPaid": "支出を記録しました",
+    "expenseDeleted": "支出予定を削除しました"
   },
   "networkError": {
     "title": "接続が中断されました",
@@ -839,11 +851,21 @@ export const ja: DeepStringRecord<typeof en> = {
       "action": "銀行口座を管理"
     },
     "goals": {
-      "title": "貯蓄目標",
+      "title": "目標",
       "onTrack": "{total} 個中 {count} 個が順調",
       "allOnTrack": "全 {total} 個の目標が順調です 🎉",
       "almostThere": "{name} がもうすぐ達成です！ 🎉",
-      "viewAll": "すべての目標を表示"
+      "viewAll": "すべての目標を表示",
+      "pacingTarget": "進捗目安: {percent}%"
+    },
+    "upcomingExpensesTransfers": {
+      "title": "今後の支出・振替予定",
+      "tooltip": "予定されている請求の支払いとプール間の資金移動。",
+      "empty": "予定されている支出や振替はありません。",
+      "daysAway": "あと {count} 日",
+      "daysOverdue": "{count} 日超過",
+      "dueToday": "期日当日！",
+      "availableSuffix": "· {amount} 利用可能"
     },
     "nextPay": {
       "title": "次の給料日",
@@ -1349,6 +1371,19 @@ export const ja: DeepStringRecord<typeof en> = {
       "disclaimer": "プール残高は実際に支払済としてマークした時点で更新されます。保存すると次回支払時の準備が整います。",
       "saveWithoutPaid": "未払いで保存",
       "markPaid": "支払済にする"
+    },
+    "transfer": {
+      "title": "資金移動",
+      "nameLabel": "振替名",
+      "amountLabel": "金額 ($)",
+      "dateLabel": "振替日",
+      "sourcePool": "振替元プール",
+      "destinationPool": "振替先プール",
+      "pastDateAdjustedNotice": "この振替予定は過去日だったため、本日の日付に変更されました。",
+      "insufficientBalanceWarning": "{poolName} の残高が不足しています。利用可能額: {available}、指定金額: {amount}。",
+      "deleteConfirmTitle": "振替予定を削除",
+      "deletePrompt": "この振替予定を削除してもよろしいですか？この操作は取り消せません。",
+      "available": "{amount} 利用可能"
     },
     "paydayPreview": {
       "title": "給料日配分プレビュー",

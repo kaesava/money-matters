@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { EstimatedCategoryItem } from "@money-matters/types";
-import { InfoTooltip, Button } from "@money-matters/ui/web";
+import { InfoTooltip, Button, AmountField } from "@money-matters/ui/web";
 import { UserGoalItem } from "./SetupGoalsStep";
 
 interface SetupCategoriesStepProps {
@@ -153,16 +153,17 @@ export function SetupCategoriesStep({
                     <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      value={displayVal}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        const monthly = convertToMonthly(val, freq);
-                        setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
-                      }}
-                      className="w-20 px-2 py-1 text-xs font-bold text-right rounded-lg border border-zinc-200 font-mono"
-                    />
+                    <div className="w-24">
+                      <AmountField
+                        value={String(displayVal ?? "")}
+                        onChange={(val) => {
+                          const num = parseFloat(val) || 0;
+                          const monthly = convertToMonthly(num, freq);
+                          setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
+                        }}
+                        allowNegative={false}
+                      />
+                    </div>
                     <select
                       value={freq}
                       onChange={(e) => {
@@ -215,16 +216,17 @@ export function SetupCategoriesStep({
                     <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      value={displayVal}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        const monthly = convertToMonthly(val, freq);
-                        setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
-                      }}
-                      className="w-20 px-2 py-1 text-xs font-bold text-right rounded-lg border border-zinc-200 font-mono"
-                    />
+                    <div className="w-24">
+                      <AmountField
+                        value={String(displayVal ?? "")}
+                        onChange={(val) => {
+                          const num = parseFloat(val) || 0;
+                          const monthly = convertToMonthly(num, freq);
+                          setAmountOverrides((prev) => ({ ...prev, [cat.name]: monthly }));
+                        }}
+                        allowNegative={false}
+                      />
+                    </div>
                     <select
                       value={freq}
                       onChange={(e) => {
@@ -325,13 +327,14 @@ export function SetupCategoriesStep({
               <option value="EVERYDAY">Everyday Spend</option>
               <option value="GOAL">Savings Goal</option>
             </select>
-            <input
-              type="number"
-              value={customCatAmount}
-              onChange={(e) => setCustomCatAmount(e.target.value)}
-              placeholder="Monthly $"
-              className="w-24 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 font-mono"
-            />
+            <div className="w-28">
+              <AmountField
+                value={customCatAmount}
+                onChange={setCustomCatAmount}
+                placeholder="Monthly $"
+                allowNegative={false}
+              />
+            </div>
             <button
               type="button"
               onClick={onAddCustomCategory}

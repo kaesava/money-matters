@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { InfoTooltip } from "@money-matters/ui";
+import { InfoTooltip, AmountField } from "@money-matters/ui/web";
 
 export interface UserGoalItem {
   id: string;
@@ -195,18 +195,16 @@ export function SetupGoalsStep({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-bold text-zinc-400">Target $</span>
-                      <input
-                        type="number"
-                        value={g.targetAmount || ""}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          onUpdateGoal(g.id, "targetAmount", val);
-                          onUpdateGoal(g.id, "monthlyAmount", Math.round(val / months));
+                    <div className="w-28">
+                      <AmountField
+                        value={g.targetAmount ? String(g.targetAmount) : ""}
+                        onChange={(val) => {
+                          const num = parseFloat(val) || 0;
+                          onUpdateGoal(g.id, "targetAmount", num);
+                          onUpdateGoal(g.id, "monthlyAmount", Math.round(num / months));
                         }}
-                        className="w-24 px-2 py-1 text-xs font-bold text-right rounded-lg border border-zinc-200 bg-slate-50 font-mono"
-                        placeholder="Target Amount"
+                        placeholder="Target"
+                        allowNegative={false}
                       />
                     </div>
 
@@ -259,13 +257,14 @@ export function SetupGoalsStep({
             placeholder="Goal name (e.g. Wedding Fund, Japan 2026)"
             className="flex-1 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200"
           />
-          <input
-            type="number"
-            value={customTarget}
-            onChange={(e) => setCustomTarget(e.target.value)}
-            placeholder="Target Amount ($)"
-            className="w-32 px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 font-mono"
-          />
+          <div className="w-36">
+            <AmountField
+              value={customTarget}
+              onChange={setCustomTarget}
+              placeholder="Target Amount"
+              allowNegative={false}
+            />
+          </div>
           <input
             type="date"
             value={customDate}

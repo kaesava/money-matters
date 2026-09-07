@@ -8,6 +8,7 @@ export * from './fields/CountrySelect';
 export * from './fields/LocationFields';
 export * from './fields/DatePickerField';
 export * from './fields/AmountCentInput';
+export * from './fields/AmountField';
 export * from './fields/GenericSelectField';
 export * from './hooks/useFieldActions';
 export * from '../hooks/useZodForm';

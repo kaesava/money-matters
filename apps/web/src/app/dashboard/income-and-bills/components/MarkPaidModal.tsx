@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
-import { Button } from "@money-matters/ui/web";
+import { Button, AmountField, DatePickerField } from "@money-matters/ui/web";
 import { ModalDialog } from "../../../../components/web/ModalDialog";
 
 export interface CategoryOption {
@@ -220,41 +220,21 @@ export function MarkPaidModal({
       <div className="flex flex-col gap-4">
         {/* Editable Amount & Date Inputs */}
         <div className="grid grid-cols-2 gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
-          <div>
-            <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-              {t("common.amount", { defaultValue: "Amount ($)" })} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amountStr}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val.startsWith("-")) return;
-                setAmountStr(val);
-              }}
-              className="w-full px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm font-mono font-bold focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
-            />
-            {!isAmountValid && Boolean(amountStr) && (
-              <p className="text-[11px] text-rose-500 font-medium mt-1">Amount must be greater than $0.00</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-              {t("common.date", { defaultValue: "Date Paid" })} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              max={todayStr}
-              value={dateStr}
-              onChange={(e) => setDateStr(e.target.value)}
-              className="w-full px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
-            />
-            {!isDateValid && Boolean(dateStr) && (
-              <p className="text-[11px] text-rose-500 font-medium mt-1">Date cannot be in the future.</p>
-            )}
-          </div>
+          <AmountField
+            label={t("common.amount", { defaultValue: "Amount ($)" })}
+            required
+            value={amountStr}
+            onChange={setAmountStr}
+            allowNegative={false}
+            error={!isAmountValid && Boolean(amountStr) ? "Amount must be greater than $0.00" : undefined}
+          />
+          <DatePickerField
+            label={t("common.date", { defaultValue: "Date Paid" })}
+            required
+            max={todayStr}
+            value={dateStr}
+            onChange={setDateStr}
+          />
         </div>
 
         {hasShortfall ? (
@@ -338,20 +318,15 @@ export function MarkPaidModal({
                                     {fmt(bal)}
                                   </td>
                                   <td className="py-2.5 px-4 text-right">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max={bal}
-                                      step="0.01"
-                                      value={currentVal}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val.startsWith("-")) return;
-                                        handleAmountChange(pool.id, bal, val);
-                                      }}
-                                      placeholder="0.00"
-                                      className="w-24 px-2 py-1 text-right font-mono font-bold border border-zinc-300 dark:border-zinc-700 rounded-lg text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
-                                    />
+                                    <div className="w-24 ml-auto">
+                                      <AmountField
+                                        value={currentVal}
+                                        onChange={(val) => handleAmountChange(pool.id, bal, val)}
+                                        max={bal}
+                                        placeholder="0.00"
+                                        allowNegative={false}
+                                      />
+                                    </div>
                                   </td>
                                 </tr>
                               );

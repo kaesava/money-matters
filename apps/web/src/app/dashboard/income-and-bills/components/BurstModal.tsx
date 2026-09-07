@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ConfirmDialog } from "@money-matters/ui/web";
+import { ConfirmDialog, AmountField } from "@money-matters/ui/web";
 
 function fmt(val: string | number) {
   const num = typeof val === "string" ? parseFloat(val) : val;
@@ -155,7 +155,13 @@ export function BurstModal({
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {isEditing ? (
-                          <input type="number" step="0.01" min="0" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} className="w-24 px-2 py-1 text-xs font-mono border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" />
+                          <div className="w-28">
+                            <AmountField
+                              value={editAmount}
+                              onChange={setEditAmount}
+                              allowNegative={false}
+                            />
+                          </div>
                         ) : (
                           <span className="font-mono font-extrabold text-xs text-[#1B2B4B]">{fmt(evt.actualAmount || evt.expectedAmount)}</span>
                         )}

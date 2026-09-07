@@ -174,10 +174,49 @@ export const transfersRouter = {
       return { success: true };
     }),
 
+  updateTransferEvent: privateTenantProcedure
+    .input(
+      z.object({
+        eventId: z.string().uuid(),
+        name: z.string().min(1).optional(),
+        amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+        expectedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      }).strict()
+    )
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const updateData: {
+        name?: string;
+        expectedAmount?: string;
+        expectedDate?: string;
+        updatedAt: Date;
+        updatedBy: string;
+      } = {
+        updatedAt: new Date(),
+        updatedBy: ctx.userId!,
+      };
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.amount !== undefined) updateData.expectedAmount = input.amount;
+      if (input.expectedDate !== undefined) updateData.expectedDate = input.expectedDate;
+
+      await ctx.db
+        .update(transferEvents)
+        .set(updateData)
+        .where(
+          and(
+            eq(transferEvents.id, input.eventId),
+            eq(transferEvents.tenantId, ctx.tenantId!),
+            eq(transferEvents.appId, ctx.appId!)
+          )
+        );
+      return { success: true };
+    }),
+
   executeTransferEvent: privateTenantProcedure
     .input(
       z.object({
         eventId: z.string().uuid(),
+        name: z.string().optional(),
         amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
         sourcePoolId: z.string().uuid().optional(),
         destinationPoolId: z.string().uuid().optional(),
@@ -198,6 +237,7 @@ export const transfersRouter = {
 
       if (!evt) throw new Error("Transfer event not found.");
 
+      const transferName = input.name || evt.name;
       const sourcePoolId = input.sourcePoolId || evt.sourcePoolId;
       const destinationPoolId = input.destinationPoolId || evt.destinationPoolId;
       const amountToTransfer = input.amount || evt.expectedAmount;
@@ -207,7 +247,7 @@ export const transfersRouter = {
           sourcePoolId,
           destinationPoolId,
           amount: amountToTransfer,
-          note: evt.name,
+          note: transferName,
         },
         ctx.tenantId!,
         ctx.appId!,
@@ -219,6 +259,7 @@ export const transfersRouter = {
         .update(transferEvents)
         .set({
           status: "CONFIRMED",
+          name: transferName,
           actualAmount: amountToTransfer,
           sourcePoolId,
           destinationPoolId,

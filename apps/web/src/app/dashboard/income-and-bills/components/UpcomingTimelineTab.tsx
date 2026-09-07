@@ -16,6 +16,7 @@ import {
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
 import { trpc } from "../../../../lib/trpc";
+import { TransferModal } from "../../../../components/web/TransferModal";
 
 export interface TimelineEventItem extends EventItem {
   name?: string | null;
@@ -56,13 +57,19 @@ interface UpcomingTimelineTabProps {
   onSkipIncome: (eventId: string) => void;
   onSkipExpense: (eventId: string) => void;
   onSkipTransfer?: (eventId: string) => void;
+  onSaveTransferDraft?: (params: {
+    eventId: string;
+    name: string;
+    amount: string;
+    expectedDate: string;
+  }) => Promise<void>;
   onExecuteTransfer?: (
     eventId: string,
     amount: string,
-    date: string,
+    name?: string,
     sourcePoolId?: string,
     destinationPoolId?: string
-  ) => void;
+  ) => Promise<void> | void;
   onConfirmTransferAndPay: (
     transfers: ShortfallTransferItem[],
     destCategoryId: string
@@ -90,6 +97,7 @@ export function UpcomingTimelineTab({
   onSkipIncome,
   onSkipExpense,
   onSkipTransfer,
+  onSaveTransferDraft,
   onExecuteTransfer: _onExecuteTransfer,
   onConfirmTransferAndPay,
   onOpenTransferModalWithData: _onOpenTransferModalWithData,
@@ -99,6 +107,7 @@ export function UpcomingTimelineTab({
   const revertPlanMut = trpc.revertAllocationPlan.useMutation();
   const todayStr = useMemo(() => getTenantDateString(new Date()), []);
   const [incomeToUnsaveId, setIncomeToUnsaveId] = useState<string | null>(null);
+  const [transferModalEvent, setTransferModalEvent] = useState<TimelineEventItem | null>(null);
 
   // Filter States
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
@@ -203,31 +212,8 @@ export function UpcomingTimelineTab({
     setMarkPaidModalEvent(evt);
   };
 
-  const handleTransferClick = async (evt: TimelineEventItem) => {
-    const amt = parseFloat(evt.expectedAmount || "0");
-    const srcCat = categories.find((c) => c.id === evt.sourcePoolId);
-    const srcBalance = typeof srcCat?.currentBalance === "string" ? parseFloat(srcCat.currentBalance || "0") : (srcCat?.currentBalance ?? 0);
-
-    if (amt > srcBalance) {
-      if (_onOpenTransferModalWithData) {
-        _onOpenTransferModalWithData({
-          sourcePoolId: evt.sourcePoolId || undefined,
-          destinationPoolId: evt.destinationPoolId || undefined,
-          amount: evt.expectedAmount,
-          date: evt.expectedDate,
-        });
-      }
-    } else {
-      if (_onExecuteTransfer) {
-        await _onExecuteTransfer(
-          evt.id,
-          evt.expectedAmount,
-          evt.expectedDate,
-          evt.sourcePoolId || undefined,
-          evt.destinationPoolId || undefined
-        );
-      }
-    }
+  const handleTransferClick = (evt: TimelineEventItem) => {
+    setTransferModalEvent(evt);
   };
 
   return (
@@ -668,6 +654,58 @@ export function UpcomingTimelineTab({
           />
         );
       })()}
+
+      {transferModalEvent && (
+        <TransferModal
+          isOpen={Boolean(transferModalEvent)}
+          onClose={() => setTransferModalEvent(null)}
+          transfer={{
+            id: transferModalEvent.id,
+            name: transferModalEvent.name || "Transfer",
+            expectedAmount: transferModalEvent.expectedAmount || "0",
+            expectedDate: transferModalEvent.expectedDate,
+            sourcePoolId: transferModalEvent.sourcePoolId,
+            sourcePoolName: transferModalEvent.sourcePoolName,
+            destinationPoolId: transferModalEvent.destinationPoolId,
+            destinationPoolName: transferModalEvent.destinationPoolName,
+          }}
+          pools={pools.map((p) => ({
+            id: p.id,
+            name: p.name,
+            currentBalance: p.currentBalance,
+          }))}
+          onSaveDraft={async (params) => {
+            if (onSaveTransferDraft) {
+              await onSaveTransferDraft(params);
+            }
+            setTransferModalEvent(null);
+          }}
+          onConfirmTransfer={async (params) => {
+            if (_onExecuteTransfer) {
+              await _onExecuteTransfer(
+                params.eventId,
+                params.amount,
+                params.name,
+                params.sourcePoolId,
+                params.destinationPoolId
+              );
+            }
+            setTransferModalEvent(null);
+          }}
+          onDeleteTransfer={async (eventId) => {
+            if (onSkipTransfer) {
+              onSkipTransfer(eventId);
+            }
+            setTransferModalEvent(null);
+          }}
+          formatAUD={(val) =>
+            `$${(typeof val === "string" ? parseFloat(val) : val).toLocaleString("en-AU", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`
+          }
+        />
+      )}
     </div>
   );
 }

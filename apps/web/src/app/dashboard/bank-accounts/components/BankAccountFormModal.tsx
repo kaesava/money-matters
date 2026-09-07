@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useEffect, useState } from "react";
-import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField } from "@money-matters/ui/web";
+import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField, AmountField } from "@money-matters/ui/web";
 
 import { t } from "@money-matters/i18n";
 
@@ -170,24 +170,20 @@ export function BankAccountFormModal({
         />
 
         <div className="flex flex-col gap-3 p-3.5 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
-          <Input
+          <AmountField
             label="Current Balance ($)"
-            type="number"
-            min="0"
-            step="0.01"
             value={accBalance}
-            onChange={(e) => setAccBalance(e.target.value)}
+            onChange={setAccBalance}
             required
+            allowNegative={true}
           />
 
-          <Input
+          <AmountField
             label="Unbudgeted Buffer / Reserved Funds ($)"
-            type="number"
-            min="0"
-            step="0.01"
             value={accBuffer}
-            onChange={(e) => setAccBuffer(e.target.value)}
+            onChange={setAccBuffer}
             placeholder="0.00"
+            allowNegative={false}
           />
 
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs font-bold">

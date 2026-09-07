@@ -24,6 +24,7 @@ export async function listPoolsQuery(
       rolloverRule: pools.rolloverRule,
       targetAmount: pools.targetAmount,
       targetDate: pools.targetDate,
+      createdAt: pools.createdAt,
       isCommitted: pools.isCommitted,
       isSurplusTarget: pools.isSurplusTarget,
       waterfallPriority: pools.waterfallPriority,
@@ -49,13 +50,13 @@ export async function listPoolsQuery(
   return visiblePools.map((pool) => {
     const currentBalance = balancesMap[pool.id] || 0;
     let healthStatus: "GREEN" | "AMBER" | "RED" = "GREEN";
-    let progressPercentage = 100;
+    let progressPercentage = 0;
 
     if (currentBalance < 0) {
       healthStatus = "RED";
     } else if (pool.poolType === "GOAL") {
       const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
-      progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 100;
+      progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0;
       if (pool.targetDate) {
         const targetD = new Date(pool.targetDate + "T00:00:00+10:00").getTime();
         if (today.getTime() > targetD && currentBalance < target) {
@@ -66,7 +67,7 @@ export async function listPoolsQuery(
       }
     } else if (pool.poolType === "REGULAR") {
       const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
-      progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 100;
+      progressPercentage = target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0;
       if (target > 0 && currentBalance < target) {
         healthStatus = currentBalance < target * 0.8 ? "RED" : "AMBER";
       }
@@ -84,6 +85,7 @@ export async function listPoolsQuery(
       rolloverRule: pool.rolloverRule,
       targetAmount: pool.targetAmount,
       targetDate: pool.targetDate,
+      createdAt: pool.createdAt,
       isCommitted: pool.isCommitted,
       isSurplusTarget: pool.isSurplusTarget,
       waterfallPriority: pool.waterfallPriority,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, InfoTooltip, AmountField } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -231,17 +231,12 @@ export function CategoryItemModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">
-              {t("categories.targetAmountLabel")} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
+            <AmountField
+              label={t("categories.targetAmountLabel")}
+              required
               value={enteredAmount}
-              onChange={(e) => setEnteredAmount(e.target.value)}
+              onChange={setEnteredAmount}
               placeholder="150.00"
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
           <div>

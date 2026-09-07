@@ -1,173 +1,268 @@
 "use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { fmtDate, Button, ConfirmDialog } from "@money-matters/ui/web";
-import { useIconVisibility } from '@money-matters/ui';
-import { MarkPaidModal, ShortfallTransferItem } from '../income-and-bills/components/MarkPaidModal';
+import React, { useState, useMemo } from "react";
+import Link from "next/link";
+import { fmtDate, ConfirmDialog, InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
+import { MarkPaidModal, ShortfallTransferItem } from "../income-and-bills/components/MarkPaidModal";
+import { TransferModal } from "../../../components/web/TransferModal";
 
 export interface WebAttentionItem {
   readonly id: string;
+  readonly type: "EXPENSE" | "TRANSFER";
   readonly name: string;
   readonly expectedAmount: number;
   readonly expectedDate: string;
-  readonly categoryId: string | null;
+  readonly categoryId?: string | null;
   readonly categoryName?: string | null;
+  readonly sourcePoolId?: string | null;
+  readonly sourcePoolName?: string | null;
+  readonly destinationPoolId?: string | null;
+  readonly destinationPoolName?: string | null;
   readonly isOverdue: boolean;
-  readonly categoryBalance: number;
+  readonly categoryBalance?: number;
 }
 
 export interface CategoryOption {
-  id: string;
-  name: string;
-  poolType?: string;
-  currentBalance: number | string;
-  isSurplusTarget?: boolean;
+  readonly id: string;
+  readonly name: string;
+  readonly poolType?: string;
+  readonly currentBalance: number | string;
+  readonly isSurplusTarget?: boolean;
 }
 
 export interface WebAttentionItemsListProps {
   readonly items: readonly WebAttentionItem[];
-  readonly availableCategories?: CategoryOption[];
+  readonly availableCategories?: readonly CategoryOption[];
   readonly onMarkPaid: (item: WebAttentionItem, amount: number, date: string) => void;
-  readonly onSkip?: (item: WebAttentionItem) => void;
-  readonly onConfirmTransferAndPay?: (transfers: ShortfallTransferItem[], destinationCategoryId: string) => Promise<void>;
+  readonly onSkipExpense?: (item: WebAttentionItem) => void;
+  readonly onSaveTransferDraft?: (params: {
+    eventId: string;
+    name: string;
+    amount: string;
+    expectedDate: string;
+  }) => Promise<void>;
+  readonly onExecuteTransfer?: (params: {
+    eventId: string;
+    name: string;
+    amount: string;
+    sourcePoolId?: string;
+    destinationPoolId?: string;
+  }) => Promise<void>;
+  readonly onDeleteTransfer?: (eventId: string) => Promise<void>;
+  readonly onConfirmTransferAndPay?: (
+    transfers: ShortfallTransferItem[],
+    destinationCategoryId: string
+  ) => Promise<void>;
   readonly formatAUD: (val: number | string) => string;
-  readonly markingPaidId?: string | null;
-  readonly onNavigateCategory?: (categoryName: string) => void;
 }
 
 export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
   items,
   availableCategories = [],
   onMarkPaid,
-  onSkip,
+  onSkipExpense,
+  onSaveTransferDraft,
+  onExecuteTransfer,
+  onDeleteTransfer,
   onConfirmTransferAndPay,
   formatAUD,
-  onNavigateCategory,
 }) => {
   const [selectedMarkPaidItem, setSelectedMarkPaidItem] = useState<WebAttentionItem | null>(null);
+  const [selectedTransferItem, setSelectedTransferItem] = useState<WebAttentionItem | null>(null);
   const [selectedDeleteItem, setSelectedDeleteItem] = useState<WebAttentionItem | null>(null);
-  const { showIcons } = useIconVisibility();
+
+  const todayStr = useMemo(() => {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+  }, []);
 
   if (!items || items.length === 0) {
     return (
-      <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 mb-6 shadow-xs">
+      <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            {showIcons && <span className="text-lg">⚠️</span>}
+            <span className="text-lg">📋</span>
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-              Upcoming Expenses
+              {t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })}
             </h2>
+            <InfoTooltip
+              title={t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })}
+              content={t("dashboard.upcomingExpensesTransfers.tooltip", {
+                defaultValue: "Upcoming bill commitments and scheduled pool transfers.",
+              })}
+            />
           </div>
           <Link
-            href="/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE"
+            href="/dashboard/income-and-bills?tab=EVENTS"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
-            Show More →
+            {t("common.showMore", { defaultValue: "Show More →" })}
           </Link>
         </div>
-        <p className="text-xs text-zinc-400 py-4 text-center">No upcoming bills scheduled.</p>
+        <p className="text-xs text-gray-400 py-4 text-center">
+          {t("dashboard.upcomingExpensesTransfers.empty", {
+            defaultValue: "No upcoming expenses or transfers scheduled.",
+          })}
+        </p>
       </div>
     );
   }
 
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
-
   // Sort: Overdue first, then upcoming by date
-  const sortedItems = [...items].sort((a, b) => {
-    if (a.isOverdue && !b.isOverdue) return -1;
-    if (!a.isOverdue && b.isOverdue) return 1;
-    return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
-  }).slice(0, 3);
+  const sortedItems = [...items]
+    .sort((a, b) => {
+      const aOverdue = a.isOverdue || a.expectedDate < todayStr;
+      const bOverdue = b.isOverdue || b.expectedDate < todayStr;
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
+    })
+    .slice(0, 3);
 
   return (
-    <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 mb-6 shadow-xs">
-      <div className="flex items-center justify-between gap-2 mb-4">
+    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {showIcons && <span className="text-lg">⚠️</span>}
+          <span className="text-lg">📋</span>
           <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-            Upcoming Expenses ({items.length})
+            {t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })} (
+            {items.length})
           </h2>
+          <InfoTooltip
+            title={t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })}
+            content={t("dashboard.upcomingExpensesTransfers.tooltip", {
+              defaultValue: "Upcoming bill commitments and scheduled pool transfers.",
+            })}
+          />
         </div>
         <Link
-          href="/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE"
+          href="/dashboard/income-and-bills?tab=EVENTS"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
-          Show More →
+          {t("common.showMore", { defaultValue: "Show More →" })}
         </Link>
       </div>
 
-      <div className="divide-y divide-zinc-100">
+      <div className="space-y-3">
         {sortedItems.map((item) => {
           const isOverdue = item.isOverdue || item.expectedDate < todayStr;
+          const isTransfer = item.type === "TRANSFER";
+
+          let daysAwayText = "";
+          if (item.expectedDate) {
+            const itemDate = new Date(item.expectedDate);
+            itemDate.setHours(0, 0, 0, 0);
+            const todayZero = new Date();
+            todayZero.setHours(0, 0, 0, 0);
+            const diffDays = Math.ceil((itemDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) {
+              daysAwayText = t("dashboard.upcomingExpensesTransfers.dueToday", { defaultValue: "Due today!" });
+            } else if (diffDays > 0) {
+              daysAwayText = t("dashboard.upcomingExpensesTransfers.daysAway", {
+                count: diffDays,
+                plural: diffDays === 1 ? "" : "s",
+                defaultValue: `${diffDays} day${diffDays === 1 ? "" : "s"} away`,
+              });
+            } else {
+              daysAwayText = t("dashboard.upcomingExpensesTransfers.daysOverdue", {
+                count: Math.abs(diffDays),
+                plural: Math.abs(diffDays) === 1 ? "" : "s",
+                defaultValue: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} overdue`,
+              });
+            }
+          }
 
           return (
             <div
-              key={item.id}
-              className={`py-3 px-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-1 border-l-4 transition-all ${
+              key={`${item.type}-${item.id}`}
+              className={`border rounded-xl p-3 flex items-center justify-between gap-3 transition-colors ${
                 isOverdue
-                  ? "border-l-rose-600 bg-rose-50/40"
-                  : "border-l-amber-500 bg-amber-50/30"
+                  ? "bg-rose-50/40 border-rose-200/60 hover:bg-rose-50/70"
+                  : isTransfer
+                  ? "bg-indigo-50/30 border-indigo-200/60 hover:bg-indigo-50/60"
+                  : "bg-amber-50/30 border-amber-200/60 hover:bg-amber-50/60"
               }`}
             >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {showIcons && (
-                    <span className="text-xs">{isOverdue ? '🔴' : '🟡'}</span>
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-bold text-[#1B2B4B] block truncate">{item.name}</span>
+                  {isOverdue && (
+                    <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-rose-200">
+                      {t("common.overdue", { defaultValue: "Overdue" })}
+                    </span>
                   )}
-                  <span className="text-sm font-bold text-[#1B2B4B]">{item.name}</span>
-                  {item.categoryName && (
-                    <button
-                      type="button"
-                      onClick={() => onNavigateCategory?.(item.categoryName!)}
-                      className="text-xs font-semibold text-blue-600 hover:underline"
-                    >
-                      {formatAUD(item.categoryBalance)} available
-                    </button>
+                  {!isOverdue && isTransfer && (
+                    <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-indigo-200">
+                      {t("common.transfer", { defaultValue: "Transfer" })}
+                    </span>
                   )}
-                  <span
-                    className={`text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                      isOverdue
-                        ? "bg-rose-100 text-rose-800"
-                        : "bg-amber-100 text-amber-800"
-                    }`}
-                  >
-                    {isOverdue ? "Overdue" : "Due Soon"}
-                  </span>
+                  {!isOverdue && !isTransfer && (
+                    <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-amber-200">
+                      {t("common.dueSoon", { defaultValue: "Due Soon" })}
+                    </span>
+                  )}
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-medium ${isOverdue ? "text-rose-700 font-bold" : "text-zinc-500"}`}>
-                    Due: {fmtDate(item.expectedDate)}
-                  </span>
-                </div>
+                <p className="text-[11px] text-gray-500 font-mono">
+                  <span className="font-semibold text-gray-900 tabular-nums">{formatAUD(item.expectedAmount)}</span> ·{" "}
+                  {daysAwayText} ({fmtDate(item.expectedDate)})
+                  {isTransfer && item.sourcePoolName && item.destinationPoolName && (
+                    <span className="block text-[10px] text-slate-500 font-sans mt-0.5">
+                      {item.sourcePoolName} ➔ {item.destinationPoolName}
+                    </span>
+                  )}
+                  {!isTransfer && item.categoryName && (
+                    <span className="block text-[10px] text-slate-500 font-sans mt-0.5">
+                      {item.categoryName}
+                      {typeof item.categoryBalance === "number" &&
+                        ` ${t("dashboard.upcomingExpensesTransfers.availableSuffix", {
+                          amount: formatAUD(item.categoryBalance),
+                          defaultValue: `· ${formatAUD(item.categoryBalance)} available`,
+                        })}`}
+                    </span>
+                  )}
+                </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-black text-[#1B2B4B] font-mono tabular-nums">
-                  {formatAUD(item.expectedAmount)}
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => setSelectedMarkPaidItem(item)}
-                    className="px-3 py-1.5 text-xs font-bold"
-                  >
-                    Mark Paid
-                  </Button>
-                  {onSkip && (
-                    <Button
+              <div className="flex items-center gap-1.5 shrink-0">
+                {!isTransfer ? (
+                  <>
+                    <button
                       type="button"
-                      variant="secondary"
-                      onClick={() => setSelectedDeleteItem(item)}
-                      className="px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 border-rose-200"
+                      onClick={() => setSelectedMarkPaidItem(item)}
+                      className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
                     >
-                      Delete
-                    </Button>
-                  )}
-                </div>
+                      {t("common.markPaid", { defaultValue: "Mark Paid" })}
+                    </button>
+                    {onSkipExpense && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDeleteItem(item)}
+                        className="text-xs font-bold text-rose-600 hover:underline cursor-pointer transition-colors px-1.5 py-1"
+                      >
+                        {t("common.delete", { defaultValue: "Delete" })}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTransferItem(item)}
+                      className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
+                    >
+                      {t("common.transfer", { defaultValue: "Transfer" })}
+                    </button>
+                    {onDeleteTransfer && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDeleteItem(item)}
+                        className="text-xs font-bold text-rose-600 hover:underline cursor-pointer transition-colors px-1.5 py-1"
+                      >
+                        {t("common.delete", { defaultValue: "Delete" })}
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           );
@@ -182,7 +277,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
           poolId={selectedMarkPaidItem.categoryId || availableCategories[0]?.id}
           initialAmount={selectedMarkPaidItem.expectedAmount}
           initialDate={selectedMarkPaidItem.expectedDate}
-          availableCategories={availableCategories}
+          availableCategories={availableCategories as CategoryOption[]}
           onConfirmMarkPaid={async ({ amount, date, transfers }) => {
             const destId = selectedMarkPaidItem.categoryId || availableCategories[0]?.id || "";
             if (transfers && transfers.length > 0 && onConfirmTransferAndPay) {
@@ -194,19 +289,72 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
         />
       )}
 
+      {selectedTransferItem && (
+        <TransferModal
+          isOpen={Boolean(selectedTransferItem)}
+          onClose={() => setSelectedTransferItem(null)}
+          transfer={{
+            id: selectedTransferItem.id,
+            name: selectedTransferItem.name,
+            expectedAmount: selectedTransferItem.expectedAmount,
+            expectedDate: selectedTransferItem.expectedDate,
+            sourcePoolId: selectedTransferItem.sourcePoolId,
+            sourcePoolName: selectedTransferItem.sourcePoolName,
+            destinationPoolId: selectedTransferItem.destinationPoolId,
+            destinationPoolName: selectedTransferItem.destinationPoolName,
+          }}
+          pools={availableCategories}
+          onSaveDraft={async (params) => {
+            if (onSaveTransferDraft) {
+              await onSaveTransferDraft(params);
+            }
+            setSelectedTransferItem(null);
+          }}
+          onConfirmTransfer={async (params) => {
+            if (onExecuteTransfer) {
+              await onExecuteTransfer(params);
+            }
+            setSelectedTransferItem(null);
+          }}
+          onDeleteTransfer={async (eventId) => {
+            if (onDeleteTransfer) {
+              await onDeleteTransfer(eventId);
+            }
+            setSelectedTransferItem(null);
+          }}
+          formatAUD={formatAUD}
+        />
+      )}
+
       {selectedDeleteItem && (
         <ConfirmDialog
           isOpen={Boolean(selectedDeleteItem)}
           onClose={() => setSelectedDeleteItem(null)}
           onConfirm={() => {
-            if (selectedDeleteItem && onSkip) {
-              onSkip(selectedDeleteItem);
+            if (selectedDeleteItem.type === "EXPENSE" && onSkipExpense) {
+              onSkipExpense(selectedDeleteItem);
+            } else if (selectedDeleteItem.type === "TRANSFER" && onDeleteTransfer) {
+              onDeleteTransfer(selectedDeleteItem.id);
             }
             setSelectedDeleteItem(null);
           }}
-          title="Delete Expense"
-          description={`Are you sure you want to Delete "${selectedDeleteItem.name}"?`}
-          confirmLabel="Delete"
+          title={
+            selectedDeleteItem.type === "EXPENSE"
+              ? t("common.deleteExpenseTitle", { defaultValue: "Delete Expense" })
+              : t("modals.transfer.deleteConfirmTitle", { defaultValue: "Delete Transfer" })
+          }
+          description={
+            selectedDeleteItem.type === "EXPENSE"
+              ? t("common.deleteExpensePrompt", {
+                  name: selectedDeleteItem.name,
+                  defaultValue: `Are you sure you want to delete "${selectedDeleteItem.name}"?`,
+                })
+              : t("modals.transfer.deletePrompt", {
+                  defaultValue: "Are you sure you want to delete this scheduled transfer? This action cannot be undone.",
+                })
+          }
+          confirmLabel={t("common.delete", { defaultValue: "Delete" })}
+          cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
           variant="danger"
         />
       )}

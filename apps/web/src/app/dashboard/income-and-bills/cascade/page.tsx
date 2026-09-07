@@ -3,7 +3,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../../lib/trpc";
 import { DashboardError } from "../../../../components/web/DashboardError";
-import { SkeletonTable } from "@money-matters/ui/web";
+import { SkeletonTable, AmountField } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 function fmt(val: string | number) {
@@ -154,14 +154,13 @@ function CascadeContent() {
                     {fmt(line.proposedAmount)}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={currentVal}
-                      onChange={(e) => handleAmountChange(line.poolId, e.target.value)}
-                      className="w-28 px-3 py-1.5 border border-zinc-300 rounded-lg text-right font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                    />
+                    <div className="w-28 ml-auto">
+                      <AmountField
+                        value={currentVal}
+                        onChange={(val) => handleAmountChange(line.poolId, val)}
+                        allowNegative={false}
+                      />
+                    </div>
                   </td>
                 </tr>
               );

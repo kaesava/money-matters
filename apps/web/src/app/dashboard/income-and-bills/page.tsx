@@ -226,6 +226,7 @@ function IncomeAndBillsContent() {
   const deleteExpenseMut = trpc.deleteExpenseEvent.useMutation();
   const executeTransferEventMut = trpc.executeTransferEvent.useMutation();
   const deleteTransferEventMut = trpc.deleteTransferEvent.useMutation();
+  const updateTransferEventMut = trpc.updateTransferEvent.useMutation();
   const moveMoneyMut = trpc.moveMoney.useMutation();
 
   // Setup Tab Filtered & Sorted Income Schedules
@@ -748,13 +749,14 @@ function IncomeAndBillsContent() {
             }))}
             onMarkExpensePaid={async (eventId, amount, date) => {
               try {
+                const evtName = expenseEvents.find((e) => e.id === eventId)?.name;
                 await markExpensePaidMut.mutateAsync({
                   eventId,
                   amount: amount ? String(amount) : undefined,
                   date: date || undefined,
-                  note: date ? `Paid on ${date}` : undefined,
+                  note: evtName ? `${evtName} (Paid on ${date})` : (date ? `Paid on ${date}` : undefined),
                 });
-                toast.success("Expense marked as spent.");
+                toast.success(t("toasts.expenseMarkedPaid", { defaultValue: "Expense marked as spent." }));
                 await utils.listExpenseEvents.invalidate();
                 await utils.listPools.invalidate();
                 await utils.listTransactions.invalidate();
@@ -769,7 +771,7 @@ function IncomeAndBillsContent() {
             onSkipExpense={async (eventId) => {
               try {
                 await deleteExpenseMut.mutateAsync({ eventId });
-                toast.success("Expense deleted.");
+                toast.success(t("toasts.expenseDeleted", { defaultValue: "Expense deleted." }));
                 utils.listExpenseEvents.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to delete.");
@@ -778,7 +780,7 @@ function IncomeAndBillsContent() {
             onSkipIncome={async (eventId) => {
               try {
                 await deleteIncomeMut.mutateAsync({ eventId });
-                toast.success("Income deleted.");
+                toast.success(t("toasts.deleted", { defaultValue: "Income deleted." }));
                 utils.listIncomeEvents.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to delete.");
@@ -787,16 +789,36 @@ function IncomeAndBillsContent() {
             onSkipTransfer={async (eventId) => {
               try {
                 await deleteTransferEventMut.mutateAsync({ eventId });
-                toast.success("Transfer deleted.");
+                toast.success(t("toasts.transferDeleted", { defaultValue: "Transfer deleted." }));
                 utils.listTransferEvents.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to delete.");
               }
             }}
-            onExecuteTransfer={async (eventId, amount, date, sourcePoolId, destinationPoolId) => {
+            onSaveTransferDraft={async (params) => {
               try {
-                await executeTransferEventMut.mutateAsync({ eventId, amount, sourcePoolId, destinationPoolId });
-                toast.success("Transfer completed successfully!");
+                await updateTransferEventMut.mutateAsync({
+                  eventId: params.eventId,
+                  name: params.name,
+                  amount: params.amount,
+                  expectedDate: params.expectedDate,
+                });
+                toast.success(t("toasts.transferSaved", { defaultValue: "Transfer saved" }));
+                utils.listTransferEvents.invalidate();
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to save transfer.");
+              }
+            }}
+            onExecuteTransfer={async (eventId, amount, name, sourcePoolId, destinationPoolId) => {
+              try {
+                await executeTransferEventMut.mutateAsync({
+                  eventId,
+                  amount,
+                  name,
+                  sourcePoolId,
+                  destinationPoolId,
+                });
+                toast.success(t("toasts.transferCompleted", { defaultValue: "Transfer completed successfully!" }));
                 utils.listTransferEvents.invalidate();
                 utils.listPools.invalidate();
                 utils.listTransactions.invalidate();

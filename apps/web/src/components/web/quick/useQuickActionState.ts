@@ -283,7 +283,6 @@ export function useQuickActionState(
         return;
       }
       if (date < todayStr) {
-        setError(t("drawers.quickExpense.pastDateError", { defaultValue: "Transfers cannot be performed for past dates." }));
         return;
       }
 
@@ -405,6 +404,7 @@ export function useQuickActionState(
     setReceivingAccountId,
     date,
     setDate,
+    todayStr,
     paydayModalEventId,
     setPaydayModalEventId,
     error,

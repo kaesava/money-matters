@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, Button } from "@money-matters/ui/web";
+import { InfoTooltip, Button, AmountField } from "@money-matters/ui/web";
 import posthog from "../lib/posthog-client";
 
 export interface PoolItem {
@@ -252,17 +252,16 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                       </td>
 
                       <td className="py-2.5 text-right">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          autoFocus={visiblePools.indexOf(pool) === 0}
-                          max={!isSurplus ? pool.currentBalance : undefined}
-                          value={val}
-                          onChange={(e) => handleAdjustmentChange(pool.id, e.target.value, pool.currentBalance)}
-                          className="w-24 px-2.5 py-1.5 text-right font-mono font-bold text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white"
-                          placeholder="0.00"
-                        />
+                        <div className="w-24 ml-auto">
+                          <AmountField
+                            value={val}
+                            onChange={(newVal) => handleAdjustmentChange(pool.id, newVal, pool.currentBalance)}
+                            max={!isSurplus ? pool.currentBalance : undefined}
+                            autoFocus={visiblePools.indexOf(pool) === 0}
+                            placeholder="0.00"
+                            allowNegative={false}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

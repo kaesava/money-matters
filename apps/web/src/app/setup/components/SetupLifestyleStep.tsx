@@ -2,7 +2,7 @@
 
 import React from "react";
 import { HousingType, CarSize, SchoolType, SchoolStage, VehicleConfig, ChildConfig } from "@money-matters/types";
-import { InfoTooltip } from "@money-matters/ui";
+import { InfoTooltip, AmountField } from "@money-matters/ui/web";
 
 interface SetupLifestyleStepProps {
   housingType: HousingType;
@@ -363,14 +363,12 @@ export function SetupLifestyleStep({
               💳 Active Debt Repayments
             </label>
             {hasDebt && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-bold">$</span>
-                <input
-                  type="number"
+              <div className="mt-1">
+                <AmountField
                   placeholder="Monthly Repayment ($)"
-                  value={debtMonthlyRepayment || ""}
-                  onChange={(e) => setDebtMonthlyRepayment?.(parseFloat(e.target.value) || 0)}
-                  className="w-full px-2.5 py-1 text-xs border border-zinc-200 rounded-lg font-mono"
+                  value={debtMonthlyRepayment ? String(debtMonthlyRepayment) : ""}
+                  onChange={(val) => setDebtMonthlyRepayment?.(parseFloat(val) || 0)}
+                  allowNegative={false}
                 />
               </div>
             )}
@@ -414,14 +412,12 @@ export function SetupLifestyleStep({
               ❤️ Charity Donations &amp; 🤝 Family Support
             </label>
             {hasCharityGiving && (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-bold">$</span>
-                <input
-                  type="number"
+              <div className="mt-1 max-w-xs">
+                <AmountField
                   placeholder="Monthly Contribution ($)"
-                  value={charityMonthlyAmount || ""}
-                  onChange={(e) => setCharityMonthlyAmount?.(parseFloat(e.target.value) || 0)}
-                  className="w-full max-w-xs px-2.5 py-1 text-xs border border-zinc-200 rounded-lg font-mono"
+                  value={charityMonthlyAmount ? String(charityMonthlyAmount) : ""}
+                  onChange={(val) => setCharityMonthlyAmount?.(parseFloat(val) || 0)}
+                  allowNegative={false}
                 />
               </div>
             )}

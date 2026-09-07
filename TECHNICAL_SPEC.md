@@ -294,4 +294,42 @@ tenants (id PK, appId FK→apps.id, name, subscriptionStatus, trial*, stripe*)
 | **Photon (Komoot OSM)** | Public Geocoding | Public Service (`https://photon.komoot.io`) | **READY** (Zero-config public API, no keys required) | Public API fallback |
 | **Monorepo Tools** | pnpm 9, Turbo 2, TypeScript 6, Vitest 4, ESLint 9 | `package.json`, `pnpm-workspace.yaml`, `turbo.json` | **READY** (100% strict type safety & Vitest unit tests) | Local turbo build & test pipelines |
 
+---
+
+## 9. UI Primitives, Router Procedures & Transfer Architecture
+
+### 9.1 AmountField Component Specification (`packages/ui`)
+- **Package Path**: `packages/ui/src/web/fields/AmountField.tsx`
+- **Design Tokens**: Serene Finance primary `#2563eb`, navy `#1B2B4B`, font JetBrains Mono / font-mono tabular-nums.
+- **Chevrons**: Custom stacked `ChevronUp` and `ChevronDown` from `lucide-react` stepping by 1. Native browser number spinners hidden via Tailwind utility classes `[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`.
+- **Blur 2dp Formatting**: Numeric input is parsed and formatted via `.toFixed(2)` on blur. Empty values remain empty string.
+- **Negative Support**: `allowNegative={true}` permits leading `-` character and renders formatted value with `text-rose-600 font-bold`. When `false` (default), minus sign is automatically stripped on input.
+- **Input Boundaries**: Max 12 characters (10 integer digits, 2 decimal places).
+
+### 9.2 DatePickerField Boundary Extensions (`packages/ui`)
+- **Package Path**: `packages/ui/src/web/fields/DatePickerField.tsx`
+- **Props**: `min?: string; max?: string; disabled?: boolean; id?: string;` forwarded directly to `<input type="date" min={min} max={max} ... />`.
+- **Keyboard Protection**: Prevents arbitrary text entry on date picker via keydown filter (`Tab` and `Escape` allowed).
+
+### 9.3 Transfer Router Procedures (`apps/api/src/routers/transfers.router.ts`)
+- **`updateTransferEvent`**:
+  - Access: `privateTenantProcedure` (RLS injected with `tenantId` and `userId`).
+  - Input: `eventId` (UUID), `name?` (string min 1), `amount?` (regex 2dp), `expectedDate?` (YYYY-MM-DD).
+  - Mutates `transferEvents` table fields without creating transaction ledgers or moving funds.
+- **`executeTransferEvent`**:
+  - Access: `privateTenantProcedure`.
+  - Input: `eventId` (UUID), `name?` (optional string), `amount?` (optional string), `sourcePoolId?`, `destinationPoolId?`.
+  - Updates `transferEvents.name`, sets `status = 'CONFIRMED'`, and invokes `moveMoneyCommand` with the resolved transfer name.
+
+### 9.4 Expenses Router Note Formatting (`apps/api/src/routers/expenses.router.ts`)
+- **`markExpensePaid`**:
+  - Resolves `evt = await ctx.db.select().from(expenseEvents)...`
+  - Injects `evt.name` into `transactionNote`: prepends event name to user note (e.g., `${evt.name} - ${input.note}`) or defaults to `Paid scheduled bill: ${evt.name}`.
+
+### 9.5 Pool List Query Additions (`packages/capabilities/budgeting`)
+- **`listPoolsQuery`**:
+  - Selects and returns `pools.createdAt` to support pacing calculations.
+  - Fixes default progress calculation: `target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0` (previously defaulted to 100% when balance/target was 0).
+
+
 

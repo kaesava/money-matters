@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Spinner, useToast, Button, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
+import { Spinner, useToast, Button, InfoTooltip, ConfirmDialog, AmountField, DatePickerField } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { PaydayTransferCard, PaydayTransferLine } from "./PaydayTransferCard";
@@ -538,30 +538,17 @@ export function PaydayActionDrawer({
                           className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                          {t("paydayDrawer.incomeAmountLabel", { defaultValue: "Income Amount ($)" })} <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={actualAmount}
-                          onChange={(e) => setActualAmount(e.target.value)}
-                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                          {t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
-                        </label>
-                        <input
-                          type="date"
-                          value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100"
-                        />
-                      </div>
+                      <AmountField
+                        label={t("paydayDrawer.incomeAmountLabel", { defaultValue: "Income Amount ($)" })}
+                        required
+                        value={actualAmount}
+                        onChange={setActualAmount}
+                      />
+                      <DatePickerField
+                        label={t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
+                        value={selectedDate}
+                        onChange={setSelectedDate}
+                      />
                     </div>
                   )}
                 </section>

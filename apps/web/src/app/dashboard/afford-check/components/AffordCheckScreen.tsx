@@ -50,6 +50,15 @@ export function AffordCheckScreen() {
     }
   };
 
+  const handleAmountBlur = () => {
+    if (rawAmount !== '') {
+      const num = parseFloat(rawAmount);
+      if (!isNaN(num) && num > 0) {
+        setRawAmount(num.toFixed(2));
+      }
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-16 px-4 sm:px-6 pt-4">
       {/* Top back navigation */}
@@ -118,6 +127,7 @@ export function AffordCheckScreen() {
               autoFocus
               value={rawAmount}
               onChange={handleAmountChange}
+              onBlur={handleAmountBlur}
               placeholder={t('canIAfford.amountPlaceholder')}
               className="text-4xl font-extrabold font-mono tabular-nums text-center bg-transparent border-b-2 border-slate-200 dark:border-slate-800 focus:border-blue-600 dark:focus:border-blue-500 focus:outline-none py-1 w-56 text-slate-900 dark:text-slate-100 transition-colors"
             />

@@ -1,6 +1,6 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer, PoolPicker, InfoTooltip, useIconVisibility, ConfirmDialog, Button } from "@money-matters/ui/web";
+import { SlideOverDrawer, PoolPicker, InfoTooltip, useIconVisibility, ConfirmDialog, Button, AmountField } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 import { PaydayActionDrawer } from "@/components/web/PaydayActionDrawer";
@@ -30,6 +30,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     setReceivingAccountId,
     date,
     setDate,
+    todayStr,
     paydayModalEventId,
     setPaydayModalEventId,
     error,
@@ -247,22 +248,13 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 </>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-                    Amount ($ AUD)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="px-3.5 py-2.5 text-xs font-mono font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-3 items-end">
+                <AmountField
+                  label="Amount ($ AUD)"
+                  required
+                  value={amount}
+                  onChange={setAmount}
+                />
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
@@ -271,6 +263,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   <input
                     type="date"
                     required
+                    min={isTransfer ? todayStr : undefined}
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"

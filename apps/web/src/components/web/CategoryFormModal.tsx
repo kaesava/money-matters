@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, InfoTooltip, Input, GenericSelectField, DatePickerField } from "@money-matters/ui/web";
+import { useToast, ConfirmDialog, InfoTooltip, Input, GenericSelectField, DatePickerField, AmountField } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -253,14 +253,11 @@ export function CategoryFormModal({
 
         {type === "GOAL" && (
           <>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.01"
+            <AmountField
               label={t("categories.targetAmountLabel")}
               required
               value={targetAmount}
-              onChange={(e) => setTargetAmount(e.target.value)}
+              onChange={setTargetAmount}
               placeholder="10000.00"
             />
             <DatePickerField
