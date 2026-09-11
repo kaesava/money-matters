@@ -31,13 +31,20 @@ describe('Capability Tenant Handlers', () => {
     });
     const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
 
-    const whereMock = vi.fn().mockResolvedValue([]);
-    const fromMock = vi.fn().mockReturnValue({ where: whereMock });
+    const limitMock = vi.fn().mockResolvedValue([]);
+    const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
+    const innerJoinMock = vi.fn().mockReturnValue({ where: whereMock });
+    const fromMock = vi.fn().mockReturnValue({ where: whereMock, innerJoin: innerJoinMock });
     const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    const setWhereMock = vi.fn().mockResolvedValue([]);
+    const setMock = vi.fn().mockReturnValue({ where: setWhereMock });
+    const updateMock = vi.fn().mockReturnValue({ set: setMock });
 
     const mockDb: any = {
       insert: insertMock,
       select: selectMock,
+      update: updateMock,
     };
 
     const handler = createTenantHandler(mockDb);
@@ -46,7 +53,31 @@ describe('Capability Tenant Handlers', () => {
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
     expect(insertMock).toHaveBeenCalledTimes(7);
-    expect(selectMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('createTenantHandler rejects if user already owns an active household', async () => {
+    const limitMock = vi.fn().mockResolvedValue([{ id: 'existing-tenant-id' }]);
+    const whereMock = vi.fn().mockReturnValue({ limit: limitMock });
+    const innerJoinMock = vi.fn().mockReturnValue({ where: whereMock });
+    const fromMock = vi.fn().mockReturnValue({ where: whereMock, innerJoin: innerJoinMock });
+    const selectMock = vi.fn().mockReturnValue({ from: fromMock });
+
+    const valuesMock = vi.fn().mockImplementation(() => {
+      const promiseObj = Promise.resolve([]);
+      (promiseObj as any).onConflictDoNothing = vi.fn().mockResolvedValue([]);
+      return promiseObj;
+    });
+    const insertMock = vi.fn().mockReturnValue({ values: valuesMock });
+
+    const mockDb: any = {
+      insert: insertMock,
+      select: selectMock,
+    };
+
+    const handler = createTenantHandler(mockDb);
+    await expect(handler({ name: 'Second Household' }, appId, userId)).rejects.toThrow(
+      'You already have an active household'
+    );
   });
 
   it('createBankAccountHandler inserts bank account into database', async () => {

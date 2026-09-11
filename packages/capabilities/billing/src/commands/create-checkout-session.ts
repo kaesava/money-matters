@@ -59,10 +59,15 @@ export async function createCheckoutSessionCommand(
       await db
         .update(tenants)
         .set({
-          subscriptionStatus: "ACTIVE",
+          subscriptionStatus: "SUBSCRIBED",
           premiumEnabled: true,
           subscribedAt: now,
           subscriptionEndsAt: oneYearLater,
+          cancelAtPeriodEnd: false,
+          planType: input.planType || "annual",
+          nextBillingAt: oneYearLater,
+          trialConvertedAt: now,
+          trialGraceEndsAt: null,
           updatedAt: now,
         })
         .where(eq(tenants.id, tenantId));
@@ -109,23 +114,31 @@ export async function createCheckoutSessionCommand(
       .where(eq(tenants.id, tenantId));
   }
 
+  const successUrlWithSessionId = input.successUrl.includes("{CHECKOUT_SESSION_ID}")
+    ? input.successUrl
+    : `${input.successUrl}${input.successUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`;
+
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
-    payment_method_types: ["card"],
     line_items: [
       {
         price: targetPriceId,
         quantity: 1,
       },
     ],
-    success_url: input.successUrl,
+    success_url: successUrlWithSessionId,
     cancel_url: input.cancelUrl,
     client_reference_id: tenantId,
     subscription_data: {
       metadata: {
         tenantId,
+        planType: input.planType || "annual",
       },
+    },
+    metadata: {
+      tenantId,
+      planType: input.planType || "annual",
     },
   });
 

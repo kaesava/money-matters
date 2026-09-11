@@ -364,6 +364,9 @@ importers:
       '@money-matters/config':
         specifier: workspace:*
         version: link:../../config
+      '@money-matters/core':
+        specifier: workspace:*
+        version: link:../../core
       '@money-matters/db':
         specifier: workspace:*
         version: link:../../db

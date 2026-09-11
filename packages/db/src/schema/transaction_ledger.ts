@@ -7,6 +7,16 @@ import { tenantAndTimestamps } from "./base.js";
 
 export const transactionFlowEnum = pgEnum("transaction_flow_enum", ["DEBIT", "CREDIT"]);
 export const transactionSourceEnum = pgEnum("transaction_source_enum", ["MANUAL", "AUTO", "IMPORT"]);
+export const transactionTypeEnum = pgEnum("transaction_type_enum", [
+  "EXPENSE",
+  "INCOME_SPLIT",
+  "INCOME_DIRECT",
+  "TRANSFER_OUT",
+  "TRANSFER_IN",
+  "ACCOUNT_ALIGNMENT",
+  "BALANCE_ADJUSTMENT",
+  "OPENING_BALANCE",
+]);
 
 export const transactionLedger = pgTable("transaction_ledger", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -15,6 +25,7 @@ export const transactionLedger = pgTable("transaction_ledger", {
   bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id), // Nullable, tracks associated bank flow
   planLineId: uuid("plan_line_id").references(() => allocationPlanLines.id), // Ties confirmed allocation line splits to ledger credits
   flowType: transactionFlowEnum("flow_type").notNull(),
+  transactionType: transactionTypeEnum("transaction_type").notNull().default("EXPENSE"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   idempotencyKey: text("idempotency_key").unique().notNull(),
   note: text("note"),

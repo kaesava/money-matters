@@ -7,7 +7,7 @@ import posthog from "../../lib/posthog-client";
 import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
-import { TrialEndedModal } from "../../components/TrialEndedModal";
+import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
 import { IconVisibilityProvider } from "@money-matters/ui";
 import { Spinner } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
@@ -32,6 +32,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
+  const { status: subStatus, isLoading: isSubLoading } = useSubscriptionStatus();
+
+  // Expired Trial Guard: redirect to /subscription/expired holding screen
+  useEffect(() => {
+    if (!isSubLoading && subStatus?.isTrialExpired) {
+      router.replace("/subscription/expired");
+    }
+  }, [isSubLoading, subStatus, router]);
 
   const hasMultipleTenants = (tenantsQuery.data?.length ?? 0) > 1;
 
@@ -287,7 +295,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* ── Main Layout Wrapper ── */}
         <div className="flex-1 flex flex-col min-w-0">
           <TrialBanner />
-          <TrialEndedModal />
 
           {/* Sticky top headers - Mobile only */}
           <header

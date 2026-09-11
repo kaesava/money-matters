@@ -13,6 +13,7 @@ export async function activateSubscriptionCommand(
     stripeSubscriptionId: string;
     stripePriceId: string;
     subscriptionEndsAt: Date;
+    planType?: "monthly" | "annual" | "founding" | null;
   }
 ): Promise<void> {
   const now = new Date();
@@ -27,6 +28,11 @@ export async function activateSubscriptionCommand(
       stripePriceId: params.stripePriceId,
       subscribedAt: now,
       subscriptionEndsAt: params.subscriptionEndsAt,
+      nextBillingAt: params.subscriptionEndsAt,
+      cancelAtPeriodEnd: false,
+      trialConvertedAt: now,
+      trialGraceEndsAt: null,
+      ...(params.planType ? { planType: params.planType } : {}),
       updatedAt: now,
     })
     .where(eq(tenants.id, params.tenantId));

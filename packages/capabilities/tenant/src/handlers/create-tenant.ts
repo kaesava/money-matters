@@ -33,11 +33,53 @@ export function createTenantHandler(db: DbOrTx) {
       })
       .onConflictDoNothing();
 
+    // 1. Guard against owning more than one active household
+    const tenantUserQuery = db
+      .select({ id: tenantUsers.tenantId })
+      .from(tenantUsers);
+
+    const existingOwnedTenant = typeof (tenantUserQuery as any).innerJoin === "function"
+      ? await (tenantUserQuery as any)
+          .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+          .where(
+            and(
+              eq(tenantUsers.userId, userId),
+              eq(tenantUsers.role, "OWNER"),
+              eq(tenants.appId, appId),
+              isNull(tenantUsers.archivedAt),
+              isNull(tenants.archivedAt)
+            )
+          )
+          .limit(1)
+      : typeof (tenantUserQuery as any).where === "function"
+        ? await (tenantUserQuery as any).where(
+            and(
+              eq(tenantUsers.userId, userId),
+              eq(tenantUsers.role, "OWNER"),
+              isNull(tenantUsers.archivedAt)
+            )
+          )
+        : [];
+
+    if (existingOwnedTenant && existingOwnedTenant.length > 0) {
+      throw new Error("You already have an active household. An account can only own one active household at a time.");
+    }
+
+    // 2. Check if user already used their 60-day trial
+    const [existingUser] = await db
+      .select({ hasUsedTrial: users.hasUsedTrial })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const hasUsedTrial = existingUser?.hasUsedTrial ?? false;
+    const subscriptionStatus = hasUsedTrial ? "TRIAL_EXPIRED" : "TRIAL_ACTIVE";
+
     const country = input.country || "AU";
     const currency = input.currency || "AUD";
     const timezone = input.timezone || "Australia/Sydney";
 
-    // 1. Insert the tenant
+    // 3. Insert the tenant
     await db
       .insert(tenants)
       .values({
@@ -47,15 +89,24 @@ export function createTenantHandler(db: DbOrTx) {
         country,
         currency,
         timezone,
-        subscriptionStatus: "TRIAL_ACTIVE",
-        trialStartedAt,
-        trialEndsAt,
-        trialGraceEndsAt,
+        subscriptionStatus,
+        trialStartedAt: hasUsedTrial ? null : trialStartedAt,
+        trialEndsAt: hasUsedTrial ? null : trialEndsAt,
+        trialGraceEndsAt: hasUsedTrial ? null : trialGraceEndsAt,
+        cancelAtPeriodEnd: false,
         createdBy: userId,
         updatedBy: userId,
       });
 
-    // 2. Add the owner record to tenant_users
+    // Mark that the user has consumed their initial trial allocation
+    if (typeof (db as any).update === "function") {
+      await db
+        .update(users)
+        .set({ hasUsedTrial: true, updatedAt: now })
+        .where(eq(users.id, userId));
+    }
+
+    // 4. Add the owner record to tenant_users
     await db
       .insert(tenantUsers)
       .values({

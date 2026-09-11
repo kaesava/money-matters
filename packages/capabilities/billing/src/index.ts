@@ -6,4 +6,6 @@ export * from "./commands/activate-subscription.js";
 export * from "./commands/deactivate-tenant.js";
 export * from "./commands/transition-to-free-tier.js";
 export * from "./guards/ensure-premium.js";
+export * from "./commands/verify-checkout-session.js";
+export * from "./queries/list-invoices.js";
 export * from "./webhooks/stripe-webhook-handler.js";

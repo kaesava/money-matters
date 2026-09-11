@@ -70,12 +70,16 @@ export function SidebarTrialNavItem({ collapsed, onNavigate }: { collapsed: bool
   const icon = status.isSubscribed ? "👑" : "✨";
 
   const label = status.isSubscribed
-    ? "Premium Household"
+    ? t("subscription.subscribed")
     : status.isTrialExpired
-    ? "Trial Expired"
+    ? t("subscription.trialExpired")
     : status.isTrialGrace
-    ? "Grace Period"
-    : `Free Trial (${days}d left)`;
+    ? t("subscription.trialGracePeriod")
+    : t("subscription.trialDaysLeftBadge", { days: String(days) });
+
+  const fullLabel = status.isSubscribed
+    ? t("subscription.subscribed")
+    : `${t("subscription.trialActive")} (${days}d left)`;
 
   const actionText = status.isSubscribed ? "Active" : "Upgrade";
 
@@ -91,14 +95,14 @@ export function SidebarTrialNavItem({ collapsed, onNavigate }: { collapsed: bool
       onClick={() => {
         if (onNavigate) onNavigate();
       }}
-      title={collapsed ? `${label} — ${actionText}` : undefined}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group relative border ${badgeColor} cursor-pointer ${
+      title={collapsed ? `${fullLabel} — ${actionText}` : fullLabel}
+      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group relative border ${badgeColor} cursor-pointer ${
         collapsed ? "justify-center" : "justify-between"
       }`}
     >
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-sm shrink-0">{icon}</span>
-        {!collapsed && <span className="truncate text-white font-bold">{label}</span>}
+        {!collapsed && <span className="text-white font-bold whitespace-nowrap">{label}</span>}
       </div>
       {!collapsed && (
         <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/20 text-white shrink-0">
@@ -107,7 +111,7 @@ export function SidebarTrialNavItem({ collapsed, onNavigate }: { collapsed: bool
       )}
       {collapsed && (
         <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-zinc-900 text-white text-xs font-semibold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-xl border border-white/10">
-          {label} — {actionText}
+          {fullLabel} — {actionText}
         </div>
       )}
     </a>

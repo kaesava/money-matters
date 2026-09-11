@@ -78,6 +78,9 @@ export const SubscriptionStatusDto = z.object({
   isPastDue: z.boolean(),
   isDeactivated: z.boolean(),
   daysRemainingInTrial: z.number().nullable(),
+  cancelAtPeriodEnd: z.boolean().default(false),
+  planType: z.enum(["monthly", "annual", "founding"]).nullable().optional(),
+  nextBillingAt: z.date().nullable().optional(),
 }).strict();
 export type SubscriptionStatusDto = z.infer<typeof SubscriptionStatusDto>;
 

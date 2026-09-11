@@ -30,8 +30,19 @@ describe("Bank Reconciliation & Mapping Rules", () => {
           };
         },
       }),
-      select: () => ({
-        from: () => ({
+      select: () => {
+        const queryChain: any = {
+          innerJoin: () => queryChain,
+          where: () => queryChain,
+          limit: () => Promise.resolve([]),
+          then: (resolve: any) => resolve([]),
+        };
+        return {
+          from: () => queryChain,
+        };
+      },
+      update: () => ({
+        set: () => ({
           where: () => Promise.resolve([]),
         }),
       }),

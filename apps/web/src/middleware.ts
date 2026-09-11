@@ -9,7 +9,6 @@ const PUBLIC_PREFIXES = [
   "/reset-password",
   "/invite/",
   "/api/",
-  "/subscription/",
   "/blog",
 ];
 

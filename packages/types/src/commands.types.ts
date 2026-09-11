@@ -136,12 +136,25 @@ export const CreateIncomeEventCommand = z.object({
   expectedAmount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
 }).strict();
 
+export const TransactionTypeSchema = z.enum([
+  "EXPENSE",
+  "INCOME_SPLIT",
+  "INCOME_DIRECT",
+  "TRANSFER_OUT",
+  "TRANSFER_IN",
+  "ACCOUNT_ALIGNMENT",
+  "BALANCE_ADJUSTMENT",
+  "OPENING_BALANCE",
+]);
+export type TransactionType = z.infer<typeof TransactionTypeSchema>;
+
 export const RecordExpenseCommand = z.object({
   poolId: z.string().uuid(),
   categoryId: z.string().uuid().optional().nullable(),
   bankAccountId: z.string().uuid().optional().nullable(),
   amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
   flowType: z.enum(["DEBIT", "CREDIT"]).optional().default("DEBIT"),
+  transactionType: TransactionTypeSchema.optional(),
   date: z.string().optional(),
   recordedAt: z.string().optional(),
   idempotencyKey: z.string().optional(),
@@ -238,6 +251,7 @@ export const SyncLedgerMutationCommand = z.object({
   bankAccountId: z.string().uuid().optional().nullable(),
   amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
   flowType: z.enum(["DEBIT", "CREDIT"]),
+  transactionType: TransactionTypeSchema.optional(),
   note: z.string().optional(),
   source: z.enum(["MANUAL", "AUTO", "IMPORT"]).default("MANUAL"),
 }).strict();
@@ -260,6 +274,26 @@ export const CreateCheckoutSessionCommand = z.object({
 export const CreateCustomerPortalCommand = z.object({
   returnUrl: z.string().url(),
 }).strict();
+
+export const VerifyCheckoutSessionCommand = z.object({
+  sessionId: z.string().min(1),
+}).strict();
+
+export const BillingInvoiceSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  stripeInvoiceId: z.string(),
+  amountPaid: z.string(),
+  currency: z.string(),
+  status: z.string(),
+  paidAt: z.date().nullable(),
+  periodStart: z.date().nullable(),
+  periodEnd: z.date().nullable(),
+  invoicePdfUrl: z.string().nullable(),
+  hostedInvoiceUrl: z.string().nullable(),
+  createdAt: z.date(),
+}).strict();
+export type BillingInvoiceDto = z.infer<typeof BillingInvoiceSchema>;
 
 export const CsvImportItemSchema = z.object({
   date: z.string(),

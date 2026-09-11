@@ -1,17 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Logo, Button } from "@money-matters/ui/web";
+import { authClient } from "../../../lib/auth";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 
 export default function UpgradePage() {
   const router = useRouter();
+  const { data: session, isPending: isAuthPending } = authClient.useSession();
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthPending && !session?.user) {
+      router.replace("/sign-in?redirect=/subscription/upgrade");
+    }
+  }, [isAuthPending, session, router]);
 
   // Toggle switch for special $69 founding offer on annual plan
   const isFoundingOfferActive = true;
@@ -89,10 +97,11 @@ export default function UpgradePage() {
           </span>
         </div>
         <button
-          onClick={() => router.push("/dashboard")}
+          type="button"
+          onClick={() => router.push(session?.user ? "/dashboard" : "/")}
           className="text-xs font-bold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-xl transition-all"
         >
-          ← {t("dashboard.title")}
+          ← {session?.user ? t("subscription.backToDashboard") : t("subscription.backToHome")}
         </button>
       </header>
 
@@ -244,6 +253,10 @@ export default function UpgradePage() {
               <span>🇦🇺 Australian Stealth Privacy Guarantee</span>
               <span>•</span>
               <span>⚡ Instant Household Access</span>
+            </div>
+
+            <div className="mt-4 text-center text-xs text-slate-400 font-medium">
+              {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
             </div>
           </div>
         </div>

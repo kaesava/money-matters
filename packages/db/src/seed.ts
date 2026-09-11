@@ -24,6 +24,7 @@ import {
   earlyAccessSubscribers,
   processedWebhooks,
   appVersions,
+  billingInvoices,
 } from "@money-matters/db";
 import { sql } from "drizzle-orm";
 import dotenv from "dotenv";
@@ -153,6 +154,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(bankAccounts);
   await db.delete(tenantUsers);
   await db.delete(tenants);
+  await db.delete(billingInvoices).catch(() => {});
   await db.delete(earlyAccessSubscribers).catch(() => {});
   await db.delete(processedWebhooks).catch(() => {});
   await db.delete(appVersions).catch(() => {});
@@ -163,9 +165,9 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   // 0. App & User Records
   await db.insert(users).values([
-    { id: userId, email: "kaesava@gmail.com", displayName: "Kaesava" },
-    { id: raehanUserId, email: raehanEmail, displayName: "Raehan Kaesava" },
-    { id: testerUserId, email: testerEmail, displayName: "Play Store Tester" },
+    { id: userId, email: "kaesava@gmail.com", displayName: "Kaesava", hasUsedTrial: true },
+    { id: raehanUserId, email: raehanEmail, displayName: "Raehan Kaesava", hasUsedTrial: true },
+    { id: testerUserId, email: testerEmail, displayName: "Play Store Tester", hasUsedTrial: true },
   ]);
 
   await db.insert(apps).values({
@@ -190,7 +192,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
       trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
-      trialGraceEndsAt: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
+      trialGraceEndsAt: new Date(now.getTime() + 67 * 24 * 60 * 60 * 1000),
+      cancelAtPeriodEnd: false,
       appId,
       createdBy: userId,
       updatedBy: userId,
@@ -211,7 +214,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
       trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
-      trialGraceEndsAt: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
+      trialGraceEndsAt: new Date(now.getTime() + 67 * 24 * 60 * 60 * 1000),
+      cancelAtPeriodEnd: false,
       appId,
       createdBy: raehanUserId,
       updatedBy: raehanUserId,
@@ -232,7 +236,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
       trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
-      trialGraceEndsAt: new Date(now.getTime() + 37 * 24 * 60 * 60 * 1000),
+      trialGraceEndsAt: new Date(now.getTime() + 67 * 24 * 60 * 60 * 1000),
+      cancelAtPeriodEnd: false,
       appId,
       createdBy: testerUserId,
       updatedBy: testerUserId,

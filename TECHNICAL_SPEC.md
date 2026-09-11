@@ -228,13 +228,19 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
   - `HARD_NO`: Purchase exhausts 12-month forecast horizon, creates a forecasted deficit, or starves daily living allowance.
 - **Human-Centric Trust Copy**: All rationale step messages use clear, jargon-free financial phrasing (`recommended daily safety buffer`, `added to your 12-month budget forecast`, `committed savings target`).
 
-### 5.7 Stripe Billing & 7-Day Read-Only Grace Period (`@money-matters/capability-billing`)
-- **Decoupled Capability Architecture**: Stripe Checkout (`createCheckoutSessionCommand`), Customer Portal (`createCustomerPortalSessionCommand`), and Webhooks (`handleStripeWebhook`) isolated inside `packages/capabilities/billing`.
-- **Cryptographic Signature Verification**: Webhook handler (`POST /webhooks/stripe`) validates raw body signatures via `stripe.webhooks.constructEvent`.
-- **Automated Grace Period & Expiration Fallback**:
-  - `invoice.payment_failed` / `customer.subscription.deleted` $\rightarrow$ Triggers `deactivateTenantCommand` setting `subscriptionStatus = 'PAST_DUE'` and populating 7-day `trialGraceEndsAt` timestamp. Dashboard access remains unblocked in read-only state.
-  - `invoice.payment_succeeded` $\rightarrow$ Triggers `activateSubscriptionCommand`, resetting `subscriptionStatus = 'SUBSCRIBED'` and `premiumEnabled = true`.
-  - `getSubscriptionStatus` Query Check $\rightarrow$ Evaluates `now > trialEndsAt` (for active trials) or `now > trialGraceEndsAt` (for past due). Automatically updates database record to `subscriptionStatus = 'TRIAL_EXPIRED'`.
+### 5.7 Stripe Billing, Synchronous Verification & Trial Lifecycle (`@money-matters/capability-billing`)
+- **Decoupled Capability Architecture**: Stripe Checkout (`createCheckoutSessionCommand`), Synchronous Verification (`verifyCheckoutSessionCommand`), Invoices Query (`listInvoicesQuery`), Customer Portal (`createCustomerPortalSessionCommand`), and Webhooks (`handleStripeWebhook`) isolated inside `packages/capabilities/billing`.
+- **Dynamic Australian Payment Methods**: Checkout sessions configure AUD billing ($9.95/mo or $89/yr) with dynamic payment methods enabled (omitting restrictive `payment_method_types` arrays to automatically present Visa, Mastercard, AMEX, Apple Pay, Google Pay, and Link).
+- **Synchronous Post-Checkout Verification**: `/subscription/success` captures `{CHECKOUT_SESSION_ID}` and calls `billing.verifyCheckoutSession` mutation, instantly validating payment status against Stripe API, updating tenant to `SUBSCRIBED`, recording the initial paid invoice in `billing_invoices`, and busting client-side tRPC query caches so the trial badge disappears synchronously without polling delay.
+- **Cryptographic Signature Verification & Webhook Resilience**: Webhook handler (`POST /webhooks/stripe`) validates raw body signatures via `stripe.webhooks.constructEvent` with idempotency guards and transactional audit updates:
+  - `customer.subscription.updated`: Synchronizes `cancelAtPeriodEnd`, `planType`, and `nextBillingAt` timestamps. Retains dashboard access during canceled grace periods.
+  - `invoice.payment_succeeded`: Inserts paid receipt in `billing_invoices` and triggers `activateSubscriptionCommand`, resetting `subscriptionStatus = 'SUBSCRIBED'` and `premiumEnabled = true`.
+  - `invoice.payment_failed` / `customer.subscription.deleted`: Inserts failed record in `billing_invoices`, triggers `deactivateTenantCommand` setting `subscriptionStatus = 'PAST_DUE'` and populating 7-day `trialGraceEndsAt` timestamp.
+- **Automated Grace Period & Expiration Architecture**:
+  - `getSubscriptionStatus` Query Check $\rightarrow$ Evaluates trial timelines: Days 1–60 return `TRIALING`. Days 61–67 enter `TRIAL_GRACE` (7-day read-only grace period). Day 68+ returns `TRIAL_EXPIRED` hard paywall lockdown.
+  - **Isolated Holding Screen (`/subscription/expired`)**: Hard-blocks access to `/dashboard/*` when `subscriptionStatus === 'TRIAL_EXPIRED'`. Provides isolated Upgrade CTA, full zipped CSV data export via `exportTenantData`, and sign-out actions.
+  - **Multi-Tenant Trial Abuse Prevention**: Strict single active owned household per user (`tenant_users.role === 'OWNER'`), plus permanent `hasUsedTrial: boolean` flag on `public.users` table so recreating a tenant immediately initializes with `TRIAL_EXPIRED`.
+- **Billing Ledger Schema (`billing_invoices`)**: Dedicated table tracking `id`, `tenantId`, `stripeInvoiceId`, `amountPaid`, `currency`, `status`, `invoicePdfUrl`, `hostedInvoiceUrl`, `periodStart`, `periodEnd`, and `createdAt` with foreign key indexes and multi-tenant RLS scoping.
 
 
 ### 5.8 Database & Network Optimization Standards

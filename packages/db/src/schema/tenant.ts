@@ -35,6 +35,10 @@ export const tenants = pgTable("tenants", {
   stripePriceId: varchar("stripe_price_id", { length: 255 }),
   subscribedAt: timestamp("subscribed_at", { withTimezone: true }),
   subscriptionEndsAt: timestamp("subscription_ends_at", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  planType: varchar("plan_type", { length: 30 }),
+  nextBillingAt: timestamp("next_billing_at", { withTimezone: true }),
+  trialConvertedAt: timestamp("trial_converted_at", { withTimezone: true }),
   sweepEverydayLeftover: boolean("sweep_everyday_leftover").notNull().default(true),
   lastSweepProcessedMonth: varchar("last_sweep_processed_month", { length: 7 }), // e.g. "2026-07"
   merchantRules: jsonb("merchant_rules").$type<Record<string, string>>().notNull().default({}),
