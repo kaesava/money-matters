@@ -221,7 +221,11 @@ export function useQuickActionState(
     utils.listExpenseEvents.invalidate();
     utils.listTransferEvents.invalidate();
     utils.listBankAccountsWithExpected.invalidate();
-    toast.success(t("toasts.saved", { defaultValue: "Saved successfully" }));
+    if (isTransfer && !isFutureDate) {
+      toast.success(t("toasts.transferCompleted", { defaultValue: "Transfer completed" }));
+    } else {
+      toast.success(t("toasts.saved", { defaultValue: "Saved successfully" }));
+    }
     onClose();
   }
 
@@ -339,16 +343,18 @@ export function useQuickActionState(
           name,
           amount: amountNum.toFixed(2),
           poolId: categoryId,
+          categoryId: selectedSubCategoryId || undefined,
           isRecurring: false,
           startDate: date,
         });
       } else {
         recordExpenseMutation.mutate({
           poolId: categoryId,
-          categoryId,
+          categoryId: selectedSubCategoryId || undefined,
           amount: amountNum.toFixed(2),
           note: name,
           date,
+          transactionType: "EXPENSE",
         });
       }
     } else {

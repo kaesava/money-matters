@@ -224,6 +224,7 @@ export const ListTransactionsQuery = z.object({
   offset: z.number().int().default(0),
   poolId: z.string().uuid().optional(),
   categoryId: z.string().uuid().optional(),
+  bankAccountId: z.string().uuid().optional(),
 }).strict();
 
 /**

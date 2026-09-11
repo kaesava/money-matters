@@ -49,6 +49,7 @@ export * from './NetworkErrorBanner';
 export * from './ConfirmDialog';
 export * from './SkeletonTable';
 export * from './PoolPicker';
+export * from './RecordFilterBadge';
 
 
 

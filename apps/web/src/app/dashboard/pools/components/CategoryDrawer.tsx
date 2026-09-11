@@ -234,7 +234,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
                       <div className="flex items-center justify-end gap-1.5 text-xs font-bold">
                         {cat.hasHistory && (
                           <Link
-                            href={`/dashboard/history?search=${encodeURIComponent(cat.name)}`}
+                            href={`/dashboard/history?categoryId=${cat.id}`}
                             className="font-semibold text-[#2563eb] hover:underline"
                             title={`View history for ${cat.name}`}
                           >
@@ -246,7 +246,7 @@ export function CategoryDrawer({ pool, onClose, onEditCategory, onAddCategory }:
                         )}
                         {cat.hasUpcomingExpenses && (
                           <Link
-                            href={`/dashboard/income-and-bills?search=${encodeURIComponent(cat.name)}`}
+                            href={`/dashboard/income-and-bills?categoryId=${cat.id}`}
                             className="font-semibold text-[#2563eb] hover:underline"
                             title={`View upcoming expenses for ${cat.name}`}
                           >

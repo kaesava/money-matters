@@ -45,9 +45,19 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
   let planName = t("subscription.freePlan");
   if (status) {
     if (status.status === "SUBSCRIBED") {
-      planName = t("subscription.activePlan");
+      if (status.planType === "founding") {
+        planName = t("subscription.planFounding");
+      } else if (status.planType === "annual") {
+        planName = t("subscription.planAnnual");
+      } else if (status.planType === "monthly") {
+        planName = t("subscription.planMonthly");
+      } else {
+        planName = t("subscription.planActive");
+      }
     } else if (status.status === "TRIAL_ACTIVE") {
       planName = t("subscription.planTrial", { days: String(status.daysRemainingInTrial ?? 0) });
+    } else if (status.status === "TRIAL_GRACE") {
+      planName = t("subscription.trialGracePeriod");
     } else if (status.status === "TRIAL_EXPIRED") {
       planName = t("subscription.planExpired");
     } else if (status.status === "PAST_DUE") {
@@ -56,133 +66,181 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
   }
 
   const invoices = invoicesQuery.data || [];
+  const isSubscribed = status?.status === "SUBSCRIBED";
 
   return (
-    <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-          {t("subscription.sectionTitle")}
-        </p>
-        <div
-          className="p-5 rounded-2xl flex flex-col gap-4 shadow-xs"
-          style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-zinc-500">{t("subscription.currentPlan")}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-base font-extrabold text-[#1B2B4B]">
-                  {planName}
-                </p>
-                {status?.cancelAtPeriodEnd && (
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-                    {t("subscription.cancelingBadge")}
-                  </span>
-                )}
-              </div>
-            </div>
-            <a
-              href="/subscription/upgrade"
-              className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-xs"
-            >
-              {t("subscription.upgradeCta")}
-            </a>
-          </div>
+    <section className="flex flex-col gap-2">
+      <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
+        {t("subscription.sectionTitle")}
+      </p>
 
-          {status?.cancelAtPeriodEnd && status.subscriptionEndsAt && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
-              <span>⚠️</span>
-              <span>
-                {t("subscription.cancelingNotice", {
-                  date: new Intl.DateTimeFormat("en-AU").format(new Date(status.subscriptionEndsAt)),
+      <div
+        className="p-6 rounded-2xl flex flex-col gap-6 shadow-xs"
+        style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
+      >
+        {/* Top Header Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              {t("subscription.currentPlan")}
+            </p>
+            <div className="flex items-center gap-2.5 mt-1">
+              <h3 className="text-xl font-extrabold text-[#1B2B4B] dark:text-white">
+                {planName}
+              </h3>
+              {isSubscribed && !status?.cancelAtPeriodEnd && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  ✓ {t("subscription.activeBadge")}
+                </span>
+              )}
+              {status?.cancelAtPeriodEnd && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                  ⚠️ {t("subscription.cancelingBadge")}
+                </span>
+              )}
+              {status?.status === "TRIAL_ACTIVE" && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-blue-950/40 text-[#2563eb] border border-blue-200 dark:border-blue-800">
+                  ✨ {t("subscription.trialBadge")}
+                </span>
+              )}
+            </div>
+
+            {isSubscribed && !status?.cancelAtPeriodEnd && status?.nextBillingAt && (
+              <p className="text-xs text-zinc-500 mt-1 font-medium">
+                {t("subscription.renewsOn", {
+                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.nextBillingAt)),
                 })}
-              </span>
-            </div>
-          )}
+              </p>
+            )}
 
-          <div className="pt-3 border-t border-zinc-100 flex items-center justify-between">
-            <p className="text-xs text-zinc-500">{t("subscription.billingDesc")}</p>
-            <button
-              type="button"
-              onClick={handleOpenStripePortal}
-              disabled={loadingPortal}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              {loadingPortal && <Spinner size="sm" />}
-              <span>{t("subscription.billingPortal")}</span>
-            </button>
+            {status?.cancelAtPeriodEnd && status?.subscriptionEndsAt && (
+              <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 font-medium">
+                {t("subscription.cancelingNotice", {
+                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.subscriptionEndsAt)),
+                })}
+              </p>
+            )}
           </div>
 
-          <div className="pt-2 border-t border-zinc-100 text-xs text-zinc-400 font-medium">
-            {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
+          <div>
+            {isSubscribed ? (
+              <button
+                type="button"
+                onClick={handleOpenStripePortal}
+                disabled={loadingPortal}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-800 dark:text-zinc-100 hover:text-zinc-950 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                {loadingPortal && <Spinner size="sm" />}
+                <span>{t("subscription.manageSubscription")}</span>
+                <span className="text-zinc-400 font-mono">↗</span>
+              </button>
+            ) : (
+              <a
+                href="/subscription/upgrade"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-xs"
+              >
+                {t("subscription.upgradeCta")}
+              </a>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Invoice History & Receipts */}
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--dash-muted)" }}>
-          {t("subscription.invoiceHistoryTitle")}
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          {t("subscription.billingDesc")}
         </p>
-        <div
-          className="p-5 rounded-2xl flex flex-col gap-3 shadow-xs"
-          style={{ backgroundColor: "var(--dash-surface)", border: "1px solid var(--dash-border)" }}
-        >
-          {invoicesQuery.isLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Spinner size="md" className="text-[#2563eb]" />
+
+        {/* Inclusions Row */}
+        <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            {t("subscription.includedFeaturesTitle")}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+            <div className="flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">✓</span>
+              <span>{t("subscription.includedFeature1")}</span>
             </div>
-          ) : invoices.length === 0 ? (
-            <p className="text-xs text-zinc-500 italic py-2">
-              {t("subscription.noInvoices")}
+            <div className="flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">✓</span>
+              <span>{t("subscription.includedFeature2")}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">✓</span>
+              <span>{t("subscription.includedFeature3")}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-emerald-500 font-bold">✓</span>
+              <span>{t("subscription.includedFeature4")}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Invoices & Receipts Sub-panel */}
+        {(isSubscribed || invoices.length > 0) && (
+          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              {t("subscription.invoiceHistoryTitle")}
             </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-zinc-100 text-zinc-400 font-bold uppercase tracking-wider">
-                    <th className="pb-2 text-left">{t("subscription.invoiceDate")}</th>
-                    <th className="pb-2 text-right">{t("subscription.invoiceAmount")}</th>
-                    <th className="pb-2 text-center">{t("subscription.invoiceStatus")}</th>
-                    <th className="pb-2 text-center">{t("subscription.invoiceReceipt")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50">
-                  {invoices.map((inv) => (
-                    <tr key={inv.id} className="text-zinc-700 hover:bg-zinc-50/50 transition-colors">
-                      <td className="py-2.5 font-medium text-left">
-                        {inv.paidAt ? new Intl.DateTimeFormat("en-AU").format(new Date(inv.paidAt)) : "—"}
-                      </td>
-                      <td className="py-2.5 text-right font-mono tabular-nums font-bold">
-                        ${inv.amountPaid} {inv.currency}
-                      </td>
-                      <td className="py-2.5 text-center">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                          inv.status === "paid" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                        }`}>
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-center">
-                        {inv.invoicePdfUrl || inv.hostedInvoiceUrl ? (
-                          <a
-                            href={inv.invoicePdfUrl || inv.hostedInvoiceUrl || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#2563eb] hover:underline font-bold text-xs"
-                          >
-                            {t("subscription.downloadReceipt")}
-                          </a>
-                        ) : (
-                          <span className="text-zinc-400">—</span>
-                        )}
-                      </td>
+
+            {invoicesQuery.isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Spinner size="sm" className="text-[#2563eb]" />
+              </div>
+            ) : invoices.length === 0 ? (
+              <p className="text-xs text-zinc-400 italic">
+                {t("subscription.noInvoices")}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-100 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
+                      <th className="pb-2 text-left">{t("subscription.invoiceDate")}</th>
+                      <th className="pb-2 text-right">{t("subscription.invoiceAmount")}</th>
+                      <th className="pb-2 text-center">{t("subscription.invoiceStatus")}</th>
+                      <th className="pb-2 text-center">{t("subscription.invoiceReceipt")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800">
+                    {invoices.map((inv) => (
+                      <tr key={inv.id} className="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
+                        <td className="py-2.5 font-medium text-left">
+                          {inv.paidAt ? new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(inv.paidAt)) : "—"}
+                        </td>
+                        <td className="py-2.5 text-right font-mono tabular-nums font-bold">
+                          ${inv.amountPaid} {inv.currency}
+                        </td>
+                        <td className="py-2.5 text-center">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                            inv.status === "paid" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                          }`}>
+                            {inv.status}
+                          </span>
+                        </td>
+                        <td className="py-2.5 text-center">
+                          {inv.invoicePdfUrl || inv.hostedInvoiceUrl ? (
+                            <a
+                              href={inv.invoicePdfUrl || inv.hostedInvoiceUrl || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#2563eb] hover:underline font-bold text-xs"
+                            >
+                              {t("subscription.downloadReceipt")}
+                            </a>
+                          ) : (
+                            <span className="text-zinc-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-400 font-medium">
+          {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
         </div>
       </div>
     </section>

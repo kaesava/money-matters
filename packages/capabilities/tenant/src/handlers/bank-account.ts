@@ -116,6 +116,10 @@ export function updateBankAccountHandler(db: DbOrTx) {
       throw new Error("Unbudgeted buffer cannot exceed the current balance.");
     }
 
+    if (input.isPrivate !== undefined && input.isPrivate !== existing.isPrivate) {
+      throw new Error("Account privacy cannot be modified after creation.");
+    }
+
     const [updated] = await db
       .update(bankAccounts)
       .set({
@@ -123,12 +127,6 @@ export function updateBankAccountHandler(db: DbOrTx) {
         ...(input.bankProvider !== undefined ? { bankProvider: input.bankProvider } : {}),
         ...(input.lastKnownBalance !== undefined ? { lastKnownBalance: input.lastKnownBalance } : {}),
         ...(input.unbudgetedBuffer !== undefined ? { unbudgetedBuffer: input.unbudgetedBuffer } : {}),
-        ...(input.isPrivate !== undefined
-          ? {
-              isPrivate: input.isPrivate,
-              userId: input.isPrivate ? userId : null,
-            }
-          : {}),
         updatedBy: userId,
         updatedAt: new Date(),
       })

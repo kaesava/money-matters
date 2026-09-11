@@ -62,7 +62,7 @@ export function TrialStatusBadge() {
 export function SidebarTrialNavItem({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const { status, isLoading } = useSubscriptionStatus();
 
-  if (isLoading || !status) return null;
+  if (isLoading || !status || status.isSubscribed) return null;
 
   const days = status.daysRemainingInTrial ?? 60;
   const isUrgent = days <= 7;

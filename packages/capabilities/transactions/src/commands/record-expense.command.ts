@@ -36,6 +36,7 @@ export async function recordExpenseCommand(
         categoryId: input.categoryId || null,
         bankAccountId: input.bankAccountId || null,
         flowType: input.flowType || "DEBIT",
+        transactionType: input.transactionType || "EXPENSE",
         amount: input.amount,
         idempotencyKey: input.idempotencyKey || `expense-manual-${randomUUID()}`,
         note: input.note || null,

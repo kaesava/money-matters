@@ -137,7 +137,7 @@ export function SlideOverCategoryDrawer({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Link
-                    href={`/dashboard/pools?search=${encodeURIComponent(categoryName)}`}
+                    href={`/dashboard/pools?poolId=${targetPool?.id || ""}`}
                     onClick={onClose}
                     className="text-xl font-black text-[#2563eb] hover:underline transition-colors flex items-center gap-1.5"
                     title="View in Pools screen"
@@ -236,7 +236,7 @@ export function SlideOverCategoryDrawer({
                             <tr key={cat.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors">
                               <td className="p-3 font-semibold text-zinc-900 dark:text-zinc-100">
                                 <Link
-                                  href={`/dashboard/pools?search=${encodeURIComponent(cat.name)}`}
+                                  href={`/dashboard/pools?categoryId=${cat.id}`}
                                   onClick={onClose}
                                   className="text-[#2563eb] hover:underline font-bold transition-colors inline-flex items-center gap-1"
                                   title="View in Pools screen"

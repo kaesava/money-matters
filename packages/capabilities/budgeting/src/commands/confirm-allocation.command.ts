@@ -70,6 +70,7 @@ export async function confirmAllocationCommand(
           categoryId: line.categoryId,
           planLineId: insertedLine.id,
           flowType: "CREDIT" as const,
+          transactionType: "INCOME_SPLIT" as const,
           amount: line.confirmedAmount,
           idempotencyKey: `confirmalloc-${insertedLine.id}`,
           note: `Income Allocation: ${line.reasoning || "Confirmed Split"}`,

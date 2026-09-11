@@ -147,8 +147,8 @@ export function BankAccountTable({
                         {acc.hasDifference && (() => {
                           const diff = acc.differenceAmount || 0;
                           const labelStr = diff > 0
-                            ? `Reconcile Surplus of ${fmtMoney(diff)}`
-                            : `Reconcile Shortfall of ${fmtMoney(Math.abs(diff))}`;
+                            ? `Align Surplus of ${fmtMoney(diff)}`
+                            : `Align Shortfall of ${fmtMoney(Math.abs(diff))}`;
                           return (
                             <button
                               type="button"
@@ -272,7 +272,7 @@ export function BankAccountTable({
                     <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl border border-zinc-200 bg-zinc-50/70 text-xs">
                       <div className="flex items-center gap-2">
                         <Link
-                          href={`/dashboard/pools?search=${encodeURIComponent(p.name)}`}
+                          href={`/dashboard/pools?poolId=${p.id}`}
                           onClick={() => setSelectedAccForPools(null)}
                           className="font-bold text-[#2563eb] hover:underline cursor-pointer"
                         >

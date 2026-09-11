@@ -115,6 +115,12 @@ export function BankAccountFormModal({
   const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
   const isNegativeAvailable = (parseFloat(accBalance) || 0) < (parseFloat(accBuffer) || 0);
 
+  const linkedPools = editingAccount
+    ? pools.filter((p) => p.bankAccountId === editingAccount.id)
+    : pools.filter((p) => selectedPoolIds.includes(p.id));
+  const linkedPoolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+  const diffBeforeSave = Number((currentAvailable - linkedPoolsTotal).toFixed(2));
+
   const handlePrivateCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = e.target.checked;
     if (targetValue !== accIsPrivate) {
@@ -202,6 +208,23 @@ export function BankAccountFormModal({
               {fmtMoney(currentAvailable)}
             </span>
           </div>
+
+          <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-100/80 border border-zinc-200 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-600 font-medium">Linked Pools Total:</span>
+              <span className="font-mono font-bold text-zinc-800">{fmtMoney(linkedPoolsTotal)}</span>
+            </div>
+            {linkedPools.length > 0 && (
+              <div className="flex items-center justify-between pt-1 border-t border-zinc-200/60">
+                <span className="text-zinc-600 font-medium">Variance to Available:</span>
+                <span className={`font-mono font-bold ${Math.abs(diffBeforeSave) > 0.009 ? (diffBeforeSave > 0 ? "text-emerald-700" : "text-amber-700") : "text-emerald-700"}`}>
+                  {Math.abs(diffBeforeSave) > 0.009
+                    ? (diffBeforeSave > 0 ? `+${fmtMoney(diffBeforeSave)} surplus` : `-${fmtMoney(Math.abs(diffBeforeSave))} shortfall`)
+                    : "✓ Balanced"}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {!editingAccount && (
@@ -271,21 +294,23 @@ export function BankAccountFormModal({
           </div>
         )}
 
-        <div className={`flex items-center gap-2 p-3 rounded-xl border ${isTrialExpired ? 'bg-zinc-100 border-zinc-200 opacity-70' : 'bg-slate-50 border-zinc-200'}`}>
-          <label htmlFor={privateCheckId} className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 flex-1">
+        <div className={`flex items-center gap-2 p-3 rounded-xl border ${Boolean(editingAccount) || isTrialExpired ? 'bg-zinc-100 border-zinc-200 opacity-70' : 'bg-slate-50 border-zinc-200'}`}>
+          <label htmlFor={privateCheckId} className={`flex items-center gap-2 text-xs font-bold text-zinc-700 flex-1 ${Boolean(editingAccount) ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
             <input
               id={privateCheckId}
               type="checkbox"
               checked={accIsPrivate}
-              disabled={isTrialExpired}
+              disabled={Boolean(editingAccount) || isTrialExpired}
               onChange={handlePrivateCheckboxChange}
               className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
             />
             <span>{t("bankAccounts.privatePersonalAccount", { defaultValue: "Private Personal Account (Hidden from other users)" })}</span>
           </label>
-          {isTrialExpired && (
+          {Boolean(editingAccount) ? (
+            <InfoTooltip content="Privacy level is locked after account creation to protect data integrity and tenant isolation." />
+          ) : isTrialExpired ? (
             <InfoTooltip content={t("bankAccounts.upgradeToPrivate", { defaultValue: "Upgrade to Premium to mark accounts as private" })} />
-          )}
+          ) : null}
         </div>
 
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100">

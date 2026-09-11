@@ -7,7 +7,9 @@ export async function listTransactionsQuery(
   limit = 50,
   offset = 0,
   dbClient: DbOrTx,
-  categoryId?: string
+  categoryId?: string,
+  poolId?: string,
+  bankAccountId?: string
 ) {
   const conditions = [
     eq(transactionLedger.tenantId, tenantId),
@@ -19,6 +21,14 @@ export async function listTransactionsQuery(
     conditions.push(eq(transactionLedger.categoryId, categoryId));
   }
 
+  if (poolId) {
+    conditions.push(eq(transactionLedger.poolId, poolId));
+  }
+
+  if (bankAccountId) {
+    conditions.push(eq(transactionLedger.bankAccountId, bankAccountId));
+  }
+
   return await dbClient
     .select({
       id: transactionLedger.id,
@@ -28,6 +38,7 @@ export async function listTransactionsQuery(
       planLineId: transactionLedger.planLineId,
       transferGroupId: transactionLedger.transferGroupId,
       flowType: transactionLedger.flowType,
+      transactionType: transactionLedger.transactionType,
       amount: transactionLedger.amount,
       note: transactionLedger.note,
       source: transactionLedger.source,

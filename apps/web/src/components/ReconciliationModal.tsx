@@ -290,7 +290,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
               <span className="text-emerald-600 font-bold">✓ Matches</span>
             ) : (
               <span className="text-amber-600 font-bold text-[10px]">
-                (${fmtMoney(Math.abs(absVariance - sumAdjustments))} remaining)
+                ({fmtMoney(Math.abs(absVariance - sumAdjustments))} remaining)
               </span>
             )}
           </div>

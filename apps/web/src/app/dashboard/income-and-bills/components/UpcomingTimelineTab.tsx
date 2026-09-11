@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { EventItem } from "./BurstModal";
 import { MarkPaidModal, ShortfallTransferItem } from "./MarkPaidModal";
 import {
@@ -87,7 +88,7 @@ export function UpcomingTimelineTab({
   incomeEvents,
   expenseEvents,
   transferEvents,
-  savedIncomeEventIds,
+  savedIncomeEventIds: _savedIncomeEventIds,
   categories,
   pools = [],
   initialKindFilter = "ALL",
@@ -132,10 +133,11 @@ export function UpcomingTimelineTab({
   const [pageSize, setPageSize] = useState(15);
 
   const { widths, onMouseDown } = useResizableColumns({
-    date: 150,
-    name: 280,
+    date: 140,
+    name: 260,
+    poolAccount: 240,
     amount: 140,
-    actions: 180,
+    actions: 200,
   });
 
   const [eventToDelete, setEventToDelete] = useState<{ id: string; kind: "INCOME" | "EXPENSE" | "TRANSFER" } | null>(null);
@@ -368,6 +370,14 @@ export function UpcomingTimelineTab({
                   </ResizableTh>
 
                   <ResizableTh
+                    width={widths.poolAccount}
+                    onResizeMouseDown={(e) => onMouseDown("poolAccount", e)}
+                    className="py-3 px-4 text-left"
+                  >
+                    <span>Pool / Bank Account</span>
+                  </ResizableTh>
+
+                  <ResizableTh
                     width={widths.amount}
                     onResizeMouseDown={(e) => onMouseDown("amount", e)}
                     className="py-3 px-4 text-right"
@@ -397,8 +407,6 @@ export function UpcomingTimelineTab({
                 {paginatedEvents.map((evt) => {
                   const isIncome = evt.eventKind === "INCOME";
                   const isTransfer = evt.eventKind === "TRANSFER";
-                  const isSavedIncome = isIncome && Boolean(savedIncomeEventIds?.has(evt.id));
-                  const isPending = evt.status === "PENDING" || !evt.status;
 
                   // Past Date calculation
                   const isPast = evt.expectedDate < todayStr;
@@ -429,47 +437,17 @@ export function UpcomingTimelineTab({
                         </div>
                       </td>
 
-                      {/* Name Column with Badges */}
+                      {/* Name Column (Clean without redundant badges) */}
                       <td className="py-3 px-4 text-left">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-zinc-900 dark:text-white">
-                              {evt.name ||
-                                (isIncome
-                                  ? "Income Deposit"
-                                  : isTransfer
-                                  ? "Pool Transfer"
-                                  : "Scheduled Expense")}
-                            </span>
-
-                            {/* Badge: Bank Account for Income, Pool Name for Expense */}
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                isIncome
-                                  ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300"
-                                  : isTransfer
-                                  ? "bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300"
-                                  : "bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300"
-                              }`}
-                            >
-                              {isIncome
-                                ? evt.accountName || "Bank Account"
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-zinc-900 dark:text-white">
+                            {evt.name ||
+                              (isIncome
+                                ? "Income Deposit"
                                 : isTransfer
-                                ? `${evt.sourcePoolName || "Source"} ➔ ${evt.destinationPoolName || "Destination"}`
-                                : evt.categoryName || "Pool"}
-                            </span>
-
-                            {isPending && (
-                              <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded-md">
-                                Pending
-                              </span>
-                            )}
-                            {isSavedIncome && (
-                              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded-md">
-                                Saved
-                              </span>
-                            )}
-                          </div>
+                                ? "Pool Transfer"
+                                : "Scheduled Expense")}
+                          </span>
                           {evt.note && (
                             <span className="text-[11px] text-zinc-400 italic">
                               {evt.note}
@@ -478,16 +456,70 @@ export function UpcomingTimelineTab({
                         </div>
                       </td>
 
-                      {/* Category/Pool Column */}
-                      <td className="py-3 px-4 text-xs text-zinc-600 dark:text-zinc-400">
-                        {isTransfer
-                          ? `${evt.sourcePoolName || "Source"} ➔ ${evt.destinationPoolName || "Destination"}`
-                          : evt.categoryName || evt.sourcePoolName || "—"}
-                      </td>
-
-                      {/* Account Column */}
-                      <td className="py-3 px-4 text-xs text-zinc-500 dark:text-zinc-400">
-                        {evt.accountName || "—"}
+                      {/* POOL / BANK ACCOUNT Column with exact ID links */}
+                      <td className="py-3 px-4 text-left text-xs">
+                        {isTransfer ? (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Link
+                              href={`/dashboard/pools?poolId=${evt.sourcePoolId}`}
+                              className="font-bold text-[#2563eb] hover:underline"
+                            >
+                              {evt.sourcePoolName || "Source"}
+                            </Link>
+                            <span className="text-zinc-400">➔</span>
+                            <Link
+                              href={`/dashboard/pools?poolId=${evt.destinationPoolId}`}
+                              className="font-bold text-[#2563eb] hover:underline"
+                            >
+                              {evt.destinationPoolName || "Destination"}
+                            </Link>
+                          </div>
+                        ) : isIncome ? (
+                          evt.accountId ? (
+                            <Link
+                              href={`/dashboard/bank-accounts?id=${evt.accountId}`}
+                              className="font-bold text-[#2563eb] hover:underline flex items-center gap-1"
+                            >
+                              <span>🏦</span>
+                              <span>{evt.accountName || "Bank Account"}</span>
+                            </Link>
+                          ) : (
+                            <span className="text-zinc-600 dark:text-zinc-300 font-medium">
+                              {evt.accountName || "Bank Account"}
+                            </span>
+                          )
+                        ) : (
+                          <div className="flex flex-col gap-0.5">
+                            {evt.poolId || evt.categoryId ? (
+                              <Link
+                                href={`/dashboard/pools?poolId=${evt.poolId || evt.categoryId}`}
+                                className="font-bold text-[#2563eb] hover:underline flex items-center gap-1"
+                              >
+                                <span>💧</span>
+                                <span>{evt.categoryName || "Pool"}</span>
+                              </Link>
+                            ) : (
+                              <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                                {evt.categoryName || "—"}
+                              </span>
+                            )}
+                            {evt.accountName && (
+                              evt.accountId ? (
+                                <Link
+                                  href={`/dashboard/bank-accounts?id=${evt.accountId}`}
+                                  className="text-[10px] text-zinc-400 hover:text-[#2563eb] hover:underline flex items-center gap-1"
+                                >
+                                  <span>🏦</span>
+                                  <span>{evt.accountName}</span>
+                                </Link>
+                              ) : (
+                                <span className="text-[10px] text-zinc-400">
+                                  {evt.accountName}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Amount Column */}
@@ -508,21 +540,7 @@ export function UpcomingTimelineTab({
 
                       {/* Actions Column */}
                       <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEventToDelete({
-                                id: evt.id,
-                                kind: isIncome ? "INCOME" : isTransfer ? "TRANSFER" : "EXPENSE",
-                              })
-                            }
-                            className="px-2 py-1 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 font-semibold text-xs rounded-lg transition-colors"
-                            title={isIncome ? "Delete Income record" : "Delete this event"}
-                          >
-                            Delete
-                          </button>
-
+                        <div className="flex items-center justify-center gap-3">
                           {isIncome ? (
                             <div className="flex flex-row items-center justify-center gap-1.5">
                               <button
@@ -533,11 +551,6 @@ export function UpcomingTimelineTab({
                               >
                                 {t("common.runSplit", { defaultValue: "Run Split" })}
                               </button>
-                              {savedIncomeEventIds?.has(evt.id) && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
-                                  {t("matrix.saved", { defaultValue: "Saved" })}
-                                </span>
-                              )}
                             </div>
                           ) : isTransfer ? (
                             <button
@@ -556,6 +569,20 @@ export function UpcomingTimelineTab({
                               {t("common.markSpent", { defaultValue: "Mark Spent" })}
                             </button>
                           )}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEventToDelete({
+                                id: evt.id,
+                                kind: isIncome ? "INCOME" : isTransfer ? "TRANSFER" : "EXPENSE",
+                              })
+                            }
+                            className="text-xs font-medium text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                            title={isIncome ? "Delete Income record" : "Delete this event"}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -675,6 +702,16 @@ export function UpcomingTimelineTab({
               }
               await onMarkExpensePaid(markPaidModalEvent.id, amount.toFixed(2), date);
               setMarkPaidModalEvent(null);
+            }}
+            onOpenTransferModal={() => {
+              setTransferModalEvent({
+                id: `transfer_${Date.now()}`,
+                name: "Transfer between Pools",
+                expectedAmount: "0.00",
+                expectedDate: new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date()),
+                destinationPoolId: resolvedPoolId,
+                status: "PENDING",
+              });
             }}
           />
         );

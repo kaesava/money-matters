@@ -345,7 +345,7 @@ export function PoolsTable({
                               <td className="py-2.5 px-4 text-left">
                                 {pool.bankAccountName ? (
                                   <Link
-                                    href="/dashboard/bank-accounts"
+                                    href={pool.bankAccountId ? `/dashboard/bank-accounts?id=${pool.bankAccountId}` : `/dashboard/bank-accounts`}
                                     className="font-semibold text-zinc-600 hover:text-[#2563eb] hover:underline"
                                   >
                                     {pool.bankAccountName}
@@ -397,7 +397,7 @@ export function PoolsTable({
                                 <div className="flex items-center justify-center gap-1.5 text-xs font-bold">
                                   {pool.hasHistory && (
                                     <Link
-                                      href={`/dashboard/history?search=${encodeURIComponent(pool.name)}`}
+                                      href={`/dashboard/history?poolId=${pool.id}`}
                                       className="text-[#2563eb] hover:underline"
                                     >
                                       History
@@ -408,7 +408,7 @@ export function PoolsTable({
                                   )}
                                   {pool.hasUpcomingExpenses && (
                                     <Link
-                                      href={`/dashboard/income-and-bills?search=${encodeURIComponent(pool.name)}`}
+                                      href={`/dashboard/income-and-bills?poolId=${pool.id}`}
                                       className="text-[#2563eb] hover:underline"
                                     >
                                       Expenses
@@ -464,7 +464,7 @@ export function PoolsTable({
                                     <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold">
                                       {cat.hasHistory && (
                                         <Link
-                                          href={`/dashboard/history?search=${encodeURIComponent(cat.name)}`}
+                                          href={`/dashboard/history?categoryId=${cat.id}`}
                                           className="text-zinc-500 hover:text-[#2563eb] hover:underline"
                                         >
                                           History
@@ -475,7 +475,7 @@ export function PoolsTable({
                                       )}
                                       {cat.hasUpcomingExpenses && (
                                         <Link
-                                          href={`/dashboard/income-and-bills?search=${encodeURIComponent(cat.name)}`}
+                                          href={`/dashboard/income-and-bills?categoryId=${cat.id}`}
                                           className="text-zinc-500 hover:text-[#2563eb] hover:underline"
                                         >
                                           Expenses

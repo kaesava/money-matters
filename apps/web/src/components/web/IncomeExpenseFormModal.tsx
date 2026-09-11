@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, fmtDate, AmountField } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, fmtDate, AmountField, PoolPicker } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 
 import { t } from "@money-matters/i18n";
@@ -95,7 +95,29 @@ export default function IncomeExpenseFormModal({
   const utils = trpc.useUtils();
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
+  const subCategoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: isOpen });
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
+  const rawSubCategories = subCategoriesQuery.data;
+
+  const pickerPools = useMemo(() => {
+    const poolsList = poolsQuery.data ?? [];
+    const catList = rawSubCategories ?? [];
+
+    return poolsList.map((p) => {
+      const childCategories = catList
+        .filter((c) => c.poolId === p.id)
+        .map((c) => ({ id: c.id, name: c.name }));
+
+      return {
+        id: p.id,
+        name: p.name,
+        poolType: p.poolType,
+        currentBalance: p.currentBalance,
+        isPrivate: p.isPrivate ?? undefined,
+        categories: childCategories,
+      };
+    });
+  }, [poolsQuery.data, rawSubCategories]);
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery(undefined, { enabled: isOpen });
   const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
@@ -114,6 +136,7 @@ export default function IncomeExpenseFormModal({
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [poolId, setPoolId] = useState("");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [receivingAccountId, setReceivingAccountId] = useState("");
 
   const recurrenceBuilder = useRecurrenceBuilder();
@@ -130,6 +153,7 @@ export default function IncomeExpenseFormModal({
       setName(sourceToEdit.name || "");
       setAmount(sourceToEdit.amount || "");
       setPoolId(sourceToEdit.poolId || "");
+      setCategoryId(sourceToEdit.categoryId || null);
       setReceivingAccountId(sourceToEdit.receivingAccountId || "");
 
       const { origIsRecurring, origFrequency, origInterval } = parseSourceRecurrence(sourceToEdit);
@@ -144,6 +168,7 @@ export default function IncomeExpenseFormModal({
       setName("");
       setAmount("");
       setPoolId(pools.find((p) => p.poolType === "REGULAR")?.id || pools[0]?.id || "");
+      setCategoryId(null);
       setReceivingAccountId(bankAccounts[0]?.id || "");
       setIsRecurring(true);
       setFrequency("MONTHLY");
@@ -224,6 +249,7 @@ export default function IncomeExpenseFormModal({
               name,
               amount: formattedAmount,
               poolId,
+              categoryId: categoryId || undefined,
               isRecurring,
               frequency: isRecurring ? frequency : undefined,
               interval: isRecurring ? (interval || 1) : undefined,
@@ -236,6 +262,7 @@ export default function IncomeExpenseFormModal({
             name,
             amount: formattedAmount,
             poolId,
+            categoryId: categoryId || undefined,
             isRecurring,
             frequency: isRecurring ? frequency : undefined,
             interval: isRecurring ? (interval || 1) : undefined,
@@ -307,6 +334,7 @@ export default function IncomeExpenseFormModal({
       name !== (sourceToEdit.name || "") ||
       amount !== (sourceToEdit.amount || "") ||
       poolId !== (sourceToEdit.poolId || "") ||
+      categoryId !== (sourceToEdit.categoryId || null) ||
       receivingAccountId !== (sourceToEdit.receivingAccountId || "") ||
       isRecurring !== origIsRecurring ||
       frequency !== origFrequency ||
@@ -314,7 +342,7 @@ export default function IncomeExpenseFormModal({
       startDate !== origStartDate ||
       (endDate || null) !== origEndDate
     );
-  }, [name, amount, poolId, receivingAccountId, isRecurring, frequency, interval, startDate, endDate, sourceToEdit]);
+  }, [name, amount, poolId, categoryId, receivingAccountId, isRecurring, frequency, interval, startDate, endDate, sourceToEdit]);
 
   const isScheduleRuleChanged = useMemo(() => {
     if (!sourceToEdit) return false;
@@ -403,20 +431,17 @@ export default function IncomeExpenseFormModal({
               <label className="block font-bold text-[#1B2B4B] mb-1">
                 {t("modals.incomeExpenseForm.assignedPool", { defaultValue: "Assigned Pool" })} <span className="text-red-500">*</span>
               </label>
-              <select
-                value={poolId}
-                onChange={(e) => setPoolId(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              >
-                <option value="">
-                  {t("modals.incomeExpenseForm.selectTargetPool", { defaultValue: "Select Pool..." })}
-                </option>
-                {pools.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.poolType})
-                  </option>
-                ))}
-              </select>
+              <PoolPicker
+                pools={pickerPools}
+                selectedPoolId={poolId || null}
+                selectedCategoryId={categoryId || null}
+                allowCategorySelection={true}
+                placeholder={t("modals.incomeExpenseForm.selectTargetPool", { defaultValue: "Select Pool or Category..." })}
+                onChange={(sel) => {
+                  setPoolId(sel.poolId || "");
+                  setCategoryId(sel.categoryId || null);
+                }}
+              />
             </div>
           )}
 

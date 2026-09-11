@@ -34,6 +34,7 @@ export interface MarkPaidModalProps {
     date: string;
     transfers?: ShortfallTransferItem[];
   }) => Promise<void>;
+  onOpenTransferModal?: () => void;
 }
 
 export function MarkPaidModal({
@@ -47,10 +48,13 @@ export function MarkPaidModal({
   initialDate,
   availableCategories,
   onConfirmMarkPaid,
+  onOpenTransferModal,
 }: MarkPaidModalProps) {
   const { fmt, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
   const [amountStr, setAmountStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
+  const [wasPastDate, setWasPastDate] = useState(false);
+  const [originalDate, setOriginalDate] = useState("");
   const [transferAmounts, setTransferAmounts] = useState<Record<string, string>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +67,10 @@ export function MarkPaidModal({
     if (isOpen) {
       const amt = typeof initialAmount === "number" ? initialAmount.toFixed(2) : String(initialAmount || "0.00");
       setAmountStr(amt);
-      const chosenDate = initialDate && initialDate <= todayStr ? initialDate : todayStr;
+      const isPast = Boolean(initialDate && initialDate < todayStr);
+      setWasPastDate(isPast);
+      setOriginalDate(initialDate || "");
+      const chosenDate = isPast ? todayStr : initialDate || todayStr;
       setDateStr(chosenDate);
     }
   }, [isOpen, initialAmount, initialDate, todayStr]);
@@ -238,6 +245,18 @@ export function MarkPaidModal({
           />
         </div>
 
+        {wasPastDate && (
+          <div className="p-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
+            <span className="text-sm">ℹ️</span>
+            <span>
+              {t("incomeBillsTabs.expensePastDateAdjustedNotice", {
+                date: originalDate,
+                defaultValue: `The expense date previously scheduled for ${originalDate} has now been defaulted to today.`,
+              })}
+            </span>
+          </div>
+        )}
+
         {hasShortfall ? (
           <>
             {/* Insufficient Funds Warning Banner */}
@@ -347,17 +366,37 @@ export function MarkPaidModal({
             {/* Allocation Progress Bar */}
             <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-xs font-bold">
               <span className="text-zinc-600 dark:text-zinc-400">
-                Total Allocated: <span className="font-mono text-zinc-900 dark:text-white">{fmt(totalAllocated)}</span>
+                {t("incomeBillsTabs.progressAllocatedHeader", {
+                  allocated: fmt(totalAllocated),
+                  shortfall: fmt(shortfallAmount),
+                  defaultValue: `Total Allocated: ${fmt(totalAllocated)} / ${fmt(shortfallAmount)}`,
+                })}
               </span>
               <span className={isFulfilled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
                 {isFulfilled ? "✓ Shortfall Covered" : `Remaining: ${fmt(Math.max(0, shortfallAmount - totalAllocated))}`}
               </span>
             </div>
+
+            {onOpenTransferModal && (
+              <div className="pt-1 text-center">
+                <button
+                  type="button"
+                  onClick={onOpenTransferModal}
+                  className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <span>{t("incomeBillsTabs.transferFundsHyperlink", { defaultValue: "Transfer funds between Pools" })} →</span>
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl">
             <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300">
-              Sufficient pool balance available ({fmt(targetBalance)}). Click confirm to mark paid.
+              {t("incomeBillsTabs.sufficientBalanceNotice", {
+                poolName: formattedPoolName,
+                balance: fmt(targetBalance),
+                defaultValue: `Click confirm to draw down from the Pool ${formattedPoolName} (Current balance: ${fmt(targetBalance)})`,
+              })}
             </p>
           </div>
         )}

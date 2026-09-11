@@ -349,6 +349,7 @@ export const incomeRouter = {
           note: incomeEvents.note,
           incomeSourceId: incomeEvents.incomeSourceId,
           sourceName: incomeSources.name,
+          bankAccountId: incomeSources.receivingAccountId,
         })
         .from(incomeEvents)
         .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))

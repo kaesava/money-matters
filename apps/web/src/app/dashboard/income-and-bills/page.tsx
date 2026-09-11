@@ -61,7 +61,9 @@ function formatScheduleSummary({
 
 function IncomeAndBillsContent() {
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab") || "MATRIX";
+  const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
+  const categoryIdParam = searchParams.get("categoryId") || "";
+  const tabParam = searchParams.get("tab") || (poolIdParam || categoryIdParam ? "EVENTS" : "MATRIX");
   const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
   const searchParam = searchParams.get("search") || "";
 
@@ -703,13 +705,17 @@ function IncomeAndBillsContent() {
           <UpcomingTimelineTab
             isLoading={isLoading}
             savedIncomeEventIds={savedIncomeEventIds}
-            initialKindFilter={typeParam === "INCOME" || typeParam === "EXPENSE" || typeParam === "TRANSFER" ? typeParam : "ALL"}
-            initialSearchQuery={searchParam}
+            initialKindFilter={typeParam === "INCOME" || typeParam === "EXPENSE" || typeParam === "TRANSFER" ? typeParam : (poolIdParam || categoryIdParam ? "EXPENSE" : "ALL")}
+            initialSearchQuery={
+              searchParam ||
+              (poolIdParam ? pools.find((p) => p.id === poolIdParam)?.name || "" : categoryIdParam ? categoriesQuery.data?.find((c) => c.id === categoryIdParam)?.name || "" : "")
+            }
             incomeEvents={incomeEvents.map((e) => {
               const receivingAccountId = (e as unknown as { receivingAccountId?: string }).receivingAccountId;
               const acct = bankAccounts.find((b) => b.id === receivingAccountId);
               return {
                 ...e,
+                accountId: receivingAccountId || acct?.id,
                 name: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Income Deposit",
                 accountName: acct?.name || "Bank Account",
                 isPrivate: acct?.isPrivate || false,
@@ -717,9 +723,12 @@ function IncomeAndBillsContent() {
             })}
             expenseEvents={expenseEvents.map((e) => {
               const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
+              const acct = bankAccounts.find((b) => b.id === pool?.bankAccountId);
               return {
                 ...e,
-                poolId: e.poolId || e.categoryId,
+                poolId: pool?.id || e.poolId || e.categoryId,
+                accountId: acct?.id,
+                accountName: acct?.name,
                 name: e.name || "Scheduled Expense",
                 categoryName: pool?.name || "Pool",
                 isPrivate: pool?.isPrivate || false,

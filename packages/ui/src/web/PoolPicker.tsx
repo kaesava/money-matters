@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useId, useRef, useEffect, useMemo } from "react";
-import { Lock, Plus, Minus, ChevronDown, Search } from "lucide-react";
+import { Lock, ChevronDown, Search } from "lucide-react";
 import { t } from "@money-matters/i18n";
 
 export interface PoolOption {
@@ -124,9 +124,15 @@ export function PoolPicker({
     setIsOpen(false);
   };
 
-  // Group pools by type
-  const allOption = useMemo(() => pools.find((p) => p.id === ""), [pools]);
-  const regularPools = useMemo(() => pools.filter((p) => p.id !== ""), [pools]);
+  // Group pools by type - ensure "All Pools" option is pinned to the top
+  const allOption = useMemo(
+    () => pools.find((p) => p.id === "" || p.id === "ALL" || p.name.toLowerCase().includes("all pools")),
+    [pools]
+  );
+  const regularPools = useMemo(
+    () => pools.filter((p) => p.id !== "" && p.id !== "ALL" && !p.name.toLowerCase().includes("all pools")),
+    [pools]
+  );
 
   const groupedPools = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -299,7 +305,9 @@ export function PoolPicker({
                                       className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-md hover:bg-slate-200/60 transition-colors cursor-pointer"
                                       title={isPoolExpanded ? "Collapse categories" : "Expand categories"}
                                     >
-                                      {isPoolExpanded ? <Minus className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                                      <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400">
+                                        {isPoolExpanded ? "▼" : "▶"}
+                                      </span>
                                     </button>
                                   )}
                                 </div>

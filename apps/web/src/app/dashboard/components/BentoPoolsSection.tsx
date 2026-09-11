@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { t } from '@money-matters/i18n';
-import { ConfirmDialog, AmountField } from '@money-matters/ui/web';
 import { useLocale } from '../../../providers/LocaleProvider';
 
 export interface BentoPoolsSectionProps {
@@ -17,11 +16,7 @@ export interface BentoPoolsSectionProps {
   readonly totalBillsDue14Days: number;
 
   readonly onMoveMoney: () => void;
-  
   readonly formatAUD?: (val: number | string) => string;
-  readonly onUpdatePoolBalance: (poolType: 'EVERYDAY' | 'REGULAR', newAmount: number) => Promise<void>;
-  readonly skipConfirmation: boolean;
-  readonly onSaveSkipConfirmation: () => Promise<void>;
 }
 
 export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
@@ -34,11 +29,8 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   totalBillsDue14Days,
   onMoveMoney,
   formatAUD,
-  onUpdatePoolBalance,
-  skipConfirmation,
-  onSaveSkipConfirmation,
 }) => {
-  const { fmt, currency, currencySymbol, minorUnits } = useLocale();
+  const { fmt } = useLocale();
   const format = formatAUD ?? fmt;
   const today = new Date();
   const year = today.getFullYear();
@@ -53,131 +45,26 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
     : 0;
   const isEverydayPacingOk = everydaySpentPct <= elapsedPct;
 
-  // Inline edit state
-  const [editingPool, setEditingPool] = useState<'EVERYDAY' | 'REGULAR' | null>(null);
-  const [editValue, setEditValue] = useState('');
-  
-  // Confirmation Modal state
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmDetails, setConfirmDetails] = useState<{
-    poolType: 'EVERYDAY' | 'REGULAR';
-    oldVal: number;
-    newVal: number;
-    diff: number;
-  } | null>(null);
-  const [dontShowAgain, setDontShowAgain] = useState(false);
-  const [isAdjusting, setIsAdjusting] = useState(false);
-
-  const handleEditClick = (pool: 'EVERYDAY' | 'REGULAR', currentVal: number) => {
-    setEditingPool(pool);
-    setEditValue(currentVal.toFixed(2));
-  };
-
-  const handleSaveClick = async (pool: 'EVERYDAY' | 'REGULAR') => {
-    const newVal = parseFloat(editValue);
-    if (isNaN(newVal)) {
-      setEditingPool(null);
-      return;
-    }
-
-    const oldVal = pool === 'EVERYDAY' ? everydayBalance : billsBalance;
-    const diff = newVal - oldVal;
-
-    if (Math.abs(diff) < 0.01) {
-      setEditingPool(null);
-      return;
-    }
-
-    if (skipConfirmation) {
-      await onUpdatePoolBalance(pool, newVal);
-      setEditingPool(null);
-    } else {
-      setConfirmDetails({ poolType: pool, oldVal, newVal, diff });
-      setShowConfirmModal(true);
-    }
-  };
-
-  const handleConfirmAdjustment = async () => {
-    if (!confirmDetails || isAdjusting) return;
-    setIsAdjusting(true);
-    try {
-      if (dontShowAgain) {
-        await onSaveSkipConfirmation();
-      }
-      await onUpdatePoolBalance(confirmDetails.poolType, confirmDetails.newVal);
-    } finally {
-      setIsAdjusting(false);
-      setShowConfirmModal(false);
-      setConfirmDetails(null);
-      setEditingPool(null);
-    }
-  };
-
-  const handleCancelAdjustment = () => {
-    setShowConfirmModal(false);
-    setConfirmDetails(null);
-    setEditingPool(null);
-  };
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Everyday Spending Pool Card (Light Theme) */}
+        {/* Everyday Spending Pool Card */}
         <div className="bg-white border border-gray-200/90 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:border-gray-300 transition-all">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
                 {t('dashboard.hero.everydayBalance') || 'Everyday Spending Pool'}
               </span>
-              {editingPool !== 'EVERYDAY' ? (
-                <button
-                  type="button"
-                  onClick={() => handleEditClick('EVERYDAY', everydayBalance)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-bold cursor-pointer"
-                >
-                  Edit
-                </button>
-              ) : null}
             </div>
 
-            {editingPool === 'EVERYDAY' ? (
-              <div className="flex items-center gap-2 py-1">
-                <div className="w-32">
-                  <AmountField
-                    value={editValue}
-                    onChange={setEditValue}
-                    allowNegative={true}
-                    autoFocus
-                    currency={currency}
-                    currencySymbol={currencySymbol}
-                    minorUnits={minorUnits}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleSaveClick('EVERYDAY')}
-                  className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 cursor-pointer"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingPool(null)}
-                  className="px-1.5 py-1 text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
-                >
-                  ✕
-                </button>
+            <div>
+              <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
+                {format(everydayBalance)}
               </div>
-            ) : (
-              <div>
-                <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
-                  {format(everydayBalance)}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Discretionary spending balance
-                </p>
-              </div>
-            )}
+              <p className="text-xs text-gray-500 mt-1">
+                Discretionary spending balance
+              </p>
+            </div>
           </div>
 
           {/* Pacing Bar */}
@@ -202,68 +89,28 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           </div>
         </div>
 
-        {/* Bills Pool Card (Light Theme) */}
+        {/* Bills Pool Card */}
         <div className="bg-white border border-gray-200/90 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:border-gray-300 transition-all">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
-                Bills & Commitments Pool
+                Bills Pool
               </span>
-              {editingPool !== 'REGULAR' ? (
-                <button
-                  type="button"
-                  onClick={() => handleEditClick('REGULAR', billsBalance)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-bold cursor-pointer"
-                >
-                  Edit
-                </button>
-              ) : null}
             </div>
 
-            {editingPool === 'REGULAR' ? (
-              <div className="flex items-center gap-2 py-1">
-                <div className="w-32">
-                  <AmountField
-                    value={editValue}
-                    onChange={setEditValue}
-                    allowNegative={true}
-                    autoFocus
-                    currency={currency}
-                    currencySymbol={currencySymbol}
-                    minorUnits={minorUnits}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleSaveClick('REGULAR')}
-                  className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 cursor-pointer"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingPool(null)}
-                  className="px-1.5 py-1 text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
-                >
-                  ✕
-                </button>
+            <div>
+              <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
+                {format(billsBalance)}
               </div>
-            ) : (
-              <div>
-                <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
-                  {format(billsBalance)}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Ring-fenced for committed bills
-                </p>
-              </div>
-            )}
+              <p className="text-xs text-gray-500 mt-1">
+                Ring-fenced for committed bills
+              </p>
+            </div>
 
             {/* Shortfall or Coverage Status Banner */}
             {billsShortfall > 0 ? (
               <div className="p-2.5 bg-rose-50 border border-rose-200/80 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">⚠️</span>
                   <div>
                     <span className="text-[11px] font-bold text-rose-800 block">
                       Shortfall of {format(billsShortfall)}
@@ -283,7 +130,6 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
               </div>
             ) : (
               <div className="p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center gap-2 text-xs font-bold text-emerald-800">
-                <span className="text-sm">✅</span>
                 <span>Next 14 days of bills are fully covered!</span>
               </div>
             )}
@@ -296,37 +142,6 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           </div>
         </div>
       </div>
-
-
-
-      {/* Pool Balance Adjustment Confirmation Modal */}
-      {showConfirmModal && confirmDetails && (
-        <ConfirmDialog
-          isOpen={showConfirmModal}
-          onClose={handleCancelAdjustment}
-          onConfirm={handleConfirmAdjustment}
-          title="Confirm Pool Balance Adjustment"
-          confirmLabel="Confirm"
-          cancelLabel="Cancel"
-          isLoading={isAdjusting}
-          description={
-            <div className="space-y-3">
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Adjusting the <strong>{confirmDetails.poolType === 'EVERYDAY' ? 'Everyday' : 'Bills'} Pool</strong> balance from <span className="font-mono">{format(confirmDetails.oldVal)}</span> to <span className="font-mono">{format(confirmDetails.newVal)}</span> will record an adjustment transaction of <span className="font-mono font-bold text-gray-950">{format(Math.abs(confirmDetails.diff))}</span> ({confirmDetails.diff > 0 ? 'Top-Up' : 'Spend'}) dated today.
-              </p>
-              <label className="flex items-center gap-2.5 py-1 select-none cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={dontShowAgain}
-                  onChange={(e) => setDontShowAgain(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                />
-                <span className="text-xs font-semibold text-gray-700">Don&apos;t show this again</span>
-              </label>
-            </div>
-          }
-        />
-      )}
     </div>
   );
 };

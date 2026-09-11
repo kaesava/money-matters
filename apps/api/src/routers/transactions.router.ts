@@ -65,7 +65,16 @@ export const transactionsRouter = {
   listTransactions: privateTenantProcedure
     .input(ListTransactionsQuery)
     .query(async ({ input, ctx }) => {
-      return await listTransactionsQuery(ctx.tenantId!, ctx.appId!, input.limit, input.offset, ctx.db, input.categoryId);
+      return await listTransactionsQuery(
+        ctx.tenantId!,
+        ctx.appId!,
+        input.limit,
+        input.offset,
+        ctx.db,
+        input.categoryId,
+        input.poolId,
+        input.bankAccountId
+      );
     }),
 
   listCategoryTransactions: privateTenantProcedure

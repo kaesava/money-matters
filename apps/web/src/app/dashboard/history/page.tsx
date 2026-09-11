@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable, PoolPicker } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable, PoolPicker, RecordFilterBadge } from "@money-matters/ui/web";
 import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
 import { getTenantDateString } from "@money-matters/core";
 import { useLocale } from "../../../providers/LocaleProvider";
@@ -16,6 +16,9 @@ function TransactionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "transactions";
+  const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
+  const categoryIdParam = searchParams.get("categoryId") || "";
+  const bankAccountIdParam = searchParams.get("bankAccountId") || "";
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Tab 1 state
@@ -75,6 +78,10 @@ function TransactionsPageContent() {
         date: fmtDate(tx.recordedAt),
         description: tx.note || `Transaction (${tx.source || "MANUAL"})`,
         categoryName: displayLabel,
+        poolId: tx.poolId,
+        categoryId: tx.categoryId,
+        bankAccountId: tx.bankAccountId,
+        transactionType: tx.transactionType,
         poolName: pName,
         rawCategoryName: cName,
         categoryType: categoryMap.get(pName || cName) as "EVERYDAY" | "REGULAR" | "GOAL" | undefined,
@@ -89,6 +96,9 @@ function TransactionsPageContent() {
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
       if (filterType !== "ALL" && tx.type !== filterType) return false;
+      if (poolIdParam && tx.poolId !== poolIdParam) return false;
+      if (categoryIdParam && tx.categoryId !== categoryIdParam) return false;
+      if (bankAccountIdParam && tx.bankAccountId !== bankAccountIdParam) return false;
       if (selectedPool !== "ALL") {
         const selectedPoolObj = pools.find((p) => p.id === selectedPool);
         const selectedName = selectedPoolObj?.name;
@@ -107,7 +117,7 @@ function TransactionsPageContent() {
       }
       return true;
     });
-  }, [allTransactions, filterType, selectedPool, searchQuery, pools]);
+  }, [allTransactions, filterType, selectedPool, searchQuery, pools, poolIdParam, categoryIdParam, bankAccountIdParam]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
@@ -248,6 +258,28 @@ function TransactionsPageContent() {
       {/* Tab 1: Itemized Transactions Ledger */}
       {activeTab === "transactions" && (
         <div className="space-y-6">
+          {(poolIdParam || categoryIdParam || bankAccountIdParam) && (
+            <div className="flex items-center gap-2">
+              <RecordFilterBadge
+                label={
+                  poolIdParam
+                    ? `Filtered to Pool: ${poolMap.get(poolIdParam) || poolIdParam}`
+                    : categoryIdParam
+                    ? `Filtered to Category: ${categories.find((c) => c.id === categoryIdParam)?.name || categoryIdParam}`
+                    : `Filtered to Bank Account`
+                }
+                onClear={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete("poolId");
+                  url.searchParams.delete("id");
+                  url.searchParams.delete("categoryId");
+                  url.searchParams.delete("bankAccountId");
+                  router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+                }}
+              />
+            </div>
+          )}
+
           {/* Controls Bar & Segmented Filter */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
@@ -367,23 +399,52 @@ function TransactionsPageContent() {
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 font-mono text-zinc-500 text-center">{fmtDate(tx.date)}</td>
-                        <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">{tx.description}</td>
+                        <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>{tx.description}</span>
+                            {tx.transactionType && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
+                                tx.transactionType === "INCOME_SPLIT"
+                                  ? "bg-blue-50 text-[#2563eb] border border-blue-200/60"
+                                  : tx.transactionType.includes("TRANSFER")
+                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200/60"
+                                  : tx.transactionType === "ACCOUNT_ALIGNMENT"
+                                  ? "bg-amber-50 text-amber-800 border border-amber-200/60"
+                                  : tx.transactionType === "OPENING_BALANCE"
+                                  ? "bg-slate-100 text-slate-700 border border-slate-200/60"
+                                  : "bg-slate-50 text-slate-600 border border-slate-200/60"
+                              }`}>
+                                {tx.transactionType === "INCOME_SPLIT"
+                                  ? "Payday Split"
+                                  : tx.transactionType === "ACCOUNT_ALIGNMENT"
+                                  ? "Alignment"
+                                  : tx.transactionType.includes("TRANSFER")
+                                  ? "Transfer"
+                                  : tx.transactionType === "OPENING_BALANCE"
+                                  ? "Opening"
+                                  : tx.transactionType}
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-left">
                           {tx.categoryName.includes(" ➔ ") ? (() => {
                             const [fromPart, toPart] = tx.categoryName.split(" ➔ ");
-                            const cleanFrom = fromPart.replace(/\s*\([^)]*\)$/, "");
-                            const cleanTo = toPart.replace(/\s*\([^)]*\)$/, "");
+                            const cleanFrom = fromPart.replace(/\s*\([^)]*\)$/, "").trim();
+                            const cleanTo = toPart.replace(/\s*\([^)]*\)$/, "").trim();
+                            const fromPool = pools.find((p) => p.name.toLowerCase() === cleanFrom.toLowerCase());
+                            const toPool = pools.find((p) => p.name.toLowerCase() === cleanTo.toLowerCase());
                             return (
                               <span className="font-semibold text-[#1B2B4B] flex items-center gap-1">
                                 <Link
-                                  href={`/dashboard/pools?search=${encodeURIComponent(cleanFrom)}`}
+                                  href={fromPool ? `/dashboard/pools?poolId=${fromPool.id}` : `/dashboard/pools`}
                                   className="text-[#2563eb] hover:underline"
                                 >
                                   {fromPart}
                                 </Link>
                                 <span className="text-zinc-400">➔</span>
                                 <Link
-                                  href={`/dashboard/pools?search=${encodeURIComponent(cleanTo)}`}
+                                  href={toPool ? `/dashboard/pools?poolId=${toPool.id}` : `/dashboard/pools`}
                                   className="text-[#2563eb] hover:underline"
                                 >
                                   {toPart}
@@ -392,7 +453,13 @@ function TransactionsPageContent() {
                             );
                           })() : (
                             <Link
-                              href={`/dashboard/pools?search=${encodeURIComponent(tx.poolName || tx.categoryName)}`}
+                              href={
+                                tx.poolId
+                                  ? `/dashboard/pools?poolId=${tx.poolId}`
+                                  : tx.categoryId
+                                  ? `/dashboard/pools?categoryId=${tx.categoryId}`
+                                  : `/dashboard/pools`
+                              }
                               className="font-semibold text-[#2563eb] hover:underline"
                             >
                               {tx.categoryName}

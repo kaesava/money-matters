@@ -24,7 +24,30 @@ export default function UpgradePage() {
   // Toggle switch for special $69 founding offer on annual plan
   const isFoundingOfferActive = true;
 
+  const subStatusQuery = trpc.getSubscriptionStatus.useQuery();
+  const subStatus = subStatusQuery.data;
+  const isSubscribed = subStatus?.status === "SUBSCRIBED";
+
+  const portalMut = trpc.createCustomerPortalSession.useMutation();
   const createCheckoutSession = trpc.createCheckoutSession.useMutation();
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
+  const handleOpenStripePortal = async () => {
+    setLoadingPortal(true);
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const res = await portalMut.mutateAsync({
+        returnUrl: `${origin}/dashboard/settings`,
+      });
+      if (res.url) {
+        window.location.href = res.url;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("subscription.portalError"));
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
 
   const handleCheckout = async (selectedCycle: "annual" | "monthly") => {
     setLoading(true);
@@ -106,160 +129,222 @@ export default function UpgradePage() {
       </header>
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-12 flex flex-col gap-10">
-        {/* Page Hero Header */}
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 border border-blue-200 text-xs font-extrabold text-[#2563eb]">
-            ✨ {t("landing.pricingTrialBadge")}
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#1B2B4B]">
-            {t("subscription.upgradePageTitle")}
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 max-w-lg leading-relaxed">
-            {t("subscription.upgradePageSubtitle")}
-          </p>
-
-          {/* Billing Selector Tabs (Two Tabs: Annual & Monthly) */}
-          <div className="flex items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl mt-4 border border-slate-300/50 shadow-inner">
-            <button
-              onClick={() => setBillingCycle("annual")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
-                billingCycle === "annual"
-                  ? "bg-[#2563eb] text-white shadow-md"
-                  : "text-slate-700 hover:text-slate-900"
-              }`}
-            >
-              Annual {isFoundingOfferActive ? "(🔥 Special $69/yr)" : "($89/yr)"}
-            </button>
-            <button
-              onClick={() => setBillingCycle("monthly")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
-                billingCycle === "monthly"
-                  ? "bg-[#2563eb] text-white shadow-md"
-                  : "text-slate-700 hover:text-slate-900"
-              }`}
-            >
-              Monthly ($9.95/mo)
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl text-sm font-semibold text-center shadow-sm">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Plan Pricing Card */}
-        <div className="w-full max-w-xl mx-auto">
-          <div className="bg-white rounded-3xl p-8 md:p-10 border-2 border-[#2563eb] flex flex-col justify-between shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest shadow-sm">
-              100% UNLIMITED HOUSEHOLD ACCESS
+        {isSubscribed ? (
+          <div className="w-full max-w-xl mx-auto bg-white rounded-3xl p-8 md:p-10 border border-slate-200 shadow-xl flex flex-col items-center text-center gap-6">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl font-bold">
+              👑
             </div>
 
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#2563eb]">
-                  {t("subscription.householdPlanName")}
-                </span>
-              </div>
-
-              {/* Price display */}
-              <div className="flex items-baseline gap-2 font-mono">
-                {billingCycle === "annual" ? (
-                  isFoundingOfferActive ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="line-through text-slate-400 text-3xl font-bold">$89</span>
-                      <span className="text-5xl font-black text-[#1B2B4B]">$69</span>
-                      <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
-                        AUD / year ($5.75/mo)
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-black text-[#1B2B4B]">$89</span>
-                      <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
-                        AUD / year ($7.42/mo)
-                      </span>
-                    </div>
-                  )
-                ) : (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-[#1B2B4B]">$9.95</span>
-                    <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
-                      AUD / month
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {billingCycle === "annual" && isFoundingOfferActive && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 font-bold flex items-center gap-2">
-                  <span className="text-base">🏷️</span>
-                  <span>Special Founding Member Rate: $69 AUD/year locked for life!</span>
-                </div>
-              )}
-
-              {/* Feature Highlights */}
-              <div className="space-y-3 pt-2">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">Included Features</p>
-                <ul className="grid grid-cols-1 gap-3 text-sm text-slate-700 font-semibold">
-                  <li className="flex items-center gap-2.5 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
-                    {t("subscription.featureBudgeting")}
-                  </li>
-                  <li className="flex items-center gap-2.5 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
-                    {t("subscription.featureHistoryPaid")}
-                  </li>
-                  <li className="flex items-center gap-2.5 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
-                    {t("subscription.featureGoalsPaid")}
-                  </li>
-                  <li className="flex items-center gap-2.5 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
-                    {t("subscription.featureCsvImportPaid")}
-                  </li>
-                  <li className="flex items-center gap-2.5 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
-                    {t("subscription.featureFileNotesPaid")}
-                  </li>
-                  <li className="flex items-center gap-2.5 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
-                    {t("subscription.featureNotifications")}
-                  </li>
-                  <li className="flex items-center gap-2.5 text-slate-800">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
-                    {t("subscription.featurePartner")}
-                  </li>
-                </ul>
-              </div>
+            <div className="flex flex-col gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 self-center">
+                ✓ {t("subscription.activeBadge")}
+              </span>
+              <h2 className="text-2xl font-extrabold text-[#1B2B4B]">
+                {t("subscription.alreadySubscribedTitle")}
+              </h2>
+              <p className="text-sm text-slate-600 leading-relaxed max-w-md">
+                {t("subscription.alreadySubscribedSubtitle")}
+              </p>
             </div>
 
-            <Button
-              onClick={() => handleCheckout(billingCycle)}
-              loading={loading}
-              className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl shadow-lg text-base transition-all active:scale-[0.99] cursor-pointer"
-            >
-              {billingCycle === "annual"
-                ? isFoundingOfferActive
-                  ? "Claim $69/yr Special Rate →"
-                  : "Subscribe Annual ($89/yr) →"
-                : "Subscribe Monthly ($9.95/mo) →"}
-            </Button>
+            {subStatus?.nextBillingAt && !subStatus.cancelAtPeriodEnd && (
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold w-full max-w-md">
+                {t("subscription.renewsOn", {
+                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(subStatus.nextBillingAt)),
+                })}
+              </div>
+            )}
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-slate-500 text-center">
-              <span>🔒 Cancel anytime in 1-click</span>
-              <span>•</span>
-              <span>🇦🇺 Australian Stealth Privacy Guarantee</span>
-              <span>•</span>
-              <span>⚡ Instant Household Access</span>
+            {subStatus?.cancelAtPeriodEnd && subStatus.subscriptionEndsAt && (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold w-full max-w-md">
+                {t("subscription.cancelingNotice", {
+                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(subStatus.subscriptionEndsAt)),
+                })}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
+              <Button
+                variant="primary"
+                onClick={handleOpenStripePortal}
+                loading={loadingPortal}
+                className="w-full justify-center"
+              >
+                {t("subscription.manageSubscription")}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => router.push("/dashboard")}
+                className="w-full justify-center"
+              >
+                {t("subscription.backToDashboard")}
+              </Button>
             </div>
 
-            <div className="mt-4 text-center text-xs text-slate-400 font-medium">
+            <div className="mt-2 text-center text-xs text-slate-400 font-medium">
               {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
             </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Page Hero Header */}
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 border border-blue-200 text-xs font-extrabold text-[#2563eb]">
+                ✨ {t("landing.pricingTrialBadge")}
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#1B2B4B]">
+                {t("subscription.upgradePageTitle")}
+              </h1>
+              <p className="text-sm md:text-base text-slate-600 max-w-lg leading-relaxed">
+                {t("subscription.upgradePageSubtitle")}
+              </p>
+
+              {/* Billing Selector Tabs (Two Tabs: Annual & Monthly) */}
+              <div className="flex items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl mt-4 border border-slate-300/50 shadow-inner">
+                <button
+                  onClick={() => setBillingCycle("annual")}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    billingCycle === "annual"
+                      ? "bg-[#2563eb] text-white shadow-md"
+                      : "text-slate-700 hover:text-slate-900"
+                  }`}
+                >
+                  {isFoundingOfferActive ? t("subscription.annualTabFounding") : t("subscription.annualTabStandard")}
+                </button>
+                <button
+                  onClick={() => setBillingCycle("monthly")}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                    billingCycle === "monthly"
+                      ? "bg-[#2563eb] text-white shadow-md"
+                      : "text-slate-700 hover:text-slate-900"
+                  }`}
+                >
+                  {t("subscription.monthlyTab")}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl text-sm font-semibold text-center shadow-sm">
+                ⚠️ {error}
+              </div>
+            )}
+
+            {/* Plan Pricing Card */}
+            <div className="w-full max-w-xl mx-auto">
+              <div className="bg-white rounded-3xl p-8 md:p-10 border-2 border-[#2563eb] flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest shadow-sm">
+                  100% UNLIMITED HOUSEHOLD ACCESS
+                </div>
+
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#2563eb]">
+                      {t("subscription.householdPlanName")}
+                    </span>
+                  </div>
+
+                  {/* Price display */}
+                  <div className="flex items-baseline gap-2 font-mono">
+                    {billingCycle === "annual" ? (
+                      isFoundingOfferActive ? (
+                        <div className="flex items-baseline gap-2">
+                          <span className="line-through text-slate-400 text-3xl font-bold">$89</span>
+                          <span className="text-5xl font-black text-[#1B2B4B]">$69</span>
+                          <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
+                            AUD / year ($5.75/mo)
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-5xl font-black text-[#1B2B4B]">$89</span>
+                          <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
+                            AUD / year ($7.42/mo)
+                          </span>
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-5xl font-black text-[#1B2B4B]">$9.95</span>
+                        <span className="text-sm font-sans text-slate-500 font-semibold ml-1">
+                          AUD / month
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {billingCycle === "annual" && isFoundingOfferActive && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 font-bold flex items-center gap-2">
+                      <span className="text-base">🏷️</span>
+                      <span>{t("subscription.foundingMemberBadge")}</span>
+                    </div>
+                  )}
+
+                  {/* Feature Highlights */}
+                  <div className="space-y-3 pt-2">
+                    <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                      {t("subscription.includedFeaturesTitle")}
+                    </p>
+                    <ul className="grid grid-cols-1 gap-3 text-sm text-slate-700 font-semibold">
+                      <li className="flex items-center gap-2.5 text-slate-800">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
+                        {t("subscription.featureBudgeting")}
+                      </li>
+                      <li className="flex items-center gap-2.5 text-slate-800">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
+                        {t("subscription.featureHistoryPaid")}
+                      </li>
+                      <li className="flex items-center gap-2.5 text-slate-800">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
+                        {t("subscription.featureGoalsPaid")}
+                      </li>
+                      <li className="flex items-center gap-2.5 text-slate-800">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
+                        {t("subscription.featureCsvImportPaid")}
+                      </li>
+                      <li className="flex items-center gap-2.5 text-slate-800">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
+                        {t("subscription.featureFileNotesPaid")}
+                      </li>
+                      <li className="flex items-center gap-2.5 text-slate-800">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
+                        {t("subscription.featureNotifications")}
+                      </li>
+                      <li className="flex items-center gap-2.5 text-slate-800">
+                        <span className="w-5 h-5 rounded-full bg-blue-100 text-[#2563eb] flex items-center justify-center text-xs font-black shrink-0">✓</span>
+                        {t("subscription.featurePartner")}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => handleCheckout(billingCycle)}
+                  loading={loading}
+                  className="w-full mt-8 bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold py-4 rounded-2xl shadow-lg text-base transition-all active:scale-[0.99] cursor-pointer"
+                >
+                  {billingCycle === "annual"
+                    ? isFoundingOfferActive
+                      ? t("subscription.claimFoundingRate")
+                      : t("subscription.subscribeAnnualCta")
+                    : t("subscription.subscribeMonthlyCta")}
+                </Button>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-slate-500 text-center">
+                  <span>🔒 {t("subscription.guaranteeCancel")}</span>
+                  <span>•</span>
+                  <span>🇦🇺 {t("subscription.guaranteePrivacy")}</span>
+                  <span>•</span>
+                  <span>⚡ {t("subscription.guaranteeInstant")}</span>
+                </div>
+
+                <div className="mt-4 text-center text-xs text-slate-400 font-medium">
+                  {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

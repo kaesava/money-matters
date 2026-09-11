@@ -84,20 +84,38 @@ export function MatrixPlanTab({
   const [activePaydayEventId, setActivePaydayEventId] = useState<string | null>(null);
   const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
   const [savingColId, setSavingColId] = useState<string | null>(null);
+  const [colToSave, setColToSave] = useState<string | null>(null);
   const [colToUnsave, setColToUnsave] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "CONFIRMED">("PENDING");
 
-  // Confirmed income events must NOT be shown in this planning view
-  const upcomingIncomeEvents = useMemo(() => {
-    return incomeEvents.filter((e) => e.status !== "CONFIRMED");
-  }, [incomeEvents]);
+  // Per-income-event state: AUTO = no plan, SAVED = PENDING plan, CONFIRMED = confirmed plan.
+  const columnStateMap = React.useMemo(() => {
+    const stateMap: Record<string, "AUTO" | "SAVED" | "CONFIRMED"> = {};
+    if (allPlansQuery.data) {
+      for (const plan of allPlansQuery.data) {
+        if (plan.status === "CONFIRMED") {
+          stateMap[plan.incomeEventId] = "CONFIRMED";
+        } else {
+          stateMap[plan.incomeEventId] = "SAVED";
+        }
+      }
+    }
+    return stateMap;
+  }, [allPlansQuery.data]);
 
-  // Filter income events and pools by scope filter (All | Shared | Private)
+  // Filter income events by status and scope
   const filteredIncomeEvents = useMemo(() => {
-    if (scopeFilter === "PRIVATE") return upcomingIncomeEvents.filter((e) => e.isPrivate);
-    if (scopeFilter === "SHARED") return upcomingIncomeEvents.filter((e) => !e.isPrivate);
-    return upcomingIncomeEvents;
-  }, [upcomingIncomeEvents, scopeFilter]);
+    return incomeEvents.filter((e) => {
+      const isConfirmed = e.status === "CONFIRMED" || columnStateMap[e.id] === "CONFIRMED";
+      if (statusFilter === "PENDING" && isConfirmed) return false;
+      if (statusFilter === "CONFIRMED" && !isConfirmed) return false;
+      if (scopeFilter === "PRIVATE") return e.isPrivate;
+      if (scopeFilter === "SHARED") return !e.isPrivate;
+      return true;
+    });
+  }, [incomeEvents, columnStateMap, statusFilter, scopeFilter]);
 
+  // Filter categories by scope (All | Shared | Private)
   const filteredCategories = useMemo(() => {
     if (scopeFilter === "PRIVATE") return categories.filter((c) => c.isPrivate);
     if (scopeFilter === "SHARED") return categories.filter((c) => !c.isPrivate);
@@ -119,19 +137,6 @@ export function MatrixPlanTab({
       }
     }
     return overrideMap;
-  }, [allPlansQuery.data]);
-
-  // Per-income-event state: AUTO = no plan, SAVED = PENDING plan.
-  const columnStateMap = React.useMemo(() => {
-    const stateMap: Record<string, "AUTO" | "SAVED"> = {};
-    if (allPlansQuery.data) {
-      for (const plan of allPlansQuery.data) {
-        if (plan.status !== "CONFIRMED") {
-          stateMap[plan.incomeEventId] = "SAVED";
-        }
-      }
-    }
-    return stateMap;
   }, [allPlansQuery.data]);
 
   // Compute multi-payday projection using engine
@@ -238,6 +243,43 @@ export function MatrixPlanTab({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Status Filter Pills: Pending | Confirmed | All */}
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("PENDING")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === "PENDING"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              {t("matrix.statusPending", { defaultValue: "Pending" })}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("CONFIRMED")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === "CONFIRMED"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              {t("matrix.statusConfirmed", { defaultValue: "Confirmed" })}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ALL")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === "ALL"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              {t("matrix.statusAll", { defaultValue: "All" })}
+            </button>
+          </div>
+
           {/* Scope Filter Pills: All | Shared | Private */}
           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
             <button
@@ -282,7 +324,7 @@ export function MatrixPlanTab({
           >
             {showFullHorizon
               ? t("matrix.showNext5", { defaultValue: "Show Next 5 Paydays" })
-              : t("matrix.showFull12Events", { defaultValue: `Show Full 12 Months (${projection.columns.length} Income Events)` }).replace("{count}", String(projection.columns.length))}
+              : t("matrix.showFull12Events", { defaultValue: "Show upto 12 months out" })}
           </button>
         </div>
       </div>
@@ -297,8 +339,9 @@ export function MatrixPlanTab({
                 Pools & Goal Categories
               </th>
               {visibleColumns.map((col) => {
-                const incomeEvt = upcomingIncomeEvents.find((e) => e.id === col.id);
+                const incomeEvt = incomeEvents.find((e) => e.id === col.id);
                 const colState = columnStateMap[col.id] ?? "AUTO";
+                const isConfirmed = colState === "CONFIRMED";
                 const isSaved = colState === "SAVED";
 
                 const dateStr = formatDateShort(incomeEvt?.expectedDate, col.dateLabel);
@@ -307,7 +350,11 @@ export function MatrixPlanTab({
                   <th
                     key={col.id}
                     className={`p-3 text-center border-r border-zinc-200 dark:border-zinc-800 min-w-[170px] transition-colors ${
-                      isSaved ? "bg-slate-100 dark:bg-zinc-800/90" : "bg-zinc-50 dark:bg-zinc-800/80"
+                      isConfirmed
+                        ? "bg-emerald-50/50 dark:bg-zinc-800/90"
+                        : isSaved
+                        ? "bg-slate-100 dark:bg-zinc-800/90"
+                        : "bg-zinc-50 dark:bg-zinc-800/80"
                     }`}
                   >
                     <div className="flex flex-col items-center justify-center gap-0.5">
@@ -326,51 +373,72 @@ export function MatrixPlanTab({
                         +${col.totalIncome.toFixed(2)}
                       </div>
 
-                      {/* Row 4: Action Links (Review | Save / Unsave | Delete separated by subtle '|') */}
-                      <div className="flex items-center justify-center gap-1.5 text-xs mt-1.5 flex-wrap font-medium">
-                        <button
-                          type="button"
-                          onClick={() => setActivePaydayEventId(col.id)}
-                          className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
-                          title="Review and Edit Splits"
-                        >
-                          {t("matrix.review", { defaultValue: "Review" })}
-                        </button>
-
-                        <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
-
-                        {!isSaved ? (
+                      {/* Row 4: Action Links */}
+                      {isConfirmed ? (
+                        <div className="flex items-center justify-center gap-2 text-xs mt-1.5 font-medium">
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            {t("matrix.confirmedBadge", { defaultValue: "CONFIRMED" })}
+                          </span>
                           <button
                             type="button"
-                            disabled={savingColId === col.id}
-                            onClick={() => handleSaveAutoSplit(col.id)}
-                            className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
-                            title="Lock in Splits to prevent automatic calculation. You can easily revert to automatic splits with the Un-Save option."
+                            onClick={() => setActivePaydayEventId(col.id)}
+                            className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
+                            title="Review Splits"
                           >
-                            {savingColId === col.id ? "…" : t("matrix.save", { defaultValue: "Save" })}
+                            {t("matrix.review", { defaultValue: "Review" })}
                           </button>
-                        ) : (
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1.5 text-xs mt-1.5 flex-wrap font-medium">
+                          {isSaved && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                              {t("matrix.savedBadge", { defaultValue: "SAVED" })}
+                            </span>
+                          )}
                           <button
                             type="button"
-                            onClick={() => setColToUnsave(col.id)}
-                            className="font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors"
-                            title="Revert saved split to automatic calculation"
+                            onClick={() => setActivePaydayEventId(col.id)}
+                            className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
+                            title="Review and Edit Splits"
                           >
-                            {t("matrix.unsave", { defaultValue: "Unsave" })}
+                            {t("matrix.review", { defaultValue: "Review" })}
                           </button>
-                        )}
 
-                        <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
+                          <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
 
-                        <button
-                          type="button"
-                          onClick={() => setIncomeToDelete(col.id)}
-                          className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
-                          title="Delete Income record"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                          {!isSaved ? (
+                            <button
+                              type="button"
+                              disabled={savingColId === col.id}
+                              onClick={() => setColToSave(col.id)}
+                              className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
+                              title="Lock in Splits to prevent automatic calculation. You can easily revert to automatic splits with the Un-Save option."
+                            >
+                              {savingColId === col.id ? "…" : t("matrix.save", { defaultValue: "Save" })}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setColToUnsave(col.id)}
+                              className="font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors"
+                              title="Revert saved split to automatic calculation"
+                            >
+                              {t("matrix.unsave", { defaultValue: "Unsave" })}
+                            </button>
+                          )}
+
+                          <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
+
+                          <button
+                            type="button"
+                            onClick={() => setIncomeToDelete(col.id)}
+                            className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
+                            title="Delete Income record"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
 
                       {col.hiddenAllocationsTotal > 0 && (
                         <div className="text-[9px] font-medium text-zinc-400 mt-1">
@@ -489,10 +557,28 @@ export function MatrixPlanTab({
         isOpen={!!activePaydayEventId}
         onClose={() => setActivePaydayEventId(null)}
         incomeEventId={activePaydayEventId || undefined}
+        isReadOnly={activePaydayEventId ? columnStateMap[activePaydayEventId] === "CONFIRMED" : false}
         onSuccess={() => {
           utils.listAllAllocationPlans.invalidate();
           utils.listIncomeEvents.invalidate();
         }}
+      />
+
+      {/* Save Split Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!colToSave}
+        onClose={() => setColToSave(null)}
+        onConfirm={async () => {
+          if (colToSave) {
+            const targetId = colToSave;
+            setColToSave(null);
+            await handleSaveAutoSplit(targetId);
+          }
+        }}
+        title={t("matrix.saveDialogTitle", { defaultValue: "Save Income Split?" })}
+        description={t("matrix.saveDialogDescription", { defaultValue: "Saving will turn off automatic calculations for this income event and lock in your entered amounts. You can easily revert at any time." })}
+        confirmLabel={t("matrix.saveDialogConfirm", { defaultValue: "Save Income Split" })}
+        variant="primary"
       />
 
       {/* Unsave Warning Dialog */}

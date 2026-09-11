@@ -75,6 +75,7 @@ export async function moveMoneyCommand(
       {
         poolId: input.sourcePoolId,
         flowType: "DEBIT",
+        transactionType: "TRANSFER_OUT",
         amount: input.amount,
         idempotencyKey: `move-debit-${commonId}`,
         transferGroupId: commonId,
@@ -89,6 +90,7 @@ export async function moveMoneyCommand(
       {
         poolId: input.destinationPoolId,
         flowType: "CREDIT",
+        transactionType: "TRANSFER_IN",
         amount: input.amount,
         idempotencyKey: `move-credit-${commonId}`,
         transferGroupId: commonId,

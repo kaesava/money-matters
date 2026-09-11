@@ -8,16 +8,28 @@ import type { SubscriptionStatusDto } from '@money-matters/types';
 
 const t = initTRPC.context<Context>().create({
   errorFormatter({ shape, error }) {
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isInternalOrDbError =
+      error.code === 'INTERNAL_SERVER_ERROR' ||
+      /violates.*constraint|foreign key|syntax error|relation.*does not exist|table ".*"|column ".*"/i.test(error.message);
+
+    if (isInternalOrDbError) {
+      console.error('[API Error Intercepted]', {
+        code: error.code,
+        message: error.message,
+        stack: error.cause instanceof Error ? error.cause.stack : error.stack,
+      });
+    }
+
+    const safeMessage = isInternalOrDbError
+      ? 'Something went wrong while processing your request. Please try again.'
+      : error.message;
+
     return {
       ...shape,
-      message:
-        error.code === 'INTERNAL_SERVER_ERROR' && isProduction
-          ? 'An unexpected error occurred. Please try again later.'
-          : error.message,
+      message: safeMessage,
       data: {
         ...shape.data,
-        stack: isProduction ? undefined : shape.data.stack,
+        stack: process.env.NODE_ENV === 'production' ? undefined : shape.data.stack,
       },
     };
   },

@@ -73,7 +73,8 @@ export function AmountCentInput({
           placeholder={placeholder}
           value={displayValue}
           onChange={(e) => handleInputChange(e.target.value)}
-          className="ui-input w-full pl-7 text-sm bg-white"
+          onFocus={(e) => e.target.select()}
+          className="ui-input w-full pl-10 text-sm bg-white"
         />
       </div>
     </div>

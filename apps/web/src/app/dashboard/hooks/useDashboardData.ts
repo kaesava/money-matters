@@ -128,6 +128,12 @@ export function useDashboardData() {
     },
   });
 
+  const deleteIncomeEventMutation = trpc.deleteIncomeEvent.useMutation({
+    onSuccess: () => {
+      incomeEventsQuery.refetch();
+    },
+  });
+
   return {
     router,
     todayStr,
@@ -168,6 +174,7 @@ export function useDashboardData() {
     markPaidMutation,
     markExpensePaidMutation,
     deleteExpenseEventMutation,
+    deleteIncomeEventMutation,
     deleteTransferEventMutation,
     executeTransferEventMutation,
     updateTransferEventMutation,

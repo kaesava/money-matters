@@ -11,6 +11,7 @@ export interface PaydayActionDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  isReadOnly?: boolean;
 }
 
 interface AllocationLineItem {
@@ -47,6 +48,7 @@ export function PaydayActionDrawer({
   isOpen,
   onClose,
   onSuccess,
+  isReadOnly: propIsReadOnly = false,
 }: PaydayActionDrawerProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
@@ -83,6 +85,7 @@ export function PaydayActionDrawer({
   // Plan state: SAVED = PENDING plan exists, CONFIRMED = executed plan, AUTO = no plan
   const [isSavedPlan, setIsSavedPlan] = useState<boolean>(false);
   const [isConfirmedPlan, setIsConfirmedPlan] = useState<boolean>(false);
+  const isReadOnly = Boolean(propIsReadOnly || isConfirmedPlan);
 
   const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
 
@@ -403,12 +406,12 @@ export function PaydayActionDrawer({
     utils.listIncomeEvents.invalidate();
     utils.listExpenseEvents.invalidate();
     utils.listPools.invalidate();
-    if (isDirty) {
+    if (isDirty && !isReadOnly) {
       setShowDiscardConfirm(true);
     } else {
       onClose();
     }
-  }, [isDirty, onClose, utils]);
+  }, [isDirty, isReadOnly, onClose, utils]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -500,29 +503,31 @@ export function PaydayActionDrawer({
                       <span>{t("paydayDrawer.reviewIncome", { defaultValue: "Review Income" })}</span>
                     </button>
                     
-                    <div className="flex items-center gap-2 text-xs font-medium">
-                      {(isSavedPlan || isConfirmedPlan) && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={handleRevertToAuto}
-                            disabled={submitting}
-                            className="font-bold text-xs text-[#2563eb] hover:underline cursor-pointer transition-colors"
-                          >
-                            {t("matrix.unsave", { defaultValue: "Unsave" })}
-                          </button>
-                          <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setShowDeleteConfirm(true)}
-                        disabled={submitting}
-                        className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
-                      >
-                        {t("common.delete", { defaultValue: "Delete" })}
-                      </button>
-                    </div>
+                    {!isReadOnly && (
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        {(isSavedPlan || isConfirmedPlan) && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={handleRevertToAuto}
+                              disabled={submitting}
+                              className="font-bold text-xs text-[#2563eb] hover:underline cursor-pointer transition-colors"
+                            >
+                              {t("matrix.unsave", { defaultValue: "Unsave" })}
+                            </button>
+                            <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(true)}
+                          disabled={submitting}
+                          className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
+                        >
+                          {t("common.delete", { defaultValue: "Delete" })}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {isDetailsOpen && (
@@ -534,8 +539,9 @@ export function PaydayActionDrawer({
                         <input
                           type="text"
                           value={sourceName}
+                          disabled={isReadOnly}
                           onChange={(e) => setSourceName(e.target.value)}
-                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900"
+                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 disabled:opacity-60"
                         />
                       </div>
                       <AmountField
@@ -543,11 +549,13 @@ export function PaydayActionDrawer({
                         required
                         value={actualAmount}
                         onChange={setActualAmount}
+                        disabled={isReadOnly}
                       />
                       <DatePickerField
                         label={t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
                         value={selectedDate}
                         onChange={setSelectedDate}
+                        disabled={isReadOnly}
                       />
                     </div>
                   )}
@@ -663,11 +671,11 @@ export function PaydayActionDrawer({
                                     <input
                                       type="text"
                                       inputMode="decimal"
-                                      readOnly={isSweepRow}
+                                      readOnly={isSweepRow || isReadOnly}
                                       value={displayVal}
-                                      onChange={(e) => !isSweepRow && handleLineAmountChange(l.bucketId, e.target.value)}
+                                      onChange={(e) => !isSweepRow && !isReadOnly && handleLineAmountChange(l.bucketId, e.target.value)}
                                       className={`w-28 px-2.5 py-1.5 border rounded-lg text-right font-mono font-bold text-xs focus:outline-none tabular-nums ${
-                                        isSweepRow
+                                        isSweepRow || isReadOnly
                                           ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300"
                                           : "border-zinc-300 dark:border-zinc-700 focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
                                       }`}
@@ -716,19 +724,19 @@ export function PaydayActionDrawer({
               </button>
 
               <div className="flex items-center gap-2">
-                {isFutureDate ? (
-                  <Button
-                    type="button"
-                    onClick={handleSaveSplit}
-                    loading={submitting}
-                    disabled={isSweepNegative || submitting}
-                    className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
-                  >
-                    {t("common.save", { defaultValue: "Save" })}
-                  </Button>
-                ) : (
-                  <>
-                    {!isConfirmedPlan && (
+                {!isReadOnly && (
+                  isFutureDate ? (
+                    <Button
+                      type="button"
+                      onClick={handleSaveSplit}
+                      loading={submitting}
+                      disabled={isSweepNegative || submitting}
+                      className="px-5 py-2 text-xs shadow-md font-bold cursor-pointer"
+                    >
+                      {t("common.save", { defaultValue: "Save" })}
+                    </Button>
+                  ) : (
+                    <>
                       <button
                         type="button"
                         onClick={handleSaveSplit}
@@ -737,8 +745,6 @@ export function PaydayActionDrawer({
                       >
                         {t("common.save", { defaultValue: "Save" })}
                       </button>
-                    )}
-                    {!isConfirmedPlan && (
                       <Button
                         type="button"
                         onClick={handleConfirmSplit}
@@ -749,8 +755,8 @@ export function PaydayActionDrawer({
                       >
                         {t("paydayDrawer.runIncomeSplit", { defaultValue: "Run Income Split" })}
                       </Button>
-                    )}
-                  </>
+                    </>
+                  )
                 )}
               </div>
             </div>

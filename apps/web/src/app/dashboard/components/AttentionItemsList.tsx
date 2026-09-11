@@ -84,7 +84,6 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
       <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-lg">📋</span>
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">
               {t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })}
             </h2>
@@ -126,7 +125,6 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
     <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-lg">📋</span>
           <h2 className="text-sm font-extrabold text-[#1B2B4B]">
             {t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })} (
             {items.length})
@@ -151,7 +149,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
           const isOverdue = item.isOverdue || item.expectedDate < todayStr;
           const isTransfer = item.type === "TRANSFER";
 
-          let daysAwayText = "";
+          let daysAwayNode: React.ReactNode = "";
           if (item.expectedDate) {
             const itemDate = new Date(item.expectedDate);
             itemDate.setHours(0, 0, 0, 0);
@@ -159,19 +157,21 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
             todayZero.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((itemDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDays === 0) {
-              daysAwayText = t("dashboard.upcomingExpensesTransfers.dueToday", { defaultValue: "Due today!" });
+              daysAwayNode = t("dashboard.upcomingExpensesTransfers.dueToday", { defaultValue: "Due today!" });
             } else if (diffDays > 0) {
-              daysAwayText = t("dashboard.upcomingExpensesTransfers.daysAway", {
+              daysAwayNode = t("dashboard.upcomingExpensesTransfers.daysAway", {
                 count: diffDays,
                 plural: diffDays === 1 ? "" : "s",
                 defaultValue: `${diffDays} day${diffDays === 1 ? "" : "s"} away`,
               });
             } else {
-              daysAwayText = t("dashboard.upcomingExpensesTransfers.daysOverdue", {
-                count: Math.abs(diffDays),
-                plural: Math.abs(diffDays) === 1 ? "" : "s",
-                defaultValue: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} overdue`,
-              });
+              const count = Math.abs(diffDays);
+              daysAwayNode = (
+                <span>
+                  {count} {count === 1 ? "day" : "days"}{" "}
+                  <strong className="font-extrabold text-rose-600 dark:text-rose-400">overdue</strong>
+                </span>
+              );
             }
           }
 
@@ -189,11 +189,6 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-xs font-bold text-[#1B2B4B] block truncate">{item.name}</span>
-                  {isOverdue && (
-                    <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-rose-200">
-                      {t("common.overdue", { defaultValue: "Overdue" })}
-                    </span>
-                  )}
                   {!isOverdue && isTransfer && (
                     <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-indigo-200">
                       {t("common.transfer", { defaultValue: "Transfer" })}
@@ -207,7 +202,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                 </div>
                 <p className="text-[11px] text-gray-500 font-mono">
                   <span className="font-semibold text-gray-900 tabular-nums">{format(item.expectedAmount)}</span> ·{" "}
-                  {daysAwayText} ({formatLocaleDate(item.expectedDate)})
+                  {daysAwayNode} ({formatLocaleDate(item.expectedDate)})
                   {isTransfer && item.sourcePoolName && item.destinationPoolName && (
                     <span className="block text-[10px] text-slate-500 font-sans mt-0.5">
                       {item.sourcePoolName} ➔ {item.destinationPoolName}
@@ -234,13 +229,13 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       onClick={() => setSelectedMarkPaidItem(item)}
                       className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
                     >
-                      {t("common.markPaid", { defaultValue: "Mark Paid" })}
+                      {t("common.markSpent", { defaultValue: "Mark Spent" })}
                     </button>
                     {onSkipExpense && (
                       <button
                         type="button"
                         onClick={() => setSelectedDeleteItem(item)}
-                        className="text-xs font-bold text-rose-600 hover:underline cursor-pointer transition-colors px-1.5 py-1"
+                        className="text-xs font-semibold text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:underline cursor-pointer transition-colors px-1.5 py-1"
                       >
                         {t("common.delete", { defaultValue: "Delete" })}
                       </button>
@@ -259,7 +254,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedDeleteItem(item)}
-                        className="text-xs font-bold text-rose-600 hover:underline cursor-pointer transition-colors px-1.5 py-1"
+                        className="text-xs font-semibold text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:underline cursor-pointer transition-colors px-1.5 py-1"
                       >
                         {t("common.delete", { defaultValue: "Delete" })}
                       </button>
@@ -288,6 +283,21 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
             }
             onMarkPaid(selectedMarkPaidItem, amount, date);
             setSelectedMarkPaidItem(null);
+          }}
+          onOpenTransferModal={() => {
+            const item = selectedMarkPaidItem;
+            setSelectedMarkPaidItem(null);
+            if (item) {
+              setSelectedTransferItem({
+                id: `transfer_${Date.now()}`,
+                type: "TRANSFER",
+                name: "Transfer between Pools",
+                expectedAmount: 0,
+                expectedDate: todayStr,
+                destinationPoolId: item.categoryId,
+                isOverdue: false,
+              });
+            }
           }}
         />
       )}

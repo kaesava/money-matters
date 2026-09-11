@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { useToast, InfoTooltip } from "@money-matters/ui/web";
+import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
 import { BentoPoolsSection } from "./components/BentoPoolsSection";
 import { GoalsProgressStrip } from "./components/GoalsProgressStrip";
 import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
@@ -15,13 +15,6 @@ import { PaydayActionDrawer } from "../../components/web/PaydayActionDrawer";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
-
-interface AppPreferencesMap {
-  [appId: string]: {
-    skip_pool_adjustment_confirmation?: boolean;
-    [key: string]: unknown;
-  };
-}
 
 export default function DashboardPage() {
   const toast = useToast();
@@ -35,12 +28,13 @@ export default function DashboardPage() {
   const {
     todayStr,
     summaryQuery,
+    bankAccountsQuery,
     incomeEventsQuery,
     expenseEventsQuery,
     transferEventsQuery,
-    recordExpenseMutation,
     markExpensePaidMutation,
     deleteExpenseEventMutation,
+    deleteIncomeEventMutation,
     deleteTransferEventMutation,
     executeTransferEventMutation,
     updateTransferEventMutation,
@@ -48,63 +42,40 @@ export default function DashboardPage() {
     setPaydayPreviewEventId,
   } = useDashboardData();
 
+  const [incomeToDelete, setIncomeToDelete] = useState<{ id: string; name: string } | null>(null);
+
   const goalCategories = pools.filter((p) => p.poolType === "GOAL");
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || "0");
   const everydayMonthlyBudget = pools
     .filter((p) => p.poolType === "EVERYDAY")
     .reduce((sum, p) => sum + parseFloat(p.everydayAllowanceAmount || p.targetAmount || "0"), 0);
 
-  const userPreferencesQuery = trpc.getUserPreferences.useQuery();
-  const appPrefs = userPreferencesQuery.data?.appPreferences as AppPreferencesMap | undefined;
-  const prefsBlob = appPrefs?.["01908bde-34bb-7b19-a178-574211bc93aa"];
-  const skipConfirmation = prefsBlob?.skip_pool_adjustment_confirmation ?? false;
-
-  const updateUserPrefsMutation = trpc.updateUserPreferences.useMutation({
-    onSuccess: () => userPreferencesQuery.refetch(),
-  });
-  const handleSaveSkipConfirmation = async () => {
-    await updateUserPrefsMutation.mutateAsync({
-      appPreferences: {
-        ["01908bde-34bb-7b19-a178-574211bc93aa"]: {
-          skip_pool_adjustment_confirmation: true,
-        },
-      },
-    });
-  };
-
-  const handleUpdatePoolBalance = async (poolType: "EVERYDAY" | "REGULAR", newAmount: number) => {
-    const currentBalance = poolType === "EVERYDAY" ? everydayBalance : billsBalance;
-    const diff = newAmount - currentBalance;
-    if (Math.abs(diff) < 0.01) return;
-
-    const targetPool = pools.find((p) => p.poolType === poolType) || pools[0];
-    if (!targetPool) {
-      toast.error(`No pool found of type ${poolType} to post the adjustment transaction.`);
-      return;
-    }
-
-    await recordExpenseMutation.mutateAsync({
-      amount: Math.abs(diff).toFixed(2),
-      poolId: targetPool.id,
-      flowType: diff > 0 ? "CREDIT" : "DEBIT",
-      note: `${poolType === "EVERYDAY" ? "Everyday" : "Bills"} Pool Adjustment`,
-      recordedAt: todayStr,
-    });
-  };
-
   const billsBalance = parseFloat(summaryQuery.data?.billsRemaining || "0");
   const billsMonthlyBudget = pools
     .filter((p) => p.poolType === "REGULAR")
     .reduce((sum, p) => sum + parseFloat(p.targetAmount || "0"), 0);
 
+  const bankAccounts = bankAccountsQuery.data ?? [];
+
   const upcomingIncomeList: WebIncomeItem[] = (incomeEventsQuery.data ?? [])
     .filter((e) => e.status === "PENDING")
-    .map((e) => ({
-      id: e.id,
-      name: e.sourceName || "Paycheck Deposit",
-      amount: parseFloat(e.expectedAmount),
-      expectedDate: e.expectedDate,
-    }));
+    .map((e) => {
+      const matchedAccount = bankAccounts.find((b) => b.id === e.bankAccountId);
+      const availableToBudget = matchedAccount
+        ? parseFloat(String(matchedAccount.lastKnownBalance || "0")) -
+          parseFloat(String(matchedAccount.unbudgetedBuffer || "0"))
+        : null;
+
+      return {
+        id: e.id,
+        name: e.sourceName || "Paycheck Deposit",
+        amount: parseFloat(e.expectedAmount),
+        expectedDate: e.expectedDate,
+        bankAccountId: e.bankAccountId ?? null,
+        bankAccountName: matchedAccount?.name ?? null,
+        availableToBudget,
+      };
+    });
 
   const todayObj = new Date(todayStr);
 
@@ -238,7 +209,7 @@ export default function DashboardPage() {
       {/* Top Header Row with Side-by-Side Quick Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-[#1B2B4B]">
+          <h1 className="font-heading text-3xl font-extrabold text-[#1B2B4B] tracking-tight">
             {t("nav.dashboard") || "Dashboard"}
           </h1>
           <InfoTooltip
@@ -255,9 +226,9 @@ export default function DashboardPage() {
               setQuickDrawerInitialTab("DEBIT");
               setQuickDrawerOpen(true);
             }}
-            className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center cursor-pointer"
           >
-            <span>+ Quick Expense</span>
+            <span>Quick Expense</span>
           </button>
 
           <button
@@ -266,24 +237,24 @@ export default function DashboardPage() {
               setQuickDrawerInitialTab("CREDIT");
               setQuickDrawerOpen(true);
             }}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center cursor-pointer"
           >
-            <span>+ {t("dashboard.quickIncome", { defaultValue: "Quick Income" })}</span>
+            <span>{t("dashboard.quickIncome", { defaultValue: "Quick Income" })}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsMoveMoneyOpen(true)}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 font-bold text-xs rounded-xl transition-all shadow-2xs flex items-center cursor-pointer"
           >
-            <span>{t("dashboard.moveMoney", { defaultValue: "Move Money" })}</span>
+            <span>{t("dashboard.transferBetweenPools", { defaultValue: "Transfer between Pools" })}</span>
           </button>
 
           <Link
             href="/dashboard/afford-check"
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-[#1B2B4B] hover:bg-[#111c33] text-white font-bold text-xs rounded-xl transition-colors shadow-xs flex items-center cursor-pointer"
           >
-            <span>{t("canIAfford.title")}</span>
+            <span>{t("canIAfford.title", { defaultValue: "Can I Afford It?" })}</span>
           </Link>
         </div>
       </div>
@@ -306,9 +277,6 @@ export default function DashboardPage() {
             totalBillsDue14Days={totalBillsDue14Days}
             onMoveMoney={() => setIsMoveMoneyOpen(true)}
             formatAUD={fmt}
-            onUpdatePoolBalance={handleUpdatePoolBalance}
-            skipConfirmation={skipConfirmation}
-            onSaveSkipConfirmation={handleSaveSkipConfirmation}
           />
         </div>
 
@@ -369,6 +337,10 @@ export default function DashboardPage() {
             onPressRunSplit={(id: string) => {
               setPaydayPreviewEventId(id);
             }}
+            onDeleteIncome={(id: string) => {
+              const matched = upcomingIncomeList.find((item) => item.id === id);
+              setIncomeToDelete({ id, name: matched?.name || "Income" });
+            }}
             formatAUD={fmt}
           />
         </div>
@@ -396,6 +368,26 @@ export default function DashboardPage() {
             poolsQuery.refetch();
           }}
           initialTab="TRANSFER"
+        />
+      )}
+
+      {incomeToDelete && (
+        <ConfirmDialog
+          isOpen={!!incomeToDelete}
+          title={t("common.deleteIncomeTitle", { defaultValue: "Delete Income" })}
+          description={t("common.deleteExpensePrompt", {
+            name: incomeToDelete.name,
+            defaultValue: `Are you sure you want to delete "${incomeToDelete.name}"?`,
+          })}
+          confirmLabel={t("common.delete", { defaultValue: "Delete" })}
+          cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+          variant="danger"
+          onConfirm={async () => {
+            await deleteIncomeEventMutation.mutateAsync({ eventId: incomeToDelete.id });
+            toast.success(t("toasts.deleted", { defaultValue: "Deleted successfully" }));
+            setIncomeToDelete(null);
+          }}
+          onClose={() => setIncomeToDelete(null)}
         />
       )}
     </div>

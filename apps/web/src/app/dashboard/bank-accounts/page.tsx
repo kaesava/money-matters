@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { InfoTooltip, fmtDate, SearchInput, ConfirmDialog } from "@money-matters/ui/web";
+import { InfoTooltip, fmtDate, SearchInput, ConfirmDialog, RecordFilterBadge, PoolPicker } from "@money-matters/ui/web";
+import { ModalDialog } from "../../../components/web/ModalDialog";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 
 import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./components/BankAccountTable";
@@ -22,7 +23,7 @@ const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textCo
   { key: "NAB", label: "NAB", logoBg: "bg-red-700", textColor: "text-white" },
   { key: "ING", label: "ING", logoBg: "bg-orange-500", textColor: "text-white" },
   { key: "Macquarie", label: "Macquarie", logoBg: "bg-zinc-800", textColor: "text-white" },
-  { key: "Other", label: "Other / Custom Bank", logoBg: "bg-slate-500", textColor: "text-white" },
+  { key: "Other", label: "Other", logoBg: "bg-slate-500", textColor: "text-white" },
 ];
 
 function BankAccountsDashboardContent() {
@@ -31,7 +32,9 @@ function BankAccountsDashboardContent() {
     const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
     return fmt(num);
   };
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const accountIdParam = searchParams.get("id");
   const { status: subStatus } = useSubscriptionStatus();
   const isTrialExpired = subStatus?.isTrialExpired ?? false;
 
@@ -85,7 +88,7 @@ function BankAccountsDashboardContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccountItem | null>(null);
   const [accName, setAccName] = useState("");
-  const [accBankProvider, setAccBankProvider] = useState<BankName>("CBA");
+  const [accBankProvider, setAccBankProvider] = useState<BankName>("Other");
   const [accBalance, setAccBalance] = useState("0.00");
   const [accBuffer, setAccBuffer] = useState("0.00");
   const [accIsPrivate, setAccIsPrivate] = useState(false);
@@ -94,7 +97,7 @@ function BankAccountsDashboardContent() {
   const [selectedAccountForImport, setSelectedAccountForImport] = useState<BankAccountItem | null>(null);
 
   const [rollbackMsg, setRollbackMsg] = useState<string | null>(null);
-  const [showRollbackSection, setShowRollbackSection] = useState(false);
+  const [showRollbackModal, setShowRollbackModal] = useState(false);
 
   const rollbackBatchMut = trpc.rollbackCsvBatch.useMutation({
     onSuccess: (res) => {
@@ -110,7 +113,7 @@ function BankAccountsDashboardContent() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, typeFilter, sortField, sortDir, pageSize]);
+  }, [searchQuery, typeFilter, sortField, sortDir, pageSize, accountIdParam]);
 
   const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
   const pools = poolsQuery.data ?? [];
@@ -120,9 +123,10 @@ function BankAccountsDashboardContent() {
     const linkedPools = pools.filter((p) => p.bankAccountId === accId);
     const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
     const buf = parseFloat((acc.unbudgetedBuffer as string) || "0.00");
-    const expectedBalance = poolsTotal + buf;
+    const expectedBalance = poolsTotal;
     const actualBal = parseFloat((acc.lastKnownBalance as string) || "0.00");
-    const diff = Number((actualBal - expectedBalance).toFixed(2));
+    const availableToBudget = Math.max(0, actualBal - buf);
+    const diff = Number((availableToBudget - expectedBalance).toFixed(2));
     const hasDifference = linkedPools.length > 0 && Math.abs(diff) > 0.009;
 
     return {
@@ -150,6 +154,7 @@ function BankAccountsDashboardContent() {
   // Filter accounts
   const filtered = accounts.filter((acc) => {
     if (!acc || !acc.name) return false;
+    if (accountIdParam && acc.id !== accountIdParam) return false;
     const q = searchQuery.toLowerCase().trim();
     if (q && !acc.name.toLowerCase().includes(q)) return false;
     if (typeFilter !== "ALL") {
@@ -198,7 +203,7 @@ function BankAccountsDashboardContent() {
   const openAddModal = () => {
     setEditingAccount(null);
     setAccName("");
-    setAccBankProvider("CBA");
+    setAccBankProvider("Other");
     setAccBalance("0.00");
     setAccBuffer("0.00");
     setAccIsPrivate(false);
@@ -213,7 +218,7 @@ function BankAccountsDashboardContent() {
     setAccBankProvider(
       acc.bankProvider && (BANK_OPTIONS.some(b => b.key === acc.bankProvider))
         ? (acc.bankProvider as BankName)
-        : "CBA"
+        : "Other"
     );
     setAccBalance(acc.lastKnownBalance || "0.00");
     setAccBuffer(acc.unbudgetedBuffer || "0.00");
@@ -227,8 +232,31 @@ function BankAccountsDashboardContent() {
     account: BankAccountItem;
     newBalance: number;
     expectedBalance: number;
+    unbudgetedBuffer?: number;
     linkedPools: Array<{ id: string; name: string; poolType: string; currentBalance: number; isSurplusTarget?: boolean }>;
   } | null>(null);
+
+  useEffect(() => {
+    if (poolsQuery.data) {
+      setReconcileState((prev) => {
+        if (!prev) return null;
+        const updatedLinked = (poolsQuery.data ?? []).filter((p) =>
+          prev.linkedPools.some((lp) => lp.id === p.id)
+        );
+        const newExpected = updatedLinked.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+        return {
+          ...prev,
+          expectedBalance: newExpected,
+          linkedPools: updatedLinked.map((p) => ({
+            id: p.id,
+            name: p.name,
+            poolType: p.poolType,
+            currentBalance: p.currentBalance || 0,
+          })),
+        };
+      });
+    }
+  }, [poolsQuery.data]);
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -240,18 +268,18 @@ function BankAccountsDashboardContent() {
     const linkedPools = pools.filter((p) => p.bankAccountId === acc.id);
     const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
     const buf = parseFloat(acc.unbudgetedBuffer || "0.00");
-    const expectedBankBal = poolsTotal + buf;
     const actualBal = parseFloat(acc.lastKnownBalance || "0.00");
 
     setReconcileState({
       account: acc,
       newBalance: actualBal,
-      expectedBalance: expectedBankBal,
+      expectedBalance: poolsTotal,
+      unbudgetedBuffer: buf,
       linkedPools,
     });
   };
 
-  const handleSaveAccount = (e: React.FormEvent) => {
+  const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accName.trim()) return;
 
@@ -265,25 +293,13 @@ function BankAccountsDashboardContent() {
 
     const linkedPools = pools.filter((p) => selectedPoolIds.includes(p.id));
     const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-    const expectedBankBal = poolsTotal + bufNum;
+    const expectedBankBal = poolsTotal;
+    const availableToBudget = Math.max(0, balNum - bufNum);
+    const hasVariance = linkedPools.length > 0 && Math.abs(availableToBudget - expectedBankBal) > 0.009;
 
-    // RULE: If pools are linked and balance differs, trigger alignment modal
-    if (linkedPools.length > 0 && Math.abs(balNum - expectedBankBal) > 0.009) {
-      setIsModalOpen(false); // Close edit form modal cleanly!
-      setReconcileState({
-        account: editingAccount || {
-          id: "new-account",
-          name: accName.trim(),
-        },
-        newBalance: balNum,
-        expectedBalance: expectedBankBal,
-        linkedPools,
-      });
-      return;
-    }
-
+    let targetAccount = editingAccount;
     if (editingAccount) {
-      updateAccountMut.mutate({
+      await updateAccountMut.mutateAsync({
         accountId: editingAccount.id,
         data: {
           name: accName.trim(),
@@ -294,20 +310,51 @@ function BankAccountsDashboardContent() {
         },
       });
     } else {
-      createAccountMut.mutate({
+      const created = await createAccountMut.mutateAsync({
         name: accName.trim(),
         bankProvider: accBankProvider,
         lastKnownBalance: accBalance.trim() || "0.00",
         unbudgetedBuffer: accBuffer.trim() || "0.00",
         isPrivate: accIsPrivate,
       });
+      targetAccount = {
+        id: created.id,
+        name: created.name,
+        bankProvider: created.bankProvider as BankName,
+        lastKnownBalance: created.lastKnownBalance || "0.00",
+        unbudgetedBuffer: created.unbudgetedBuffer || "0.00",
+        isPrivate: created.isPrivate ?? false,
+        expectedBalance: expectedBankBal,
+        hasDifference: hasVariance,
+        differenceAmount: Number((availableToBudget - expectedBankBal).toFixed(2)),
+        linkedPoolsCount: linkedPools.length,
+        linkedPools: linkedPools.map((p) => ({
+          id: p.id,
+          name: p.name,
+          poolType: p.poolType,
+          currentBalance: p.currentBalance || 0,
+        })),
+      };
+    }
+
+    setIsModalOpen(false); // Close edit form modal cleanly!
+
+    if (hasVariance && targetAccount) {
+      setReconcileState({
+        account: targetAccount,
+        newBalance: balNum,
+        expectedBalance: expectedBankBal,
+        unbudgetedBuffer: bufNum,
+        linkedPools,
+      });
     }
   };
 
   const handleConfirmReconcile = async (splits: Array<{ poolId: string; adjustment: string }>) => {
     if (!reconcileState) return;
-    const { account, newBalance, expectedBalance } = reconcileState;
-    const diff = Number((newBalance - expectedBalance).toFixed(2));
+    const { account, newBalance, expectedBalance, unbudgetedBuffer = 0 } = reconcileState;
+    const availableToBudget = Math.max(0, newBalance - unbudgetedBuffer);
+    const diff = Number((availableToBudget - expectedBalance).toFixed(2));
 
     if (Math.abs(diff) > 0.009 && splits.length > 0) {
       await reconcileMut.mutateAsync({
@@ -318,24 +365,8 @@ function BankAccountsDashboardContent() {
       });
     }
 
-    const currentAccName = editingAccount?.id === account.id ? accName.trim() : account.name;
-    const currentProvider = editingAccount?.id === account.id ? accBankProvider : (account.bankProvider as BankName);
-    const currentBuffer = editingAccount?.id === account.id ? (accBuffer.trim() || "0.00") : (account.unbudgetedBuffer || "0.00");
-    const currentIsPrivate = editingAccount?.id === account.id ? accIsPrivate : (account.isPrivate ?? false);
-
-    await updateAccountMut.mutateAsync({
-      accountId: account.id,
-      data: {
-        name: currentAccName,
-        bankProvider: currentProvider,
-        lastKnownBalance: newBalance.toFixed(2),
-        unbudgetedBuffer: currentBuffer,
-        isPrivate: currentIsPrivate,
-      },
-    });
-
     utils.listPools.invalidate();
-    bankAccountsQuery.refetch();
+    await bankAccountsQuery.refetch();
     setReconcileState(null);
     closeModal();
   };
@@ -387,8 +418,9 @@ function BankAccountsDashboardContent() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setShowRollbackSection(!showRollbackSection)}
-            className="px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-all flex items-center gap-1.5 shadow-2xs"
+            disabled={csvBatches.length === 0}
+            onClick={() => setShowRollbackModal(true)}
+            className="px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <span>📄</span>
             <span>CSV Imports Log ({csvBatches.length})</span>
@@ -412,27 +444,26 @@ function BankAccountsDashboardContent() {
         </div>
       )}
 
-      {showRollbackSection && (
-        <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs flex flex-col gap-3 animate-in fade-in duration-150">
-          <div className="flex items-center justify-between">
-            <span className="font-extrabold text-amber-900 flex items-center gap-1.5">
-              <span>📄</span>
-              <span>Recent CSV Statement Imports</span>
-            </span>
-            <span className="text-[11px] text-amber-700 font-medium">
-              Archiving a batch removes its transactions from all calculations and balances.
-            </span>
-          </div>
+      <ModalDialog
+        isOpen={showRollbackModal}
+        onClose={() => setShowRollbackModal(false)}
+        title={`CSV Statement Imports Log (${csvBatches.length})`}
+        maxWidth="max-w-2xl"
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-zinc-500">
+            Archiving a batch removes its transactions from all calculations and balances.
+          </p>
 
           {csvBatches.length === 0 ? (
-            <p className="text-zinc-500 italic py-2">No active CSV statement imports found.</p>
+            <p className="text-zinc-500 italic py-6 text-center">No active CSV statement imports found.</p>
           ) : (
-            <div className="divide-y divide-amber-200/60 bg-white rounded-xl border border-amber-200/80 overflow-hidden">
+            <div className="divide-y divide-zinc-200 bg-white rounded-xl border border-zinc-200 overflow-hidden max-h-96 overflow-y-auto">
               {csvBatches.map((batch) => (
-                <div key={batch.batchId} className="p-3 flex flex-wrap items-center justify-between gap-3 hover:bg-amber-50/30 transition-colors">
+                <div key={batch.batchId} className="p-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-zinc-50/70 transition-colors">
                   <div className="flex flex-col">
-                    <span className="font-bold text-[#1B2B4B]">{batch.bankAccountName}</span>
-                    <span className="text-[10px] text-zinc-400 font-medium">
+                    <span className="font-bold text-[#1B2B4B] text-sm">{batch.bankAccountName}</span>
+                    <span className="text-[11px] text-zinc-400 font-medium">
                       Imported {fmtDate(batch.importedAt)} • {batch.rowCount} transactions
                     </span>
                   </div>
@@ -443,19 +474,21 @@ function BankAccountsDashboardContent() {
                     <button
                       type="button"
                       disabled={rollbackBatchMut.isPending}
-                      onClick={() => setBatchToRollback({ batchId: batch.batchId, rowCount: batch.rowCount })}
+                      onClick={() => {
+                        setShowRollbackModal(false);
+                        setBatchToRollback({ batchId: batch.batchId, rowCount: batch.rowCount });
+                      }}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shadow-2xs cursor-pointer"
                     >
                       Archive Batch
                     </button>
-
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      )}
+      </ModalDialog>
 
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between shadow-xs">
@@ -463,6 +496,19 @@ function BankAccountsDashboardContent() {
           <button onClick={() => setErrorMsg(null)} className="text-rose-500 hover:text-rose-800 font-bold ml-2">
             ✕
           </button>
+        </div>
+      )}
+
+      {accountIdParam && (
+        <div className="flex items-center gap-2">
+          <RecordFilterBadge
+            label={`Filtered to Account: ${accounts.find((a) => a.id === accountIdParam)?.name || accountIdParam}`}
+            onClear={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("id");
+              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+            }}
+          />
         </div>
       )}
 
@@ -474,18 +520,19 @@ function BankAccountsDashboardContent() {
           placeholder="Search bank accounts by name..."
         />
 
-        <div className="flex items-center gap-2">
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          >
-            <option value="ALL">All Accounts</option>
-            {pools.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-            <option value="UNLINKED">Unlinked Accounts</option>
-          </select>
+        <div className="w-64">
+          <PoolPicker
+            pools={pools.map((p) => ({
+              id: p.id,
+              name: p.name,
+              poolType: p.poolType,
+              currentBalance: p.currentBalance || 0,
+            }))}
+            selectedPoolId={typeFilter === "ALL" ? null : typeFilter}
+            allowCategorySelection={false}
+            placeholder="All Pools"
+            onChange={(sel) => setTypeFilter(sel.poolId || "ALL")}
+          />
         </div>
       </div>
 
@@ -547,6 +594,7 @@ function BankAccountsDashboardContent() {
           accountName={reconcileState.account.name}
           expectedBalance={reconcileState.expectedBalance}
           newBalance={reconcileState.newBalance}
+          unbudgetedBuffer={reconcileState.unbudgetedBuffer ?? 0}
           pools={reconcileState.linkedPools}
           onConfirm={handleConfirmReconcile}
           onOpenTransferModal={() => setMoveMoneyOpen(true)}

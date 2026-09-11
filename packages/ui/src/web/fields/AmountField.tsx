@@ -9,6 +9,8 @@ export interface AmountFieldProps {
   onChange: (value: string) => void;
   /** Called when the input loses focus — after 2dp formatting is applied */
   onBlur?: () => void;
+  /** Called when the input gains focus */
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   label?: string;
   error?: string;
   placeholder?: string;
@@ -41,12 +43,10 @@ export interface AmountFieldProps {
 /**
  * Canonical amount input for the Serene Finance design system.
  *
- * - Dynamic currency prefix (positioned, not concatenated into value string).
- * - On blur: formats to minorUnits dp (0dp for JPY, 2dp for AUD) if numeric; keeps empty if blank.
- * - Custom stacked ChevronUp/ChevronDown steppers (hides native browser spinners).
- * - allowNegative=true renders -$X.XX in rose-600 bold (e.g. bank balance adjustments).
- * - allowNegative=false (default): strips minus characters; clamps to >= 0.
- * - 12-character total input cap; currency-aware decimal digits.
+ * - Dynamic currency prefix with generous padding clearance.
+ * - Right-pinned steppers.
+ * - Auto-selects on focus/click/tab.
+ * - On blur: formats to minorUnits dp (0dp for JPY, 2dp for AUD) if numeric.
  */
 export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
   (
@@ -54,6 +54,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
       value,
       onChange,
       onBlur,
+      onFocus,
       label,
       error,
       placeholder = '0.00',
@@ -158,6 +159,11 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
       onBlur?.();
     };
 
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      onFocus?.(e);
+      e.target.select();
+    };
+
     const step_ = (delta: number) => {
       if (disabled) return;
       const current = parseFloat(value) || 0;
@@ -184,9 +190,9 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
         )}
 
         <div className="relative flex items-center">
-          {/* Leading currency symbol */}
+          {/* Leading currency symbol with generous clearance */}
           <span
-            className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none ${
+            className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none ${
               isNegative ? 'text-rose-600 font-bold' : 'text-slate-400'
             }`}
           >
@@ -206,8 +212,9 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
             value={value}
             onChange={handleChange}
             onBlur={handleBlur}
+            onFocus={handleFocus}
             className={[
-              'ui-input w-full pl-7 pr-10 font-mono tabular-nums',
+              'ui-input w-full pl-10 pr-10 font-mono tabular-nums',
               isNegative ? 'text-rose-600 font-bold' : '',
               '[appearance:textfield]',
               '[&::-webkit-outer-spin-button]:appearance-none',
@@ -218,15 +225,15 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
               .join(' ')}
           />
 
-          {/* Stacked chevron steppers */}
-          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col">
+          {/* Stacked chevron steppers pinned firmly to the right */}
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex flex-col">
             <button
               type="button"
               tabIndex={-1}
               disabled={disabled}
               onClick={() => step_(step)}
               aria-label="Increase amount"
-              className="flex items-center justify-center h-4 w-6 text-slate-400 hover:text-[#2563eb] transition-colors disabled:opacity-40 cursor-pointer"
+              className="flex items-center justify-center h-4 w-5 text-slate-400 hover:text-[#2563eb] transition-colors disabled:opacity-40 cursor-pointer"
             >
               <ChevronUp size={12} strokeWidth={2.5} />
             </button>
@@ -236,7 +243,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
               disabled={disabled}
               onClick={() => step_(-step)}
               aria-label="Decrease amount"
-              className="flex items-center justify-center h-4 w-6 text-slate-400 hover:text-[#2563eb] transition-colors disabled:opacity-40 cursor-pointer"
+              className="flex items-center justify-center h-4 w-5 text-slate-400 hover:text-[#2563eb] transition-colors disabled:opacity-40 cursor-pointer"
             >
               <ChevronDown size={12} strokeWidth={2.5} />
             </button>

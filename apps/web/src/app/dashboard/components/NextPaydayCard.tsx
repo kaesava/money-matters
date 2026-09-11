@@ -13,6 +13,9 @@ export interface WebIncomeItem {
   readonly expectedDate: string;
   readonly status?: string; // Add status to determine pending vs saved/draft
   readonly isSaved?: boolean;
+  readonly bankAccountId?: string | null;
+  readonly bankAccountName?: string | null;
+  readonly availableToBudget?: number | null;
 }
 
 export interface NextPaydayCardProps {
@@ -20,6 +23,7 @@ export interface NextPaydayCardProps {
   readonly onPressRunSplit?: (eventId: string) => void;
   readonly onPressMarkReceived?: (eventId: string) => void;
   readonly onPressAllocate?: (eventId: string) => void;
+  readonly onDeleteIncome?: (eventId: string) => void;
   readonly formatAUD?: (val: number | string) => string;
 }
 
@@ -28,6 +32,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
   onPressRunSplit,
   onPressMarkReceived,
   onPressAllocate,
+  onDeleteIncome,
   formatAUD,
 }) => {
   const { fmt, fmtDate: formatLocaleDate } = useLocale();
@@ -47,7 +52,6 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
       <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-lg">💰</span>
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">Upcoming Income</h2>
           </div>
           <Link
@@ -68,7 +72,6 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
     <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-lg">💰</span>
           <h2 className="text-sm font-extrabold text-[#1B2B4B]">
             Upcoming Income ({upcomingIncomes.length})
           </h2>
@@ -84,6 +87,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
       <div className="space-y-3">
         {itemsToShow.map((income) => {
           let daysAwayText = '';
+          let isOverdue = false;
           if (income.expectedDate) {
             const payDate = new Date(income.expectedDate);
             payDate.setHours(0, 0, 0, 0);
@@ -92,7 +96,10 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             const diffDays = Math.ceil((payDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDays === 0) daysAwayText = t('dashboard.hero.dueToday') || 'Due today!';
             else if (diffDays > 0) daysAwayText = `${diffDays} day${diffDays === 1 ? '' : 's'} away`;
-            else daysAwayText = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`;
+            else {
+              isOverdue = true;
+              daysAwayText = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`;
+            }
           }
 
           const isEarliest = income.id === earliestPendingId;
@@ -120,18 +127,44 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   )}
                 </div>
                 <p className="text-[11px] text-gray-500 font-mono">
-                  <span className="font-semibold text-gray-900">{format(income.amount)}</span> · {daysAwayText} ({formatLocaleDate(income.expectedDate)})
+                  <span className="font-semibold text-gray-900">{format(income.amount)}</span> · {daysAwayText}{' '}
+                  {isOverdue && <strong className="font-extrabold text-rose-600 dark:text-rose-400">overdue </strong>}
+                  ({formatLocaleDate(income.expectedDate)})
                 </p>
+                {income.bankAccountName && (
+                  <p className="text-[11px] text-gray-500">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{income.bankAccountName}</span>
+                    {income.availableToBudget !== undefined && income.availableToBudget !== null && (
+                      <>
+                        {' '}·{' '}
+                        <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{format(income.availableToBudget)}</span>{' '}
+                        {t('dashboard.availableToBudget', { defaultValue: 'available to budget' })}
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleSplitClick(income.id)}
-                className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
-                title="Review and Edit Splits"
-              >
-                {t("common.runSplit", { defaultValue: "Run Split" })}
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleSplitClick(income.id)}
+                  className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
+                  title="Review and Edit Splits"
+                >
+                  {t("common.runSplit", { defaultValue: "Run Split" })}
+                </button>
+                {onDeleteIncome && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteIncome(income.id)}
+                    className="text-xs text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 cursor-pointer transition-colors px-1.5 py-1"
+                    title={t("common.delete", { defaultValue: "Delete" })}
+                  >
+                    {t("common.delete", { defaultValue: "Delete" })}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

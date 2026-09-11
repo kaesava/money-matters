@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import { InfoTooltip, useToast, ConfirmDialog, SearchInput } from "@money-matters/ui/web";
+import { useSearchParams, useRouter } from "next/navigation";
+import { InfoTooltip, useToast, ConfirmDialog, SearchInput, RecordFilterBadge } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 import { trpc } from "../../../lib/trpc";
@@ -21,9 +21,12 @@ function PoolsPageContent() {
   const { fmt } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const paramSearch = searchParams.get("search") || searchParams.get("name") || "";
   const paramType = (searchParams.get("type") || "ALL").toUpperCase() as PoolTypeFilter;
+  const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
+  const categoryIdParam = searchParams.get("categoryId") || "";
 
   const poolsQuery = trpc.listPools.useQuery();
   const categoriesQuery = trpc.listCategories.useQuery();
@@ -250,6 +253,12 @@ function PoolsPageContent() {
   // Filter logic: Type filter + Privacy filter + Search
   const filteredRows = useMemo(() => {
     return tableRows.filter((row) => {
+      if (poolIdParam && row.id !== poolIdParam) {
+        return false;
+      }
+      if (categoryIdParam && !row.categories.some((c) => c.id === categoryIdParam)) {
+        return false;
+      }
       if (typeFilter !== "ALL" && row.poolType !== typeFilter) {
         return false;
       }
@@ -267,7 +276,7 @@ function PoolsPageContent() {
       const bankNameMatch = row.bankAccountName ? row.bankAccountName.toLowerCase().includes(q) : false;
       return poolNameMatch || catNameMatch || bankNameMatch;
     });
-  }, [tableRows, typeFilter, privacyFilter, searchQuery]);
+  }, [tableRows, poolIdParam, categoryIdParam, typeFilter, privacyFilter, searchQuery]);
 
   // Sorting logic
   const sortedRows = useMemo(() => {
@@ -476,6 +485,25 @@ function PoolsPageContent() {
         </div>
       )}
 
+      {(poolIdParam || categoryIdParam) && (
+        <div className="flex items-center gap-2">
+          <RecordFilterBadge
+            label={
+              poolIdParam
+                ? `Filtered to Pool: ${tableRows.find((r) => r.id === poolIdParam)?.name || poolIdParam}`
+                : `Filtered to Category: ${categoriesQuery.data?.find((c) => c.id === categoryIdParam)?.name || categoryIdParam}`
+            }
+            onClear={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("poolId");
+              url.searchParams.delete("id");
+              url.searchParams.delete("categoryId");
+              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+            }}
+          />
+        </div>
+      )}
+
       {/* Controls Bar & Segmented Filter */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
         <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
@@ -532,41 +560,50 @@ function PoolsPageContent() {
         </div>
       </div>
 
-      {/* Hierarchical Pools Table */}
-      <PoolsTable
-        pools={paginatedRows}
-        page={page}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        totalItems={totalItems}
-        sortField={sortField}
-        sortDir={sortDir}
-        toggleSort={toggleSort}
-        onPageChange={setPage}
-        onPageSizeChange={(s) => {
-          setPageSize(s);
-          setPage(1);
-        }}
-        onEditPool={(pool) => {
-          setPoolToEdit(pool);
-          setIsPoolModalOpen(true);
-        }}
-        onOpenCategoryDrawer={(pool) => {
-          setSelectedPoolForDrawer(pool);
-        }}
-        onAddCategoryForPool={handleOpenAddCategoryModal}
-        onEditCategory={(cat) => {
-          setCategoryToEdit(cat);
-          setIsCategoryModalOpen(true);
-        }}
-        onAddPool={(pType) => {
-          setPoolToEdit(pType ? ({ id: "", type: pType, poolType: pType, name: "", currentBalance: "0.00" } as CategorySummaryItem) : null);
-          setIsPoolModalOpen(true);
-        }}
-        fmtMoney={fmtMoney}
-        isLoading={poolsQuery.isLoading}
-        searchQuery={searchQuery}
-      />
+      {/* Hierarchical Pools Table with Optional Projection Mode Watermark */}
+      <div className="relative">
+        {showProjectionMatrix && projectionMonths > 0.05 && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden select-none">
+            <span className="transform -rotate-12 text-7xl md:text-9xl font-black text-slate-900/[0.06] dark:text-white/[0.06] tracking-widest whitespace-nowrap uppercase">
+              PROJECTION MODE
+            </span>
+          </div>
+        )}
+        <PoolsTable
+          pools={paginatedRows}
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          sortField={sortField}
+          sortDir={sortDir}
+          toggleSort={toggleSort}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            setPage(1);
+          }}
+          onEditPool={(pool) => {
+            setPoolToEdit(pool);
+            setIsPoolModalOpen(true);
+          }}
+          onOpenCategoryDrawer={(pool) => {
+            setSelectedPoolForDrawer(pool);
+          }}
+          onAddCategoryForPool={handleOpenAddCategoryModal}
+          onEditCategory={(cat) => {
+            setCategoryToEdit(cat);
+            setIsCategoryModalOpen(true);
+          }}
+          onAddPool={(pType) => {
+            setPoolToEdit(pType ? ({ id: "", type: pType, poolType: pType, name: "", currentBalance: "0.00" } as CategorySummaryItem) : null);
+            setIsPoolModalOpen(true);
+          }}
+          fmtMoney={fmtMoney}
+          isLoading={poolsQuery.isLoading}
+          searchQuery={searchQuery}
+        />
+      </div>
 
       {hasArchivedCategories && (
         <div className="flex justify-center pt-2">

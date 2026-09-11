@@ -67,6 +67,7 @@ export function TransferModal({
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [wasPastDate, setWasPastDate] = useState(false);
+  const [originalDate, setOriginalDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -80,6 +81,7 @@ export function TransferModal({
 
       const isPast = Boolean(transfer.expectedDate && transfer.expectedDate < todayStr);
       setWasPastDate(isPast);
+      setOriginalDate(transfer.expectedDate || "");
       setDate(isPast ? todayStr : transfer.expectedDate || todayStr);
     }
   }, [isOpen, transfer, todayStr]);
@@ -171,17 +173,6 @@ export function TransferModal({
         maxWidth="max-w-md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {wasPastDate && (
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
-              <span className="text-sm">ℹ️</span>
-              <span>
-                {t("modals.transfer.pastDateAdjustedNotice", {
-                  defaultValue: "This transfer was scheduled in the past and has been moved to today.",
-                })}
-              </span>
-            </div>
-          )}
-
           {/* Source & Destination Pool Display */}
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs font-semibold">
             <div className="space-y-0.5">
@@ -253,6 +244,18 @@ export function TransferModal({
             required
             min={todayStr}
           />
+
+          {wasPastDate && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
+              <span className="text-sm">ℹ️</span>
+              <span>
+                {t("modals.transfer.pastDateAdjustedNotice", {
+                  date: originalDate,
+                  defaultValue: `The transfer date previously scheduled for ${originalDate} has now been defaulted to today.`,
+                })}
+              </span>
+            </div>
+          )}
 
           <div className="pt-3 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800">
             <button
