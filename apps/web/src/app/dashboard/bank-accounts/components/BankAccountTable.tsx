@@ -36,7 +36,6 @@ export interface BankAccountTableProps {
   onPageChange: (p: number) => void;
   onPageSizeChange: (s: number) => void;
   openEditModal: (acc: BankAccountItem) => void;
-  openImportModal: (acc: BankAccountItem) => void;
   openAlignmentModal?: (acc: BankAccountItem) => void;
   openLinkedPoolsModal?: (acc: BankAccountItem) => void;
   fmtMoney: (val: string | number | undefined) => string;
@@ -55,7 +54,6 @@ export function BankAccountTable({
   onPageChange,
   onPageSizeChange,
   openEditModal,
-  openImportModal,
   openAlignmentModal,
   openLinkedPoolsModal,
   fmtMoney,
@@ -77,7 +75,7 @@ export function BankAccountTable({
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
       {isLoading ? (
-        <SkeletonTable cols={5} rows={pageSize} />
+        <SkeletonTable cols={3} rows={pageSize} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
@@ -98,7 +96,6 @@ export function BankAccountTable({
               <th className="py-3.5 px-4 text-center">
                 <span>Linked Pools</span>
               </th>
-              <th className="py-3.5 px-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
@@ -108,12 +105,11 @@ export function BankAccountTable({
                   <td className="py-4 px-4"><div className="h-4 bg-zinc-200 rounded-md w-32" /></td>
                   <td className="py-4 px-4 text-right"><div className="h-4 bg-zinc-200 rounded-md w-24 ml-auto" /></td>
                   <td className="py-4 px-4 text-center"><div className="h-4 bg-zinc-200 rounded-md w-20 mx-auto" /></td>
-                  <td className="py-4 px-4 text-right"><div className="h-7 bg-zinc-200 rounded-lg w-24 ml-auto" /></td>
                 </tr>
               ))
             ) : accounts.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-12 text-center text-zinc-400">
+                <td colSpan={3} className="py-12 text-center text-zinc-400">
                   No bank accounts found matching your search.
                 </td>
               </tr>
@@ -204,19 +200,6 @@ export function BankAccountTable({
                             })()}
                           </>
                         )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => openImportModal(acc)}
-                          className="px-2.5 py-1.5 text-xs font-bold rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 transition-colors flex items-center gap-1 cursor-pointer"
-                          title="Import CSV Statement for this account"
-                        >
-                          <span>📄</span>
-                          <span>Import CSV</span>
-                        </button>
                       </div>
                     </td>
                   </tr>

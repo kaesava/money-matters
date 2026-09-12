@@ -175,17 +175,6 @@ export function requiresWriteAccess(ctx: { subscriptionStatus: SubscriptionStatu
   }
 }
 
-/**
- * Throws TRPCError FORBIDDEN if trial has expired.
- */
-export function requiresPaidTier(ctx: { subscriptionStatus: SubscriptionStatusDto }, featureName: string) {
-  if (ctx.subscriptionStatus.isTrialExpired || ctx.subscriptionStatus.isDeactivated) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: `subscription_trial_expired:${featureName}`,
-    });
-  }
-}
 
 /**
  * Requires an active trial or paid subscription.

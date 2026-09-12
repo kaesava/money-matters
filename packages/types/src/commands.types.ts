@@ -295,23 +295,3 @@ export const BillingInvoiceSchema = z.object({
 }).strict();
 export type BillingInvoiceDto = z.infer<typeof BillingInvoiceSchema>;
 
-export const CsvImportItemSchema = z.object({
-  date: z.string(),
-  description: z.string(),
-  amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
-  flowType: z.enum(["DEBIT", "CREDIT"]),
-  targetPoolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]).optional().nullable(),
-  poolId: z.string().uuid().optional().nullable(),
-  creditAction: z.enum(["BANK_DEPOSIT", "PAYDAY_ALLOCATION"]).optional().nullable(),
-  categoryId: z.string().uuid().optional().nullable(),
-  incomeSourceId: z.string().uuid().optional().nullable(),
-  idempotencyKey: z.string().min(1),
-  note: z.string().optional().nullable(),
-  isIncluded: z.boolean().optional().default(true),
-}).strict();
-
-export const CommitCsvImportCommand = z.object({
-  bankAccountId: z.string().uuid(),
-  transactions: z.array(CsvImportItemSchema).min(1).max(1000, "Cannot commit more than 1,000 transactions at once"),
-}).strict();
-

@@ -45,17 +45,16 @@ money-matters/
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD, bank balance reconciliation
 │   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), immutable pool-bank linking, unbudgeted buffer validation, 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, payday allocation revert ledger reversals, cascading pool archival, last-category guard
-│   │   ├── transactions/    # Daily ledger, bank CSV statement parser (Big 4 AU), spending velocity
+│   │   ├── transactions/    # Daily ledger, expense recording, transaction history
 │   │   ├── simulation/      # Stateless "Can I Afford It?" engine with 6-verdict cumulative waterfall simulation & goal timeline impact analysis
 │   │   ├── notifications/   # Expo push + scheduled weekly digest Inngest workflow
 │   │   ├── file-notes/      # Notes, comments, attachments via Cloudflare R2
-
 │   │   └── bug-reports/     # In-app bug report persistence, Frustration scale & workflow category capture, tenant-isolated bugReports schema, Resend receipt/alert dispatches
 │   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags
 │   ├── db/            # Drizzle schemas (`app_categories`, `user_preferences` JSONB), migrations & seeds
 │   ├── i18n/          # Centralized dictionary & type-safe t() helper
-│   ├── types/         # Zod domain contracts, setup presets, status state machines, CSV import DTOs
+│   ├── types/         # Zod domain contracts, setup presets, status state machines, API DTOs
 │   └── ui/            # Serene Finance UI components & design tokens
 ```
 
@@ -177,18 +176,14 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **Revert to Automatic Waterfall (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **Unsave** in the grid column header or drawer prompts for confirmation and deletes the `allocation_plan` row, restoring dynamic waterfall calculation.
 
 
-### 5.3 Bank CSV Import Engine & Import Log (`@money-matters/capability-transactions`)
-- Interactive 3-Step Import Wizard on Web Dashboard (`Upload` $\rightarrow$ `Review & Map` $\rightarrow$ `Complete & Commit`).
-- **CSV Statement Import Engine**:
-  - **Parsing & Format Detection**: Automatically recognizes Australian bank CSV formats (CBA, Westpac, ANZ, NAB, ING, Macquarie) and supports interactive custom column mapping with smart candidate hints (`📅 Date`, `💲 Amount`, `📝 Description`).
-  - **Zero Keyword Rules & Frictionless Pool Mapping**: Text keyword rules (`CATEGORY_KEYWORD_MAP`) and merchant rule learning are completely removed. Debits map directly to core Pools (`Everyday Pool`, `Bills Pool`, `Savings Pool`). Credits map to Aussie-functional options: `Direct Bank Deposit (No waterfall allocation)` or `Payday Income (Schedule for Waterfall Allocation)`.
-  - **Deduplication Hash**: Deterministic idempotency key: `csv-import-${date}-${flowType}-${amount}-${cleanDesc}` matching exact date, amount, description, and flow type.
-  - **Include/Exclude Action Controls & Bulk Toolbar**: Row-level action selector (`✅ Include` vs `🚫 Exclude`). Checkboxes are reserved for bulk batch actions (Apply Pool + Go, Flip Selected Polarity, Set Status + Go). Prevents Step 2 transition if parsing yields 0 records and clears errors on step change.
-  - **Batch Audit Log**: Statement imports generate unique `batchId` GUIDs tagged as `transferGroupId` on `transaction_ledger` entries, enabling 1-click batch rollback & archiving on the Bank Accounts screen.
-- Archiving a batch soft-deletes (`archivedAt = now()`) all transactions in that batch via `rollbackCsvImportBatchCommand`.
-- Server-side deduplication via idempotency keys (`csv-import-${date}-${flowType}-${amount}-${cleanDesc}`) pre-flagged as `⚠️ Duplicate` and pre-unchecked in the preview table.
-- Bulk atomic insertion into `transactionLedger` via `commitCsvImportCommand` (Rule #6 compliant single-query insert).
-- Support for `DEBIT` (Category target) and `CREDIT` (Income Source or Category target) transaction mapping.
+### 5.3 Bank Account Balance Alignment & V2 Ingestion Architecture
+- **Forward-Looking Architecture**: In alignment with Rule 13 ("Money Matters automates forward-looking payday allocation... NEVER describe the product as requiring daily tracking or micro-managing every dollar"), backward-looking CSV statement parsing is deferred to Release 2 (`V2_SCOPE.md`).
+- **1-Click Bank Balance Alignment Engine (`@money-matters/capability-tenant`)**:
+  - Web & Mobile balance reconciliation via `reconcileBankBalance` procedure.
+  - Automatically compares actual bank balance against linked pool balance aggregates (`getPoolBalancesMap`), calculating exact surplus or shortfall.
+  - Generates atomic `BALANCE_ADJUSTMENT` or `ACCOUNT_ALIGNMENT` ledger rows in `transaction_ledger` with zero transaction tagging overhead.
+- **Zipped Full Tenant CSV Export (`exportTenantData`)**:
+  - Secure tenant data backup bundling all relational entities (`categories.csv`, `income_sources.csv`, `expense_sources.csv`, `transaction_ledger.csv`, `bank_accounts.csv`, `allocation_plans.csv`, `file_notes.csv`) into a single zipped archive.
 
 ### 5.4 Smart Scheduled Notifications (Inngest)
 1. **`notify-payday-incoming`**: Daily alert for upcoming payday tomorrow.
@@ -229,13 +224,17 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **Human-Centric Trust Copy**: All rationale step messages use clear, jargon-free financial phrasing (`recommended daily safety buffer`, `added to your 12-month budget forecast`, `committed savings target`).
 
 ### 5.7 Stripe Billing, Synchronous Verification & Trial Lifecycle (`@money-matters/capability-billing`)
-- **Decoupled Capability Architecture**: Stripe Checkout (`createCheckoutSessionCommand`), Synchronous Verification (`verifyCheckoutSessionCommand`), Invoices Query (`listInvoicesQuery`), Customer Portal (`createCustomerPortalSessionCommand`), and Webhooks (`handleStripeWebhook`) isolated inside `packages/capabilities/billing`.
+- **Decoupled Capability Architecture**: Stripe Checkout (`createCheckoutSessionCommand`), Synchronous Verification (`verifyCheckoutSessionCommand`), On-Demand Sync (`syncSubscriptionCommand`), Invoices Query (`listInvoicesQuery`), Customer Portal (`createCustomerPortalSessionCommand`), and Webhooks (`handleStripeWebhook`) isolated inside `packages/capabilities/billing`.
 - **Dynamic Australian Payment Methods**: Checkout sessions configure AUD billing ($9.95/mo or $89/yr) with dynamic payment methods enabled (omitting restrictive `payment_method_types` arrays to automatically present Visa, Mastercard, AMEX, Apple Pay, Google Pay, and Link).
 - **Synchronous Post-Checkout Verification**: `/subscription/success` captures `{CHECKOUT_SESSION_ID}` and calls `billing.verifyCheckoutSession` mutation, instantly validating payment status against Stripe API, updating tenant to `SUBSCRIBED`, recording the initial paid invoice in `billing_invoices`, and busting client-side tRPC query caches so the trial badge disappears synchronously without polling delay.
-- **Cryptographic Signature Verification & Webhook Resilience**: Webhook handler (`POST /webhooks/stripe`) validates raw body signatures via `stripe.webhooks.constructEvent` with idempotency guards and transactional audit updates:
-  - `customer.subscription.updated`: Synchronizes `cancelAtPeriodEnd`, `planType`, and `nextBillingAt` timestamps. Retains dashboard access during canceled grace periods.
+- **On-Demand Subscription & Invoice Synchronization (`syncSubscriptionCommand`)**: When returning from the Stripe Customer Portal (`?tab=account-data&stripe_sync=true`) or clicking manual refresh (`↻`), the server directly reconciles active subscriptions, cancellation flags, and the 10 most recent invoices with PDF download links from the Stripe API, eliminating webhook delivery latency and local development blindness.
+- **Cryptographic Signature Verification & Webhook Resilience**: Webhook handler (`POST /webhooks/stripe`) validates raw body signatures via `stripe.webhooks.constructEvent` with idempotency guards and multi-vector tenant resolution (`metadata.tenantId` $\rightarrow$ `stripeCustomerId` $\rightarrow$ `stripeSubscriptionId` fallback) to prevent silent drops when events originate from the Customer Portal:
+  - `customer.subscription.updated`: Synchronizes `cancelAtPeriodEnd`, `subscriptionEndsAt`, `nextBillingAt`, `planType`, `stripePriceId`, and `subscriptionStatus` (`SUBSCRIBED`, `PAST_DUE`, or `TRIAL_EXPIRED`). Retains dashboard access during canceled grace periods.
   - `invoice.payment_succeeded`: Inserts paid receipt in `billing_invoices` and triggers `activateSubscriptionCommand`, resetting `subscriptionStatus = 'SUBSCRIBED'` and `premiumEnabled = true`.
-  - `invoice.payment_failed` / `customer.subscription.deleted`: Inserts failed record in `billing_invoices`, triggers `deactivateTenantCommand` setting `subscriptionStatus = 'PAST_DUE'` and populating 7-day `trialGraceEndsAt` timestamp.
+  - `invoice.payment_failed`: Inserts failed record in `billing_invoices`, triggers `deactivateTenantCommand` setting `subscriptionStatus = 'PAST_DUE'` and populating 7-day `trialGraceEndsAt` timestamp.
+  - `customer.subscription.deleted`: Marks tenant as `TRIAL_EXPIRED` immediately upon period termination.
+- **Scheduled Cancellation & 1-Click Resumption**: When `cancelAtPeriodEnd = true`, the UI surfaces an amber reassurance card confirming billing has stopped, showing the exact access expiration date, and offering a direct `[Resume Plan ↗]` button that redirects to the portal where users can undo cancellation in 1 click.
+- **Advance Renewal Notice**: When within 7 days of recurring billing, Settings surfaces an advance renewal banner outlining the upcoming charge date.
 - **Automated Grace Period & Expiration Architecture**:
   - `getSubscriptionStatus` Query Check $\rightarrow$ Evaluates trial timelines: Days 1–60 return `TRIALING`. Days 61–67 enter `TRIAL_GRACE` (7-day read-only grace period). Day 68+ returns `TRIAL_EXPIRED` hard paywall lockdown.
   - **Isolated Holding Screen (`/subscription/expired`)**: Hard-blocks access to `/dashboard/*` when `subscriptionStatus === 'TRIAL_EXPIRED'`. Provides isolated Upgrade CTA, full zipped CSV data export via `exportTenantData`, and sign-out actions.
@@ -342,6 +341,36 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **`listPoolsQuery`**:
   - Selects and returns `pools.createdAt` to support pacing calculations.
   - Fixes default progress calculation: `target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0` (previously defaulted to 100% when balance/target was 0).
+
+---
+
+## 10. Web Pre-Login Architecture & Modular Auth Primitives
+
+### 10.1 Unified Public Layout Components (`apps/web/src/components/public`)
+- **`PublicHeader.tsx`**:
+  - Standardized unauthenticated top navigation bar across `/terms`, `/privacy`, `/privacy/delete-account`, `/subscription/upgrade`, and `/invite/[token]`.
+  - Brand identity rendering: SVG Logo mark + "Money Matters" (sans legacy attribution).
+  - Navigation actions: Responsive back-links (*← Back to Home*, *← Back to Dashboard*) and direct *Sign In* trigger.
+- **`PublicFooter.tsx`**:
+  - Unified footer across all pre-login surfaces.
+  - Dynamically renders current year copyright (`© {new Date().getFullYear()} Money Matters`), brand tagline, Serene Finance badge, and legal links (`/terms`, `/privacy`).
+
+### 10.2 Modular Authentication Architecture (`apps/web/src/components/auth`)
+- **`SocialAuthButtons.tsx`**: Modular Google and Apple SSO OAuth button group with SVG icons and Serene hover states.
+- **`PasswordStrengthIndicator.tsx`**: 4-rule security checklist (≥8 chars, uppercase, lowercase, number/special character) with dynamic progress bar and color-coded strength score (Weak / Fair / Good / Strong).
+- **`OtpVerificationView.tsx`**: 6-digit email confirmation code entry view with auto-advance inputs and Resend integration.
+- **`SignInForm.tsx` & `SignUpForm.tsx`**: Isolated form components cleanly separated from page shells to ensure strict <250 lines compliance across `/sign-in` (98 lines) and `/sign-up` (108 lines).
+- **`AuthModal.tsx` (`apps/web/src/components/landing`)**: Accessible overlay on `/` enabling in-place authentication without page navigation. Supports tab switching between Sign In and 60-Day Free Trial, backdrop dismiss, and `Escape` key capture.
+
+### 10.3 Landing Page Component Hierarchy (`apps/web/src/components/landing`)
+- **`LandingHeader.tsx`**: Responsive header with anchor links (`#why-us`, `#how-it-works`, `#advantages`, `#pricing`, `#faq`) and `AuthModal` trigger callbacks.
+- **`LandingHero.tsx`**: Dual-column hero layout combining the Before/After traditional vs Money Matters comparison with the interactive Serene Bento showcase (Zero Bill Shock, Real Goal Progress, Everyday Safe Spend, and "Can I Afford This?" micro-tester).
+- **`ProblemSection.tsx`**: 4 fatal budgeting traps illustrated with Serene Finance vector icons (zero decorative emojis).
+- **`HowItWorksSection.tsx`**: 3-step automated payday allocation pipeline.
+- **`AdvantagesSection.tsx`**: 6-card grid highlighting the Two-Horizon engine, Stealth Privacy, and 1-click alignment.
+- **`PricingSection.tsx`**: Transparent household pricing ($9.95/mo or $89/yr, founding member $69/yr) with 60-day trial banner.
+- **`LandingFooter.tsx`**: Standardized footer with brand links and legal routes.
+
 
 
 

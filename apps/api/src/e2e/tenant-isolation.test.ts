@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { runAllocationEngine } from "@money-matters/capability-budgeting";
-import { parseBankCsv } from "@money-matters/capability-transactions";
+import { RecordExpenseCommand } from "@money-matters/types";
 import { generateBurstDates } from "@money-matters/capability-budgeting";
 import { ensurePremiumAccess } from "@money-matters/core";
 
@@ -54,20 +54,21 @@ describe("E2E Core Monorepo Integration & Multi-Tenant Isolation Suite", () => {
     expect(rentLine?.proposedAmount).toBeGreaterThan(0);
   });
 
-  it("E2E-02: Bank CSV Statement Parsing & Normalization Engine", () => {
-    const csvContent = `Date,Amount,Description\n15/08/2026,-45.20,Woolworths Sydney\n16/08/2026,2000.00,Employer Salary Deposit`;
+  it("E2E-02: Transaction Ledger Input Validation & Flow Enforcements", () => {
+    const validExpense = RecordExpenseCommand.safeParse({
+      poolId: "11111111-1111-4111-8111-111111111111",
+      amount: "45.20",
+      flowType: "DEBIT",
+      transactionType: "EXPENSE",
+      note: "Woolworths Groceries",
+    });
+    expect(validExpense.success).toBe(true);
 
-    const parsed = parseBankCsv(csvContent);
-    expect(parsed.transactions).toHaveLength(2);
-
-    const debitTx = parsed.transactions.find((t) => t.flowType === "DEBIT");
-    expect(debitTx).toBeDefined();
-    expect(debitTx?.amount).toBe("45.20");
-    expect(debitTx?.targetPool).toBe("EVERYDAY");
-
-    const creditTx = parsed.transactions.find((t) => t.flowType === "CREDIT");
-    expect(creditTx).toBeDefined();
-    expect(creditTx?.amount).toBe("2000.00");
+    const invalidAmount = RecordExpenseCommand.safeParse({
+      poolId: "11111111-1111-4111-8111-111111111111",
+      amount: "invalid-amount",
+    });
+    expect(invalidAmount.success).toBe(false);
   });
 
   it("E2E-03: Burst Recurrence Date Generation Math", () => {

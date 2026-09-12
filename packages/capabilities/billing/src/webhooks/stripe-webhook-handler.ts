@@ -43,43 +43,115 @@ export async function handleStripeWebhook(
     return { processed: true, eventType: `${event.type} (already_processed)` };
   }
 
+async function resolveTenantId(
+  db: DbOrTx,
+  metadataTenantId?: string | null,
+  customerId?: string | null,
+  subscriptionId?: string | null
+): Promise<string | null> {
+  if (metadataTenantId) {
+    const [tenant] = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(eq(tenants.id, metadataTenantId))
+      .limit(1);
+    if (tenant) return tenant.id;
+  }
+  if (subscriptionId) {
+    const [tenant] = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(eq(tenants.stripeSubscriptionId, subscriptionId))
+      .limit(1);
+    if (tenant) return tenant.id;
+  }
+  if (customerId) {
+    const [tenant] = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .where(eq(tenants.stripeCustomerId, customerId))
+      .limit(1);
+    if (tenant) return tenant.id;
+  }
+  return null;
+}
+
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      const tenantId = session.client_reference_id || (session.metadata && session.metadata.tenantId);
+      const rawTenantId = session.client_reference_id || (session.metadata && session.metadata.tenantId);
       const planType = (session.metadata?.planType as any) || "annual";
 
-      if (tenantId && session.subscription && session.customer) {
+      if (session.subscription && session.customer) {
         const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
         const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id || "";
+        const tenantId = await resolveTenantId(db, rawTenantId, customerId, subscriptionId);
 
-        const sub = await stripe.subscriptions.retrieve(subscriptionId);
-        const priceId = sub.items.data[0]?.price.id || "";
-        const currentPeriodEnd = sub.current_period_end
-          ? new Date(sub.current_period_end * 1000)
-          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        if (tenantId) {
+          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          const priceId = sub.items.data[0]?.price.id || "";
+          const currentPeriodEnd = sub.current_period_end
+            ? new Date(sub.current_period_end * 1000)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-        await activateSubscriptionCommand(db, {
-          tenantId,
-          stripeCustomerId: customerId,
-          stripeSubscriptionId: subscriptionId,
-          stripePriceId: priceId,
-          subscriptionEndsAt: currentPeriodEnd,
-          planType,
-        });
+          await activateSubscriptionCommand(db, {
+            tenantId,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
+            stripePriceId: priceId,
+            subscriptionEndsAt: currentPeriodEnd,
+            planType,
+          });
+        }
       }
       break;
     }
 
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      const tenantId = sub.metadata?.tenantId;
+      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id || "";
+      const tenantId = await resolveTenantId(db, sub.metadata?.tenantId, customerId, sub.id);
+
       if (tenantId) {
+        const cancelAtPeriodEnd = Boolean(sub.cancel_at_period_end);
+        const subscriptionEndsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000) : undefined;
+        const nextBillingAt = cancelAtPeriodEnd ? null : subscriptionEndsAt;
+        const itemPrice = sub.items.data[0]?.price;
+        const interval = itemPrice?.recurring?.interval;
+        let planType: "monthly" | "annual" | "founding" = "annual";
+        if (sub.metadata?.planType === "founding") {
+          planType = "founding";
+        } else if (interval === "month") {
+          planType = "monthly";
+        } else {
+          planType = "annual";
+        }
+
+        let subscriptionStatus: "SUBSCRIBED" | "PAST_DUE" | "TRIAL_EXPIRED" = "SUBSCRIBED";
+        let premiumEnabled = true;
+
+        if (sub.status === "past_due" || sub.status === "unpaid") {
+          subscriptionStatus = "PAST_DUE";
+          premiumEnabled = false;
+        } else if (sub.status === "canceled") {
+          subscriptionStatus = "TRIAL_EXPIRED";
+          premiumEnabled = false;
+        } else if (cancelAtPeriodEnd && subscriptionEndsAt && new Date() > subscriptionEndsAt) {
+          subscriptionStatus = "TRIAL_EXPIRED";
+          premiumEnabled = false;
+        }
+
         await db
           .update(tenants)
           .set({
-            cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
-            subscriptionEndsAt: sub.current_period_end ? new Date(sub.current_period_end * 1000) : undefined,
+            subscriptionStatus,
+            premiumEnabled,
+            cancelAtPeriodEnd,
+            subscriptionEndsAt,
+            nextBillingAt,
+            stripeSubscriptionId: sub.id,
+            ...(itemPrice?.id ? { stripePriceId: itemPrice.id } : {}),
+            planType,
             updatedAt: new Date(),
           })
           .where(eq(tenants.id, tenantId));
@@ -93,8 +165,8 @@ export async function handleStripeWebhook(
 
       if (subscriptionId) {
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
-        const tenantId = sub.metadata?.tenantId;
         const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id || "";
+        const tenantId = await resolveTenantId(db, sub.metadata?.tenantId, customerId, subscriptionId);
         const priceId = sub.items.data[0]?.price.id || "";
         const currentPeriodEnd = new Date(sub.current_period_end * 1000);
         const planType = (sub.metadata?.planType as any) || "annual";
@@ -153,8 +225,8 @@ export async function handleStripeWebhook(
 
       if (subscriptionId) {
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
-        const tenantId = sub.metadata?.tenantId;
         const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id || "";
+        const tenantId = await resolveTenantId(db, sub.metadata?.tenantId, customerId, subscriptionId);
 
         if (tenantId) {
           // Record failed invoice
@@ -197,7 +269,9 @@ export async function handleStripeWebhook(
 
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const tenantId = sub.metadata?.tenantId;
+      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id || "";
+      const tenantId = await resolveTenantId(db, sub.metadata?.tenantId, customerId, sub.id);
+
       if (tenantId) {
         // Transition immediately to expired holding screen per agreed design
         await db

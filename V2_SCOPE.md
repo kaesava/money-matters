@@ -27,6 +27,7 @@
 | **Category-Level Balance Management (Everyday & Bills)** | Deferred to Release 2 | Managed at pool level in V1; see detailed feature spec below |
 | **Upcoming Queue Multi-Selection & Batch Actioning** | Deferred to Release 2 | Single-row actioning (*Mark Received / Paid*, *Delete*) delivered in V1; batch checkboxes and bulk mark action bar deferred to V2 |
 | **Full Outlook-Style Complex Recurrence Builder** | Deferred to Release 2 | V1 provides simple frequency enums (`WEEKLY`, `FORTNIGHTLY`, `MONTHLY`, `ANNUALLY`) + one-off target date picker via `useRecurrenceBuilder`. Full Outlook-style RRULE rule builder (e.g. 2nd Tuesday of every month, Nth weekday, custom intervals, complex until dates) deferred to V2. |
+| **Bank Statement CSV Import & Open Banking Sync** | Deferred to Release 2 | Backward-looking receipt categorization removed from V1 to protect forward-looking zero-friction payday allocation philosophy. V2 will evaluate Consumer Data Right (CDR) read-only bank feeds and a streamlined pool-centric onboarding catch-up assistant. |
 
 ---
 
@@ -201,3 +202,24 @@ export const fileNotes = pgTable("file_notes", {
   ...tenantAndTimestamps
 });
 ```
+
+---
+
+## V2 Feature: Automated Bank Ingestion & Open Banking Sync
+
+### Feature ID
+
+`FEAT-V2-003-BANK-INGESTION-OPEN-BANKING`
+
+### Context
+
+In V1, retroactive historical CSV line-item imports were removed to maintain Money Matters' strict core philosophy: **forward-looking payday allocation (ring-fencing bills and savings so users spend their Everyday pool freely with zero tracking and zero guilt)**. Bank reconciliation in V1 is delivered via 1-click balance alignment (`<ReconciliationModal />`).
+
+### Scope & Technical Requirements for V2
+
+1. **Open Banking / CDR Read-Only Feeds**: Integrate with an accredited Australian Open Banking aggregator (e.g. Basiq, Akahu, or Frollo) to provide automated, read-only balance syncing directly into bank accounts without manual user CSV handling.
+2. **Pool-Centric Relational Mapping**: If file statement import is re-introduced, it must target real tenant Pool IDs (`poolId`) and Category IDs (`categoryId`) rather than static enum pool types, preventing arbitrary pool distribution.
+3. **Atomic Batch Tracking (`import_batches` table)**:
+   - Dedicated table tracking batch metadata (`id`, `tenantId`, `bankAccountId`, `fileName`, `rowCount`, `importedAt`, `archivedAt`).
+   - Soft-deleting or rolling back an import batch must atomically archive ledger transactions and unlink any scheduled income events.
+4. **Zero CI Bypasses & 100% i18n**: All UI components and modal drawers must adhere strictly to Serene Finance design tokens and zero-warning AST i18n parity.

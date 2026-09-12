@@ -5,7 +5,7 @@ import { t } from "@money-matters/i18n";
 
 export function FaqSection() {
   return (
-    <section className="py-20 bg-white border-t border-[#e2e4e0]" aria-label="Frequently Asked Questions">
+    <section id="faq" className="py-20 bg-white border-t border-slate-200/80 scroll-mt-14" aria-label="Frequently Asked Questions">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

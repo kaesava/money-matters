@@ -1,39 +1,58 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Logo } from "@money-matters/ui/web";
 
 export interface LandingHeaderProps {
-  onAuthClick: (path: string) => void;
+  onAuthClick: (tab: "signIn" | "signUp") => void;
 }
 
 export function LandingHeader({ onAuthClick }: LandingHeaderProps) {
   return (
-    <header className="border-b border-[#e2e4e0] bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-2xs">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-40 shadow-2xs">
+      <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3 group">
           <Logo size="md" />
-          <span className="text-xl font-extrabold tracking-tight text-[#1B2B4B] hidden sm:inline">
+          <span className="text-xl font-extrabold tracking-tight text-[#1B2B4B] group-hover:text-[#2563eb] transition-colors">
             {t("app.title")}
           </span>
-        </div>
-        <div className="flex items-center gap-4">
+        </Link>
+
+        {/* Navigation Anchors for desktop */}
+        <nav className="hidden md:flex items-center gap-6 text-xs font-bold text-slate-600">
+          <a href="#why-us" className="hover:text-[#2563eb] transition-colors">
+            {t("landing.problemSectionBadge")}
+          </a>
+          <a href="#how-it-works" className="hover:text-[#2563eb] transition-colors">
+            {t("landing.howItWorksBadge")}
+          </a>
+          <a href="#advantages" className="hover:text-[#2563eb] transition-colors">
+            {t("landing.advantagesSectionBadge")}
+          </a>
+          <a href="#pricing" className="hover:text-[#2563eb] transition-colors">
+            {t("landing.pricingTitle")}
+          </a>
+          <a href="#faq" className="hover:text-[#2563eb] transition-colors">
+            {t("landing.faqSectionBadge")}
+          </a>
+        </nav>
+
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => onAuthClick("/sign-in")}
-            className="text-sm font-semibold text-zinc-600 hover:text-[#1B2B4B] transition-colors cursor-pointer"
-            aria-label={t("auth.signInCta")}
+            onClick={() => onAuthClick("signIn")}
+            className="text-xs font-bold text-slate-700 hover:text-[#2563eb] px-3 py-2 rounded-xl transition-colors cursor-pointer"
           >
-            {t("auth.signInCta")}
+            {t("auth.signIn")}
           </button>
           <button
             type="button"
-            onClick={() => onAuthClick("/sign-up")}
-            className="bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
-            aria-label={t("landing.heroCtaPrimary")}
+            onClick={() => onAuthClick("signUp")}
+            className="bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-xs hover:shadow-md active:scale-98 cursor-pointer"
           >
-            {t("landing.heroCtaPrimary")}
+            {t("landing.createAccount")}
           </button>
         </div>
       </div>

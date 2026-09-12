@@ -9,3 +9,4 @@ export * from "./guards/ensure-premium.js";
 export * from "./commands/verify-checkout-session.js";
 export * from "./queries/list-invoices.js";
 export * from "./webhooks/stripe-webhook-handler.js";
+export * from "./commands/sync-subscription.js";

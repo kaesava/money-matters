@@ -185,8 +185,6 @@ for (const file of files) {
           file.includes('apps/mobile') ||
           file.includes('PaycheckSimulator') ||
           file.includes('ReconciliationModal') ||
-          file.includes('CsvImportModal') ||
-          file.includes('CsvStepComplete') ||
           /^\s*(\*|\/\*|\/\/|interface|type|export interface|export type)\b/.test(lineContent) ||
           /(:\s*|=>\s*|<)(Record|Promise|Array|React|KeyboardEvent|StyleProp)\b|;\s*|\bprev\s*-\s*1\b|\bonKeyDown\b/.test(lineContent) ||
           text === 'Money Matters' ||

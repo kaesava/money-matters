@@ -9,6 +9,7 @@ import {
   createCustomerPortalSessionCommand,
   verifyCheckoutSessionCommand,
   listInvoicesQuery,
+  syncSubscriptionCommand,
 } from '@money-matters/capability-billing';
 import { posthog } from '../lib/posthog.js';
 
@@ -65,6 +66,11 @@ export const billingRouter = {
 
   listInvoices: tenantProcedure.query(async ({ ctx }) => {
     return await listInvoicesQuery(ctx.db, ctx.tenantId!);
+  }),
+
+  syncSubscription: ownerProcedure.mutation(async ({ ctx }) => {
+    const tenantId = ctx.tenantId!;
+    return await syncSubscriptionCommand(ctx.db, tenantId);
   }),
 };
 

@@ -31,53 +31,9 @@ export default function BankAccountsScreen() {
     onError: (err) => toast.error(err.message),
   });
 
-  const importCsvMut = trpc.parseCsv.useMutation({
-    onSuccess: (res: { transactions: Array<{ date: string; amount: string; description: string }> }) => {
-      bankAccountsQuery.refetch();
-      toast.success(
-        `Parsed ${res.transactions.length} transactions from bank statement.`,
-        "CSV Statement Parsed"
-      );
-    },
-    onError: (err: { message: string }) => toast.error(err.message),
-  });
-
-
-
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAccountName, setNewAccountName] = useState("");
   const [newAccountBalance, setNewAccountBalance] = useState("0.00");
-  const [importingCsv, setImportingCsv] = useState(false);
-
-  const handlePickAndUploadCsv = async () => {
-    try {
-      const DocumentPicker = require("expo-document-picker");
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["text/csv", "text/comma-separated-values", "application/csv"],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const file = result.assets[0];
-        setImportingCsv(true);
-        const FileSystem = require("expo-file-system");
-        const fileContent = await FileSystem.readAsStringAsync(file.uri);
-        const targetAccountId = accounts[0]?.id;
-        if (!targetAccountId) {
-          toast.warning("Please create a bank account first before importing CSV statements.");
-          return;
-        }
-        await importCsvMut.mutateAsync({
-          csvText: fileContent,
-        });
-
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to read CSV file.");
-    } finally {
-      setImportingCsv(false);
-    }
-  };
 
 
   if (bankAccountsQuery.isLoading) {
@@ -222,25 +178,6 @@ export default function BankAccountsScreen() {
             </TouchableOpacity>
           </View>
         ))}
-
-        {/* Bank CSV Import Section */}
-        <View style={styles.csvCard}>
-          <Text style={styles.cardTitle}>📄 Big 4 Bank CSV Statement Import</Text>
-          <Text style={styles.cardDesc}>
-            To review statement transactions, customize category & income mappings, and prevent duplicates, please use the 3-Step CSV Import Wizard on the Money Matters Web Dashboard.
-          </Text>
-          <TouchableOpacity
-            style={styles.csvBtn}
-            onPress={() =>
-              Alert.alert(
-                "Web Dashboard Required",
-                "Please log into the Money Matters Web App on your browser to access the interactive 3-Step Bank CSV Import Wizard."
-              )
-            }
-          >
-            <Text style={styles.csvBtnText}>🌐 Open Web Dashboard for CSV Import</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
     </MobileScreenWrapper>
@@ -271,8 +208,5 @@ const styles = StyleSheet.create({
   accountCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   accountName: { fontSize: 14, fontWeight: "700", color: DESIGN_TOKENS.colors.textPrimary },
   accountBalance: { fontSize: 12, fontWeight: "700", color: DESIGN_TOKENS.colors.success },
-  csvCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, marginTop: 12, gap: 10 },
-  csvBtn: { backgroundColor: DESIGN_TOKENS.colors.accent, paddingVertical: 12, borderRadius: 10, alignItems: "center" },
-  csvBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 });
 

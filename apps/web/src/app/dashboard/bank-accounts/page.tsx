@@ -4,13 +4,11 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../lib/trpc";
-import { InfoTooltip, fmtDate, SearchInput, ConfirmDialog, RecordFilterBadge, PoolPicker } from "@money-matters/ui/web";
-import { ModalDialog } from "../../../components/web/ModalDialog";
+import { InfoTooltip, SearchInput, ConfirmDialog, RecordFilterBadge, PoolPicker } from "@money-matters/ui/web";
 import { useSubscriptionStatus } from "../../../hooks/useSubscriptionStatus";
 
 import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "./components/BankAccountTable";
 import { BankAccountFormModal } from "./components/BankAccountFormModal";
-import { CsvImportModal } from "../../../components/CsvImportModal";
 import { ReconciliationModal } from "../../../components/ReconciliationModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 
@@ -40,8 +38,6 @@ function BankAccountsDashboardContent() {
 
   const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
-  const csvBatchesQuery = trpc.listCsvImportBatches.useQuery();
-  const csvBatches = csvBatchesQuery.data ?? [];
 
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
 
@@ -92,24 +88,6 @@ function BankAccountsDashboardContent() {
   const [accBalance, setAccBalance] = useState("0.00");
   const [accBuffer, setAccBuffer] = useState("0.00");
   const [accIsPrivate, setAccIsPrivate] = useState(false);
-
-  // CSV Import Modal & Rollback State
-  const [selectedAccountForImport, setSelectedAccountForImport] = useState<BankAccountItem | null>(null);
-
-  const [rollbackMsg, setRollbackMsg] = useState<string | null>(null);
-  const [showRollbackModal, setShowRollbackModal] = useState(false);
-
-  const rollbackBatchMut = trpc.rollbackCsvBatch.useMutation({
-    onSuccess: (res) => {
-      setRollbackMsg(`✓ Successfully archived ${res.rolledBackCount} imported transactions!`);
-      bankAccountsQuery.refetch();
-      utils.listCsvImportBatches.invalidate();
-      utils.listTransactions.invalidate();
-    },
-    onError: (err) => {
-      setRollbackMsg(`Rollback Failed: ${err.message}`);
-    },
-  });
 
   useEffect(() => {
     setPage(1);
@@ -372,7 +350,6 @@ function BankAccountsDashboardContent() {
   };
 
   const [accountToArchive, setAccountToArchive] = useState<BankAccountItem | null>(null);
-  const [batchToRollback, setBatchToRollback] = useState<{ batchId: string; rowCount: number } | null>(null);
 
   const handleArchive = (acc: BankAccountItem) => {
     const catTypes = acc.categoryTypes || [];
@@ -389,16 +366,6 @@ function BankAccountsDashboardContent() {
     if (!accountToArchive) return;
     archiveAccountMut.mutate({ accountId: accountToArchive.id });
     setAccountToArchive(null);
-  };
-
-  const confirmRollbackBatch = () => {
-    if (!batchToRollback) return;
-    rollbackBatchMut.mutate({ batchId: batchToRollback.batchId });
-    setBatchToRollback(null);
-  };
-
-  const openImportModal = (acc: BankAccountItem) => {
-    setSelectedAccountForImport(acc);
   };
 
   return (
@@ -418,15 +385,6 @@ function BankAccountsDashboardContent() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            disabled={csvBatches.length === 0}
-            onClick={() => setShowRollbackModal(true)}
-            className="px-3.5 py-2.5 rounded-xl font-bold text-xs text-slate-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <span>📄</span>
-            <span>CSV Imports Log ({csvBatches.length})</span>
-          </button>
-          <button
-            type="button"
             onClick={openAddModal}
             className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
           >
@@ -434,61 +392,6 @@ function BankAccountsDashboardContent() {
           </button>
         </div>
       </div>
-
-      {rollbackMsg && (
-        <div className="p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-xs font-semibold flex items-center justify-between shadow-xs">
-          <span>{rollbackMsg}</span>
-          <button onClick={() => setRollbackMsg(null)} className="text-teal-600 hover:text-teal-800 font-bold ml-2">
-            ✕
-          </button>
-        </div>
-      )}
-
-      <ModalDialog
-        isOpen={showRollbackModal}
-        onClose={() => setShowRollbackModal(false)}
-        title={`CSV Statement Imports Log (${csvBatches.length})`}
-        maxWidth="max-w-2xl"
-      >
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500">
-            Archiving a batch removes its transactions from all calculations and balances.
-          </p>
-
-          {csvBatches.length === 0 ? (
-            <p className="text-zinc-500 italic py-6 text-center">No active CSV statement imports found.</p>
-          ) : (
-            <div className="divide-y divide-zinc-200 bg-white rounded-xl border border-zinc-200 overflow-hidden max-h-96 overflow-y-auto">
-              {csvBatches.map((batch) => (
-                <div key={batch.batchId} className="p-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-zinc-50/70 transition-colors">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-[#1B2B4B] text-sm">{batch.bankAccountName}</span>
-                    <span className="text-[11px] text-zinc-400 font-medium">
-                      Imported {fmtDate(batch.importedAt)} • {batch.rowCount} transactions
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs font-black text-zinc-800">
-                      Total: ${batch.totalAmount}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={rollbackBatchMut.isPending}
-                      onClick={() => {
-                        setShowRollbackModal(false);
-                        setBatchToRollback({ batchId: batch.batchId, rowCount: batch.rowCount });
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shadow-2xs cursor-pointer"
-                    >
-                      Archive Batch
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </ModalDialog>
 
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between shadow-xs">
@@ -549,7 +452,6 @@ function BankAccountsDashboardContent() {
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         openEditModal={openEditModal}
-        openImportModal={openImportModal}
         openAlignmentModal={handleDirectAlignment}
         fmtMoney={fmtMoney}
         isLoading={bankAccountsQuery.isLoading}
@@ -612,16 +514,6 @@ function BankAccountsDashboardContent() {
         />
       )}
 
-      {/* Bank Account Selected CSV Import Modal */}
-      {selectedAccountForImport && (
-        <CsvImportModal
-          isOpen={!!selectedAccountForImport}
-          bankAccountId={selectedAccountForImport.id}
-          onClose={() => setSelectedAccountForImport(null)}
-          onSuccess={() => bankAccountsQuery.refetch()}
-        />
-      )}
-
       <ConfirmDialog
         isOpen={!!accountToArchive}
         onClose={() => setAccountToArchive(null)}
@@ -630,16 +522,6 @@ function BankAccountsDashboardContent() {
         description={`Are you sure you want to archive bank account "${accountToArchive?.name || ""}"?`}
         confirmLabel="Archive Account"
         variant="danger"
-      />
-
-      <ConfirmDialog
-        isOpen={!!batchToRollback}
-        onClose={() => setBatchToRollback(null)}
-        onConfirm={confirmRollbackBatch}
-        title="Archive CSV Import Batch"
-        description={`Are you sure you want to archive this CSV import batch (${batchToRollback?.rowCount || 0} transactions)?`}
-        confirmLabel="Archive Batch"
-        variant="warning"
       />
     </div>
   );

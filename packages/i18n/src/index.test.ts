@@ -8,7 +8,7 @@ describe('i18n Localization Engine', () => {
     expect(t('common.nextPage')).toBe('Next');
     expect(t('common.pageOf', { page: 1, totalPages: 5 })).toBe('Page 1 of 5');
     expect(t('nav.paychecks')).toBe('Income & Expenses');
-    expect(t('app.title')).toBe('Money Matters by Kaesava');
+    expect(t('app.title')).toBe('Money Matters');
   });
 
   it('interpolates template parameters correctly', () => {

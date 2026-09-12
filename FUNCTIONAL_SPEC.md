@@ -1,7 +1,7 @@
 # FUNCTIONAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-09-05  
-> **Status:** Fully synchronized across all Master Plan phases & Pool-Centric Architecture enhancements: Pool-Centric Model (`Bank Account → Pool → Category`), `getPoolBalancesMap` DB-side aggregate balance utility in `@money-matters/db`, `budgetingRouter` consolidating pool, category, and budgeting RPC procedures, 100% `privateTenantProcedure` RLS session context injection across private routes (bank accounts, pools, categories, income, payday, expenses, reconciliation), transactional payday allocation plan revert with offsetting DEBIT ledger entries, cascading pool soft-archival to child categories, last-category-in-pool archival protection, 100% i18n externalization & Japanese dictionary parity (`ja.ts`), AST-based `check-i18n` validator, standardized terminology ("Everyday Spending", "Bills", "Expense", "History"), Centralized Form Input Defenses (12-digit amount cap, string HTML/script stripping, date-picker enforcement, mandatory red asterisk UX, and dynamic submit button state blocking), 100% Vitest unit test coverage, Commercial Model (60-Day Free Trial with Hard Paywall Lockdown on Day 61, $9.95 AUD/mo or $89/yr, $69/yr founding member launch price), Revamped Settings 4-Tab Architecture (`My Details`, `Household`, `Archived Data`, `Data & Subscription`), mandatory Name & Notification Email validation, reusable `CountrySelect`, `LocationFields` & `PhoneInput` validation components, custom 256x256 WebP avatar photo uploads, owner-only household member removal with modal confirmation challenge, Pools Surplus Sweep Target assignment across GOAL and REGULAR categories, 12-table Zipped CSV Data Backup, left-aligned Income & Bills Timeline view switcher with `(i)` InfoTooltip, Orthogonal Stealth Privacy (`isPrivate: boolean` flag across `EVERYDAY`, `REGULAR`, `GOAL` pools) with Postgres RLS, 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, 3-Step Interactive Setup Wizard across Web & Mobile, 5-Step Waterfall Cascade, Big 4 AU Bank CSV Import, Smart Notifications, Serene Finance Design System with Unified Web & Mobile Toast/Alert Feedback Infrastructure, App-Wide Global Error Boundary (`QueryCache.onError`), Backend Lazy Materialization, Session Draft Persistence (`sessionStorage`), Clean Separation of Public Compliance Legal Info vs In-App Household Governance, Prominent Aussie Household Warnings, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
+> **Status:** Fully synchronized across all Master Plan phases & Pool-Centric Architecture enhancements: Pool-Centric Model (`Bank Account → Pool → Category`), `getPoolBalancesMap` DB-side aggregate balance utility in `@money-matters/db`, `budgetingRouter` consolidating pool, category, and budgeting RPC procedures, 100% `privateTenantProcedure` RLS session context injection across private routes (bank accounts, pools, categories, income, payday, expenses, reconciliation), transactional payday allocation plan revert with offsetting DEBIT ledger entries, cascading pool soft-archival to child categories, last-category-in-pool archival protection, 100% i18n externalization & Japanese dictionary parity (`ja.ts`), AST-based `check-i18n` validator, standardized terminology ("Everyday Spending", "Bills", "Expense", "History"), Centralized Form Input Defenses (12-digit amount cap, string HTML/script stripping, date-picker enforcement, mandatory red asterisk UX, and dynamic submit button state blocking), 100% Vitest unit test coverage, Commercial Model (60-Day Free Trial with Hard Paywall Lockdown on Day 61, $9.95 AUD/mo or $89/yr, $69/yr founding member launch price), Revamped Settings 4-Tab Architecture (`My Details`, `Household`, `Archived Data`, `Data & Subscription`), mandatory Name & Notification Email validation, reusable `CountrySelect`, `LocationFields` & `PhoneInput` validation components, custom 256x256 WebP avatar photo uploads, owner-only household member removal with modal confirmation challenge, Pools Surplus Sweep Target assignment across GOAL and REGULAR categories, 12-table Zipped CSV Data Backup, left-aligned Income & Bills Timeline view switcher with `(i)` InfoTooltip, Orthogonal Stealth Privacy (`isPrivate: boolean` flag across `EVERYDAY`, `REGULAR`, `GOAL` pools) with Postgres RLS, 5-Level "Can We Afford This?" Cashflow Engine with Bill Buffer Protection and Daily Pacing Velocity, 3-Step Interactive Setup Wizard across Web & Mobile, 5-Step Waterfall Cascade, 1-Click Bank Balance Alignment, Smart Notifications, Serene Finance Design System with Unified Web & Mobile Toast/Alert Feedback Infrastructure, App-Wide Global Error Boundary (`QueryCache.onError`), Backend Lazy Materialization, Session Draft Persistence (`sessionStorage`), Clean Separation of Public Compliance Legal Info vs In-App Household Governance, Prominent Aussie Household Warnings, Tenant Switcher, Android Mobile Target, Privacy Policy, Support Contact, Sentry Exception Tracker, and PostHog Product Telemetry.
 
 ---
 
@@ -9,7 +9,7 @@
 
 Money Matters is a forward-looking allocation budget app designed for Australian households and families.
 - **Commercial Model**: 60-day full Household trial on sign-up (no credit card required). Covers 2 full monthly pay and bill cycles. On Day 61 (`NOW() > trialEndsAt`), the account enters `TRIAL_GRACE` (7-day read-only grace period where dashboard data is viewable but mutations are blocked). On Day 68 (`NOW() > trialGraceEndsAt`), the account enters `TRIAL_EXPIRED` hard paywall lockdown, redirecting all dashboard routes to the isolated `/subscription/expired` holding screen. Users can upgrade ($9.95 AUD / month or $89 AUD / year) or download their data via Zipped CSV Export so users are never "holding their data hostage."
-- **Unified Product Tier (Full Access)**: All users enjoy complete access to the 5-step waterfall engine, unlimited transaction history, unlimited Goal pools, Big 4 AU Bank CSV statement import, **Household Partner Invites**, **Private Pools**, and **Private Personal Bank Accounts** during their 60-day trial or active subscription.
+- **Unified Product Tier (Full Access)**: All users enjoy complete access to the 5-step waterfall engine, unlimited transaction history, unlimited Goal pools, 1-click bank balance alignment, **Household Partner Invites**, **Private Pools**, and **Private Personal Bank Accounts** during their 60-day trial or active subscription.
 - **Pool-Centric Architecture**: Budgeting, allocations, money movements, and reconciliation operate at the **Pool** level (`Bank Account → Pool → Category`). Categories are sub-tags for expense tracking (`EVERYDAY` and `REGULAR` pools contain categories; `GOAL` pools operate directly without sub-categories).
 - **Immutable Pool Bank Account & Type Linking**: Once a Pool is created, its linked Bank Account (`bankAccountId`) and Pool Type (`poolType`) are strictly immutable to preserve historical ledger auditability and prevent stealth privacy leaks. Moving a Pool to a different Bank Account requires archiving the old Pool and creating a new one linked to the target account.
 - **Unbudgeted Buffer Constraint**: A Bank Account's Unbudgeted Buffer / Reserved Funds cannot exceed its Current (Last Known) Balance. Inline validation enforces this limit during creation and edit.
@@ -230,16 +230,16 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 4. Bank Statement CSV Import (V1 Launch Feature)
+## 4. Bank Account Balance Alignment & V2 Ingestion Scope
 
-- **Supported Banks**: Commonwealth Bank (CBA), Westpac, ANZ, National Australia Bank (NAB), ING, and Macquarie.
-- **Import Flow**:
-  - Web: Interactive 3-Step CSV Import Wizard (`Upload` $\rightarrow$ `Review & Map` $\rightarrow$ `Complete & Commit`).
-  - Mobile: Informative guidance directing users to the Web App for statement CSV imports with category/income mapping and duplicate prevention.
-  - Automatic parsing of bank-specific CSV headers (Date, Description, Amount, Balance) with custom column mapper fallback.
-  - Rule-based category matching based on merchant description keywords.
-  - Server-side deduplication based on transaction hash (`date + flowType + amount + description`) pre-flagging duplicate rows (`⚠️ Duplicate`).
-  - Bulk confirmation & manual category / income source re-assignment before committing to the database.
+- **Core Philosophy Alignment**: Money Matters automates forward-looking payday allocation (ring-fencing bills and committed savings so users can spend their remaining Everyday pool freely with zero friction and zero guilt). In alignment with this core principle, retroactively importing historical line-item CSV statements is omitted from V1 to eliminate backward-looking receipt policing and micro-categorization friction.
+- **1-Click Bank Balance Alignment (V1 Feature)**:
+  - Accessible directly on the Bank Accounts dashboard (`/dashboard/bank-accounts`) via inline action badges (`Align Surplus` / `Align Shortfall`) and the dedicated `<ReconciliationModal />`.
+  - Enables users to instantly sync their real-world bank account balance with their Money Matters pool balances in two clicks, recording deterministic `ACCOUNT_ALIGNMENT` / `BALANCE_ADJUSTMENT` ledger events.
+- **Zipped CSV Data Export (V1 Feature)**:
+  - Users retain 100% data sovereignty via full zipped CSV data backup (`exportTenantData`), available anytime in Settings and on trial expiration holding screens.
+- **Automated Bank Statement Import / Open Banking Feeds**:
+  - Formally scheduled for Release 2 (`V2_SCOPE.md`), evaluating Consumer Data Right (CDR) read-only bank feeds and a streamlined pool-centric onboarding catch-up assistant.
 
 ---
 
@@ -321,7 +321,9 @@ The onboarding flow delivers an engaging interactive estimation experience compl
    - **Isolated Holding Screen (`/subscription/expired`)**: Clean, distraction-free screen offering an Upgrade CTA, 1-click full zipped CSV backup download (`exportTenantData`), and Sign Out. Users are never locked out of retrieving their financial data.
    - **Australian Payment Methods**: Stripe Checkout sessions omit restrictive payment method types to dynamically offer standard credit/debit cards (Visa, Mastercard, AMEX), Apple Pay, Google Pay, and Link in AUD ($9.95/mo or $89/yr).
    - **Synchronous Post-Checkout Transition**: Upon completing checkout, Stripe redirects to `/subscription/success?session_id={CHECKOUT_SESSION_ID}`. The page invokes `billing.verifyCheckoutSession` mutation to immediately verify the session with Stripe, set the tenant to `SUBSCRIBED`, record the invoice in `billing_invoices`, and bust the client query cache so the trial badge disappears instantly.
-   - **Subscription Cancellation**: When a user cancels their subscription via the Stripe Customer Portal, `customer.subscription.updated` sets `cancelAtPeriodEnd = true`. Access is retained through the paid period with an amber "Canceling" notice in Settings, transitioning to `TRIAL_EXPIRED` only after period expiry.
+   - **Subscription Cancellation & 1-Click Resumption**: When a user cancels their subscription via the Stripe Customer Portal, `customer.subscription.updated` sets `cancelAtPeriodEnd = true`. Access is retained through the paid period with an amber "Canceling" notice and a reassuring banner in Settings confirming billing has halted, specifying the exact date access terminates, and providing a direct "Resume Plan ↗" button to undo cancellation in Stripe. The account transitions to `TRIAL_EXPIRED` only after period expiry.
+   - **On-Demand Portal Return Synchronization**: When users return from managing their subscription in the Customer Portal (`?tab=account-data&stripe_sync=true`) or click the manual refresh button (`↻`), Money Matters instantly reconciles subscription state and backfills the latest 10 invoices from Stripe.
+   - **Advance Renewal Reminders**: Hybrid renewal reminder architecture: Stripe sends automated 7-day advance reminder emails for annual recurring subscriptions, and Money Matters displays an informative in-app banner within 7 days of the renewal date.
    - **Invoice History & Receipts**: Paid and failed invoices are persisted to `billing_invoices`. The Settings "Data & Subscription" tab renders recent invoices with direct links to Stripe-hosted invoice PDFs.
    - **Anti-Abuse Protections**: Each user can own at most 1 active household (`role === 'OWNER'`). Additionally, a permanent `hasUsedTrial` flag on `users` ensures that any subsequent household created by the same user starts in `TRIAL_EXPIRED` status, preventing recurring trial reset abuse.
    - **Support & Feedback Channel**: Australian customer support contact (`support@moneymatters.kaesava.au`) is surfaced across the upgrade page, settings subscription section, and invoice receipts.
@@ -396,5 +398,43 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
 6. **Mark Spent Workflow Refinements**:
    - Transaction ledger note automatically prepends the Expense event name.
    - Allows past dates to support retroactive entry of paid bills, while strictly forbidding future dates (`max={todayStr}`).
+
+---
+
+## 11. Public Pre-Login Experience & Authentication Architecture
+
+### 11.1 Brand Identity & Value Proposition
+- **Standardized Name**: "Money Matters" universally across all titles, headers, footers, JSON-LD schemas, and legal documentation (all historical "by Kaesava" brand strings completely removed).
+- **Core Tagline**: *"Zero bill shock. Real progress on long-term goals. Zero daily tracking."*
+  - Replaced legacy *"Simple, honest household budgeting."* across the entire application and metadata surfaces.
+  - Articulates the core differentiation: automated forward-looking payday allocation ring-fencing bills and long-term committed savings, delivering a guilt-free Everyday spending pool with zero daily receipt logging and zero friction.
+
+### 11.2 Landing Page Experience (`/`)
+- **Interactive Split Hero**:
+  - **Traditional vs Modern Comparison**: Contrast panel demonstrating "The Traditional Budgeting Way" (47 receipts logged, surprise bill panic, broken spreadsheets) vs "The Money Matters Way" (Payday ring-fencing, guilt-free everyday spending, visible goal pacing).
+  - **Live Serene Bento Showcase**: Interactive widget showcasing the 4 pillars:
+    1. *Zero Bill Shock*: Live upcoming bills ring-fenced before payday.
+    2. *Real Goal Progress*: Target-date pacing needle tracking long-term milestones.
+    3. *Everyday Safe Spend*: Real-time remaining balance safe to spend to zero.
+    4. *Instant "Can I Afford This?" Micro-Tester*: Interactive micro-calculator letting prospective users test ad-hoc purchases against everyday balances in real time.
+- **Problem & Solution Narrative**:
+  - 4 Fatal Budgeting Traps: The Receipt Ledger Trap, The Sinking Fund Surprise, Relationship Surveillance, and Spreadsheet Fragility.
+  - The 3-Step Solution: Connect Accounts, Automate Waterfall on Payday, Spend Everyday pool guilt-free.
+- **In-Place Auth Modal (`<AuthModal />`)**:
+  - Direct modal integration on `/` eliminating legacy early access gating.
+  - Seamless toggle between `[Sign In]` and `[Start 60-Day Free Trial]`.
+  - Accessible dialog supporting backdrop and `Escape` key dismissal.
+
+### 11.3 Public Pre-Login Layout & Modular Auth Primitives
+- **Unified Public Primitives (`@money-matters/web/components/public`)**:
+  - `<PublicHeader />`: Clean top navigation with logo, brand title, and context-aware action buttons (*← Back to Home*, *← Back to Dashboard*, or *Sign In*).
+  - `<PublicFooter />`: Unified footer with dynamic copyright, official tagline, Serene Finance badge, and legal links (`/terms`, `/privacy`).
+- **Dedicated Pre-Login Routes (<250 lines rule compliant)**:
+  - `/sign-in` & `/sign-up`: Modular auth flows powered by `<SocialAuthButtons />`, `<PasswordStrengthIndicator />`, and `<OtpVerificationView />`.
+  - `/forgot-password` & `/reset-password`: Self-service password recovery with 100% externalized i18n copy.
+  - `/terms`, `/privacy`, & `/privacy/delete-account`: Public legal documentation and GDPR/CDR compliant account deletion instructions.
+  - `/subscription/upgrade`: Transparent pricing and founding member subscription checkout with extracted `<ActiveSubscriptionCard />`.
+  - `/invite/[token]`: Household partner invitation acceptance landing page.
+
 
 

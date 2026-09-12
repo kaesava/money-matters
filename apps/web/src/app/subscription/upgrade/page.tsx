@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { Logo, Button } from "@money-matters/ui/web";
+import { Button } from "@money-matters/ui/web";
 import { authClient } from "../../../lib/auth";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
+import { PublicHeader } from "../../../components/public/PublicHeader";
+import { PublicFooter } from "../../../components/public/PublicFooter";
+import { ActiveSubscriptionCard } from "./ActiveSubscriptionCard";
 
 export default function UpgradePage() {
   const router = useRouter();
@@ -21,7 +24,6 @@ export default function UpgradePage() {
     }
   }, [isAuthPending, session, router]);
 
-  // Toggle switch for special $69 founding offer on annual plan
   const isFoundingOfferActive = true;
 
   const subStatusQuery = trpc.getSubscriptionStatus.useQuery();
@@ -53,7 +55,6 @@ export default function UpgradePage() {
     setLoading(true);
     setError(null);
 
-    // Map annual cycle to 'founding' when the special offer switch is active
     const planType = selectedCycle === "annual" && isFoundingOfferActive ? "founding" : selectedCycle;
 
     try {
@@ -75,119 +76,18 @@ export default function UpgradePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] flex flex-col font-sans">
-      {/* Product & Pricing Offer JSON-LD Schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Product",
-            "name": "Money Matters Household Subscription",
-            "description": "Unlimited household access to automated 5-step waterfall budgeting, mortgage offset optimizer, and bank CSV imports.",
-            "brand": {
-              "@type": "Brand",
-              "name": "Money Matters",
-            },
-            "offers": [
-              {
-                "@type": "Offer",
-                "name": "Annual Plan (Special Founding Member)",
-                "price": "69.00",
-                "priceCurrency": "AUD",
-                "priceValidUntil": "2027-12-31",
-                "url": "https://moneymatters.kaesava.au/subscription/upgrade",
-                "availability": "https://schema.org/InStock",
-              },
-              {
-                "@type": "Offer",
-                "name": "Monthly Plan",
-                "price": "9.95",
-                "priceCurrency": "AUD",
-                "url": "https://moneymatters.kaesava.au/subscription/upgrade",
-                "availability": "https://schema.org/InStock",
-              },
-            ],
-          }),
-        }}
-      />
-      {/* Top Brand Navigation Bar */}
-      <header className="w-full bg-[#1B2B4B] border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-md">
-        <div className="flex items-center gap-3">
-          <Logo size="md" />
-          <span className="text-lg font-extrabold text-white tracking-tight">
-            {t("app.title")}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.push(session?.user ? "/dashboard" : "/")}
-          className="text-xs font-bold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 px-3.5 py-2 rounded-xl transition-all"
-        >
-          ← {session?.user ? t("subscription.backToDashboard") : t("subscription.backToHome")}
-        </button>
-      </header>
+    <div className="min-h-screen bg-[#F7F8FA] flex flex-col font-sans justify-between">
+      <PublicHeader backHref={session?.user ? "/dashboard" : "/"} />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-12 flex flex-col gap-10">
         {isSubscribed ? (
-          <div className="w-full max-w-xl mx-auto bg-white rounded-3xl p-8 md:p-10 border border-slate-200 shadow-xl flex flex-col items-center text-center gap-6">
-            <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl font-bold">
-              👑
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 self-center">
-                ✓ {t("subscription.activeBadge")}
-              </span>
-              <h2 className="text-2xl font-extrabold text-[#1B2B4B]">
-                {t("subscription.alreadySubscribedTitle")}
-              </h2>
-              <p className="text-sm text-slate-600 leading-relaxed max-w-md">
-                {t("subscription.alreadySubscribedSubtitle")}
-              </p>
-            </div>
-
-            {subStatus?.nextBillingAt && !subStatus.cancelAtPeriodEnd && (
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold w-full max-w-md">
-                {t("subscription.renewsOn", {
-                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(subStatus.nextBillingAt)),
-                })}
-              </div>
-            )}
-
-            {subStatus?.cancelAtPeriodEnd && subStatus.subscriptionEndsAt && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-semibold w-full max-w-md">
-                {t("subscription.cancelingNotice", {
-                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(subStatus.subscriptionEndsAt)),
-                })}
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
-              <Button
-                variant="primary"
-                onClick={handleOpenStripePortal}
-                loading={loadingPortal}
-                className="w-full justify-center"
-              >
-                {t("subscription.manageSubscription")}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => router.push("/dashboard")}
-                className="w-full justify-center"
-              >
-                {t("subscription.backToDashboard")}
-              </Button>
-            </div>
-
-            <div className="mt-2 text-center text-xs text-slate-400 font-medium">
-              {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
-            </div>
-          </div>
+          <ActiveSubscriptionCard
+            subStatus={subStatus}
+            onOpenPortal={handleOpenStripePortal}
+            loadingPortal={loadingPortal}
+          />
         ) : (
           <>
-            {/* Page Hero Header */}
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 border border-blue-200 text-xs font-extrabold text-[#2563eb]">
                 ✨ {t("landing.pricingTrialBadge")}
@@ -199,11 +99,11 @@ export default function UpgradePage() {
                 {t("subscription.upgradePageSubtitle")}
               </p>
 
-              {/* Billing Selector Tabs (Two Tabs: Annual & Monthly) */}
               <div className="flex items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl mt-4 border border-slate-300/50 shadow-inner">
                 <button
+                  type="button"
                   onClick={() => setBillingCycle("annual")}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                     billingCycle === "annual"
                       ? "bg-[#2563eb] text-white shadow-md"
                       : "text-slate-700 hover:text-slate-900"
@@ -212,8 +112,9 @@ export default function UpgradePage() {
                   {isFoundingOfferActive ? t("subscription.annualTabFounding") : t("subscription.annualTabStandard")}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setBillingCycle("monthly")}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                  className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                     billingCycle === "monthly"
                       ? "bg-[#2563eb] text-white shadow-md"
                       : "text-slate-700 hover:text-slate-900"
@@ -230,7 +131,6 @@ export default function UpgradePage() {
               </div>
             )}
 
-            {/* Plan Pricing Card */}
             <div className="w-full max-w-xl mx-auto">
               <div className="bg-white rounded-3xl p-8 md:p-10 border-2 border-[#2563eb] flex flex-col justify-between shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest shadow-sm">
@@ -244,7 +144,6 @@ export default function UpgradePage() {
                     </span>
                   </div>
 
-                  {/* Price display */}
                   <div className="flex items-baseline gap-2 font-mono">
                     {billingCycle === "annual" ? (
                       isFoundingOfferActive ? (
@@ -280,7 +179,6 @@ export default function UpgradePage() {
                     </div>
                   )}
 
-                  {/* Feature Highlights */}
                   <div className="space-y-3 pt-2">
                     <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
                       {t("subscription.includedFeaturesTitle")}
@@ -346,6 +244,8 @@ export default function UpgradePage() {
           </>
         )}
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

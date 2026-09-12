@@ -6,6 +6,8 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Spinner, Button } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
+import { PublicHeader } from "../../components/public/PublicHeader";
+import { PublicFooter } from "../../components/public/PublicFooter";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -23,17 +25,17 @@ function ResetPasswordForm() {
     setError(null);
 
     if (!token) {
-      setError("Invalid or missing reset token. Please request a new link.");
+      setError(t("auth.tokenMissingError"));
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      setError(t("auth.passwordTooShort"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t("auth.passwordsMustMatch"));
       return;
     }
 
@@ -45,7 +47,7 @@ function ResetPasswordForm() {
       });
 
       if (res.error) {
-        throw new Error(res.error.message || "Failed to reset password. The link may have expired.");
+        throw new Error(res.error.message || t("auth.invalidToken"));
       }
 
       setSuccess(true);
@@ -53,7 +55,7 @@ function ResetPasswordForm() {
         router.push("/sign-in");
       }, 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+      setError(err instanceof Error ? err.message : t("auth.unexpectedError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -66,12 +68,12 @@ function ResetPasswordForm() {
           ✓
         </div>
         <h2 className="text-xl font-bold text-[#1B2B4B]">{t("auth.passwordResetSuccessTitle")}</h2>
-        <p className="text-sm text-zinc-600">
-          {t("auth.passwordResetSuccessDesc")} Redirecting to sign in...
+        <p className="text-sm text-slate-600">
+          {t("auth.passwordResetSuccessDesc")}
         </p>
         <Link
           href="/sign-in"
-          className="mt-2 inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white bg-[#2563eb] rounded-xl hover:bg-blue-700 transition-colors"
+          className="mt-2 inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold text-white bg-[#2563eb] rounded-xl hover:bg-blue-700 transition-colors shadow-xs"
         >
           {t("auth.signIn")}
         </Link>
@@ -82,8 +84,8 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
-        <div className="p-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl">
-          {error}
+        <div className="p-3.5 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl font-semibold">
+          ⚠️ {error}
         </div>
       )}
 
@@ -95,10 +97,11 @@ function ResetPasswordForm() {
           id="new-password-input"
           type="password"
           required
+          autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          className="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
         />
       </div>
 
@@ -113,13 +116,13 @@ function ResetPasswordForm() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="••••••••"
-          className="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
         />
       </div>
 
       <Button
         type="submit"
-        className="w-full mt-2"
+        className="w-full mt-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-xs cursor-pointer"
         loading={isSubmitting}
         disabled={!password.trim() || !confirmPassword.trim() || password !== confirmPassword}
       >
@@ -128,7 +131,7 @@ function ResetPasswordForm() {
 
       <div className="text-center mt-2">
         <Link href="/sign-in" className="text-xs text-[#2563eb] hover:underline font-semibold">
-          ← Back to Sign In
+          {t("auth.backToSignIn")}
         </Link>
       </div>
     </form>
@@ -137,17 +140,33 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-zinc-200/80 p-8">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-[#1B2B4B] tracking-tight">Set New Password</h1>
-          <p className="text-xs text-zinc-500 mt-1">Choose a secure password for your Money Matters account.</p>
-        </div>
+    <div className="min-h-screen bg-[#F7F8FA] flex flex-col font-sans justify-between">
+      <PublicHeader backHref="/sign-in" backLabel={t("auth.backToSignIn")} />
 
-        <Suspense fallback={<div className="flex justify-center p-8"><Spinner size="md" /></div>}>
-          <ResetPasswordForm />
-        </Suspense>
-      </div>
+      <main className="flex-1 flex items-center justify-center p-6 my-8">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 p-8 sm:p-10">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-extrabold text-[#1B2B4B] tracking-tight">
+              {t("auth.setNewPasswordTitle")}
+            </h1>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              {t("auth.setNewPasswordSubtitle")}
+            </p>
+          </div>
+
+          <Suspense
+            fallback={
+              <div className="flex justify-center p-8">
+                <Spinner size="lg" className="text-[#2563eb]" />
+              </div>
+            }
+          >
+            <ResetPasswordForm />
+          </Suspense>
+        </div>
+      </main>
+
+      <PublicFooter />
     </div>
   );
 }

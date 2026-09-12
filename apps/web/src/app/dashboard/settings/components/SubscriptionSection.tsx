@@ -21,16 +21,63 @@ interface SubscriptionSectionProps {
 export function SubscriptionSection({ status }: SubscriptionSectionProps) {
   const toast = useToast();
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const trpcUtils = trpc.useUtils();
   const portalMut = trpc.createCustomerPortalSession.useMutation();
+  const syncMut = trpc.syncSubscription.useMutation();
   const invoicesQuery = trpc.listInvoices.useQuery(undefined, {
     enabled: status?.status === "SUBSCRIBED" || status?.status === "PAST_DUE",
   });
 
+  // Auto-reconcile subscription status when returning from Stripe Customer Portal
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("stripe_sync") === "true") {
+      setSyncing(true);
+      syncMut
+        .mutateAsync()
+        .then(() => {
+          trpcUtils.getSubscriptionStatus.invalidate();
+          trpcUtils.listInvoices.invalidate();
+          toast.success(t("subscription.syncedSuccess"));
+        })
+        .catch((err) => {
+          console.warn("Auto-sync error:", err);
+        })
+        .finally(() => {
+          setSyncing(false);
+          urlParams.delete("stripe_sync");
+          const newSearch = urlParams.toString();
+          const newUrl = `${window.location.pathname}${newSearch ? `?${newSearch}` : ""}`;
+          window.history.replaceState({}, "", newUrl);
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      await syncMut.mutateAsync();
+      await Promise.all([
+        trpcUtils.getSubscriptionStatus.invalidate(),
+        trpcUtils.listInvoices.invalidate(),
+      ]);
+      toast.success(t("subscription.syncedSuccess"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("subscription.portalError"));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleOpenStripePortal = async () => {
     setLoadingPortal(true);
     try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
       const res = await portalMut.mutateAsync({
-        returnUrl: window.location.href,
+        returnUrl: `${origin}/dashboard/settings?tab=account-data&stripe_sync=true`,
       });
       if (res.url) {
         window.location.href = res.url;
@@ -81,9 +128,21 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
         {/* Top Header Row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-              {t("subscription.currentPlan")}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                {t("subscription.currentPlan")}
+              </p>
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={syncing}
+                title={t("subscription.refreshTooltip")}
+                aria-label={t("subscription.refreshTooltip")}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors p-0.5 rounded cursor-pointer"
+              >
+                <span className={`inline-block text-xs font-bold ${syncing ? "animate-spin" : ""}`}>↻</span>
+              </button>
+            </div>
             <div className="flex items-center gap-2.5 mt-1">
               <h3 className="text-xl font-extrabold text-[#1B2B4B] dark:text-white">
                 {planName}
@@ -144,6 +203,56 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
             )}
           </div>
         </div>
+
+        {/* Cancellation Reassurance Callout */}
+        {status?.cancelAtPeriodEnd && status?.subscriptionEndsAt && (
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="text-xl shrink-0">⚠️</span>
+              <div>
+                <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                  {t("subscription.cancelingBannerTitle")}
+                </h4>
+                <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 leading-relaxed">
+                  {t("subscription.cancelingBannerDesc", {
+                    date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.subscriptionEndsAt)),
+                  })}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenStripePortal}
+              disabled={loadingPortal}
+              className="shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all self-start sm:self-center shadow-xs cursor-pointer"
+            >
+              {t("subscription.resumeSubscription")} ↗
+            </button>
+          </div>
+        )}
+
+        {/* Upcoming 7-Day Renewal Advance Reminder */}
+        {isSubscribed && !status?.cancelAtPeriodEnd && status?.nextBillingAt && (() => {
+          const daysUntilBilling = Math.ceil((new Date(status.nextBillingAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          if (daysUntilBilling >= 0 && daysUntilBilling <= 7) {
+            return (
+              <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 flex items-start gap-3 text-xs">
+                <span className="text-base shrink-0">ℹ️</span>
+                <div>
+                  <h4 className="font-bold text-blue-900 dark:text-blue-200">
+                    {t("subscription.upcomingRenewalTitle")}
+                  </h4>
+                  <p className="text-blue-800/90 dark:text-blue-300/90 mt-0.5">
+                    {t("subscription.upcomingRenewalDesc", {
+                      date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.nextBillingAt)),
+                    })}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <p className="text-xs text-zinc-500 leading-relaxed">
           {t("subscription.billingDesc")}

@@ -19,7 +19,10 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       await page.goto('/');
 
       // Verify Page Title & Metadata
-      await expect(page).toHaveTitle(/MoneyMatters/i);
+      await expect(page).toHaveTitle(/Money\s*Matters/i);
+
+      // Verify New Tagline Presence on Hero
+      await expect(page.locator('h1').first()).toContainText(/Zero bill shock/i);
 
       // Verify Header Branding Logo & Navigation Links
       const logoLink = page.locator('header a, nav a, a[href="/"]').first();
@@ -28,9 +31,18 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
 
       // Check Hero Section Headlines & CTA buttons
-      const getStartedBtn = page.locator('a:has-text("Get Started"), button:has-text("Get Started"), a[href*="setup"]').first();
+      const getStartedBtn = page.locator('button:has-text("Start 60-Day Free Trial"), a:has-text("Get Started"), button:has-text("Get Started")').first();
       if (await getStartedBtn.isVisible()) {
         await expect(getStartedBtn).toBeVisible();
+        await getStartedBtn.click();
+
+        // Verify AuthModal opens
+        const authModal = page.locator('[role="dialog"]').first();
+        await expect(authModal).toBeVisible();
+
+        // Close AuthModal via Escape key
+        await page.keyboard.press('Escape');
+        await expect(authModal).not.toBeVisible();
       }
 
       // Check Footer Terms of Service Link
@@ -421,7 +433,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   // ---------------------------------------------------------------------------
   // 8. TRANSACTION HISTORY, TABS & CSV IMPORT (`/dashboard/history`)
   // ---------------------------------------------------------------------------
-  test.describe('8. Transaction History, Sorting & CsvImportModal (`/dashboard/history`)', () => {
+  test.describe('8. Transaction History, Sorting & Bank Accounts Table Audit (`/dashboard/history` & `/dashboard/bank-accounts`)', () => {
     test('8.1 Transaction Ledger Sorting & Transfers Tab Audit', async ({ page }) => {
       await page.goto('/dashboard/history');
 
@@ -438,20 +450,21 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
-    test('8.2 Interactive 3-Step CSV Import Modal Audit', async ({ page }) => {
-      await page.goto('/dashboard/history');
+    test('8.2 Bank Accounts Table & Alignment Audit (`/dashboard/bank-accounts`)', async ({ page }) => {
+      await page.goto('/dashboard/bank-accounts');
 
-      const importCsvBtn = page.locator('button:has-text("Import CSV"), button:has-text("Upload CSV")').first();
-      if (await importCsvBtn.isVisible()) {
-        await importCsvBtn.click();
+      // Verify page title and Add Bank Account CTA
+      const pageHeading = page.locator('h1:has-text("Bank Accounts")').first();
+      await expect(pageHeading).toBeVisible();
+      const addAccountBtn = page.locator('button:has-text("Add Bank Account")').first();
+      await expect(addAccountBtn).toBeVisible();
 
-        const dropzone = page.locator('input[type="file"], div[class*="dropzone"]').first();
-        await expect(dropzone).toBeVisible();
-
-        const cancelModalBtn = page.locator('button:has-text("Cancel")');
-        if (await cancelModalBtn.isVisible()) {
-          await cancelModalBtn.click();
-        }
+      // Verify clean Bank Accounts Table without orphaned import triggers or Actions column
+      const table = page.locator('table').first();
+      if (await table.isVisible()) {
+        await expect(page.locator('th:has-text("Actions")')).toHaveCount(0);
+        await expect(page.locator('button:has-text("Import CSV")')).toHaveCount(0);
+        await expect(page.locator('button:has-text("CSV Imports Log")')).toHaveCount(0);
       }
     });
   });

@@ -28,26 +28,29 @@ const baseUrl = "https://moneymatters.kaesava.au";
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "Money Matters by Kaesava — Simple, honest household budgeting.",
-    template: "%s | Money Matters by Kaesava",
+    default: "Money Matters — Zero bill shock. Real progress on long-term goals. Zero daily tracking.",
+    template: "%s | Money Matters",
   },
   description:
-    "Simple, honest household budgeting. Ring-fence bills on payday, fund savings goals, and spend what's left with total peace of mind.",
+    "Ring-fence upcoming bills on payday, make real progress on long-term goals, and spend your everyday money with zero guilt and zero micro-tracking.",
   keywords: [
     "household budgeting Australia",
+    "zero bill shock",
+    "long-term goals tracker",
+    "zero daily tracking budget",
     "Australian budget planner",
     "5-step waterfall budget",
     "mortgage offset account optimizer",
     "forward looking paycheck allocation",
     "zero based budget app",
     "Serene Finance",
-    "money matters kaesava",
+    "money matters",
     "automated paycheck allocation",
     "payday cashflow management",
   ],
-  authors: [{ name: "Kesh", url: "https://kaesava.au" }],
-  creator: "Money Matters by Kaesava",
-  publisher: "Kaesava",
+  authors: [{ name: "Money Matters Team", url: baseUrl }],
+  creator: "Money Matters",
+  publisher: "Money Matters",
   formatDetection: {
     email: false,
     address: false,
@@ -72,11 +75,11 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   openGraph: {
-    title: "Money Matters by Kaesava — Simple, honest household budgeting.",
+    title: "Money Matters — Zero bill shock. Real progress on long-term goals. Zero daily tracking.",
     description:
-      "Simple, honest household budgeting. Ring-fence bills on payday, fund savings goals, and spend what's left with total peace of mind.",
+      "Ring-fence upcoming bills on payday, make real progress on long-term goals, and spend your everyday money with zero guilt and zero micro-tracking.",
     url: baseUrl,
-    siteName: "Money Matters by Kaesava",
+    siteName: "Money Matters",
     locale: "en_AU",
     type: "website",
     images: [
@@ -84,14 +87,14 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Money Matters by Kaesava — Simple, honest household budgeting.",
+        alt: "Money Matters — Zero bill shock. Real progress on long-term goals. Zero daily tracking.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Money Matters by Kaesava — Simple, honest household budgeting.",
-    description: "Simple, honest household budgeting for Aussie families.",
+    title: "Money Matters — Zero bill shock. Real progress on long-term goals.",
+    description: "Zero bill shock. Real progress on long-term goals. Zero daily tracking for Aussie households.",
     images: ["/og-image.png"],
     creator: "@money_matters",
   },
@@ -112,7 +115,7 @@ export const metadata: Metadata = {
 const webAppJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Money Matters by Kaesava — Simple, honest household budgeting.",
+  "name": "Money Matters — Zero bill shock. Real progress on long-term goals.",
   "operatingSystem": "Web, iOS, Android",
   "applicationCategory": "FinanceApplication",
   "offers": {
@@ -122,19 +125,19 @@ const webAppJsonLd = {
     "availability": "https://schema.org/InStock",
   },
   "description":
-    "Simple, honest household budgeting. Ring-fences bills on payday and funds savings goals so you can spend what's left with zero guilt.",
+    "Ring-fence upcoming bills on payday, make real progress on long-term goals, and spend your everyday money with zero guilt and zero micro-tracking.",
   "url": baseUrl,
   "author": {
     "@type": "Organization",
-    "name": "Money Matters by Kaesava",
-    "url": "https://moneymatters.kaesava.au",
+    "name": "Money Matters",
+    "url": baseUrl,
   },
 };
 
 const orgJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Money Matters Australia",
+  "name": "Money Matters",
   "url": baseUrl,
   "logo": `${baseUrl}/og-image.png`,
   "sameAs": ["https://kaesava.au"],
