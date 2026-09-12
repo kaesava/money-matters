@@ -41,6 +41,7 @@
 | **Real-time balance updates (WebSockets/SSE)** | Uses pull (React Query refetch) | No blocking concern |
 | **Multi-app platform (second app shell)** | Only `money-matters` initially | `appId` on all tables; app registry in `packages/config` |
 | **V2 Inngest Scheduled Notifications** | Deferred to Release 2 | The following 5 cron/event-triggered Inngest functions were stubbed out in V1 and removed from `scheduled-notifications.ts`. They must be redesigned with full tenant-scoped DB access (not global `db` singleton) before activation: `notify-payday-alert` (daily, `expenseEvents` today), `notify-shortfall-alert` (daily, pool balance vs upcoming bills), `notify-bill-reminder` (daily, tomorrow's bills), `notify-goal-milestone` (event: `transaction/recorded`), `notify-spending-velocity` (daily, EVERYDAY pool burn rate). |
+| **Stripe Subscription Reconciliation Sweeper (Inngest)** | Deferred to Release 2 | Webhooks + real-time pull (`verifyCheckoutSession`, `syncSubscription`, portal return auto-sync) provide 99.9% consistency in V1. V2 adds a daily 3:00 AM AEST Inngest cron (`reconcile-stripe-subscriptions`) iterating active subscribers to heal edge-case drift from unhandled network partitions, dropped webhooks, or inactive churned users. See `FEAT-V2-004-STRIPE-RECONCILIATION-SWEEPER`. |
 
 ---
 
@@ -223,3 +224,33 @@ In V1, retroactive historical CSV line-item imports were removed to maintain Mon
    - Dedicated table tracking batch metadata (`id`, `tenantId`, `bankAccountId`, `fileName`, `rowCount`, `importedAt`, `archivedAt`).
    - Soft-deleting or rolling back an import batch must atomically archive ledger transactions and unlink any scheduled income events.
 4. **Zero CI Bypasses & 100% i18n**: All UI components and modal drawers must adhere strictly to Serene Finance design tokens and zero-warning AST i18n parity.
+
+---
+
+## V2 Feature: Stripe Subscription Daily Reconciliation Sweeper
+
+### Feature ID
+
+`FEAT-V2-004-STRIPE-RECONCILIATION-SWEEPER`
+
+### Context
+
+In V1, subscription data integrity is safeguarded via:
+1. **Push Vector**: Stripe webhooks with cryptographic signature verification, idempotency guards, and multi-vector tenant fallback resolution (`metadata.tenantId` → `stripeCustomerId` → `stripeSubscriptionId`).
+2. **Pull Vector**: Synchronous post-checkout verification (`verifyCheckoutSessionCommand`), portal return auto-reconciliation (`?stripe_sync=true`), and user-triggered on-demand refresh (`syncSubscriptionCommand`).
+3. **Time-Decay Guard**: Local evaluation in `getSubscriptionStatus` ensuring expired subscriptions automatically transition to `TRIAL_EXPIRED` at period end.
+
+While this provides 99.9% consistency during standard active usage, a background reconciliation sweeper guarantees 100% mathematical certainty against silent drift (e.g. if a user cancels in Stripe, closes their tab without returning, and webhooks fail due to prolonged upstream network partitions).
+
+### Scope & Technical Requirements for V2
+
+1. **Inngest Daily Cron Job (`reconcile-stripe-subscriptions`)**:
+   - Schedule: Runs daily at 3:00 AM AEST (`17:00 UTC`).
+   - Query: Selects active or past-due paying tenants (`subscriptionStatus IN ('SUBSCRIBED', 'PAST_DUE')`) whose last update was >24 hours ago.
+2. **Batch Reconciliation**:
+   - Executes `syncSubscriptionCommand` concurrently across batches using `Promise.all` with concurrency limits (e.g. 10 tenants per batch) to respect Stripe API rate limits.
+   - Updates `subscriptionStatus`, `cancelAtPeriodEnd`, `subscriptionEndsAt`, `nextBillingAt`, and `planType`.
+   - Backfills any missing paid invoices into `billing_invoices`.
+3. **Observability & Anomaly Alerting**:
+   - Emits structured telemetry logs if database status diverges from Stripe.
+   - Alerts engineers via error logging if rate-limit ceilings or authorization failures occur during reconciliation.
