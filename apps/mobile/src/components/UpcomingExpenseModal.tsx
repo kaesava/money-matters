@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
@@ -220,8 +222,11 @@ export function UpcomingExpenseModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+      >
         <View style={styles.modalCard}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.title}>
@@ -344,7 +349,7 @@ export function UpcomingExpenseModal({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

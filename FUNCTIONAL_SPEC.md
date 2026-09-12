@@ -325,6 +325,16 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - `(app)/settings/history.tsx` seamlessly redirects to `/(app)/transactions?tab=payday-allocations` (MECE compliance).
 - **Settings & Household Governance (`/(app)/settings`)**:
   - Modular sections: Profile & Avatar (`MobileProfileSection`), Household Details & Currency (`HouseholdDetailsSection`), Partner Invites (`HouseholdPartnerInviteSection`), Bank Accounts (`settings/bank-accounts`), Archived Data (`settings/archived`), In-App Feedback (`FeedbackFormModal`), and Household Danger Zone (`HouseholdDangerZoneSection`).
+- **Biometric App Lock & Inactivity Security**:
+  - Optional Face ID / Touch ID / Fingerprint / Device PIN app lock with toggle switch in Profile Settings.
+  - Automatically engages a secure authentication overlay (`BiometricLockOverlay`) when the app is backgrounded for 2 or more minutes.
+  - State persisted securely via `expo-secure-store` (`mm_biometric_lock_enabled`).
+- **Tactile Haptic Feedback System**:
+  - Responsive tactile vibration feedback using `expo-haptics` across key interactions: Quick Action FAB, Expense/Income logging, Split Execution, pull-to-refresh, and destructive action confirmations.
+  - User toggle switch in Profile Settings (`mm_haptics_enabled`) allowing complete tactile preference control.
+- **Resilient Mobile Auth & Networking**:
+  - Centralized 401 token refresh interceptor in tRPC client automatically reloading refreshed JWT credentials from `SecureStore` upon expiration.
+  - Foreground push notification listener seamlessly rendering non-blocking in-app toast alerts.
 
 ---
 

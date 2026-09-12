@@ -18,6 +18,7 @@ import { authClient } from '../../../lib/auth';
 import { formatAUD } from '../../../lib/format';
 import { showMobileConfirm } from '../../../components/MobileConfirmDialog';
 import { MobileBankTransferRollupCard } from '../../../components/paychecks/MobileBankTransferRollupCard';
+import { triggerHaptic } from '../../../lib/haptics';
 
 interface AllocationLineItem {
   bucketId: string;
@@ -155,10 +156,11 @@ export default function IncomeSplitStudioScreen() {
 
   const handleRecalculate = () => {
     showMobileConfirm({
-      title: 'Reset to Waterfall Defaults?',
-      message:
-        'This will erase your custom allocation edits and re-calculate using standard 5-step waterfall rules.',
-      confirmText: 'Reset',
+      title: t('paydayDrawer.recalculateConfirmTitle', { defaultValue: 'Reset to Suggested Plan?' }),
+      message: t('paydayDrawer.recalculateConfirmDescription', {
+        defaultValue: 'Your custom split will be discarded and reset to the suggested allocation. Continue?',
+      }),
+      confirmText: t('common.reset', { defaultValue: 'Reset' }),
       onConfirm: async () => {
         try {
           await revertAllocationPlanMut.mutateAsync({ incomeEventId: id! });
@@ -230,6 +232,7 @@ export default function IncomeSplitStudioScreen() {
       utils.listTransactions.invalidate();
       utils.getMonthlySummary.invalidate();
 
+      triggerHaptic('success');
       router.push({
         pathname: '/(app)/paychecks/transfer-instructions',
         params: { incomeEventId: id },

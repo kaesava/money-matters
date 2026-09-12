@@ -1,9 +1,10 @@
 import React from 'react';
 import { Tabs, useSegments } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, useMobileToast } from '@money-matters/ui/mobile';
 import { t, setLanguage } from '@money-matters/i18n';
 import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
+import * as Notifications from 'expo-notifications';
 import { Feather } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -27,6 +28,7 @@ function TabIcon({
 
 export default function AppLayout() {
   const { data: session } = authClient.useSession();
+  const { showToast } = useMobileToast();
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
     enabled: !!session?.user,
   });
@@ -43,6 +45,25 @@ export default function AppLayout() {
 
   // Automatically register device push token upon authenticated layout mount
   usePushNotifications();
+
+  // Foreground notification handler: displays in-app toast when push arrives
+  React.useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const title = notification.request.content.title;
+      const body = notification.request.content.body;
+      if (title || body) {
+        showToast({
+          type: 'info',
+          title: title || 'Notification',
+          message: body || '',
+        });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [showToast]);
 
   const segments = useSegments();
   const currentScreen = segments[segments.length - 1];

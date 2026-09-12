@@ -353,6 +353,11 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
   - `apps/mobile/src/app/(app)/settings/archived.tsx`: Restorable archive viewer for pools, categories, income schedules, and expense bills.
   - `apps/mobile/src/app/(app)/settings/history.tsx`: Seamless redirection to `/(app)/transactions?tab=payday-allocations` (MECE compliance).
   - `apps/mobile/src/app/(setup)/income.tsx`, `apps/mobile/src/app/(setup)/categories.tsx`, `apps/mobile/src/app/(setup)/complete.tsx`: 3-step interactive onboarding wizard with Australian family presets and AEST timezone-aware date pickers.
+- **Mobile Hardware & Platform Services**:
+  - `apps/mobile/src/lib/biometrics.ts`: Hardware security & local authentication wrapper (`expo-local-authentication`, `expo-secure-store`) with 2-minute background inactivity lock.
+  - `apps/mobile/src/lib/haptics.ts`: Tactile feedback engine (`expo-haptics`) supporting light/medium/heavy/success impact patterns and user preferences.
+  - `apps/mobile/src/lib/trpc.ts`: Centralized 401 token refresh interceptor reloading refreshed JWT credentials upon session expiry.
+  - `apps/mobile/eas.json`: EAS Build matrix supporting `development` (internal client), `preview` (standalone APK for testing), and `production` (Google Play App Bundle / AAB).
 - **Mobile Primitives in `@money-matters/ui`**:
   - `packages/ui/src/mobile/BankProviderBadge.tsx`: Branded provider badges for Australian banks (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other).
   - `packages/ui/src/mobile/ToastContext.tsx`: Non-blocking mobile toast alert system (`MobileToastProvider`, `useMobileToast`).

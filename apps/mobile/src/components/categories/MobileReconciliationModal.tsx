@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     color: '#64748B',
-    marginRight: 6,
+    marginRight: 12,
   },
   amountInput: {
     flex: 1,

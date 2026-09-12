@@ -431,3 +431,59 @@ While this provides 99.9% consistency during standard active usage, a background
 3. **Observability & Anomaly Alerting**:
    - Emits structured telemetry logs if database status diverges from Stripe.
    - Alerts engineers via error logging if rate-limit ceilings or authorization failures occur during reconciliation.
+
+---
+
+## V2 Feature: Mobile Offline SQLite Cache Persistence & Sync Hydration
+
+### Feature ID
+
+`FEAT-V2-005-OFFLINE-SQLITE-PERSISTENCE`
+
+### Context & Design Intent
+
+In V1, mobile relies on online-first tRPC queries with React Query in-memory caching. When an Android user opens the app without cellular or Wi-Fi connectivity, queries display error banners. Release 2 introduces full offline hydration using `@tanstack/react-query-persist-client` backed by `expo-sqlite`, allowing users to inspect balances, upcoming bills, and recent history completely offline.
+
+### Technical Scope
+
+1. **SQLite Storage Adapter**: Implement persistent cache storage via `expo-sqlite` storing serialized React Query query cache.
+2. **Mutation Outbox Queue**: Queue offline mutations (`recordExpense`, `quickExpense`, `overrideEvent`) in a local `mutation_queue` SQLite table with UUID idempotency keys.
+3. **Background Sync Hydration**: When network connectivity is restored (`expo-network`), hydrate outbox mutations sequentially and refetch active queries.
+
+---
+
+## V2 Feature: Mobile Camera Receipt Capture & Cloudflare R2 Upload
+
+### Feature ID
+
+`FEAT-V2-006-RECEIPT-CAMERA-R2-UPLOAD`
+
+### Context & Design Intent
+
+Web supports uploading receipts and PDF invoices to Cloudflare R2 via presigned URLs in the `file-notes` capability. V2 brings direct native camera and photo gallery receipt attachment into `UpcomingExpenseModal` and `CategoryItemModal`.
+
+### Technical Scope
+
+1. **Native Camera & Gallery Integration**: Use `expo-image-picker` with image compression (`manipulateAsync`) to compress photos to under 1MB WebP/JPEG.
+2. **Presigned R2 Upload Contract**: Call `fileNotes.getUploadUrl` tRPC mutation, upload raw binary directly to Cloudflare R2, and attach `fileKey` to the expense event.
+
+---
+
+## V2 Feature: Native Android E2E Automated Testing Suite (Maestro)
+
+### Feature ID
+
+`FEAT-V2-007-MOBILE-E2E-MAESTRO-TESTS`
+
+### Context & Design Intent
+
+Web utilizes Playwright for comprehensive screen-by-screen testing (`apps/web/e2e/screen-by-screen.spec.ts`). Release 2 establishes native device-level E2E automated testing for the Android APK using Maestro running in GitHub Actions.
+
+### Technical Scope
+
+1. **Maestro Flow Definitions (`apps/mobile/e2e/flows/`)**:
+   - `01-onboarding.yaml`: Setup wizard flow through income, categories, and completion.
+   - `02-dashboard-actions.yaml`: Quick expense entry, can-afford simulator, and move money.
+   - `03-income-split-studio.yaml`: Full 5-step waterfall review, custom allocation adjustment, and split execution.
+2. **GitHub Actions Matrix**: Headless Android emulator runner building debug APK and running Maestro CLI flows on pull requests.
+

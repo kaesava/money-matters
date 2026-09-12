@@ -33,17 +33,41 @@ export function buildTrpcClient() {
         url: `${API_BASE_URL}/trpc`,
         fetch: async (url, options) => {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
           try {
-            const res = await fetch(url, {
+            let res = await fetch(url, {
               ...options,
               signal: controller.signal,
             });
+
+            // 401 Unauthorized Interceptor: Attempt token refresh & single retry
+            if (res.status === 401) {
+              const freshToken =
+                (await SecureStore.getItemAsync("money-matters_session_token")) ||
+                (await SecureStore.getItemAsync("money-matters-session-token"));
+
+              if (freshToken && freshToken !== activeSessionToken) {
+                activeSessionToken = freshToken;
+                const newHeaders: Record<string, string> = {
+                  ...((options?.headers as Record<string, string>) || {}),
+                  Authorization: `Bearer ${freshToken}`,
+                };
+                res = await fetch(url, {
+                  ...options,
+                  headers: newHeaders,
+                  signal: controller.signal,
+                });
+              }
+            }
+
             clearTimeout(timeoutId);
             const contentType = res.headers.get("content-type");
             if (contentType && !contentType.includes("application/json") && !res.ok) {
               const text = await res.text();
-              console.error(`[tRPC fetch error] Server returned HTTP ${res.status} non-JSON response from ${url}:`, text.slice(0, 300));
+              console.error(
+                `[tRPC fetch error] Server returned HTTP ${res.status} non-JSON response from ${url}:`,
+                text.slice(0, 300)
+              );
             }
             return res;
           } catch (error) {

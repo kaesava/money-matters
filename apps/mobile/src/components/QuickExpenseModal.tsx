@@ -19,6 +19,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
 import { formatAUD } from "../lib/format";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";
+import { triggerHaptic } from "../lib/haptics";
 
 export type QuickActionType = "DEBIT" | "CREDIT" | "TRANSFER";
 
@@ -101,6 +102,7 @@ export function QuickExpenseModal({
     parseFloat(amount || "0") > getPoolBalance(selectedPool);
 
   const handleQuickPick = (pick: (typeof QUICK_PICKS)[0]) => {
+    triggerHaptic("selection");
     setName(pick.name);
     setAmount(pick.amount);
     if (everydayPool) {
@@ -271,7 +273,7 @@ export function QuickExpenseModal({
         onRequestClose={onClose}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
           <View style={styles.modalContent}>
@@ -697,7 +699,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "900",
     color: "#64748B",
-    marginRight: 6,
+    marginRight: 12,
   },
   amountInput: {
     flex: 1,

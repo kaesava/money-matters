@@ -15,6 +15,13 @@ import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
+import {
+  checkBiometricsAvailable,
+  getBiometricTypeLabel,
+  isBiometricLockEnabled,
+  setBiometricLockEnabled,
+  authenticateWithBiometrics,
+} from '../../lib/biometrics';
 
 const AUSTRALIAN_TIMEZONES = [
   { label: 'Sydney, Melbourne, Canberra (AEST/AEDT)', value: 'Australia/Sydney' },
@@ -37,6 +44,9 @@ export function MobileProfileSection() {
   const [name, setName] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('Australia/Sydney');
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState('Biometrics');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,7 +57,24 @@ export function MobileProfileSection() {
     if (userPrefQuery.data?.timezone) {
       setTimezone(userPrefQuery.data.timezone);
     }
+    checkBiometricsAvailable().then(setBiometricsAvailable).catch(() => {});
+    getBiometricTypeLabel().then(setBiometricLabel).catch(() => {});
+    isBiometricLockEnabled().then(setBiometricsEnabled).catch(() => {});
   }, [session, userPrefQuery.data]);
+
+  const handleToggleBiometrics = async () => {
+    const nextState = !biometricsEnabled;
+    if (nextState) {
+      const authenticated = await authenticateWithBiometrics('Enable biometric security for Money Matters');
+      if (authenticated) {
+        await setBiometricLockEnabled(true);
+        setBiometricsEnabled(true);
+      }
+    } else {
+      await setBiometricLockEnabled(false);
+      setBiometricsEnabled(false);
+    }
+  };
 
   const updatePrefMut = trpc.updateUserPreferences.useMutation();
 
@@ -99,7 +126,7 @@ export function MobileProfileSection() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>👤 Profile & Timezone</Text>
+      <Text style={styles.cardTitle}>👤 Profile & Security</Text>
 
       {/* Avatar Row */}
       <View style={styles.avatarRow}>
@@ -129,6 +156,35 @@ export function MobileProfileSection() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Biometric Security Toggle (if available) */}
+      {biometricsAvailable && (
+        <View style={styles.securityRow}>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Feather name="shield" size={15} color="#2563eb" />
+              <Text style={styles.securityTitle}>{biometricLabel} App Lock</Text>
+            </View>
+            <Text style={styles.securitySubtitle}>
+              Auto-locks after 2 minutes of background inactivity to protect your stealth privacy.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={handleToggleBiometrics}
+            style={[
+              styles.toggleBtn,
+              biometricsEnabled && styles.toggleBtnActive,
+            ]}
+          >
+            <View
+              style={[
+                styles.toggleThumb,
+                biometricsEnabled && styles.toggleThumbActive,
+              ]}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Timezone Selector */}
       <View style={styles.inputGroup}>
@@ -291,6 +347,52 @@ const styles = StyleSheet.create({
     color: '#2563eb',
     fontWeight: '700',
   },
+  securityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 12,
+  },
+  securityTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1B2B4B',
+  },
+  securitySubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  toggleBtn: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#CBD5E1',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleBtnActive: {
+    backgroundColor: '#2563eb',
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
   saveBtn: {
     backgroundColor: '#2563eb',
     borderRadius: 12,
@@ -306,3 +408,4 @@ const styles = StyleSheet.create({
 });
 
 export default MobileProfileSection;
+

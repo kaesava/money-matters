@@ -26,6 +26,8 @@ import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpens
 import { MoveMoneyModal } from '../../components/MoveMoneyModal';
 import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
 
+import { triggerHaptic } from '../../lib/haptics';
+
 export default function HomeScreen() {
   const router = useRouter();
   const posthog = usePostHog();
@@ -65,6 +67,7 @@ export default function HomeScreen() {
   }, [poolsQuery.isSuccess, poolsQuery.data, router]);
 
   const onRefresh = async () => {
+    triggerHaptic('light');
     setRefreshing(true);
     await Promise.all([
       summaryQuery.refetch(),

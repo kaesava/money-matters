@@ -17,6 +17,7 @@ import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatAUD } from '../lib/format';
+import { triggerHaptic } from '../lib/haptics';
 
 export interface MarkPaidEvent {
   id: string;
@@ -122,6 +123,7 @@ export function MarkPaidModal({
       utils.listTransactions.invalidate();
       utils.getMonthlySummary.invalidate();
 
+      triggerHaptic('success');
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -142,7 +144,7 @@ export function MarkPaidModal({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
         <View style={styles.card}>
@@ -352,7 +354,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     color: '#64748B',
-    marginRight: 6,
+    marginRight: 12,
   },
   amountInput: {
     flex: 1,

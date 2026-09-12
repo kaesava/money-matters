@@ -4,6 +4,8 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { QuickExpenseModal } from './QuickExpenseModal';
 
+import { triggerHaptic } from '../lib/haptics';
+
 export interface QuickActionFabProps {
   visible?: boolean;
 }
@@ -13,12 +15,17 @@ export function QuickActionFab({ visible = true }: QuickActionFabProps) {
 
   if (!visible) return null;
 
+  const handlePress = () => {
+    triggerHaptic('light');
+    setModalVisible(true);
+  };
+
   return (
     <>
       <View pointerEvents="box-none" style={styles.container}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => setModalVisible(true)}
+          onPress={handlePress}
           style={styles.fab}
           accessibilityLabel="Quick Action"
           accessibilityRole="button"
