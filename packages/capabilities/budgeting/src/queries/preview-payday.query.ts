@@ -32,6 +32,7 @@ export async function previewPaydayQuery(
       expectedAmount: incomeEvents.expectedAmount,
       actualAmount: incomeEvents.actualAmount,
       name: sql<string>`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
+      receivingAccountId: incomeSources.receivingAccountId,
     })
     .from(incomeEvents)
     .leftJoin(incomeSources, eq(incomeEvents.incomeSourceId, incomeSources.id))
@@ -52,7 +53,7 @@ export async function previewPaydayQuery(
 }
 
 export async function previewPaydayForEvent(
-  targetEvent: { id: string; expectedDate: string; expectedAmount: string; actualAmount?: string | null; name?: string | null },
+  targetEvent: { id: string; expectedDate: string; expectedAmount: string; actualAmount?: string | null; name?: string | null; receivingAccountId?: string | null },
   tenantId: string,
   appId: string,
   dbClient: DbOrTx
@@ -105,6 +106,7 @@ export async function previewPaydayForEvent(
           expectedDate: targetEvent.expectedDate,
           expectedAmount: targetEvent.expectedAmount,
           actualAmount: targetEvent.actualAmount || targetEvent.expectedAmount,
+          receivingAccountId: targetEvent.receivingAccountId || null,
         },
         engineResult: {
           status: "OK" as const,
@@ -349,6 +351,7 @@ export async function previewPaydayForEvent(
         expectedDate: targetEvent.expectedDate,
         expectedAmount: targetEvent.expectedAmount,
         actualAmount: targetEvent.actualAmount || targetEvent.expectedAmount,
+        receivingAccountId: targetEvent.receivingAccountId || null,
       },
       engineResult: {
         status: "OK" as const,
@@ -382,6 +385,7 @@ export async function previewPaydayForEvent(
       expectedDate: targetEvent.expectedDate,
       expectedAmount: targetEvent.expectedAmount,
       actualAmount: targetEvent.actualAmount || targetEvent.expectedAmount,
+      receivingAccountId: targetEvent.receivingAccountId || null,
     },
     engineResult: {
       status: "OK" as const,

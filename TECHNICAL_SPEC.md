@@ -170,10 +170,15 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **Category Pool Immutability Constraint**: Once a Category is created and linked to a Pool, the `poolId` is strictly immutable to preserve historical reporting accuracy and prevent retroactive data shifts. If a user makes a mistake during setup, they must archive the category and create a new one.
 - **Strict Schedule Recurrence Constraint**: The "Add Schedule" flow strictly enforces recurrence. "One-off" frequencies are explicitly banned from schedule creation to prevent orphaned single-execution records from bypassing list views. Users must use the "Quick Add Event" modal for one-off transactions.
 - **Two-Tier Resolution Sequence**:
-  1. *Priority 1 (Saved Plan)*: `previewPaydayQuery` queries `allocation_plans` for `incomeEventId`. If a saved plan exists (created via Grid/Drawer *"Save"*), it returns the saved `allocation_plan_lines` from the database.
+  1. *Priority 1 (Saved Plan)*: `previewPaydayQuery` queries `allocation_plans` for `incomeEventId`. If a saved plan exists (created via Grid/Screen *"Save"*), it returns the saved `allocation_plan_lines` from the database.
   2. *Priority 2 (Cumulative Engine Projection)*: If no saved plan exists (e.g. fresh income events or un-edited paydays), `previewPaydayQuery` executes `runCumulativeProjection` on-the-fly to return context-aware proposed allocations that factor in prior simulated income splits and intermediate expense deductions.
+  - Across all return paths, `previewPaydayQuery` includes `incomeEvent.receivingAccountId` joining on `income_sources` to identify the originating deposit bank account for downstream transfer orchestration.
+- **Bank-Account-Aware Payday Transfer Rollup Engine**:
+  - Automatically compares each pool's assigned `bankAccountId` with `incomeEvent.receivingAccountId`.
+  - Pools in the same bank account are marked as *Retained in source account* with $0 external transfers.
+  - Pools targeting other bank accounts are rolled up into **1 single transfer per destination bank account**, computing aggregate totals and listing constituent pools for 1-click clipboard copying.
 - **Bulk Allocate Persistence & Concurrency (`saveBulkAllocations`)**: Custom grid edits write directly to `allocation_plans` (status: `PENDING`) and `allocation_plan_lines`. Editing a cell auto-sweeps the difference into the designated Surplus Target cell to force unallocated cash to $0. Enforces a strict status check (`income_event.status === 'PENDING'`) to reject race conditions if an event was confirmed in another session.
-- **Revert to Automatic Waterfall (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **Unsave** in the grid column header or drawer prompts for confirmation and deletes the `allocation_plan` row, restoring dynamic waterfall calculation.
+- **Revert to Automatic Waterfall (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **Re-calculate** or **Unsave** prompts for confirmation and deletes the `allocation_plan` row, restoring dynamic waterfall calculation.
 
 
 ### 5.3 Bank Account Balance Alignment & V2 Ingestion Architecture

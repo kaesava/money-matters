@@ -59,6 +59,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "close": "閉じる",
     "add": "追加",
     "remove": "削除",
+    "copy": "コピー",
+    "copied": "コピー完了",
     "discard": "破棄",
     "discardChangesTitle": "変更を破棄しますか？",
     "markSpent": "支出を記録",
@@ -1822,7 +1824,16 @@ export const ja: DeepStringRecord<typeof en> = {
   "cards": {
     "paydayTransfer": {
       "badge": "ワンタップ給料日振替プラン",
-      "target": "対象口座:"
+      "target": "対象口座:",
+      "sourceAccountDefault": "給与受取口座",
+      "destAccountDefault": "外部口座",
+      "rollupDescription": "銀行振替は送金先口座ごとにまとめられているため、1銀行につき1回の振替で完了します:",
+      "allRetainedDescription": "すべての配分は受取口座内に保持されます。外部銀行振替は不要です！",
+      "retainedTitle": "保持口座:",
+      "noTransferNeeded": "振替不要 — 以下の資金は同一口座内に保持されます:",
+      "transfersRequired": "必要な振替",
+      "copyTooltip": "銀行アプリ用にクリップボードへコピー",
+      "coversPools": "{count}個のプールを対象: "
     },
     "bankTransfer": {
       "badge": "銀行口座のアクションが必要です",
@@ -1948,8 +1959,19 @@ export const ja: DeepStringRecord<typeof en> = {
     "backToDashboard": "ダッシュボードに戻る",
     "back": "戻る",
     "skip": "スキップ ($0)",
-    "fundFull": "目標額を満額拠出",
-    "activeDeficitWarning": "割り当て額が収入総額を超過しています"
+    "activeDeficitWarning": "割り当て額が収入総額を超過しています",
+    "tableColPool": "プールと口座",
+    "tableColTarget": "目標",
+    "tableColBalance": "残高",
+    "tableColAllocation": "配分",
+    "sweepExplanation": "残余収入を自動吸収",
+    "recalculate": "再計算",
+    "recalculateSavedTooltip": "手動変更を破棄し、最新の5段階ウォーターフォールエンジンを実行します。",
+    "recalculateAutoTooltip": "現在の給与額と目標額に基づいてウォーターフォール推奨値を更新します。",
+    "autoBadge": "自動計算",
+    "recalculateConfirmTitle": "収入の振り分けを再計算しますか？",
+    "recalculateConfirmDescription": "再計算すると、このお給料日の手動カスタマイズが破棄され、最新の5段階ウォーターフォール配分エンジンが再実行されます。よろしいですか？",
+    "recalculateSuccess": "ウォーターフォール配分を再計算しました。"
   },
   "matrix": {
     "saved": "保存済み",

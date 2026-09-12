@@ -7,8 +7,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { IncomeSplitHeader } from "./IncomeSplitHeader";
 import { IncomeSplitCommandPanel } from "./IncomeSplitCommandPanel";
-import { IncomeSplitCanvas } from "./IncomeSplitCanvas";
-import { PaydayTransferLine } from "../../../../components/web/PaydayTransferCard";
+import { IncomeSplitPoolTable } from "./IncomeSplitPoolTable";
 
 export interface IncomeSplitScreenProps {
   readonly incomeEventId: string;
@@ -48,6 +47,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const poolsQuery = trpc.listPools.useQuery();
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
 
+  const bankAccountsQuery = trpc.listBankAccounts.useQuery();
+  const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
+
   const previewQuery = trpc.previewPayday.useQuery(
     { incomeEventId },
     { enabled: !!incomeEventId }
@@ -71,6 +73,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showConfirmWarning, setShowConfirmWarning] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRecalculateConfirm, setShowRecalculateConfirm] = useState(false);
   const [isSavedPlan, setIsSavedPlan] = useState(false);
   const [isConfirmedPlan, setIsConfirmedPlan] = useState(false);
 
@@ -101,6 +104,8 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
 
   const lines = useMemo(() => extractLines(previewQuery.data?.engineResult), [previewQuery.data]);
   const numericActual = parseFloat(actualAmount) || 0;
+
+  const receivingAccountId = previewQuery.data?.incomeEvent?.receivingAccountId;
 
   const sweepPool = useMemo(() => {
     return pools.find((p) => p.isSurplusTarget) || pools.find((p) => p.poolType === "EVERYDAY") || pools[0];
@@ -146,12 +151,6 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     setLinesMap((prev) => ({ ...prev, [bucketId]: cleaned }));
   };
 
-  const handleResetLine = (poolId: string) => {
-    if (initialLinesMap[poolId] !== undefined) {
-      setLinesMap((prev) => ({ ...prev, [poolId]: initialLinesMap[poolId] }));
-    }
-  };
-
   const handleResetAllEdits = () => {
     setLinesMap({ ...initialLinesMap });
     setActualAmount(initialAmount);
@@ -167,13 +166,19 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !showDiscardConfirm && !showConfirmWarning && !showDeleteConfirm) {
+      if (
+        e.key === "Escape" &&
+        !showDiscardConfirm &&
+        !showConfirmWarning &&
+        !showDeleteConfirm &&
+        !showRecalculateConfirm
+      ) {
         attemptExit();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showDiscardConfirm, showConfirmWarning, showDeleteConfirm, attemptExit]);
+  }, [showDiscardConfirm, showConfirmWarning, showDeleteConfirm, showRecalculateConfirm, attemptExit]);
 
   const handleRecalculateWaterfall = async () => {
     try {
@@ -200,7 +205,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       await revertAllocationPlanMut.mutateAsync({ incomeEventId });
       await utils.listAllAllocationPlans.invalidate();
       await utils.previewPayday.invalidate({ incomeEventId });
-      toast.success(t("matrix.revertSuccess", { defaultValue: "Reverted to auto." }));
+      toast.success(t("matrix.revertSuccess", { defaultValue: "Reverted to auto waterfall calculation." }));
       setIsSavedPlan(false);
       setIsConfirmedPlan(false);
     } catch (err: unknown) {
@@ -208,6 +213,24 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleRecalculateTrigger = () => {
+    if (isSavedPlan) {
+      setShowRecalculateConfirm(true);
+    } else {
+      if (actualAmount !== initialAmount) {
+        handleRecalculateWaterfall();
+      } else {
+        setLinesMap({ ...initialLinesMap });
+        toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Refreshed waterfall allocations." }));
+      }
+    }
+  };
+
+  const handleRecalculateSavedConfirmed = async () => {
+    setShowRecalculateConfirm(false);
+    await handleRevertToAuto();
   };
 
   const handleDeleteIncome = async () => {
@@ -324,22 +347,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     return groups.filter((g) => g.items.length > 0);
   }, [lines, pools]);
 
-  const transferLines: PaydayTransferLine[] = useMemo(() => {
-    return lines
-      .map((l) => {
-        const p = pools.find((pool) => pool.id === l.bucketId);
-        const amount = parseFloat(linesMap[l.bucketId] ?? l.proposedAmount.toString()) || 0;
-        return {
-          categoryName: l.bucketName,
-          categoryType: (p?.poolType || "REGULAR") as "REGULAR" | "GOAL" | "EVERYDAY",
-          targetAccountName: p?.name ? `${p.name} Account` : "Linked Bank Account",
-          amount,
-        };
-      })
-      .filter((l) => l.amount > 0);
-  }, [lines, pools, linesMap]);
-
-  if (previewQuery.isLoading || poolsQuery.isLoading) {
+  if (previewQuery.isLoading || poolsQuery.isLoading || bankAccountsQuery.isLoading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
         <Spinner size="lg" label={t("common.loading", { defaultValue: "Loading..." })} direction="col" />
@@ -361,7 +369,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         isFutureDate={isFutureDate}
         onBack={attemptExit}
         onResetEdits={handleResetAllEdits}
-        onRevertToAuto={isSavedPlan || isConfirmedPlan ? handleRevertToAuto : undefined}
+        onRecalculate={!isReadOnly ? handleRecalculateTrigger : undefined}
         onDeleteIncome={() => setShowDeleteConfirm(true)}
         onSaveSplit={handleSaveSplit}
         onConfirmSplit={() => setShowConfirmWarning(true)}
@@ -384,13 +392,17 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             billsAllocated={billsAllocated}
             goalsAllocated={goalsAllocated}
             isReadOnly={isReadOnly}
-            transferLines={transferLines}
+            receivingAccountId={receivingAccountId}
+            pools={pools}
+            linesMap={linesMap}
+            sweepPoolId={sweepPool?.id}
+            bankAccounts={bankAccounts}
             isAmountModified={actualAmount !== initialAmount}
             onRecalculateWaterfall={handleRecalculateWaterfall}
             submitting={submitting}
           />
 
-          <IncomeSplitCanvas
+          <IncomeSplitPoolTable
             groups={groupedLines}
             pools={pools}
             sweepPoolId={sweepPool?.id}
@@ -400,7 +412,6 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             numericActual={numericActual}
             isReadOnly={isReadOnly}
             onLineAmountChange={handleLineAmountChange}
-            onResetLine={handleResetLine}
           />
         </div>
       </main>
@@ -425,6 +436,18 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         title={t("paydayDrawer.confirmWarningTitle", { defaultValue: "Run Income Split?" })}
         description={t("paydayDrawer.confirmWarningDescription", { defaultValue: "Running this payday split will update your pool and bank balances immediately. Ready to proceed?" })}
         confirmLabel={t("paydayDrawer.confirmWarningConfirm", { defaultValue: "Run Income Split" })}
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={showRecalculateConfirm}
+        onClose={() => setShowRecalculateConfirm(false)}
+        onConfirm={handleRecalculateSavedConfirmed}
+        title={t("paydayDrawer.recalculateConfirmTitle", { defaultValue: "Recalculate Income Split?" })}
+        description={t("paydayDrawer.recalculateConfirmDescription", {
+          defaultValue: "Recalculating will discard your custom saved overrides and re-run the 5-step forward-looking waterfall engine based on current balances and upcoming bills. Are you sure?",
+        })}
+        confirmLabel={t("paydayDrawer.recalculate", { defaultValue: "Re-calculate" })}
         variant="danger"
       />
 
