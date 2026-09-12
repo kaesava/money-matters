@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { PoolAllocationSlider } from "./PoolAllocationSlider";
 
 interface AllocationLineItem {
   bucketId: string;
@@ -49,8 +48,8 @@ export function IncomeSplitPoolTable({
   sweepPoolId,
   sweepPoolRemainder,
   linesMap,
-  initialLinesMap,
-  numericActual,
+  initialLinesMap: _initialLinesMap,
+  numericActual: _numericActual,
   isReadOnly,
   onLineAmountChange,
 }: IncomeSplitPoolTableProps) {
@@ -68,9 +67,9 @@ export function IncomeSplitPoolTable({
           <table className="w-full text-left border-collapse">
             {/* Table Header with 100% Alignment Parity */}
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/60 text-[11px] font-black uppercase tracking-wider text-zinc-500">
+              <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/60 text-[11px] font-semibold tracking-wide text-zinc-500">
                 <th scope="col" className="py-3 px-4 md:px-6 text-left">
-                  {t("paydayDrawer.tableColPool", { defaultValue: "Pool & Account" })}
+                  {t("paydayDrawer.tableColPool", { defaultValue: "Pool" })}
                 </th>
                 <th scope="col" className="py-3 px-3 text-center w-36">
                   {t("paydayDrawer.tableColTarget", { defaultValue: "Target" })}
@@ -100,22 +99,19 @@ export function IncomeSplitPoolTable({
                     {/* Collapsible Group Subheader Row */}
                     <tr
                       onClick={() => toggleGroup(group.type)}
-                      className="bg-slate-100/70 dark:bg-zinc-800/80 hover:bg-slate-200/60 dark:hover:bg-zinc-700/60 transition-colors cursor-pointer select-none"
+                      className="bg-slate-50/80 dark:bg-zinc-800/50 hover:bg-slate-100/70 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer select-none border-t border-zinc-200/60 dark:border-zinc-800"
                     >
-                      <td colSpan={3} className="py-2.5 px-4 md:px-6">
+                      <td colSpan={3} className="py-2 px-4 md:px-6">
                         <div className="flex items-center gap-2">
                           <span className="text-zinc-400 dark:text-zinc-500 text-[10px] w-3 text-center">
                             {isCollapsed ? "▶" : "▼"}
                           </span>
-                          <span className="font-black uppercase tracking-wider text-xs text-[#1B2B4B] dark:text-white">
+                          <span className="font-medium text-xs text-zinc-600 dark:text-zinc-300">
                             {group.label}
-                          </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-200/80 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
-                            {group.items.length}
                           </span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-4 md:px-6 text-right font-mono font-bold text-xs text-zinc-700 dark:text-zinc-300">
+                      <td className="py-2 px-4 md:px-6 text-right font-mono font-medium text-xs text-zinc-500 dark:text-zinc-400">
                         {fmt(groupSum)}
                       </td>
                     </tr>
@@ -136,29 +132,25 @@ export function IncomeSplitPoolTable({
                         const currentValStr = isSweep
                           ? sweepPoolRemainder.toFixed(2)
                           : (linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2));
-                        const currentValNum = parseFloat(currentValStr) || 0;
-                        const initialValNum = parseFloat(initialLinesMap[l.bucketId] ?? l.proposedAmount.toFixed(2)) || 0;
-
-                        const bankAccName = poolObj?.bankAccountName || t("cards.paydayTransfer.sourceAccountDefault", { defaultValue: "Main Account" });
 
                         // Sweep Pool Row (Auto Surplus)
                         if (isSweep) {
                           return (
                             <tr
                               key={l.bucketId}
-                              className="bg-emerald-50/50 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500"
+                              className="bg-emerald-50/40 dark:bg-emerald-950/20 border-l-2 border-l-emerald-500"
                             >
                               <td className="py-3 px-4 md:px-6 text-left">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-black text-sm text-[#1B2B4B] dark:text-white">
+                                  <span className="font-bold text-sm text-[#1B2B4B] dark:text-white">
                                     {l.bucketName}
                                   </span>
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                     {t("paydayDrawer.autoSurplusBadge", { defaultValue: "Auto-Surplus" })}
                                   </span>
                                 </div>
                                 <div className="text-[11px] text-zinc-400 mt-0.5">
-                                  {bankAccName} • {t("paydayDrawer.sweepExplanation", { defaultValue: "Absorbs residual income" })}
+                                  {t("paydayDrawer.sweepExplanation", { defaultValue: "Absorbs residual income" })}
                                 </div>
                               </td>
                               <td className="py-3 px-3 text-center text-zinc-400 font-mono text-[11px]">
@@ -168,7 +160,7 @@ export function IncomeSplitPoolTable({
                                 {fmt(currentBal)}
                               </td>
                               <td className="py-3 px-4 md:px-6 text-right">
-                                <div className={`text-base font-mono font-black tabular-nums ${
+                                <div className={`text-base font-mono font-bold tabular-nums ${
                                   sweepPoolRemainder < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-700 dark:text-emerald-300"
                                 }`}>
                                   {fmt(sweepPoolRemainder)}
@@ -186,11 +178,8 @@ export function IncomeSplitPoolTable({
                               className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors"
                             >
                               <td className="py-3 px-4 md:px-6 text-left">
-                                <div className="font-bold text-sm text-[#1B2B4B] dark:text-white">
+                                <div className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
                                   {l.bucketName}
-                                </div>
-                                <div className="text-[11px] text-zinc-400 mt-0.5">
-                                  {bankAccName}
                                 </div>
                               </td>
                               <td className="py-3 px-3 text-center font-mono text-xs text-zinc-600 dark:text-zinc-300">
@@ -239,15 +228,12 @@ export function IncomeSplitPoolTable({
                             key={l.bucketId}
                             className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors"
                           >
-                            <td className="py-3 px-4 md:px-6 text-left align-top">
-                              <div className="font-bold text-sm text-[#1B2B4B] dark:text-white">
+                            <td className="py-3 px-4 md:px-6 text-left">
+                              <div className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
                                 {l.bucketName}
                               </div>
-                              <div className="text-[11px] text-zinc-400 mt-0.5">
-                                {bankAccName}
-                              </div>
                             </td>
-                            <td className="py-3 px-3 text-center font-mono text-xs text-zinc-600 dark:text-zinc-300 align-top">
+                            <td className="py-3 px-3 text-center font-mono text-xs text-zinc-600 dark:text-zinc-300">
                               {targetNum > 0 ? (
                                 <div>
                                   <div>{fmt(targetNum)}</div>
@@ -259,33 +245,37 @@ export function IncomeSplitPoolTable({
                                 "—"
                               )}
                             </td>
-                            <td className="py-3 px-4 text-right font-mono font-medium text-zinc-600 dark:text-zinc-300 tabular-nums align-top">
+                            <td className="py-3 px-4 text-right font-mono font-medium text-zinc-600 dark:text-zinc-300 tabular-nums">
                               {fmt(currentBal)}
                             </td>
-                            <td className="py-3 px-4 md:px-6 text-right align-top">
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-end gap-2">
-                                  <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    disabled={isReadOnly}
-                                    value={currentValStr}
-                                    onChange={(e) => onLineAmountChange(l.bucketId, e.target.value)}
-                                    className="w-28 px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-xl text-right font-mono font-bold text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white tabular-nums disabled:opacity-60"
-                                  />
-                                </div>
-
-                                {!isReadOnly && (
-                                  <PoolAllocationSlider
-                                    value={currentValNum}
-                                    min={0}
-                                    max={numericActual}
-                                    step={5}
-                                    proposedValue={initialValNum}
-                                    targetValue={targetNum > 0 ? targetNum : undefined}
-                                    onChange={(val) => onLineAmountChange(l.bucketId, val.toFixed(2))}
-                                  />
+                            <td className="py-3 px-4 md:px-6 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {!isReadOnly && targetNum > 0 && (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => onLineAmountChange(l.bucketId, targetNum.toFixed(2))}
+                                      className="px-2 py-1 text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors cursor-pointer"
+                                    >
+                                      100%
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onLineAmountChange(l.bucketId, "0.00")}
+                                      className="px-1.5 py-1 text-[10px] font-semibold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 rounded-md transition-colors cursor-pointer"
+                                    >
+                                      $0
+                                    </button>
+                                  </div>
                                 )}
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  disabled={isReadOnly}
+                                  value={currentValStr}
+                                  onChange={(e) => onLineAmountChange(l.bucketId, e.target.value)}
+                                  className="w-28 px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-xl text-right font-mono font-bold text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white tabular-nums disabled:opacity-60"
+                                />
                               </div>
                             </td>
                           </tr>
