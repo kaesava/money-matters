@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronDown, ArrowUpRight, ArrowDownLeft, ArrowLeftRight } from "lucide-react";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
@@ -184,6 +185,29 @@ export default function DashboardPage() {
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
   const [quickDrawerInitialTab, setQuickDrawerInitialTab] = useState<"DEBIT" | "CREDIT" | "TRANSFER">("DEBIT");
   const [isMoveMoneyOpen, setIsMoveMoneyOpen] = useState(false);
+  const [isQuickActionMenuOpen, setIsQuickActionMenuOpen] = useState(false);
+  const quickActionMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (quickActionMenuRef.current && !quickActionMenuRef.current.contains(event.target as Node)) {
+        setIsQuickActionMenuOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsQuickActionMenuOpen(false);
+      }
+    }
+    if (isQuickActionMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isQuickActionMenuOpen]);
 
   const upcomingBillsList = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === "PENDING")
@@ -218,40 +242,78 @@ export default function DashboardPage() {
         </div>
 
         {/* Header Action Strip */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => {
-              setQuickDrawerInitialTab("DEBIT");
-              setQuickDrawerOpen(true);
-            }}
-            className="px-3.5 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center cursor-pointer"
-          >
-            <span>Quick Expense</span>
-          </button>
+        <div className="flex items-center gap-2.5">
+          {/* Quick Action Split / Dropdown Button */}
+          <div className="relative" ref={quickActionMenuRef}>
+            <div className="inline-flex items-center rounded-xl shadow-2xs overflow-hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickDrawerInitialTab("DEBIT");
+                  setQuickDrawerOpen(true);
+                  setIsQuickActionMenuOpen(false);
+                }}
+                className="px-3.5 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{t("dashboard.quickAction", { defaultValue: "+ Quick Action" })}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsQuickActionMenuOpen((prev) => !prev)}
+                className="px-2 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] border-l border-blue-400/40 text-white transition-colors flex items-center justify-center cursor-pointer"
+                aria-haspopup="true"
+                aria-expanded={isQuickActionMenuOpen}
+                aria-label={t("dashboard.quickAction", { defaultValue: "Quick Action options" })}
+              >
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isQuickActionMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setQuickDrawerInitialTab("CREDIT");
-              setQuickDrawerOpen(true);
-            }}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center cursor-pointer"
-          >
-            <span>{t("dashboard.quickIncome", { defaultValue: "Quick Income" })}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsMoveMoneyOpen(true)}
-            className="px-4 py-2 bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 font-bold text-xs rounded-xl transition-all shadow-2xs flex items-center cursor-pointer"
-          >
-            <span>{t("dashboard.transferBetweenPools", { defaultValue: "Transfer between Pools" })}</span>
-          </button>
+            {isQuickActionMenuOpen && (
+              <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickDrawerInitialTab("DEBIT");
+                    setQuickDrawerOpen(true);
+                    setIsQuickActionMenuOpen(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors flex items-center gap-2.5 cursor-pointer"
+                >
+                  <ArrowUpRight className="w-4 h-4 text-rose-500" />
+                  <span>{t("dashboard.recordExpense", { defaultValue: "Record Expense" })}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickDrawerInitialTab("CREDIT");
+                    setQuickDrawerOpen(true);
+                    setIsQuickActionMenuOpen(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-emerald-50 dark:hover:bg-zinc-800 hover:text-emerald-600 transition-colors flex items-center gap-2.5 cursor-pointer"
+                >
+                  <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
+                  <span>{t("dashboard.recordIncome", { defaultValue: "Record Income" })}</span>
+                </button>
+                <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoveMoneyOpen(true);
+                    setIsQuickActionMenuOpen(false);
+                  }}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors flex items-center gap-2.5 cursor-pointer"
+                >
+                  <ArrowLeftRight className="w-4 h-4 text-blue-500" />
+                  <span>{t("dashboard.transferBetweenPools", { defaultValue: "Transfer between Pools" })}</span>
+                </button>
+              </div>
+            )}
+          </div>
 
           <Link
             href="/dashboard/afford-check"
-            className="px-4 py-2 bg-[#1B2B4B] hover:bg-[#111c33] text-white font-bold text-xs rounded-xl transition-colors shadow-xs flex items-center cursor-pointer"
+            className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border border-zinc-200/90 dark:border-zinc-800 text-[#1B2B4B] dark:text-zinc-100 font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center cursor-pointer"
           >
             <span>{t("canIAfford.title", { defaultValue: "Can I Afford It?" })}</span>
           </Link>

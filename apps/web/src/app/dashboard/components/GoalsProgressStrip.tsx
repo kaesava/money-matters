@@ -85,17 +85,16 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
   if (!goalCategories || goalCategories.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-2xs space-y-4 h-full flex flex-col justify-between">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4 h-full flex flex-col justify-between">
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-base">🎯</span>
             <h3 className="text-sm font-extrabold text-[#1B2B4B] dark:text-zinc-100">
               {t('dashboard.goals.title', { defaultValue: 'Goals' })}
             </h3>
             <span className="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full">
               {onTrackGoals === totalGoals
-                ? (t('dashboard.goals.allOnTrack', { total: totalGoals }) || `All ${totalGoals} goals on track 🎉`)
+                ? (t('dashboard.goals.allOnTrack', { total: totalGoals }) || `All ${totalGoals} goals on track`)
                 : (t('dashboard.goals.onTrack', { count: onTrackGoals, total: totalGoals }) || `${onTrackGoals} of ${totalGoals} on track`)}
             </span>
           </div>

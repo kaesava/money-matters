@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { AmountField, DatePickerField } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../../providers/LocaleProvider";
 import { BankTransferRollupCard, BankTransferPool, BankTransferAccount } from "./BankTransferRollupCard";
 
 function fmt(val: number) {
@@ -59,6 +60,7 @@ export function IncomeSplitCommandPanel({
   submitting,
 }: IncomeSplitCommandPanelProps) {
   const [detailsCollapsed, setDetailsCollapsed] = useState(true);
+  const { fmtDate } = useLocale();
 
   const billsPercent = numericActual > 0 ? Math.min(100, (billsAllocated / numericActual) * 100) : 0;
   const goalsPercent = numericActual > 0 ? Math.min(100 - billsPercent, (goalsAllocated / numericActual) * 100) : 0;
@@ -78,7 +80,7 @@ export function IncomeSplitCommandPanel({
               {detailsCollapsed ? "▶" : "▼"}
             </span>
             <span className="text-xs font-black uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
-              {t("paydayDrawer.reviewIncome", { defaultValue: "Paycheck Details" })}
+              {t("paydayDrawer.reviewIncome", { defaultValue: "Review Income" })} - {fmtDate(selectedDate)}
             </span>
           </div>
           <span className="text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200">
@@ -127,7 +129,7 @@ export function IncomeSplitCommandPanel({
                   disabled={submitting}
                   className="w-full py-1.5 px-3 bg-[#2563eb] hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors shadow-2xs cursor-pointer"
                 >
-                  {t("paydayDrawer.reRunWaterfall", { defaultValue: "Re-run Waterfall with new amount" })}
+                  {t("paydayDrawer.reRunWaterfall", { defaultValue: "Re-run income splits" })}
                 </button>
               </div>
             )}

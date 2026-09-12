@@ -32,4 +32,4 @@ export * from './Toast';
 export * from './AlertBanner';
 
 export * from './fields/RecurrenceBuilder';
-export * from '../hooks/useRecurrenceBuilder.js';
+export * from '../hooks/useRecurrenceBuilder';

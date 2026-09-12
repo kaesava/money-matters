@@ -207,7 +207,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         expectedDate: selectedDate,
       });
       await utils.previewPayday.invalidate({ incomeEventId });
-      toast.success(t("paydayDrawer.revertedToAutoSuccess", { defaultValue: "Recalculated waterfall with new amount." }));
+      toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Recalculated suggested allocation." }));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to recalculate.");
     } finally {
@@ -221,32 +221,32 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       await revertAllocationPlanMut.mutateAsync({ incomeEventId });
       await utils.listAllAllocationPlans.invalidate();
       await utils.previewPayday.invalidate({ incomeEventId });
-      toast.success(t("matrix.revertSuccess", { defaultValue: "Reverted to auto waterfall calculation." }));
+      toast.success(t("matrix.revertSuccess", { defaultValue: "Reset to suggested allocation." }));
       setIsSavedPlan(false);
       setIsConfirmedPlan(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to revert.");
+      toast.error(err instanceof Error ? err.message : "Failed to reset.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleRecalculateTrigger = () => {
-    if (isSavedPlan) {
-      setShowRecalculateConfirm(true);
-    } else {
-      if (actualAmount !== initialAmount) {
-        handleRecalculateWaterfall();
-      } else {
-        setLinesMap({ ...initialLinesMap });
-        toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Refreshed waterfall allocations." }));
-      }
-    }
+    setShowRecalculateConfirm(true);
   };
 
   const handleRecalculateSavedConfirmed = async () => {
     setShowRecalculateConfirm(false);
-    await handleRevertToAuto();
+    if (isSavedPlan) {
+      await handleRevertToAuto();
+    } else {
+      if (actualAmount !== initialAmount) {
+        await handleRecalculateWaterfall();
+      } else {
+        setLinesMap({ ...initialLinesMap });
+        toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Recalculated suggested allocation." }));
+      }
+    }
   };
 
   const handleDeleteIncome = async () => {
@@ -467,11 +467,11 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         isOpen={showRecalculateConfirm}
         onClose={() => setShowRecalculateConfirm(false)}
         onConfirm={handleRecalculateSavedConfirmed}
-        title={t("paydayDrawer.recalculateConfirmTitle", { defaultValue: "Recalculate Income Split?" })}
+        title={t("paydayDrawer.recalculateConfirmTitle", { defaultValue: "Reset Plan?" })}
         description={t("paydayDrawer.recalculateConfirmDescription", {
-          defaultValue: "Recalculating will discard your custom saved overrides and re-run the 5-step forward-looking waterfall engine based on current balances and upcoming bills. Are you sure?",
+          defaultValue: "Recalculating will discard any custom amounts and reset to the suggested allocation. Continue?",
         })}
-        confirmLabel={t("paydayDrawer.recalculate", { defaultValue: "Re-calculate" })}
+        confirmLabel={t("matrix.unsave", { defaultValue: "Reset" })}
         variant="danger"
       />
 

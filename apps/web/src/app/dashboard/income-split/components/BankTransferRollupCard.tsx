@@ -124,23 +124,20 @@ export function BankTransferRollupCard({
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#2563eb] bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-900">
-            {t("cards.paydayTransfer.badge", { defaultValue: "1-Tap Payday Transfer Plan" })}
-          </span>
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#2563eb] bg-blue-50 dark:bg-blue-950/60 dark:text-blue-300 px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-900 shrink-0">
+          {t("cards.paydayTransfer.badge", { defaultValue: "1-Tap Payday Transfer Plan" })}
+        </span>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+          {externalTransfers.length > 0
+            ? t("cards.paydayTransfer.rollupDescription", {
+                defaultValue: "Bank transfers are rolled up by destination account so you only make 1 transfer per bank:",
+              })
+            : t("cards.paydayTransfer.allRetainedDescription", {
+                defaultValue: "All allocations remain in your source account. No external bank transfers needed!",
+              })}
+        </p>
       </div>
-
-      <p className="text-xs text-zinc-500 font-medium leading-relaxed">
-        {externalTransfers.length > 0
-          ? t("cards.paydayTransfer.rollupDescription", {
-              defaultValue: "Bank transfers are rolled up by destination account so you only make 1 transfer per bank:",
-            })
-          : t("cards.paydayTransfer.allRetainedDescription", {
-              defaultValue: "All allocations remain in your source account. No external bank transfers needed!",
-            })}
-      </p>
 
       {/* Retained in Source Account Card */}
       {retainedItems.length > 0 && (

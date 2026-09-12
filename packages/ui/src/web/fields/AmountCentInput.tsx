@@ -65,7 +65,7 @@ export function AmountCentInput({
         {label} {required && <span className="text-rose-500">*</span>}
       </label>
       <div className="relative">
-        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium select-none pointer-events-none">$</span>
         <input
           type="text"
           inputMode="decimal"
@@ -74,7 +74,7 @@ export function AmountCentInput({
           value={displayValue}
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={(e) => e.target.select()}
-          className="ui-input w-full pl-10 text-sm bg-white"
+          className="ui-input w-full !pl-12 !pr-4 text-sm bg-white font-mono tabular-nums"
         />
       </div>
     </div>

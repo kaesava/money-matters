@@ -266,7 +266,7 @@ export function SlideOverCategoryDrawer({
               <div className="space-y-4">
                 <div className="flex justify-end">
                   <Link
-                    href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&search=${encodeURIComponent(categoryName)}`}
+                    href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&poolId=${targetPool?.id || ""}`}
                     onClick={onClose}
                     className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
                   >
@@ -335,7 +335,7 @@ export function SlideOverCategoryDrawer({
               <div className="space-y-4">
                 <div className="flex justify-end">
                   <Link
-                    href={`/dashboard/history?search=${encodeURIComponent(categoryName)}`}
+                    href={`/dashboard/history?poolId=${targetPool?.id || ""}`}
                     onClick={onClose}
                     className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
                   >

@@ -408,7 +408,7 @@ export function PoolsTable({
                                   )}
                                   {pool.hasUpcomingExpenses && (
                                     <Link
-                                      href={`/dashboard/income-and-bills?poolId=${pool.id}`}
+                                      href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&poolId=${pool.id}`}
                                       className="text-[#2563eb] hover:underline"
                                     >
                                       Expenses
@@ -475,7 +475,7 @@ export function PoolsTable({
                                       )}
                                       {cat.hasUpcomingExpenses && (
                                         <Link
-                                          href={`/dashboard/income-and-bills?categoryId=${cat.id}`}
+                                          href={`/dashboard/income-and-bills?tab=EVENTS&type=EXPENSE&categoryId=${cat.id}`}
                                           className="text-zinc-500 hover:text-[#2563eb] hover:underline"
                                         >
                                           Expenses

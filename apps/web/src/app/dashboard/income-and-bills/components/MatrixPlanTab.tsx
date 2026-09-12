@@ -425,7 +425,7 @@ export function MatrixPlanTab({
                               className="font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors"
                               title="Revert saved split to automatic calculation"
                             >
-                              {t("matrix.unsave", { defaultValue: "Unsave" })}
+                              {t("matrix.unsave", { defaultValue: "Reset" })}
                             </button>
                           )}
 
@@ -571,14 +571,14 @@ export function MatrixPlanTab({
         variant="primary"
       />
 
-      {/* Unsave Warning Dialog */}
+      {/* Reset Warning Dialog */}
       <ConfirmDialog
         isOpen={!!colToUnsave}
         onClose={() => setColToUnsave(null)}
         onConfirm={confirmUnsaveColumn}
-        title={t("matrix.unsaveDialogTitle", { defaultValue: "Unsave Income Split" })}
-        description={t("matrix.unsaveDialogDescription", { defaultValue: "Your saved Income Split will be lost and will be auto-calculated. Continue?" })}
-        confirmLabel={t("matrix.unsaveDialogConfirm", { defaultValue: "Unsave" })}
+        title={t("matrix.unsaveDialogTitle", { defaultValue: "Reset Plan?" })}
+        description={t("matrix.unsaveDialogDescription", { defaultValue: "Resetting will discard your manually entered amounts and restore automatic calculation for this income event. Continue?" })}
+        confirmLabel={t("matrix.unsaveDialogConfirm", { defaultValue: "Reset" })}
         variant="warning"
       />
 

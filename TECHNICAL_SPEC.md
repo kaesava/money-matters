@@ -177,8 +177,7 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
   - Automatically compares each pool's assigned `bankAccountId` with `incomeEvent.receivingAccountId`.
   - Pools in the same bank account are marked as *Retained in source account* with $0 external transfers.
   - Pools targeting other bank accounts are rolled up into **1 single transfer per destination bank account**, computing aggregate totals and listing constituent pools for 1-click clipboard copying.
-- **Bulk Allocate Persistence & Concurrency (`saveBulkAllocations`)**: Custom grid edits write directly to `allocation_plans` (status: `PENDING`) and `allocation_plan_lines`. Editing a cell auto-sweeps the difference into the designated Surplus Target cell to force unallocated cash to $0. Enforces a strict status check (`income_event.status === 'PENDING'`) to reject race conditions if an event was confirmed in another session.
-- **Revert to Automatic Waterfall (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **Re-calculate** or **Unsave** prompts for confirmation and deletes the `allocation_plan` row, restoring dynamic waterfall calculation.
+- **Revert to Automatic Allocation (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **Re-calculate** or **Reset** prompts for confirmation ("Reset Plan?") and deletes the `allocation_plan` row, restoring dynamic suggested allocation.
 
 
 ### 5.3 Bank Account Balance Alignment & V2 Ingestion Architecture

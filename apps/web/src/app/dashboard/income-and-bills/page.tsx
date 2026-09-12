@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
@@ -535,7 +536,17 @@ function IncomeAndBillsContent() {
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
-                              {inc.accountName}
+                              {inc.receivingAccountId ? (
+                                <Link
+                                  href={`/dashboard/bank-accounts?id=${inc.receivingAccountId}`}
+                                  className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  <span>{inc.accountName}</span>
+                                  <span className="text-[10px] text-blue-400">↗</span>
+                                </Link>
+                              ) : (
+                                inc.accountName
+                              )}
                             </td>
                             <td className="py-2.5 px-3 text-right font-mono font-bold text-zinc-900 dark:text-white tabular-nums">
                               ${parseFloat(inc.amount).toFixed(2)}
@@ -683,7 +694,17 @@ function IncomeAndBillsContent() {
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
-                              {exp.poolName}
+                              {exp.poolId || exp.categoryId ? (
+                                <Link
+                                  href={`/dashboard/pools?poolId=${exp.poolId || exp.categoryId}`}
+                                  className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  <span>{exp.poolName}</span>
+                                  <span className="text-[10px] text-blue-400">↗</span>
+                                </Link>
+                              ) : (
+                                exp.poolName
+                              )}
                             </td>
                             <td className="py-2.5 px-3 text-right font-mono font-bold text-zinc-900 dark:text-white tabular-nums">
                               ${parseFloat(exp.amount).toFixed(2)}
@@ -706,12 +727,19 @@ function IncomeAndBillsContent() {
             isLoading={isLoading}
             savedIncomeEventIds={savedIncomeEventIds}
             initialKindFilter={typeParam === "INCOME" || typeParam === "EXPENSE" || typeParam === "TRANSFER" ? typeParam : (poolIdParam || categoryIdParam ? "EXPENSE" : "ALL")}
-            initialSearchQuery={
-              searchParam ||
-              (poolIdParam ? pools.find((p) => p.id === poolIdParam)?.name || "" : categoryIdParam ? categoriesQuery.data?.find((c) => c.id === categoryIdParam)?.name || "" : "")
-            }
+            initialSearchQuery={searchParam}
+            filterPoolId={poolIdParam || undefined}
+            filterCategoryId={categoryIdParam || undefined}
+            onClearFilter={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("poolId");
+              url.searchParams.delete("id");
+              url.searchParams.delete("categoryId");
+              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+            }}
             incomeEvents={incomeEvents.map((e) => {
-              const receivingAccountId = (e as unknown as { receivingAccountId?: string }).receivingAccountId;
+              const rawAccount = e as unknown as { bankAccountId?: string; receivingAccountId?: string };
+              const receivingAccountId = rawAccount.bankAccountId || rawAccount.receivingAccountId;
               const acct = bankAccounts.find((b) => b.id === receivingAccountId);
               return {
                 ...e,

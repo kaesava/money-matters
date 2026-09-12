@@ -12,6 +12,7 @@ import {
   useResizableColumns,
   ConfirmDialog,
   useToast,
+  RecordFilterBadge,
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
@@ -82,6 +83,9 @@ interface UpcomingTimelineTabProps {
     amount: string;
     date: string;
   }) => void;
+  filterPoolId?: string;
+  filterCategoryId?: string;
+  onClearFilter?: () => void;
 }
 
 export function UpcomingTimelineTab({
@@ -94,6 +98,9 @@ export function UpcomingTimelineTab({
   pools = [],
   initialKindFilter = "ALL",
   initialSearchQuery = "",
+  filterPoolId,
+  filterCategoryId,
+  onClearFilter,
   onAllocateIncome,
   onMarkExpensePaid,
   onSkipIncome,
@@ -169,6 +176,22 @@ export function UpcomingTimelineTab({
         // 1. Kind filter
         if (kindFilter !== "ALL" && e.eventKind !== kindFilter) return false;
 
+        // 1.5 Explicit Pool ID filter
+        if (filterPoolId) {
+          const matchesPool =
+            e.poolId === filterPoolId ||
+            e.categoryId === filterPoolId ||
+            e.sourcePoolId === filterPoolId ||
+            e.destinationPoolId === filterPoolId;
+          if (!matchesPool) return false;
+        }
+
+        // 1.6 Explicit Category ID filter
+        if (filterCategoryId) {
+          const matchesCategory = e.categoryId === filterCategoryId;
+          if (!matchesCategory) return false;
+        }
+
         // 2. Scope filter (Shared / Private)
         if (scopeFilter === "PRIVATE" && !e.isPrivate) return false;
         if (scopeFilter === "SHARED" && e.isPrivate) return false;
@@ -198,12 +221,12 @@ export function UpcomingTimelineTab({
         }
         return sortOrder === "asc" ? comp : -comp;
       });
-  }, [incomeEvents, expenseEvents, transferEvents, kindFilter, scopeFilter, searchQuery, sortField, sortOrder]);
+  }, [incomeEvents, expenseEvents, transferEvents, kindFilter, scopeFilter, searchQuery, sortField, sortOrder, filterPoolId, filterCategoryId]);
 
 
   useEffect(() => {
     setPage(1);
-  }, [kindFilter, scopeFilter, searchQuery]);
+  }, [kindFilter, scopeFilter, searchQuery, filterPoolId, filterCategoryId]);
 
   const paginatedEvents = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -222,6 +245,20 @@ export function UpcomingTimelineTab({
 
   return (
     <div className="flex flex-col gap-5 w-full">
+      {/* Active Filter Badge for Pool or Category Navigation */}
+      {(filterPoolId || filterCategoryId) && (
+        <div className="flex items-center gap-3 flex-wrap animate-in fade-in duration-150">
+          <RecordFilterBadge
+            label={
+              filterPoolId
+                ? `Filtered to Pool: ${pools.find((p) => p.id === filterPoolId)?.name || "Selected Pool"}`
+                : `Filtered to Category: ${categories.find((c) => c.id === filterCategoryId)?.name || "Selected Category"}`
+            }
+            onClear={onClearFilter || (() => {})}
+          />
+        </div>
+      )}
+
       {/* Controls Bar: Search, Kind Filter, Scope Filter */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs">
         <div className="flex-1 w-full max-w-full">
@@ -642,17 +679,17 @@ export function UpcomingTimelineTab({
               await utils.listIncomeEvents.invalidate();
               await utils.listExpenseEvents.invalidate();
               await utils.listPools.invalidate();
-              toast.success(t("matrix.revertSuccess", { defaultValue: "Reverted. Income Split will be auto-calculated." }));
+              toast.success(t("matrix.revertSuccess", { defaultValue: "Reset to suggested allocation." }));
             } catch (_err) {
-              toast.error("Failed to unsave payday.");
+              toast.error("Failed to reset payday.");
             } finally {
               setIncomeToUnsaveId(null);
             }
           }
         }}
-        title={t("matrix.unsaveDialogTitle", { defaultValue: "Unsave Income Split" })}
-        description={t("matrix.unsaveDialogDescription", { defaultValue: "Your saved Income Split will be lost and will be auto-calculated. Continue?" })}
-        confirmLabel={t("common.unsave", { defaultValue: "Unsave" })}
+        title={t("matrix.unsaveDialogTitle", { defaultValue: "Reset Plan?" })}
+        description={t("matrix.unsaveDialogDescription", { defaultValue: "Resetting will discard your manually entered amounts and restore automatic calculation for this income event. Continue?" })}
+        confirmLabel={t("common.unsave", { defaultValue: "Reset" })}
         variant="danger"
       />
       {markPaidModalEvent && (() => {

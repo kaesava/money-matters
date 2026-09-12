@@ -50,7 +50,6 @@ function getRedis(): UpstashRedis | null {
 
   // Lazy import to avoid loading Redis in environments where it's not configured
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Redis } = require("@upstash/redis");
     _redis = new Redis({ url, token }) as UpstashRedis;
     return _redis;

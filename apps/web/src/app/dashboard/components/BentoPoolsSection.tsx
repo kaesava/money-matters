@@ -49,7 +49,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Everyday Spending Pool Card */}
-        <div className="bg-white border border-gray-200/90 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:border-gray-300 transition-all">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
@@ -58,7 +58,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             </div>
 
             <div>
-              <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
+              <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
                 {format(everydayBalance)}
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -68,12 +68,12 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           </div>
 
           {/* Pacing Bar */}
-          <div className="space-y-1.5 pt-4 mt-auto border-t border-gray-100">
+          <div className="space-y-1.5 pt-4 mt-auto border-t border-gray-100 dark:border-zinc-800">
             <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
               <span>Monthly Budget: {format(everydayMonthlyBudget)}</span>
               <span>{Math.round(everydaySpentPct)}% spent</span>
             </div>
-            <div className="relative h-2 bg-gray-100 rounded-full overflow-visible">
+            <div className="relative h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-visible">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   isEverydayPacingOk ? 'bg-emerald-500' : 'bg-rose-500'
@@ -90,7 +90,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
         </div>
 
         {/* Bills Pool Card */}
-        <div className="bg-white border border-gray-200/90 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:border-gray-300 transition-all">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
@@ -99,7 +99,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
             </div>
 
             <div>
-              <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B]">
+              <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
                 {format(billsBalance)}
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -109,13 +109,13 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
 
             {/* Shortfall or Coverage Status Banner */}
             {billsShortfall > 0 ? (
-              <div className="p-2.5 bg-rose-50 border border-rose-200/80 rounded-2xl flex items-center justify-between">
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div>
-                    <span className="text-[11px] font-bold text-rose-800 block">
+                    <span className="text-[11px] font-bold text-rose-800 dark:text-rose-300 block">
                       Shortfall of {format(billsShortfall)}
                     </span>
-                    <span className="text-[10px] text-rose-700 block">
+                    <span className="text-[10px] text-rose-700 dark:text-rose-400 block">
                       {billsDue14DaysCount} bill(s) totaling {format(totalBillsDue14Days)} due in 14 days
                     </span>
                   </div>
@@ -129,16 +129,16 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center gap-2 text-xs font-bold text-emerald-800">
+              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 rounded-xl flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                 <span>Next 14 days of bills are fully covered!</span>
               </div>
             )}
           </div>
 
           {/* Monthly Cap Footnote */}
-          <div className="pt-3 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500 mt-auto">
+          <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex justify-between items-center text-xs text-gray-500 mt-auto">
             <span>Target Monthly Bills:</span>
-            <span className="font-mono font-semibold">{format(billsMonthlyBudget)}</span>
+            <span className="font-mono font-semibold dark:text-zinc-300">{format(billsMonthlyBudget)}</span>
           </div>
         </div>
       </div>

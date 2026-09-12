@@ -1,7 +1,7 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { useRecurrenceBuilder } from "../../hooks/useRecurrenceBuilder.js";
-import { Input } from "../Input.js";
+import { useRecurrenceBuilder } from "../../hooks/useRecurrenceBuilder";
+import { Input } from "../Input";
 
 interface RecurrenceBuilderProps {
   builder: ReturnType<typeof useRecurrenceBuilder>;
