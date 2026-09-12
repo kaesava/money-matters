@@ -4,8 +4,75 @@ import React from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 
+import { authClient } from "../../lib/auth";
+import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
+
 export interface LandingFooterProps {
   onAuthClick: (tab: "signIn" | "signUp") => void;
+}
+
+function ConversionBanner({ onAuthClick }: LandingFooterProps) {
+  const { data: session } = authClient.useSession();
+  const { status } = useSubscriptionStatus();
+
+  let title = t("landing.conversionTitle");
+  let desc = t("landing.conversionDesc");
+  let ctaContent = (
+    <button
+      type="button"
+      onClick={() => onAuthClick("signUp")}
+      className="bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm mt-2 cursor-pointer active:scale-98"
+    >
+      {t("landing.createAccount")}
+    </button>
+  );
+
+  if (session?.user) {
+    if (status?.isSubscribed) {
+      title = t("landing.footerConversionSubscribed");
+      desc = t("landing.footerConversionSubscribedDesc");
+      ctaContent = (
+        <Link
+          href="/dashboard"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm mt-2 cursor-pointer active:scale-98 inline-block"
+        >
+          {t("landing.heroCtaSubscribed")}
+        </Link>
+      );
+    } else if (status?.isTrialGrace || status?.isTrialExpired) {
+      title = t("landing.footerConversionGrace");
+      desc = t("landing.footerConversionGraceDesc");
+      ctaContent = (
+        <Link
+          href="/subscription/upgrade"
+          className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm mt-2 cursor-pointer active:scale-98 inline-block"
+        >
+          {t("landing.heroCtaGrace")}
+        </Link>
+      );
+    } else {
+      title = t("landing.footerConversionTrial");
+      desc = t("landing.footerConversionTrialDesc");
+      ctaContent = (
+        <Link
+          href="/dashboard"
+          className="bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm mt-2 cursor-pointer active:scale-98 inline-block"
+        >
+          {t("landing.heroCtaTrial")}
+        </Link>
+      );
+    }
+  }
+
+  return (
+    <section className="bg-[#1B2B4B] text-white py-16 text-center">
+      <div className="max-w-3xl mx-auto px-6 flex flex-col items-center gap-5">
+        <h2 className="text-3xl md:text-4xl font-black tracking-tight">{title}</h2>
+        <p className="text-slate-300 text-sm md:text-base max-w-xl leading-relaxed">{desc}</p>
+        {ctaContent}
+      </div>
+    </section>
+  );
 }
 
 export function LandingFooter({ onAuthClick }: LandingFooterProps) {
@@ -13,24 +80,7 @@ export function LandingFooter({ onAuthClick }: LandingFooterProps) {
 
   return (
     <>
-      {/* Conversion Banner */}
-      <section className="bg-[#1B2B4B] text-white py-16 text-center">
-        <div className="max-w-3xl mx-auto px-6 flex flex-col items-center gap-5">
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight">
-            {t("landing.conversionTitle")}
-          </h2>
-          <p className="text-slate-300 text-sm md:text-base max-w-xl leading-relaxed">
-            {t("landing.conversionDesc")}
-          </p>
-          <button
-            type="button"
-            onClick={() => onAuthClick("signUp")}
-            className="bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm mt-2 cursor-pointer active:scale-98"
-          >
-            {t("landing.createAccount")}
-          </button>
-        </div>
-      </section>
+      <ConversionBanner onAuthClick={onAuthClick} />
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-[#F7F8FA] py-8 text-center text-xs text-slate-500 font-sans">

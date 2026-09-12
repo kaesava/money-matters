@@ -25,6 +25,14 @@ export interface TimelineMilestone {
   icon: string;
 }
 
+export interface PoolTransfer {
+  id: string;
+  fromPoolId: "everyday" | "bills" | "goals" | "surplus";
+  toPoolId: "everyday" | "bills" | "goals" | "surplus";
+  amount: number;
+  day: number;
+}
+
 export interface SimulationDayState {
   day: number;
   activeMilestone: TimelineMilestone;
@@ -32,4 +40,8 @@ export interface SimulationDayState {
   goals: PoolSnapshot;
   everyday: PoolSnapshot;
   surplusOffset: number;
+  incomeAmount: number;
+  isPayday: boolean;
+  dailyDrawdown: number;
+  commentary: string;
 }

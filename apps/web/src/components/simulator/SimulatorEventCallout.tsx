@@ -6,13 +6,15 @@ import { TimelineMilestone } from "./types";
 
 interface SimulatorEventCalloutProps {
   milestone: TimelineMilestone;
+  commentary?: string;
 }
 
 export const SimulatorEventCallout: React.FC<SimulatorEventCalloutProps> = ({
   milestone,
+  commentary,
 }) => {
   return (
-    <div className="p-4 md:p-5 bg-gradient-to-r from-blue-50 to-indigo-50/40 rounded-2xl border border-blue-200/80 flex items-start gap-3.5 shadow-2xs">
+    <div className="p-4 md:p-5 bg-gradient-to-r from-blue-50/80 via-indigo-50/30 to-emerald-50/40 rounded-2xl border border-blue-200/80 flex items-start gap-3.5 shadow-2xs">
       <span className="text-2xl p-2 bg-white rounded-xl shadow-2xs border border-blue-100 flex-shrink-0">
         {milestone.icon}
       </span>
@@ -26,7 +28,7 @@ export const SimulatorEventCallout: React.FC<SimulatorEventCalloutProps> = ({
           </span>
         </div>
         <p className="text-xs sm:text-sm font-medium text-slate-700 leading-relaxed">
-          {t(milestone.eventDescKey as Parameters<typeof t>[0])}
+          {commentary || t(milestone.eventDescKey as Parameters<typeof t>[0])}
         </p>
       </div>
     </div>

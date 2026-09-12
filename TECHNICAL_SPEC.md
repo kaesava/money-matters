@@ -211,22 +211,22 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **Unbudgeted Buffer / Reserved Funds:** Excluded from available spendable balance calculation (`Available = Current Balance − Reserved Funds`).
 
 ### 5.6 5-Level "Can We Afford This?" Engine (`@money-matters/capability-simulation`)
-- **Unfunded Bill Shortfall Protection**: Queries `expenseEvents` where `status = 'PENDING'` and `expectedDate <= nextPaycheckDate`. Evaluates bills per REGULAR pool against pool balance to compute unfunded shortfall (`unfundedBillsShortfall`), preserving Everyday cash for bills that are already funded in their respective pools (`effectiveSpendable = max(0, everydayBalance - unfundedBillsShortfall)`).
-- **Dynamic Pacing Safety Buffer**: Computes `dailyPacingAfterSpend = (effectiveSpendable - amount) / daysUntilPayday`. Ensures daily discretionary allowance meets recommended daily safety buffer (`25%` of `everydayAllowanceAmount / 30`, fallback `$15.00`/day). Triggers `PACING_TIGHT` if pacing drops below buffer.
+- **Unfunded Bill Shortfall Protection**: Queries `expenseEvents` where `status = 'PENDING'` and `expectedDate <= nextPaycheckDate`. Evaluates bills per REGULAR pool against pool balance to compute unfunded shortfall (`unfundedBillsShortfall`), preserving Everyday cash for bills that are already funded in their respective pools (`effectiveSpendable = max(0, everydayBalance - unfundedBillsShortfall)`). Bills are strictly non-negotiable.
+- **Prorated Everyday Safe Cushion**: Computes `safeCushion = Math.round(dailyAllowance * 0.25 * daysUntilPayday)` where `dailyAllowance = everydayMonthlyAllowance / 30` (fallback $15 * days). Evaluated and displayed purely as total dollars remaining until payday vs recommended safe cushion, completely eliminating velocity/daily pace jargon ("$/day", "floor").
+- **ONE-OFF Savings Goal Alternative ("What Gives")**: When a one-off purchase exceeds available Everyday cash (`amount > effectiveSpendable`), the engine checks uncommitted Savings Goals. If a flexible goal has sufficient balance, it computes the goal delay (`shortfall / dailyContrib`) and returns `goalAlternative` alongside the projected future paycycle income date (`WAIT_FOR_PAYCYCLE`).
 - **RECURRING Commitment Simulation**:
-  - **Day-1 Immediate Liquidity Check**: Validates upfront payment availability today (`BILLS_RISK` or `PACING_TIGHT`). If Day-1 cash is insufficient, evaluates the 12-month forecast horizon; if long-term affordable, returns `WAIT_FOR_PAYCYCLE` starting next payday instead of immediate `HARD_NO`.
-  - **Calendar-Matched Phantom Expense Injection**: Injects 52 weekly, 26 fortnightly, 12 monthly (using calendar month addition), or 1 annual phantom expense events into `cumExpenses` across the 12-month horizon to eliminate date drift.
-  - **Phantom Bucket Deficit Check (`HARD_NO`)**: Verifies `phantomFinalBalance >= -1`. Rejects commitments where projected 12-month income is insufficient to fund the recurring expense, preventing silent phantom bucket deficits.
-  - **Goal Delay Impact Calculation (`GOAL_DELAYED`)**: Projects balance drops across committed savings targets and flexible goals.
-  - **Everyday Starvation Detection (`HARD_NO`)**: Evaluates `balancesAfterExpenses` across Everyday pools at every step of the 12-month projection. Rejects commitments that cause Everyday cash to drop below `$0.00` on any step.
+  - **Budget-First Ongoing Evaluation**: Simulates 12-month forward horizon. Uncommitted goals absorb first, then committed goals (`GOAL_DELAYED`).
+  - **Everyday 80% Minimum Allowance Protection**: Rejects any commitment that causes Everyday pool balance to drop negative or total Everyday allocation to drop below 80% of expected allowance over 12 months (`HARD_NO`).
+  - **Day-1 Start Advice**: If the commitment fits the ongoing 12-month budget with goals giving, but Day-1 cash is short today (`amount > effectiveSpendable`), attaches clear start advice to wait until next payday without failing the overall budget verdict.
+  - **Phantom Bucket Deficit Check (`HARD_NO`)**: Verifies `phantomFinalBalance >= -1`. Rejects commitments where projected 12-month income cannot fund essential obligations.
 - **6-Branch Discriminated Union Matrix (`CanAffordVerdictDto`)**:
-  - `SAFE_YES`: Cash available + comfortable daily safety buffer.
-  - `PACING_TIGHT`: Cash available, but tight daily spending pace.
-  - `BILLS_RISK`: Raw balance sufficient, but unfunded upcoming bills consume the safety buffer.
-  - `WAIT_FOR_PAYCYCLE`: Future paycycle accumulates sufficient Everyday balance (leaving enough surplus after purchase to maintain the daily safety buffer).
-  - `GOAL_DELAYED`: Recurring item is affordable but delays savings goal target dates.
-  - `HARD_NO`: Purchase exhausts 12-month forecast horizon, creates a forecasted deficit, or starves daily living allowance.
-- **Human-Centric Trust Copy**: All rationale step messages use clear, jargon-free financial phrasing (`recommended daily safety buffer`, `added to your 12-month budget forecast`, `committed savings target`).
+  - `SAFE_YES`: Cash available + remaining cash $\ge$ recommended safe cushion until payday.
+  - `PACING_TIGHT`: Cash available, but leaves balance below recommended safe cushion until payday.
+  - `BILLS_RISK`: Raw balance appears sufficient, but upcoming unfunded bills consume the funds. Itemizes bills due.
+  - `WAIT_FOR_PAYCYCLE`: Future paycycle accumulates sufficient Everyday balance. Features `goalAlternative` if flexible savings exist today.
+  - `GOAL_DELAYED`: Recurring item is affordable ongoing, but delays savings goal target dates. Includes `startAdvice` if Day-1 cash is low.
+  - `HARD_NO`: Purchase exceeds 12-month forecast horizon, creates a deficit, or starves Everyday essentials below 80%.
+- **Human-Centric Trust Copy**: All user rationale steps are rendered in plain English (`Leaves you with $X until payday`, `Recommended safe cushion: $Y`, `All upcoming bills are 100% covered`). Zero references to velocity or daily pacing floors.
 
 ### 5.7 Stripe Billing, Synchronous Verification & Trial Lifecycle (`@money-matters/capability-billing`)
 - **Decoupled Capability Architecture**: Stripe Checkout (`createCheckoutSessionCommand`), Synchronous Verification (`verifyCheckoutSessionCommand`), On-Demand Sync (`syncSubscriptionCommand`), Invoices Query (`listInvoicesQuery`), Customer Portal (`createCustomerPortalSessionCommand`), and Webhooks (`handleStripeWebhook`) isolated inside `packages/capabilities/billing`.
@@ -384,17 +384,20 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 
 - **`LandingHeader.tsx`**: Responsive header featuring passive `requestAnimationFrame` scrollspy navigation (`#why-us`, `#how-it-works`, `#simulator`, `#advantages`, `#pricing`, `#faq`), refined ghost Sign-In secondary action, high-contrast Serene Blue Free Trial CTA, and dynamic `authClient.useSession()` state (user identity badge + direct "Go to Dashboard →" link for authenticated visitors).
 - **`page.tsx` (`apps/web/src/app`)**: Root landing page shell with smooth scrolling (`scroll-smooth`). Authenticated users are permitted to freely browse the landing page and simulator without forced redirects to `/dashboard`.
-- **`LandingHero.tsx`**: Dual-column hero layout combining the Before/After traditional vs Money Matters comparison with the interactive Serene Bento showcase (Zero Bill Shock, Real Goal Progress, Everyday Safe Spend, and "Can I Afford This?" micro-tester).
+- **`LandingHero.tsx` & `HeroCtaActions.tsx`**: Dual-column hero layout combining the Before/After traditional vs Money Matters comparison with the interactive Serene Bento showcase and context-aware CTA actions tailored to visitor lifecycle state (anonymous visitors see "Start 60-Day Free Trial", active subscribers see "Go to Your Dashboard →", trial users see remaining trial days, and grace-period accounts see "Reactivate Full Access →").
 - **`ProblemSection.tsx`**: 4 fatal budgeting traps illustrated with Serene Finance vector icons (zero decorative emojis).
 - **`HowItWorksSection.tsx`**: 3-step automated payday allocation pipeline.
-- **`PaycheckSimulator.tsx` (`apps/web/src/components/simulator/`)**: Multi-Payline Cashflow & Payday Simulator (<250 lines modular architecture) featuring:
+- **`PaycheckSimulator.tsx` (`apps/web/src/components/simulator/`)**: Full-Width Multi-Payline Cashflow & Payday Timeline Simulator (<250 lines modular architecture) featuring:
   - `SimulatorTimelineBar.tsx`: Day 0 to Day 28 interactive scrubber with milestone jump chips and auto-play controls.
-  - `SimulatorPoolCard.tsx`: Variable-speed synchronized pool fill bars with subtle 100% completion celebration badge (`✓ 100% Funded`).
-  - `SimulatorEventCallout.tsx`: Dynamic event narrative displaying cashflow outcomes (e.g. Day 3 Rent paid from Bills Pool with Everyday balance untouched).
-  - `simulationData.ts`: Continuous mathematical timeline state resolving milestone snapshots and surplus sweep into Home Loan Offset reserve.
+  - `PaydayCheckpointBanner.tsx`: Interactive payday checkpoint that pauses at Day 0 / Day 14, allowing real-time adjustment of net income ($1,800 to $4,500) and instant waterfall recalculation.
+  - `SimulatorPoolCard.tsx`: Variable-speed synchronized pool fill bars with subtle 100% completion celebration badge (`✓ 100% Funded`) and inconspicuous `[⇄ Transfer]` action.
+  - `PoolTransferModal.tsx`: Accessible interactive modal enabling simulated ad-hoc transfers between pools with live balance adjustments and full keyboard Escape dismissal.
+  - `SimulatorEventCallout.tsx`: Dynamic event narrative displaying cashflow outcomes, step bill deductions (Rent Day 3, Electricity Day 18), continuous daily living drawdowns, and manual transfer records.
+  - `simulationData.ts`: Pure mathematical timeline engine modeling step bills deductions, cumulative daily drawdowns, dynamic income scaling, and surplus sweep into Home Loan Offset reserve.
 - **`AdvantagesSection.tsx`**: 3 core mechanical guarantees: 5-Step Self-Healing Waterfall, 5-Level "Can We Afford This?" Engine, and Harmonious Shared & Personal Budgets (shared bill clarity + 100% confidential personal spending without surveillance).
-- **`PricingSection.tsx`**: Transparent household pricing ($9.95/mo or $89/yr, founding member $69/yr) with 60-day trial banner.
-- **`LandingFooter.tsx`**: Standardized footer with brand links and legal routes.
+- **`PricingSection.tsx`**: Transparent household pricing ($9.95/mo or $89/yr, founding member $69/yr) enhanced with dynamic customer lifecycle personalization (active subscriber ribbon, trial days countdown, grace period read-only alerts, and direct portal/checkout CTAs).
+- **`LandingFooter.tsx`**: Standardized footer with brand links, legal routes, and customer-lifecycle-aware conversion banner.
+
 
 
 

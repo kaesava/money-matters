@@ -6,9 +6,10 @@ import { PoolSnapshot } from "./types";
 
 interface SimulatorPoolCardProps {
   pool: PoolSnapshot;
+  onOpenTransfer?: (poolId: "everyday" | "bills" | "goals" | "surplus") => void;
 }
 
-export const SimulatorPoolCard: React.FC<SimulatorPoolCardProps> = ({ pool }) => {
+export const SimulatorPoolCard: React.FC<SimulatorPoolCardProps> = ({ pool, onOpenTransfer }) => {
   const percent = Math.min(100, Math.round((pool.current / pool.target) * 100));
   const isFull = percent >= 100;
 
@@ -26,6 +27,16 @@ export const SimulatorPoolCard: React.FC<SimulatorPoolCardProps> = ({ pool }) =>
             {pool.stepNumber}
           </span>
           <span className="font-extrabold text-[#1B2B4B] text-sm">{pool.name}</span>
+          {onOpenTransfer && (
+            <button
+              type="button"
+              onClick={() => onOpenTransfer(pool.id as "everyday" | "bills" | "goals" | "surplus")}
+              className="text-[10px] font-bold text-slate-500 hover:text-[#2563eb] bg-slate-100 hover:bg-blue-50 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+              title={t("landing.simTransferAction")}
+            >
+              ⇄ {t("landing.simTransferAction")}
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isFull && (

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
+import { HeroCtaActions } from "./HeroCtaActions";
 
 export interface LandingHeroProps {
   onAuthClick: (tab: "signIn" | "signUp") => void;
@@ -44,25 +45,7 @@ export function LandingHero({ onAuthClick }: LandingHeroProps) {
       </p>
 
       {/* Primary & Secondary Action CTAs */}
-      <div className="flex flex-col sm:flex-row items-center gap-3.5 mt-1">
-        <button
-          type="button"
-          onClick={() => onAuthClick("signUp")}
-          className="w-full sm:w-auto bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-98 text-sm cursor-pointer"
-        >
-          {t("landing.createAccount")}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const el = document.getElementById("simulator");
-            el?.scrollIntoView({ behavior: "smooth" });
-          }}
-          className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 text-[#1B2B4B] font-bold px-7 py-4 rounded-2xl transition-all text-sm shadow-2xs cursor-pointer"
-        >
-          {t("landing.trySimulator")} ↓
-        </button>
-      </div>
+      <HeroCtaActions onAuthClick={onAuthClick} />
 
       {/* Comparison Split: Before vs After + Live Bento Showcase */}
       <div className="w-full mt-8 grid lg:grid-cols-12 gap-6 text-left items-stretch">

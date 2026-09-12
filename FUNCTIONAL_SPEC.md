@@ -342,22 +342,22 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ## 9. "Can I Afford It?" Simulation Engine
 
-The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow evaluation engine (`packages/capabilities/simulation` and `/dashboard/afford-check`).
+The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow evaluation engine (`packages/capabilities/simulation` and `/dashboard/afford-check`). It adheres strictly to the "What Gives" hierarchy: Bills are non-negotiable, Everyday spending is protected to a safe cushion, and Savings Goals give first.
 
 1. **Dual Simulation Modes & Liquidity Rules**:
-   - *One-Off Purchase*: Evaluates immediate balance liquidity, upcoming bill obligations before payday (deducting only unfunded bill shortfalls from Everyday cash), and daily pacing safety buffer after spend.
-   - *Recurring Commitment*: Runs Day-1 immediate liquidity checks, injects a phantom regular bucket and 52/26/12/1 frequency-matched phantom expense events into the cumulative 12-month projection matrix, evaluating goal target delays (`GOAL_DELAYED`) and Everyday living allowance starvation (`HARD_NO`).
+   - *One-Off Purchase*: Evaluates immediate balance liquidity against upcoming bill obligations before payday. If affordable today, evaluates remaining cash against a prorated total dollar safe cushion until payday. If short today, presents a dual path: tapping flexible Savings Goals ("What Gives", showing exact goal delay) vs. waiting for future income on payday.
+   - *Recurring Commitment*: Evaluates 12-month budget feasibility. Protects Bills 100% and guarantees Everyday spending allowance does not drop below 80% of expected allowance. Absorbs commitment first via uncommitted goals/surplus, then committed goals (`GOAL_DELAYED`). Provides Day-1 timing advice if ongoing budget is affordable but today's cash is low.
 2. **6-Verdict Classification**:
-   - `SAFE_YES` (Green): Sufficient liquidity and post-spend daily pace $\ge$ recommended daily safety buffer (25% of daily living allowance).
-   - `PACING_TIGHT` (Amber): Sufficient liquidity but daily pace < recommended safety buffer (tight daily living pace until payday).
-   - `BILLS_RISK` (Orange): Current cash balance appears sufficient, but unfunded bills due before payday consume the buffer. Itemises upcoming bills.
-   - `WAIT_FOR_PAYCYCLE` (Blue): Shortfall today, but projected income by paycycle $N$ reaches sufficient Everyday balance after daily living expenses.
+   - `SAFE_YES` (Green): Sufficient liquidity and post-spend Everyday cash $\ge$ recommended safe cushion until payday. All bills protected.
+   - `PACING_TIGHT` (Amber): Sufficient liquidity but remaining cash drops below the recommended safe cushion until payday. Clearly shows cushion shortfall in dollars.
+   - `BILLS_RISK` (Orange): Current cash balance appears sufficient, but unfunded bills due before payday consume the buffer. Itemizes upcoming bills.
+   - `WAIT_FOR_PAYCYCLE` (Blue): Shortfall today, but projected income by paycycle $N$ accumulates sufficient Everyday balance. Features flexible Savings Goal alternative if funds exist.
    - `GOAL_DELAYED` (Orange): Recurring commitment is affordable, but pushes back target dates of committed savings targets or flexible goals across 12-month forecast.
-   - `HARD_NO` (Red): Shortfall exceeds cumulative Everyday balance across the 12-month forecast or starves basic daily living allowances.
-3. **Dynamic Pacing Safety Buffer**:
-   - Calculated dynamically as 25% of `(everydayAllowanceAmount / 30)`. Adapts automatically to household budget size (fallback $15/day).
+   - `HARD_NO` (Red): Recurring commitment would starve essential Everyday spending below 80% of planned allowance, or one-off shortfall cannot be accumulated across 12 months.
+3. **Prorated Safe Cushion (Total Dollar Buffer)**:
+   - Calculated dynamically as `dailyAllowance * 0.25 * daysUntilPayday` (where `dailyAllowance = everydayMonthlyAllowance / 30`, fallback $15 * days). Formatted and communicated purely as total dollars remaining until payday, eliminating developer jargon ("$/day", "floor").
 4. **Human-Centric Trust Copy**:
-   - All user rationale steps are rendered in clear, jargon-free financial phrasing (`recommended daily safety buffer`, `added to your 12-month budget forecast`, `committed savings target`).
+   - Zero references to daily velocity tracking or floors. Clear, reassuring phrasing (`Leaves you with $X until payday`, `Recommended safe cushion: $Y`, `All upcoming bills are 100% covered`, `Can afford today using savings`).
 5. **Pure Stateless Execution**:
    - Performs zero database mutations. State is ephemeral and client-driven.
 
@@ -431,12 +431,19 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
   - 4 Fatal Budgeting Traps: The Receipt Ledger Trap, The Sinking Fund Surprise, Relationship Surveillance, and Spreadsheet Fragility.
   - The 3-Step Solution: Connect Accounts, Automate Waterfall on Payday, Spend Everyday pool guilt-free.
   - Unfair Advantages: The 5-Step Waterfall, 5-Level "Can We Afford This?" Engine, and Harmonious Shared & Personal Budgets (shared bill clarity + 100% confidential personal spending without surveillance).
-- **Multi-Payline Cashflow & Payday Simulator (`<PaycheckSimulator />`)**:
-  - Interactive Day 0 to Day 28 timeline scrubber allowing users to drag through multiple pays and scheduled expenses, or auto-run with `[▶ Play / ⏸ Pause]`.
-  - Milestone quick-jump buttons (`[Payday 1]`, `[Rent Paid]`, `[Weekly Living]`, `[Payday 2]`, `[Power Bill]`, `[Goal Target]`).
-  - Dynamic event callout explaining the exact financial outcome (e.g. Day 3 Rent paid from ring-fenced Bills Pool with Everyday balance 100% untouched, proving zero bill shock).
+- **Full-Width Interactive Payday Timeline Simulator (`<PaycheckSimulator />`)**:
+  - Full-width Day 0 to Day 28 timeline scrubber with milestone markers, auto-play controls (`[▶ Play / ⏸ Pause]`), and scrubbing speed controls.
+  - **Payday Checkpoint Banner (`<PaydayCheckpointBanner />`)**: Automatically pauses at Payday 1 (Day 0) and Payday 2 (Day 14), enabling users to test their own take-home income ($1,800 - $4,500) via slider or quick chips and immediately watch their 5-step waterfall splits adapt.
+  - **Continuous Everyday Drawdowns & Step Bill Deductions**: Models realistic living cadence with continuous daily Everyday drawdowns (~$25/day weekdays, ~$60/day weekends) and scheduled step deductions for committed bills (Rent -$950 on Day 3, Electricity -$210 on Day 18).
+  - **Interactive Pool Transfers Modal (`<PoolTransferModal />`)**: Inconspicuous `[⇄ Transfer]` trigger on each pool card allowing users to simulate ad-hoc reallocations between pools with instant balance adjustments and live narrative confirmation.
+  - **Dynamic Plain-English Commentary**: Live narrative below the timeline bar explaining exact cashflow dynamics, safety margins, and transfer effects on the fly.
   - Variable-speed synchronized pool fill bars with subtle 100% completion celebration badge (`✓ 100% Funded`).
-  - Mathematical integrity ensuring all goals (Emergency, Holiday, Car Reserve) achieve 100% allocation across pay cycles.
+- **Customer Lifecycle Personalization**:
+  - Header, Hero, Pricing Card, and Footer conversion banners dynamically reflect the visitor's authentication and subscription status:
+    - *Anonymous Visitors*: High-impact "Start 60-Day Free Trial" and transparent pricing.
+    - *Active Trial Users (`TRIAL_ACTIVE`)*: Displays remaining trial days badge, "Go to Dashboard →" hero CTA, and "Lock In Founding Member Rate ($69/yr)" pricing CTA.
+    - *Subscribed Members (`SUBSCRIBED`)*: Displays "Active Household Member ✓" ribbon, "Go to Your Dashboard →" hero CTA, and "Manage Subscription & Invoices →" billing portal CTA.
+    - *Grace Period Accounts (`TRIAL_GRACE`)*: Displays amber warning ribbon and read-only mode guidance with "Reactivate Full Access →" CTA.
 - **In-Place Auth Modal (`<AuthModal />`)**:
   - Direct modal integration on `/` eliminating legacy early access gating.
   - Seamless toggle between `[Sign In]` and `[Start 60-Day Free Trial]`.

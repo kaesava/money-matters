@@ -89,6 +89,33 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
         await expect(deleteAccountBtn).toBeVisible();
       }
     });
+
+    test('1.5 Interactive Payday Timeline Simulator & Pool Transfer Modal (`/#simulator`)', async ({ page }) => {
+      await page.goto('/#simulator');
+
+      // Verify Simulator Section & Heading
+      const simSection = page.locator('#simulator');
+      await expect(simSection).toBeVisible();
+
+      // Verify 4-Pool Allocation Cards
+      const poolCards = simSection.locator('[data-testid^="simulator-pool-"]');
+      const count = await poolCards.count();
+      expect(count).toBeGreaterThanOrEqual(4);
+
+      // Verify Inconspicuous Transfer Trigger on Pool Cards
+      const transferBtn = simSection.locator('[data-testid^="transfer-trigger-"]').first();
+      if (await transferBtn.isVisible()) {
+        await transferBtn.click();
+
+        // Verify Transfer Modal Opens
+        const transferModal = page.locator('[role="dialog"]').filter({ hasText: /Transfer Between Pools/i }).first();
+        await expect(transferModal).toBeVisible();
+
+        // Close Transfer Modal via Escape Key
+        await page.keyboard.press('Escape');
+        await expect(transferModal).not.toBeVisible();
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------

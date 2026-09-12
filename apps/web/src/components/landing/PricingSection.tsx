@@ -1,10 +1,115 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { t } from "@money-matters/i18n";
+import { authClient } from "../../lib/auth";
+import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
 
 export interface PricingSectionProps {
   onAuthClick: (tab: "signIn" | "signUp") => void;
+}
+
+function PricingRibbon() {
+  const { data: session } = authClient.useSession();
+  const { status } = useSubscriptionStatus();
+
+  if (!session?.user) {
+    return (
+      <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
+        {t("landing.pricingFullAccessBadge", { defaultValue: "FULL ACCESS" })}
+      </div>
+    );
+  }
+
+  if (status?.isSubscribed) {
+    return (
+      <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
+        {t("landing.pricingRibbonCurrentSubscribed")}
+      </div>
+    );
+  }
+
+  if (status?.isTrialGrace) {
+    return (
+      <div className="absolute top-0 right-0 bg-amber-600 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
+        {t("landing.pricingRibbonCurrentGrace")}
+      </div>
+    );
+  }
+
+  if (status?.isTrialExpired) {
+    return (
+      <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
+        {t("landing.pricingRibbonCurrentExpired")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
+      {t("landing.pricingRibbonCurrentTrial", { days: status?.daysRemainingInTrial ?? 60 })}
+    </div>
+  );
+}
+
+function PricingCta({ onAuthClick }: PricingSectionProps) {
+  const { data: session } = authClient.useSession();
+  const { status } = useSubscriptionStatus();
+
+  if (!session?.user) {
+    return (
+      <button
+        type="button"
+        onClick={() => onAuthClick("signUp")}
+        className="w-full mt-6 bg-[#2563eb] hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer"
+      >
+        {t("landing.createAccount")}
+      </button>
+    );
+  }
+
+  if (status?.isSubscribed) {
+    return (
+      <Link
+        href="/subscription/manage"
+        className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer text-center block"
+      >
+        {t("landing.pricingCtaSubscribed")}
+      </Link>
+    );
+  }
+
+  if (status?.isTrialGrace) {
+    return (
+      <Link
+        href="/subscription/upgrade"
+        className="w-full mt-6 bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer text-center block"
+      >
+        {t("landing.pricingCtaGrace")}
+      </Link>
+    );
+  }
+
+  if (status?.isTrialExpired) {
+    return (
+      <Link
+        href="/subscription/upgrade"
+        className="w-full mt-6 bg-rose-600 hover:bg-rose-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer text-center block"
+      >
+        {t("landing.pricingCtaExpired")}
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href="/subscription/upgrade"
+      className="w-full mt-6 bg-[#2563eb] hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer text-center block"
+    >
+      {t("landing.pricingCtaTrial")}
+    </Link>
+  );
 }
 
 export function PricingSection({ onAuthClick }: PricingSectionProps) {
@@ -22,9 +127,7 @@ export function PricingSection({ onAuthClick }: PricingSectionProps) {
 
         <div className="w-full max-w-xl">
           <div className="bg-white rounded-3xl p-8 md:p-10 border-2 border-[#2563eb] shadow-xl flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
-              {t("landing.pricingFullAccessBadge", { defaultValue: "FULL ACCESS" })}
-            </div>
+            <PricingRibbon />
 
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-1">
@@ -86,13 +189,7 @@ export function PricingSection({ onAuthClick }: PricingSectionProps) {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => onAuthClick("signUp")}
-              className="w-full mt-6 bg-[#2563eb] hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer"
-            >
-              {t("landing.createAccount")}
-            </button>
+            <PricingCta onAuthClick={onAuthClick} />
           </div>
         </div>
       </div>
