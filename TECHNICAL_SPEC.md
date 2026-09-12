@@ -377,8 +377,8 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **`SignInForm.tsx` & `SignUpForm.tsx`**: Isolated form components cleanly separated from page shells to ensure strict <250 lines compliance across `/sign-in` (98 lines) and `/sign-up` (108 lines).
 - **`AuthModal.tsx` (`apps/web/src/components/landing`)**: Accessible overlay on `/` enabling in-place authentication without page navigation. Supports tab switching between Sign In and 60-Day Free Trial, backdrop dismiss, and `Escape` key capture.
 
-### 10.3 Landing Page Component Hierarchy (`apps/web/src/components/landing`)
-- **`LandingHeader.tsx`**: Responsive header with anchor links (`#why-us`, `#how-it-works`, `#advantages`, `#pricing`, `#faq`) and `AuthModal` trigger callbacks.
+- **`LandingHeader.tsx`**: Responsive header featuring passive `requestAnimationFrame` scrollspy navigation (`#why-us`, `#how-it-works`, `#simulator`, `#advantages`, `#pricing`, `#faq`), refined ghost Sign-In secondary action, high-contrast Serene Blue Free Trial CTA, and dynamic `authClient.useSession()` state (user identity badge + direct "Go to Dashboard →" link for authenticated visitors).
+- **`page.tsx` (`apps/web/src/app`)**: Root landing page shell with smooth scrolling (`scroll-smooth`). Authenticated users are permitted to freely browse the landing page and simulator without forced redirects to `/dashboard`.
 - **`LandingHero.tsx`**: Dual-column hero layout combining the Before/After traditional vs Money Matters comparison with the interactive Serene Bento showcase (Zero Bill Shock, Real Goal Progress, Everyday Safe Spend, and "Can I Afford This?" micro-tester).
 - **`ProblemSection.tsx`**: 4 fatal budgeting traps illustrated with Serene Finance vector icons (zero decorative emojis).
 - **`HowItWorksSection.tsx`**: 3-step automated payday allocation pipeline.

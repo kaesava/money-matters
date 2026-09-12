@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { authClient } from "../lib/auth";
+import { useState } from "react";
 import { PaycheckSimulator } from "../components/PaycheckSimulator";
 
 import { AuthModal } from "../components/landing/AuthModal";
@@ -17,7 +15,6 @@ import { FaqSection } from "../components/landing/FaqSection";
 import { LandingFooter } from "../components/landing/LandingFooter";
 
 export default function Home() {
-  const router = useRouter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<"signIn" | "signUp">("signIn");
 
@@ -25,14 +22,6 @@ export default function Home() {
     setAuthModalTab(tab);
     setIsAuthModalOpen(true);
   };
-
-  useEffect(() => {
-    authClient.getSession().then(({ data }) => {
-      if (data?.session) {
-        router.push("/dashboard");
-      }
-    });
-  }, [router]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white relative">
