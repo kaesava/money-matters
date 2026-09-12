@@ -34,12 +34,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
   const { status: subStatus, isLoading: isSubLoading } = useSubscriptionStatus();
 
-  // Expired Trial Guard: redirect to /subscription/expired holding screen
+  // Expired Trial Guard: redirect to /dashboard/settings?tab=account-data when trial has ended
   useEffect(() => {
     if (!isSubLoading && subStatus?.isTrialExpired) {
-      router.replace("/subscription/expired");
+      const isAlreadyOnAccountData =
+        pathname === "/dashboard/settings" &&
+        (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "account-data");
+      if (!isAlreadyOnAccountData) {
+        router.replace("/dashboard/settings?tab=account-data");
+      }
     }
-  }, [isSubLoading, subStatus, router]);
+  }, [isSubLoading, subStatus, pathname, router]);
 
   const hasMultipleTenants = (tenantsQuery.data?.length ?? 0) > 1;
 

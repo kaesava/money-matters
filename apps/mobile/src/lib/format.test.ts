@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatAUD, formatAUDCompact, formatDate, formatRelativeDate, formatScheduleDetail, formatHealthStatus } from './format.js';
+import { formatAUD, formatAUDCompact, formatDate, formatRelativeDate, formatScheduleDetail, formatHealthStatus } from './format';
 
 describe('Mobile Format Utilities', () => {
   it('formats AUD amounts correctly', () => {

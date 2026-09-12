@@ -150,7 +150,7 @@ export const ownerProcedure = tenantProcedure.use(async ({ ctx, next }) => {
   if (ctx.session?.role !== 'OWNER') {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'Administrative permission required: Command scoped to OWNER privilege role only.',
+      message: 'Only the household owner has permission to perform this action.',
     });
   }
   return next({
@@ -164,13 +164,13 @@ export const ownerProcedure = tenantProcedure.use(async ({ ctx, next }) => {
 });
 
 /**
- * Throws TRPCError FORBIDDEN if tenant is in read-only grace period.
+ * Throws TRPCError FORBIDDEN if tenant's trial has ended.
  */
 export function requiresWriteAccess(ctx: { subscriptionStatus: SubscriptionStatusDto }) {
-  if (ctx.subscriptionStatus.isTrialGrace) {
+  if (ctx.subscriptionStatus.isTrialExpired) {
     throw new TRPCError({
       code: 'FORBIDDEN',
-      message: 'subscription_read_only: Read-only mode active. Upgrade to make changes.',
+      message: 'Your trial has ended. Please reactivate your subscription to make changes.',
     });
   }
 }

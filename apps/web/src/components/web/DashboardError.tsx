@@ -35,6 +35,16 @@ function getErrorMessage(error?: unknown, message?: string): { title: string; de
       };
     }
 
+    if (code === "FORBIDDEN" || error.message?.includes("household owner") || error.message?.includes("Administrative permission")) {
+      return {
+        title: "Permission Required",
+        detail: error.message?.includes("household owner")
+          ? error.message
+          : "Only the household owner has permission to perform this action.",
+        isApiDown: false,
+      };
+    }
+
     if (error.message?.includes("ECONNREFUSED") || error.message?.includes("Failed to connect")) {
       return {
         title: "Cannot reach the server",

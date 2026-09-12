@@ -9,7 +9,7 @@ export interface MobileLogoProps {
 
 export function MobileLogo({ 
   size = 64, 
-  source = require("../../../../assets/brand/money-matters-icon-512.png"),
+  source = require("../../assets/money-matters-icon-512.png"),
   style 
 }: MobileLogoProps) {
   return (

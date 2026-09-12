@@ -14,13 +14,12 @@ export function TrialBanner() {
     return null;
   }
 
-  // Show banner for last 10 days of 60-day trial, trial grace, or past due
+  // Show banner for last 7 days of 60-day trial or past due
   const days = status.daysRemainingInTrial ?? 60;
-  const showForTrial = status.isTrialActive && days <= 10;
-  const showForGrace = status.isTrialGrace;
+  const showForTrial = status.isTrialActive && days <= 7;
   const showForPastDue = status.isPastDue;
 
-  if (!showForTrial && !showForGrace && !showForPastDue) {
+  if (!showForTrial && !showForPastDue) {
     return null;
   }
 
@@ -30,9 +29,6 @@ export function TrialBanner() {
   if (status.isTrialActive) {
     message = t("subscription.bannerUrgent", { days: String(days) });
     bgClasses = days <= 3 ? "bg-rose-700 text-white" : "bg-amber-600 text-white";
-  } else if (status.isTrialGrace) {
-    message = t("subscription.bannerGrace");
-    bgClasses = "bg-rose-800 text-white";
   } else if (status.isPastDue) {
     message = t("subscription.bannerPastDue");
     bgClasses = "bg-amber-700 text-white";

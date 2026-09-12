@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseSemVer, isVersionOutdated, getFormattedVersionString } from "./version.js";
+import { parseSemVer, isVersionOutdated, getFormattedVersionString } from "./version";
 import { AppVersionInfo } from "@money-matters/types";
 
 describe("Version Config Utilities", () => {

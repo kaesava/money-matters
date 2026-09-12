@@ -1,5 +1,5 @@
-export * from "./env.js";
-export * from "./app-registry.js";
-export * from "./feature-flags.js";
-export * from "./version.js";
+export * from "./env";
+export * from "./app-registry";
+export * from "./feature-flags";
+export * from "./version";
 

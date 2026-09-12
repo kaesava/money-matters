@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { validateEnv } from './env.js';
-import { resolveAppConfig } from './app-registry.js';
-import { isFeatureEnabled, FEATURE_FLAGS } from './feature-flags.js';
+import { validateEnv } from './env';
+import { resolveAppConfig } from './app-registry';
+import { isFeatureEnabled, FEATURE_FLAGS } from './feature-flags';
 
 describe('Config Package Utilities', () => {
   const originalEnv = process.env;

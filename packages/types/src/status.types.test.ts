@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getStatusColor, getNextStatuses, DEFAULT_STATUS_WORKFLOW } from './status.types.js';
+import { getStatusColor, getNextStatuses, DEFAULT_STATUS_WORKFLOW } from './status.types';
 
 describe('Status Workflow Utilities', () => {
   describe('getStatusColor', () => {

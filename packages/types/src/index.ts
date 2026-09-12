@@ -22,12 +22,12 @@ export const BaseSchema = z.object({
   archivedAt: z.date().nullable(),
 }).strict();
 
-export * from "./status.types.js";
-export * from "./commands.types.js";
-export * from "./setup-presets.js";
-export * from "./app-preferences.js";
-export * from "./onboarding-quiz.js";
-export * from "./locale.types.js";
+export * from "./status.types";
+export * from "./commands.types";
+export * from "./setup-presets";
+export * from "./app-preferences";
+export * from "./onboarding-quiz";
+export * from "./locale.types";
 
 /**
  * Subscription status lifecycle state machine.

@@ -26,8 +26,6 @@ export function SubscriptionPlanSection() {
       }
     } else if (status.status === 'TRIAL_ACTIVE') {
       planName = t('subscription.planTrial', { days: String(status.daysRemainingInTrial ?? 0) });
-    } else if (status.status === 'TRIAL_GRACE') {
-      planName = t('subscription.trialGracePeriod');
     } else if (status.status === 'TRIAL_EXPIRED') {
       planName = t('subscription.planExpired');
     } else if (status.status === 'PAST_DUE') {

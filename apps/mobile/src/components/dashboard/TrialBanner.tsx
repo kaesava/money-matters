@@ -14,11 +14,10 @@ export function TrialBanner() {
   }
 
   const days = status.daysRemainingInTrial ?? 60;
-  const showForTrial = status.isTrialActive && days <= 10;
-  const showForGrace = status.isTrialGrace;
+  const showForTrial = status.isTrialActive && days <= 7;
   const showForPastDue = status.isPastDue;
 
-  if (!showForTrial && !showForGrace && !showForPastDue) {
+  if (!showForTrial && !showForPastDue) {
     return null;
   }
 
@@ -28,9 +27,6 @@ export function TrialBanner() {
   if (status.isTrialActive) {
     message = t('subscription.bannerUrgent', { days: String(days) }) || `${days} days left in free trial`;
     bgColor = days <= 3 ? '#ba1a1a' : '#d97706';
-  } else if (status.isTrialGrace) {
-    message = t('subscription.bannerGrace') || 'Trial ended. Read-only grace period.';
-    bgColor = '#ba1a1a';
   } else if (status.isPastDue) {
     message = t('subscription.bannerPastDue') || 'Payment past due.';
     bgColor = '#d97706';

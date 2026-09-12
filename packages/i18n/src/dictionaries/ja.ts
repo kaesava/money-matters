@@ -1,4 +1,4 @@
-import { en } from "./en.js";
+import { en } from "./en";
 
 type DeepStringRecord<T> = {
   [P in keyof T]?: T[P] extends string ? string : DeepStringRecord<T[P]>;
@@ -723,22 +723,18 @@ export const ja: DeepStringRecord<typeof en> = {
     "simDailyDrawdownCommentary": "{day}日目: 日常生活費（-${amount}）が日常プールから引き出されました。請求プールは100%保護されたままです。",
     "pricingRibbonCurrentSubscribed": "現在のプラン — 有料メンバーシップ有効 ✓",
     "pricingRibbonCurrentTrial": "現在のプラン — 60日間無料トライアル（残り{days}日）",
-    "pricingRibbonCurrentGrace": "⚠️ 7日間閲覧専用猶予期間中",
     "pricingRibbonCurrentExpired": "サブスクリプション期限切れ",
     "pricingCtaSubscribed": "サブスクリプションと請求の管理 →",
     "pricingCtaTrial": "創設メンバー特別価格（$69/年）で登録 →",
-    "pricingCtaGrace": "フルアクセスを再開（$9.95/月 または $89/年） →",
     "pricingCtaExpired": "世帯プランを再開する →",
     "heroCtaSubscribed": "ダッシュボードへ移動 →",
     "heroCtaTrial": "ダッシュボードへ移動 →",
-    "heroCtaGrace": "フルアクセスを再開する →",
-    "heroCtaGraceSecondary": "ダッシュボードを開く（閲覧専用） →",
     "footerConversionSubscribed": "世帯の家計は自動運転中です。",
     "footerConversionSubscribedDesc": "次回の給与配分の確認、目標の進捗確認、世帯メンバーの追加はいつでも可能です。",
     "footerConversionTrial": "自動給与配分をお試しいただきありがとうございます。",
     "footerConversionTrialDesc": "60日間の無料トライアル終了前に、創設メンバー限定割引（$69/年）を確保しましょう。",
-    "footerConversionGrace": "現在アカウントは閲覧専用猶予期間中です。",
-    "footerConversionGraceDesc": "自動配分と口座同期を再開するには、今すぐサブスクリプションを更新してください。",
+    "footerConversionExpired": "世帯の無料トライアルが終了しました。",
+    "footerConversionExpiredDesc": "自動給与配分と安心の家計管理を再開するには、今すぐサブスクリプションを更新してください。",
 
     "faq1Title": "給料日の5段階ウォーターフォール仕分けはどのように動作しますか？",
     "faq1Body": "給与口座に振り込まれた瞬間、マイナス残高の補填、 upcomingの請求書バッファー確保、貯蓄目標の積立、そして日常生活費の補充を自動的に実行します。残った余剰金は住宅ローンオフセット準備金へと移動します。",
@@ -1181,7 +1177,6 @@ export const ja: DeepStringRecord<typeof en> = {
     "trialDayRemaining": "残り {days} 日",
     "trialEndsToday": "本日で体験終了",
     "trialExpired": "体験期間終了",
-    "trialGracePeriod": "閲覧専用モード",
     "freeTier": "60日間無料体験",
     "subscribed": "Household プラン",
     "pastDue": "お支払い未完了",
@@ -1189,7 +1184,6 @@ export const ja: DeepStringRecord<typeof en> = {
     "bannerSoft": "無料体験終了まであと {days} 日です。Householdプランにアップグレードして家計管理を継続しましょう。",
     "bannerUrgent": "無料体験はあと {days} 日で終了します。",
     "bannerExpired": "無料体験が終了しました。継続利用にはHouseholdプランへのアップグレードが必要です。",
-    "bannerGrace": "体験期間が終了しました。データのCSVエクスポートはいつでも可能です。",
     "bannerPastDue": "お支払いに失敗しました。カード情報を更新してください。",
     "upgradeCta": "Householdプランにアップグレード",
     "manageBillingCta": "サブスクリプション管理",

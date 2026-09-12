@@ -32,38 +32,25 @@ export async function getSubscriptionStatus(
   let rawStatus = tenant.subscriptionStatus || "TRIAL_ACTIVE";
   const now = new Date();
 
-  // If status is TRIAL_ACTIVE, check if 60-day trial or 7-day grace period has elapsed
+  // If status is TRIAL_ACTIVE, check if trial period has elapsed
   if (rawStatus === "TRIAL_ACTIVE" && tenant.trialEndsAt) {
     const trialExpiry = new Date(tenant.trialEndsAt);
-    const graceExpiry = tenant.trialGraceEndsAt
-      ? new Date(tenant.trialGraceEndsAt)
-      : new Date(trialExpiry.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    if (now > graceExpiry) {
+    if (now > trialExpiry) {
       rawStatus = "TRIAL_EXPIRED";
       await db
         .update(tenants)
         .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
-        .where(eq(tenants.id, tenantId));
-    } else if (now > trialExpiry) {
-      rawStatus = "TRIAL_GRACE";
-      await db
-        .update(tenants)
-        .set({ subscriptionStatus: "TRIAL_GRACE", updatedAt: now })
         .where(eq(tenants.id, tenantId));
     }
   }
 
-  // If status is TRIAL_GRACE, check if the 7-day grace period has elapsed
-  if (rawStatus === "TRIAL_GRACE" && tenant.trialGraceEndsAt) {
-    const graceExpiry = new Date(tenant.trialGraceEndsAt);
-    if (now > graceExpiry) {
-      rawStatus = "TRIAL_EXPIRED";
-      await db
-        .update(tenants)
-        .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
-        .where(eq(tenants.id, tenantId));
-    }
+  // Normalize legacy TRIAL_GRACE records directly to TRIAL_EXPIRED
+  if (rawStatus === "TRIAL_GRACE") {
+    rawStatus = "TRIAL_EXPIRED";
+    await db
+      .update(tenants)
+      .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
+      .where(eq(tenants.id, tenantId));
   }
 
   // If status is SUBSCRIBED but scheduled for cancellation and period has ended
@@ -78,7 +65,7 @@ export async function getSubscriptionStatus(
     }
   }
 
-  // If status is PAST_DUE, check if the 7-day grace period has expired
+  // If status is PAST_DUE, check if overdue period has elapsed
   if (rawStatus === "PAST_DUE" && tenant.trialGraceEndsAt) {
     const graceExpiry = new Date(tenant.trialGraceEndsAt);
     if (now > graceExpiry) {
@@ -101,14 +88,14 @@ export async function getSubscriptionStatus(
     trialGraceEndsAt: tenant.trialGraceEndsAt ? new Date(tenant.trialGraceEndsAt) : null,
     subscriptionEndsAt: tenant.subscriptionEndsAt ? new Date(tenant.subscriptionEndsAt) : null,
     isTrialActive: status === "TRIAL_ACTIVE" && (daysRemainingInTrial === null || daysRemainingInTrial > 0),
-    isTrialGrace: status === "TRIAL_GRACE" || (status === "PAST_DUE" && tenant.trialGraceEndsAt && new Date(tenant.trialGraceEndsAt) > now),
+    isTrialGrace: false,
     isTrialExpired: status === "TRIAL_EXPIRED" || (status === "TRIAL_ACTIVE" && daysRemainingInTrial === 0),
     isSubscribed: status === "SUBSCRIBED",
     isPastDue: status === "PAST_DUE",
     isDeactivated: status === "DEACTIVATED",
     daysRemainingInTrial,
     cancelAtPeriodEnd: tenant.cancelAtPeriodEnd ?? false,
-    planType: (tenant.planType as any) ?? null,
+    planType: (tenant.planType as "monthly" | "annual" | "founding" | null) ?? null,
     nextBillingAt: tenant.nextBillingAt ? new Date(tenant.nextBillingAt) : null,
   });
 }

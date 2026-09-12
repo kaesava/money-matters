@@ -38,13 +38,12 @@ describe('billing capability', () => {
     expect(status.isTrialExpired).toBe(false);
   });
 
-  it('evaluates TRIAL_GRACE when trial period has ended but within 7-day grace window', async () => {
+  it('evaluates TRIAL_EXPIRED immediately when trial period has ended', async () => {
     const pastTrialDate = new Date(Date.now() - 86400 * 1000 * 2); // 2 days past trial
-    const futureGraceDate = new Date(Date.now() + 86400 * 1000 * 5); // 5 days left in grace
     const mockTenant = {
       subscriptionStatus: 'TRIAL_ACTIVE',
       trialEndsAt: pastTrialDate,
-      trialGraceEndsAt: futureGraceDate,
+      trialGraceEndsAt: null,
       subscriptionEndsAt: null,
       cancelAtPeriodEnd: false,
       planType: null,
@@ -68,9 +67,9 @@ describe('billing capability', () => {
     } as any;
 
     const status = await getSubscriptionStatus(mockDb, 'tenant-123');
-    expect(status.status).toBe('TRIAL_GRACE');
-    expect(status.isTrialGrace).toBe(true);
-    expect(status.isTrialExpired).toBe(false);
+    expect(status.status).toBe('TRIAL_EXPIRED');
+    expect(status.isTrialGrace).toBe(false);
+    expect(status.isTrialExpired).toBe(true);
   });
 
   it('evaluates TRIAL_EXPIRED when grace period has ended', async () => {

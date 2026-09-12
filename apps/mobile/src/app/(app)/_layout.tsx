@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, useSegments } from 'expo-router';
+import { Tabs, useSegments, useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS, useMobileToast } from '@money-matters/ui/mobile';
 import { t, setLanguage } from '@money-matters/i18n';
@@ -36,12 +36,25 @@ export default function AppLayout() {
     '01908bde-34bb-7b19-a178-574211bc93aa'
   ] as { locale?: 'en' | 'ja' } | undefined;
   const userLocale = prefs?.locale || 'en';
+  const router = useRouter();
+  const subQuery = trpc.getSubscriptionStatus.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const segments = useSegments();
+  const currentScreen = segments[segments.length - 1];
 
   React.useEffect(() => {
     if (userLocale) {
       setLanguage(userLocale);
     }
   }, [userLocale]);
+
+  // Expired Trial Guard: redirect to settings when trial has ended
+  React.useEffect(() => {
+    if (subQuery.data?.isTrialExpired && currentScreen !== 'settings' && !segments.includes('settings')) {
+      router.replace('/(app)/settings' as never);
+    }
+  }, [subQuery.data?.isTrialExpired, currentScreen, segments, router]);
 
   // Automatically register device push token upon authenticated layout mount
   usePushNotifications();
@@ -65,8 +78,6 @@ export default function AppLayout() {
     };
   }, [showToast]);
 
-  const segments = useSegments();
-  const currentScreen = segments[segments.length - 1];
   const isFabHidden =
     currentScreen === 'settings' ||
     currentScreen === 'transfer-instructions' ||

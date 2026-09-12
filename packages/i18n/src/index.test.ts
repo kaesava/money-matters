@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { t, translations } from './index.js';
+import { t, translations } from './index';
 
 describe('i18n Localization Engine', () => {
   it('translates valid nested translation keys accurately', () => {

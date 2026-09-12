@@ -7,7 +7,7 @@ import {
   DEFAULT_CURRENCY,
   DEFAULT_TIMEZONE,
   CurrencyCodeSchema,
-} from "./locale.types.js";
+} from "./locale.types";
 
 describe("Locale and Currency Types", () => {
   it("defines supported currencies with valid ISO codes, symbols, and minor units", () => {

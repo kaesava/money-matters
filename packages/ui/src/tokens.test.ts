@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DESIGN_TOKENS } from './tokens.js';
+import { DESIGN_TOKENS } from './tokens';
 
 describe('UI Design Tokens', () => {
   it('exposes palette colors matching specification', () => {

@@ -22,7 +22,7 @@ import {
   AcceptInviteCommand,
   SyncLedgerMutationCommand,
   WaterfallExecutionPayload,
-} from './commands.types.js';
+} from './commands.types';
 
 describe('Command Schemas Validation', () => {
   it('validates CreateTenantCommand and UpdateTenantCommand', () => {

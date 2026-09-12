@@ -39,15 +39,15 @@ function ConversionBanner({ onAuthClick }: LandingFooterProps) {
           {t("landing.heroCtaSubscribed")}
         </Link>
       );
-    } else if (status?.isTrialGrace || status?.isTrialExpired) {
-      title = t("landing.footerConversionGrace");
-      desc = t("landing.footerConversionGraceDesc");
+    } else if (status?.isTrialExpired) {
+      title = t("landing.footerConversionExpired");
+      desc = t("landing.footerConversionExpiredDesc");
       ctaContent = (
         <Link
           href="/subscription/upgrade"
-          className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm mt-2 cursor-pointer active:scale-98 inline-block"
+          className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg text-sm mt-2 cursor-pointer active:scale-98 inline-block"
         >
-          {t("landing.heroCtaGrace")}
+          {t("landing.pricingCtaExpired")}
         </Link>
       );
     } else {

@@ -19,7 +19,7 @@ import {
   MonthlySummaryDto,
   ConfirmPlanCommand,
   UserPreferencesSchema,
-} from './index.js';
+} from './index';
 
 describe('Domain Schemas Validation', () => {
   const mockBase = {

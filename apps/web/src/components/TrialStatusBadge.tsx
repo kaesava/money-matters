@@ -29,15 +29,6 @@ export function TrialStatusBadge() {
     );
   }
 
-  if (status.isTrialGrace) {
-    return (
-      <div className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-900 border border-rose-300 flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-        <span>{t("subscription.trialGracePeriod")}</span>
-      </div>
-    );
-  }
-
   if (status.isTrialExpired) {
     return (
       <div className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1.5">
@@ -73,8 +64,6 @@ export function SidebarTrialNavItem({ collapsed, onNavigate }: { collapsed: bool
     ? t("subscription.subscribed")
     : status.isTrialExpired
     ? t("subscription.trialExpired")
-    : status.isTrialGrace
-    ? t("subscription.trialGracePeriod")
     : t("subscription.trialDaysLeftBadge", { days: String(days) });
 
   const fullLabel = status.isSubscribed

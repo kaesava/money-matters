@@ -17,7 +17,7 @@ vi.mock('expo-constants', () => ({
   },
 }));
 
-import { getMobileVersionInfo } from './version.js';
+import { getMobileVersionInfo } from './version';
 
 describe('getMobileVersionInfo', () => {
   it('returns valid AppVersionInfo conforming to AppVersionInfoSchema', () => {

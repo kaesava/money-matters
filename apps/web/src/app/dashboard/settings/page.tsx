@@ -20,16 +20,28 @@ import { PrivacySection } from "./components/PrivacySection";
 function SettingsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") || "profile";
-  const [activeTab, setActiveTab] = useState(initialTab);
-
   const { data: session } = authClient.useSession();
   const { status } = useSubscriptionStatus();
+  const currentTab = searchParams.get("tab") || "profile";
+  const [activeTab, setActiveTab] = useState(status?.isTrialExpired ? "account-data" : currentTab);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const currentTimezone = userPrefQuery.data?.timezone || "Australia/Sydney";
 
+  React.useEffect(() => {
+    if (status?.isTrialExpired) {
+      if (activeTab !== "account-data") {
+        setActiveTab("account-data");
+      }
+    } else if (currentTab !== activeTab) {
+      setActiveTab(currentTab);
+    }
+  }, [status?.isTrialExpired, currentTab, activeTab]);
+
   const handleTabChange = (tabId: string) => {
+    if (status?.isTrialExpired && tabId !== "account-data") {
+      return;
+    }
     setActiveTab(tabId);
     router.replace(`/dashboard/settings?tab=${tabId}`, { scroll: false });
   };

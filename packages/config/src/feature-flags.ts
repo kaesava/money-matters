@@ -3,7 +3,7 @@
  * 
  * Manages feature flags, ownership metadata, expiry timelines, and tenant-scoped runtime evaluations.
  */
-import { resolveAppConfig } from "./app-registry.js";
+import { resolveAppConfig } from "./app-registry";
 
 /**
  * Feature flag metadata specification.

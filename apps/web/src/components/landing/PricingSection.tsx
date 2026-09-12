@@ -30,14 +30,6 @@ function PricingRibbon() {
     );
   }
 
-  if (status?.isTrialGrace) {
-    return (
-      <div className="absolute top-0 right-0 bg-amber-600 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
-        {t("landing.pricingRibbonCurrentGrace")}
-      </div>
-    );
-  }
-
   if (status?.isTrialExpired) {
     return (
       <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
@@ -76,17 +68,6 @@ function PricingCta({ onAuthClick }: PricingSectionProps) {
         className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer text-center block"
       >
         {t("landing.pricingCtaSubscribed")}
-      </Link>
-    );
-  }
-
-  if (status?.isTrialGrace) {
-    return (
-      <Link
-        href="/subscription/upgrade"
-        className="w-full mt-6 bg-amber-600 hover:bg-amber-700 text-white font-black py-4 rounded-2xl shadow-md hover:shadow-lg text-sm transition-all active:scale-98 cursor-pointer text-center block"
-      >
-        {t("landing.pricingCtaGrace")}
       </Link>
     );
   }

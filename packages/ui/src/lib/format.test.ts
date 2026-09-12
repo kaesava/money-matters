@@ -6,7 +6,7 @@ import {
   getCurrencySymbol,
   getCurrencyMinorUnits,
   fmtDateTime,
-} from "./format.js";
+} from "./format";
 
 describe("UI Format Utilities", () => {
   it("formats AUD currency correctly in en-AU", () => {

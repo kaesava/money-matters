@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import JSZip from "jszip";
 import { t } from "@money-matters/i18n";
@@ -11,6 +11,11 @@ import posthog from "../../../lib/posthog-client";
 
 export default function SubscriptionExpiredPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/dashboard/settings?tab=account-data");
+  }, [router]);
+
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 

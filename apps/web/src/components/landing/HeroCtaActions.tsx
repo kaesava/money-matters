@@ -7,26 +7,26 @@ import { authClient } from "../../lib/auth";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
 
 function AuthenticatedHeroActions({
-  isGrace,
+  isExpired,
   isSubscribed,
 }: {
-  isGrace?: boolean;
+  isExpired?: boolean;
   isSubscribed?: boolean;
 }) {
-  if (isGrace) {
+  if (isExpired) {
     return (
       <div className="flex flex-col sm:flex-row items-center gap-3.5 mt-1">
         <Link
           href="/subscription/upgrade"
           className="w-full sm:w-auto bg-[#2563eb] hover:bg-blue-700 text-white font-extrabold px-8 py-4 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-98 text-sm cursor-pointer text-center"
         >
-          {t("landing.heroCtaGrace")}
+          {t("landing.pricingCtaExpired")}
         </Link>
         <Link
-          href="/dashboard"
+          href="/dashboard/settings?tab=account-data"
           className="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-50 text-[#1B2B4B] font-bold px-7 py-4 rounded-2xl transition-all text-sm shadow-2xs cursor-pointer text-center"
         >
-          {t("landing.heroCtaGraceSecondary")}
+          {t("landing.heroCtaTrial")}
         </Link>
       </div>
     );
@@ -89,7 +89,7 @@ export function HeroCtaActions({ onAuthClick }: { onAuthClick: (tab: "signIn" | 
   if (session?.user) {
     return (
       <AuthenticatedHeroActions
-        isGrace={status?.isTrialGrace}
+        isExpired={status?.isTrialExpired}
         isSubscribed={status?.isSubscribed}
       />
     );

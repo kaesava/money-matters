@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveAppConfig } from "./app-registry.js";
+import { resolveAppConfig } from "./app-registry";
 
 describe("App Config Registry", () => {
   it("resolves the valid application ID", () => {
