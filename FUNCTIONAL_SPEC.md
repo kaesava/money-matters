@@ -292,6 +292,39 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - **In-App Bug Reporting & App Versioning**: "Report a Bug" feature accessible from a dedicated "Help & Support" section in Settings on Web and Mobile. Captures issue title, workflow category (`setup`, `waterfall`, `transactions_sync`, `categories_bills`, `ui_ux`, `account_auth`, `other`), 4-level Frustration scale (`Nice to fix` to `Pissed me off!`), description/steps to reproduce, contact consent opt-in, auto-derived system telemetry (`platform`, `appVersion`, `deviceInfo`), auto-dispatches email receipts (`[Ref: BUG-#id]`) & admin notifications (`support@moneymatters.kaesava.au`), and persists directly to PostgreSQL (`bug_reports` table) with strict multi-tenant isolation.
   - **Inconspicuous App Version Footer**: An understated version footer (`Money Matters v1.0.0-beta.1 (#42) • beta channel`) displayed at the bottom of the Settings view on Web and Mobile. Tapping/clicking copies complete environment diagnostics JSON to the clipboard for support troubleshooting.
 
+### 6.1 Native Android Mobile App Experience (`apps/mobile`) — 100% Feature Parity
+- **Home & Dashboard (`/(app)/home`)**:
+  - Hero card displaying household name, AEST formatted current date, and primary action bar.
+  - Linked Bank Account summary strip with provider badges (`BankProviderBadge`) and last known balances.
+  - Bento pool cards: Everyday Spending (dark navy with pacing meter), Bills Pool (shortfall alerts & 14-day coverage), and Goal progress strip (`GoalsProgressStrip`).
+  - Action Queue / Attention Items list (`AttentionItemsList`) with overdue/due soon alerts and deep links.
+  - Quick Action FAB & `QuickExpenseModal` (3-way segmented control: Expense, Income, Transfer with quick-pick chips).
+  - Pull-to-refresh (`RefreshControl`) updating all core tenant, pool, category, and event queries.
+  - Active Trial banner with remaining trial countdown and upgrade link.
+- **Paychecks & 12-Month Matrix Hub (`/(app)/paychecks`)**:
+  - 3-Tab Segmented Control: `Upcoming`, `12-Month Matrix Plan`, and `Recurring Schedules`.
+  - **12-Month Rolling Cash-Flow Matrix (`MobileMatrixPlanTab`)**: Interactive pay-cycle timeline carousel mapping upcoming paydays against ring-fenced bills, showing net income, total bills, everyday allocation, and cumulative surplus/deficit per cycle.
+  - **Upcoming Queue**: Chronological list of scheduled income events and expense bills with 1-tap actioning (*Run Split* button opening the Split Studio, *Mark Spent* modal with shortfall resolution, *Delete*).
+  - **Recurring Schedules**: Structured lists of recurring Income Schedules and Expense Bills with frequency badges and modal editing.
+- **Income Split Studio (`/(app)/paychecks/[id]`)**:
+  - Dedicated distraction-free screen for interactive payday allocation.
+  - Plan source badges (`Auto-Calculated`, `Custom Saved`, `Confirmed & Executed`) with recalculation controls.
+  - Structured pool table with collapsible group headers, direct amount inputs, and quick percentage chips (`[100%]`, `[$0]`).
+  - Reactive Auto-Surplus absorber and elastic deficit alert banners (`-$X.XX Deficit`).
+  - Bank-aware transfer rollup card (`MobileBankTransferRollupCard`) with 1 single aggregated transfer per external bank account.
+- **Pools & Categories Hub (`/(app)/categories` & `/(app)/pools/[id]`)**:
+  - 12-Month forward projection scrubber slider and grouped pool cards.
+  - 1-Click Balance Alignment modal (`MobileReconciliationModal`).
+  - Dedicated Pool Detail screen (`/(app)/pools/[id]`) with itemized category list, Move Money modal, and Category Detail bottom sheet (`CategoryItemModal`).
+- **Can-Afford Simulator (`/(app)/afford-check`)**:
+  - Full-featured simulation screen testing ad-hoc purchase amounts against Everyday discretionary funds.
+  - 5-level verdict (`Affordable`, `Caution`, `Stretch`, `Deficit`, `Critical`), daily spending velocity impact, and savings goal delay calculations.
+- **2-Tab History & Audit Ledger (`/(app)/transactions`)**:
+  - **Tab 1: Transactions Ledger**: Paired transfer detection (`Source ➔ Dest`), search, multi-filter dropdowns, pagination bar, and CSV export via native `Share.share`.
+  - **Tab 2: Payday Allocations**: Historical waterfall allocation runs with itemized 5-step breakdown modal (`MobilePaydayAllocationDetailModal`).
+  - `(app)/settings/history.tsx` seamlessly redirects to `/(app)/transactions?tab=payday-allocations` (MECE compliance).
+- **Settings & Household Governance (`/(app)/settings`)**:
+  - Modular sections: Profile & Avatar (`MobileProfileSection`), Household Details & Currency (`HouseholdDetailsSection`), Partner Invites (`HouseholdPartnerInviteSection`), Bank Accounts (`settings/bank-accounts`), Archived Data (`settings/archived`), In-App Feedback (`FeedbackFormModal`), and Household Danger Zone (`HouseholdDangerZoneSection`).
 
 ---
 

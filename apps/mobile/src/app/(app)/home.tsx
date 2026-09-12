@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
-import { useRouter, Href } from 'expo-router';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
-
-
+import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import { Feather } from '@expo/vector-icons';
 import { formatAUD } from '../../lib/format';
 
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
 import { AttentionItemsList, AttentionItem } from '../../components/AttentionItemsList';
-import { QuickExpenseModal } from '../../components/QuickExpenseModal';
+import { GoalsProgressStrip } from '../../components/dashboard/GoalsProgressStrip';
+import { BankBalancesStrip } from '../../components/dashboard/BankBalancesStrip';
+import { TrialBanner } from '../../components/dashboard/TrialBanner';
+import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
+import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpenseModal';
 import { MoveMoneyModal } from '../../components/MoveMoneyModal';
 import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
-import { MobileCollapsibleSection } from '@money-matters/ui/mobile';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -24,58 +32,66 @@ export default function HomeScreen() {
   const utils = trpc.useUtils();
   const todayYear = new Date().getFullYear();
   const todayMonth = new Date().getMonth() + 1;
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Australia/Sydney',
+  }).format(new Date());
 
   const { data: session } = authClient.useSession();
+  const [refreshing, setRefreshing] = useState(false);
   const [quickModalVisible, setQuickModalVisible] = useState(false);
-  const [quickModalType, setQuickModalType] = useState<'DEBIT' | 'CREDIT'>('DEBIT');
+  const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
+  const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
 
-  const [upcomingSearch, setUpcomingSearch] = useState('');
-  const [upcomingFilter, setUpcomingFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
-  const [selectedEventKeys, setSelectedEventKeys] = useState<string[]>([]);
-
-  const [canAffordAmount, setCanAffordAmount] = useState('');
-
-  const summaryQuery = trpc.getMonthlySummary.useQuery({ year: todayYear, month: todayMonth });
-  const categoriesQuery = trpc.listPools.useQuery();
+  const summaryQuery = trpc.getMonthlySummary.useQuery({
+    year: todayYear,
+    month: todayMonth,
+  });
+  const poolsQuery = trpc.listPools.useQuery();
+  const bankAccountsQuery = trpc.listBankAccounts.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
-  const canAffordQuery = trpc.canAfford.useQuery(
-    { amount: canAffordAmount },
-    { enabled: !!canAffordAmount && parseFloat(canAffordAmount) > 0 }
-  );
+  const billCoverageQuery = trpc.listBillCoverage.useQuery();
 
-  const markPaidMutation = trpc.overrideEvent.useMutation({
-    onSuccess: () => {
-      expenseEventsQuery.refetch();
-      categoriesQuery.refetch();
-      summaryQuery.refetch();
-    },
-  });
+  const pools = poolsQuery.data ?? [];
+  const bankAccounts = bankAccountsQuery.data ?? [];
 
-  const categories = categoriesQuery.data ?? [];
-
-  // Guard: Redirect to setup wizard if tenant has 0 categories configured
+  // Redirect to setup if no pools exist
   React.useEffect(() => {
-    if (categoriesQuery.isSuccess && categoriesQuery.data && categoriesQuery.data.length === 0) {
+    if (poolsQuery.isSuccess && poolsQuery.data && poolsQuery.data.length === 0) {
       router.replace('/(setup)/income');
     }
-  }, [categoriesQuery.isSuccess, categoriesQuery.data, router]);
+  }, [poolsQuery.isSuccess, poolsQuery.data, router]);
 
-  const needsAttentionCount = categories.filter((c) => c.healthStatus === 'AMBER').length;
-  const behindCount = categories.filter((c) => c.healthStatus === 'RED').length;
-  const onTrackCount = categories.filter((c) => c.healthStatus === 'GREEN').length;
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      summaryQuery.refetch(),
+      poolsQuery.refetch(),
+      bankAccountsQuery.refetch(),
+      incomeEventsQuery.refetch(),
+      expenseEventsQuery.refetch(),
+      billCoverageQuery.refetch(),
+    ]);
+    setRefreshing(false);
+  };
+
+  const needsAttentionCount = pools.filter((c) => c.healthStatus === 'AMBER').length;
+  const behindCount = pools.filter((c) => c.healthStatus === 'RED').length;
+  const onTrackCount = pools.filter((c) => c.healthStatus === 'GREEN').length;
   const everydayBalance = parseFloat(summaryQuery.data?.everydayRemaining || '0');
-  const everydayMonthlyBudget = categories
-    .filter((c) => {
-      const raw = c as unknown as { poolType?: string; type?: string };
-      return (raw.poolType || raw.type) === 'EVERYDAY';
-    })
-    .reduce((sum, c) => sum + parseFloat(c.everydayAllowanceAmount || c.targetAmount || '0'), 0);
+  const everydayMonthlyBudget = pools
+    .filter((c) => c.poolType === 'EVERYDAY')
+    .reduce(
+      (sum, c) =>
+        sum + parseFloat(c.everydayAllowanceAmount || c.targetAmount || '0'),
+      0
+    );
 
-  const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
+  const upcomingIncomeList = (incomeEventsQuery.data ?? []).filter(
+    (e) => e.status === 'PENDING'
+  );
   const nextPaydayEvent = upcomingIncomeList[0] ?? null;
 
   const nextPaydayData = nextPaydayEvent
@@ -95,8 +111,12 @@ export default function HomeScreen() {
     .filter((e) => e.status === 'PENDING')
     .filter((e) => new Date(e.expectedDate) <= threeDaysLater)
     .map((e) => {
-      const cat = categories.find((c) => c.id === (e.categoryId || e.poolId));
-      const catBal = cat ? (typeof cat.currentBalance === 'number' ? cat.currentBalance : parseFloat(cat.currentBalance || '0')) : 0;
+      const pool = pools.find((c) => c.id === (e.categoryId || e.poolId));
+      const poolBal = pool
+        ? typeof pool.currentBalance === 'number'
+          ? pool.currentBalance
+          : parseFloat(pool.currentBalance || '0')
+        : 0;
       const isOverdue = new Date(e.expectedDate) < todayObj;
       return {
         id: e.id,
@@ -105,63 +125,22 @@ export default function HomeScreen() {
         expectedDate: e.expectedDate,
         categoryId: e.categoryId || e.poolId,
         isOverdue,
-        categoryBalance: catBal,
+        categoryBalance: poolBal,
       };
     });
 
-  const handleMarkPaidItem = (item: AttentionItem) => {
-    posthog.capture('expense_paid', {
-      amount: item.expectedAmount,
-      is_overdue: item.isOverdue,
-    });
-    markPaidMutation.mutate({ eventId: item.id, eventType: 'EXPENSE', status: 'CONFIRMED', actualAmount: item.expectedAmount.toFixed(2), note: `Paid ${item.name}` });
-  };
+  const hasMissingSchedules = pools.some(
+    (p) =>
+      p.poolType !== 'EVERYDAY' &&
+      (!p.targetAmount || parseFloat(p.targetAmount) <= 0)
+  );
 
-  const handleBulkDelete = () => {
-    setSelectedEventKeys([]);
-  };
+  const billCoverage = billCoverageQuery.data;
+  const billsPoolBalance = billCoverage?.billsPoolBalance ?? 0;
+  const upcomingBillsTotal = billCoverage?.totalUpcomingBeforePayday ?? 0;
+  const billsShortfall = Math.max(0, upcomingBillsTotal - billsPoolBalance);
 
-  const incomeEventsMapped = (incomeEventsQuery.data ?? [])
-    .filter((e) => e.status === 'PENDING')
-    .map((e) => ({
-      id: e.id,
-      type: 'INCOME' as const,
-      name: e.sourceName || 'Income',
-      expectedDate: e.expectedDate,
-      expectedAmount: e.expectedAmount,
-      categoryName: 'Everyday Pool',
-    }));
-
-  const expenseEventsMapped = (expenseEventsQuery.data ?? [])
-    .filter((e) => e.status === 'PENDING')
-    .map((e) => ({
-      id: e.id,
-      type: 'EXPENSE' as const,
-      name: e.name,
-      expectedDate: e.expectedDate,
-      expectedAmount: e.expectedAmount,
-      categoryName: e.categoryName || 'Uncategorized',
-    }));
-
-  let combinedEvents = [...incomeEventsMapped, ...expenseEventsMapped];
-  if (upcomingFilter === 'INCOME') combinedEvents = combinedEvents.filter((e) => e.type === 'INCOME');
-  else if (upcomingFilter === 'EXPENSE') combinedEvents = combinedEvents.filter((e) => e.type === 'EXPENSE');
-
-  if (upcomingSearch.trim()) {
-    const q = upcomingSearch.toLowerCase();
-    combinedEvents = combinedEvents.filter((e) => e.name.toLowerCase().includes(q) || e.categoryName.toLowerCase().includes(q));
-  }
-  combinedEvents.sort((a, b) => new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime());
-
-  const billCoverageQuery = trpc.listBillCoverage.useQuery();
-  const billCoverageData = billCoverageQuery.data;
-  const shortfallAmount = (billCoverageData?.totalUpcomingBeforePayday ?? 0) - (billCoverageData?.billsPoolBalance ?? 0);
-  const dueGuardrail = shortfallAmount > 0 ? {
-    status: 'SHORTFALL_ALERT',
-    requiredAmount: billCoverageData?.totalUpcomingBeforePayday ?? 0,
-    currentBalance: billCoverageData?.billsPoolBalance ?? 0,
-    shortfallAmount,
-  } : null;
+  const goalsList = pools.filter((p) => p.poolType === 'GOAL');
 
   return (
     <MobileScreenWrapper
@@ -170,101 +149,186 @@ export default function HomeScreen() {
       onNavigateCategories={() => router.push('/(app)/categories')}
       onNavigateSettings={() => router.push('/(app)/settings')}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      {/* Customer Trial & Lifecycle Banner */}
+      <TrialBanner />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#2563eb"
+          />
+        }
+      >
+        {/* Greeting Header */}
         <View style={styles.header}>
-          <Text style={styles.greeting}>{t("dashboard.welcome", { name: session?.user?.name ? session.user.name.split(" ")[0] : "Mate" })}</Text>
-          <Text style={styles.headerTitle}>{t("dashboard.title")}</Text>
+          <Text style={styles.greeting}>
+            {t('dashboard.welcome', {
+              name: session?.user?.name
+                ? session.user.name.split(' ')[0]
+                : 'Mate',
+            })}
+          </Text>
+          <Text style={styles.headerTitle}>{t('dashboard.title') || 'Dashboard'}</Text>
         </View>
 
-        {/* Top Hero Card with Everyday Balance & Can We Afford This Widget */}
+        {/* Top Hero Card with Everyday Balance Ring & Next Payday */}
         <DashboardHeroCard
           everydayBalance={everydayBalance}
           everydayMonthlyBudget={everydayMonthlyBudget}
           needsAttentionCount={needsAttentionCount}
           behindCount={behindCount}
           onTrackCount={onTrackCount}
-          canAffordAmount={canAffordAmount}
-          setCanAffordAmount={setCanAffordAmount}
-          canAffordData={canAffordQuery.data}
+          canAffordAmount=""
+          setCanAffordAmount={() => {}}
+          canAffordData={null}
           nextPayday={nextPaydayData}
           onPressNextPay={(id) => {
-            posthog.capture('payday_wizard_opened');
-            setPaydayWizardEventId(id);
+            if (posthog) posthog.capture('payday_wizard_opened');
+            router.push(`/(app)/paychecks/${id}` as never);
           }}
-          onSelectFilter={(health) => router.push({ pathname: '/(app)/categories', params: { health } })}
+          onSelectFilter={() => router.push('/(app)/categories')}
         />
 
-        {/* Orientation Pro Tip Card */}
-        <View style={styles.tipCard}>
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={styles.tipTitle}>{t("dashboard.bankAccountTip.title")}</Text>
-            <Text style={styles.tipDesc}>{t("dashboard.bankAccountTip.description")}</Text>
+        {/* Can We Afford This? Action Card */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(app)/afford-check' as never)}
+          style={styles.affordActionCard}
+        >
+          <View style={styles.affordIconWrap}>
+            <Feather name="help-circle" size={22} color="#2563eb" />
           </View>
-          <TouchableOpacity
-            onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
-            style={styles.tipBtn}
-          >
-            <Text style={styles.tipBtnText}>{t("dashboard.bankAccountTip.action")}</Text>
-          </TouchableOpacity>
+          <View style={styles.affordContent}>
+            <Text style={styles.affordTitle}>
+              {t('canIAfford.title') || 'Can We Afford This?'}
+            </Text>
+            <Text style={styles.affordSubtitle}>
+              Simulate a purchase against your safe-to-spend allowance
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={18} color="#2563eb" />
+        </TouchableOpacity>
 
+        {/* Bento Pools Summary Strip */}
+        <View style={styles.bentoSection}>
+          <Text style={styles.sectionHeading}>Pools Health</Text>
+          <View style={styles.bentoGrid}>
+            {/* Everyday Pool Card */}
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/categories')}
+              style={styles.bentoCard}
+            >
+              <View style={styles.bentoTop}>
+                <Text style={styles.bentoIcon}>☕</Text>
+                <Text style={styles.bentoTag}>Everyday</Text>
+              </View>
+              <Text style={styles.bentoBalance}>{formatAUD(everydayBalance)}</Text>
+              <Text style={styles.bentoSub}>Remaining allowance</Text>
+            </TouchableOpacity>
+
+            {/* Regular Bills Pool Card */}
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/categories')}
+              style={styles.bentoCard}
+            >
+              <View style={styles.bentoTop}>
+                <Text style={styles.bentoIcon}>📅</Text>
+                <Text style={styles.bentoTag}>Bills</Text>
+              </View>
+              <Text style={styles.bentoBalance}>{formatAUD(billsPoolBalance)}</Text>
+              <View style={styles.billsStatusRow}>
+                {billsShortfall > 0 ? (
+                  <Text style={styles.billsShortText}>
+                    ⚠️ Short {formatAUD(billsShortfall)}
+                  </Text>
+                ) : (
+                  <Text style={styles.billsCoveredText}>
+                    ✅ 14 days covered
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Due-Date Guardrail Shortfall Alert Card */}
-        {dueGuardrail && dueGuardrail.status === 'SHORTFALL_ALERT' && (
-          <View style={styles.guardrailCard}>
-            <View style={styles.guardrailHeader}>
-              <Text style={styles.guardrailIcon}>⚠️</Text>
-              <View style={styles.guardrailTextContent}>
-                <Text style={styles.guardrailTitle}>Bills Pool Payday Auto-Adjustment</Text>
-                <Text style={styles.guardrailMsg}>
-                  Upcoming bills (${dueGuardrail.requiredAmount.toFixed(2)}) due in 14 days exceed current Bills Pool balance (${dueGuardrail.currentBalance.toFixed(2)}). ${dueGuardrail.shortfallAmount.toFixed(2)} will be automatically added to your Bills top-up on next payday.
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
+        {/* Goals Progress Strip */}
+        <GoalsProgressStrip goals={goalsList} />
 
-        {/* Attention Items */}
-        <AttentionItemsList items={attentionItems} onMarkPaid={handleMarkPaidItem} />
+        {/* Bank Balances Summary Strip */}
+        <BankBalancesStrip accounts={bankAccounts} />
 
-        {/* Permanent (Non-Collapsible) Quick Actions & Tools Section */}
+        {/* Attention Items & Nudges */}
+        <AttentionItemsList
+          items={attentionItems}
+          hasMissingSchedules={hasMissingSchedules}
+          onMarkPaid={(item) =>
+            setMarkPaidEvent({
+              id: item.id,
+              name: item.name,
+              expectedAmount: item.expectedAmount,
+              expectedDate: item.expectedDate,
+              categoryId: item.categoryId,
+            })
+          }
+        />
+
+        {/* Quick Actions Grid */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{t("dashboard.quickActions.title")}</Text>
+          <Text style={styles.sectionHeading}>
+            {t('dashboard.quickActions.title') || 'Quick Actions'}
+          </Text>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => { setQuickModalType('DEBIT'); setQuickModalVisible(true); }}
+              onPress={() => {
+                setQuickModalType('DEBIT');
+                setQuickModalVisible(true);
+              }}
             >
-              <Feather name="minus-circle" size={20} color={DESIGN_TOKENS.colors.critical} />
-              <Text style={styles.actionCardText}>{t("dashboard.quickActions.addExpense")}</Text>
+              <Feather name="minus-circle" size={20} color="#ba1a1a" />
+              <Text style={styles.actionCardText}>
+                {t('dashboard.quickActions.addExpense') || 'Expense'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => { setQuickModalType('CREDIT'); setQuickModalVisible(true); }}
+              onPress={() => {
+                setQuickModalType('CREDIT');
+                setQuickModalVisible(true);
+              }}
             >
-              <Feather name="plus-circle" size={20} color={DESIGN_TOKENS.colors.success} />
-              <Text style={styles.actionCardText}>{t("transactions.addIncome")}</Text>
+              <Feather name="plus-circle" size={20} color="#22c55e" />
+              <Text style={styles.actionCardText}>
+                {t('transactions.addIncome') || 'Income'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => setMoveMoneyVisible(true)}
             >
-              <Feather name="repeat" size={20} color={DESIGN_TOKENS.colors.primary} />
-              <Text style={styles.actionCardText}>{t("dashboard.quickActions.moveMoney")}</Text>
+              <Feather name="repeat" size={20} color="#2563eb" />
+              <Text style={styles.actionCardText}>
+                {t('dashboard.quickActions.moveMoney') || 'Transfer'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => router.push('/(app)/categories')}
             >
-              <Feather name="grid" size={20} color={DESIGN_TOKENS.colors.textPrimary} />
-              <Text style={styles.actionCardText}>{t("nav.myMoney")}</Text>
+              <Feather name="grid" size={20} color="#1B2B4B" />
+              <Text style={styles.actionCardText}>
+                {t('nav.myMoney') || 'Pools'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
-
       </ScrollView>
 
       {/* Modals */}
@@ -277,159 +341,172 @@ export default function HomeScreen() {
       <MoveMoneyModal
         visible={moveMoneyVisible}
         onClose={() => setMoveMoneyVisible(false)}
-        onSuccess={() => { summaryQuery.refetch(); categoriesQuery.refetch(); }}
+        onSuccess={() => {
+          summaryQuery.refetch();
+          poolsQuery.refetch();
+        }}
       />
 
-      {paydayWizardEventId ? (
-        <PaydayPreviewWizard
-          visible={!!paydayWizardEventId}
-          incomeEventId={paydayWizardEventId}
-          onClose={() => setPaydayWizardEventId(null)}
-          onSuccess={() => { setPaydayWizardEventId(null); incomeEventsQuery.refetch(); summaryQuery.refetch(); }}
-        />
-      ) : null}
+      <MarkPaidModal
+        visible={!!markPaidEvent}
+        event={markPaidEvent}
+        onClose={() => setMarkPaidEvent(null)}
+        onSuccess={() => {
+          expenseEventsQuery.refetch();
+          poolsQuery.refetch();
+          summaryQuery.refetch();
+        }}
+      />
     </MobileScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   scrollContent: {
-    padding: DESIGN_TOKENS.spacing.containerMargin,
-    paddingBottom: 80,
+    paddingBottom: 90,
   },
   header: {
-    marginBottom: DESIGN_TOKENS.spacing.stackGap,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   greeting: {
     fontSize: 13,
-    color: DESIGN_TOKENS.colors.textMuted,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#64748B',
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textPrimary,
+    fontWeight: '900',
+    color: '#1B2B4B',
   },
-  sectionContainer: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: DESIGN_TOKENS.radius.lg,
-    padding: DESIGN_TOKENS.spacing.cardPadding,
+  affordActionCard: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 8,
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.border,
-    marginBottom: DESIGN_TOKENS.spacing.stackGap,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textPrimary,
-    marginBottom: 12,
-  },
-  quickActionsGrid: {
+    borderColor: '#BFDBFE',
+    borderRadius: 16,
+    padding: 14,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'center',
+    gap: 12,
   },
-  actionCard: {
-    width: '48%',
-    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
-    borderRadius: 10,
-    padding: DESIGN_TOKENS.spacing.cardPadding,
+  affordIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.border,
   },
-  actionCardText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  upcomingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  searchInput: {
+  affordContent: {
     flex: 1,
-    height: 36,
-    backgroundColor: DESIGN_TOKENS.colors.surfaceVariant,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 13,
   },
-  bulkDeleteBtn: {
-    backgroundColor: DESIGN_TOKENS.colors.critical,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+  affordTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E40AF',
   },
-  bulkDeleteText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+  affordSubtitle: {
+    fontSize: 11,
+    color: '#3B82F6',
+    marginTop: 2,
   },
-  emptyText: {
-    fontSize: 12,
-    color: DESIGN_TOKENS.colors.textMuted,
-    textAlign: 'center',
-    marginVertical: 12,
+  bentoSection: {
+    paddingHorizontal: 20,
+    marginVertical: 8,
   },
-  eventRow: {
+  sectionHeading: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1B2B4B',
+    marginBottom: 10,
+  },
+  bentoGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bentoCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bentoTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: DESIGN_TOKENS.colors.border,
+    marginBottom: 8,
   },
-  eventName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
+  bentoIcon: {
+    fontSize: 16,
   },
-  eventSub: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.textMuted,
-  },
-  eventAmount: {
-    fontSize: 13,
+  bentoTag: {
+    fontSize: 10,
     fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textPrimary,
+    color: '#64748B',
+    textTransform: 'uppercase',
   },
-  incomeText: {
-    color: DESIGN_TOKENS.colors.success,
+  bentoBalance: {
+    fontSize: 18,
+    fontWeight: '900',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+    marginBottom: 2,
   },
-  guardrailCard: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
-    borderWidth: 1,
-    borderRadius: DESIGN_TOKENS.radius.lg,
-    padding: DESIGN_TOKENS.spacing.cardPadding,
-    marginBottom: DESIGN_TOKENS.spacing.stackGap,
+  bentoSub: {
+    fontSize: 10,
+    color: '#94A3B8',
   },
-  guardrailHeader: {
+  billsStatusRow: {
+    marginTop: 2,
+  },
+  billsShortText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ba1a1a',
+  },
+  billsCoveredText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  sectionContainer: {
+    paddingHorizontal: 20,
+    marginTop: 12,
+  },
+  quickActionsGrid: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     gap: 10,
   },
-  guardrailIcon: {
-    fontSize: 18,
-  },
-  guardrailTextContent: {
+  actionCard: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    elevation: 1,
   },
-  guardrailTitle: {
-    fontSize: 13,
+  actionCardText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#78350F',
-    marginBottom: 3,
+    color: '#1B2B4B',
   },
-  guardrailMsg: { fontSize: 12, color: '#991B1B', marginTop: 2, lineHeight: 16 },
-  tipCard: { backgroundColor: '#EFF6FF', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#DBEAFE', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  tipTitle: { fontSize: 12, fontWeight: '700', color: '#1E40AF' },
-  tipDesc: { fontSize: 11, color: '#1E3A8A', marginTop: 2 },
-  tipBtn: { backgroundColor: '#2563EB', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  tipBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
 });

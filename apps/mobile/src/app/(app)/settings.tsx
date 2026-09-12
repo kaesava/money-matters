@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter, Href } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { authClient } from '../../lib/auth';
 import { setActiveSessionToken } from '../../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
 
+import { MobileProfileSection } from '../../components/settings/MobileProfileSection';
+import { HouseholdDetailsSection } from '../../components/settings/HouseholdDetailsSection';
 import { PreferencesSection } from '../../components/settings/PreferencesSection';
 import { HouseholdPartnerInviteSection } from '../../components/settings/HouseholdPartnerInviteSection';
 import { SubscriptionPlanSection } from '../../components/settings/SubscriptionPlanSection';
 import { PrivacyGovernanceSection } from '../../components/settings/PrivacyGovernanceSection';
+import { HouseholdDangerZoneSection } from '../../components/settings/HouseholdDangerZoneSection';
+import { FeedbackFormModal } from '../../components/FeedbackFormModal';
 
 import { getMobileVersionInfo } from '../../lib/version';
 
@@ -19,6 +24,7 @@ export default function SettingsScreen() {
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
 
   const versionInfo = getMobileVersionInfo();
 
@@ -72,18 +78,11 @@ export default function SettingsScreen() {
         onNavigateSettings={() => router.push('/(app)/settings')}
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 100, gap: 14 }}>
-          {/* Household Profile Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>👤 Household Account</Text>
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Name</Text>
-              <Text style={styles.profileVal}>{session?.user?.name ?? 'Household User'}</Text>
-            </View>
-            <View style={styles.profileRow}>
-              <Text style={styles.profileLabel}>Email</Text>
-              <Text style={styles.profileVal}>{session?.user?.email ?? '—'}</Text>
-            </View>
-          </View>
+          {/* User Profile & Timezone */}
+          <MobileProfileSection />
+
+          {/* Household Profile & Location Details */}
+          <HouseholdDetailsSection />
 
           {/* Hub Navigation Links */}
           <View style={styles.card}>
@@ -109,7 +108,7 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(app)/settings/archived' as Href)}
               activeOpacity={0.8}
             >
-              <Text style={styles.navLinkText}>📦 Archived Categories & Bills</Text>
+              <Text style={styles.navLinkText}>📦 Archived Categories, Pools & Bills</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -126,6 +125,17 @@ export default function SettingsScreen() {
           <HouseholdPartnerInviteSection />
           <SubscriptionPlanSection />
           <PrivacyGovernanceSection />
+          <HouseholdDangerZoneSection />
+
+          {/* Feedback & Support Button */}
+          <TouchableOpacity
+            style={styles.feedbackBtn}
+            onPress={() => setFeedbackVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Feather name="message-square" size={16} color="#2563eb" />
+            <Text style={styles.feedbackBtnText}>Provide Feedback or Report a Problem</Text>
+          </TouchableOpacity>
 
           {/* Sign Out Button */}
           <TouchableOpacity
@@ -151,6 +161,12 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </ScrollView>
       </MobileScreenWrapper>
+
+      {/* Feedback Modal */}
+      <FeedbackFormModal
+        visible={feedbackVisible}
+        onClose={() => setFeedbackVisible(false)}
+      />
     </View>
   );
 }
@@ -158,30 +174,20 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  profileRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-  },
-  profileLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  profileVal: {
-    fontSize: 12,
-    fontWeight: '700',
     color: '#1B2B4B',
   },
   navLink: {
@@ -194,6 +200,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2563eb',
   },
+  feedbackBtn: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  feedbackBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#2563eb',
+  },
   signOutBtn: {
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
@@ -201,29 +223,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
   signOutBtnText: {
     fontSize: 13,
     fontWeight: '800',
     color: '#E11D48',
-  },
-  helpCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: DESIGN_TOKENS.radius.md,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 8,
-  },
-  helpCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: DESIGN_TOKENS.colors.primary,
-  },
-  helpCardBody: {
-    fontSize: 12,
-    color: DESIGN_TOKENS.colors.textMuted,
-    lineHeight: 16,
   },
 });

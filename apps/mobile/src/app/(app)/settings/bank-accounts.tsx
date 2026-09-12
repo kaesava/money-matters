@@ -1,212 +1,529 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
-  Alert,
-  TextInput,
   ScrollView,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileScreenWrapper, useMobileToast } from "@money-matters/ui/mobile";
-import { trpc } from "../../../lib/trpc";
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import {
+  DESIGN_TOKENS,
+  MobileScreenWrapper,
+  BankProviderBadge,
+} from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
+import { trpc } from '../../../lib/trpc';
+import { authClient } from '../../../lib/auth';
+import { formatAUD } from '../../../lib/format';
+import {
+  BankAccountFormModal,
+  BankAccountItemToEdit,
+} from '../../../components/BankAccountFormModal';
+import { MobileReconciliationModal } from '../../../components/categories/MobileReconciliationModal';
+import { showMobileConfirm } from '../../../components/MobileConfirmDialog';
 
 export default function BankAccountsScreen() {
   const router = useRouter();
-  const toast = useMobileToast();
+  const { data: session } = authClient.useSession();
+  const utils = trpc.useUtils();
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [formModalVisible, setFormModalVisible] = useState(false);
+  const [accountToEdit, setAccountToEdit] = useState<BankAccountItemToEdit | null>(null);
+
+  const [reconcileAccount, setReconcileAccount] = useState<any | null>(null);
+
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
-  const createAccountMut = trpc.createBankAccount.useMutation({
+  const poolsQuery = trpc.listPools.useQuery();
+  const accounts = bankAccountsQuery.data || [];
+  const allPools = poolsQuery.data || [];
+
+  const archiveAccountMut = trpc.archiveBankAccount.useMutation({
     onSuccess: () => {
-      bankAccountsQuery.refetch();
-      setNewAccountName("");
-      setNewAccountBalance("0.00");
-      setShowAddForm(false);
+      utils.listBankAccountsWithExpected.invalidate();
+      utils.listBankAccounts.invalidate();
     },
   });
-  const archiveAccountMut = trpc.archiveBankAccount.useMutation({
-    onSuccess: () => bankAccountsQuery.refetch(),
-    onError: (err) => toast.error(err.message),
-  });
 
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newAccountName, setNewAccountName] = useState("");
-  const [newAccountBalance, setNewAccountBalance] = useState("0.00");
-
-
-  if (bankAccountsQuery.isLoading) {
-    return (
-      <MobileScreenWrapper>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" color={DESIGN_TOKENS.colors.accent} />
-        </View>
-      </MobileScreenWrapper>
-    );
-  }
-
-  const accounts = bankAccountsQuery.data || [];
-
-  const updatePoolMut = trpc.updatePool.useMutation({
-    onSuccess: () => bankAccountsQuery.refetch(),
-  });
-
-  const handleCategoryTypeChange = async (_type: "EVERYDAY" | "REGULAR" | "GOAL", _targetAccountId: string) => {
-    Alert.alert(
-      t("common.notice", { defaultValue: "Notice" }),
-      t("categories.immutabilityWarning", { defaultValue: "Pool type and linked bank account cannot be changed once created." })
-    );
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([bankAccountsQuery.refetch(), poolsQuery.refetch()]);
+    setRefreshing(false);
   };
 
-  const handleCreateAccount = () => {
-    if (!newAccountName.trim()) return;
-    createAccountMut.mutate({
-      name: newAccountName.trim(),
-      lastKnownBalance: newAccountBalance.trim() || "0.00",
-      unbudgetedBuffer: "0.00",
+  const handleArchive = (acc: (typeof accounts)[0]) => {
+    showMobileConfirm({
+      title: 'Archive Bank Account',
+      message: `Are you sure you want to archive "${acc.name}"? Linked pools must be re-mapped before archival.`,
+      confirmText: 'Archive',
+      onConfirm: () => archiveAccountMut.mutate({ accountId: acc.id }),
     });
   };
 
   return (
-    <MobileScreenWrapper>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>←</Text>
+    <MobileScreenWrapper
+      title={t('settings.bankAccounts.title') || 'Linked Bank Accounts'}
+      user={session?.user}
+      showBack
+      onBackPress={() => router.back()}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#2563eb"
+          />
+        }
+      >
+        {/* Top Action Header */}
+        <View style={styles.topRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionHeaderTitle}>Bank Accounts ({accounts.length})</Text>
+            <Text style={styles.sectionHeaderSubtitle}>
+              Manage physical bank accounts and balance alignment
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              setAccountToEdit(null);
+              setFormModalVisible(true);
+            }}
+            style={styles.addAccountBtn}
+          >
+            <Feather name="plus" size={14} color="#FFFFFF" />
+            <Text style={styles.addAccountText}>Add Account</Text>
           </TouchableOpacity>
-          <Text style={styles.screenTitle}>{t("settings.bankAccounts.title")}</Text>
         </View>
 
-        {/* Matrix Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t("settings.bankAccounts.linkedTypes")}</Text>
-          <Text style={styles.cardDesc}>{t("settings.bankAccounts.linkedTypesDesc")}</Text>
+        {/* Bank Accounts List */}
+        {bankAccountsQuery.isLoading ? (
+          <ActivityIndicator color="#2563eb" style={{ marginVertical: 40 }} />
+        ) : accounts.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Feather name="credit-card" size={32} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>No Bank Accounts Linked</Text>
+            <Text style={styles.emptyDesc}>
+              Link your checking or savings account to start allocating money into pools.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.accountsList}>
+            {accounts.map((acc) => {
+              const linkedPools = allPools.filter((p) => p.bankAccountId === acc.id);
+              const actualBal = parseFloat(acc.lastKnownBalance || '0');
+              const buffer = parseFloat(acc.unbudgetedBuffer || '0');
+              const availBal = Math.max(0, actualBal - buffer);
 
-          {[
-            { key: "EVERYDAY" as const, label: t("settings.bankAccounts.everyday"), color: "#10B981" },
-            { key: "REGULAR" as const, label: t("settings.bankAccounts.regular"), color: "#3B82F6" },
-            { key: "GOAL" as const, label: t("settings.bankAccounts.goal"), color: "#6366F1" },
-          ].map((typeItem) => {
-            const currentAcc = accounts.find((a) => (a as unknown as { pools?: Array<{ poolType: string }> }).pools?.some((p) => p.poolType === typeItem.key));
-            return (
-              <View key={typeItem.key} style={styles.mappingRow}>
-                <Text style={[styles.mappingLabel, { color: typeItem.color }]}>{typeItem.label}</Text>
-                <View style={{ gap: 4 }}>
-                  {accounts.map((acc) => {
-                    const isSelected = currentAcc?.id === acc.id;
-                    return (
-                      <TouchableOpacity
-                        key={acc.id}
-                        onPress={() => handleCategoryTypeChange(typeItem.key, acc.id)}
-                        style={[styles.chip, isSelected && styles.chipSelected]}
-                      >
-                        <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                          {acc.name} (${parseFloat(acc.lastKnownBalance || "0").toFixed(2)})
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+              const poolsTotal = linkedPools.reduce(
+                (sum: number, p) =>
+                  sum +
+                  (typeof p.currentBalance === 'number'
+                    ? p.currentBalance
+                    : parseFloat(p.currentBalance || '0')),
+                0
+              );
+              const expectedBal = parseFloat(acc.expectedBalance || '0');
+              const diff = Math.round((actualBal - expectedBal) * 100) / 100;
+              const hasDiff = Math.abs(diff) >= 0.01;
+
+              return (
+                <View key={acc.id} style={styles.accountCard}>
+                  {/* Account Header */}
+                  <View style={styles.cardHeader}>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.titleRow}>
+                        <BankProviderBadge
+                          provider={acc.bankProvider}
+                          size="sm"
+                        />
+                        <Text style={styles.accountName}>{acc.name}</Text>
+                        {acc.isPrivate && (
+                          <View style={styles.privatePill}>
+                            <Text style={styles.privateText}>🔒 Private</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Alignment State Label */}
+                      {!hasDiff ? (
+                        <View style={styles.balancedRow}>
+                          <View style={styles.greenDot} />
+                          <Text style={styles.balancedText}>
+                            Expected {formatAUD(poolsTotal)}. Balanced ✓
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.diffRow}>
+                          <Text style={styles.expectedText}>
+                            Expected {formatAUD(poolsTotal)}.
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() =>
+                              setReconcileAccount({
+                                id: acc.id,
+                                name: acc.name,
+                                lastKnownBalance: acc.lastKnownBalance,
+                                unbudgetedBuffer: acc.unbudgetedBuffer,
+                                expectedBalance: expectedBal,
+                                differenceAmount: diff,
+                                linkedPools: linkedPools.map((p) => ({
+                                  id: p.id,
+                                  name: p.name,
+                                  poolType: p.poolType,
+                                  currentBalance:
+                                    typeof p.currentBalance === 'number'
+                                      ? p.currentBalance
+                                      : parseFloat(p.currentBalance || '0'),
+                                  isSurplusTarget: p.isSurplusTarget,
+                                })),
+                              })
+                            }
+                            style={styles.alignBtn}
+                          >
+                            <View style={styles.pulseDot} />
+                            <Text style={styles.alignBtnText}>
+                              {diff > 0
+                                ? `Align Surplus (${formatAUD(diff)})`
+                                : `Align Shortfall (${formatAUD(Math.abs(diff))})`}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Available & Actual Balances */}
+                    <View style={styles.balanceCol}>
+                      <Text style={styles.balanceAmount}>{formatAUD(availBal)}</Text>
+                      <Text style={styles.balanceSub}>
+                        {buffer > 0
+                          ? `Actual: ${formatAUD(actualBal)} (Buffer ${formatAUD(buffer)})`
+                          : 'Available'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Linked Pools Chips */}
+                  <View style={styles.linkedPoolsSection}>
+                    <Text style={styles.linkedLabel}>Linked Pools:</Text>
+                    <View style={styles.poolsGrid}>
+                      {linkedPools.length > 0 ? (
+                        linkedPools.map((p) => (
+                          <TouchableOpacity
+                            key={p.id}
+                            onPress={() => router.push(`/(app)/pools/${p.id}` as never)}
+                            style={styles.poolChip}
+                          >
+                            <Text style={styles.poolChipName}>{p.name}</Text>
+                            <Text style={styles.poolChipBal}>
+                              {formatAUD(p.currentBalance)}
+                            </Text>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <Text style={styles.noPoolsText}>No pools mapped</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Actions Footer */}
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setAccountToEdit({
+                          id: acc.id,
+                          name: acc.name,
+                          bankProvider: acc.bankProvider,
+                          lastKnownBalance: acc.lastKnownBalance,
+                          unbudgetedBuffer: acc.unbudgetedBuffer,
+                          isPrivate: acc.isPrivate,
+                        });
+                        setFormModalVisible(true);
+                      }}
+                      style={styles.cardActionBtn}
+                    >
+                      <Feather name="edit-2" size={13} color="#2563eb" />
+                      <Text style={styles.cardActionText}>Edit Account</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => setReconcileAccount(acc)}
+                      style={styles.cardActionBtn}
+                    >
+                      <Feather name="refresh-cw" size={13} color="#D97706" />
+                      <Text style={[styles.cardActionText, { color: '#D97706' }]}>
+                        Align Balance
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => handleArchive(acc)}
+                      style={styles.cardActionBtn}
+                    >
+                      <Feather name="archive" size={13} color="#94A3B8" />
+                      <Text style={[styles.cardActionText, { color: '#94A3B8' }]}>
+                        Archive
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Accounts List */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <Text style={styles.sectionHeader}>Accounts ({accounts.length})</Text>
-          <TouchableOpacity onPress={() => setShowAddForm(true)} style={styles.addBtn}>
-            <Text style={styles.addBtnText}>+ {t("settings.bankAccounts.addAccount")}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {showAddForm && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t("settings.bankAccounts.addAccount")}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder={t("settings.bankAccounts.accountNamePlaceholder")}
-              placeholderTextColor="#9CA3AF"
-              value={newAccountName}
-              onChangeText={setNewAccountName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="0.00"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
-              value={newAccountBalance}
-              onChangeText={setNewAccountBalance}
-            />
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
-              <TouchableOpacity onPress={() => setShowAddForm(false)} style={styles.cancelBtn}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleCreateAccount} style={styles.submitBtn}>
-                <Text style={styles.submitBtnText}>Create Account</Text>
-              </TouchableOpacity>
-            </View>
+              );
+            })}
           </View>
         )}
-
-        {accounts.map((acc) => (
-          <View key={acc.id} style={styles.accountCard}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.accountName}>{acc.name}</Text>
-              <Text style={styles.accountBalance}>
-                ${parseFloat(acc.lastKnownBalance || "0").toFixed(2)}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() =>
-                Alert.alert(
-                  t("settings.bankAccounts.deleteConfirmTitle"),
-                  t("settings.bankAccounts.deleteConfirmBody", { name: acc.name }),
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: () => archiveAccountMut.mutate({ accountId: acc.id }),
-                    },
-                  ]
-                )
-              }
-            >
-              <Text style={{ fontSize: 16 }}>🗑️</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
       </ScrollView>
 
+      {/* Account Create/Edit Modal */}
+      <BankAccountFormModal
+        visible={formModalVisible}
+        accountToEdit={accountToEdit}
+        onClose={() => setFormModalVisible(false)}
+        onSuccess={() => bankAccountsQuery.refetch()}
+      />
+
+      {/* Balance Reconciliation Modal */}
+      <MobileReconciliationModal
+        visible={!!reconcileAccount}
+        account={reconcileAccount}
+        onClose={() => setReconcileAccount(null)}
+        onSuccess={() => bankAccountsQuery.refetch()}
+      />
     </MobileScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  backBtn: { padding: 8, borderRadius: 8, backgroundColor: DESIGN_TOKENS.colors.surfaceVariant },
-  backBtnText: { fontSize: 16, color: DESIGN_TOKENS.colors.textPrimary },
-  screenTitle: { fontSize: 20, fontWeight: "700", color: DESIGN_TOKENS.colors.textPrimary },
-  card: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 16, borderRadius: 16, borderBottomWidth: 1, borderColor: DESIGN_TOKENS.colors.border, gap: 12 },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: DESIGN_TOKENS.colors.textPrimary },
-  cardDesc: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted },
-  mappingRow: { borderTopWidth: 1, borderColor: DESIGN_TOKENS.colors.border, paddingTop: 8, gap: 6 },
-  mappingLabel: { fontSize: 12, fontWeight: "700" },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: DESIGN_TOKENS.colors.surfaceVariant, alignSelf: "flex-start" },
-  chipSelected: { backgroundColor: DESIGN_TOKENS.colors.accent },
-  chipText: { fontSize: 12, color: DESIGN_TOKENS.colors.textPrimary, fontWeight: "600" },
-  chipTextSelected: { color: "#FFFFFF" },
-  sectionHeader: { fontSize: 12, fontWeight: "700", color: DESIGN_TOKENS.colors.textMuted, textTransform: "uppercase" },
-  addBtn: { backgroundColor: DESIGN_TOKENS.colors.accent, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  addBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  input: { borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, borderRadius: 8, padding: 10, fontSize: 14, color: DESIGN_TOKENS.colors.textPrimary },
-  cancelBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  cancelBtnText: { fontSize: 12, fontWeight: "600", color: DESIGN_TOKENS.colors.textMuted },
-  submitBtn: { backgroundColor: DESIGN_TOKENS.colors.accent, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  submitBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
-  accountCard: { backgroundColor: DESIGN_TOKENS.colors.surface, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: DESIGN_TOKENS.colors.border, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  accountName: { fontSize: 14, fontWeight: "700", color: DESIGN_TOKENS.colors.textPrimary },
-  accountBalance: { fontSize: 12, fontWeight: "700", color: DESIGN_TOKENS.colors.success },
+  scrollContent: {
+    padding: 20,
+    gap: 16,
+    paddingBottom: 60,
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1B2B4B',
+  },
+  sectionHeaderSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  addAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  addAccountText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 30,
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1B2B4B',
+  },
+  emptyDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  accountsList: {
+    gap: 12,
+  },
+  accountCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  accountName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1B2B4B',
+  },
+  privatePill: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  privateText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  balancedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  greenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22c55e',
+  },
+  balancedText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#15803D',
+  },
+  diffRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
+  expectedText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  alignBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#D97706',
+  },
+  alignBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  balanceCol: {
+    alignItems: 'flex-end',
+  },
+  balanceAmount: {
+    fontSize: 18,
+    fontWeight: '900',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+  },
+  balanceSub: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  linkedPoolsSection: {
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 10,
+  },
+  linkedLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  poolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  poolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  poolChipName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  poolChipBal: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: '#2563eb',
+  },
+  noPoolsText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontStyle: 'italic',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 10,
+  },
+  cardActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingVertical: 6,
+  },
+  cardActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
 });
-

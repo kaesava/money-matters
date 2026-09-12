@@ -1,173 +1,349 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Switch,
+} from 'react-native';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  BankProviderBadge,
+  BankProvider,
+} from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 
-interface BankAccountItem {
+export interface BankAccountItemToEdit {
   id: string;
   name: string;
+  bankProvider?: string | null;
   lastKnownBalance?: string | null;
-  purpose?: string | null;
-  isOffset?: boolean | null;
+  unbudgetedBuffer?: string | null;
+  isPrivate?: boolean;
 }
+
+const PROVIDERS: BankProvider[] = [
+  'CBA',
+  'Westpac',
+  'ANZ',
+  'NAB',
+  'ING',
+  'Macquarie',
+  'Other',
+];
 
 interface BankAccountFormModalProps {
   visible: boolean;
-  accountToEdit?: BankAccountItem | null;
+  accountToEdit?: BankAccountItemToEdit | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function BankAccountFormModal({ visible, accountToEdit, onClose, onSuccess }: BankAccountFormModalProps) {
+export function BankAccountFormModal({
+  visible,
+  accountToEdit,
+  onClose,
+  onSuccess,
+}: BankAccountFormModalProps) {
+  const isEdit = Boolean(accountToEdit?.id);
+  const D = DESIGN_TOKENS;
+  const utils = trpc.useUtils();
+
   const [name, setName] = useState('');
-  const [balance, setBalance] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['EVERYDAY']);
+  const [provider, setProvider] = useState<BankProvider>('CBA');
+  const [balance, setBalance] = useState('0.00');
+  const [buffer, setBuffer] = useState('0.00');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (accountToEdit) {
-      setName(accountToEdit.name);
-      setBalance(accountToEdit.lastKnownBalance ?? '0.00');
-      const p = accountToEdit.purpose ?? 'EVERYDAY';
-      setSelectedTypes(p.split(',').map((s) => s.trim()));
+      setName(accountToEdit.name || '');
+      setProvider((accountToEdit.bankProvider as BankProvider) || 'CBA');
+      setBalance(accountToEdit.lastKnownBalance || '0.00');
+      setBuffer(accountToEdit.unbudgetedBuffer || '0.00');
+      setIsPrivate(Boolean(accountToEdit.isPrivate));
     } else {
       setName('');
+      setProvider('CBA');
       setBalance('0.00');
-      setSelectedTypes(['EVERYDAY']);
+      setBuffer('0.00');
+      setIsPrivate(false);
     }
   }, [accountToEdit, visible]);
 
-  const createMut = trpc.createBankAccount.useMutation({
-    onSuccess: () => {
-      onSuccess?.();
-      onClose();
-    },
-  });
+  const createMut = trpc.createBankAccount.useMutation();
+  const updateMut = trpc.updateBankAccount.useMutation();
 
-  const updateMut = trpc.updateBankAccount.useMutation({
-    onSuccess: () => {
-      onSuccess?.();
-      onClose();
-    },
-  });
-
-  const toggleType = (tVal: string) => {
-    if (selectedTypes.includes(tVal)) {
-      Alert.alert('Validation Error', 'Every pool must be linked to a bank account. To move this pool to a different bank account, edit the bank account that you want to link it to.');
-      return;
-    } else {
-      setSelectedTypes([...selectedTypes, tVal]);
-    }
-  };
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Account name is required.');
+      Alert.alert(t('common.error'), 'Account name is required.');
       return;
     }
 
-    if (accountToEdit) {
-      updateMut.mutate({
-        accountId: accountToEdit.id,
-        data: {
+    const balNum = parseFloat(balance) || 0;
+    const bufNum = parseFloat(buffer) || 0;
+
+    if (bufNum > balNum) {
+      Alert.alert(
+        t('common.error'),
+        'Unbudgeted buffer cannot exceed total bank account balance.'
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (isEdit && accountToEdit?.id) {
+        await updateMut.mutateAsync({
+          accountId: accountToEdit.id,
+          data: {
+            name: name.trim(),
+            bankProvider: provider as any,
+            lastKnownBalance: balNum.toFixed(2),
+            unbudgetedBuffer: bufNum.toFixed(2),
+            isPrivate,
+          },
+        });
+      } else {
+        await createMut.mutateAsync({
           name: name.trim(),
-          lastKnownBalance: parseFloat(balance || '0').toFixed(2),
-        },
-      });
-    } else {
-      createMut.mutate({
-        name: name.trim(),
-        lastKnownBalance: parseFloat(balance || '0').toFixed(2),
-      });
+          bankProvider: provider as any,
+          lastKnownBalance: balNum.toFixed(2),
+          unbudgetedBuffer: bufNum.toFixed(2),
+          isPrivate,
+        });
+      }
+
+      utils.listBankAccounts.invalidate();
+      utils.listBankAccountsWithExpected.invalidate();
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      Alert.alert(
+        t('common.error'),
+        err instanceof Error ? err.message : 'Failed to save bank account'
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
-
-  const isPending = createMut.isPending || updateMut.isPending;
-  const D = DESIGN_TOKENS;
 
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={accountToEdit ? 'Edit Bank Account' : 'Add Bank Account'}
-      subtitle={accountToEdit ? 'Update current balance & purpose' : 'Link a new checking or offset bank account'}
+      title={isEdit ? 'Edit Bank Account' : 'Add Bank Account'}
+      subtitle={
+        isEdit
+          ? 'Update account balances & provider'
+          : 'Link a new physical checking or offset account'
+      }
     >
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Account Name</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="e.g. ANZ Everyday Checking, CBA Offset Savings"
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Current Balance ($)</Text>
-        <TextInput
-          value={balance}
-          onChangeText={setBalance}
-          placeholder="0.00"
-          keyboardType="numeric"
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
-        />
-      </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Linked Pools</Text>
-        <View style={styles.chipRow}>
-          {[
-            { id: 'EVERYDAY', label: 'Everyday' },
-            { id: 'REGULAR', label: 'Bills' },
-            { id: 'GOAL', label: 'Goals' },
-          ].map((tOpt) => {
-            const isSelected = selectedTypes.includes(tOpt.id);
-            return (
-              <TouchableOpacity
-                key={tOpt.id}
-                onPress={() => toggleType(tOpt.id)}
-                style={[styles.chip, isSelected && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                  {isSelected ? '✓ ' : ''}{tOpt.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
+        {/* Name */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Account Name *</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. CBA Smart Access, ANZ Offset Checking"
+            placeholderTextColor="#94A3B8"
+            style={styles.textInput}
+            autoFocus={!isEdit}
+          />
         </View>
-      </View>
 
-      <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
-        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{accountToEdit ? 'Save Changes' : 'Create Bank Account'}</Text>}
-      </TouchableOpacity>
+        {/* Bank Provider Picker */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Financial Institution</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.providersRow}
+          >
+            {PROVIDERS.map((p) => (
+              <TouchableOpacity
+                key={p}
+                onPress={() => setProvider(p)}
+                style={[
+                  styles.providerChip,
+                  provider === p && styles.providerChipActive,
+                ]}
+              >
+                <BankProviderBadge provider={p} size="sm" />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Statement Balance */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Statement Balance ($)</Text>
+          <View style={styles.amountInputWrap}>
+            <Text style={styles.currencySymbol}>$</Text>
+            <TextInput
+              value={balance}
+              onChangeText={setBalance}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor="#94A3B8"
+              style={styles.amountInput}
+            />
+          </View>
+        </View>
+
+        {/* Unbudgeted Buffer */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Unbudgeted Emergency Buffer ($)</Text>
+          <View style={styles.amountInputWrap}>
+            <Text style={styles.currencySymbol}>$</Text>
+            <TextInput
+              value={buffer}
+              onChangeText={setBuffer}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor="#94A3B8"
+              style={styles.amountInput}
+            />
+          </View>
+          <Text style={styles.helperText}>
+            Protected cash buffer ring-fenced from pool allocations.
+          </Text>
+        </View>
+
+        {/* Stealth Private Account Switch */}
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchLabel}>🔒 Private Account (Stealth RLS)</Text>
+            <Text style={styles.switchSubtext}>
+              Balance and linked pools will only be visible to you, hidden from partner view.
+            </Text>
+          </View>
+          <Switch
+            value={isPrivate}
+            onValueChange={setIsPrivate}
+            trackColor={{ false: '#E2E8F0', true: '#2563eb' }}
+          />
+        </View>
+
+        {/* Submit */}
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={submitting}
+          style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>
+              {isEdit ? 'Save Changes' : 'Link Account'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
     </MobileModalDialog>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  formGroup: { gap: 6, marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: '700', color: D.colors.textPrimary },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: D.radius.md,
-    padding: 12,
+  form: {
+    gap: 14,
+    paddingBottom: 10,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  textInput: {
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     fontSize: 14,
-    color: D.colors.textPrimary,
+    color: '#1B2B4B',
+    backgroundColor: '#F8FAFC',
   },
-  chipRow: { flexDirection: 'row', gap: 6 },
-  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: '#F3F4F6' },
-  chipActive: { backgroundColor: '#00B4A6' },
-  chipText: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted },
-  chipTextActive: { color: '#FFF' },
-  submitBtn: {
-    backgroundColor: '#00B4A6',
-    paddingVertical: 14,
-    borderRadius: D.radius.md,
+  providersRow: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  providerChip: {
+    padding: 2,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  providerChipActive: {
+    borderColor: '#2563eb',
+  },
+  amountInputWrap: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: '#F8FAFC',
   },
-  submitBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
+  currencySymbol: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#64748B',
+    marginRight: 6,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '900',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+    paddingVertical: 8,
+  },
+  helperText: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    gap: 12,
+  },
+  switchLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1B2B4B',
+  },
+  switchSubtext: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  submitBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  submitBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
 });
+
+export default BankAccountFormModal;

@@ -338,17 +338,37 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
   - Input: `eventId` (UUID), `name?` (optional string), `amount?` (optional string), `sourcePoolId?`, `destinationPoolId?`.
   - Updates `transferEvents.name`, sets `status = 'CONFIRMED'`, and invokes `moveMoneyCommand` with the resolved transfer name.
 
-### 9.4 Expenses Router Note Formatting (`apps/api/src/routers/expenses.router.ts`)
+### 9.4 Mobile Component & Routing Architecture (`apps/mobile`)
+- **Routing Structure (Expo Router File-Based Routing)**:
+  - `apps/mobile/src/app/(app)/_layout.tsx`: Root tab bar and header navigation shell.
+  - `apps/mobile/src/app/(app)/home.tsx`: Dashboard with Hero card, linked bank accounts summary, 3 bento cards, attention queue, pull-to-refresh, trial status banner.
+  - `apps/mobile/src/app/(app)/paychecks.tsx`: Income and bills command center with 3 tabs: Upcoming timeline, 12-Month Rolling Matrix Plan (`MobileMatrixPlanTab.tsx`), and Income/Expense recurring schedules.
+  - `apps/mobile/src/app/(app)/paychecks/[id].tsx`: Parameterized distraction-free Income Split Studio with plan source badges, direct amount inputs with quick chips, interactive auto-surplus/deficit meter, bank-aware rollup card (`MobileBankTransferRollupCard`), and execution confirmation.
+  - `apps/mobile/src/app/(app)/categories.tsx`: Pools and Categories management hub with 12M timeline scrubber, categorized pool cards, and balance reconciliation modal (`MobileReconciliationModal.tsx`).
+  - `apps/mobile/src/app/(app)/pools/[id].tsx`: Pool detail view with category list, category item bottom sheet modal (`CategoryItemModal.tsx`), move money, and archive controls.
+  - `apps/mobile/src/app/(app)/afford-check.tsx`: Standalone "Can We Afford This?" simulator with 5-level verdict, daily pacing velocity impact, and goal completion delay estimation.
+  - `apps/mobile/src/app/(app)/transactions.tsx`: Consolidated 2-tab history screen (Tab 1: Transactions Ledger with paired transfer detection `Source ➔ Dest`, advanced filters, pagination, CSV export; Tab 2: Payday Allocations audit log with `MobilePaydayAllocationDetailModal`).
+  - `apps/mobile/src/app/(app)/settings.tsx`: Complete settings hub with modular sections (`MobileProfileSection`, `HouseholdDetailsSection`, `HouseholdPartnerInviteSection`, `HouseholdDangerZoneSection`, `PrivacyGovernanceSection`).
+  - `apps/mobile/src/app/(app)/settings/bank-accounts.tsx`: Bank accounts management with provider branding (`BankProviderBadge`), linked pool balances, stealth private toggles, and 1-click balance alignment.
+  - `apps/mobile/src/app/(app)/settings/archived.tsx`: Restorable archive viewer for pools, categories, income schedules, and expense bills.
+  - `apps/mobile/src/app/(app)/settings/history.tsx`: Seamless redirection to `/(app)/transactions?tab=payday-allocations` (MECE compliance).
+  - `apps/mobile/src/app/(setup)/income.tsx`, `apps/mobile/src/app/(setup)/categories.tsx`, `apps/mobile/src/app/(setup)/complete.tsx`: 3-step interactive onboarding wizard with Australian family presets and AEST timezone-aware date pickers.
+- **Mobile Primitives in `@money-matters/ui`**:
+  - `packages/ui/src/mobile/BankProviderBadge.tsx`: Branded provider badges for Australian banks (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other).
+  - `packages/ui/src/mobile/ToastContext.tsx`: Non-blocking mobile toast alert system (`MobileToastProvider`, `useMobileToast`).
+
+
+### 9.5 Expenses Router Note Formatting (`apps/api/src/routers/expenses.router.ts`)
 - **`markExpensePaid`**:
   - Resolves `evt = await ctx.db.select().from(expenseEvents)...`
   - Injects `evt.name` into `transactionNote`: prepends event name to user note (e.g., `${evt.name} - ${input.note}`) or defaults to `Paid scheduled bill: ${evt.name}`.
 
-### 9.5 Pool List Query Additions (`packages/capabilities/budgeting`)
+### 9.6 Pool List Query Additions (`packages/capabilities/budgeting`)
 - **`listPoolsQuery`**:
   - Selects and returns `pools.createdAt` to support pacing calculations.
   - Fixes default progress calculation: `target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0` (previously defaulted to 100% when balance/target was 0).
 
-### 9.6 UI Primitives, LIFO Modal Stack & Interaction Hierarchy (`packages/ui`)
+### 9.7 UI Primitives, LIFO Modal Stack & Interaction Hierarchy (`packages/ui`)
 - **`PoolPicker`**:
   - Requires mandatory `showBalance: boolean` prop. Controls whether pool chips and dropdown options display current balance badges (useful for contextual selection where balance display might be redundant or clutter the UI).
 - **Centralized LIFO Modal Stack Manager (`modalStack.ts` / `useModalDismiss`)**:

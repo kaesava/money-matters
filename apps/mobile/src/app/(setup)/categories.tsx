@@ -74,11 +74,12 @@ export default function SetupCategoriesScreen() {
       } else {
         // 1. Create main income source
         const numericAmount = parseFloat(params.incomeAmount || '0') || 0;
+        const todaySydney = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
         await createIncomeSource.mutateAsync({
           name: params.incomeName || t('setup.income.defaultName', { defaultValue: 'My Salary' }),
           amount: numericAmount.toFixed(2),
           isRecurring: true,
-          startDate: new Date().toISOString().split('T')[0]!,
+          startDate: todaySydney,
           frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
         });
 

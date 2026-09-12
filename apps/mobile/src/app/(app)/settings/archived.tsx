@@ -17,7 +17,7 @@ export default function MobileArchivedItemsScreen() {
   const router = useRouter();
   const toast = useMobileToast();
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "POOL" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -69,14 +69,24 @@ export default function MobileArchivedItemsScreen() {
 
       {/* Filter Pills */}
       <View style={styles.pillContainer}>
-        {(["ALL", "CATEGORY", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
+        {(["ALL", "CATEGORY", "POOL", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
           <TouchableOpacity
             key={type}
             onPress={() => setFilterType(type)}
             style={[styles.pill, filterType === type && styles.pillActive]}
           >
             <Text style={[styles.pillText, filterType === type && styles.pillTextActive]}>
-              {type === "ALL" ? "All" : type === "CATEGORY" ? "Categories" : type === "INCOME_SOURCE" ? "Income" : type === "EXPENSE_SOURCE" ? "Expenses" : "Accounts"}
+              {type === "ALL"
+                ? "All"
+                : type === "CATEGORY"
+                ? "Categories"
+                : type === "POOL"
+                ? "Pools"
+                : type === "INCOME_SOURCE"
+                ? "Income"
+                : type === "EXPENSE_SOURCE"
+                ? "Expenses"
+                : "Accounts"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -194,7 +204,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E7EB",
   },
   pillActive: {
-    backgroundColor: "#00B4A6",
+    backgroundColor: "#2563eb",
   },
   pillText: {
     fontSize: 12,
@@ -260,11 +270,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#00B4A6",
+    borderColor: "#2563eb",
   },
   restoreText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#00B4A6",
+    color: "#2563eb",
   },
 });

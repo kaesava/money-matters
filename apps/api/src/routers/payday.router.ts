@@ -431,5 +431,143 @@ export const paydayRouter = {
         return { success: true };
       });
     }),
+
+  getMatrixProjectionData: privateTenantProcedure
+    .input(
+      z
+        .object({
+          monthsAhead: z.number().optional().default(12),
+        })
+        .strict()
+    )
+    .query(async ({ input, ctx }) => {
+      const { pools, categories, incomeEvents, expenseEvents, incomeSources, expenseSources, getPoolBalancesMap } = await import("@money-matters/db");
+      const { computeMatrixProjection } = await import("@money-matters/capability-budgeting/engine");
+
+      const activePools = await ctx.db
+        .select()
+        .from(pools)
+        .where(
+          and(
+            eq(pools.tenantId, ctx.tenantId!),
+            eq(pools.appId, ctx.appId!),
+            sql`${pools.archivedAt} IS NULL`
+          )
+        );
+
+      const activeCategories = await ctx.db
+        .select()
+        .from(categories)
+        .where(
+          and(
+            eq(categories.tenantId, ctx.tenantId!),
+            eq(categories.appId, ctx.appId!),
+            sql`${categories.archivedAt} IS NULL`
+          )
+        );
+
+      const balancesMap = await getPoolBalancesMap(ctx.tenantId!, ctx.appId!, ctx.db);
+
+      const now = new Date();
+      const futureDate = new Date();
+      futureDate.setMonth(now.getMonth() + (input.monthsAhead || 12));
+
+      const nowStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(now);
+      const futureStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(futureDate);
+
+      const dbIncomeEvents = await ctx.db
+        .select({
+          id: incomeEvents.id,
+          expectedDate: incomeEvents.expectedDate,
+          actualDate: incomeEvents.actualDate,
+          expectedAmount: incomeEvents.expectedAmount,
+          actualAmount: incomeEvents.actualAmount,
+          status: incomeEvents.status,
+          sourceName: sql<string>`COALESCE(${incomeEvents.name}, ${incomeSources.name}, 'Income')`,
+          incomeSourceId: incomeEvents.incomeSourceId,
+        })
+        .from(incomeEvents)
+        .leftJoin(incomeSources, eq(incomeSources.id, incomeEvents.incomeSourceId))
+        .where(
+          and(
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!),
+            sql`${incomeEvents.archivedAt} IS NULL`,
+            sql`${incomeEvents.expectedDate} >= ${nowStr}`,
+            sql`${incomeEvents.expectedDate} <= ${futureStr}`
+          )
+        )
+        .orderBy(incomeEvents.expectedDate);
+
+      const dbExpenseEvents = await ctx.db
+        .select({
+          id: expenseEvents.id,
+          categoryId: expenseEvents.categoryId,
+          expectedDate: expenseEvents.expectedDate,
+          actualDate: expenseEvents.actualDate,
+          expectedAmount: expenseEvents.expectedAmount,
+          actualAmount: expenseEvents.actualAmount,
+          status: expenseEvents.status,
+          name: sql<string>`COALESCE(${expenseEvents.name}, ${expenseSources.name}, 'Bill')`,
+        })
+        .from(expenseEvents)
+        .leftJoin(expenseSources, eq(expenseSources.id, expenseEvents.expenseSourceId))
+        .where(
+          and(
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!),
+            sql`${expenseEvents.archivedAt} IS NULL`,
+            sql`${expenseEvents.expectedDate} >= ${nowStr}`,
+            sql`${expenseEvents.expectedDate} <= ${futureStr}`
+          )
+        )
+        .orderBy(expenseEvents.expectedDate);
+
+      const engineBuckets = activePools.map((p) => ({
+        id: p.id,
+        name: p.name,
+        type: p.poolType as "EVERYDAY" | "REGULAR" | "GOAL",
+        targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
+        currentBalance: balancesMap[p.id] || 0,
+        isPrivate: false,
+        isSurplusTarget: Boolean(p.isSurplusTarget),
+        userId: undefined,
+      }));
+
+      const matrixIncomeEvents = dbIncomeEvents.map((evt) => ({
+        id: evt.id,
+        expectedDate: evt.expectedDate,
+        expectedAmount: parseFloat(evt.expectedAmount),
+        actualAmount: evt.actualAmount ? parseFloat(evt.actualAmount) : null,
+        status: evt.status as "PENDING" | "CONFIRMED",
+        sourceName: evt.sourceName,
+      }));
+
+      const matrixExpenseEvents = dbExpenseEvents
+        .filter((evt): evt is typeof evt & { categoryId: string } => Boolean(evt.categoryId))
+        .map((evt) => ({
+          id: evt.id,
+          categoryId: evt.categoryId,
+          amount: parseFloat(evt.actualAmount || evt.expectedAmount),
+          dueDate: evt.expectedDate,
+          status: evt.status as "PENDING" | "CONFIRMED",
+        }));
+
+      const projection = computeMatrixProjection({
+        currentUserId: ctx.userId!,
+        categories: engineBuckets,
+        incomeEvents: matrixIncomeEvents,
+        expenseEvents: matrixExpenseEvents,
+        monthsAhead: input.monthsAhead,
+      });
+
+      return {
+        projection,
+        rawIncomeEvents: dbIncomeEvents,
+        rawExpenseEvents: dbExpenseEvents,
+        pools: activePools,
+        categories: activeCategories,
+      };
+    }),
 };
 

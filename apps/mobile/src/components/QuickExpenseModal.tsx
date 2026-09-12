@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -16,415 +17,767 @@ import { usePostHog } from "posthog-react-native";
 import { DESIGN_TOKENS } from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
+import { formatAUD } from "../lib/format";
+import { CrossBankTransferModal } from "./CrossBankTransferModal";
+
+export type QuickActionType = "DEBIT" | "CREDIT" | "TRANSFER";
 
 interface QuickExpenseModalProps {
   visible: boolean;
-  initialType?: "DEBIT" | "CREDIT";
+  initialType?: QuickActionType;
   onClose: () => void;
   onIncomeSuccess?: (incomeEventId: string) => void;
 }
 
-export function QuickExpenseModal({ visible, initialType = "DEBIT", onClose, onIncomeSuccess }: QuickExpenseModalProps) {
-  const [type, setType] = useState<"DEBIT" | "CREDIT">(initialType);
+const QUICK_PICKS = [
+  { name: "Coffee", amount: "5.50", icon: "☕" },
+  { name: "Lunch", amount: "18.00", icon: "🥗" },
+  { name: "Groceries", amount: "80.00", icon: "🛒" },
+  { name: "Fuel", amount: "70.00", icon: "⛽" },
+];
+
+export function QuickExpenseModal({
+  visible,
+  initialType = "DEBIT",
+  onClose,
+  onIncomeSuccess,
+}: QuickExpenseModalProps) {
+  const [type, setType] = useState<QuickActionType>(initialType);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedPoolId, setSelectedPoolId] = useState("");
+  const [destPoolId, setDestPoolId] = useState("");
+  const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Cross-bank transfer state
+  const [crossBankData, setCrossBankData] = useState<{
+    visible: boolean;
+    sourceAccountName: string;
+    destAccountName: string;
+    amount: number;
+  } | null>(null);
+
+  const posthog = usePostHog();
+  const utils = trpc.useUtils();
+
+  const { data: pools, isLoading: poolsLoading } = trpc.listPools.useQuery(
+    undefined,
+    { enabled: visible }
+  );
+  const { data: bankAccounts } = trpc.listBankAccounts.useQuery(
+    undefined,
+    { enabled: visible }
+  );
+
+  const recordExpenseMutation = trpc.recordExpense.useMutation();
+  const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
+  const moveMoneyMutation = trpc.moveMoney.useMutation();
 
   React.useEffect(() => {
     if (visible) {
       setType(initialType);
+      // Auto-select Everyday pool as default for DEBIT
+      const everyday = pools?.find((p) => p.poolType === "EVERYDAY");
+      if (everyday) {
+        setSelectedPoolId(everyday.id);
+      }
     }
-  }, [visible, initialType]);
+  }, [visible, initialType, pools]);
 
-  const isIncome = type === "CREDIT";
   const D = DESIGN_TOKENS;
+  const everydayPool = pools?.find((p) => p.poolType === "EVERYDAY");
+  const selectedPool = pools?.find((p) => p.id === selectedPoolId);
+  const destPool = pools?.find((p) => p.id === destPoolId);
 
-  // Fetch categories/pools to populate dropdown
-  const posthog = usePostHog();
-  const { data: categories, isLoading: categoriesLoading } = trpc.listPools.useQuery();
-  const recordExpenseMutation = trpc.recordExpense.useMutation();
-  const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
+  const getPoolBalance = (p?: { currentBalance?: number | string }) =>
+    typeof p?.currentBalance === "number"
+      ? p.currentBalance
+      : parseFloat((p?.currentBalance as string) || "0");
+
+  const isOverdraft =
+    type === "DEBIT" &&
+    selectedPool &&
+    parseFloat(amount || "0") > getPoolBalance(selectedPool);
+
+  const handleQuickPick = (pick: (typeof QUICK_PICKS)[0]) => {
+    setName(pick.name);
+    setAmount(pick.amount);
+    if (everydayPool) {
+      setSelectedPoolId(everydayPool.id);
+    }
+  };
 
   const handleRecord = async () => {
-    if (!name.trim()) {
-      Alert.alert(t("common.error"), isIncome ? "Please enter an income source name." : "Please enter an expense name.");
-      return;
-    }
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    const numAmount = parseFloat(amount);
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
       Alert.alert(t("common.error"), "Please enter a valid amount.");
       return;
     }
-    if (!isIncome && !selectedCategoryId) {
-      Alert.alert(t("common.error"), "Please select a category.");
-      return;
-    }
 
-    setIsSubmitting(true);
-    try {
-      if (isIncome) {
+    if (type === "DEBIT") {
+      if (!name.trim()) {
+        Alert.alert(t("common.error"), "Please enter an expense name.");
+        return;
+      }
+      if (!selectedPoolId) {
+        Alert.alert(t("common.error"), "Please select a pool.");
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        await recordExpenseMutation.mutateAsync({
+          poolId: selectedPoolId,
+          amount: numAmount.toFixed(2),
+          flowType: "DEBIT",
+          note: note.trim() || name.trim(),
+          idempotencyKey:
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : Math.random().toString(36).substring(2) + Date.now().toString(36),
+        });
+
+        if (posthog) {
+          posthog.capture("expense_recorded", {
+            amount: numAmount,
+            pool_id: selectedPoolId,
+          });
+        }
+
+        utils.listPools.invalidate();
+        utils.listTransactions.invalidate();
+        resetAndClose();
+      } catch (err) {
+        Alert.alert(
+          t("common.error"),
+          err instanceof Error ? err.message : "Failed to record expense"
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else if (type === "CREDIT") {
+      if (!name.trim()) {
+        Alert.alert(t("common.error"), "Please enter an income source name.");
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const todayStr = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Australia/Sydney",
+        }).format(new Date());
+
         const created = await createUpcomingIncomeMutation.mutateAsync({
           name: name.trim(),
-          amount: parseFloat(amount).toFixed(2),
-          expectedDate: date || new Date().toISOString().slice(0, 10),
-          note: name.trim(),
+          amount: numAmount.toFixed(2),
+          expectedDate: todayStr,
+          note: note.trim() || name.trim(),
         });
 
-        posthog.capture('income_recorded', {
-          amount: parseFloat(amount),
-        });
+        if (posthog) {
+          posthog.capture("income_recorded", { amount: numAmount });
+        }
 
-        setName("");
-        setAmount("");
-        setSelectedCategoryId("");
-        onClose();
+        utils.listPools.invalidate();
+        utils.listIncomeEvents.invalidate();
+        resetAndClose();
 
         if (onIncomeSuccess) {
           onIncomeSuccess(created.id);
         }
-      } else {
-        await recordExpenseMutation.mutateAsync({
-          poolId: selectedCategoryId,
-          amount: parseFloat(amount).toFixed(2),
-          flowType: type,
-          note: name.trim(),
-          date: date ? new Date(date).toISOString() : undefined,
-          idempotencyKey: (typeof crypto !== 'undefined' && crypto.randomUUID) 
-            ? crypto.randomUUID() 
-            : Math.random().toString(36).substring(2) + Date.now().toString(36),
-        });
-
-        posthog.capture('expense_recorded', {
-          amount: parseFloat(amount),
-          category_id: selectedCategoryId,
-        });
-
-        setName("");
-        setAmount("");
-        setSelectedCategoryId("");
-        onClose();
-
-        Alert.alert("Success", "Expense recorded successfully!");
+      } catch (err) {
+        Alert.alert(
+          t("common.error"),
+          err instanceof Error ? err.message : "Failed to record income"
+        );
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (err) {
-      Alert.alert(
-        t("common.error"),
-        err instanceof Error ? err.message : "Failed to record transaction"
-      );
-    } finally {
-      setIsSubmitting(false);
+    } else if (type === "TRANSFER") {
+      if (!selectedPoolId || !destPoolId) {
+        Alert.alert(
+          t("common.error"),
+          "Please select both source and destination pools."
+        );
+        return;
+      }
+      if (selectedPoolId === destPoolId) {
+        Alert.alert(
+          t("common.error"),
+          "Source and destination pools must be different."
+        );
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        await moveMoneyMutation.mutateAsync({
+          sourcePoolId: selectedPoolId,
+          destinationPoolId: destPoolId,
+          amount: numAmount.toFixed(2),
+          note: note.trim() || undefined,
+        });
+
+        utils.listPools.invalidate();
+        utils.listTransactions.invalidate();
+
+        // Check if cross-bank transfer
+        const srcAccount = bankAccounts?.find(
+          (b) => b.id === selectedPool?.bankAccountId
+        );
+        const dstAccount = bankAccounts?.find(
+          (b) => b.id === destPool?.bankAccountId
+        );
+
+        if (
+          srcAccount &&
+          dstAccount &&
+          selectedPool?.bankAccountId !== destPool?.bankAccountId
+        ) {
+          setCrossBankData({
+            visible: true,
+            sourceAccountName: srcAccount.name,
+            destAccountName: dstAccount.name,
+            amount: numAmount,
+          });
+        } else {
+          resetAndClose();
+        }
+      } catch (err) {
+        Alert.alert(
+          t("common.error"),
+          err instanceof Error ? err.message : "Failed to transfer funds"
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  const selectedCategory = categories?.find((c) => c.id === selectedCategoryId);
+  const resetAndClose = () => {
+    setName("");
+    setAmount("");
+    setNote("");
+    onClose();
+  };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>
-              {isIncome ? "Quick Record Income" : t("transactions.newExpense.title")}
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Feather name="x" size={20} color={D.colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Segmented Mode Control */}
-          <View style={styles.segmentContainer}>
-            <TouchableOpacity
-              style={[
-                styles.segmentBtn,
-                !isIncome && styles.segmentBtnActiveDebit,
-              ]}
-              onPress={() => setType("DEBIT")}
-            >
-              <Text style={[styles.segmentText, !isIncome && styles.segmentTextActiveDebit]}>
-                💸 Expense
+    <>
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={onClose}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>
+                {type === "DEBIT"
+                  ? "Log Quick Expense"
+                  : type === "CREDIT"
+                  ? "Quick Record Income"
+                  : "Move Money Between Pools"}
               </Text>
-            </TouchableOpacity>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <Feather name="x" size={20} color={D.colors.textMuted} />
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={[
-                styles.segmentBtn,
-                isIncome && styles.segmentBtnActiveCredit,
-              ]}
-              onPress={() => setType("CREDIT")}
-            >
-              <Text style={[styles.segmentText, isIncome && styles.segmentTextActiveCredit]}>
-                💰 Income
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {/* 3-Way Segmented Control */}
+            <View style={styles.segmentContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.segmentBtn,
+                  type === "DEBIT" && styles.segmentBtnActiveDebit,
+                ]}
+                onPress={() => setType("DEBIT")}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    type === "DEBIT" && styles.segmentTextActiveDebit,
+                  ]}
+                >
+                  💸 Expense
+                </Text>
+              </TouchableOpacity>
 
-          {categoriesLoading ? (
-            <ActivityIndicator color={isIncome ? "#10B981" : D.colors.accent} style={{ marginVertical: 40 }} />
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
-              {/* Amount Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t("transactions.newExpense.amountLabel")}</Text>
-                <View style={styles.amountInputWrap}>
-                  <Text style={styles.currencySymbol}>$</Text>
+              <TouchableOpacity
+                style={[
+                  styles.segmentBtn,
+                  type === "CREDIT" && styles.segmentBtnActiveCredit,
+                ]}
+                onPress={() => setType("CREDIT")}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    type === "CREDIT" && styles.segmentTextActiveCredit,
+                  ]}
+                >
+                  💰 Income
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.segmentBtn,
+                  type === "TRANSFER" && styles.segmentBtnActiveTransfer,
+                ]}
+                onPress={() => setType("TRANSFER")}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    type === "TRANSFER" && styles.segmentTextActiveTransfer,
+                  ]}
+                >
+                  ⚡ Transfer
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {poolsLoading ? (
+              <ActivityIndicator
+                color={D.colors.accent}
+                style={{ marginVertical: 40 }}
+              />
+            ) : (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.form}
+              >
+                {/* Quick Picks for Expense */}
+                {type === "DEBIT" && (
+                  <View style={styles.quickPicksSection}>
+                    <Text style={styles.quickPickLabel}>⚡ Quick Picks</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.quickPicksRow}
+                    >
+                      {QUICK_PICKS.map((qp) => (
+                        <TouchableOpacity
+                          key={qp.name}
+                          onPress={() => handleQuickPick(qp)}
+                          style={styles.quickPickChip}
+                        >
+                          <Text style={styles.quickPickChipText}>
+                            {qp.icon} {qp.name} ${qp.amount}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Amount Input */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Amount ($)</Text>
+                  <View style={styles.amountInputWrap}>
+                    <Text style={styles.currencySymbol}>$</Text>
+                    <TextInput
+                      style={styles.amountInput}
+                      placeholder="0.00"
+                      keyboardType="decimal-pad"
+                      value={amount}
+                      onChangeText={setAmount}
+                      placeholderTextColor={D.colors.textMuted}
+                      autoFocus={type === "DEBIT"}
+                    />
+                  </View>
+                  {isOverdraft && (
+                    <Text style={styles.overdraftWarning}>
+                      ⚠️ Exceeds pool balance ({formatAUD(getPoolBalance(selectedPool))})
+                    </Text>
+                  )}
+                </View>
+
+                {/* Name Input */}
+                {type !== "TRANSFER" && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>
+                      {type === "CREDIT" ? "Income Name / Source" : "Expense Name"}
+                    </Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder={
+                        type === "CREDIT" ? "e.g. Side Gig, Tax Refund" : "e.g. Coffee, Groceries"
+                      }
+                      value={name}
+                      onChangeText={setName}
+                      placeholderTextColor={D.colors.textMuted}
+                    />
+                  </View>
+                )}
+
+                {/* Source Pool Selection */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>
+                    {type === "TRANSFER"
+                      ? "From Pool (Source)"
+                      : type === "CREDIT"
+                      ? "Receiving Pool"
+                      : "Paid From Pool"}
+                  </Text>
+                  <View style={styles.poolsGrid}>
+                    {pools?.map((p) => {
+                      const isSelected = p.id === selectedPoolId;
+                      return (
+                        <TouchableOpacity
+                          key={p.id}
+                          onPress={() => setSelectedPoolId(p.id)}
+                          style={[
+                            styles.poolChip,
+                            isSelected && styles.poolChipSelected,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.poolChipName,
+                              isSelected && styles.poolChipNameSelected,
+                            ]}
+                          >
+                            {p.name}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.poolChipBal,
+                              isSelected && styles.poolChipBalSelected,
+                            ]}
+                          >
+                            {formatAUD(p.currentBalance)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Destination Pool for Transfer */}
+                {type === "TRANSFER" && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>To Pool (Destination)</Text>
+                    <View style={styles.poolsGrid}>
+                      {pools
+                        ?.filter((p) => p.id !== selectedPoolId)
+                        .map((p) => {
+                          const isSelected = p.id === destPoolId;
+                          return (
+                            <TouchableOpacity
+                              key={p.id}
+                              onPress={() => setDestPoolId(p.id)}
+                              style={[
+                                styles.poolChip,
+                                isSelected && styles.poolChipSelected,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.poolChipName,
+                                  isSelected && styles.poolChipNameSelected,
+                                ]}
+                              >
+                                {p.name}
+                              </Text>
+                              <Text
+                                style={[
+                                  styles.poolChipBal,
+                                  isSelected && styles.poolChipBalSelected,
+                                ]}
+                              >
+                                {formatAUD(p.currentBalance)}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                    </View>
+                  </View>
+                )}
+
+                {/* Optional Note */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Note (Optional)</Text>
                   <TextInput
-                    style={styles.amountInput}
-                    placeholder="0.00"
-                    keyboardType="decimal-pad"
-                    value={amount}
-                    onChangeText={setAmount}
+                    style={styles.textInput}
+                    placeholder="Add custom notes..."
+                    value={note}
+                    onChangeText={setNote}
                     placeholderTextColor={D.colors.textMuted}
                   />
                 </View>
-              </View>
 
-              {/* Category Picker */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>
-                  {isIncome ? "Target Category" : t("transactions.newExpense.categoryLabel")}
-                </Text>
-                <Text style={styles.subLabel}>{t("common.tapToSelect")}</Text>
-                <View style={styles.categoriesGrid}>
-                  {categories?.map((cat) => {
-                    const isSelected = cat.id === selectedCategoryId;
-                    return (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[
-                          styles.categoryCard,
-                          isSelected && {
-                            borderColor: isIncome ? "#10B981" : D.colors.accent,
-                            backgroundColor: isIncome ? "rgba(16,185,129,0.08)" : "rgba(0,180,166,0.06)",
-                          },
-                        ]}
-                        onPress={() => setSelectedCategoryId(cat.id)}
-                      >
-                        <Text style={styles.categoryName} numberOfLines={1}>
-                          {cat.name}
-                        </Text>
-                        <Text style={styles.categoryBalance} numberOfLines={1}>
-                          ${(typeof cat.currentBalance === 'number' ? cat.currentBalance : parseFloat(cat.currentBalance || '0')).toFixed(0)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
+                {/* Action Button */}
+                <TouchableOpacity
+                  onPress={handleRecord}
+                  disabled={isSubmitting}
+                  style={[
+                    styles.submitBtn,
+                    type === "CREDIT"
+                      ? styles.submitBtnCredit
+                      : type === "TRANSFER"
+                      ? styles.submitBtnTransfer
+                      : styles.submitBtnDebit,
+                    isSubmitting && { opacity: 0.6 },
+                  ]}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>
+                      {type === "DEBIT"
+                        ? "Record Expense"
+                        : type === "CREDIT"
+                        ? "Record Income"
+                        : "Transfer Funds"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
-              {/* Date Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t("modals.quickExpense.dateLabel")}</Text>
-                <TextInput
-                  style={styles.noteInput}
-                  placeholder="YYYY-MM-DD"
-                  value={date}
-                  onChangeText={setDate}
-                  placeholderTextColor={D.colors.textMuted}
-                />
-              </View>
-
-              {/* Name Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{isIncome ? "Income Source Name" : "Expense Name"}</Text>
-                <TextInput
-                  style={styles.noteInput}
-                  placeholder={isIncome ? "e.g. Salary, Client Pay" : "e.g. Groceries, Coffee, Electric Bill"}
-                  value={name}
-                  onChangeText={setName}
-                  placeholderTextColor={D.colors.textMuted}
-                />
-              </View>
-
-              {/* Submit Button */}
-              <TouchableOpacity
-                style={[
-                  styles.submitBtn,
-                  { backgroundColor: isIncome ? "#10B981" : D.colors.accent },
-                ]}
-                onPress={handleRecord}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>
-                    {isIncome ? "Record Income" : t("transactions.newExpense.submitCta")}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          )}
-        </View>
-      </View>
-    </Modal>
+      {/* Cross-Bank Transfer Prompt */}
+      {crossBankData && (
+        <CrossBankTransferModal
+          visible={crossBankData.visible}
+          onClose={() => {
+            setCrossBankData(null);
+            resetAndClose();
+          }}
+          sourceAccountName={crossBankData.sourceAccountName}
+          destAccountName={crossBankData.destAccountName}
+          amount={crossBankData.amount}
+        />
+      )}
+    </>
   );
 }
 
+const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(27, 43, 75, 0.4)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: D.colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "85%",
-    paddingBottom: Platform.OS === "ios" ? 40 : 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === "ios" ? 40 : 24,
+    maxHeight: "88%",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    color: DESIGN_TOKENS.colors.primary,
+    fontWeight: "800",
+    color: D.colors.primary,
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
   },
   segmentContainer: {
     flexDirection: "row",
-    backgroundColor: "#F3F4F6",
-    marginHorizontal: 20,
-    marginTop: 16,
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
-    padding: 4,
-    gap: 4,
+    padding: 3,
+    marginBottom: 16,
   },
   segmentBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
+    borderRadius: 10,
   },
   segmentBtnActiveDebit: {
     backgroundColor: "#FFFFFF",
     shadowColor: "#000",
+    shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   segmentBtnActiveCredit: {
-    backgroundColor: "#10B981",
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentBtnActiveTransfer: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
     elevation: 2,
   },
   segmentText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#6B7280",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
   },
   segmentTextActiveDebit: {
-    color: "#BE123C",
+    color: "#ba1a1a",
+    fontWeight: "800",
   },
   segmentTextActiveCredit: {
-    color: "#FFFFFF",
+    color: "#059669",
+    fontWeight: "800",
+  },
+  segmentTextActiveTransfer: {
+    color: "#2563eb",
+    fontWeight: "800",
   },
   form: {
-    padding: 20,
-    gap: 20,
+    gap: 14,
+    paddingBottom: 20,
   },
-  inputGroup: {
+  quickPicksSection: {
+    gap: 6,
+  },
+  quickPickLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#64748B",
+    textTransform: "uppercase",
+  },
+  quickPicksRow: {
+    flexDirection: "row",
     gap: 8,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    color: DESIGN_TOKENS.colors.textMuted,
+  quickPickChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
   },
-  subLabel: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.textMuted,
+  quickPickChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#334155",
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475569",
   },
   amountInputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 16,
-    height: 56,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: "#F8FAFC",
   },
   currencySymbol: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: DESIGN_TOKENS.colors.textPrimary,
-    marginRight: 4,
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#64748B",
+    marginRight: 6,
   },
   amountInput: {
     flex: 1,
-    fontSize: 24,
-    fontWeight: "600",
-    color: DESIGN_TOKENS.colors.textPrimary,
+    fontSize: 22,
+    fontWeight: "900",
+    fontFamily: "monospace",
+    color: D.colors.primary,
+    paddingVertical: 10,
   },
-  categoriesGrid: {
+  overdraftWarning: {
+    fontSize: 11,
+    color: "#DC2626",
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  textInput: {
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: D.colors.primary,
+    backgroundColor: "#F8FAFC",
+  },
+  poolsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 4,
   },
-  categoryCard: {
-    width: "48%",
+  poolChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: DESIGN_TOKENS.radius.md,
-    padding: 12,
-    gap: 4,
+    borderColor: "#E2E8F0",
   },
-  categoryName: {
-    fontSize: 13,
+  poolChipSelected: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#2563eb",
+  },
+  poolChipName: {
+    fontSize: 12,
     fontWeight: "600",
-    color: DESIGN_TOKENS.colors.textPrimary,
+    color: "#334155",
   },
-  categoryBalance: {
-    fontSize: 11,
-    color: DESIGN_TOKENS.colors.textMuted,
+  poolChipNameSelected: {
+    color: "#2563eb",
+    fontWeight: "800",
   },
-  noteInput: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 16,
-    height: 48,
-    fontSize: 14,
-    color: DESIGN_TOKENS.colors.textPrimary,
+  poolChipBal: {
+    fontSize: 10,
+    fontFamily: "monospace",
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+  poolChipBalSelected: {
+    color: "#2563eb",
   },
   submitBtn: {
-    height: 52,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    justifyContent: "center",
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: "center",
-    marginTop: 12,
-    shadowColor: "#00B4A6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    marginTop: 6,
+  },
+  submitBtnDebit: {
+    backgroundColor: "#2563eb",
+  },
+  submitBtnCredit: {
+    backgroundColor: "#059669",
+  },
+  submitBtnTransfer: {
+    backgroundColor: "#2563eb",
   },
   submitBtnText: {
+    fontSize: 15,
+    fontWeight: "800",
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
   },
 });
+
+export default QuickExpenseModal;

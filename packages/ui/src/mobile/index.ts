@@ -1,5 +1,7 @@
 export { default as MobileBadge } from './Badge';
 export type { BadgeProps as MobileBadgeProps } from './Badge';
+export { default as MobileBankProviderBadge, BankProviderBadge } from './BankProviderBadge';
+export type { BankProviderBadgeProps, BankProvider } from './BankProviderBadge';
 export { default as MobileButton } from './Button';
 export type { ButtonProps as MobileButtonProps } from './Button';
 export { default as MobileInput } from './Input';
