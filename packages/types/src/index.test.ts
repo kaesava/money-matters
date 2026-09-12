@@ -197,9 +197,9 @@ describe('Domain Schemas Validation', () => {
       availableCash: '1000.00',
       effectiveSpendable: '800.00',
       everydayRemaining: '680.00',
+      safeCushion: '120.00',
       daysUntilPayday: 10,
-      dailyPacingAfterSpend: '68.00',
-      dailyPacingFloor: '15.00',
+      nextPaydayDate: '2026-09-22',
       upcomingBillsBeforePayday: '200.00',
       rationaleSteps: ['Available cash: $1,000.00'],
     });
@@ -210,11 +210,12 @@ describe('Domain Schemas Validation', () => {
       availableCash: '200.00',
       effectiveSpendable: '50.00',
       everydayRemaining: '30.00',
+      safeCushion: '60.00',
+      cushionShortfall: '30.00',
       daysUntilPayday: 5,
-      dailyPacingAfterSpend: '6.00',
-      dailyPacingFloor: '15.00',
+      nextPaydayDate: '2026-09-17',
       upcomingBillsBeforePayday: '150.00',
-      rationaleSteps: ['Pacing tight: $6.00/day'],
+      rationaleSteps: ['Leaves $30.00 remaining, below $60.00 cushion'],
     });
     expect(pacingTightVerdict.verdict).toBe('PACING_TIGHT');
 
@@ -234,6 +235,14 @@ describe('Domain Schemas Validation', () => {
       paycyclesAway: 1,
       projectedEverydayAtThatDate: '1200.00',
       shortfallToday: '50.00',
+      goalAlternative: {
+        goalId: '11111111-1111-1111-1111-111111111111',
+        goalName: 'Holiday',
+        availableGoalBalance: '500.00',
+        shortfallCovered: '50.00',
+        delayDays: 14,
+        newTargetDate: '2026-10-01',
+      },
       rationaleSteps: ['Next paycycle arrives in 5 days'],
     });
     expect(waitVerdict.verdict).toBe('WAIT_FOR_PAYCYCLE');

@@ -13,6 +13,7 @@ export const expenseEvents = pgTable("expense_events", {
   categoryId: uuid("category_id").references(() => categories.id),
   name: varchar("name", { length: 255 }).notNull(),
   expectedDate: date("expected_date").notNull(),
+  actualDate: date("actual_date"),
   expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
   actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),
   note: varchar("note", { length: 500 }),

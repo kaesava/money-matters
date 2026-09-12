@@ -69,6 +69,8 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   );
   const [linesMap, setLinesMap] = useState<Record<string, string>>({});
   const [initialLinesMap, setInitialLinesMap] = useState<Record<string, string>>({});
+  const [reasoningMap, setReasoningMap] = useState<Record<string, string>>({});
+  const [initialReasoningMap, setInitialReasoningMap] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showConfirmWarning, setShowConfirmWarning] = useState(false);
@@ -90,11 +92,15 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
 
       const rawLines = extractLines(previewQuery.data.engineResult);
       const initMap: Record<string, string> = {};
+      const initReasoningMap: Record<string, string> = {};
       rawLines.forEach((l) => {
         initMap[l.bucketId] = l.proposedAmount.toFixed(2);
+        initReasoningMap[l.bucketId] = l.reasoning;
       });
       setLinesMap(initMap);
       setInitialLinesMap(initMap);
+      setReasoningMap(initReasoningMap);
+      setInitialReasoningMap(initReasoningMap);
 
       const engineResult = previewQuery.data.engineResult as unknown as { isCustomPlan?: boolean; isConfirmedPlan?: boolean };
       setIsSavedPlan(engineResult?.isCustomPlan ?? false);
@@ -136,8 +142,11 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     for (const [pId, val] of Object.entries(linesMap)) {
       if (initialLinesMap[pId] !== val) return true;
     }
+    for (const [pId, val] of Object.entries(reasoningMap)) {
+      if (initialReasoningMap[pId] !== val) return true;
+    }
     return false;
-  }, [previewQuery.data, sourceName, actualAmount, selectedDate, linesMap, initialLinesMap]);
+  }, [previewQuery.data, sourceName, actualAmount, selectedDate, linesMap, initialLinesMap, reasoningMap, initialReasoningMap]);
 
   const handleLineAmountChange = (bucketId: string, val: string) => {
     let cleaned = val.replace(/[^0-9.]/g, "");
@@ -151,8 +160,13 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     setLinesMap((prev) => ({ ...prev, [bucketId]: cleaned }));
   };
 
+  const handleLineReasoningChange = (bucketId: string, reasoning: string) => {
+    setReasoningMap((prev) => ({ ...prev, [bucketId]: reasoning }));
+  };
+
   const handleResetAllEdits = () => {
     setLinesMap({ ...initialLinesMap });
+    setReasoningMap({ ...initialReasoningMap });
     setActualAmount(initialAmount);
   };
 
@@ -187,6 +201,8 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         eventId: incomeEventId,
         eventType: "INCOME",
         name: sourceName,
+        actualAmount: parseFloat(actualAmount).toFixed(2),
+        actualDate: selectedDate,
         expectedAmount: parseFloat(actualAmount).toFixed(2),
         expectedDate: selectedDate,
       });
@@ -256,6 +272,8 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         eventId: incomeEventId,
         eventType: "INCOME",
         name: sourceName,
+        actualAmount: parseFloat(actualAmount).toFixed(2),
+        actualDate: selectedDate,
         expectedAmount: parseFloat(actualAmount).toFixed(2),
         expectedDate: selectedDate,
       });
@@ -265,6 +283,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       const payload = Object.entries(effectiveMap).map(([pId, val]) => ({
         poolId: pId,
         proposedAmount: (parseFloat(val) || 0).toFixed(2),
+        reasoning: reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined),
       }));
 
       await saveBulkAllocationsMut.mutateAsync({
@@ -291,6 +310,8 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         eventId: incomeEventId,
         eventType: "INCOME",
         name: sourceName,
+        actualAmount: parseFloat(actualAmount).toFixed(2),
+        actualDate: selectedDate,
         expectedAmount: parseFloat(actualAmount).toFixed(2),
         expectedDate: selectedDate,
       });
@@ -300,12 +321,13 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       const payload = Object.entries(effectiveMap).map(([pId, val]) => ({
         poolId: pId,
         amount: (parseFloat(val) || 0).toFixed(2),
+        reasoning: reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined),
       }));
 
       await confirmPaydayMut.mutateAsync({
         incomeEventId,
         actualAmount: numericActual.toFixed(2),
-        markAsReceivedToday: !isFutureDate,
+        markAsReceivedToday: false,
         lines: payload,
       });
 
@@ -409,9 +431,11 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             sweepPoolRemainder={sweepPoolRemainder}
             linesMap={linesMap}
             initialLinesMap={initialLinesMap}
+            reasoningMap={reasoningMap}
             numericActual={numericActual}
             isReadOnly={isReadOnly}
             onLineAmountChange={handleLineAmountChange}
+            onLineReasoningChange={handleLineReasoningChange}
           />
         </div>
       </main>

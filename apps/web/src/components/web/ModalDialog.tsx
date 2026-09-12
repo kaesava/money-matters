@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { t } from "@money-matters/i18n";
-import { Button } from "@money-matters/ui/web";
+import { Button, useModalDismiss } from "@money-matters/ui/web";
 
 export interface ModalDialogProps {
   isOpen: boolean;
@@ -66,37 +66,12 @@ export function ModalDialog({
     }
   };
 
-  useEffect(() => {
-    if (!isOpen) {
-      setShowConfirm(false);
-      return;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (showConfirm) {
-          e.stopImmediatePropagation();
-          setShowConfirm(false);
-          return;
-        }
-
-        const dialogs = document.querySelectorAll('[role="dialog"]');
-        if (dialogs.length > 1) {
-          const currentDialog = document.getElementById(titleId)?.closest('[role="dialog"]');
-          const lastDialog = dialogs[dialogs.length - 1];
-          if (currentDialog && currentDialog !== lastDialog) {
-            return;
-          }
-        }
-
-        e.stopImmediatePropagation();
-        handleRequestClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen, handleRequestClose, showConfirm, titleId]);
+  useModalDismiss({
+    id: `modal-dialog-${titleId}`,
+    isOpen: isOpen && !showConfirm,
+    onDismiss: handleRequestClose,
+    isBlocked: saving,
+  });
 
 
   if (!isOpen || !mounted) return null;

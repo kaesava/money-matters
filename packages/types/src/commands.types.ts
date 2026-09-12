@@ -190,6 +190,7 @@ export const OverrideEventCommand = z.object({
   expectedAmount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).optional(),
   actualAmount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).optional(),
   expectedDate: z.string().optional(),
+  actualDate: z.string().optional(),
   name: z.string().optional(),
   poolId: z.string().uuid().optional(),
   categoryId: z.string().uuid().optional(),
@@ -219,6 +220,7 @@ export const ConfirmPaydayCommand = z.object({
       poolId: z.string().uuid(),
       categoryId: z.string().uuid().optional(),
       amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
+      reasoning: z.string().optional(),
     }).strict()
   ).min(1, "At least one allocation line is required"),
 }).strict().refine((data) => {

@@ -68,7 +68,7 @@ export function AffordCheckScreen() {
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Dashboard</span>
+          <span>{t('canIAfford.backToDashboard')}</span>
         </Link>
       </div>
 
@@ -114,7 +114,7 @@ export function AffordCheckScreen() {
         {/* Large Amount Display Input */}
         <div className="text-center space-y-1">
           <label htmlFor={amountInputId} className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Target Amount ($)
+            {t('canIAfford.targetAmountLabel')}
           </label>
           <div className="relative inline-flex items-center justify-center">
             <span className="text-3xl font-bold text-slate-400 dark:text-slate-600 font-mono mr-1 select-none">
@@ -137,7 +137,7 @@ export function AffordCheckScreen() {
         {/* Frequency Chips (Only when mode === 'RECURRING') */}
         {mode === 'RECURRING' && (
           <div className="space-y-1.5 pt-2">
-            <span className="block text-center text-xs font-medium text-slate-500">Frequency</span>
+            <span className="block text-center text-xs font-medium text-slate-500">{t('forms.frequency')}</span>
             <div className="flex flex-wrap justify-center gap-2">
               {(
                 [

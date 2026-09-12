@@ -400,6 +400,7 @@ export const tenantRouter = {
         accountId: z.string().uuid(),
         actualBalance: z.string().regex(/^\d+(\.\d{1,2})?$/),
         clientIdempotencyToken: z.string().uuid(),
+        note: z.string().optional(),
         splits: z.array(
           z.object({
             poolId: z.string().uuid(),
@@ -436,11 +437,11 @@ export const tenantRouter = {
         const poolNameMap = new Map(dbPools.map((p) => [p.id, p.name]));
 
         const txValues = [];
+        const alignmentNote = input.note?.trim() || "Balance Alignment";
         for (const split of input.splits) {
           const adj = parseFloat(split.adjustment);
           if (Math.abs(adj) < 0.01) continue;
 
-          const poolName = poolNameMap.get(split.poolId) || "Pool";
           txValues.push({
             tenantId: ctx.tenantId!,
             appId: ctx.appId!,
@@ -451,7 +452,7 @@ export const tenantRouter = {
             transactionType: "ACCOUNT_ALIGNMENT" as const,
             amount: Math.abs(adj).toFixed(2),
             idempotencyKey: `reconcile-${accountId}-${split.poolId}-${input.clientIdempotencyToken}`,
-            note: `${poolName} Alignment Adjustment`,
+            note: alignmentNote,
             source: "MANUAL" as const,
             createdBy: ctx.userId!,
             updatedBy: ctx.userId!,

@@ -1,12 +1,13 @@
 import { describe, it, expect } from "vitest";
+import { toMonthlyAmount } from "./can-afford-simulation.query.js";
 
 /**
  * Unit tests for canAffordSimulationQuery verdict logic.
- * Tests pure computation paths without DB — validates threshold math.
+ * Tests pure computation paths without DB — validates threshold math and user-focused rules.
  */
 describe("canAffordSimulationQuery — verdict logic", () => {
   // ── SAFE_YES ──────────────────────────────────────────────────────────
-  it("SAFE_YES: amount within effective spendable and pacing >= 25% of daily floor", () => {
+  it("SAFE_YES: amount within effective spendable and remaining cash >= safe cushion", () => {
     const everydayBalance = 1000;
     const totalBills = 100;
     const effectiveSpendable = everydayBalance - totalBills; // 900
@@ -14,31 +15,31 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     const daysUntilPayday = 10;
     const everydayMonthlyAllowance = 2400;
     const dailyAllowance = everydayMonthlyAllowance / 30; // 80
-    const pacingFloor = dailyAllowance * 0.25; // 20
+    const safeCushion = Math.round(dailyAllowance * 0.25 * daysUntilPayday); // 200
 
     const remaining = effectiveSpendable - amount; // 700
-    const dailyPacing = remaining / daysUntilPayday; // 70
 
     expect(amount).toBeLessThanOrEqual(effectiveSpendable);
-    expect(dailyPacing).toBeGreaterThanOrEqual(pacingFloor);
+    expect(remaining).toBeGreaterThanOrEqual(safeCushion);
   });
 
   // ── PACING_TIGHT ──────────────────────────────────────────────────────
-  it("PACING_TIGHT: amount within effective spendable but daily pacing < 25% floor", () => {
+  it("PACING_TIGHT: amount within effective spendable but remaining cash < safe cushion", () => {
     const everydayBalance = 600;
     const totalBills = 0;
     const effectiveSpendable = everydayBalance;
     const amount = 570;
     const daysUntilPayday = 14;
     const everydayMonthlyAllowance = 2400;
-    const dailyAllowance = everydayMonthlyAllowance / 30;
-    const pacingFloor = dailyAllowance * 0.25; // 20
+    const dailyAllowance = everydayMonthlyAllowance / 30; // 80
+    const safeCushion = Math.round(dailyAllowance * 0.25 * daysUntilPayday); // 280
 
     const remaining = effectiveSpendable - amount; // 30
-    const dailyPacing = remaining / daysUntilPayday; // ~2.14
+    const cushionShortfall = safeCushion - remaining; // 250
 
     expect(amount).toBeLessThanOrEqual(effectiveSpendable);
-    expect(dailyPacing).toBeLessThan(pacingFloor);
+    expect(remaining).toBeLessThan(safeCushion);
+    expect(cushionShortfall).toBe(250);
   });
 
   // ── BILLS_RISK ────────────────────────────────────────────────────────
@@ -52,31 +53,43 @@ describe("canAffordSimulationQuery — verdict logic", () => {
     expect(amount).toBeGreaterThan(effectiveSpendable);
   });
 
+  // ── ONE-OFF SHORTFALL WITH GOAL ALTERNATIVE ───────────────────────────
+  it("ONE-OFF: detects when flexible savings goal can cover shortfall and computes delay", () => {
+    const effectiveSpendable = 200;
+    const amount = 600;
+    const shortfall = amount - effectiveSpendable; // 400
+    const goalBalance = 1500; // Flexible holiday goal
+    const goalMonthlyContrib = 300;
+    const dailyContrib = goalMonthlyContrib / 30; // 10/day
+    const delayDays = Math.round(shortfall / dailyContrib); // 40 days
+
+    expect(shortfall).toBe(400);
+    expect(goalBalance).toBeGreaterThanOrEqual(shortfall);
+    expect(delayDays).toBe(40);
+  });
+
   // ── WAIT_FOR_PAYCYCLE (ONE-OFF) ───────────────────────────────────────
-  it("WAIT_FOR_PAYCYCLE: not affordable today, but cumulative step covers amount + pacing floor", () => {
+  it("WAIT_FOR_PAYCYCLE: not affordable today, but cumulative step covers amount + step cushion", () => {
     const effectiveSpendable = 100;
     const amount = 500;
     const everydayAtStep2 = 800;
     const daysInStep = 14;
-    const pacingFloor = 20;
-    const requiredPacingBuffer = daysInStep * pacingFloor; // 280
+    const dailyAllowance = 80;
+    const requiredStepCushion = dailyAllowance * 0.25 * daysInStep; // 280
 
     expect(amount).toBeGreaterThan(effectiveSpendable);
-    expect(everydayAtStep2 - amount).toBeGreaterThanOrEqual(requiredPacingBuffer);
+    expect(everydayAtStep2 - amount).toBeGreaterThanOrEqual(requiredStepCushion);
   });
 
-  // ── WAIT_FOR_PAYCYCLE (RECURRING) ────────────────────────────────────
-  it("RECURRING WAIT_FOR_PAYCYCLE: insufficient Day-1 cash, but 12-month projection is affordable", () => {
-    const effectiveSpendable = 50;
-    const recurringAmount = 100; // $100/mo
-    const day1Insufficient = recurringAmount > effectiveSpendable;
-    const phantomFinalBalance = 0; // Fully funded over 12 months
-    const minEverydayBalance = 500; // Never drops below zero
+  // ── RECURRING: 80% EVERYDAY ALLOWANCE PROTECTION ────────────────────
+  it("RECURRING: enforces 80% everyday allowance minimum protection", () => {
+    const monthlyAllowance = 1000;
+    const expected12MonthEveryday = monthlyAllowance * 12; // 12,000
+    const minRequiredEveryday = expected12MonthEveryday * 0.8; // 9,600
 
-    expect(day1Insufficient).toBe(true);
-    expect(phantomFinalBalance).toBeGreaterThanOrEqual(-1);
-    expect(minEverydayBalance).toBeGreaterThanOrEqual(0);
-    // Verdict must be WAIT_FOR_PAYCYCLE instead of HARD_NO
+    // If total allocated across 12 months drops to 9,000 (< 9,600), triggers HARD_NO
+    const actualAllocatedWithCommitment = 9000;
+    expect(actualAllocatedWithCommitment).toBeLessThan(minRequiredEveryday);
   });
 
   // ── GOAL_DELAYED (RECURRING) ─────────────────────────────────────────
@@ -95,29 +108,21 @@ describe("canAffordSimulationQuery — verdict logic", () => {
   it("HARD_NO (PHANTOM DEFICIT): detects when recurring expense cannot be funded by projected income", () => {
     const phantomFinalBalance = -12000; // Unfunded $1000/mo over 12 months
     expect(phantomFinalBalance).toBeLessThan(-1);
-    // Verdict must be HARD_NO with forecasted deficit explanation
   });
 
-  // ── HARD_NO: EVERYDAY STARVATION ────────────────────────────────────
-  it("HARD_NO (EVERYDAY STARVATION): detects when Everyday pool balance drops below $0 at any step", () => {
-    const minEverydayBalance = -150; // Dips negative on a step
-    expect(minEverydayBalance).toBeLessThan(0);
-    // Verdict must be HARD_NO with starvation step explanation
-  });
+  // ── PRORATED CUSHION ADAPTS TO DAYS UNTIL PAYDAY ─────────────────────
+  it("prorated safe cushion: adapts dynamically to days until payday", () => {
+    const everydayMonthlyAllowance = 2400;
+    const dailyAllowance = everydayMonthlyAllowance / 30; // 80/day
+    const dailyCushionRate = dailyAllowance * 0.25; // 20/day
 
-  // ── DYNAMIC PACING FLOOR ─────────────────────────────────────────────
-  it("dynamic pacing floor adapts: $1200/mo allowance gives $10/day floor (25%)", () => {
-    const everydayMonthlyAllowance = 1200;
-    const dailyAllowance = everydayMonthlyAllowance / 30; // 40
-    const pacingFloor = dailyAllowance * 0.25; // 10
-    expect(pacingFloor).toBeCloseTo(10, 1);
-  });
+    // 5 days until payday
+    const cushion5Days = Math.round(dailyCushionRate * 5); // 100
+    expect(cushion5Days).toBe(100);
 
-  it("dynamic pacing floor adapts: $3000/mo allowance gives $25/day floor (25%)", () => {
-    const everydayMonthlyAllowance = 3000;
-    const dailyAllowance = everydayMonthlyAllowance / 30; // 100
-    const pacingFloor = dailyAllowance * 0.25; // 25
-    expect(pacingFloor).toBeCloseTo(25, 1);
+    // 14 days until payday
+    const cushion14Days = Math.round(dailyCushionRate * 14); // 280
+    expect(cushion14Days).toBe(280);
   });
 
   // ── BILLS DEDUCTED CORRECTLY & UNFUNDED SHORTFALL ───────────────────
@@ -141,30 +146,31 @@ describe("canAffordSimulationQuery — verdict logic", () => {
 
   // ── TRUST COPY VERIFICATION ─────────────────────────────────────────
   it("user-facing rationale copy uses human-centric terms and zero developer jargon", () => {
-    const safeYesRationale = "Daily pace for 10 days until payday: $70.00/day (recommended daily safety buffer: $20.00/day)";
-    const goalDelayedRationale = "New monthly commitment of $50.00 ($50.00/mo) added to your 12-month budget forecast.";
-    const committedGoalRationale = "\"Emergency Fund\" (committed savings target): target date pushed back by ~12 days.";
+    const safeYesRationale = "Comfortably above your recommended safe cushion of $120.00.";
+    const pacingTightRationale = "This leaves you $45.00 below your recommended safe cushion ($120.00).";
+    const billsRiskRationale = "Bills are non-negotiable and cannot be spent.";
 
-    expect(safeYesRationale).not.toContain("floor:");
-    expect(safeYesRationale).toContain("recommended daily safety buffer");
-    expect(goalDelayedRationale).not.toContain("injected into waterfall");
-    expect(goalDelayedRationale).toContain("added to your 12-month budget forecast");
-    expect(committedGoalRationale).toContain("committed savings target");
+    expect(safeYesRationale).not.toContain("floor");
+    expect(safeYesRationale).not.toContain("/day");
+    expect(safeYesRationale).not.toContain("Daily pace");
+    expect(pacingTightRationale).not.toContain("floor");
+    expect(pacingTightRationale).not.toContain("/day");
+    expect(billsRiskRationale).toContain("Bills are non-negotiable");
   });
 
   // ── RECURRING MONTHLY AMOUNT CONVERSION ─────────────────────────────
   it("toMonthlyAmount: WEEKLY $100 = $433.33/mo", () => {
-    const monthly = (100 * 52) / 12;
+    const monthly = toMonthlyAmount(100, "WEEKLY");
     expect(monthly).toBeCloseTo(433.33, 1);
   });
 
   it("toMonthlyAmount: FORTNIGHTLY $500 = $1083.33/mo", () => {
-    const monthly = (500 * 26) / 12;
+    const monthly = toMonthlyAmount(500, "FORTNIGHTLY");
     expect(monthly).toBeCloseTo(1083.33, 1);
   });
 
   it("toMonthlyAmount: ANNUALLY $1200 = $100/mo", () => {
-    const monthly = 1200 / 12;
+    const monthly = toMonthlyAmount(1200, "ANNUALLY");
     expect(monthly).toBe(100);
   });
 });

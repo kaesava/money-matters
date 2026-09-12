@@ -260,6 +260,16 @@ export const GoalDelayImpactSchema = z.object({
 }).strict();
 export type GoalDelayImpact = z.infer<typeof GoalDelayImpactSchema>;
 
+export const OneOffGoalAlternativeSchema = z.object({
+  goalId: z.string().uuid(),
+  goalName: z.string(),
+  availableGoalBalance: z.string(),
+  shortfallCovered: z.string(),
+  delayDays: z.number().int(),
+  newTargetDate: z.string().nullable(),
+}).strict();
+export type OneOffGoalAlternative = z.infer<typeof OneOffGoalAlternativeSchema>;
+
 /**
  * Input query schema for the "Can I Afford It?" simulation.
  * Supports one-off purchases and recurring commitments with frequency.
@@ -277,29 +287,32 @@ export const CanAffordQuery = z.object({
  * Produced by the simulation capability's canAffordSimulationQuery.
  */
 export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
-  // SAFE_YES: affordable now, comfortable pacing (≥ 25% of daily floor)
+  // SAFE_YES: affordable now, comfortable safe cushion
   z.object({
     verdict: z.literal("SAFE_YES"),
     availableCash: z.string(),
     effectiveSpendable: z.string(),
     everydayRemaining: z.string(),
+    safeCushion: z.string(),
     daysUntilPayday: z.number().int(),
-    dailyPacingAfterSpend: z.string(),
-    dailyPacingFloor: z.string(),
+    nextPaydayDate: z.string(),
     upcomingBillsBeforePayday: z.string(),
+    startAdvice: z.string().optional(),
     rationaleSteps: z.array(z.string()),
   }).strict(),
 
-  // PACING_TIGHT: affordable now, pacing < 25% of daily floor
+  // PACING_TIGHT: affordable now, but below recommended safe cushion
   z.object({
     verdict: z.literal("PACING_TIGHT"),
     availableCash: z.string(),
     effectiveSpendable: z.string(),
     everydayRemaining: z.string(),
+    safeCushion: z.string(),
+    cushionShortfall: z.string(),
     daysUntilPayday: z.number().int(),
-    dailyPacingAfterSpend: z.string(),
-    dailyPacingFloor: z.string(),
+    nextPaydayDate: z.string(),
     upcomingBillsBeforePayday: z.string(),
+    startAdvice: z.string().optional(),
     rationaleSteps: z.array(z.string()),
   }).strict(),
 
@@ -320,6 +333,7 @@ export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
     paycyclesAway: z.number().int(),
     projectedEverydayAtThatDate: z.string(),
     shortfallToday: z.string(),
+    goalAlternative: OneOffGoalAlternativeSchema.optional(),
     rationaleSteps: z.array(z.string()),
   }).strict(),
 
@@ -329,6 +343,7 @@ export const CanAffordVerdictDto = z.discriminatedUnion("verdict", [
     isAffordable: z.boolean(),
     goalDelays: z.array(GoalDelayImpactSchema),
     recurringMonthlyImpact: z.string(),
+    startAdvice: z.string().optional(),
     rationaleSteps: z.array(z.string()),
   }).strict(),
 

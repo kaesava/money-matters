@@ -672,9 +672,8 @@ export const expensesRouter = {
         .where(eq(expenseEvents.id, input.eventId));
 
       if (evt.poolId) {
-        const transactionNote = input.note
-          ? (input.note.includes(evt.name) ? input.note : `${evt.name} - ${input.note}`)
-          : `Paid scheduled bill: ${evt.name}`;
+        const cleanUserNote = input.note?.trim();
+        const transactionNote = cleanUserNote || evt.name;
 
         await recordExpenseCommand(
           {

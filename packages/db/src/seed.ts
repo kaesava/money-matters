@@ -153,8 +153,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(tenantUserPreferences);
   await db.delete(bankAccounts);
   await db.delete(tenantUsers);
-  await db.delete(tenants);
   await db.delete(billingInvoices).catch(() => {});
+  await db.delete(tenants);
   await db.delete(earlyAccessSubscribers).catch(() => {});
   await db.delete(processedWebhooks).catch(() => {});
   await db.delete(appVersions).catch(() => {});
@@ -340,7 +340,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   // 8. Income Events
   const [firstIncomeEvent] = await db
     .insert(incomeEvents)
-    .values({ incomeSourceId: salarySource.id, name: salarySource.name, expectedDate: "2026-07-01", expectedAmount: "5200.00", actualAmount: "5200.00", status: "CONFIRMED", tenantId, appId, createdBy: userId, updatedBy: userId })
+    .values({ incomeSourceId: salarySource.id, name: salarySource.name, expectedDate: "2026-07-01", actualDate: "2026-07-01", expectedAmount: "5200.00", actualAmount: "5200.00", status: "CONFIRMED", tenantId, appId, createdBy: userId, updatedBy: userId })
     .returning();
 
   // 9. Payday Allocation Plan

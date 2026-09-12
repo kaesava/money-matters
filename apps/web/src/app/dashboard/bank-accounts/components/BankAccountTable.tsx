@@ -140,23 +140,41 @@ export function BankAccountTable({
                             </span>
                           )}
                         </div>
-                        {acc.hasDifference && (() => {
+                        {(() => {
+                          const poolsTotal = (acc.linkedPools || []).reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+                          const expectedStr = `Expected ${fmtMoney(poolsTotal)}.`;
+
+                          if (!acc.hasDifference) {
+                            return (
+                              <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span>{expectedStr} Balanced</span>
+                              </span>
+                            );
+                          }
+
                           const diff = acc.differenceAmount || 0;
                           const labelStr = diff > 0
                             ? `Align Surplus of ${fmtMoney(diff)}`
                             : `Align Shortfall of ${fmtMoney(Math.abs(diff))}`;
+
                           return (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openAlignmentModal?.(acc);
-                              }}
-                              className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                              <span>{labelStr}</span>
-                            </button>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                              <span className="text-[10px] text-zinc-500 font-medium">
+                                {expectedStr}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openAlignmentModal?.(acc);
+                                }}
+                                className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <span>{labelStr}</span>
+                              </button>
+                            </div>
                           );
                         })()}
                       </div>
@@ -189,7 +207,7 @@ export function BankAccountTable({
                                 </Link>
                               ))}
                               {(acc.linkedPoolsCount ?? 0) > 2 && (
-                                <button
+                                 <button
                                   type="button"
                                   onClick={() => openLinkedPoolsModal ? openLinkedPoolsModal(acc) : setSelectedAccForPools(acc)}
                                   className="text-[11px] font-bold text-slate-600 hover:text-[#2563eb] bg-slate-100 hover:bg-blue-50 border border-slate-200 px-1.5 py-0.5 rounded-md cursor-pointer transition-colors"
@@ -198,20 +216,6 @@ export function BankAccountTable({
                                 </button>
                               )}
                             </div>
-                            {(() => {
-                              const poolsTotal = (acc.linkedPools || []).reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-                              const expectedStr = `Expected ${fmtMoney(poolsTotal)}.`;
-
-                              if (!acc.hasDifference) {
-                                return (
-                                  <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    <span>{expectedStr} Balanced</span>
-                                  </span>
-                                );
-                              }
-                              return null;
-                            })()}
                           </>
                         )}
                       </div>

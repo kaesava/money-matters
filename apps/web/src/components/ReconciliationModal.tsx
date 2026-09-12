@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useId } from "react";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, Button, AmountField } from "@money-matters/ui/web";
+import { InfoTooltip, Button, AmountField, useModalDismiss } from "@money-matters/ui/web";
 import posthog from "../lib/posthog-client";
 import { useLocale } from "../providers/LocaleProvider";
 
@@ -22,7 +22,7 @@ export interface ReconciliationModalProps {
   newBalance: number;      // New bank balance entered
   unbudgetedBuffer?: number;
   pools: PoolItem[];
-  onConfirm: (splits: Array<{ poolId: string; adjustment: string }>) => Promise<void>;
+  onConfirm: (splits: Array<{ poolId: string; adjustment: string }>, reason?: string) => Promise<void>;
   onOpenTransferModal?: () => void;
 }
 
@@ -56,18 +56,20 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
 
   // State for entered adjustment amounts per poolId
   const [adjustments, setAdjustments] = useState<Record<string, string>>({});
+  const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const modalId = useId();
+
+  useModalDismiss({
+    id: `reconciliation-modal-${modalId}`,
+    isOpen,
+    onDismiss: onClose,
+    isBlocked: isSubmitting,
+  });
 
   // Pre-fill sweep goal pool with 100% of variance on open
   useEffect(() => {
     if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isSubmitting) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
 
     const initialAdjustments: Record<string, string> = {};
     visiblePools.forEach((p) => {
@@ -85,11 +87,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
     }
 
     setAdjustments(initialAdjustments);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, absVariance, isSurplus, visiblePools, isSubmitting, onClose]);
+  }, [isOpen, absVariance, isSurplus, visiblePools]);
 
   if (!isOpen) return null;
 
@@ -103,17 +101,27 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   const isSumValid = Math.abs(sumAdjustments - absVariance) < 0.009;
 
   const handleAdjustmentChange = (poolId: string, inputVal: string, maxAvailable: number) => {
-    let valNum = parseFloat(inputVal) || 0;
-    if (valNum < 0) valNum = 0;
-
+    if (inputVal === "") {
+      setAdjustments((prev) => ({ ...prev, [poolId]: "" }));
+      return;
+    }
+    // Allow fluid decimal typing (digits with optional single dot and up to 2 decimal places)
+    if (!/^\d*(\.\d{0,2})?$/.test(inputVal)) {
+      return;
+    }
+    const valNum = parseFloat(inputVal) || 0;
     // Enforce drawdown cap for shortfalls
     if (!isSurplus && valNum > maxAvailable) {
-      valNum = maxAvailable;
+      setAdjustments((prev) => ({
+        ...prev,
+        [poolId]: maxAvailable.toFixed(2),
+      }));
+      return;
     }
 
     setAdjustments((prev) => ({
       ...prev,
-      [poolId]: inputVal === "" ? "" : valNum.toString(),
+      [poolId]: inputVal,
     }));
   };
 
@@ -133,7 +141,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onConfirm(splits);
+      await onConfirm(splits, reason.trim() || undefined);
       posthog.capture("bank_account_aligned", {
         account_name: accountName,
         diff_amount: variance,
@@ -174,8 +182,16 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
         <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div className="flex flex-col">
             <div className="flex items-center gap-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Expected Total</span>
-              <InfoTooltip content="Calculated as the total available balance across all pools currently linked to this bank account." />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {t("bankAccounts.reconcile.expectedTotal", { defaultValue: "Expected Total" })}
+              </span>
+              <InfoTooltip
+                align="left"
+                position="bottom"
+                content={t("bankAccounts.reconcile.expectedTooltip", {
+                  defaultValue: "Calculated as the total available balance across all pools currently linked to this bank account.",
+                })}
+              />
             </div>
             <span className="font-mono font-bold text-slate-800 text-xs mt-0.5">{fmtMoney(expectedBalance)}</span>
           </div>
@@ -206,6 +222,22 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
               Select the pools where this <strong className="font-bold">shortfall ({fmtMoney(absVariance)})</strong> will come from:
             </p>
           )}
+        </div>
+
+        {/* Optional Reason / Note Input */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            {t("bankAccounts.reconcile.reasonLabel", { defaultValue: "Reason (Optional)" })}
+          </label>
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={t("bankAccounts.reconcile.reasonPlaceholder", {
+              defaultValue: "e.g., Interest credited, Bank fee, Balance correction",
+            })}
+            className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-slate-800"
+          />
         </div>
 
         {/* Interactive Multi-Pool Adjustment Table */}

@@ -9,7 +9,6 @@ interface AffordCheckVerdictProps {
 }
 
 export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
-
   const getVerdictStyle = () => {
     switch (data.verdict) {
       case 'SAFE_YES':
@@ -69,43 +68,86 @@ export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
           <div>
             <h2 className="text-xl font-bold tracking-tight">{style.title}</h2>
             {data.verdict === 'SAFE_YES' && (
-              <p className="text-sm opacity-80 mt-0.5">
-                {t('canIAfford.dailyPacingRemaining')}:{' '}
-                <span className="font-mono font-semibold tabular-nums">
-                  {t('canIAfford.dailyPaceLabel', { amount: data.dailyPacingAfterSpend })}
-                </span>{' '}
-                (floor: <span className="font-mono tabular-nums">${data.dailyPacingFloor}</span>)
-              </p>
+              <div>
+                <p className="text-sm opacity-90 mt-0.5 font-medium">
+                  {t('canIAfford.remainingUntilPayday', { amount: data.everydayRemaining, date: data.nextPaydayDate })}
+                </p>
+                <p className="text-xs opacity-75 mt-0.5">
+                  {t('canIAfford.safeCushionLabel', { amount: data.safeCushion })} • {t('canIAfford.billsProtectedNotice')}
+                </p>
+                {data.startAdvice && (
+                  <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200 mt-2 bg-emerald-100/60 dark:bg-emerald-900/40 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    💡 {t('canIAfford.startAdviceLabel', { advice: data.startAdvice })}
+                  </p>
+                )}
+              </div>
             )}
             {data.verdict === 'PACING_TIGHT' && (
-              <p className="text-sm opacity-80 mt-0.5">
-                {t('canIAfford.dailyPacingRemaining')}:{' '}
-                <span className="font-mono font-semibold tabular-nums">
-                  {t('canIAfford.dailyPaceLabel', { amount: data.dailyPacingAfterSpend })}
-                </span>{' '}
-                (below floor: <span className="font-mono tabular-nums">${data.dailyPacingFloor}</span>)
+              <div>
+                <p className="text-sm opacity-90 mt-0.5 font-medium">
+                  {t('canIAfford.remainingUntilPayday', { amount: data.everydayRemaining, date: data.nextPaydayDate })}
+                </p>
+                <p className="text-xs opacity-75 mt-0.5">
+                  {t('canIAfford.tightCushionNotice', { amount: data.cushionShortfall, cushion: data.safeCushion })}
+                </p>
+                {data.startAdvice && (
+                  <p className="text-xs font-medium text-amber-800 dark:text-amber-200 mt-2 bg-amber-100/60 dark:bg-amber-900/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                    💡 {t('canIAfford.startAdviceLabel', { advice: data.startAdvice })}
+                  </p>
+                )}
+              </div>
+            )}
+            {data.verdict === 'BILLS_RISK' && (
+              <p className="text-sm opacity-90 mt-0.5">
+                {t('canIAfford.billsBeforePayday')}: <span className="font-mono font-semibold tabular-nums">${data.upcomingBillsBeforePayday}</span> • {t('canIAfford.netEffectiveSpendable')}: <span className="font-mono font-semibold tabular-nums">${data.effectiveAfterBills}</span>
               </p>
             )}
             {data.verdict === 'WAIT_FOR_PAYCYCLE' && (
-              <p className="text-sm opacity-80 mt-0.5">
-                {t('canIAfford.paycyclesAwayLabel', { n: data.paycyclesAway })} •{' '}
-                {t('canIAfford.projectedEverydayLabel', { amount: data.projectedEverydayAtThatDate })}
-              </p>
+              <div>
+                <p className="text-sm opacity-90 mt-0.5">
+                  {t('canIAfford.shortfallLabel', { amount: data.shortfallToday })} • {t('canIAfford.paycyclesAwayLabel', { n: data.paycyclesAway })}
+                </p>
+                <p className="text-xs opacity-75 mt-0.5">
+                  {t('canIAfford.projectedEverydayLabel', { amount: data.projectedEverydayAtThatDate })}
+                </p>
+              </div>
             )}
             {data.verdict === 'GOAL_DELAYED' && (
-              <p className="text-sm opacity-80 mt-0.5">
-                {t('canIAfford.recurringMonthlyImpactLabel', { amount: data.recurringMonthlyImpact })} •{' '}
-                {data.goalDelays.length} goal(s) pushed back
-              </p>
+              <div>
+                <p className="text-sm opacity-90 mt-0.5">
+                  {t('canIAfford.recurringMonthlyImpactLabel', { amount: data.recurringMonthlyImpact })} • {data.goalDelays.length} goal(s) pushed back
+                </p>
+                <p className="text-xs opacity-75 mt-0.5">
+                  {t('canIAfford.billsProtectedNotice')}
+                </p>
+                {data.startAdvice && (
+                  <p className="text-xs font-medium text-orange-800 dark:text-orange-200 mt-2 bg-orange-100/60 dark:bg-orange-900/40 px-3 py-1.5 rounded-lg border border-orange-200 dark:border-orange-800">
+                    💡 {t('canIAfford.startAdviceLabel', { advice: data.startAdvice })}
+                  </p>
+                )}
+              </div>
             )}
             {data.verdict === 'HARD_NO' && (
-              <p className="text-sm opacity-80 mt-0.5">
+              <p className="text-sm opacity-90 mt-0.5">
                 {t('canIAfford.shortfallLabel', { amount: data.shortfall })} • 12-month horizon
               </p>
             )}
           </div>
         </div>
       </div>
+
+      {data.verdict === 'WAIT_FOR_PAYCYCLE' && data.goalAlternative && (
+        <div className="mt-2 p-3.5 rounded-xl bg-blue-100/80 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-950 dark:text-blue-100 text-xs space-y-1">
+          <span className="font-semibold block text-sm">🎯 {t('canIAfford.goalAlternativeTitle')}</span>
+          <p>
+            {t('canIAfford.goalAlternativeBody', {
+              shortfall: data.goalAlternative.shortfallCovered,
+              goalName: data.goalAlternative.goalName,
+              delay: data.goalAlternative.delayDays,
+            })}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

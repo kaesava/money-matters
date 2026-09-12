@@ -20,20 +20,45 @@ export async function overrideEventCommand(
 
 
     if (input.eventType === "INCOME") {
+      const [existingEvt] = await tx
+        .select({
+          incomeSourceId: incomeEvents.incomeSourceId,
+          expectedDate: incomeEvents.expectedDate,
+          expectedAmount: incomeEvents.expectedAmount,
+        })
+        .from(incomeEvents)
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, tenantId),
+            eq(incomeEvents.appId, appId)
+          )
+        )
+        .limit(1);
+
+      const isScheduled = Boolean(existingEvt?.incomeSourceId);
       const setPayload: Record<string, unknown> = {
         isOverridden: true,
         updatedBy: userId,
         updatedAt: new Date(),
       };
-      if (input.amount || input.expectedAmount) {
-        setPayload.expectedAmount = input.expectedAmount || input.amount;
+
+      const newAmount = input.actualAmount || input.expectedAmount || input.amount;
+      if (newAmount) {
+        setPayload.actualAmount = newAmount;
+        if (!isScheduled || input.updateSeries) {
+          setPayload.expectedAmount = newAmount;
+        }
       }
-      if (input.actualAmount) {
-        setPayload.actualAmount = input.actualAmount;
+
+      const newDate = (input as { actualDate?: string }).actualDate || input.expectedDate;
+      if (newDate) {
+        setPayload.actualDate = newDate;
+        if (!isScheduled) {
+          setPayload.expectedDate = newDate;
+        }
       }
-      if (input.expectedDate) {
-        setPayload.expectedDate = input.expectedDate;
-      }
+
       if (input.status) {
         setPayload.status = input.status;
       }
@@ -76,20 +101,45 @@ export async function overrideEventCommand(
 
       return updatedEvent;
     } else {
+      const [existingEvt] = await tx
+        .select({
+          expenseSourceId: expenseEvents.expenseSourceId,
+          expectedDate: expenseEvents.expectedDate,
+          expectedAmount: expenseEvents.expectedAmount,
+        })
+        .from(expenseEvents)
+        .where(
+          and(
+            eq(expenseEvents.id, input.eventId),
+            eq(expenseEvents.tenantId, tenantId),
+            eq(expenseEvents.appId, appId)
+          )
+        )
+        .limit(1);
+
+      const isScheduled = Boolean(existingEvt?.expenseSourceId);
       const setPayload: Record<string, unknown> = {
         isOverridden: true,
         updatedBy: userId,
         updatedAt: new Date(),
       };
-      if (input.amount || input.expectedAmount) {
-        setPayload.expectedAmount = input.expectedAmount || input.amount;
+
+      const newAmount = input.actualAmount || input.expectedAmount || input.amount;
+      if (newAmount) {
+        setPayload.actualAmount = newAmount;
+        if (!isScheduled || input.updateSeries) {
+          setPayload.expectedAmount = newAmount;
+        }
       }
-      if (input.actualAmount) {
-        setPayload.actualAmount = input.actualAmount;
+
+      const newDate = (input as { actualDate?: string }).actualDate || input.expectedDate;
+      if (newDate) {
+        setPayload.actualDate = newDate;
+        if (!isScheduled) {
+          setPayload.expectedDate = newDate;
+        }
       }
-      if (input.expectedDate) {
-        setPayload.expectedDate = input.expectedDate;
-      }
+
       if (input.status) {
         setPayload.status = input.status;
       }

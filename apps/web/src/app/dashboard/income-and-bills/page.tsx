@@ -755,6 +755,7 @@ function IncomeAndBillsContent() {
               poolType: p.poolType,
               currentBalance: parseFloat(String(p.currentBalance || "0")),
               isSurplusTarget: p.isSurplusTarget,
+              bankAccountId: p.bankAccountId,
             }))}
             onMarkExpensePaid={async (eventId, amount, date) => {
               try {

@@ -4,6 +4,7 @@ import React, { useEffect, useState, useId } from "react";
 import { createPortal } from "react-dom";
 import { t } from "@money-matters/i18n";
 import { Button } from "./Button";
+import { useModalDismiss } from "./modalStack";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -36,20 +37,14 @@ export function ConfirmDialog({
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && !isLoading) {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen, onClose, isLoading]);
+  useModalDismiss({
+    id: `confirm-dialog-${titleId}`,
+    isOpen,
+    onDismiss: () => {
+      if (!isLoading) onClose();
+    },
+    isBlocked: isLoading,
+  });
 
   if (!isOpen || !mounted) return null;
 

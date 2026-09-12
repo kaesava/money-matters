@@ -68,7 +68,7 @@ export function SourceBurstDetailModal({
                 </Text>
                 <Text style={styles.statusText}>Status: {evt.status}</Text>
               </View>
-              <Text style={[styles.amountText, mode === 'INCOME' && { color: '#10B981' }]}>
+              <Text style={[styles.amountText, mode === 'INCOME' ? { color: D.colors.success } : { color: D.colors.burnRed }]}>
                 {mode === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}
               </Text>
             </View>

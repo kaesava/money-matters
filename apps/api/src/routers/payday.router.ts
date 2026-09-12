@@ -34,6 +34,7 @@ export const paydayRouter = {
       const customLines = input.lines?.map((l) => ({
         bucketId: l.poolId,
         amount: l.amount,
+        reasoning: l.reasoning,
       }));
 
       const result = await runAllocationCommand(
@@ -142,6 +143,7 @@ export const paydayRouter = {
           receivingAccountName: bankAccounts.name,
           receivingAccountId: bankAccounts.id,
           expectedDate: incomeEvents.expectedDate,
+          actualDate: incomeEvents.actualDate,
           note: incomeEvents.note,
         })
         .from(allocationPlans)
@@ -241,6 +243,7 @@ export const paydayRouter = {
           poolId: z.string().uuid(),
           categoryId: z.string().uuid().optional(),
           proposedAmount: z.string(),
+          reasoning: z.string().optional(),
         })),
       }).strict()
     )
@@ -304,6 +307,7 @@ export const paydayRouter = {
               poolId: l.poolId,
               categoryId: l.categoryId || null,
               proposedAmount: l.proposedAmount,
+              reasoning: l.reasoning || null,
               tenantId: ctx.tenantId!,
               appId: ctx.appId!,
               createdBy: ctx.userId!,

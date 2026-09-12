@@ -348,11 +348,21 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
   - Selects and returns `pools.createdAt` to support pacing calculations.
   - Fixes default progress calculation: `target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0` (previously defaulted to 100% when balance/target was 0).
 
-### 9.6 UI Primitives & Modal Interaction Hierarchy (`packages/ui`)
+### 9.6 UI Primitives, LIFO Modal Stack & Interaction Hierarchy (`packages/ui`)
 - **`PoolPicker`**:
   - Requires mandatory `showBalance: boolean` prop. Controls whether pool chips and dropdown options display current balance badges (useful for contextual selection where balance display might be redundant or clutter the UI).
-- **Escape Key Dismissal Stack**:
-  - `ConfirmDialog` and `ModalDialog` manage keydown listener registration to ensure that when a confirmation dialog is opened over an underlying form modal, pressing `Escape` dismisses only the topmost confirmation dialog first, preventing accidental parent modal dismissal.
+- **Centralized LIFO Modal Stack Manager (`modalStack.ts` / `useModalDismiss`)**:
+  - Managed via `@money-matters/ui/web` (`packages/ui/src/web/modalStack.ts`), maintaining a global Last-In-First-Out (LIFO) modal registry.
+  - Subscribes `ConfirmDialog`, `SlideOverDrawer`, `ModalDialog`, `ReconciliationModal`, and `CrossBankTransferModal`.
+  - When `Escape` is pressed in nested modal contexts (e.g., `ConfirmDialog` atop `ModalDialog`, or `TransferModal` opened over `MarkPaidModal`), only the topmost modal receives the dismiss event (`e.stopImmediatePropagation()`), preventing unintended parent modal dismissal.
+- **Cross-Account Bank Transfer Prompt (`<CrossBankTransferModal />`)**:
+  - Automatically triggered when a pool transfer spans different underlying bank accounts (`sourcePool.bankAccountId !== destPool.bankAccountId`).
+  - Presents clear physical bank transfer instructions, source/destination bank account names, transfer amount, and a 1-tap "Copy Amount" clipboard helper.
+- **Transaction Ledger Description Uniformity & User Overrides**:
+  - Directional transfers: DEBIT entries record `"Transfer to [Destination Pool]"`; CREDIT entries record `"Transfer from [Source Pool]"`. If a custom note is provided, both entries store the user's custom note directly.
+  - Income splits: Retains custom line reasoning if provided via note input; falls back to `"Income Topup"`.
+  - Balance alignment: Default note `"Balance Alignment"`, overridable by user-entered reason in `<ReconciliationModal />`.
+  - Expense recording / Mark paid: Defaults to bill/category name, overridable by custom user note.
 - **`InfoTooltip` Portal Anchoring**:
   - Fixed-position portal rendered directly into `document.body` (`z-[9999]`) with viewport edge clamping, eliminating container overflow clipping in tables and flex headers.
 

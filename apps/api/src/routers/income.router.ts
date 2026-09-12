@@ -311,7 +311,9 @@ export const incomeRouter = {
         .values({
           incomeSourceId: input.incomeSourceId,
           expectedDate: input.expectedDate,
+          actualDate: input.expectedDate,
           expectedAmount: input.expectedAmount,
+          actualAmount: input.expectedAmount,
           status: "PENDING",
           tenantId: ctx.tenantId!,
           appId: ctx.appId!,
@@ -342,6 +344,7 @@ export const incomeRouter = {
           id: incomeEvents.id,
           name: sql<string>`COALESCE(NULLIF(${incomeEvents.name}, ''), ${incomeSources.name}, 'Paycheck')`,
           expectedDate: incomeEvents.expectedDate,
+          actualDate: incomeEvents.actualDate,
           expectedAmount: incomeEvents.expectedAmount,
           actualAmount: incomeEvents.actualAmount,
           isOverridden: incomeEvents.isOverridden,
@@ -473,7 +476,9 @@ export const incomeRouter = {
         .values({
           incomeSourceId: source.id,
           expectedDate: input.expectedDate,
+          actualDate: input.expectedDate,
           expectedAmount: input.amount,
+          actualAmount: input.amount,
           note: input.note || null,
           status: "PENDING",
           tenantId: ctx.tenantId!,
@@ -496,14 +501,39 @@ export const incomeRouter = {
     )
     .mutation(async ({ input, ctx }) => {
       requiresWriteAccess(ctx);
+      const [existing] = await ctx.db
+        .select({ incomeSourceId: incomeEvents.incomeSourceId })
+        .from(incomeEvents)
+        .where(
+          and(
+            eq(incomeEvents.id, input.eventId),
+            eq(incomeEvents.tenantId, ctx.tenantId!),
+            eq(incomeEvents.appId, ctx.appId!)
+          )
+        )
+        .limit(1);
+
+      const isScheduled = Boolean(existing?.incomeSourceId);
+      const setPayload: Record<string, unknown> = {
+        updatedAt: new Date(),
+        updatedBy: ctx.userId!,
+      };
+
+      if (input.expectedAmount !== undefined) {
+        setPayload.actualAmount = input.expectedAmount;
+        if (!isScheduled) setPayload.expectedAmount = input.expectedAmount;
+        setPayload.isOverridden = isScheduled;
+      }
+
+      if (input.expectedDate !== undefined) {
+        setPayload.actualDate = input.expectedDate;
+        if (!isScheduled) setPayload.expectedDate = input.expectedDate;
+        setPayload.isOverridden = isScheduled;
+      }
+
       const [updated] = await ctx.db
         .update(incomeEvents)
-        .set({
-          ...(input.expectedAmount !== undefined ? { expectedAmount: input.expectedAmount } : {}),
-          ...(input.expectedDate !== undefined ? { expectedDate: input.expectedDate } : {}),
-          updatedAt: new Date(),
-          updatedBy: ctx.userId!,
-        })
+        .set(setPayload)
         .where(
           and(
             eq(incomeEvents.id, input.eventId),

@@ -58,7 +58,7 @@ export function IncomeSplitCommandPanel({
   onRecalculateWaterfall,
   submitting,
 }: IncomeSplitCommandPanelProps) {
-  const [detailsCollapsed, setDetailsCollapsed] = useState(false);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(true);
 
   const billsPercent = numericActual > 0 ? Math.min(100, (billsAllocated / numericActual) * 100) : 0;
   const goalsPercent = numericActual > 0 ? Math.min(100 - billsPercent, (goalsAllocated / numericActual) * 100) : 0;

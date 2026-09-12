@@ -240,12 +240,17 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ---
 
-## 4. Bank Account Balance Alignment & V2 Ingestion Scope
+## 4. Bank Account Balance Alignment, Cross-Bank Transfers & Ingestion Scope
 
 - **Core Philosophy Alignment**: Money Matters automates forward-looking payday allocation (ring-fencing bills and committed savings so users can spend their remaining Everyday pool freely with zero friction and zero guilt). In alignment with this core principle, retroactively importing historical line-item CSV statements is omitted from V1 to eliminate backward-looking receipt policing and micro-categorization friction.
 - **1-Click Bank Balance Alignment (V1 Feature)**:
   - Accessible directly on the Bank Accounts dashboard (`/dashboard/bank-accounts`) via inline action badges (`Align Surplus` / `Align Shortfall`) and the dedicated `<ReconciliationModal />`.
+  - When balanced, accounts display `"Expected $X,XXX.XX. Balanced"` directly below the account name; when differing, `"Expected $X,XXX.XX."` appears adjacent to the alignment action button. Linked pool balances are cleanly focused on active pools without redundant expected totals.
+  - Supports optional user-provided Reason notes stored directly in the transaction ledger (defaulting to `"Balance Alignment"`).
   - Enables users to instantly sync their real-world bank account balance with their Money Matters pool balances in two clicks, recording deterministic `ACCOUNT_ALIGNMENT` / `BALANCE_ADJUSTMENT` ledger events.
+- **Cross-Account Bank Transfer Prompt (`<CrossBankTransferModal />`)**:
+  - Whenever an internal pool transfer spans pools tied to distinct bank accounts (`sourcePool.bankAccountId !== destPool.bankAccountId`), Money Matters immediately prompts the user with an instructional confirmation modal.
+  - Reminds users to move the real money in their banking app, detailing source and destination bank accounts, exact transfer amount, and a 1-tap "Copy Amount" button.
 - **Zipped CSV Data Export (V1 Feature)**:
   - Users retain 100% data sovereignty via full zipped CSV data backup (`exportTenantData`), available anytime in Settings and on trial expiration holding screens.
 - **Automated Bank Statement Import / Open Banking Feeds**:

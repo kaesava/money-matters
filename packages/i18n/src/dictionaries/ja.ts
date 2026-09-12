@@ -296,6 +296,18 @@ export const ja: DeepStringRecord<typeof en> = {
     "allCategories": "すべてのカテゴリ",
     "noTransactionsFound": "取引が見つかりません",
     "date": "日付",
+    "type": "タイプ",
+    "details": "詳細",
+    "types": {
+      "expense": "支出",
+      "incomeTopup": "収入配分",
+      "incomeDirect": "直接収入",
+      "transferOut": "振替（出金）",
+      "transferIn": "振替（入金）",
+      "accountAlignment": "口座残高調整",
+      "balanceAdjustment": "残高調整",
+      "openingBalance": "期首残高"
+    },
     "description": "説明",
     "category": "カテゴリ",
     "amount": "金額",
@@ -1572,6 +1584,13 @@ export const ja: DeepStringRecord<typeof en> = {
       "notes": "調整メモ",
       "submit": "残高を合わせて確定"
     },
+    "crossBankTransfer": {
+      "title": "銀行口座間の振替が必要です",
+      "description": "異なる銀行口座にリンクされたプール間でお金を移動しました。実際の銀行アプリで送金を行ってください：",
+      "fromAccount": "送金元銀行口座：",
+      "toAccount": "送金先銀行口座：",
+      "amount": "振替金額"
+    },
     "moveMoney": {
       "title": "プール間でお金を移動",
       "sourceCategory": "移動元のプール",
@@ -1720,7 +1739,13 @@ export const ja: DeepStringRecord<typeof en> = {
   "bankAccounts": {
     "title": "銀行口座",
     "privatePersonalAccount": "🔒 Private Personal Account (Hidden from other users)",
-    "upgradeToPrivate": "Upgrade to Premium to mark accounts as private"
+    "upgradeToPrivate": "Upgrade to Premium to mark accounts as private",
+    "reconcile": {
+      "expectedTotal": "想定合計残高",
+      "expectedTooltip": "この銀行口座に現在リンクされているすべてのプールで利用可能な合計残高です。",
+      "reasonLabel": "理由（任意）",
+      "reasonPlaceholder": "例: 利息入金、口座手数料、残高調整"
+    }
   },
   "bugReport": {
     "title": "フィードバックを送信",
@@ -2015,7 +2040,10 @@ export const ja: DeepStringRecord<typeof en> = {
     "autoBadge": "自動計算",
     "recalculateConfirmTitle": "収入の振り分けを再計算しますか？",
     "recalculateConfirmDescription": "再計算すると、このお給料日の手動カスタマイズが破棄され、最新の5段階ウォーターフォール配分エンジンが再実行されます。よろしいですか？",
-    "recalculateSuccess": "ウォーターフォール配分を再計算しました。"
+    "recalculateSuccess": "ウォーターフォール配分を再計算しました。",
+    "reasoningLabel": "理由 / メモ:",
+    "reasoningPlaceholder": "この配分の理由を入力...",
+    "showReasoning": "理由・メモを表示または編集"
   },
   "matrix": {
     "saved": "保存済み",

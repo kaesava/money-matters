@@ -4,8 +4,30 @@
 * Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
 * Ignore mobile app
 
+## General
+* Remembering that modals (like Transfer) can be triggered from multiple places (from within other modals, from screens, etc.) ensure nested modals in the app work as expected (for example, sequencing of Escape keypress)
+* Different activities (Transfers, Income Splits, Bank Account Reconciliation, Mark Spent, Run Split, etc.) produce Transactions, but the Description seems to be inconsistent. Make sure it is succint, don't include information that it already part of the record (like a Pool Name, Amount or Date), use user-friendly language. Recommend a way to allow the user to override this default Description in each scenario. Where would all the impacts be? Grill me.
+## Pool Picker
+* In the Pool Picker where users can select Categories or Pools (for example, for a Quick Expense), show the "expand Pools" triangle to the left of the Pool instead of the right of the amount.
 
-# CHANGES - NOT DONE
+## HIstory
+* Details hyperlink shouldn't have "↗"
+
+## Income Split screen
+* When I save, it seems to overwrite the Notes against each allocation plan - don't. The only time you overwrite it is when the waterfall engine runs (initially or re-calculated/un-saved).
+
+## Bank Accounts
+## Bank Account List
+* "Expected $3,500.00. Balanced" should come below the Account Name (instead of the "Align " badge") - not in Linked Pools
+
+## Bank Account Reconciliation Modal
+* Don't use the phrase "Reconciliation" - the language (included in the title, tooltips, etc.) must be more user-friendly
+* tooltip next to Expected total not working
+* I can't seem to use decimal numbers in the adjustment boxes - ensure this is not an app wide issue
+
+## Transfer between Pools
+* I realise then when you allow users to transfer money (actually do the transfer - not set it up) between Pools, if they Pools are linked to different Bank Accounts, the user probably needs to actually move money too. Re-using the 1-Tap Payday Transfer Plan in the Income Split screen, show the user this after a Transfer once a Transfer is effected.
+
 
 
 
@@ -28,29 +50,7 @@
 # Archive/Unarchive
 
 
-# MOBILE AUDIT
 
-Do a thorough audit of the mobile app capability and web app capability with the aim of getting the mobile app up to production readiness. The Web app has advanced significantly while the mobile app has stalled. This was intention so I could focus on the web app. However, now I want to mobile app to get to par with the webb App. I want you to do a thorough deep dive into the relative capabilities and identify every single update that needs to be made in the mobile app to bring the functionality in par with the web app. When I say every capability, I literally mean every screen, modal, filter, drop-down, button, input field, workflow, hover text, hyperlink, navigation, search, sort, table, loading animation, field, error message, confirmation modal, label, title, warning message, close button, cancel button, etc. Of course, you will need to translate each UI element from a Next.js convention into an Android mobile app React Native specific UX/UI convention/best practice to ensure native look and feel. Further, there is already a significant amount of build complete. The ask is not to rebuild from scratch. Re-use where possible, but be brutally sure that every capability is built in a native way. This is massive task, and you may need multiple passes through the code.
-
-
-################################# DISCUSS WITH AI AGENT (Gemini 3.8 High) - AFTER SCHEDULES HAVE RUN
-
-# LANDING PAGE (BEFORE LOGIN)
-Do a thorough audit of the landing page for the app and all pages where the user does not have to have logged in, including Sign-Up, Sign-In, etc.. 
-
-For example, in the landing page, I believe the information and graphics are dated - the app has come a long way. Keeping with the look and feel of a modern web application, and taking advantage of our USP, propose changes (and I don't mind a full re-design). Focus on what we have that others in the market dont. Focus on our hero workflows/functionalities. Be critical. Be thorough. Put yourself in the shoes of a user looking for a budgeting app. Appeal to those that have tried and failed or are hesitatnt to try because of usual points of fritction that my app now does not create.
-
-Change the tag line "Simple, honest household budgeting". Right now I don't think it's really that simple. The USP of this app is that you can realistically track your long term goals, and also it provides some assuarance that you're prepared for bills. Apply the tage line across the app (logged in and non-logged in pages)
-
-
-Functionally, the Login page is not fully integrated into the landing page. Let's remove "by Kaesava" it doesn't show up in the app.
-Scope: ALL pages where the user can access without logging in, including but not limited to:
-* /
-* /terms
-* /privacy
-* /sign-in
-* /sign-up
-* /subscription/upgrade
 
 
 ################################# PENDING
@@ -59,7 +59,7 @@ Scope: ALL pages where the user can access without logging in, including but not
 # FUNCTIONAL AUDIT
 
 ### 2. Lead Business Analyst (V1 Functional Completeness)
-* Identify all the Apps Capabilities (partially listed below), and ensure there are 0 Functional Gaps (Built per spec), no edge cases, no Code bugs, no duplicated code where it can be rationalised.
+* Identify all the Apps Capabilities (partially listed below), and ensure there are 0 Functional Gaps (Built per spec), no edge cases, no Code bugs, no duplicated code where code can be fully or partially reused, no inconsistencies, no friction UX, no misaligment with functional specs (allowing for the functional specs to not be current & complete), no logic flaws especially at the edges, no redundant or unused code, no dangerous or poor code, etc.
 
 ### General
 * Connection interrupted message - validity, retry

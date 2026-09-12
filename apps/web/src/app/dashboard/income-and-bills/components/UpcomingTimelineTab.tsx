@@ -50,6 +50,7 @@ interface UpcomingTimelineTabProps {
     id: string;
     name: string;
     currentBalance: string | number;
+    bankAccountId?: string | null;
   }[];
   initialKindFilter?: "ALL" | "INCOME" | "EXPENSE" | "TRANSFER";
   initialSearchQuery?: string;
@@ -517,7 +518,7 @@ export function UpcomingTimelineTab({
                               ? "text-emerald-600 dark:text-emerald-400"
                               : isTransfer
                               ? "text-indigo-600 dark:text-indigo-400"
-                              : "text-[#1B2B4B] dark:text-white"
+                              : "text-rose-600 dark:text-rose-400"
                           }
                         >
                           {isIncome ? "+" : isTransfer ? "↔" : "-"}
@@ -722,6 +723,7 @@ export function UpcomingTimelineTab({
             id: p.id,
             name: p.name,
             currentBalance: p.currentBalance,
+            bankAccountId: p.bankAccountId,
           }))}
           onSaveDraft={async (params) => {
             if (onSaveTransferDraft) {

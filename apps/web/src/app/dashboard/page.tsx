@@ -307,6 +307,7 @@ export default function DashboardPage() {
               poolType: p.poolType,
               currentBalance: parseFloat(String(p.currentBalance || "0")),
               isSurplusTarget: p.isSurplusTarget,
+              bankAccountId: p.bankAccountId,
             }))}
             onMarkPaid={handleMarkPaidItem}
             onSkipExpense={handleSkipExpense}

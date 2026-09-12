@@ -154,4 +154,25 @@ describe("cumulative-projection engine", () => {
     const surplusAfterExp = step1.balancesAfterExpenses.get("pool-surplus");
     expect(surplusAfterExp).toBeGreaterThan(0);
   });
+
+  it("should preserve and accurately project confirmed income events with their cellOverrides", () => {
+    const result = runCumulativeProjection({
+      categories: mockCategories,
+      incomeEvents: [
+        { id: "evt-confirmed-1", expectedDate: "2026-08-15", expectedAmount: 2500, status: "CONFIRMED" },
+        { id: "evt-pending-2", expectedDate: "2026-09-01", expectedAmount: 2500, status: "PENDING" },
+      ],
+      cellOverrides: {
+        "evt-confirmed-1_pool-bills": 1500,
+        "evt-confirmed-1_pool-everyday": 1000,
+      },
+    });
+
+    expect(result.steps.length).toBe(2);
+    const confirmedStep = result.steps[0];
+    expect(confirmedStep.incomeEvent.id).toBe("evt-confirmed-1");
+    expect(confirmedStep.allocations.get("pool-bills")?.proposedAmount).toBe(1500);
+    expect(confirmedStep.allocations.get("pool-bills")?.reasoning).toBe("Confirmed allocation plan");
+    expect(confirmedStep.allocations.get("pool-everyday")?.proposedAmount).toBe(1000);
+  });
 });

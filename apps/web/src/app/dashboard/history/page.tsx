@@ -108,14 +108,14 @@ function TransactionsPageContent() {
 
   const getTransactionTypeLabel = (type?: string): string => {
     switch (type) {
-      case "EXPENSE": return "Expense";
-      case "INCOME_SPLIT": return "Income Split";
-      case "INCOME_DIRECT": return "Direct Income";
-      case "TRANSFER_OUT": return "Transfer Out";
-      case "TRANSFER_IN": return "Transfer In";
-      case "ACCOUNT_ALIGNMENT": return "Account Alignment";
-      case "BALANCE_ADJUSTMENT": return "Balance Adjustment";
-      case "OPENING_BALANCE": return "Opening Balance";
+      case "EXPENSE": return t("transactions.types.expense") || "Expense";
+      case "INCOME_SPLIT": return t("transactions.types.incomeTopup") || "Income Topup";
+      case "INCOME_DIRECT": return t("transactions.types.incomeDirect") || "Direct Income";
+      case "TRANSFER_OUT": return t("transactions.types.transferOut") || "Transfer Out";
+      case "TRANSFER_IN": return t("transactions.types.transferIn") || "Transfer In";
+      case "ACCOUNT_ALIGNMENT": return t("transactions.types.accountAlignment") || "Account Alignment";
+      case "BALANCE_ADJUSTMENT": return t("transactions.types.balanceAdjustment") || "Balance Adjustment";
+      case "OPENING_BALANCE": return t("transactions.types.openingBalance") || "Opening Balance";
       default: return type ? type.replace(/_/g, " ") : "Transaction";
     }
   };
@@ -170,7 +170,7 @@ function TransactionsPageContent() {
 
   const handleExportCSV = () => {
     if (sortedTransactions.length === 0) return;
-    const headers = ["Date", "Transaction Type", "Description", "Category / Pool", "Source", "Amount (AUD)"];
+    const headers = ["Date", "Type", "Description", "Category / Pool", "Source", "Amount (AUD)"];
     const rows = sortedTransactions.map((tx) => [
       `"${tx.date}"`,
       `"${getTransactionTypeLabel(tx.transactionType)}"`,
@@ -206,9 +206,10 @@ function TransactionsPageContent() {
   const { widths: planWidths, onMouseDown: onPlanMouseDown } = useResizableColumns({
     splitDate: 140,
     incomeDate: 130,
-    incomeName: 280,
-    receivingAccount: 200,
-    amount: 140,
+    incomeName: 260,
+    receivingAccount: 180,
+    amount: 130,
+    details: 90,
   });
 
   const paydayPlans = useMemo(() => {
@@ -418,7 +419,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>Transaction Type</span>
+                          <span>{t("transactions.type") || "Type"}</span>
                           {sortColumn === "transactionType" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -459,20 +460,8 @@ function TransactionsPageContent() {
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 font-mono text-zinc-500 text-center">{fmtDate(tx.date)}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
-                            tx.transactionType === "INCOME_SPLIT"
-                              ? "bg-blue-50 text-[#2563eb] border border-blue-200/60"
-                              : tx.transactionType?.includes("TRANSFER")
-                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200/60"
-                              : tx.transactionType === "ACCOUNT_ALIGNMENT"
-                              ? "bg-amber-50 text-amber-800 border border-amber-200/60"
-                              : tx.transactionType === "OPENING_BALANCE"
-                              ? "bg-slate-100 text-slate-700 border border-slate-200/60"
-                              : "bg-slate-50 text-slate-600 border border-slate-200/60"
-                          }`}>
-                            {getTransactionTypeLabel(tx.transactionType)}
-                          </span>
+                        <td className="py-3 px-4 text-center text-zinc-600 dark:text-zinc-300 font-medium">
+                          {getTransactionTypeLabel(tx.transactionType)}
                         </td>
                         <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">
                           <span>{tx.description}</span>
@@ -643,7 +632,7 @@ function TransactionsPageContent() {
           {/* Payday Allocations Table */}
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
             {paydayPlansQuery.isLoading ? (
-              <SkeletonTable cols={5} rows={planPageSize} />
+              <SkeletonTable cols={6} rows={planPageSize} />
             ) : sortedPaydayPlans.length === 0 ? (
               <div className="p-12 text-center text-xs text-zinc-400 font-semibold">
                 No income split plans found matching your filters.
@@ -727,6 +716,10 @@ function TransactionsPageContent() {
                           {planSortColumn === "amount" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
+
+                      <th className="py-3 px-4 text-center font-bold text-zinc-400 uppercase tracking-wider text-[11px] w-24">
+                        <span>{t("transactions.details") || "Details"}</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 text-xs">
@@ -738,14 +731,8 @@ function TransactionsPageContent() {
                         <td className="py-3 px-4 text-center font-mono text-zinc-500">
                           {fmtDate(plan.expectedDate || plan.createdAt)}
                         </td>
-                        <td className="py-3 px-4 text-left">
-                          <button
-                            type="button"
-                            onClick={() => setActivePlanForDrawer(plan)}
-                            className="font-bold text-[#2563eb] hover:underline text-left"
-                          >
-                            {plan.incomeName || "Income Deposit"}
-                          </button>
+                        <td className="py-3 px-4 text-left font-semibold text-[#1B2B4B] dark:text-white">
+                          <span>{plan.incomeName || "Income Deposit"}</span>
                         </td>
                         <td className="py-3 px-4 text-left font-semibold">
                           <Link
@@ -758,6 +745,15 @@ function TransactionsPageContent() {
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">
                           {fmt(plan.totalIncomeAmount)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setActivePlanForDrawer(plan)}
+                            className="font-bold text-[#2563eb] hover:underline inline-flex items-center text-xs cursor-pointer"
+                          >
+                            <span>{t("transactions.details") || "Details"}</span>
+                          </button>
                         </td>
                       </tr>
                     ))}

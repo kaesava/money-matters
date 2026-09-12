@@ -9,6 +9,7 @@ export const incomeEvents = pgTable("income_events", {
   incomeSourceId: uuid("income_source_id").references(() => incomeSources.id),
   name: varchar("name", { length: 255 }),
   expectedDate: date("expected_date").notNull(),
+  actualDate: date("actual_date"),
 
   expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
   actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),

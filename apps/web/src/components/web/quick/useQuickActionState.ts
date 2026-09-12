@@ -33,6 +33,14 @@ export function useQuickActionState(
     description: string;
     onConfirm: () => void;
   } | null>(null);
+  const [crossBankPrompt, setCrossBankPrompt] = useState<{
+    sourceAccountName: string;
+    destAccountName: string;
+    amount: number;
+    payId?: string | null;
+    bsb?: string | null;
+    accountNumber?: string | null;
+  } | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -256,6 +264,18 @@ export function useQuickActionState(
     utils.listBankAccountsWithExpected.invalidate();
     if (isTransfer && !isFutureDate) {
       toast.success(t("toasts.transferCompleted", { defaultValue: "Transfer completed" }));
+      const srcPool = categories.find((c) => c.id === sourceCategoryId);
+      const dstPool = categories.find((c) => c.id === destinationCategoryId);
+      if (srcPool?.bankAccountId && dstPool?.bankAccountId && srcPool.bankAccountId !== dstPool.bankAccountId) {
+        const srcAcc = bankAccounts.find((a) => a.id === srcPool.bankAccountId);
+        const dstAcc = bankAccounts.find((a) => a.id === dstPool.bankAccountId);
+        setCrossBankPrompt({
+          sourceAccountName: srcAcc?.name || "Source Bank Account",
+          destAccountName: dstAcc?.name || "Destination Bank Account",
+          amount: parseFloat(amount) || 0,
+        });
+        return;
+      }
     } else {
       toast.success(t("toasts.saved", { defaultValue: "Saved successfully" }));
     }
@@ -457,6 +477,8 @@ export function useQuickActionState(
     isPending: isSubmitting,
     confirmState,
     setConfirmState,
+    crossBankPrompt,
+    setCrossBankPrompt,
     handleTabChange,
     handleSelectPreset,
     handleSubmit,

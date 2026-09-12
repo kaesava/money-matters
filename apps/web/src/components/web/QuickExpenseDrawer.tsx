@@ -3,6 +3,7 @@ import { t } from "@money-matters/i18n";
 import { SlideOverDrawer, PoolPicker, InfoTooltip, ConfirmDialog, Button, AmountField } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
+import { CrossBankTransferModal } from "./CrossBankTransferModal";
 
 export interface QuickActionDrawerProps {
   readonly onClose: () => void;
@@ -45,6 +46,8 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     isPending,
     confirmState,
     setConfirmState,
+    crossBankPrompt,
+    setCrossBankPrompt,
   } = useQuickActionState(onClose, initialTab);
 
   const activePresets = isTransfer
@@ -320,6 +323,17 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
           />
         )}
       </SlideOverDrawer>
+
+      {crossBankPrompt && (
+        <CrossBankTransferModal
+          isOpen={!!crossBankPrompt}
+          onClose={() => {
+            setCrossBankPrompt(null);
+            onClose();
+          }}
+          {...crossBankPrompt}
+        />
+      )}
     </>
   );
 }

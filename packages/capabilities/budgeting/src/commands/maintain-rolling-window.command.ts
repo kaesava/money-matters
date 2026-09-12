@@ -35,15 +35,11 @@ export async function maintainRollingWindowCommand({
   for (const source of incomes) {
     if (!source.rrule) continue;
 
+    // Check all events previously generated for this source (including archived/deleted) to prevent re-burst resurrection
     const existingEvents = await db
       .select({ expectedDate: incomeEvents.expectedDate })
       .from(incomeEvents)
-      .where(
-        and(
-          eq(incomeEvents.incomeSourceId, source.id),
-          sql`${incomeEvents.archivedAt} IS NULL`
-        )
-      );
+      .where(eq(incomeEvents.incomeSourceId, source.id));
 
     const existingDates = new Set(existingEvents.map((e) => e.expectedDate));
     const startDate = source.startDate || todayStr;
@@ -56,17 +52,22 @@ export async function maintainRollingWindowCommand({
 
     if (datesToInsert.length > 0) {
       await db.insert(incomeEvents).values(
-        datesToInsert.map((d) => ({
-          incomeSourceId: source.id,
-          name: source.name,
-          expectedDate: getAestDateString(d),
-          expectedAmount: source.amount,
-          status: "PENDING" as const,
-          tenantId: tenantId,
-          appId: appId,
-          createdBy: userId,
-          updatedBy: userId,
-        }))
+        datesToInsert.map((d) => {
+          const dateStr = getAestDateString(d);
+          return {
+            incomeSourceId: source.id,
+            name: source.name,
+            expectedDate: dateStr,
+            actualDate: dateStr,
+            expectedAmount: source.amount,
+            actualAmount: source.amount,
+            status: "PENDING" as const,
+            tenantId: tenantId,
+            appId: appId,
+            createdBy: userId,
+            updatedBy: userId,
+          };
+        })
       );
       newEventsCount += datesToInsert.length;
     }
@@ -87,15 +88,11 @@ export async function maintainRollingWindowCommand({
   for (const source of expenses) {
     if (!source.rrule) continue;
 
+    // Check all events previously generated for this source (including archived/deleted) to prevent re-burst resurrection
     const existingEvents = await db
       .select({ expectedDate: expenseEvents.expectedDate })
       .from(expenseEvents)
-      .where(
-        and(
-          eq(expenseEvents.expenseSourceId, source.id),
-          sql`${expenseEvents.archivedAt} IS NULL`
-        )
-      );
+      .where(eq(expenseEvents.expenseSourceId, source.id));
 
     const existingDates = new Set(existingEvents.map((e) => e.expectedDate));
     const startDate = source.startDate || todayStr;
@@ -108,19 +105,24 @@ export async function maintainRollingWindowCommand({
 
     if (datesToInsert.length > 0) {
       await db.insert(expenseEvents).values(
-        datesToInsert.map((d) => ({
-          expenseSourceId: source.id,
-          poolId: source.poolId,
-          categoryId: source.categoryId,
-          name: source.name,
-          expectedDate: getAestDateString(d),
-          expectedAmount: source.amount,
-          status: "PENDING" as const,
-          tenantId: tenantId,
-          appId: appId,
-          createdBy: userId,
-          updatedBy: userId,
-        }))
+        datesToInsert.map((d) => {
+          const dateStr = getAestDateString(d);
+          return {
+            expenseSourceId: source.id,
+            poolId: source.poolId,
+            categoryId: source.categoryId,
+            name: source.name,
+            expectedDate: dateStr,
+            actualDate: dateStr,
+            expectedAmount: source.amount,
+            actualAmount: source.amount,
+            status: "PENDING" as const,
+            tenantId: tenantId,
+            appId: appId,
+            createdBy: userId,
+            updatedBy: userId,
+          };
+        })
       );
       newEventsCount += datesToInsert.length;
     }

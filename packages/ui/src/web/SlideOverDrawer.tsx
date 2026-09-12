@@ -1,6 +1,7 @@
 "use client";
-import React, { useEffect } from 'react';
+import React, { useId } from 'react';
 import { t } from '@money-matters/i18n';
+import { useModalDismiss } from './modalStack';
 
 interface SlideOverDrawerProps {
   title: React.ReactNode;
@@ -23,15 +24,13 @@ export function SlideOverDrawer({
   widthClass = 'max-w-md',
   isDirty: _isDirty = false,
 }: SlideOverDrawerProps) {
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  const drawerId = useId();
+
+  useModalDismiss({
+    id: `drawer-${drawerId}`,
+    isOpen: true,
+    onDismiss: onClose,
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">

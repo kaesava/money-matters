@@ -70,9 +70,9 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
   const cellOverrides = input.cellOverrides ?? {};
   const savedPlans = input.savedPlans ?? {};
 
-  // 1. Filter and sort pending income events chronologically (expectedDate ASC, then id ASC for same-day determinism)
+  // 1. Filter and sort income events chronologically (expectedDate ASC, then id ASC for same-day determinism)
   const upcomingIncomes = [...input.incomeEvents]
-    .filter((e) => e && e.status !== "CONFIRMED" && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
+    .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
     .sort((a, b) => {
       const tA = new Date(a.expectedDate + "T00:00:00").getTime();
       const tB = new Date(b.expectedDate + "T00:00:00").getTime();
@@ -137,28 +137,27 @@ export function runCumulativeProjection(input: CumulativeProjectionInput): Cumul
 
     const allocations = new Map<string, CumulativeAllocationDetail>();
 
-    // Check if this event has explicit saved plan lines or direct cell overrides
+    // Check if this event has explicit saved plan lines, is confirmed, or has direct cell overrides
     const eventSavedPlan = savedPlans[evt.id];
+    const isConfirmed = evt.status === "CONFIRMED";
+    const hasAnyCellOverride = input.categories.some((cat) => typeof cellOverrides[`${evt.id}_${cat.id}`] === "number");
 
-    if (eventSavedPlan && eventSavedPlan.length > 0) {
-      // Use saved plan lines
-      for (const line of eventSavedPlan) {
-        allocations.set(line.poolId, {
-          proposedAmount: line.proposedAmount,
-          reasoning: line.reasoning ?? "Custom saved allocation plan",
+    if ((eventSavedPlan && eventSavedPlan.length > 0) || (isConfirmed && hasAnyCellOverride)) {
+      // Use saved/confirmed plan lines or cellOverrides
+      for (const cat of input.categories) {
+        const savedLine = eventSavedPlan?.find((l) => l.poolId === cat.id);
+        const overrideKey = `${evt.id}_${cat.id}`;
+        const val = typeof cellOverrides[overrideKey] === "number"
+          ? cellOverrides[overrideKey]
+          : (savedLine?.proposedAmount ?? 0);
+        const defaultReasoning = isConfirmed ? "Confirmed allocation plan" : "Custom saved allocation plan";
+        const reasoning = savedLine?.reasoning?.trim() || defaultReasoning;
+
+        allocations.set(cat.id, {
+          proposedAmount: val,
+          reasoning,
           isOverride: true,
         });
-      }
-
-      // Ensure any missing buckets get 0 allocation
-      for (const cat of input.categories) {
-        if (!allocations.has(cat.id)) {
-          allocations.set(cat.id, {
-            proposedAmount: 0,
-            reasoning: "Custom saved allocation plan",
-            isOverride: true,
-          });
-        }
       }
     } else {
       // Run allocation engine against current simulated running balances and upcoming expenses

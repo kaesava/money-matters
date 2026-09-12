@@ -60,13 +60,13 @@ export function AffordCheckBreakdown({ data }: AffordCheckBreakdownProps) {
           {/* Rationale calculation steps */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Calculation Steps
+              {t('canIAfford.summaryTitle')}
             </h4>
-            <ul className="space-y-1.5 font-mono text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+            <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
               {data.rationaleSteps.map((step, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-blue-500 select-none">›</span>
-                  <span>{step}</span>
+                <li key={idx} className="flex items-start gap-2.5">
+                  <span className="text-blue-500 select-none font-bold">•</span>
+                  <span className="leading-relaxed">{step}</span>
                 </li>
               ))}
             </ul>

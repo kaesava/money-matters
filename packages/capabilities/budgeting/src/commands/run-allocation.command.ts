@@ -38,7 +38,7 @@ export async function runAllocationCommand(
   incomeEventId: string,
   incomeAmount: number,
   dbClient: DbOrTx,
-  customLines?: { bucketId: string; amount: string }[],
+  customLines?: { bucketId: string; amount: string; reasoning?: string }[],
   markAsReceivedToday?: boolean
 ) {
   // 1. Fetch Pools
@@ -164,7 +164,7 @@ export async function runAllocationCommand(
   });
 
   const customLinesMap = customLines
-    ? new Map(customLines.map((l) => [l.bucketId, parseFloat(l.amount)]))
+    ? new Map(customLines.map((l) => [l.bucketId, { amount: parseFloat(l.amount), reasoning: l.reasoning }]))
     : null;
 
   // 5. Execute DB write transaction
@@ -197,9 +197,9 @@ export async function runAllocationCommand(
       .returning();
 
     const linesToInsert = engineOutput.lines.map((line) => {
-      const confirmedVal = customLinesMap?.has(line.bucketId)
-        ? customLinesMap.get(line.bucketId)!
-        : line.proposedAmount;
+      const customItem = customLinesMap?.get(line.bucketId);
+      const confirmedVal = customItem !== undefined ? customItem.amount : line.proposedAmount;
+      const lineReasoning = customItem?.reasoning !== undefined ? customItem.reasoning : line.reasoning;
 
       return {
         tenantId,
@@ -208,36 +208,40 @@ export async function runAllocationCommand(
         poolId: line.bucketId,
         proposedAmount: line.proposedAmount.toFixed(2),
         confirmedAmount: confirmedVal.toFixed(2),
-        reasoning: line.reasoning,
+        reasoning: lineReasoning,
         createdBy: userId,
         updatedBy: userId,
       };
     });
 
-    const insertedLines = linesToInsert.length > 0
-      ? await tx.insert(allocationPlanLines).values(linesToInsert).returning()
+    // Prune $0 lines upon confirmation; keep all lines in draft/pending so user can adjust them
+    const finalLinesToInsert = isFuturePlanned
+      ? linesToInsert
+      : linesToInsert.filter((l) => parseFloat(l.confirmedAmount) > 0);
+
+    const insertedLines = finalLinesToInsert.length > 0
+      ? await tx.insert(allocationPlanLines).values(finalLinesToInsert).returning()
       : [];
 
     const ledgerEntriesToInsert = [];
-    for (let i = 0; i < engineOutput.lines.length; i++) {
-      const line = engineOutput.lines[i];
+    for (let i = 0; i < finalLinesToInsert.length; i++) {
+      const line = finalLinesToInsert[i];
       const insertedLine = insertedLines[i];
-      const confirmedVal = customLinesMap?.has(line.bucketId)
-        ? customLinesMap.get(line.bucketId)!
-        : line.proposedAmount;
+      const confirmedVal = parseFloat(line.confirmedAmount);
 
       if (!isFuturePlanned && confirmedVal > 0 && insertedLine) {
-        const pool = dbPools.find((p) => p.id === line.bucketId);
+        const pool = dbPools.find((p) => p.id === line.poolId);
         ledgerEntriesToInsert.push({
           tenantId,
           appId,
-          poolId: line.bucketId,
+          poolId: line.poolId,
           bankAccountId: pool?.bankAccountId || null,
           planLineId: insertedLine.id,
           flowType: "CREDIT" as const,
+          transactionType: "INCOME_SPLIT" as const,
           amount: confirmedVal.toFixed(2),
           idempotencyKey: `paydayalloc-${insertedLine.id}`,
-          note: `Payday Allocation: ${line.reasoning}`,
+          note: line.reasoning?.trim() || "Income Topup",
           source: "MANUAL" as const,
           createdBy: userId,
           updatedBy: userId,
@@ -250,22 +254,20 @@ export async function runAllocationCommand(
     }
 
     if (!isFuturePlanned) {
-      // Update income event status to CONFIRMED
+      // Update income event status to CONFIRMED with actualDate; NEVER mutate expectedDate!
       const updateData: {
         status: "CONFIRMED";
         actualAmount: string;
+        actualDate: string;
         updatedBy: string;
         updatedAt: Date;
-        expectedDate?: string;
       } = {
         status: "CONFIRMED",
         actualAmount: incomeAmount.toFixed(2),
+        actualDate: markAsReceivedToday ? getAestDateString() : (eventWithSource?.expectedDate || getAestDateString()),
         updatedBy: userId,
         updatedAt: new Date(),
       };
-      if (markAsReceivedToday && eventWithSource) {
-        updateData.expectedDate = getAestDateString();
-      }
       await tx
         .update(incomeEvents)
         .set(updateData)

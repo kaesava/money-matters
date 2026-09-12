@@ -5,6 +5,8 @@ import { t } from "@money-matters/i18n";
 import { ModalDialog } from "./ModalDialog";
 import { ConfirmDialog, Button, AmountField, DatePickerField } from "@money-matters/ui/web";
 import { useLocale } from "../../providers/LocaleProvider";
+import { trpc } from "../../lib/trpc";
+import { CrossBankTransferModal } from "./CrossBankTransferModal";
 
 export interface TransferModalItem {
   readonly id: string;
@@ -21,6 +23,7 @@ export interface PoolOption {
   readonly id: string;
   readonly name: string;
   readonly currentBalance?: string | number;
+  readonly bankAccountId?: string | null;
 }
 
 export interface TransferModalProps {
@@ -70,6 +73,17 @@ export function TransferModal({
   const [originalDate, setOriginalDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [crossBankPrompt, setCrossBankPrompt] = useState<{
+    sourceAccountName: string;
+    destAccountName: string;
+    amount: number;
+    payId?: string | null;
+    bsb?: string | null;
+    accountNumber?: string | null;
+  } | null>(null);
+
+  const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery(undefined, { enabled: isOpen });
+  const bankAccounts = bankAccountsQuery.data ?? [];
 
   useEffect(() => {
     if (isOpen && transfer) {
@@ -142,6 +156,19 @@ export function TransferModal({
           sourcePoolId: transfer.sourcePoolId || undefined,
           destinationPoolId: transfer.destinationPoolId || undefined,
         });
+
+        const src = pools.find((p) => p.id === transfer.sourcePoolId);
+        const dst = pools.find((p) => p.id === transfer.destinationPoolId);
+        if (src?.bankAccountId && dst?.bankAccountId && src.bankAccountId !== dst.bankAccountId) {
+          const srcAcc = bankAccounts.find((a) => a.id === src.bankAccountId);
+          const dstAcc = bankAccounts.find((a) => a.id === dst.bankAccountId);
+          setCrossBankPrompt({
+            sourceAccountName: srcAcc?.name || "Source Bank Account",
+            destAccountName: dstAcc?.name || "Destination Bank Account",
+            amount: numAmount,
+          });
+          return;
+        }
       }
       onClose();
     } finally {
@@ -299,6 +326,17 @@ export function TransferModal({
           cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
           variant="danger"
           isLoading={isSubmitting}
+        />
+      )}
+
+      {crossBankPrompt && (
+        <CrossBankTransferModal
+          isOpen={!!crossBankPrompt}
+          onClose={() => {
+            setCrossBankPrompt(null);
+            onClose();
+          }}
+          {...crossBankPrompt}
         />
       )}
     </>

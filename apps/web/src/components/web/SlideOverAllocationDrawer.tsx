@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
+import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../providers/LocaleProvider";
 
@@ -52,6 +53,15 @@ export function SlideOverAllocationDrawer({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  const isConfirmed = plan?.status === "CONFIRMED";
+  const displayLines = useMemo(() => {
+    if (!plan?.lines) return [];
+    return plan.lines.filter((line) => {
+      const amt = parseFloat(line.confirmedAmount || line.proposedAmount || "0");
+      return !isConfirmed || amt > 0;
+    });
+  }, [plan?.lines, isConfirmed]);
 
   if (!isOpen || !plan) return null;
 
@@ -125,19 +135,29 @@ export function SlideOverAllocationDrawer({
           {/* Waterfall Lines List */}
           <div className="flex-1 overflow-y-auto p-6 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              Income Split Breakdown ({plan.lines.length} pools)
+              Income Split Breakdown ({displayLines.length} pools)
             </h3>
-            {plan.lines.map((line, idx) => (
+            {displayLines.map((line, idx) => (
               <div
                 key={line.planId + (line.poolId || line.categoryId || idx)}
                 className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 rounded-xl space-y-1.5"
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                    {line.poolName || line.categoryName || "Pool Allocation"}
-                  </h4>
+                  {line.poolId ? (
+                    <Link
+                      href={`/dashboard/pools?poolId=${line.poolId}`}
+                      className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
+                    >
+                      <span>{line.poolName || line.categoryName || "Pool Allocation"}</span>
+                      <span className="text-[10px] text-blue-400">↗</span>
+                    </Link>
+                  ) : (
+                    <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                      {line.poolName || line.categoryName || "Pool Allocation"}
+                    </h4>
+                  )}
                   <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
-                    {fmt(line.confirmedAmount || line.proposedAmount)}
+                    {fmt(parseFloat(line.confirmedAmount || line.proposedAmount || "0"))}
                   </span>
                 </div>
                 {line.reasoning && (

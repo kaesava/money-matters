@@ -73,8 +73,8 @@ export async function previewPaydayForEvent(
     .orderBy(sql`${allocationPlans.createdAt} DESC`)
     .limit(1);
 
-  // If a CONFIRMED plan exists, return its saved lines directly
-  if (existingPlan && existingPlan.status === "CONFIRMED") {
+  // If a CONFIRMED or PENDING saved plan exists, return its saved lines directly
+  if (existingPlan) {
     const savedLines = await dbClient
       .select({
         id: allocationPlanLines.id,
@@ -89,11 +89,13 @@ export async function previewPaydayForEvent(
       .where(eq(allocationPlanLines.planId, existingPlan.id));
 
     if (savedLines.length > 0) {
+      const isConfirmed = existingPlan.status === "CONFIRMED";
+      const defaultReasoning = isConfirmed ? "Confirmed allocation plan" : "Custom saved allocation plan";
       const lines = savedLines.map((l) => ({
         bucketId: l.poolId,
         bucketName: l.poolName ?? "Unknown Pool",
         proposedAmount: parseFloat(l.confirmedAmount || l.proposedAmount),
-        reasoning: l.reasoning ?? "Custom saved allocation plan",
+        reasoning: l.reasoning?.trim() || defaultReasoning,
       }));
 
       const totalAllocated = lines.reduce((sum, l) => sum + l.proposedAmount, 0);
@@ -112,8 +114,8 @@ export async function previewPaydayForEvent(
           status: "OK" as const,
           lines,
           unallocatedAmount: Math.max(0, incomeAmt - totalAllocated),
-          isCustomPlan: false,
-          isConfirmedPlan: true,
+          isCustomPlan: !isConfirmed,
+          isConfirmedPlan: isConfirmed,
         },
       };
     }

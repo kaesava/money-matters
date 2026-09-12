@@ -30,6 +30,7 @@ export interface CategoryOption {
   readonly poolType?: string;
   readonly currentBalance: number | string;
   readonly isSurplusTarget?: boolean;
+  readonly bankAccountId?: string | null;
 }
 
 export interface WebAttentionItemsListProps {

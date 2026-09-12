@@ -38,8 +38,9 @@ export async function confirmAllocationCommand(
       })
       .returning();
 
-    // 2. Insert lines and ledger credit entries in bulk
-    const linesToInsert = input.lines.map((line) => ({
+    // 2. Insert lines and ledger credit entries in bulk (pruning $0 lines upon confirmation)
+    const nonZeroLines = input.lines.filter((l) => parseFloat(l.confirmedAmount) > 0);
+    const linesToInsert = nonZeroLines.map((line) => ({
       tenantId,
       appId,
       planId: plan.id,
@@ -47,7 +48,7 @@ export async function confirmAllocationCommand(
       categoryId: line.categoryId,
       proposedAmount: line.confirmedAmount,
       confirmedAmount: line.confirmedAmount,
-      reasoning: line.reasoning || "Manual Override",
+      reasoning: line.reasoning || "Income Split",
       createdBy: userId,
       updatedBy: userId,
     }));
@@ -57,8 +58,8 @@ export async function confirmAllocationCommand(
       : [];
 
     const ledgerEntriesToInsert = [];
-    for (let i = 0; i < input.lines.length; i++) {
-      const line = input.lines[i];
+    for (let i = 0; i < nonZeroLines.length; i++) {
+      const line = nonZeroLines[i];
       const insertedLine = insertedLines[i];
       const amountVal = parseFloat(line.confirmedAmount);
 
@@ -73,7 +74,7 @@ export async function confirmAllocationCommand(
           transactionType: "INCOME_SPLIT" as const,
           amount: line.confirmedAmount,
           idempotencyKey: `confirmalloc-${insertedLine.id}`,
-          note: `Income Allocation: ${line.reasoning || "Confirmed Split"}`,
+          note: line.reasoning?.trim() || "Income Topup",
           source: "MANUAL" as const,
           createdBy: userId,
           updatedBy: userId,
@@ -85,7 +86,7 @@ export async function confirmAllocationCommand(
       await tx.insert(transactionLedger).values(ledgerEntriesToInsert);
     }
 
-    // 3. Mark income event as CONFIRMED
+    // 3. Mark income event as CONFIRMED with actualAmount (do not overwrite expectedAmount or expectedDate)
     await tx
       .update(incomeEvents)
       .set({
