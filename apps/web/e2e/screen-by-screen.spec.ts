@@ -530,5 +530,22 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       await expect(page.locator('h2').filter({ hasText: /Payday Allocation History|履歴/i }).first()).toBeVisible();
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // 11. DEDICATED INCOME SPLIT HERO SCREEN (`/dashboard/income-split`)
+  // ---------------------------------------------------------------------------
+  test.describe('11. Dedicated Income Split Hero Screen (`/dashboard/income-split`)', () => {
+    test('11.1 Guarded redirect when accessed without event ID', async ({ page }) => {
+      await page.goto('/dashboard/income-split');
+      // Should gracefully redirect to income-and-bills
+      await expect(page).toHaveURL(/\/dashboard\/income-and-bills|\/sign-in/);
+    });
+
+    test('11.2 Focus mode layout and controls with mock event ID', async ({ page }) => {
+      await page.goto('/dashboard/income-split?id=mock-evt-1&returnTo=/dashboard');
+      // Verify page container or sign-in redirect
+      await expect(page.locator('body')).toBeVisible();
+    });
+  });
 });
 

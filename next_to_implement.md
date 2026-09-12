@@ -5,72 +5,6 @@
 * Ignore mobile app
 
 
-## Bank Accounts Screen
-* The information (i) popup falls off the screen - fix
-* Instead of "2 pools linked", maye we show the first two Pools that are linked (as hyperlinks that take the user to the Pools page with that Pool id queried), and with a "more" button if there were more than 3 linked, which would open the read-only modal that shows the Linked Pools (re-use existing)
-
-## History screen
-* Change from "About History & Allocations  A complete record of all your household spending and payday money moves." to "About History & Payday Splits    A complete record of all your household income, expenses and pool transfers as well as your income splits."
-### History tab
-* Show the Transaction Type (give it a friendlier name) as a column, allowing sort on it and remove the badge that says "Expense", etc from the Description. Ensure values like "TRANSFER_OUT" are translated into something more user-friendly.
-* Pools drop-down - don't show the balance (make this a mandatory parameter to the Pool picker and update across the app all instances where it's called to either show or not show balance depending on the calling context)
-* Remove the icon from Export csv
-### Payday Allocation tab
-* Change tab name from "Payday Allocations" to "Income Splits"
-* Change "DATE" to "ICOME SPLIT DATE" and add another column which shows the Income date.
-* Split the Income & Description columns into two columns (but only if they are different columns in the database) . For one of them, make it a hyperlink so when clicked, it opens the Details drawer (like the "View Details" button).
-* Now that we have a way to open the Income Split details, remove the Actions column (which has the "View Details" buttons)
-* Clicking the Bank Account hyperlink does not behave like other hyperlinks (which take you to the page with the pills, etc.) - fix
-* Remove the icon from Export csv
-* The Bank Accounts drop-down is not showing all Bank Accounts linked to the tenant (i.e., shared + private for the user).
-#### Payday Allocation Details Drawer
-* Change "Payday Allocation Details" to "Income Split Details"
-* The header looks messy - make it look more beautiful
-
-## Income & Expenses
-### Income Split
-* Change order of Pending/Confirmed/All to All/Pending/Confirmed and put a subtle "|" divider between the filter groups
-### Upcoming
-* Pool / Bank Account column - Remove all icons (I noticed icons for expenses). 
-* For Expense events, remove the Bank account, we only need the Pool or Pool & Category name (noting that the expense could be linked to the Pool level or Category level)
-* FOr Bank Accounts, make it a hyperlink, consistent with other hyperlinks that takes the user to the Bank Accounts screen with the Bank Account queried.
-
-### Setup
-* When I changed only the name of an expense, it warned me about applying the new amount to all unconfirmed future events. I am guessing the logic tests changes to name or amounts (these don't have to change schedules) - ensure the message reflects this correctly. Also, I was expecting any deleted events to remain deleted because we shouldn't be re-creating events based on the schedule (unless the schedule fields - like start date, end date, frequency, etc. change).
-
-
-## Mark Spent modal
-* Show a header section that shows the Pool/Category and Current Balance for the Pool (readonly) and for the green confirmation meessage (when there is sufficient balance), don't include these details, so say something like "Click confirm to draw down from the Pool" or something to this effect (user-friendly). Similarly, where there is not sufficient balance, remove these details, so something like "The Expense cannot be paid as the Pool is short $116.24. Select other Pools to transfer funds from before proceeding". This is because the header section shows the Pool/Vategory and Current Balance for the Pool.
-* Why are the "Confirm Transfer and Mark Paid" button (when Pools is insufficient) and "Mark Paid" (change to "Mark Spent") button (when pool is sufficient) disabled by default. It seems like only when I change the date, it becomes enabled? Oh, I think I know. I can see a message "The expense date previously scheduled for 2026-09-11 has now been defaulted to today." for past expenses. It's the other way around. When a future date is attempted to be Marked Paid, the date must change to today with this message. But we should allow past dates to be marked Paid.
-* Change button label from "Mark Paid" to "Mark Spent"
-
-## Settings
-### Data & Subscription
-
-* These two sections ("Aussie Privacy & Security Guarantee" & "Data Sovereignty & Zipped CSV Backup") have a different width to the first section.
-* Also, the information doesn't seem to flow. We already have a Privacy policy. And the wording around RLS stealth is useless to the user. Re-think the UI for these two section - perhaps merge and be clear on why we are showing this information here - perhaps we check if the Privacy page needs an update and link to it instead? Clean up.
-* We still want the ability for the user to download a complete zipped CSV archive of EVERYTHING that belongs to their tenant/private user id.
-* Ensure wording across the app doesn't reference payday allocations but rather, Income splits
-* When user has not purchased a subscription, change "Subscribe to Household" to something that asks them to get the full version - be consistent with the wording in the dashboard navigation bar. The wording needs to be consitent - are we calling it Trial vs. Premium or just Trial vs. "Household Plan"?
-
-
-## Quick modal (One-Off Expense)
-* For all three tabs, the (i) tooltip is getting cut off. Re-word carefully to be consistent with the expected functionality and agreed terminology and be user-friendly/
-* Allow user to pick a Pool or Category for an expense.
-* In the Expense tab, when I future-date, change the button label from "One-off Expense" to "Save Only".
-* For Transfer, change future dated button label from "Setup Transfer" to "Save Only" and for today's as "Transfer"
-* For Income, change "Save hyperlink" into a more subtle button that say "Save Only"
-* Remove all icons except for QUick Picks across the modal (all three tabs)
-* Quick Picks says most Frequent - is this right - I assumed it was a combination of 3 most recent + 3 most frequent. For most frequent, I'm not sure the code is correct. The calculation would need to be much more complex as we'd need to consider all of them (or at all within the last say 3-6 months) and then pick the most frequent not taking into account the amount (i.e., expense $5 coffee and expense $3 coffee should both be counted when calculating frequency), and account for transfers, income & expense events in the History. Review code - make a recommendation.
-
-## General
-* In all screens (Pools, History > History, History > Payday Allocations, etc) - show the pill between the search bar and the table, not above the (where the user was taken to that screen by following a item hyperlink). Also, if the user got to that screen by entering an invalid or archived or outside their RLS scope id of a filter item - instead of showing nothing, show the full table and still show the pill, but a generic message to say the item cannot be filtered.
-* In all tables/modals/screens with hyperlinks  that link to other, include a subtle 
-* Put a subtle "|" divider between the filter groups - applies on all screens where there is more than one filter group
-* Whe a confirmation modal (or secondary modal) is launched from a modal (like Mark Paid), ensure that the escape key works on the outer-most (i.e., secondary) modal. Applies across the app.
-
-
-
 # CHANGES - NOT DONE
 
 
@@ -93,12 +27,6 @@
 * I can see that the Household Name, Currency and Timezone are locked. However, are you sure the user has the opportunity to set them when a tenant is first created.
 # Archive/Unarchive
 
-
-
-
-# IMPORT CSV
-
-Do a thorough audit of the import csv capability. Right now, the UI is not consistent (for example, Step 2 has a card with a black background), the UX in Step 2 is extremely clunky (for example, if the user marks a record not to import and had accidentally selected it to apply a bulk action, they cannot unselect it!) and the functionally just incorrect (we should apply expenses to Pools or Categories not Pool Types). Further, there is a lot of complexity and I am not confident that it is built fully or correctly. I am tempted to remove it from V1 Scope. I want you to do a thorough analysis of this capability from multiple perspectives, code accuracy/completeness, code quality, functional correctness, UX,  and from a market perspective - desirability of this capability, noting that we don't expect users to micro-manage their expenses, so is there much value in it? Be critical. Be thorough. Make a recommendation.
 
 # MOBILE AUDIT
 
@@ -233,9 +161,9 @@ Linked Pools popup
 
 Private Bank Accounts
 
-Bank Account & Statement CSV Import (REMOVED FROM V1 - DEFERRED TO V2: see V2_SCOPE.md)
-CSV Import Log (DEFERRED TO V2)
-CSV Import Flow - Step 1, Step 2, Step 3 (DEFERRED TO V2)
+Bank Account & Statement csv Import
+CSV Import Log
+CSV Import Flow - Step 1,Step 2, Step 3
 
 
 
@@ -380,12 +308,12 @@ _________
 
 #### Private Bank Accounts
 
-### Bank Account & Statement CSV Import (REMOVED FROM V1 - DEFERRED TO V2: see V2_SCOPE.md)
-#### CSV Import Log (DEFERRED TO V2)
-#### CSV Import Flow (DEFERRED TO V2)
-##### Step 1: Upload (DEFERRED TO V2)
-##### Step 2: Review & Allocation (DEFERRED TO V2)
-##### Step 3: Confirmation (DEFERRED TO V2)
+### Bank Account & Statement csv Import
+#### CSV Import Log
+#### CSV Import Flow
+##### Step 1
+##### Step 2
+##### Step 3
 
 
 ## ******* "History"
@@ -457,8 +385,8 @@ _________
 
 ### Phase 3: Payday & Transactions
  Payday Cascade (/dashboard/paychecks): Preview & execute payday -> verify funds distribute across Bills, Everyday, and Buffer.
- Bank Balance Alignment: Open Bank Account Reconciliation modal -> enter actual balance -> verify variance adjustment transaction created.
- Transaction History & Export: Filter by date/category -> export CSV -> verify downloaded file integrity.
+ CSV Import (Web): Upload sample bank CSV -> map columns -> verify transactions populate and envelope balances update.
+ Reconciliation: Open Bank Account Reconciliation modal -> enter actual balance -> verify variance adjustment transaction created.
 
 ### Phase 4: Multi-Tenancy & Billing
  Partner Invites: Send invite from /dashboard/settings -> accept link /invite/[token] in incognito window -> verify second user sees shared tenant.

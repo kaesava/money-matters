@@ -226,6 +226,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-64";
+  const isDistractionFree = pathname.startsWith("/dashboard/income-split");
 
   const renderSidebar = () => (
     <SidebarContent
@@ -245,37 +246,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <LocaleProvider>
       <IconVisibilityProvider initialShowIcons={initialShowIcons}>
         <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
-        {/* ── Desktop Sidebar (Hidden on mobile) ── */}
-        <aside
-          style={{ backgroundColor: "var(--dash-navy)" }}
-          className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
-        >
-          {renderSidebar()}
-
-          {/* Sidebar Collapse Toggle Button */}
-          <button
-            onClick={() => setSidebarCollapsed((c) => {
-              const next = !c;
-              localStorage.setItem("sidebar_collapsed", String(next));
-              return next;
-            })}
-            className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50 active:scale-95 transition-transform"
-            aria-label="Toggle sidebar"
+        {/* ── Desktop Sidebar (Hidden in distraction-free mode or on mobile) ── */}
+        {!isDistractionFree && (
+          <aside
+            style={{ backgroundColor: "var(--dash-navy)" }}
+            className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
           >
-            <svg
-              className={`w-3.5 h-3.5 text-zinc-600 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
+            {renderSidebar()}
+
+            {/* Sidebar Collapse Toggle Button */}
+            <button
+              onClick={() => setSidebarCollapsed((c) => {
+                const next = !c;
+                localStorage.setItem("sidebar_collapsed", String(next));
+                return next;
+              })}
+              className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50 active:scale-95 transition-transform"
+              aria-label="Toggle sidebar"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        </aside>
+              <svg
+                className={`w-3.5 h-3.5 text-zinc-600 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </aside>
+        )}
 
         {/* ── Mobile Navigation Drawer ── */}
-        {mobileMenuOpen && (
+        {!isDistractionFree && mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-50 flex">
             {/* Backdrop mask shadow */}
             <div
@@ -294,41 +297,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* ── Main Layout Wrapper ── */}
         <div className="flex-1 flex flex-col min-w-0">
-          <TrialBanner />
+          {!isDistractionFree && <TrialBanner />}
 
           {/* Sticky top headers - Mobile only */}
-          <header
-            style={{ backgroundColor: "var(--dash-navy)" }}
-            className="md:hidden sticky top-0 z-40 h-14 flex items-center px-4 justify-between shadow-md"
-          >
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="p-1 text-white/80 hover:text-white transition-colors"
-              aria-label="Open navigation menu"
+          {!isDistractionFree && (
+            <header
+              style={{ backgroundColor: "var(--dash-navy)" }}
+              className="md:hidden sticky top-0 z-40 h-14 flex items-center px-4 justify-between shadow-md"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            
-            <span className="text-sm font-extrabold text-white">
-              {activeItem ? activeItem.label() : t("app.title")}
-            </span>
-
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
-                style={{ backgroundColor: "#2563eb" }}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="p-1 text-white/80 hover:text-white transition-colors"
+                aria-label="Open navigation menu"
               >
-                {initials}
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              
+              <span className="text-sm font-extrabold text-white">
+                {activeItem ? activeItem.label() : t("app.title")}
+              </span>
+
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
+                  style={{ backgroundColor: "#2563eb" }}
+                >
+                  {initials}
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
+          )}
 
           {/* Global Toolbar and Main Worksheets Viewport */}
           <div className="flex-1 flex flex-col overflow-y-auto">
             {/* Main workspace */}
-            <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
+            <main className={isDistractionFree ? "flex-1 w-full" : "flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8"}>
               {(isInitialLoading || isQueryFetching) ? (
                 <div className="min-h-[60vh] flex items-center justify-center p-6 text-center">
                   <Spinner size="lg" label={t("common.loading")} direction="col" />
@@ -385,30 +390,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
 
             {/* App-wide Dashboard Legal & Version Footer */}
-            <footer className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6 border-t border-zinc-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-500 font-medium">
-              <div>
-                <span>Money Matters {versionInfo.formattedVersion} ({versionInfo.channel})</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                  Privacy Policy
-                </a>
-                <span>•</span>
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                  Terms of Use
-                </a>
-                <span>•</span>
-                <a href="/privacy/delete-account" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                  Data Security & Erasure
-                </a>
-              </div>
-            </footer>
+            {!isDistractionFree && (
+              <footer className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6 border-t border-zinc-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-500 font-medium">
+                <div>
+                  <span>Money Matters {versionInfo.formattedVersion} ({versionInfo.channel})</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
+                    Privacy Policy
+                  </a>
+                  <span>•</span>
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
+                    Terms of Use
+                  </a>
+                  <span>•</span>
+                  <a href="/privacy/delete-account" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
+                    Data Security & Erasure
+                  </a>
+                </div>
+              </footer>
+            )}
           </div>
 
-          <QuickActionFab
-            pathname={pathname}
-            onOpenModal={() => setQuickExpenseOpen(true)}
-          />
+          {!isDistractionFree && (
+            <QuickActionFab
+              pathname={pathname}
+              onOpenModal={() => setQuickExpenseOpen(true)}
+            />
+          )}
 
           {quickExpenseOpen && (
             <QuickExpenseDrawer

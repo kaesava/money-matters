@@ -1,0 +1,170 @@
+"use client";
+
+import React from "react";
+import { Button, InfoTooltip } from "@money-matters/ui/web";
+import { t } from "@money-matters/i18n";
+
+export interface IncomeSplitHeaderProps {
+  readonly title: string;
+  readonly expectedDate: string;
+  readonly isSavedPlan: boolean;
+  readonly isConfirmedPlan: boolean;
+  readonly isDirty: boolean;
+  readonly isReadOnly: boolean;
+  readonly isDeficit: boolean;
+  readonly submitting: boolean;
+  readonly isFutureDate: boolean;
+  readonly onBack: () => void;
+  readonly onResetEdits: () => void;
+  readonly onRevertToAuto?: () => void;
+  readonly onDeleteIncome: () => void;
+  readonly onSaveSplit: () => void;
+  readonly onConfirmSplit: () => void;
+}
+
+export function IncomeSplitHeader({
+  title,
+  expectedDate,
+  isSavedPlan,
+  isConfirmedPlan,
+  isDirty,
+  isReadOnly,
+  isDeficit,
+  submitting,
+  isFutureDate,
+  onBack,
+  onResetEdits,
+  onRevertToAuto,
+  onDeleteIncome,
+  onSaveSplit,
+  onConfirmSplit,
+}: IncomeSplitHeaderProps) {
+  return (
+    <header className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 px-4 md:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+      {/* Left Navigation and Title */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-[#1B2B4B] dark:hover:text-white bg-zinc-100 dark:bg-zinc-800/80 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer shrink-0"
+        >
+          <span className="text-sm">←</span>
+          <span>{t("paydayDrawer.back", { defaultValue: "Back" })}</span>
+        </button>
+
+        <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700 shrink-0" />
+
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-base md:text-lg font-black text-[#1B2B4B] dark:text-white tracking-tight truncate">
+              {title || t("paydayDrawer.title", { defaultValue: "Income Split" })}
+            </h1>
+
+            {isSavedPlan && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 shrink-0">
+                {t("paydayDrawer.savedBadge", { defaultValue: "SAVED" })}
+                <InfoTooltip
+                  title={t("paydayDrawer.savedBadge", { defaultValue: "SAVED" })}
+                  content={t("paydayDrawer.savedBadgeTooltip", { defaultValue: "Saved: Custom Income Split plan for this payday." })}
+                />
+              </span>
+            )}
+
+            {isConfirmedPlan && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                {t("paydayDrawer.confirmedBadge", { defaultValue: "CONFIRMED" })}
+                <InfoTooltip
+                  title={t("paydayDrawer.confirmedBadge", { defaultValue: "CONFIRMED" })}
+                  content={t("paydayDrawer.confirmedBadgeTooltip", { defaultValue: "Confirmed: This Income Split has been executed and pool balances updated." })}
+                />
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-zinc-500 font-medium">
+            {expectedDate} • {t("paydayDrawer.subtitle", { defaultValue: "Review and confirm your Income Split across Pools" })}
+          </p>
+        </div>
+      </div>
+
+      {/* Right Actions */}
+      <div className="flex items-center gap-2.5 shrink-0">
+        {!isReadOnly ? (
+          <>
+            <button
+              type="button"
+              onClick={onResetEdits}
+              disabled={!isDirty || submitting}
+              className="px-3 py-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              {t("paydayDrawer.resetEdits", { defaultValue: "Reset Edits" })}
+            </button>
+
+            {isSavedPlan && onRevertToAuto && (
+              <button
+                type="button"
+                onClick={onRevertToAuto}
+                disabled={submitting}
+                className="px-3 py-1.5 text-xs font-bold text-[#2563eb] hover:underline disabled:opacity-50 cursor-pointer"
+              >
+                {t("paydayDrawer.revertToAuto", { defaultValue: "Revert to Auto" })}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onDeleteIncome}
+              disabled={submitting}
+              className="px-2.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              {t("common.delete", { defaultValue: "Delete" })}
+            </button>
+
+            {isFutureDate ? (
+              <Button
+                type="button"
+                onClick={onSaveSplit}
+                loading={submitting}
+                disabled={isDeficit || submitting}
+                className="px-4 py-2 text-xs font-bold shadow-sm cursor-pointer"
+              >
+                {t("common.save", { defaultValue: "Save" })}
+              </Button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onSaveSplit}
+                  disabled={isDeficit || submitting}
+                  className="px-3 py-1.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  {t("common.save", { defaultValue: "Save" })}
+                </button>
+                <Button
+                  type="button"
+                  onClick={onConfirmSplit}
+                  loading={submitting}
+                  disabled={isDeficit || submitting}
+                  variant="danger"
+                  className="px-5 py-2 text-xs font-extrabold shadow-md cursor-pointer"
+                >
+                  {t("paydayDrawer.runIncomeSplit", { defaultValue: "Run Income Split" })}
+                </Button>
+              </>
+            )}
+          </>
+        ) : (
+          isConfirmedPlan && onRevertToAuto && (
+            <button
+              type="button"
+              onClick={onRevertToAuto}
+              disabled={submitting}
+              className="px-3 py-1.5 text-xs font-bold text-[#2563eb] hover:underline disabled:opacity-50 cursor-pointer"
+            >
+              {t("matrix.unsave", { defaultValue: "Unsave / Revert" })}
+            </button>
+          )
+        )}
+      </div>
+    </header>
+  );
+}
