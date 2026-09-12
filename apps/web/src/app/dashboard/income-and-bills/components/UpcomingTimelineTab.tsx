@@ -459,29 +459,31 @@ export function UpcomingTimelineTab({
                       {/* POOL / BANK ACCOUNT Column with exact ID links */}
                       <td className="py-3 px-4 text-left text-xs">
                         {isTransfer ? (
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1 font-semibold text-xs">
                             <Link
-                              href={`/dashboard/pools?poolId=${evt.sourcePoolId}`}
-                              className="font-bold text-[#2563eb] hover:underline"
+                              href={`/dashboard/pools?poolId=${evt.poolId}`}
+                              className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >
-                              {evt.sourcePoolName || "Source"}
+                              <span>{evt.categoryName || "Source"}</span>
+                              <span className="text-[10px] text-blue-400">↗</span>
                             </Link>
                             <span className="text-zinc-400">➔</span>
                             <Link
                               href={`/dashboard/pools?poolId=${evt.destinationPoolId}`}
-                              className="font-bold text-[#2563eb] hover:underline"
+                              className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >
-                              {evt.destinationPoolName || "Destination"}
+                              <span>{evt.destinationPoolName || "Destination"}</span>
+                              <span className="text-[10px] text-blue-400">↗</span>
                             </Link>
                           </div>
                         ) : isIncome ? (
                           evt.accountId ? (
                             <Link
                               href={`/dashboard/bank-accounts?id=${evt.accountId}`}
-                              className="font-bold text-[#2563eb] hover:underline flex items-center gap-1"
+                              className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >
-                              <span>🏦</span>
                               <span>{evt.accountName || "Bank Account"}</span>
+                              <span className="text-[10px] text-blue-400">↗</span>
                             </Link>
                           ) : (
                             <span className="text-zinc-600 dark:text-zinc-300 font-medium">
@@ -493,30 +495,15 @@ export function UpcomingTimelineTab({
                             {evt.poolId || evt.categoryId ? (
                               <Link
                                 href={`/dashboard/pools?poolId=${evt.poolId || evt.categoryId}`}
-                                className="font-bold text-[#2563eb] hover:underline flex items-center gap-1"
+                                className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                               >
-                                <span>💧</span>
                                 <span>{evt.categoryName || "Pool"}</span>
+                                <span className="text-[10px] text-blue-400">↗</span>
                               </Link>
                             ) : (
                               <span className="font-bold text-zinc-700 dark:text-zinc-300">
                                 {evt.categoryName || "—"}
                               </span>
-                            )}
-                            {evt.accountName && (
-                              evt.accountId ? (
-                                <Link
-                                  href={`/dashboard/bank-accounts?id=${evt.accountId}`}
-                                  className="text-[10px] text-zinc-400 hover:text-[#2563eb] hover:underline flex items-center gap-1"
-                                >
-                                  <span>🏦</span>
-                                  <span>{evt.accountName}</span>
-                                </Link>
-                              ) : (
-                                <span className="text-[10px] text-zinc-400">
-                                  {evt.accountName}
-                                </span>
-                              )
                             )}
                           </div>
                         )}

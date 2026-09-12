@@ -53,7 +53,7 @@ export function MarkPaidModal({
   const { fmt, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
   const [amountStr, setAmountStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
-  const [wasPastDate, setWasPastDate] = useState(false);
+  const [wasFutureDate, setWasFutureDate] = useState(false);
   const [originalDate, setOriginalDate] = useState("");
   const [transferAmounts, setTransferAmounts] = useState<Record<string, string>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -67,10 +67,10 @@ export function MarkPaidModal({
     if (isOpen) {
       const amt = typeof initialAmount === "number" ? initialAmount.toFixed(2) : String(initialAmount || "0.00");
       setAmountStr(amt);
-      const isPast = Boolean(initialDate && initialDate < todayStr);
-      setWasPastDate(isPast);
+      const isFuture = Boolean(initialDate && initialDate > todayStr);
+      setWasFutureDate(isFuture);
       setOriginalDate(initialDate || "");
-      const chosenDate = isPast ? todayStr : initialDate || todayStr;
+      const chosenDate = isFuture ? todayStr : initialDate || todayStr;
       setDateStr(chosenDate);
     }
   }, [isOpen, initialAmount, initialDate, todayStr]);
@@ -219,10 +219,30 @@ export function MarkPaidModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={t("incomeBillsTabs.markPaidModalTitle", { defaultValue: "Mark Expense Paid" })}
+      title={t("incomeBillsTabs.markSpentModalTitle", { defaultValue: "Mark Expense Spent" })}
       maxWidth="max-w-xl"
     >
       <div className="flex flex-col gap-4">
+        {/* Target Pool & Current Balance Header Card */}
+        <div className="p-3.5 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-between text-xs">
+          <div>
+            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
+              Target Pool
+            </span>
+            <span className="font-bold text-sm text-[#1B2B4B] dark:text-white">
+              {formattedPoolName} <span className="text-xs font-normal text-zinc-500">({formattedPoolType})</span>
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
+              Current Balance
+            </span>
+            <span className="font-mono font-bold text-sm text-[#2563eb] tabular-nums">
+              {fmt(targetBalance)}
+            </span>
+          </div>
+        </div>
+
         {/* Editable Amount & Date Inputs */}
         <div className="grid grid-cols-2 gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
           <AmountField
@@ -245,13 +265,13 @@ export function MarkPaidModal({
           />
         </div>
 
-        {wasPastDate && (
+        {wasFutureDate && (
           <div className="p-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
             <span className="text-sm">ℹ️</span>
             <span>
-              {t("incomeBillsTabs.expensePastDateAdjustedNotice", {
+              {t("incomeBillsTabs.expenseFutureDateAdjustedNotice", {
                 date: originalDate,
-                defaultValue: `The expense date previously scheduled for ${originalDate} has now been defaulted to today.`,
+                defaultValue: `The expense was scheduled for a future date (${originalDate}). Defaulted to today for immediate spending.`,
               })}
             </span>
           </div>
@@ -416,8 +436,8 @@ export function MarkPaidModal({
             onClick={handleConfirm}
           >
             {hasShortfall
-              ? t("incomeBillsTabs.confirmTransferAndPay", { defaultValue: "Confirm Transfer & Mark Paid" })
-              : t("common.markPaid", { defaultValue: "Mark Paid" })}
+              ? t("incomeBillsTabs.confirmTransferAndSpend", { defaultValue: "Confirm Transfer & Mark Spent" })
+              : t("common.markSpent", { defaultValue: "Mark Spent" })}
           </Button>
         </div>
       </div>

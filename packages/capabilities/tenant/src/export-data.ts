@@ -80,7 +80,9 @@ export function exportMyDataHandler(db: DbOrTx) {
       .from(pools)
       .where(and(eq(pools.tenantId, tenantId), eq(pools.appId, appId)));
 
-    const userPools = rawPools.filter((p) => allowedBankAccountIds.has(p.bankAccountId));
+    const userPools = rawPools.filter(
+      (p) => !p.bankAccountId || allowedBankAccountIds.has(p.bankAccountId) || p.createdBy === userId
+    );
     const allowedPoolIds = new Set(userPools.map((p) => p.id));
 
     // 5. Fetch Categories
@@ -151,8 +153,8 @@ export function exportMyDataHandler(db: DbOrTx) {
       "Bills_and_Expenses.csv": arrayToCsv(userExpenseSources, ["id", "name", "amount", "rrule", "startDate", "poolId", "categoryId"]),
       "Expense_Events.csv": arrayToCsv(userExpenseEvents, ["id", "expenseSourceId", "expectedDate", "expectedAmount", "poolId", "status"]),
       "Transactions_Ledger.csv": arrayToCsv(userLedger, ["id", "recordedAt", "amount", "flowType", "poolId", "categoryId", "bankAccountId"]),
-      "Payday_Allocation_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "totalIncomeAmount", "status"]),
-      "Payday_Allocation_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "planId", "poolId", "proposedAmount", "confirmedAmount"]),
+      "Income_Split_Plans.csv": arrayToCsv(userAllocationPlans, ["id", "incomeEventId", "totalIncomeAmount", "status"]),
+      "Income_Split_Plan_Lines.csv": arrayToCsv(userAllocationPlanLines, ["id", "planId", "poolId", "proposedAmount", "confirmedAmount"]),
     };
 
     return {

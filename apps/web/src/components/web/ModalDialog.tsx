@@ -31,6 +31,7 @@ export function ModalDialog({
   const effectiveMaxWidth = maxWidthClass || maxWidth;
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const titleId = React.useId();
 
   useEffect(() => {
     setMounted(true);
@@ -73,6 +74,21 @@ export function ModalDialog({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (showConfirm) {
+          e.stopImmediatePropagation();
+          setShowConfirm(false);
+          return;
+        }
+
+        const dialogs = document.querySelectorAll('[role="dialog"]');
+        if (dialogs.length > 1) {
+          const currentDialog = document.getElementById(titleId)?.closest('[role="dialog"]');
+          const lastDialog = dialogs[dialogs.length - 1];
+          if (currentDialog && currentDialog !== lastDialog) {
+            return;
+          }
+        }
+
         e.stopImmediatePropagation();
         handleRequestClose();
       }
@@ -80,9 +96,8 @@ export function ModalDialog({
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen, handleRequestClose]);
+  }, [isOpen, handleRequestClose, showConfirm, titleId]);
 
-  const titleId = React.useId();
 
   if (!isOpen || !mounted) return null;
 

@@ -250,13 +250,20 @@ function PoolsPageContent() {
     });
   }, [poolsQuery.data, categoriesQuery.data, showProjectionMatrix, projectionMonths, activeProjectionColId, projectionQuery.data, expenseEventsQuery.data, transactionsQuery.data]);
 
+  const matchedPool = poolIdParam ? tableRows.find((r) => r.id === poolIdParam) : null;
+  const matchedCategory = categoryIdParam ? categoriesQuery.data?.find((c) => c.id === categoryIdParam) : null;
+  const isFilterParamInvalid = Boolean(
+    (poolIdParam && !matchedPool) ||
+    (categoryIdParam && !matchedCategory)
+  );
+
   // Filter logic: Type filter + Privacy filter + Search
   const filteredRows = useMemo(() => {
     return tableRows.filter((row) => {
-      if (poolIdParam && row.id !== poolIdParam) {
+      if (poolIdParam && matchedPool && row.id !== poolIdParam) {
         return false;
       }
-      if (categoryIdParam && !row.categories.some((c) => c.id === categoryIdParam)) {
+      if (categoryIdParam && matchedCategory && !row.categories.some((c) => c.id === categoryIdParam)) {
         return false;
       }
       if (typeFilter !== "ALL" && row.poolType !== typeFilter) {
@@ -276,7 +283,7 @@ function PoolsPageContent() {
       const bankNameMatch = row.bankAccountName ? row.bankAccountName.toLowerCase().includes(q) : false;
       return poolNameMatch || catNameMatch || bankNameMatch;
     });
-  }, [tableRows, poolIdParam, categoryIdParam, typeFilter, privacyFilter, searchQuery]);
+  }, [tableRows, poolIdParam, matchedPool, categoryIdParam, matchedCategory, typeFilter, privacyFilter, searchQuery]);
 
   // Sorting logic
   const sortedRows = useMemo(() => {
@@ -485,25 +492,6 @@ function PoolsPageContent() {
         </div>
       )}
 
-      {(poolIdParam || categoryIdParam) && (
-        <div className="flex items-center gap-2">
-          <RecordFilterBadge
-            label={
-              poolIdParam
-                ? `Filtered to Pool: ${tableRows.find((r) => r.id === poolIdParam)?.name || poolIdParam}`
-                : `Filtered to Category: ${categoriesQuery.data?.find((c) => c.id === categoryIdParam)?.name || categoryIdParam}`
-            }
-            onClear={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("poolId");
-              url.searchParams.delete("id");
-              url.searchParams.delete("categoryId");
-              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
-            }}
-          />
-        </div>
-      )}
-
       {/* Controls Bar & Segmented Filter */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
         <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
@@ -515,6 +503,8 @@ function PoolsPageContent() {
             }}
             placeholder="Search Pool Name, Category, or Bank Account..."
           />
+
+          <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
 
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
@@ -536,6 +526,8 @@ function PoolsPageContent() {
                 </button>
               ))}
             </div>
+
+            <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
 
             <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
               {(["ALL", "SHARED", "PRIVATE"] as const).map((pType) => (
@@ -559,6 +551,34 @@ function PoolsPageContent() {
           </div>
         </div>
       </div>
+
+      {(poolIdParam || categoryIdParam) && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <RecordFilterBadge
+            label={
+              poolIdParam
+                ? matchedPool
+                  ? `Filtered to Pool: ${matchedPool.name}`
+                  : "Filter: Item unavailable"
+                : matchedCategory
+                ? `Filtered to Category: ${matchedCategory.name}`
+                : "Filter: Item unavailable"
+            }
+            onClear={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("poolId");
+              url.searchParams.delete("id");
+              url.searchParams.delete("categoryId");
+              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+            }}
+          />
+          {isFilterParamInvalid && (
+            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
+              Requested item was not found or is archived. Showing all records.
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Hierarchical Pools Table with Optional Projection Mode Watermark */}
       <div className="relative">

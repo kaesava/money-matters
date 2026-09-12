@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
@@ -11,12 +12,12 @@ import { NextPaydayCard, WebIncomeItem } from "./components/NextPaydayCard";
 import { AttentionItemsList, WebAttentionItem } from "./components/AttentionItemsList";
 import { MissingSchedulesBanner } from "./components/MissingSchedulesBanner";
 import { QuickActionDrawer } from "../../components/web/QuickExpenseDrawer";
-import { PaydayActionDrawer } from "../../components/web/PaydayActionDrawer";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useLocale } from "../../providers/LocaleProvider";
 import posthog from "../../lib/posthog-client";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const toast = useToast();
   const utils = trpc.useUtils();
   const { fmt } = useLocale();
@@ -38,8 +39,6 @@ export default function DashboardPage() {
     deleteTransferEventMutation,
     executeTransferEventMutation,
     updateTransferEventMutation,
-    paydayPreviewEventId,
-    setPaydayPreviewEventId,
   } = useDashboardData();
 
   const [incomeToDelete, setIncomeToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -335,7 +334,7 @@ export default function DashboardPage() {
           <NextPaydayCard
             upcomingIncomes={upcomingIncomeList}
             onPressRunSplit={(id: string) => {
-              setPaydayPreviewEventId(id);
+              router.push(`/dashboard/income-split?id=${id}&returnTo=/dashboard`);
             }}
             onDeleteIncome={(id: string) => {
               const matched = upcomingIncomeList.find((item) => item.id === id);
@@ -345,14 +344,6 @@ export default function DashboardPage() {
           />
         </div>
       </div>
-
-      {paydayPreviewEventId && (
-        <PaydayActionDrawer
-          incomeEventId={paydayPreviewEventId}
-          isOpen={!!paydayPreviewEventId}
-          onClose={() => setPaydayPreviewEventId(null)}
-        />
-      )}
 
       {quickDrawerOpen && (
         <QuickActionDrawer

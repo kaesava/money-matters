@@ -1,9 +1,8 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer, PoolPicker, InfoTooltip, useIconVisibility, ConfirmDialog, Button, AmountField } from "@money-matters/ui/web";
+import { SlideOverDrawer, PoolPicker, InfoTooltip, ConfirmDialog, Button, AmountField } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
-import { PaydayActionDrawer } from "@/components/web/PaydayActionDrawer";
 
 export interface QuickActionDrawerProps {
   readonly onClose: () => void;
@@ -31,8 +30,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     date,
     setDate,
     todayStr,
-    paydayModalEventId,
-    setPaydayModalEventId,
     error,
     isIncome,
     isTransfer,
@@ -49,9 +46,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     confirmState,
     setConfirmState,
   } = useQuickActionState(onClose, initialTab);
-
-
-  const { showIcons } = useIconVisibility();
 
   const activePresets = isTransfer
     ? quickTransferPresets
@@ -88,6 +82,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
       >
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
             {/* 3-Way Segmented Control */}
+            {/* 3-Way Segmented Control */}
               <div className="flex rounded-xl bg-zinc-100 p-1">
                 <button
                   type="button"
@@ -96,7 +91,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     type === "DEBIT" ? "bg-white text-[#2563eb] shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  {showIcons && <span>💸</span>}
                   <span>{t("drawers.quickExpense.tabExpense", { defaultValue: "Expense" })}</span>
                 </button>
                 <button
@@ -106,7 +100,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     type === "CREDIT" ? "bg-white text-emerald-700 shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  {showIcons && <span>💰</span>}
                   <span>{t("drawers.quickExpense.tabIncome", { defaultValue: "Income" })}</span>
                 </button>
                 <button
@@ -116,13 +109,16 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     type === "TRANSFER" ? "bg-white text-indigo-700 shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  {showIcons && <span>🔄</span>}
                   <span>{t("drawers.quickExpense.tabTransfer", { defaultValue: "Transfer" })}</span>
                 </button>
               </div>
 
-              {/* Quick Pick Badges (Last 3 Saved) */}
-              <QuickPickBadges presets={activePresets} onSelect={handleSelectPreset} />
+              {/* Quick Pick Badges (Recent & Frequent) */}
+              <QuickPickBadges
+                recentPresets={activePresets.recent}
+                frequentPresets={activePresets.frequent}
+                onSelect={handleSelectPreset}
+              />
 
               {error && (
                 <div className="text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
@@ -161,6 +157,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       selectedPoolId={sourceCategoryId || null}
                       allowCategorySelection={false}
                       placeholder="Select Source Pool..."
+                      showBalance={true}
                       onChange={(sel) => setSourceCategoryId(sel.poolId)}
                     />
                   </div>
@@ -180,6 +177,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       selectedPoolId={destinationCategoryId || null}
                       allowCategorySelection={false}
                       placeholder="Select Destination Pool..."
+                      showBalance={true}
                       onChange={(sel) => setDestinationCategoryId(sel.poolId)}
                     />
                   </div>
@@ -218,6 +216,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                         selectedCategoryId={selectedSubCategoryId || null}
                         allowCategorySelection={true}
                         placeholder="Select Pool or Category..."
+                        showBalance={true}
                         onChange={(sel) => {
                           setCategoryId(sel.poolId);
                           setSelectedSubCategoryId(sel.categoryId);
@@ -286,7 +285,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     onClick={() => executeSubmit(false, true)}
                     className="px-4 py-2.5 text-xs font-bold text-[#2563eb] hover:text-blue-800 underline cursor-pointer disabled:opacity-50 transition-all"
                   >
-                    {t("common.save", { defaultValue: "Save" })}
+                    {t("common.saveOnly", { defaultValue: "Save Only" })}
                   </button>
                 )}
                 <Button
@@ -297,12 +296,12 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 >
                   {isTransfer
                     ? isFutureDate
-                      ? "Setup Transfer"
-                      : "Confirm Transfer"
+                      ? t("common.saveOnly", { defaultValue: "Save Only" })
+                      : t("common.transfer", { defaultValue: "Transfer" })
                     : isIncome
-                    ? "Split Income"
+                    ? t("common.splitIncome", { defaultValue: "Split Income" })
                     : isFutureDate
-                    ? t("drawers.quickExpense.oneOffExpense", { defaultValue: "One-off Expense" })
+                    ? t("common.saveOnly", { defaultValue: "Save Only" })
                     : t("common.markSpent", { defaultValue: "Mark Spent" })}
                 </Button>
               </div>
@@ -316,23 +315,11 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
             onConfirm={confirmState.onConfirm}
             title={confirmState.title}
             description={confirmState.description}
-            confirmLabel="Proceed"
+            confirmLabel={t("common.proceed", { defaultValue: "Proceed" })}
             variant="warning"
           />
         )}
       </SlideOverDrawer>
-
-      {paydayModalEventId && (
-        <PaydayActionDrawer
-          isOpen={Boolean(paydayModalEventId)}
-          incomeEventId={paydayModalEventId}
-          onClose={() => setPaydayModalEventId(null)}
-          onSuccess={() => {
-            setPaydayModalEventId(null);
-            onClose();
-          }}
-        />
-      )}
     </>
   );
 }

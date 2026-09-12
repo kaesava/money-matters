@@ -25,22 +25,23 @@ function TransactionsPageContent() {
   const [filterType, setFilterType] = useState<"ALL" | "DEBIT" | "CREDIT" | "TRANSFER">("ALL");
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [selectedPool, setSelectedPool] = useState<string>("ALL");
-  const [sortColumn, setSortColumn] = useState<"recordedAt" | "description" | "amount">("recordedAt");
+  const [sortColumn, setSortColumn] = useState<"recordedAt" | "transactionType" | "description" | "amount">("recordedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [activePlanForDrawer, setActivePlanForDrawer] = useState<PaydayPlanRecord | null>(null);
 
   const { widths, onMouseDown } = useResizableColumns({
-    date: 140,
-    description: 280,
+    date: 120,
+    type: 140,
+    description: 260,
     category: 180,
-    source: 140,
     amount: 140,
   });
 
   const categoriesQuery = trpc.listCategories.useQuery();
   const poolsQuery = trpc.listPools.useQuery();
+  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
   const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500, offset: 0 });
   const paydayPlansQuery = trpc.listAllAllocationPlans.useQuery(undefined, {
     enabled: activeTab === "payday-allocations",
@@ -57,7 +58,9 @@ function TransactionsPageContent() {
 
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
+  const bankAccounts = useMemo(() => bankAccountsQuery.data ?? [], [bankAccountsQuery.data]);
   const poolMap = useMemo(() => new Map(pools.map((p) => [p.id, p.name])), [pools]);
+
 
   // Map transaction ledger items for spacious display without grouping transfer pairs
   const allTransactions = useMemo(() => {
@@ -93,12 +96,36 @@ function TransactionsPageContent() {
     });
   }, [transactionsQuery.data, categories, poolMap]);
 
+  const matchedPool = poolIdParam ? pools.find((p) => p.id === poolIdParam) : null;
+  const matchedCategory = categoryIdParam ? categories.find((c) => c.id === categoryIdParam) : null;
+  const matchedBankAccount = bankAccountIdParam ? bankAccounts.find((b: { id: string }) => b.id === bankAccountIdParam) : null;
+
+  const isFilterParamInvalid = Boolean(
+    (poolIdParam && !matchedPool) ||
+    (categoryIdParam && !matchedCategory) ||
+    (bankAccountIdParam && !matchedBankAccount)
+  );
+
+  const getTransactionTypeLabel = (type?: string): string => {
+    switch (type) {
+      case "EXPENSE": return "Expense";
+      case "INCOME_SPLIT": return "Income Split";
+      case "INCOME_DIRECT": return "Direct Income";
+      case "TRANSFER_OUT": return "Transfer Out";
+      case "TRANSFER_IN": return "Transfer In";
+      case "ACCOUNT_ALIGNMENT": return "Account Alignment";
+      case "BALANCE_ADJUSTMENT": return "Balance Adjustment";
+      case "OPENING_BALANCE": return "Opening Balance";
+      default: return type ? type.replace(/_/g, " ") : "Transaction";
+    }
+  };
+
   const filteredTransactions = useMemo(() => {
     return allTransactions.filter((tx) => {
       if (filterType !== "ALL" && tx.type !== filterType) return false;
-      if (poolIdParam && tx.poolId !== poolIdParam) return false;
-      if (categoryIdParam && tx.categoryId !== categoryIdParam) return false;
-      if (bankAccountIdParam && tx.bankAccountId !== bankAccountIdParam) return false;
+      if (poolIdParam && matchedPool && tx.poolId !== poolIdParam) return false;
+      if (categoryIdParam && matchedCategory && tx.categoryId !== categoryIdParam) return false;
+      if (bankAccountIdParam && matchedBankAccount && tx.bankAccountId !== bankAccountIdParam) return false;
       if (selectedPool !== "ALL") {
         const selectedPoolObj = pools.find((p) => p.id === selectedPool);
         const selectedName = selectedPoolObj?.name;
@@ -117,13 +144,15 @@ function TransactionsPageContent() {
       }
       return true;
     });
-  }, [allTransactions, filterType, selectedPool, searchQuery, pools, poolIdParam, categoryIdParam, bankAccountIdParam]);
+  }, [allTransactions, filterType, selectedPool, searchQuery, pools, poolIdParam, matchedPool, categoryIdParam, matchedCategory, bankAccountIdParam, matchedBankAccount]);
 
   const sortedTransactions = useMemo(() => {
     return [...filteredTransactions].sort((a, b) => {
       let cmp = 0;
       if (sortColumn === "recordedAt") {
         cmp = new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime();
+      } else if (sortColumn === "transactionType") {
+        cmp = (a.transactionType || "").localeCompare(b.transactionType || "");
       } else if (sortColumn === "description") {
         cmp = a.description.localeCompare(b.description);
       } else if (sortColumn === "amount") {
@@ -141,12 +170,12 @@ function TransactionsPageContent() {
 
   const handleExportCSV = () => {
     if (sortedTransactions.length === 0) return;
-    const headers = ["Date", "Description", "Category / Pool", "Type", "Source", "Amount (AUD)"];
+    const headers = ["Date", "Transaction Type", "Description", "Category / Pool", "Source", "Amount (AUD)"];
     const rows = sortedTransactions.map((tx) => [
       `"${tx.date}"`,
+      `"${getTransactionTypeLabel(tx.transactionType)}"`,
       `"${tx.description.replace(/"/g, '""')}"`,
       `"${tx.categoryName.replace(/"/g, '""')}"`,
-      `"${tx.type === "TRANSFER" ? "Transfer" : tx.type === "CREDIT" ? "Income" : "Expense"}"`,
       `"${tx.source || "MANUAL"}"`,
       `"${tx.amount}"`,
     ]);
@@ -162,25 +191,24 @@ function TransactionsPageContent() {
   };
 
   const tabsList = [
-    { id: "transactions", label: t("transactions.tabs.transactions") || "Transactions" },
-    { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") || "Income Splits" },
+    { id: "transactions", label: t("transactions.tabs.transactions") || "History" },
+    { id: "payday-allocations", label: "Income Splits" },
   ];
 
-  // Payday Allocations Table State
+  // Payday Allocations / Income Splits Table State
   const [planSearchQuery, setPlanSearchQuery] = useState("");
   const [selectedBankFilter, setSelectedBankFilter] = useState("ALL");
-  const [planSortColumn, setPlanSortColumn] = useState<"date" | "incomeName" | "receivingAccount" | "trigger" | "amount">("date");
+  const [planSortColumn, setPlanSortColumn] = useState<"createdAt" | "expectedDate" | "incomeName" | "receivingAccount" | "amount">("createdAt");
   const [planSortDirection, setPlanSortDirection] = useState<"asc" | "desc">("desc");
   const [planPage, setPlanPage] = useState(1);
   const [planPageSize, setPlanPageSize] = useState(25);
 
   const { widths: planWidths, onMouseDown: onPlanMouseDown } = useResizableColumns({
-    date: 140,
-    incomeName: 240,
-    receivingAccount: 220,
-    trigger: 110,
+    splitDate: 140,
+    incomeDate: 130,
+    incomeName: 280,
+    receivingAccount: 200,
     amount: 140,
-    actions: 140,
   });
 
   const paydayPlans = useMemo(() => {
@@ -188,16 +216,15 @@ function TransactionsPageContent() {
   }, [paydayPlansQuery.data]);
 
   const uniqueBankAccounts = useMemo(() => {
-    const banks = new Set<string>();
-    for (const p of paydayPlans) {
-      if (p.receivingAccountName) banks.add(p.receivingAccountName);
-    }
-    return Array.from(banks);
-  }, [paydayPlans]);
+    return bankAccounts.map((b: { name: string }) => b.name);
+  }, [bankAccounts]);
 
   const filteredPaydayPlans = useMemo(() => {
     return paydayPlans.filter((plan) => {
       if (selectedBankFilter !== "ALL" && (plan.receivingAccountName || "Main Account") !== selectedBankFilter) {
+        return false;
+      }
+      if (bankAccountIdParam && matchedBankAccount && plan.receivingAccountName !== matchedBankAccount.name) {
         return false;
       }
       if (planSearchQuery.trim()) {
@@ -209,21 +236,23 @@ function TransactionsPageContent() {
       }
       return true;
     });
-  }, [paydayPlans, selectedBankFilter, planSearchQuery]);
+  }, [paydayPlans, selectedBankFilter, planSearchQuery, bankAccountIdParam, matchedBankAccount]);
 
   const sortedPaydayPlans = useMemo(() => {
     return [...filteredPaydayPlans].sort((a, b) => {
       let cmp = 0;
-      if (planSortColumn === "date") {
-        const timeA = new Date(a.expectedDate || a.createdAt || 0).getTime();
-        const timeB = new Date(b.expectedDate || b.createdAt || 0).getTime();
+      if (planSortColumn === "createdAt") {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        cmp = timeA - timeB;
+      } else if (planSortColumn === "expectedDate") {
+        const timeA = new Date(a.expectedDate || 0).getTime();
+        const timeB = new Date(b.expectedDate || 0).getTime();
         cmp = timeA - timeB;
       } else if (planSortColumn === "incomeName") {
         cmp = (a.incomeName || "").localeCompare(b.incomeName || "");
       } else if (planSortColumn === "receivingAccount") {
         cmp = (a.receivingAccountName || "").localeCompare(b.receivingAccountName || "");
-      } else if (planSortColumn === "trigger") {
-        cmp = (a.status || "PENDING").localeCompare(b.status || "PENDING");
       } else if (planSortColumn === "amount") {
         cmp = parseFloat(String(a.totalIncomeAmount || 0)) - parseFloat(String(b.totalIncomeAmount || 0));
       }
@@ -246,8 +275,8 @@ function TransactionsPageContent() {
             {t("transactions.title") || "History"}
           </h1>
           <InfoTooltip
-            title="About History & Allocations"
-            content={t("transactions.historyTooltip")}
+            title="About History & Payday Splits"
+            content="A complete record of all your household income, expenses and pool transfers as well as your income splits."
           />
         </div>
       </div>
@@ -258,28 +287,6 @@ function TransactionsPageContent() {
       {/* Tab 1: Itemized Transactions Ledger */}
       {activeTab === "transactions" && (
         <div className="space-y-6">
-          {(poolIdParam || categoryIdParam || bankAccountIdParam) && (
-            <div className="flex items-center gap-2">
-              <RecordFilterBadge
-                label={
-                  poolIdParam
-                    ? `Filtered to Pool: ${poolMap.get(poolIdParam) || poolIdParam}`
-                    : categoryIdParam
-                    ? `Filtered to Category: ${categories.find((c) => c.id === categoryIdParam)?.name || categoryIdParam}`
-                    : `Filtered to Bank Account`
-                }
-                onClear={() => {
-                  const url = new URL(window.location.href);
-                  url.searchParams.delete("poolId");
-                  url.searchParams.delete("id");
-                  url.searchParams.delete("categoryId");
-                  url.searchParams.delete("bankAccountId");
-                  router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
-                }}
-              />
-            </div>
-          )}
-
           {/* Controls Bar & Segmented Filter */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-slate-50 border border-zinc-200/80 rounded-2xl">
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
@@ -288,6 +295,8 @@ function TransactionsPageContent() {
                 onChange={setSearchQuery}
                 placeholder={t("transactions.searchPlaceholder") || "Search description or category name..."}
               />
+
+              <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
 
               <div className="w-full sm:w-56 text-xs">
                 <PoolPicker
@@ -304,9 +313,12 @@ function TransactionsPageContent() {
                   selectedPoolId={selectedPool || "ALL"}
                   allowCategorySelection={false}
                   placeholder="All Pools"
+                  showBalance={false}
                   onChange={(sel) => setSelectedPool(sel.poolId || "ALL")}
                 />
               </div>
+
+              <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
 
               <div className="flex items-center bg-white p-1 rounded-xl border border-zinc-200">
                 {(["ALL", "DEBIT", "CREDIT", "TRANSFER"] as const).map((tType) => (
@@ -332,15 +344,47 @@ function TransactionsPageContent() {
               disabled={sortedTransactions.length === 0}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
-              <span>📥</span>
               <span>Export CSV</span>
             </button>
           </div>
 
+          {(poolIdParam || categoryIdParam || bankAccountIdParam) && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <RecordFilterBadge
+                label={
+                  poolIdParam
+                    ? matchedPool
+                      ? `Filtered to Pool: ${matchedPool.name}`
+                      : "Filter: Item unavailable"
+                    : categoryIdParam
+                    ? matchedCategory
+                      ? `Filtered to Category: ${matchedCategory.name}`
+                      : "Filter: Item unavailable"
+                    : matchedBankAccount
+                    ? `Filtered to Account: ${matchedBankAccount.name}`
+                    : "Filter: Item unavailable"
+                }
+                onClear={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete("poolId");
+                  url.searchParams.delete("id");
+                  url.searchParams.delete("categoryId");
+                  url.searchParams.delete("bankAccountId");
+                  router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+                }}
+              />
+              {isFilterParamInvalid && (
+                <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
+                  Requested item was not found or is archived. Showing all records.
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Transactions Table */}
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
             {transactionsQuery.isLoading ? (
-              <SkeletonTable cols={6} rows={pageSize} />
+              <SkeletonTable cols={5} rows={pageSize} />
             ) : sortedTransactions.length === 0 ? (
               <div className="py-16 text-center text-zinc-400 text-xs font-semibold">
                 No transaction records found matching your filters.
@@ -365,6 +409,20 @@ function TransactionsPageContent() {
                         </div>
                       </ResizableTh>
                       <ResizableTh
+                        width={widths.type}
+                        onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("type", e)}
+                        className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
+                        onClick={() => {
+                          if (sortColumn === "transactionType") setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setSortColumn("transactionType"); setSortDirection("asc"); }
+                        }}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <span>Transaction Type</span>
+                          {sortColumn === "transactionType" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
+                      </ResizableTh>
+                      <ResizableTh
                         width={widths.description}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("description", e)}
                         className="py-3 px-4 text-left cursor-pointer hover:bg-slate-100"
@@ -378,7 +436,9 @@ function TransactionsPageContent() {
                           {sortColumn === "description" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
-                      <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4 text-left">Pool</ResizableTh>
+                      <ResizableTh width={widths.category} onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("category", e)} className="py-3 px-4 text-left">
+                        Pool
+                      </ResizableTh>
                       <ResizableTh
                         width={widths.amount}
                         onResizeMouseDown={(e: React.MouseEvent) => onMouseDown("amount", e)}
@@ -399,33 +459,23 @@ function TransactionsPageContent() {
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 font-mono text-zinc-500 text-center">{fmtDate(tx.date)}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
+                            tx.transactionType === "INCOME_SPLIT"
+                              ? "bg-blue-50 text-[#2563eb] border border-blue-200/60"
+                              : tx.transactionType?.includes("TRANSFER")
+                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200/60"
+                              : tx.transactionType === "ACCOUNT_ALIGNMENT"
+                              ? "bg-amber-50 text-amber-800 border border-amber-200/60"
+                              : tx.transactionType === "OPENING_BALANCE"
+                              ? "bg-slate-100 text-slate-700 border border-slate-200/60"
+                              : "bg-slate-50 text-slate-600 border border-slate-200/60"
+                          }`}>
+                            {getTransactionTypeLabel(tx.transactionType)}
+                          </span>
+                        </td>
                         <td className="py-3 px-4 font-semibold text-[#1B2B4B] text-left">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span>{tx.description}</span>
-                            {tx.transactionType && (
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
-                                tx.transactionType === "INCOME_SPLIT"
-                                  ? "bg-blue-50 text-[#2563eb] border border-blue-200/60"
-                                  : tx.transactionType.includes("TRANSFER")
-                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200/60"
-                                  : tx.transactionType === "ACCOUNT_ALIGNMENT"
-                                  ? "bg-amber-50 text-amber-800 border border-amber-200/60"
-                                  : tx.transactionType === "OPENING_BALANCE"
-                                  ? "bg-slate-100 text-slate-700 border border-slate-200/60"
-                                  : "bg-slate-50 text-slate-600 border border-slate-200/60"
-                              }`}>
-                                {tx.transactionType === "INCOME_SPLIT"
-                                  ? "Payday Split"
-                                  : tx.transactionType === "ACCOUNT_ALIGNMENT"
-                                  ? "Alignment"
-                                  : tx.transactionType.includes("TRANSFER")
-                                  ? "Transfer"
-                                  : tx.transactionType === "OPENING_BALANCE"
-                                  ? "Opening"
-                                  : tx.transactionType}
-                              </span>
-                            )}
-                          </div>
+                          <span>{tx.description}</span>
                         </td>
                         <td className="py-3 px-4 text-left">
                           {tx.categoryName.includes(" ➔ ") ? (() => {
@@ -438,16 +488,18 @@ function TransactionsPageContent() {
                               <span className="font-semibold text-[#1B2B4B] flex items-center gap-1">
                                 <Link
                                   href={fromPool ? `/dashboard/pools?poolId=${fromPool.id}` : `/dashboard/pools`}
-                                  className="text-[#2563eb] hover:underline"
+                                  className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                                 >
-                                  {fromPart}
+                                  <span>{fromPart}</span>
+                                  <span className="text-[10px] text-blue-400">↗</span>
                                 </Link>
                                 <span className="text-zinc-400">➔</span>
                                 <Link
                                   href={toPool ? `/dashboard/pools?poolId=${toPool.id}` : `/dashboard/pools`}
-                                  className="text-[#2563eb] hover:underline"
+                                  className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                                 >
-                                  {toPart}
+                                  <span>{toPart}</span>
+                                  <span className="text-[10px] text-blue-400">↗</span>
                                 </Link>
                               </span>
                             );
@@ -460,9 +512,10 @@ function TransactionsPageContent() {
                                   ? `/dashboard/pools?categoryId=${tx.categoryId}`
                                   : `/dashboard/pools`
                               }
-                              className="font-semibold text-[#2563eb] hover:underline"
+                              className="font-semibold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >
-                              {tx.categoryName}
+                              <span>{tx.categoryName}</span>
+                              <span className="text-[10px] text-blue-400">↗</span>
                             </Link>
                           )}
                         </td>
@@ -508,6 +561,8 @@ function TransactionsPageContent() {
                 placeholder="Search income, bank account, or amount..."
               />
 
+              <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
+
               <select
                 value={selectedBankFilter}
                 onChange={(e) => setSelectedBankFilter(e.target.value)}
@@ -524,18 +579,20 @@ function TransactionsPageContent() {
               type="button"
               onClick={() => {
                 if (!paydayPlansQuery.data) return;
-                const headers = ["Date", "Income Source", "Receiving Bank Account", "Total Income Amount", "Pool/Category", "Allocated Amount", "Reasoning"];
+                const headers = ["Income Split Date", "Income Date", "Income Source", "Receiving Bank Account", "Total Income Amount", "Pool/Category", "Allocated Amount", "Reasoning"];
                 const rows: string[][] = [];
 
                 for (const plan of paydayPlans) {
-                  const dateStr = fmtDate(plan.expectedDate || plan.createdAt);
+                  const splitDateStr = fmtDate(plan.createdAt);
+                  const incDateStr = fmtDate(plan.expectedDate || plan.createdAt);
                   const incName = plan.incomeName || "Income Deposit";
                   const bankName = plan.receivingAccountName || "Main Account";
                   const totalAmt = plan.totalIncomeAmount;
 
                   for (const line of plan.lines) {
                     rows.push([
-                      dateStr,
+                      splitDateStr,
+                      incDateStr,
                       `"${incName.replace(/"/g, '""')}"`,
                       `"${bankName.replace(/"/g, '""')}"`,
                       totalAmt,
@@ -552,7 +609,7 @@ function TransactionsPageContent() {
                 const link = document.createElement("a");
                 link.href = url;
                 const todayStr = getTenantDateString(new Date());
-                link.setAttribute("download", `money_matters_payday_allocations_${todayStr}.csv`);
+                link.setAttribute("download", `money_matters_income_splits_${todayStr}.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -560,20 +617,36 @@ function TransactionsPageContent() {
               disabled={sortedPaydayPlans.length === 0}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
-              <span>📥</span>
               <span>Export Allocations CSV</span>
             </button>
           </div>
 
+          {bankAccountIdParam && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <RecordFilterBadge
+                label={matchedBankAccount ? `Filtered to Account: ${matchedBankAccount.name}` : "Filter: Item unavailable"}
+                onClear={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete("bankAccountId");
+                  url.searchParams.delete("id");
+                  router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+                }}
+              />
+              {Boolean(bankAccountIdParam && !matchedBankAccount) && (
+                <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
+                  Requested item was not found or is archived. Showing all records.
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Payday Allocations Table */}
           <div className="bg-white rounded-2xl border border-zinc-200/80 shadow-sm overflow-hidden">
             {paydayPlansQuery.isLoading ? (
-              <div className="p-12 flex justify-center items-center">
-                <Spinner size="lg" />
-              </div>
+              <SkeletonTable cols={5} rows={planPageSize} />
             ) : sortedPaydayPlans.length === 0 ? (
               <div className="p-12 text-center text-xs text-zinc-400 font-semibold">
-                No payday allocation plans found matching your filters.
+                No income split plans found matching your filters.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -581,17 +654,32 @@ function TransactionsPageContent() {
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-zinc-200/80 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                       <ResizableTh
-                        width={planWidths.date}
-                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("date", e)}
+                        width={planWidths.splitDate}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("splitDate", e)}
                         className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
                         onClick={() => {
-                          if (planSortColumn === "date") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-                          else { setPlanSortColumn("date"); setPlanSortDirection("desc"); }
+                          if (planSortColumn === "createdAt") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setPlanSortColumn("createdAt"); setPlanSortDirection("desc"); }
                         }}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          <span>Date</span>
-                          {planSortColumn === "date" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
+                          <span>INCOME SPLIT DATE</span>
+                          {planSortColumn === "createdAt" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
+                        </div>
+                      </ResizableTh>
+
+                      <ResizableTh
+                        width={planWidths.incomeDate}
+                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("incomeDate", e)}
+                        className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100"
+                        onClick={() => {
+                          if (planSortColumn === "expectedDate") setPlanSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+                          else { setPlanSortColumn("expectedDate"); setPlanSortDirection("desc"); }
+                        }}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <span>INCOME DATE</span>
+                          {planSortColumn === "expectedDate" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
 
@@ -605,7 +693,7 @@ function TransactionsPageContent() {
                         }}
                       >
                         <div className="flex items-center gap-1">
-                          <span>Description / Income</span>
+                          <span>Income</span>
                           {planSortColumn === "incomeName" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
@@ -639,42 +727,37 @@ function TransactionsPageContent() {
                           {planSortColumn === "amount" && <span>{planSortDirection === "asc" ? "↑" : "↓"}</span>}
                         </div>
                       </ResizableTh>
-
-                      <ResizableTh
-                        width={planWidths.actions}
-                        onResizeMouseDown={(e: React.MouseEvent) => onPlanMouseDown("actions", e)}
-                        className="py-3 px-4 text-center"
-                      >
-                        <span>Actions</span>
-                      </ResizableTh>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 text-xs">
                     {paginatedPaydayPlans.map((plan) => (
                       <tr key={plan.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 text-center font-mono text-zinc-500">
+                          {fmtDate(plan.createdAt)}
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono text-zinc-500">
                           {fmtDate(plan.expectedDate || plan.createdAt)}
                         </td>
-                        <td className="py-3 px-4 text-left font-bold text-[#1B2B4B]">
-                          {`Income Split - ${fmtDate(plan.expectedDate || plan.createdAt)} - ${plan.incomeName || "Income Deposit"}`}
+                        <td className="py-3 px-4 text-left">
+                          <button
+                            type="button"
+                            onClick={() => setActivePlanForDrawer(plan)}
+                            className="font-bold text-[#2563eb] hover:underline text-left"
+                          >
+                            {plan.incomeName || "Income Deposit"}
+                          </button>
                         </td>
                         <td className="py-3 px-4 text-left font-semibold">
-                          <Link href="/dashboard/bank-accounts" className="text-[#2563eb] hover:underline">
-                            {plan.receivingAccountName || "Main Account"}
+                          <Link
+                            href={plan.receivingAccountId ? `/dashboard/bank-accounts?id=${plan.receivingAccountId}` : "/dashboard/bank-accounts"}
+                            className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
+                          >
+                            <span>{plan.receivingAccountName || "Main Account"}</span>
+                            <span className="text-[10px] text-blue-400">↗</span>
                           </Link>
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">
                           {fmt(plan.totalIncomeAmount)}
-                        </td>
-
-                        <td className="py-3 px-4 text-center">
-                          <button
-                            type="button"
-                            onClick={() => setActivePlanForDrawer(plan)}
-                            className="px-3 py-1 text-xs font-bold text-[#2563eb] hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                          >
-                            View Details
-                          </button>
                         </td>
                       </tr>
                     ))}
@@ -682,24 +765,22 @@ function TransactionsPageContent() {
                 </table>
               </div>
             )}
-
-            {sortedPaydayPlans.length >= 5 && (
-              <div className="p-3 border-t border-zinc-200">
-                <PaginationBar
-                  page={planPage}
-                  totalPages={planTotalPages}
-                  pageSize={planPageSize}
-                  totalItems={sortedPaydayPlans.length}
-                  pageSizeOptions={[10, 25, 50]}
-                  onPageChange={setPlanPage}
-                  onPageSizeChange={(newSize) => {
-                    setPlanPageSize(newSize);
-                    setPlanPage(1);
-                  }}
-                />
-              </div>
-            )}
           </div>
+
+          {sortedPaydayPlans.length >= 5 && (
+            <PaginationBar
+              page={planPage}
+              totalPages={planTotalPages}
+              pageSize={planPageSize}
+              totalItems={sortedPaydayPlans.length}
+              pageSizeOptions={[10, 25, 50]}
+              onPageChange={setPlanPage}
+              onPageSizeChange={(newSize) => {
+                setPlanPageSize(newSize);
+                setPlanPage(1);
+              }}
+            />
+          )}
 
           <SlideOverAllocationDrawer
             isOpen={!!activePlanForDrawer}

@@ -23,7 +23,9 @@ export interface PaydayPlanRecord {
   expectedDate?: string | null;
   incomeDate?: string | null;
   incomeName?: string | null;
+  receivingAccountId?: string | null;
   receivingAccountName?: string | null;
+  note?: string | null;
   lines: PaydayPlanLineRecord[];
 }
 
@@ -65,26 +67,41 @@ export function SlideOverAllocationDrawer({
         <div className="w-screen max-w-lg bg-white dark:bg-zinc-900 shadow-2xl flex flex-col border-l border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-right duration-200">
           {/* Drawer Header */}
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-start justify-between sticky top-0 bg-white dark:bg-zinc-900 z-10">
-            <div>
-              <div className="text-xs font-mono font-medium text-zinc-400">
-                Allocation Date: {fmtDate(plan.createdAt)}
-              </div>
-              <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight mt-1">
-                {t("payday.allocationDetails")}
+            <div className="flex-1 pr-4">
+              <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
+                {t("paydayDrawer.incomeSplitDetails", { defaultValue: "Income Split Details" })}
               </h2>
-              <div className="mt-3 space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-zinc-400 w-28">{t("categories.incomeSourceLabel")}</span>
+              <div className="mt-4 p-3.5 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-zinc-500 dark:text-zinc-400">
+                    {t("paydayDrawer.incomeSource", { defaultValue: "Income Source" })}
+                  </span>
                   <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.incomeName || "Income Deposit"}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-zinc-400 w-28">{t("categories.bankAccountLabel")}</span>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-zinc-500 dark:text-zinc-400">
+                    {t("paydayDrawer.bankAccount", { defaultValue: "Bank Account" })}
+                  </span>
                   <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.receivingAccountName || "Main Account"}</span>
                 </div>
-                {(plan.expectedDate || plan.incomeDate) && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-zinc-400 w-28">{t("categories.incomeDateLabel")}</span>
-                    <span className="font-mono text-zinc-700 dark:text-zinc-300">{fmtDate(plan.expectedDate || plan.incomeDate)}</span>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-zinc-500 dark:text-zinc-400">
+                    {t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
+                  </span>
+                  <span className="font-mono text-zinc-700 dark:text-zinc-300">{fmtDate(plan.expectedDate || plan.incomeDate || plan.createdAt)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-zinc-500 dark:text-zinc-400">
+                    {t("paydayDrawer.incomeSplitDate", { defaultValue: "Income Split Date" })}
+                  </span>
+                  <span className="font-mono text-zinc-700 dark:text-zinc-300">{fmtDate(plan.createdAt)}</span>
+                </div>
+                {plan.note && (
+                  <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex flex-col gap-0.5">
+                    <span className="font-medium text-zinc-500 dark:text-zinc-400">
+                      {t("paydayDrawer.incomeNote", { defaultValue: "Income Note" })}
+                    </span>
+                    <span className="text-zinc-700 dark:text-zinc-300 italic">{plan.note}</span>
                   </div>
                 )}
               </div>

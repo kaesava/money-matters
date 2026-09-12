@@ -140,7 +140,9 @@ export const paydayRouter = {
           updatedAt: allocationPlans.updatedAt,
           incomeName: sql<string>`COALESCE(${incomeEvents.name}, ${incomeSources.name}, 'Income Deposit')`,
           receivingAccountName: bankAccounts.name,
+          receivingAccountId: bankAccounts.id,
           expectedDate: incomeEvents.expectedDate,
+          note: incomeEvents.note,
         })
         .from(allocationPlans)
         .leftJoin(incomeEvents, eq(incomeEvents.id, allocationPlans.incomeEventId))

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import { QuickPresetItem } from "./QuickPickBadges";
@@ -9,6 +10,7 @@ export function useQuickActionState(
   onClose: () => void,
   initialTab: "DEBIT" | "CREDIT" | "TRANSFER" = "DEBIT"
 ) {
+  const router = useRouter();
   const toast = useToast();
   const todayStr = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Australia/Sydney",
@@ -23,7 +25,6 @@ export function useQuickActionState(
   const [destinationCategoryId, setDestinationCategoryId] = useState("");
   const [receivingAccountId, setReceivingAccountId] = useState("");
   const [date, setDate] = useState(todayStr);
-  const [paydayModalEventId, setPaydayModalEventId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [confirmState, setConfirmState] = useState<{
@@ -95,53 +96,82 @@ export function useQuickActionState(
     );
   };
 
-  const quickExpensePresets = useMemo(() => {
-    const presets: QuickPresetItem[] = [];
-    const seen = new Set<string>();
-    for (const tx of txList) {
-      if (tx.flowType === "DEBIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)) {
-        const cleanNote = tx.note.trim();
-        const key = cleanNote.toLowerCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          presets.push({
-            name: cleanNote,
-            amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
-            categoryId: tx.categoryId || undefined,
-          });
-          if (presets.length >= 3) break;
+  const computeRecentAndFrequent = <T>(
+    items: T[],
+    getKey: (item: T) => string | null,
+    buildPreset: (item: T) => QuickPresetItem,
+    getTimestamp?: (item: T) => number
+  ): { recent: QuickPresetItem[]; frequent: QuickPresetItem[] } => {
+    const recent: QuickPresetItem[] = [];
+    const recentKeys = new Set<string>();
+    const freqCounts = new Map<string, { count: number; sample: T }>();
+    const cutoffTime = Date.now() - 180 * 24 * 60 * 60 * 1000;
+
+    for (const item of items) {
+      const key = getKey(item);
+      if (!key) continue;
+
+      if (recent.length < 2 && !recentKeys.has(key)) {
+        recentKeys.add(key);
+        recent.push(buildPreset(item));
+      }
+
+      const itemTime = getTimestamp ? getTimestamp(item) : Date.now();
+      if (itemTime >= cutoffTime) {
+        const existing = freqCounts.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          freqCounts.set(key, { count: 1, sample: item });
         }
       }
     }
-    return presets;
+
+    const sortedFreq = Array.from(freqCounts.entries())
+      .filter(([key]) => !recentKeys.has(key))
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 2)
+      .map(([_, entry]) => buildPreset(entry.sample));
+
+    return { recent, frequent: sortedFreq };
+  };
+
+  const quickExpensePresets = useMemo(() => {
+    const validTxs = txList.filter(
+      (tx) => tx.flowType === "DEBIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)
+    );
+    return computeRecentAndFrequent(
+      validTxs,
+      (tx) => tx.note?.trim().toLowerCase() || null,
+      (tx) => ({
+        name: tx.note!.trim(),
+        amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
+        categoryId: tx.categoryId || undefined,
+      }),
+      (tx) => (tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now())
+    );
   }, [txList]);
 
   const quickIncomePresets = useMemo(() => {
-    const presets: QuickPresetItem[] = [];
-    const seen = new Set<string>();
-    for (const tx of txList) {
-      if (tx.flowType === "CREDIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)) {
-        const cleanNote = tx.note.trim();
-        const key = cleanNote.toLowerCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          presets.push({
-            name: cleanNote,
-            amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
-            receivingAccountId: tx.bankAccountId || undefined,
-          });
-          if (presets.length >= 3) break;
-        }
-      }
-    }
-    return presets;
+    const validTxs = txList.filter(
+      (tx) => tx.flowType === "CREDIT" && !tx.transferGroupId && tx.note && !isPaydayOrAdjustment(tx.note)
+    );
+    return computeRecentAndFrequent(
+      validTxs,
+      (tx) => tx.note?.trim().toLowerCase() || null,
+      (tx) => ({
+        name: tx.note!.trim(),
+        amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : undefined,
+        receivingAccountId: tx.bankAccountId || undefined,
+      }),
+      (tx) => (tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now())
+    );
   }, [txList]);
 
   const quickTransferPresets = useMemo(() => {
-    const presets: QuickPresetItem[] = [];
     const transferMap = new Map<
       string,
-      { note: string; amount: string; sourceCatId?: string; destCatId?: string }
+      { note: string; amount: string; sourceCatId?: string; destCatId?: string; timestamp: number }
     >();
 
     const catNameMap = new Map(categories.map((c) => [c.id, c.name]));
@@ -152,6 +182,7 @@ export function useQuickActionState(
         const existing = transferMap.get(groupKey) || {
           note: tx.note || "Transfer",
           amount: tx.amount ? parseFloat(tx.amount).toFixed(2) : "0.00",
+          timestamp: tx.recordedAt ? new Date(tx.recordedAt).getTime() : Date.now(),
         };
         if (tx.flowType === "DEBIT") {
           existing.sourceCatId = tx.categoryId || tx.poolId || undefined;
@@ -162,8 +193,7 @@ export function useQuickActionState(
       }
     }
 
-    const seen = new Set<string>();
-    for (const transfer of transferMap.values()) {
+    const transferItems = Array.from(transferMap.values()).map((transfer) => {
       const srcName = transfer.sourceCatId ? catNameMap.get(transfer.sourceCatId) : null;
       const dstName = transfer.destCatId ? catNameMap.get(transfer.destCatId) : null;
 
@@ -171,20 +201,23 @@ export function useQuickActionState(
       if (srcName && dstName && (displayName === "Transfer" || displayName.startsWith("Transferred"))) {
         displayName = `${srcName} ➔ ${dstName}`;
       }
+      return {
+        ...transfer,
+        displayName,
+      };
+    }).filter((t) => !isPaydayOrAdjustment(t.displayName));
 
-      const key = `${transfer.sourceCatId || ""}->${transfer.destCatId || ""}:${transfer.amount}:${displayName.toLowerCase()}`;
-      if (!seen.has(key) && !isPaydayOrAdjustment(displayName)) {
-        seen.add(key);
-        presets.push({
-          name: displayName,
-          amount: transfer.amount,
-          sourceCategoryId: transfer.sourceCatId,
-          destinationCategoryId: transfer.destCatId,
-        });
-        if (presets.length >= 3) break;
-      }
-    }
-    return presets;
+    return computeRecentAndFrequent(
+      transferItems,
+      (t) => t.displayName.toLowerCase(),
+      (t) => ({
+        name: t.displayName,
+        amount: t.amount,
+        sourceCategoryId: t.sourceCatId,
+        destinationCategoryId: t.destCatId,
+      }),
+      (t) => t.timestamp
+    );
   }, [txList, categories]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
@@ -368,10 +401,9 @@ export function useQuickActionState(
         },
         {
           onSuccess: (res) => {
+            handleDone();
             if (!skipSplit && res?.firstEventId) {
-              setPaydayModalEventId(res.firstEventId);
-            } else {
-              handleDone();
+              router.push(`/dashboard/income-split?id=${res.firstEventId}&returnTo=/dashboard`);
             }
           },
         }
@@ -411,8 +443,6 @@ export function useQuickActionState(
     date,
     setDate,
     todayStr,
-    paydayModalEventId,
-    setPaydayModalEventId,
     error,
     success,
     categories,

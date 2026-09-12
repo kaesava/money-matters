@@ -161,7 +161,7 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 5. **`UNCOMMITTED GOALS & RESIDUAL SURPLUS SWEEP` (Step 5)**: Funds uncommitted goals and sweeps 100% of remaining residual cents into the designated surplus bucket (`isSurplusTarget === true`). Unallocated cash is strictly $0.00.
 
 ### 5.2.1 Payday Preview, Rolling Window & Persistence Resolution Hierarchy (`previewPaydayQuery`, `runCumulativeProjection`)
-- **Unified Cumulative Waterfall Projection Engine (`runCumulativeProjection`)**: Centralized math utility (`packages/capabilities/budgeting/src/engine/cumulative-projection.ts`) consumed by both the Matrix Planning Grid (`computeMatrixProjection`) and the Income Split Drawer (`previewPaydayQuery`). Sequentially projects pool balances starting from current ledger balances across all pending income events (`status !== 'CONFIRMED'`) sorted chronologically (`expectedDate` ASC, then `id` ASC for same-day determinism). Passes intermediate scheduled expense events into the Two-Horizon allocation engine.
+- **Unified Cumulative Waterfall Projection Engine (`runCumulativeProjection`)**: Centralized math utility (`packages/capabilities/budgeting/src/engine/cumulative-projection.ts`) consumed by both the Matrix Planning Grid (`computeMatrixProjection`) and the Dedicated Income Split Screen `/dashboard/income-split` (`previewPaydayQuery`). Sequentially projects pool balances starting from current ledger balances across all pending income events (`status !== 'CONFIRMED'`) sorted chronologically (`expectedDate` ASC, then `id` ASC for same-day determinism). Passes intermediate scheduled expense events into the Two-Horizon allocation engine.
 - **Scheduled Expense Deduction & Pro-Rata Burn Cascade**: Between each simulated income event $i$ and $i+1$, any pending scheduled expenses (`status === 'PENDING'`) due in that date interval are subtracted from running pool balances. To prevent infinite balance accumulation for non-scheduled pools, `runCumulativeProjection` enforces two simulation safeguards:
   1. *EVERYDAY Pro-Rata Burn*: For `EVERYDAY` buckets, a daily burn rate `(monthlyTarget / 30) * daysUntilNext` is subtracted from `runningBalances` between paydays to simulate ongoing discretionary spending (groceries, transport, coffee), decaying balances back towards baseline without producing false negative balances.
   2. *REGULAR Anti-Runaway Cap with Wealth Conservation*: For `REGULAR` bill buckets, `runningBalances` carried forward are clamped to a ceiling of `1.5 * monthlyTarget`. Any trimmed excess is automatically swept directly into the designated Surplus Target pool, strictly conserving household wealth across the entire projection horizon.
@@ -342,6 +342,20 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **`listPoolsQuery`**:
   - Selects and returns `pools.createdAt` to support pacing calculations.
   - Fixes default progress calculation: `target > 0 ? Math.min(100, Math.round((currentBalance / target) * 100)) : 0` (previously defaulted to 100% when balance/target was 0).
+
+### 9.6 UI Primitives & Modal Interaction Hierarchy (`packages/ui`)
+- **`PoolPicker`**:
+  - Requires mandatory `showBalance: boolean` prop. Controls whether pool chips and dropdown options display current balance badges (useful for contextual selection where balance display might be redundant or clutter the UI).
+- **Escape Key Dismissal Stack**:
+  - `ConfirmDialog` and `ModalDialog` manage keydown listener registration to ensure that when a confirmation dialog is opened over an underlying form modal, pressing `Escape` dismisses only the topmost confirmation dialog first, preventing accidental parent modal dismissal.
+- **`InfoTooltip` Portal Anchoring**:
+  - Fixed-position portal rendered directly into `document.body` (`z-[9999]`) with viewport edge clamping, eliminating container overflow clipping in tables and flex headers.
+
+### 9.7 Router & Data Export Refinements
+- **Expense Schedule In-Place Updates (`apps/api/src/routers/expenses.router.ts`)**:
+  - `updateExpenseSource` compares existing and incoming recurrence rules (`frequency`, `interval`, `startDate`, `endDate`, `dayOfWeek`, `dayOfMonth`). If recurrence patterns remain identical, schedule properties (name, amount, pool) are updated in-place without re-bursting future events, preserving individually modified or deleted occurrences.
+- **Data Export Stealth Privacy (`packages/capabilities/tenant/src/export-data.ts`)**:
+  - Enforces strict pool privacy filtering on export: pools are included only if `!p.bankAccountId || allowedBankAccountIds.has(p.bankAccountId) || p.createdBy === userId`. Export filenames standardized to `Income_Split_Plans.csv` and `Income_Split_Plan_Lines.csv`.
 
 ---
 

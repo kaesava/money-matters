@@ -19,6 +19,7 @@ export interface PoolOption {
 
 export interface PoolPickerProps {
   pools: PoolOption[];
+  showBalance: boolean;
   selectedPoolId?: string | null;
   selectedCategoryId?: string | null;
   onChange: (selection: { poolId: string; categoryId: string | null; label: string }) => void;
@@ -38,6 +39,7 @@ const POOL_TYPE_LABELS: Record<string, string> = {
 
 export function PoolPicker({
   pools,
+  showBalance,
   selectedPoolId,
   selectedCategoryId,
   onChange,
@@ -269,7 +271,7 @@ export function PoolPicker({
                           const isPoolExpanded = Boolean(expandedPools[pool.id]);
                           const hasCategories = allowCategorySelection && pool.categories && pool.categories.length > 0;
                           const isSelected = selectedPoolId === pool.id && !selectedCategoryId;
-                          const balStr = formatBalance(pool.currentBalance ?? pool.balance);
+                          const balStr = showBalance ? formatBalance(pool.currentBalance ?? pool.balance) : null;
 
                           return (
                             <div key={pool.id} className="rounded-lg overflow-hidden">

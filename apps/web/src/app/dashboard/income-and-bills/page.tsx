@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import {
@@ -19,7 +19,6 @@ import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormMod
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
-import { PaydayActionDrawer } from "../../../components/web/PaydayActionDrawer";
 
 function formatScheduleSummary({
   rrule,
@@ -67,6 +66,7 @@ function IncomeAndBillsContent() {
   const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
   const searchParam = searchParams.get("search") || "";
 
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState(tabParam);
   const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
 
@@ -202,7 +202,6 @@ function IncomeAndBillsContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [sourceToEdit, setSourceToEdit] = useState<React.ComponentProps<typeof IncomeExpenseFormModal>["sourceToEdit"]>(undefined);
-  const [selectedIncomeEventIdForModal, setSelectedIncomeEventIdForModal] = useState<string | null>(null);
 
   // Setup Tab State (Search & Scope Filter)
   const [setupSearchQuery, setSetupSearchQuery] = useState("");
@@ -586,6 +585,7 @@ function IncomeAndBillsContent() {
                       selectedPoolId={selectedExpensePoolId || ""}
                       allowCategorySelection={false}
                       placeholder="All Pools"
+                      showBalance={false}
                       onChange={(sel) => setSelectedExpensePoolId(sel.poolId)}
                     />
                   </div>
@@ -775,7 +775,7 @@ function IncomeAndBillsContent() {
               }
             }}
             onAllocateIncome={async (eventId) => {
-              setSelectedIncomeEventIdForModal(eventId);
+              router.push(`/dashboard/income-split?id=${eventId}&returnTo=/dashboard/income-and-bills`);
             }}
             onSkipExpense={async (eventId) => {
               try {
@@ -876,27 +876,6 @@ function IncomeAndBillsContent() {
           }}
           mode={modalMode}
           sourceToEdit={sourceToEdit}
-        />
-      )}
-
-      {selectedIncomeEventIdForModal && (
-        <PaydayActionDrawer
-          isOpen={Boolean(selectedIncomeEventIdForModal)}
-          incomeEventId={selectedIncomeEventIdForModal}
-          onClose={() => {
-            setSelectedIncomeEventIdForModal(null);
-            utils.listAllAllocationPlans.invalidate();
-            utils.listIncomeEvents.invalidate();
-            utils.listExpenseEvents.invalidate();
-            utils.listPools.invalidate();
-          }}
-          onSuccess={() => {
-            setSelectedIncomeEventIdForModal(null);
-            utils.listAllAllocationPlans.invalidate();
-            utils.listIncomeEvents.invalidate();
-            utils.listExpenseEvents.invalidate();
-            utils.listPools.invalidate();
-          }}
         />
       )}
 

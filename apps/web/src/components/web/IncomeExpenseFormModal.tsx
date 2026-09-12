@@ -437,6 +437,7 @@ export default function IncomeExpenseFormModal({
                 selectedCategoryId={categoryId || null}
                 allowCategorySelection={true}
                 placeholder={t("modals.incomeExpenseForm.selectTargetPool", { defaultValue: "Select Pool or Category..." })}
+                showBalance={true}
                 onChange={(sel) => {
                   setPoolId(sel.poolId || "");
                   setCategoryId(sel.categoryId || null);

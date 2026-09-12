@@ -129,10 +129,13 @@ function BankAccountsDashboardContent() {
     };
   });
 
+  const matchedAccount = accountIdParam ? accounts.find((a) => a.id === accountIdParam) : null;
+  const isAccountParamInvalid = Boolean(accountIdParam && !matchedAccount);
+
   // Filter accounts
   const filtered = accounts.filter((acc) => {
     if (!acc || !acc.name) return false;
-    if (accountIdParam && acc.id !== accountIdParam) return false;
+    if (accountIdParam && matchedAccount && acc.id !== accountIdParam) return false;
     const q = searchQuery.toLowerCase().trim();
     if (q && !acc.name.toLowerCase().includes(q)) return false;
     if (typeFilter !== "ALL") {
@@ -402,19 +405,6 @@ function BankAccountsDashboardContent() {
         </div>
       )}
 
-      {accountIdParam && (
-        <div className="flex items-center gap-2">
-          <RecordFilterBadge
-            label={`Filtered to Account: ${accounts.find((a) => a.id === accountIdParam)?.name || accountIdParam}`}
-            onClear={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("id");
-              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
-            }}
-          />
-        </div>
-      )}
-
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-zinc-200 shadow-xs">
         <SearchInput
@@ -423,21 +413,43 @@ function BankAccountsDashboardContent() {
           placeholder="Search bank accounts by name..."
         />
 
-        <div className="w-64">
-          <PoolPicker
-            pools={pools.map((p) => ({
-              id: p.id,
-              name: p.name,
-              poolType: p.poolType,
-              currentBalance: p.currentBalance || 0,
-            }))}
-            selectedPoolId={typeFilter === "ALL" ? null : typeFilter}
-            allowCategorySelection={false}
-            placeholder="All Pools"
-            onChange={(sel) => setTypeFilter(sel.poolId || "ALL")}
-          />
+        <div className="flex items-center gap-3">
+          <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
+          <div className="w-64">
+            <PoolPicker
+              pools={pools.map((p) => ({
+                id: p.id,
+                name: p.name,
+                poolType: p.poolType,
+                currentBalance: p.currentBalance || 0,
+              }))}
+              showBalance={false}
+              selectedPoolId={typeFilter === "ALL" ? null : typeFilter}
+              allowCategorySelection={false}
+              placeholder="All Pools"
+              onChange={(sel) => setTypeFilter(sel.poolId || "ALL")}
+            />
+          </div>
         </div>
       </div>
+
+      {accountIdParam && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <RecordFilterBadge
+            label={matchedAccount ? `Filtered to Account: ${matchedAccount.name}` : "Filter: Item unavailable"}
+            onClear={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("id");
+              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+            }}
+          />
+          {isAccountParamInvalid && (
+            <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
+              Requested item was not found or is archived. Showing all records.
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Primary Bank Accounts Table */}
       <BankAccountTable

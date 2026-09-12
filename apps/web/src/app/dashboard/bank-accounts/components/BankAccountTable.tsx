@@ -177,13 +177,27 @@ export function BankAccountTable({
                           <span className="text-[11px] font-medium text-zinc-400 italic">No pools linked</span>
                         ) : (
                           <>
-                            <button
-                              type="button"
-                              onClick={() => openLinkedPoolsModal ? openLinkedPoolsModal(acc) : setSelectedAccForPools(acc)}
-                              className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1"
-                            >
-                              <span>{acc.linkedPoolsCount} {acc.linkedPoolsCount === 1 ? "Pool" : "Pools"} Linked</span>
-                            </button>
+                            <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-xs">
+                              {(acc.linkedPools || []).slice(0, 2).map((pool) => (
+                                <Link
+                                  key={pool.id}
+                                  href={`/dashboard/pools?poolId=${pool.id}`}
+                                  className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5 bg-blue-50/60 hover:bg-blue-100/80 px-2 py-0.5 rounded-md transition-colors"
+                                >
+                                  <span>{pool.name}</span>
+                                  <span className="text-[10px] text-blue-400">↗</span>
+                                </Link>
+                              ))}
+                              {(acc.linkedPoolsCount ?? 0) > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => openLinkedPoolsModal ? openLinkedPoolsModal(acc) : setSelectedAccForPools(acc)}
+                                  className="text-[11px] font-bold text-slate-600 hover:text-[#2563eb] bg-slate-100 hover:bg-blue-50 border border-slate-200 px-1.5 py-0.5 rounded-md cursor-pointer transition-colors"
+                                >
+                                  +{(acc.linkedPoolsCount ?? 0) - 2} more
+                                </button>
+                              )}
+                            </div>
                             {(() => {
                               const poolsTotal = (acc.linkedPools || []).reduce((sum, p) => sum + (p.currentBalance || 0), 0);
                               const expectedStr = `Expected ${fmtMoney(poolsTotal)}.`;

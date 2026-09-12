@@ -334,11 +334,48 @@ export const expensesRouter = {
         )
         .returning();
 
-      // Delete existing unperformed events (keep CONFIRMED events) and re-burst with updated schedule & amounts
+      const isScheduleRuleChanged =
+        rrule !== source.rrule ||
+        (input.data.startDate !== undefined && input.data.startDate !== source.startDate) ||
+        (input.data.endDate !== undefined && input.data.endDate !== source.endDate);
+
+      if (!isScheduleRuleChanged) {
+        // Only details (name, amount, pool, category) changed: update existing unconfirmed active events in-place
+        await ctx.db
+          .update(expenseEvents)
+          .set({
+            name: newName,
+            expectedAmount: newAmount,
+            poolId: newPoolId,
+            categoryId: newCategoryId || null,
+            updatedBy: ctx.userId!,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(expenseEvents.expenseSourceId, source.id),
+              eq(expenseEvents.status, "PENDING"),
+              sql`${expenseEvents.archivedAt} IS NULL`,
+              eq(expenseEvents.tenantId, ctx.tenantId!),
+              eq(expenseEvents.appId, ctx.appId!)
+            )
+          );
+
+        return updated;
+      }
+
+      // Schedule rules changed: soft-delete unperformed events (keep CONFIRMED) and re-burst from new schedule
       const events = await ctx.db
         .select()
         .from(expenseEvents)
-        .where(eq(expenseEvents.expenseSourceId, source.id));
+        .where(
+          and(
+            eq(expenseEvents.expenseSourceId, source.id),
+            eq(expenseEvents.tenantId, ctx.tenantId!),
+            eq(expenseEvents.appId, ctx.appId!),
+            sql`${expenseEvents.archivedAt} IS NULL`
+          )
+        );
 
       const unperformedEvents = events.filter((e) => e.status !== "CONFIRMED");
       if (unperformedEvents.length > 0) {

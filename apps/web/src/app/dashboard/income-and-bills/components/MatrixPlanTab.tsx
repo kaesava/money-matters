@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { computeMatrixProjection, MatrixIncomeEvent, ScheduledExpenseEvent, EngineBucket } from "@money-matters/capability-budgeting/engine";
 import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCategoryDrawer";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
-import { PaydayActionDrawer } from "../../../../components/web/PaydayActionDrawer";
 
 interface MatrixPlanTabProps {
   currentUserId: string;
@@ -68,6 +68,7 @@ export function MatrixPlanTab({
   expenseEvents,
   onMarkPaid,
 }: MatrixPlanTabProps) {
+  const router = useRouter();
   const toast = useToast();
   const utils = trpc.useUtils();
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
@@ -81,7 +82,6 @@ export function MatrixPlanTab({
     id: string;
     name: string;
   } | null>(null);
-  const [activePaydayEventId, setActivePaydayEventId] = useState<string | null>(null);
   const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
   const [savingColId, setSavingColId] = useState<string | null>(null);
   const [colToSave, setColToSave] = useState<string | null>(null);
@@ -243,8 +243,19 @@ export function MatrixPlanTab({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Status Filter Pills: Pending | Confirmed | All */}
+          {/* Status Filter Pills: All | Pending | Confirmed */}
           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ALL")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === "ALL"
+                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              {t("matrix.statusAll", { defaultValue: "All" })}
+            </button>
             <button
               type="button"
               onClick={() => setStatusFilter("PENDING")}
@@ -267,18 +278,9 @@ export function MatrixPlanTab({
             >
               {t("matrix.statusConfirmed", { defaultValue: "Confirmed" })}
             </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("ALL")}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                statusFilter === "ALL"
-                  ? "bg-white dark:bg-zinc-900 text-[#1B2B4B] dark:text-white shadow-xs"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-              }`}
-            >
-              {t("matrix.statusAll", { defaultValue: "All" })}
-            </button>
           </div>
+
+          <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700 hidden sm:block" />
 
           {/* Scope Filter Pills: All | Shared | Private */}
           <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
@@ -381,7 +383,7 @@ export function MatrixPlanTab({
                           </span>
                           <button
                             type="button"
-                            onClick={() => setActivePaydayEventId(col.id)}
+                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=/dashboard/income-and-bills`)}
                             className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
                             title="Review Splits"
                           >
@@ -397,7 +399,7 @@ export function MatrixPlanTab({
                           )}
                           <button
                             type="button"
-                            onClick={() => setActivePaydayEventId(col.id)}
+                            onClick={() => router.push(`/dashboard/income-split?id=${col.id}&returnTo=/dashboard/income-and-bills`)}
                             className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
                             title="Review and Edit Splits"
                           >
@@ -550,18 +552,6 @@ export function MatrixPlanTab({
         categoryId={activeCategoryForDrawer?.id}
         events={drawerEvents}
         onMarkPaid={onMarkPaid}
-      />
-
-      {/* Payday Wizard / Execution Modal */}
-      <PaydayActionDrawer
-        isOpen={!!activePaydayEventId}
-        onClose={() => setActivePaydayEventId(null)}
-        incomeEventId={activePaydayEventId || undefined}
-        isReadOnly={activePaydayEventId ? columnStateMap[activePaydayEventId] === "CONFIRMED" : false}
-        onSuccess={() => {
-          utils.listAllAllocationPlans.invalidate();
-          utils.listIncomeEvents.invalidate();
-        }}
       />
 
       {/* Save Split Confirmation Dialog */}

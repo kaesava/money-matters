@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useIconVisibility } from '../hooks/IconVisibilityContext';
 
 export interface InfoTooltipProps {
@@ -20,71 +21,71 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
 }) => {
   const { showIcons } = useIconVisibility();
   const [isOpen, setIsOpen] = useState(false);
-  const [placement, setPlacement] = useState<{ position: 'top' | 'bottom'; align: 'left' | 'center' | 'right' }>({
-    position: overridePosition || 'top',
-    align: overrideAlign || 'center',
-  });
+  const [coords, setCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    arrowLeft: number;
+    isBottom: boolean;
+  } | null>(null);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);
 
-  if (!showIcons) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const handleOpen = () => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const dialog = containerRef.current.closest('[role="dialog"]') || containerRef.current.closest('.overflow-y-auto');
+  const updatePosition = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const tooltipWidth = 280;
+    const isNearTop =
+      overridePosition === 'bottom' ||
+      (overridePosition !== 'top' && rect.top < 260);
 
-      let isNearTop = rect.top < 220;
-      let isNearLeft = rect.left < 140;
-      let isNearRight = typeof window !== 'undefined' && window.innerWidth - rect.right < 140;
+    let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+    if (overrideAlign === 'left') {
+      left = rect.left;
+    } else if (overrideAlign === 'right') {
+      left = rect.right - tooltipWidth;
+    }
 
-      if (dialog) {
-        const dialogRect = dialog.getBoundingClientRect();
-        const distFromDialogLeft = rect.left - dialogRect.left;
-        const distFromDialogRight = dialogRect.right - rect.right;
-        const distFromDialogTop = rect.top - dialogRect.top;
+    const minLeft = 16;
+    const maxLeft =
+      typeof window !== 'undefined' ? window.innerWidth - tooltipWidth - 16 : 300;
+    const clampedLeft = Math.max(minLeft, Math.min(left, maxLeft));
+    const triggerCenter = rect.left + rect.width / 2;
+    const arrowLeft = Math.max(
+      12,
+      Math.min(triggerCenter - clampedLeft, tooltipWidth - 12)
+    );
 
-        if (distFromDialogLeft < 140) {
-          isNearLeft = true;
-        }
-        if (distFromDialogRight < 140) {
-          isNearRight = true;
-        }
-        if (distFromDialogTop < 150) {
-          isNearTop = true;
-        }
-      }
-
-      setPlacement({
-        position: overridePosition || (isNearTop ? 'bottom' : 'top'),
-        align: overrideAlign || (isNearLeft ? 'left' : isNearRight ? 'right' : 'center'),
+    if (isNearTop) {
+      setCoords({
+        top: rect.bottom + 8,
+        left: clampedLeft,
+        arrowLeft,
+        isBottom: true,
+      });
+    } else {
+      setCoords({
+        bottom:
+          (typeof window !== 'undefined' ? window.innerHeight : 800) -
+          rect.top +
+          8,
+        left: clampedLeft,
+        arrowLeft,
+        isBottom: false,
       });
     }
+  };
+
+  const handleOpen = () => {
+    updatePosition();
     setIsOpen(true);
   };
 
-  const popoverPosClasses =
-    placement.position === 'bottom'
-      ? 'top-full mt-2'
-      : 'bottom-full mb-2';
-
-  const popoverAlignClasses =
-    placement.align === 'left'
-      ? 'left-0 translate-x-0'
-      : placement.align === 'right'
-      ? 'right-0 left-auto translate-x-0'
-      : 'left-1/2 -translate-x-1/2';
-
-  const arrowAlignClasses =
-    placement.align === 'left'
-      ? 'left-3 translate-x-0'
-      : placement.align === 'right'
-      ? 'right-3 left-auto translate-x-0'
-      : 'left-1/2 -translate-x-1/2';
-
-  const arrowClasses =
-    placement.position === 'bottom'
-      ? `bottom-full ${arrowAlignClasses} -mb-1 border-4 border-transparent border-b-[#1B2B4B]`
-      : `top-full ${arrowAlignClasses} -mt-1 border-4 border-transparent border-t-[#1B2B4B]`;
+  if (!showIcons) return null;
 
   return (
     <span
@@ -116,13 +117,35 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
         ℹ
       </span>
 
-      {isOpen && (
-        <div className={`absolute ${popoverPosClasses} ${popoverAlignClasses} w-64 p-3 bg-[#1B2B4B] text-white text-xs rounded-xl shadow-xl z-50 pointer-events-auto transition-opacity animate-in fade-in duration-150`}>
-          {title && <p className="font-bold mb-1 text-blue-300">{title}</p>}
-          <p className="leading-relaxed opacity-95 text-slate-200">{content}</p>
-          <div className={arrowClasses} />
-        </div>
-      )}
+      {isOpen &&
+        mounted &&
+        coords &&
+        createPortal(
+          <div
+            style={{
+              top: coords.top !== undefined ? `${coords.top}px` : undefined,
+              bottom:
+                coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
+              left: `${coords.left}px`,
+              width: '280px',
+            }}
+            className="fixed p-3 bg-[#1B2B4B] text-white text-xs rounded-xl shadow-2xl z-[9999] pointer-events-none transition-opacity animate-in fade-in duration-150"
+          >
+            {title && <p className="font-bold mb-1 text-blue-300">{title}</p>}
+            <p className="leading-relaxed opacity-95 text-slate-200">
+              {content}
+            </p>
+            <div
+              style={{ left: `${coords.arrowLeft}px` }}
+              className={`absolute -translate-x-1/2 border-4 border-transparent ${
+                coords.isBottom
+                  ? 'bottom-full -mb-1 border-b-[#1B2B4B]'
+                  : 'top-full -mt-1 border-t-[#1B2B4B]'
+              }`}
+            />
+          </div>,
+          document.body
+        )}
     </span>
   );
 };

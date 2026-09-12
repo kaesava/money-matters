@@ -44,31 +44,30 @@ export function PrivacySection() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl">
-      {/* Aussie Security & Privacy Trust Card */}
-      <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base font-extrabold text-[#1B2B4B]">
-            Aussie Privacy & Security Guarantee
-          </h2>
-          <InfoTooltip content="Bank-grade encryption, local Australian hosting compliance, and stealth tenant data isolation." />
-        </div>
-        <p className="text-xs text-slate-600 leading-relaxed font-medium">
-          Your financial data is 100% private to your household. We use bank-grade TLS 1.3 encryption, Neon RLS stealth isolation, and strict Australian Privacy Principles (Privacy Act 1988 Cth). We never rent, sell, or share your financial records with third parties.
-        </p>
-      </section>
-
-      {/* Data Sovereignty & Zipped CSV Backup Card */}
+    <div className="flex flex-col gap-6 w-full">
       <section className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-extrabold text-[#1B2B4B]">
-              Data Sovereignty & Zipped CSV Backup
-            </h2>
-            <p className="text-xs text-slate-500">
-              Download a complete zipped CSV archive containing your profile, household details, categories, bank accounts, transactions, and payday allocation plans.
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-[#1B2B4B]">
+                Data Privacy & Complete Export
+              </h2>
+              <InfoTooltip content="Bank-grade encryption, Australian Privacy Principles compliance, and stealth data isolation." />
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              Your financial data is 100% private to your household. We use bank-grade encryption, stealth tenant isolation, and strict Australian Privacy Principles (Privacy Act 1988 Cth). You can download a complete 1-click zipped CSV archive of all your accounts, pools, transactions, and income splits anytime.
             </p>
+            <div>
+              <a
+                href="/privacy"
+                className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1"
+              >
+                <span>Read our full Privacy Policy</span>
+                <span className="text-[10px] text-blue-400">↗</span>
+              </a>
+            </div>
           </div>
+
           <Button
             type="button"
             onClick={handleDownloadZippedCsv}
