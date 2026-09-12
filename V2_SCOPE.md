@@ -206,24 +206,201 @@ export const fileNotes = pgTable("file_notes", {
 
 ---
 
-## V2 Feature: Automated Bank Ingestion & Open Banking Sync
+## V2 Feature: Bank Statement CSV Ingestion & Open Banking Sync
 
 ### Feature ID
 
 `FEAT-V2-003-BANK-INGESTION-OPEN-BANKING`
 
-### Context
+### Context & Strategic Rationale
 
-In V1, retroactive historical CSV line-item imports were removed to maintain Money Matters' strict core philosophy: **forward-looking payday allocation (ring-fencing bills and savings so users spend their Everyday pool freely with zero tracking and zero guilt)**. Bank reconciliation in V1 is delivered via 1-click balance alignment (`<ReconciliationModal />`).
+In V1, historical line-item CSV statement parsing was removed to protect Money Matters' core product philosophy: **forward-looking payday allocation (ring-fencing bills and committed savings so households spend their Everyday pool freely with zero receipt policing and zero micro-tracking)**. Bank reconciliation in V1 is delivered cleanly via 1-click balance alignment (`<ReconciliationModal />`).
 
-### Scope & Technical Requirements for V2
+For Release 2, bank ingestion will be reintroduced as an onboarding catch-up assistant and automated read-only feed. This document captures 100% of the UI, API, database, parser algorithms, and seed specifications so engineering can pick up and implement V2 without rebuilding from scratch or guessing legacy requirements.
 
-1. **Open Banking / CDR Read-Only Feeds**: Integrate with an accredited Australian Open Banking aggregator (e.g. Basiq, Akahu, or Frollo) to provide automated, read-only balance syncing directly into bank accounts without manual user CSV handling.
-2. **Pool-Centric Relational Mapping**: If file statement import is re-introduced, it must target real tenant Pool IDs (`poolId`) and Category IDs (`categoryId`) rather than static enum pool types, preventing arbitrary pool distribution.
-3. **Atomic Batch Tracking (`import_batches` table)**:
-   - Dedicated table tracking batch metadata (`id`, `tenantId`, `bankAccountId`, `fileName`, `rowCount`, `importedAt`, `archivedAt`).
-   - Soft-deleting or rolling back an import batch must atomically archive ledger transactions and unlink any scheduled income events.
-4. **Zero CI Bypasses & 100% i18n**: All UI components and modal drawers must adhere strictly to Serene Finance design tokens and zero-warning AST i18n parity.
+---
+
+### 1. Database Schema Specification
+
+To prevent the data integrity and orphaned rollback flaws identified in V1, V2 implements a first-class relational architecture:
+
+#### A. `import_batches` Table
+```typescript
+import { pgTable, uuid, varchar, integer, timestamp } from "drizzle-orm/pg-core";
+import { bankAccounts } from "./bank_account.js";
+import { tenantAndTimestamps } from "./base.js";
+
+export const importBatches = pgTable("import_batches", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  bankAccountId: uuid("bank_account_id").references(() => bankAccounts.id).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  rowCount: integer("row_count").notNull(),
+  importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+  ...tenantAndTimestamps,
+});
+```
+
+#### B. `merchant_rules` Table
+```typescript
+import { pgTable, uuid, varchar, boolean } from "drizzle-orm/pg-core";
+import { pools } from "./pool.js";
+import { categories } from "./category.js";
+import { tenantAndTimestamps } from "./base.js";
+
+export const merchantRules = pgTable("merchant_rules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pattern: varchar("pattern", { length: 255 }).notNull(),
+  targetPoolId: uuid("target_pool_id").references(() => pools.id).notNull(),
+  targetCategoryId: uuid("target_category_id").references(() => categories.id),
+  isRegex: boolean("is_regex").default(false).notNull(),
+  ...tenantAndTimestamps,
+});
+```
+
+#### C. `transaction_ledger` Extension
+- Add `importBatchId: uuid("import_batch_id").references(() => importBatches.id)` to `transactionLedger` schema.
+- Retain `"IMPORT"` in `transactionSourceEnum`.
+- Adding `importBatchId` guarantees atomic, single-query rollbacks (`UPDATE transaction_ledger SET archived_at = NOW() WHERE import_batch_id = :batchId`).
+
+---
+
+### 2. Australian Bank CSV Dialect Specifications & Parsers
+
+The parser engine supports 6 major Australian financial institutions with automatic header auto-detection:
+
+| Institution | Date Format | Debit / Credit Representation | Notes & Normalization |
+|---|---|---|---|
+| **Commonwealth Bank (CBA)** | `DD/MM/YYYY` | Single signed numeric column (`-` for debits, `+` for credits) | Strips enclosing quotes, ignores header row if absent |
+| **Westpac (WBC)** | `DD/MM/YYYY` | Separate `Debit` and `Credit` columns | Strips leading/trailing spaces in `Narrative` column |
+| **ANZ Bank** | `DD/MM/YYYY` | Single signed numeric column or separate columns | Normalizes merchant prefixes (`EFTPOS`, `VISA DEBIT`) |
+| **National Australia Bank (NAB)** | `DD/MM/YYYY` | Single signed column; separate `Transaction Type` column | Parses `Details` column for payee information |
+| **ING Direct** | `DD/MM/YYYY` | Separate `Debit` and `Credit` columns | Sanitizes trailing balance column |
+| **Macquarie Bank** | `DD/MM/YYYY` | Single signed numeric column; native `Category` column | Maps bank-provided category to tenant categories if matched |
+
+#### Normalization & Deduplication Hash Algorithm
+```typescript
+import { createHash } from "node:crypto";
+
+export function generateCsvTransactionFingerprint(params: {
+  tenantId: string;
+  bankAccountId: string;
+  dateStr: string; // ISO YYYY-MM-DD
+  amount: string;  // Fixed 2 decimal places e.g. "45.50"
+  cleanDesc: string; // Trimmed, uppercase, alphanumeric only
+}): string {
+  const payload = `${params.tenantId}:${params.bankAccountId}:${params.dateStr}:${params.amount}:${params.cleanDesc}`;
+  return createHash("sha256").update(payload).digest("hex");
+}
+```
+
+---
+
+### 3. API Contract & tRPC Router Specification
+
+All procedures enforce `privateTenantProcedure` with database-kernel RLS session injection:
+
+```typescript
+// Router: transactions.router.ts (V2 Extension)
+
+// 1. Parse & Preview CSV
+parseCsv: privateTenantProcedure
+  .input(z.object({
+    fileBase64: z.string().max(3_000_000), // ~2MB raw file limit
+    fileName: z.string().max(255),
+    bankAccountId: z.string().uuid(),
+  }).strict())
+  .mutation(async ({ ctx, input }) => {
+    // 1. Decode base64 and auto-detect bank dialect
+    // 2. Normalize rows into { date, amount, description, flowType }
+    // 3. Match against merchant_rules for default poolId and categoryId
+    // 4. Query transaction_ledger lookback window (90 days) for existing fingerprint hashes
+    // 5. Return parsed items with duplicateWarning flags and suggested allocations
+  }),
+
+// 2. Commit Batch Import
+commitCsvImport: privateTenantProcedure
+  .input(z.object({
+    bankAccountId: z.string().uuid(),
+    fileName: z.string().max(255),
+    items: z.array(z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+      flowType: z.enum(["DEBIT", "CREDIT"]),
+      description: z.string().max(255),
+      poolId: z.string().uuid(),
+      categoryId: z.string().uuid().optional(),
+      fingerprint: z.string().length(64),
+    })).min(1).max(1000),
+  }).strict())
+  .mutation(async ({ ctx, input }) => {
+    // 1. Insert record into import_batches
+    // 2. Bulk insert items into transaction_ledger with importBatchId
+    // 3. Atomically adjust target pool balances
+    // 4. Return { batchId, importedCount, updatedPools }
+  }),
+
+// 3. Rollback Import Batch
+rollbackCsvBatch: privateTenantProcedure
+  .input(z.object({
+    batchId: z.string().uuid(),
+  }).strict())
+  .mutation(async ({ ctx, input }) => {
+    // 1. Verify batch ownership within tenant
+    // 2. Soft-delete batch (archivedAt = now())
+    // 3. Soft-delete all ledger transactions with matching importBatchId
+    // 4. Reverse pool balance increments/decrements
+  }),
+
+// 4. List Historical Batches
+listCsvImportBatches: privateTenantProcedure
+  .input(z.object({
+    bankAccountId: z.string().uuid().optional(),
+    limit: z.number().min(1).max(50).default(20),
+    cursor: z.string().uuid().optional(),
+  }).strict())
+  .query(async ({ ctx, input }) => {
+    // Returns paginated import batches with rowCount, fileName, importedAt, and canRollback flag
+  }),
+```
+
+---
+
+### 4. UI & UX Flow Architecture
+
+The user interface follows Serene Finance design tokens (`#1B2B4B`, `#2563eb`, `#F7F8FA`, `#22c55e`, `#ba1a1a`):
+
+1. **Step 1: Upload & Institution Selection (`CsvStepUpload.tsx`)**:
+   - Drag-and-drop file dropzone accepting `.csv` up to 2MB.
+   - Bank logo cards (CBA, Westpac, ANZ, NAB, ING, Macquarie, Generic AU).
+   - Target bank account picker defaulting to the account selected on `/dashboard/bank-accounts`.
+2. **Step 2: Relational Allocation & Review (`CsvStepReview.tsx`)**:
+   - Clean data table with left-aligned descriptions, right-aligned monetary amounts, and center-aligned dates.
+   - Target destination picker maps directly to **real user Pool IDs (`poolId`) and Category IDs (`categoryId`)**, eliminating the V1 static enum pool type flaw.
+   - Multi-select bulk action toolbar allowing users to check multiple rows and apply pool/category assignments simultaneously.
+   - Persistent selection state: un-importing or excluding a transaction leaves checkbox state clean without locking UI selection.
+   - Amber warning badge on duplicate records (`"Duplicate detected: matching transaction recorded on 12/04/2026"`).
+3. **Step 3: Confirmation Summary (`CsvStepComplete.tsx`)**:
+   - Celebratory completion card detailing total rows imported, net debits allocated per pool, and updated account balance.
+   - Direct button links to `/dashboard/history` and `/dashboard/bank-accounts`.
+4. **Batch Log & Rollback Drawer**:
+   - Accessible via "Statement Import History" on Bank Accounts management.
+   - Displays each batch with filename, date, and row count.
+   - "Rollback Batch" action triggers `<ConfirmDialog />` and atomic reverse mutation.
+
+---
+
+### 5. Seed Data & Test Fixture Specifications
+
+When building V2 tests and seeding staging environments:
+- Provide mock CSV files in `test/fixtures/csv/`:
+  - `cba_sample_statement.csv`: 20 transactions including mixed ATM withdrawals, payroll credits, and supermarket debits.
+  - `westpac_sample_statement.csv`: Dual-column debit/credit statements.
+  - `ing_sample_statement.csv`: Orange Everyday transaction extract.
+- Provide automated regression tests covering:
+  - 100% duplicate rejection when re-uploading the same file.
+  - Rollback integrity: verifying pool balances return to exact pre-import state.
+  - Stealth privacy: ensuring secondary household members cannot import into a private account.
 
 ---
 

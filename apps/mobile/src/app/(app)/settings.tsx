@@ -93,7 +93,7 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
               activeOpacity={0.8}
             >
-              <Text style={styles.navLinkText}>🏦 Linked Bank Accounts & Statement Import</Text>
+              <Text style={styles.navLinkText}>🏦 {t('settings.bankAccountsLink', { defaultValue: 'Linked Bank Accounts & Balances' })}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

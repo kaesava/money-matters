@@ -233,9 +233,9 @@ Linked Pools popup
 
 Private Bank Accounts
 
-Bank Account & Statement csv Import
-CSV Import Log
-CSV Import Flow - Step 1,Step 2, Step 3
+Bank Account & Statement CSV Import (REMOVED FROM V1 - DEFERRED TO V2: see V2_SCOPE.md)
+CSV Import Log (DEFERRED TO V2)
+CSV Import Flow - Step 1, Step 2, Step 3 (DEFERRED TO V2)
 
 
 
@@ -380,12 +380,12 @@ _________
 
 #### Private Bank Accounts
 
-### Bank Account & Statement csv Import
-#### CSV Import Log
-#### CSV Import Flow
-##### Step 1
-##### Step 2
-##### Step 3
+### Bank Account & Statement CSV Import (REMOVED FROM V1 - DEFERRED TO V2: see V2_SCOPE.md)
+#### CSV Import Log (DEFERRED TO V2)
+#### CSV Import Flow (DEFERRED TO V2)
+##### Step 1: Upload (DEFERRED TO V2)
+##### Step 2: Review & Allocation (DEFERRED TO V2)
+##### Step 3: Confirmation (DEFERRED TO V2)
 
 
 ## ******* "History"
@@ -457,8 +457,8 @@ _________
 
 ### Phase 3: Payday & Transactions
  Payday Cascade (/dashboard/paychecks): Preview & execute payday -> verify funds distribute across Bills, Everyday, and Buffer.
- CSV Import (Web): Upload sample bank CSV -> map columns -> verify transactions populate and envelope balances update.
- Reconciliation: Open Bank Account Reconciliation modal -> enter actual balance -> verify variance adjustment transaction created.
+ Bank Balance Alignment: Open Bank Account Reconciliation modal -> enter actual balance -> verify variance adjustment transaction created.
+ Transaction History & Export: Filter by date/category -> export CSV -> verify downloaded file integrity.
 
 ### Phase 4: Multi-Tenancy & Billing
  Partner Invites: Send invite from /dashboard/settings -> accept link /invite/[token] in incognito window -> verify second user sees shared tenant.

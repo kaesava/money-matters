@@ -431,7 +431,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 8. TRANSACTION HISTORY, TABS & CSV IMPORT (`/dashboard/history`)
+  // 8. TRANSACTION HISTORY, TABS & BANK ACCOUNTS AUDIT (`/dashboard/history` & `/dashboard/bank-accounts`)
   // ---------------------------------------------------------------------------
   test.describe('8. Transaction History, Sorting & Bank Accounts Table Audit (`/dashboard/history` & `/dashboard/bank-accounts`)', () => {
     test('8.1 Transaction Ledger Sorting & Transfers Tab Audit', async ({ page }) => {

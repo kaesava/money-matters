@@ -18,8 +18,8 @@ This plan itemizes every screen, modal, drawer, and capability across the platfo
 | **10** | **Categories & Pools: Edit Form Parity** | `CategoryFormModal` supports creating/editing all 3 pool types (`EVERYDAY`, `REGULAR`, `GOAL`), target date for goals, bank account mapping, everyday keep allowance. | Basic `CategoryFormModal`. | **Missing**: Full Edit mode parity, target date picker for goals, bank account dropdown selector, rollover rules. |
 | **11** | **History & Audit Ledger: MECE Consolidation** | 2-Tab History (`Transactions` ledger with paired transfer detection `Source ➔ Dest` + `Payday Allocations` audit log with `SlideOverAllocationDrawer`). | **MECE Violation**: `transactions.tsx` AND `settings/history.tsx` duplicate basic transaction lists; no Payday Allocations tab. | **Missing**: Consolidate into single 2-Tab History screen; add Payday Allocations history tab with `MobilePaydayAllocationDetailModal`. |
 | **12** | **Bank Accounts: Provider Branding & Management** | Table of Bank Accounts with Bank Provider branding (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other), Statement Balance, Unbudgeted Buffer, Stealth Private toggle, Pool mappings. | Basic account list with inline add form. | **Missing**: Bank Provider picker & branded logos, Edit account modal, Unbudgeted buffer field, Stealth Private toggle, Transfer Conflict warning modal. |
-| **13** | **Bank Statements: 3-Step CSV Import Wizard** | Interactive 3-Step CSV Import Wizard: Step 1 Upload (Big 4 auto-detection) $\rightarrow$ Step 2 Interactive Review (category match, confidence score, duplicate detection) $\rightarrow$ Step 3 Commit. | Placeholder alert directing user to Web Dashboard. | **Missing**: Full Mobile 3-Step CSV Statement Import Wizard (`MobileCsvImportModal.tsx`) using `expo-document-picker` and batch tracking. |
-| **14** | **Bank Statements: Batch Rollback** | List of previous CSV import batches (`listCsvImportBatches`) with batch ID, date, count, and 1-tap "Rollback Batch" button (`rollbackCsvBatch`). | Not implemented on mobile. | **Missing**: CSV Import Batches History & 1-Tap Rollback section in `settings/bank-accounts.tsx`. |
+| **13** | **Bank Balance Alignment (1-Click)** | 1-Click Balance Alignment modal with unbudgeted buffer adjustment and real-time variance calculation. | Basic balance edit. | **Missing**: Dedicated `MobileReconciliationModal.tsx` for 1-click balance alignment. |
+| **14** | **Statement CSV Import & Open Banking** | Deferred to Release 2 (`V2_SCOPE.md`). | Removed from V1. | **Deferred to V2**: Full statement import and CDR feeds deferred to protect zero-micro-tracking philosophy. |
 | **15** | **Paycheck Review & Waterfall Allocation** | 5-Step Waterfall calculation breakdown with per-line reasoning tooltips, user amount adjustments, and Bank Transfer Prompt / Instructions. | `paychecks/[id].tsx` & `transfer-instructions.tsx`. | **Missing**: Full 5-step waterfall step badges, adjustment inputs, calculation reasoning modals, and accurate bank account transfer routing. |
 | **16** | **Settings: Profile & Details** | Edit User Name, Email (read-only), Timezone selector (Australian timezones), Avatar upload. | Read-only profile card. | **Missing**: Edit User Name form, Timezone picker, Avatar selector. |
 | **17** | **Settings: Household Partner Management** | Invite partner by email, role selection (`MEMBER`/`ADMIN`), active invite list with status (Pending, Accepted, Expired), Revoke invite button, Resend invite button. | Basic send invite form. | **Missing**: Active invites list, Revoke invite action, Resend invite action. |
@@ -33,8 +33,8 @@ This plan itemizes every screen, modal, drawer, and capability across the platfo
 
 1. **Transaction History & Ledger Consolidation (MECE Principle)**:
    - *Decision*: Consolidate `apps/mobile/src/app/(app)/settings/history.tsx` and `apps/mobile/src/app/(app)/transactions.tsx`. The main tab `(app)/transactions.tsx` becomes the unified 2-Tab History view (`Transactions` & `Payday Allocations`). `settings/history.tsx` redirects directly to `/(app)/transactions?tab=payday-allocations` to eliminate duplicated code.
-2. **Mobile 3-Step CSV Statement Import Workflow**:
-   - *Decision*: Mobile will use `expo-document-picker` to select CSV files from the device filesystem or cloud storage, stream the content to `trpc.parseCsv`, present an interactive mobile card-based review list with duplicate detection badges, and commit via `trpc.importCsvTransactions` with batch ID tracking.
+2. **Bank Statement CSV Import Deferred to V2**:
+   - *Decision*: Backward-looking statement CSV import was cleanly removed from V1 across Web and Mobile to preserve Money Matters' forward-looking payday allocation philosophy. Reconciliation is performed via 1-click balance alignment. Full statement import and CDR Open Banking feeds are formally deferred to Release 2 (`V2_SCOPE.md`).
 3. **12-Month Rolling Cash-Flow Matrix on Mobile**:
    - *Decision*: Mobile will render the 12-month projection via a horizontally scrollable pay-cycle timeline carousel (`MobileMatrixPlanTab.tsx`), allowing users to swipe through upcoming pay periods and inspect income vs ring-fenced bills per cycle.
 4. **Component Reusability & Shared Tokens**:
@@ -213,10 +213,10 @@ Consolidate transaction views under the MECE principle into a unified 2-Tab Hist
 
 ---
 
-## Phase 6: Bank Accounts & Mobile 3-Step CSV Statement Import Wizard
+## Phase 6: Bank Accounts & 1-Click Balance Alignment
 
 ### Objective
-Bring full provider branding, account editing, stealth privacy toggles, and an interactive 3-step CSV statement import wizard with batch rollback to mobile.
+Bring full provider branding, account editing, unbudgeted buffer calculation, stealth privacy toggles, and 1-click balance alignment to mobile.
 
 ### 6.1 Bank Accounts Management & Provider Branding
 - **Files**:
@@ -228,28 +228,10 @@ Bring full provider branding, account editing, stealth privacy toggles, and an i
   - Stealth Private Account toggle (`isPrivate`) to hide balance from secondary household users.
   - Linked Pool Types mapping with `TransferConflictModal` warning when moving a pool from another account.
 
-### 6.2 Interactive 3-Step CSV Statement Import Wizard
-- **File**: `apps/mobile/src/components/csv-import/MobileCsvImportModal.tsx`
-- **Steps**:
-  1. **Step 1: Upload & Account Select**:
-     - Pick CSV via `expo-document-picker` (supports Big 4 bank exports: CBA, Westpac, ANZ, NAB, ING, Macquarie).
-     - Select target destination bank account.
-     - Call `trpc.parseCsv.useMutation()`.
-  2. **Step 2: Interactive Review & Matching**:
-     - Card-based review list of parsed transactions with Date, Description, Amount, Flow (Debit/Credit).
-     - Auto-matched category dropdown with confidence score badge.
-     - Duplicate Detection flag (comparing against existing ledger transactions in DB).
-     - Exclude toggle switch per transaction.
-     - Add new category inline shortcut.
-  3. **Step 3: Commit & Import Summary**:
-     - Batch commit via `trpc.importCsvTransactions.useMutation()`.
-     - Displays total imported count, created categories, and batch reference.
-
-### 6.3 CSV Batch History & 1-Tap Rollback
-- **File**: `apps/mobile/src/app/(app)/settings/bank-accounts.tsx`
-- **Features**:
-  - List of past import batches (`trpc.listCsvImportBatches.useQuery()`) with batch ID, timestamp, and transaction count.
-  - 1-tap "Rollback Import" button invoking `trpc.rollbackCsvBatch.useMutation()` with confirmation dialog.
+#### 6.2 Bank Statement Import (Deferred to Release 2)
+- Statement CSV import is deferred to V2 (`V2_SCOPE.md`) to prevent backward-looking micro-tracking friction.
+- V1 provides 1-click Bank Balance Alignment modal on Web and Mobile settings.
+- Export transaction CSV is fully supported via `handleExportCsv` in `(app)/transactions.tsx` and `exportTenantData`.
 
 ---
 

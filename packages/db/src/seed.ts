@@ -338,7 +338,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     .returning();
 
   // 8. Income Events
-  const todayStr = new Date().toISOString().split("T")[0];
   const [firstIncomeEvent] = await db
     .insert(incomeEvents)
     .values({ incomeSourceId: salarySource.id, name: salarySource.name, expectedDate: "2026-07-01", expectedAmount: "5200.00", actualAmount: "5200.00", status: "CONFIRMED", tenantId, appId, createdBy: userId, updatedBy: userId })

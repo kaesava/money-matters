@@ -89,7 +89,7 @@ export function BankAccountFormModal({ visible, accountToEdit, onClose, onSucces
       visible={visible}
       onClose={onClose}
       title={accountToEdit ? 'Edit Bank Account' : 'Add Bank Account'}
-      subtitle={accountToEdit ? 'Update statement balance & purpose' : 'Link a new checking or offset bank account'}
+      subtitle={accountToEdit ? 'Update current balance & purpose' : 'Link a new checking or offset bank account'}
     >
       <View style={styles.formGroup}>
         <Text style={styles.label}>Account Name</Text>
@@ -103,7 +103,7 @@ export function BankAccountFormModal({ visible, accountToEdit, onClose, onSucces
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>Statement Balance ($)</Text>
+        <Text style={styles.label}>Current Balance ($)</Text>
         <TextInput
           value={balance}
           onChangeText={setBalance}
