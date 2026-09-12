@@ -46,16 +46,16 @@ export function LandingFooter({ onAuthClick }: LandingFooterProps) {
           </div>
 
           <nav className="flex flex-wrap items-center justify-center gap-4 font-medium">
-            <Link href="/terms" className="hover:text-[#2563eb] transition-colors">
+            <Link href="/terms" prefetch={false} className="hover:text-[#2563eb] transition-colors">
               {t("landing.footerTerms")}
             </Link>
-            <Link href="/privacy" className="hover:text-[#2563eb] transition-colors">
+            <Link href="/privacy" prefetch={false} className="hover:text-[#2563eb] transition-colors">
               {t("landing.footerPrivacy")}
             </Link>
-            <Link href="/privacy/delete-account" className="hover:text-[#2563eb] transition-colors">
+            <Link href="/privacy/delete-account" prefetch={false} className="hover:text-[#2563eb] transition-colors">
               {t("privacy.deletePageTitle")}
             </Link>
-            <Link href="/blog" className="hover:text-[#2563eb] transition-colors">
+            <Link href="/blog" prefetch={false} className="hover:text-[#2563eb] transition-colors">
               {t("landing.footerBlog")}
             </Link>
             <a

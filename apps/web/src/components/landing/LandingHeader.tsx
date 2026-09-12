@@ -39,18 +39,18 @@ export function LandingHeader({ onAuthClick }: LandingHeaderProps) {
           </a>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => onAuthClick("signIn")}
-            className="text-xs font-bold text-slate-700 hover:text-[#2563eb] px-3 py-2 rounded-xl transition-colors cursor-pointer"
+            className="text-xs sm:text-sm font-bold text-slate-700 hover:text-[#1B2B4B] bg-slate-100 hover:bg-slate-200/90 border border-slate-200/90 px-4 py-2 rounded-xl transition-all shadow-2xs cursor-pointer active:scale-98"
           >
             {t("auth.signIn")}
           </button>
           <button
             type="button"
             onClick={() => onAuthClick("signUp")}
-            className="bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-xs hover:shadow-md active:scale-98 cursor-pointer"
+            className="bg-[#2563eb] hover:bg-blue-700 text-white text-xs sm:text-sm font-extrabold px-4.5 py-2 rounded-xl transition-all shadow-xs hover:shadow-md active:scale-98 cursor-pointer"
           >
             {t("landing.createAccount")}
           </button>

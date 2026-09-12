@@ -18,7 +18,6 @@ import { LandingFooter } from "../components/landing/LandingFooter";
 
 export default function Home() {
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<"signIn" | "signUp">("signIn");
 
@@ -28,15 +27,12 @@ export default function Home() {
   };
 
   useEffect(() => {
-    setIsClient(true);
     authClient.getSession().then(({ data }) => {
       if (data?.session) {
         router.push("/dashboard");
       }
     });
   }, [router]);
-
-  if (!isClient) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F8FA] text-[#1B2B4B] font-sans selection:bg-[#2563eb] selection:text-white relative">

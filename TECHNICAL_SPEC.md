@@ -368,7 +368,12 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 - **`LandingHero.tsx`**: Dual-column hero layout combining the Before/After traditional vs Money Matters comparison with the interactive Serene Bento showcase (Zero Bill Shock, Real Goal Progress, Everyday Safe Spend, and "Can I Afford This?" micro-tester).
 - **`ProblemSection.tsx`**: 4 fatal budgeting traps illustrated with Serene Finance vector icons (zero decorative emojis).
 - **`HowItWorksSection.tsx`**: 3-step automated payday allocation pipeline.
-- **`AdvantagesSection.tsx`**: 6-card grid highlighting the Two-Horizon engine, Stealth Privacy, and 1-click alignment.
+- **`PaycheckSimulator.tsx` (`apps/web/src/components/simulator/`)**: Multi-Payline Cashflow & Payday Simulator (<250 lines modular architecture) featuring:
+  - `SimulatorTimelineBar.tsx`: Day 0 to Day 28 interactive scrubber with milestone jump chips and auto-play controls.
+  - `SimulatorPoolCard.tsx`: Variable-speed synchronized pool fill bars with subtle 100% completion celebration badge (`✓ 100% Funded`).
+  - `SimulatorEventCallout.tsx`: Dynamic event narrative displaying cashflow outcomes (e.g. Day 3 Rent paid from Bills Pool with Everyday balance untouched).
+  - `simulationData.ts`: Continuous mathematical timeline state resolving milestone snapshots and surplus sweep into Home Loan Offset reserve.
+- **`AdvantagesSection.tsx`**: 3 core mechanical guarantees: 5-Step Self-Healing Waterfall, 5-Level "Can We Afford This?" Engine, and Harmonious Shared & Personal Budgets (shared bill clarity + 100% confidential personal spending without surveillance).
 - **`PricingSection.tsx`**: Transparent household pricing ($9.95/mo or $89/yr, founding member $69/yr) with 60-day trial banner.
 - **`LandingFooter.tsx`**: Standardized footer with brand links and legal routes.
 

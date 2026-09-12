@@ -62,7 +62,7 @@ export function AdvantagesSection() {
           </div>
         </div>
 
-        {/* Advantage 3: PostgreSQL RLS Stealth Privacy */}
+        {/* Advantage 3: Harmonious Shared & Personal Budgets */}
         <div className="p-7 rounded-3xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-6">
           <div className="space-y-3">
             <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
@@ -73,8 +73,24 @@ export function AdvantagesSection() {
               {t("landing.advantage3Body")}
             </p>
           </div>
-          <div className="p-4 bg-slate-900 text-slate-200 rounded-2xl font-mono text-[11px] leading-relaxed overflow-x-auto border border-slate-800">
-            <code>{t("landing.advantage3Detail")}</code>
+          <div className="p-4 bg-[#F7F8FA] rounded-2xl border border-slate-200/80 space-y-2.5">
+            <div className="flex items-center gap-2.5 p-2.5 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+              <span className="text-base">👥</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold text-[#1B2B4B]">{t("landing.advantage3SharedTitle")}</div>
+                <div className="text-[11px] text-slate-500 truncate">{t("landing.advantage3SharedDesc")}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 p-2.5 bg-white rounded-xl border border-slate-200/60 shadow-2xs">
+              <span className="text-base">🔒</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold text-[#1B2B4B]">{t("landing.advantage3PrivateTitle")}</div>
+                <div className="text-[11px] text-slate-500 truncate">{t("landing.advantage3PrivateDesc")}</div>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium pt-1 text-center">
+              {t("landing.advantage3Caption")}
+            </p>
           </div>
         </div>
       </div>
