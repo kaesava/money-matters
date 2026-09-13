@@ -262,6 +262,7 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 
 ### 5.9 Typed Feature Flags, Kill Switches & Strict DB Typing Standards
 - **Typed Feature Flags (`@money-matters/config`)**: All feature flags implement `FeatureFlag` with typed expiry, owner, tenant scoping, and mandatory `killSwitchEnabled: boolean`. When `killSwitchEnabled === true`, `isFeatureEnabled()` immediately disables the capability globally regardless of user rollout percentages.
+- **Auth Toggle & Downtime Early Access Flow (`NEXT_PUBLIC_ENABLE_AUTH`)**: When set to `"false"`, `middleware.ts` intercepts all authenticated and sign-in routes and redirects to `/?early_access=true`. The landing page automatically displays `EarlyAccessModal`, allowing prospective or returning users to submit their email via public tRPC procedure `subscribeEarlyAccess` (upserting to `early_access_subscribers`) to be notified when the platform resumes operations.
 - **Strict Database Typing (`DbOrTx`)**: Zero `any` policy enforced across all capability command and query signatures. All capability handlers receive strict `DbOrTx` (`DbClient | DbTransaction`) without default client injection parameters, guaranteeing deterministic transactional boundaries and full type safety.
 
 ### 5.10 App Versioning Architecture, Database Schema & Diagnostics

@@ -2,8 +2,14 @@ import { describe, it, expect } from "vitest";
 import { budgetingRouter } from "./budgeting.router.js";
 import { transfersRouter } from "./transfers.router.js";
 import { expensesRouter } from "./expenses.router.js";
+import { tenantRouter } from "./tenant.router.js";
 
 describe("Router protections & procedure sanity checks", () => {
+  it("exports tenantRouter with required downtime/early access subscription procedure", () => {
+    expect(tenantRouter).toBeDefined();
+    expect(tenantRouter.subscribeEarlyAccess).toBeDefined();
+  });
+
   it("exports budgetingRouter with required pool and category procedures", () => {
     expect(budgetingRouter).toBeDefined();
     expect(budgetingRouter.createPool).toBeDefined();

@@ -160,7 +160,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "transferCompleted": "振替を完了しました",
     "transferDeleted": "振替予定を削除しました",
     "expenseMarkedPaid": "支出を記録しました",
-    "expenseDeleted": "支出予定を削除しました"
+    "expenseDeleted": "支出予定を削除しました",
+    "earlyAccessRegistered": "ありがとうございます！メールアドレスを登録しました。Money Matters の公開時にすぐにお知らせします。"
   },
   "networkError": {
     "title": "接続が中断されました",

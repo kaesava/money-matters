@@ -169,6 +169,7 @@ export const en = {
     transferDeleted: "Transfer deleted",
     expenseMarkedPaid: "Expense marked as spent.",
     expenseDeleted: "Expense deleted.",
+    earlyAccessRegistered: "Thank you! We've registered your email and will notify you as soon as Money Matters goes live.",
   },
   networkError: {
     title: "Connection Interrupted",
