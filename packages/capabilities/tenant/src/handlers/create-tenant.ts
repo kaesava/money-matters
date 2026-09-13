@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tenants, tenantUsers, appCategories, pools, categories, bankAccounts, apps, users, userPreferences, DbOrTx } from "@money-matters/db";
+import { tenants, tenantUsers, pools, categories, bankAccounts, apps, users, userPreferences, DbOrTx } from "@money-matters/db";
 import { CreateTenantCommand, COUNTRY_DEFAULTS } from "@money-matters/types";
 import { eq, and, isNull } from "drizzle-orm";
 
@@ -152,7 +152,6 @@ export function createTenantHandler(db: DbOrTx) {
           name: "Regular Bills",
           poolType: "REGULAR",
           bankAccountId: primaryAccount.id,
-          rolloverRule: "ROLLOVER",
           createdBy: userId,
           updatedBy: userId,
         },
@@ -172,29 +171,16 @@ export function createTenantHandler(db: DbOrTx) {
       .returning();
 
     // 5. Seed default sub-tag categories into Everyday and Bills pools
-    const templates = await db
-      .select()
-      .from(appCategories)
-      .where(eq(appCategories.appId, appId));
-
-    const defaultTemplates = templates.length > 0
-      ? templates.map((t) => ({
-          name: t.name,
-          type: t.type,
-          icon: t.icon,
-          colour: t.colour,
-          monthlyAmount: t.annualisedAmount ? String((Number(t.annualisedAmount) / 12).toFixed(2)) : null,
-        }))
-      : [
-          { name: "Groceries & Food Supplies", type: "EVERYDAY" as const, icon: "shopping-cart", colour: "#10B981", monthlyAmount: "1170.00" },
-          { name: "Dining Out & Coffee", type: "EVERYDAY" as const, icon: "coffee", colour: "#F59E0B", monthlyAmount: "1040.00" },
-          { name: "Petrol & Fuel", type: "EVERYDAY" as const, icon: "navigation", colour: "#3B82F6", monthlyAmount: "260.00" },
-          { name: "Public Transport & Rideshare", type: "EVERYDAY" as const, icon: "truck", colour: "#8B5CF6", monthlyAmount: "180.00" },
-          { name: "Personal Care & Fun", type: "EVERYDAY" as const, icon: "smile", colour: "#EC4899", monthlyAmount: "430.00" },
-          { name: "Everyday Incidental Buffer", type: "EVERYDAY" as const, icon: "wallet", colour: "#00B4A6", monthlyAmount: "300.00" },
-          { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", colour: "#EF4444", monthlyAmount: "2400.00" },
-          { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", colour: "#F59E0B", monthlyAmount: "300.00" },
-        ];
+    const defaultTemplates = [
+      { name: "Groceries & Food Supplies", type: "EVERYDAY" as const, icon: "shopping-cart", monthlyAmount: "1170.00" },
+      { name: "Dining Out & Coffee", type: "EVERYDAY" as const, icon: "coffee", monthlyAmount: "1040.00" },
+      { name: "Petrol & Fuel", type: "EVERYDAY" as const, icon: "navigation", monthlyAmount: "260.00" },
+      { name: "Public Transport & Rideshare", type: "EVERYDAY" as const, icon: "truck", monthlyAmount: "180.00" },
+      { name: "Personal Care & Fun", type: "EVERYDAY" as const, icon: "smile", monthlyAmount: "430.00" },
+      { name: "Everyday Incidental Buffer", type: "EVERYDAY" as const, icon: "wallet", monthlyAmount: "300.00" },
+      { name: "Rent & Housing", type: "REGULAR" as const, icon: "home", monthlyAmount: "2400.00" },
+      { name: "Electricity & Utilities", type: "REGULAR" as const, icon: "zap", monthlyAmount: "300.00" },
+    ];
 
     await db.insert(categories).values(
       defaultTemplates.map((template) => {
@@ -205,7 +191,6 @@ export function createTenantHandler(db: DbOrTx) {
           poolId,
           name: template.name,
           icon: template.icon,
-          colour: template.colour,
           monthlyAmount: template.monthlyAmount,
           enteredAmount: template.monthlyAmount,
           budgetFrequency: "MONTHLY",

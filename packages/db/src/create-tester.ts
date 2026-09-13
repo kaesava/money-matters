@@ -107,7 +107,6 @@ async function main() {
       await db.insert(tenants).values({
         id: tenantId,
         name: `${name} Household`,
-        fyEndMonthDay: "06-30",
         timezone: "Australia/Sydney",
         premiumEnabled: true,
         subscriptionStatus: "TRIAL_ACTIVE",

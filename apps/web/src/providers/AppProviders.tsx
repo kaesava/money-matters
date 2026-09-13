@@ -5,6 +5,7 @@ import { trpc, buildTrpcClient } from "../lib/trpc";
 import { authClient } from "../lib/auth";
 import posthog from "../lib/posthog-client";
 import { ToastProvider, ToastContainer, NetworkErrorBanner } from "@money-matters/ui/web";
+import { LocaleProvider } from "./LocaleProvider";
 
 interface NetworkStatusContextType {
   isGlobalError: boolean;
@@ -133,17 +134,19 @@ export function AppProviders({ children }: AppProvidersProps) {
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
             <SessionSyncTracker>
-              <NetworkErrorBanner
-                isVisible={isGlobalError}
-                onRetry={() => {
-                  clearGlobalError();
-                  queryClient.refetchQueries();
-                }}
-                onDismiss={clearGlobalError}
-                message={lastErrorMessage}
-              />
-              {children}
-              <ToastContainer />
+              <LocaleProvider>
+                <NetworkErrorBanner
+                  isVisible={isGlobalError}
+                  onRetry={() => {
+                    clearGlobalError();
+                    queryClient.refetchQueries();
+                  }}
+                  onDismiss={clearGlobalError}
+                  message={lastErrorMessage}
+                />
+                {children}
+                <ToastContainer />
+              </LocaleProvider>
             </SessionSyncTracker>
           </ToastProvider>
         </QueryClientProvider>

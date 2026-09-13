@@ -7,6 +7,7 @@ import {
   getCurrencyMinorUnits,
   fmtDateTime,
 } from "./format";
+import { fmtDate, fmtDateMedium, fmtDateIso } from "../utils/formatDate";
 
 describe("UI Format Utilities", () => {
   it("formats AUD currency correctly in en-AU", () => {
@@ -57,4 +58,25 @@ describe("UI Format Utilities", () => {
     expect(formatted).toContain("2026");
     expect(formatted).toContain("Aug");
   });
+
+  it("formats dates according to regional locale", () => {
+    const d = "2026-12-31";
+    // Australia: DD/MM/YYYY
+    expect(fmtDate(d, "Australia/Sydney", "en-AU")).toBe("31/12/2026");
+    // Canada: YYYY-MM-DD
+    expect(fmtDate(d, "America/Toronto", "en-CA")).toBe("2026-12-31");
+    // United States: MM/DD/YYYY
+    expect(fmtDate(d, "America/New_York", "en-US")).toBe("12/31/2026");
+    // Japan: YYYY/MM/DD
+    expect(fmtDate(d, "Asia/Tokyo", "ja-JP")).toBe("2026/12/31");
+  });
+
+  it("formats timezone-aware ISO date strings via fmtDateIso", () => {
+    const d = new Date("2026-12-31T20:00:00Z");
+    // In Sydney (UTC+11), 20:00 UTC on Dec 31 is Jan 1 2027!
+    expect(fmtDateIso(d, "Australia/Sydney")).toBe("2027-01-01");
+    // In New York (UTC-5), 20:00 UTC on Dec 31 is Dec 31 2026!
+    expect(fmtDateIso(d, "America/New_York")).toBe("2026-12-31");
+  });
 });
+

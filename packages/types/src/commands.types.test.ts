@@ -32,9 +32,9 @@ describe('Command Schemas Validation', () => {
     expect(() => CreateTenantCommand.parse({ name: '', country: 'AU' })).toThrow();
     expect(() => CreateTenantCommand.parse({ name: 'Valid' })).toThrow();
 
-    const updateRes = UpdateTenantCommand.parse({ fyEndMonthDay: '12-31' });
-    expect(updateRes.fyEndMonthDay).toBe('12-31');
-    expect(() => UpdateTenantCommand.parse({ fyEndMonthDay: 'invalid' })).toThrow();
+    const updateRes = UpdateTenantCommand.parse({ timezone: 'Australia/Melbourne' });
+    expect(updateRes.timezone).toBe('Australia/Melbourne');
+    expect(() => UpdateTenantCommand.parse({ country: 'INVALID' })).toThrow();
   });
 
   it('validates CreateBankAccountCommand and UpdateBankAccountCommand', () => {
@@ -64,7 +64,7 @@ describe('Command Schemas Validation', () => {
     const catCmd = CreateCategoryCommand.parse({
       poolId: '11111111-1111-4111-8111-111111111111',
       name: 'Groceries',
-      colour: '#FF0000',
+      icon: 'shopping-cart',
     });
     expect(catCmd.name).toBe('Groceries');
 

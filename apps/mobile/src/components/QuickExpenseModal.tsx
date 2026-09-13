@@ -17,7 +17,7 @@ import { usePostHog } from "posthog-react-native";
 import { DESIGN_TOKENS } from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
-import { formatAUD } from "../lib/format";
+import { formatAUD, formatIsoDate } from "../lib/format";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";
 import { triggerHaptic } from "../lib/haptics";
 
@@ -166,9 +166,7 @@ export function QuickExpenseModal({
 
       setIsSubmitting(true);
       try {
-        const todayStr = new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Australia/Sydney",
-        }).format(new Date());
+        const todayStr = formatIsoDate(new Date());
 
         const created = await createUpcomingIncomeMutation.mutateAsync({
           name: name.trim(),

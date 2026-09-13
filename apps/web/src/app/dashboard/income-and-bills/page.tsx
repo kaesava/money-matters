@@ -13,23 +13,26 @@ import {
   ResizableTh,
   useResizableColumns,
   Tabs,
-  fmtDate,
   PoolPicker,
 } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
 import { MatrixPlanTab } from "./components/MatrixPlanTab";
 import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
+import { useLocale } from "../../../providers/LocaleProvider";
 
-function formatScheduleSummary({
-  rrule,
-  startDate,
-  endDate,
-}: {
-  rrule?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-}): string {
+function formatScheduleSummary(
+  {
+    rrule,
+    startDate,
+    endDate,
+  }: {
+    rrule?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  },
+  dateFormatter: (d: string | Date | number | null | undefined) => string = (d) => String(d ?? "")
+): string {
   if (!rrule && !startDate) return "One-off";
 
   let freqStr = "Recurring";
@@ -48,8 +51,8 @@ function formatScheduleSummary({
     }
   }
 
-  const startFormatted = startDate ? fmtDate(startDate) : null;
-  const endFormatted = endDate ? fmtDate(endDate) : null;
+  const startFormatted = startDate ? dateFormatter(startDate) : null;
+  const endFormatted = endDate ? dateFormatter(endDate) : null;
 
   if (startFormatted && endFormatted) {
     return `${freqStr} from ${startFormatted} to ${endFormatted}`;
@@ -60,6 +63,7 @@ function formatScheduleSummary({
 }
 
 function IncomeAndBillsContent() {
+  const { fmtDate } = useLocale();
   const searchParams = useSearchParams();
   const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
   const categoryIdParam = searchParams.get("categoryId") || "";
@@ -531,7 +535,7 @@ function IncomeAndBillsContent() {
                                   {inc.name}
                                 </button>
                                  <span className="text-[10px] text-zinc-400 font-medium">
-                                   {formatScheduleSummary({ rrule: inc.rrule, startDate: inc.startDate, endDate: inc.endDate })}
+                                   {formatScheduleSummary({ rrule: inc.rrule, startDate: inc.startDate, endDate: inc.endDate }, fmtDate)}
                                  </span>
                               </div>
                             </td>
@@ -689,7 +693,7 @@ function IncomeAndBillsContent() {
                                   {exp.name}
                                 </button>
                                  <span className="text-[10px] text-zinc-400 font-medium">
-                                   {formatScheduleSummary({ rrule: exp.rrule, startDate: exp.startDate, endDate: exp.endDate })}
+                                   {formatScheduleSummary({ rrule: exp.rrule, startDate: exp.startDate, endDate: exp.endDate }, fmtDate)}
                                  </span>
                               </div>
                             </td>

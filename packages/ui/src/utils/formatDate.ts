@@ -19,7 +19,7 @@ export function fmtDate(
       // Handle YYYY-MM-DD string without UTC offset interpretation shift
       if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
         const [year, month, day] = input.split("-").map(Number);
-        dateObj = new Date(year, month - 1, day);
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
       } else {
         dateObj = new Date(input);
       }
@@ -55,7 +55,7 @@ export function fmtDateMedium(
     if (typeof input === "string") {
       if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
         const [year, month, day] = input.split("-").map(Number);
-        dateObj = new Date(year, month - 1, day);
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
       } else {
         dateObj = new Date(input);
       }
@@ -76,3 +76,34 @@ export function fmtDateMedium(
     return "N/A";
   }
 }
+
+/**
+ * Returns a timezone-aware ISO date string (YYYY-MM-DD) avoiding off-by-one errors.
+ */
+export function fmtDateIso(
+  input?: string | Date | number | null,
+  timeZone: string = "Australia/Sydney"
+): string {
+  try {
+    let dateObj: Date;
+    if (!input) {
+      dateObj = new Date();
+    } else if (typeof input === "string") {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+        const [year, month, day] = input.split("-").map(Number);
+        dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      } else {
+        dateObj = new Date(input);
+      }
+    } else if (typeof input === "number") {
+      dateObj = new Date(input);
+    } else {
+      dateObj = input;
+    }
+    if (isNaN(dateObj.getTime())) return "";
+    return new Intl.DateTimeFormat("en-CA", { timeZone }).format(dateObj);
+  } catch {
+    return "";
+  }
+}
+

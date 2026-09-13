@@ -182,10 +182,6 @@ export const tenantRouter = {
         notificationEmail: globalPref?.notificationEmail ?? null,
         phoneCountryCode: globalPref?.phoneCountryCode ?? "+61",
         phoneNumber: globalPref?.phoneNumber ?? null,
-        paydayAlertsEnabled: appBlob?.payday_alerts_enabled ?? true,
-        shortfallAlertsEnabled: appBlob?.shortfall_alerts_enabled ?? true,
-        billRemindersEnabled: appBlob?.bill_reminders_enabled ?? true,
-        weeklyDigestEnabled: appBlob?.weekly_digest_enabled ?? false,
         setupCompleted: appBlob?.setup_completed ?? false,
         setupCompletedAt: appBlob?.setup_completed_at ?? null,
         appPreferences: tenantPref?.appPreferences ?? {},
@@ -200,10 +196,6 @@ export const tenantRouter = {
         locale: z.string().optional(),
         theme: z.string().optional(),
         showIcons: z.boolean().optional(),
-        paydayAlertsEnabled: z.boolean().optional(),
-        shortfallAlertsEnabled: z.boolean().optional(),
-        billRemindersEnabled: z.boolean().optional(),
-        weeklyDigestEnabled: z.boolean().optional(),
         setupCompleted: z.boolean().optional(),
         appPreferences: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
       }).strict()
@@ -258,10 +250,6 @@ export const tenantRouter = {
 
       const updatedAppBlob: AppPreferencesBlob = {
         ...currentAppBlob,
-        ...(input.paydayAlertsEnabled !== undefined ? { payday_alerts_enabled: input.paydayAlertsEnabled } : {}),
-        ...(input.shortfallAlertsEnabled !== undefined ? { shortfall_alerts_enabled: input.shortfallAlertsEnabled } : {}),
-        ...(input.billRemindersEnabled !== undefined ? { bill_reminders_enabled: input.billRemindersEnabled } : {}),
-        ...(input.weeklyDigestEnabled !== undefined ? { weekly_digest_enabled: input.weeklyDigestEnabled } : {}),
         ...(input.setupCompleted !== undefined
           ? {
               setup_completed: input.setupCompleted,

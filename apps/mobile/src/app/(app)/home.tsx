@@ -14,7 +14,7 @@ import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import { formatAUD } from '../../lib/format';
+import { formatAUD, formatIsoDate } from '../../lib/format';
 
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
 import { AttentionItemsList, AttentionItem } from '../../components/AttentionItemsList';
@@ -34,9 +34,7 @@ export default function HomeScreen() {
   const utils = trpc.useUtils();
   const todayYear = new Date().getFullYear();
   const todayMonth = new Date().getMonth() + 1;
-  const todayStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Australia/Sydney',
-  }).format(new Date());
+  const todayStr = formatIsoDate(new Date());
 
   const { data: session } = authClient.useSession();
   const [refreshing, setRefreshing] = useState(false);

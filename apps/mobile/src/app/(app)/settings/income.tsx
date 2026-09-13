@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, MobilePaginationBar, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../../lib/trpc';
+import { formatIsoDate } from '../../../lib/format';
 
 const INCOME_TYPES = ['SALARY', 'FREELANCE', 'OTHER'] as const;
 const FREQUENCIES = ['WEEKLY', 'FORTNIGHTLY', 'MONTHLY'] as const;
@@ -64,16 +65,16 @@ export default function SettingsIncomeScreen() {
         name: name.trim(),
         amount: numericAmount.toFixed(2),
         isRecurring: true,
-        startDate: new Date().toISOString().split('T')[0]!,
+        startDate: formatIsoDate(new Date()),
         frequency,
       });
 
       setName('');
       setAmount('');
       refetch();
-      toast.success("Income stream added successfully.");
+      toast.success("Income schedule added successfully.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add income stream.");
+      toast.error(err instanceof Error ? err.message : "Failed to add income schedule.");
     } finally {
       setAdding(false);
     }

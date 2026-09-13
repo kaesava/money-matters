@@ -6,13 +6,13 @@ import Link from "next/link";
 
 import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, SearchInput, PaginationBar, fmtDate, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable, PoolPicker, RecordFilterBadge } from "@money-matters/ui/web";
+import { InfoTooltip, SearchInput, PaginationBar, useResizableColumns, ResizableTh, Tabs, Spinner, SkeletonTable, PoolPicker, RecordFilterBadge } from "@money-matters/ui/web";
 import { SlideOverAllocationDrawer, PaydayPlanRecord } from "../../../components/web/SlideOverAllocationDrawer";
 import { getTenantDateString } from "@money-matters/core";
 import { useLocale } from "../../../providers/LocaleProvider";
 
 function TransactionsPageContent() {
-  const { fmt } = useLocale();
+  const { fmt, fmtDate } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "transactions";

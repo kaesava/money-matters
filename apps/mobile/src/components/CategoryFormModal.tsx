@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityInd
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
+import { formatIsoDate } from '../lib/format';
 
 export interface CategoryItem {
   id: string;
@@ -44,7 +45,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       setType(categoryToEdit.type);
       setTargetAmount(categoryToEdit.targetAmount ?? '');
       setMonthlyAmount(categoryToEdit.monthlyAmount ?? '');
-      setTargetDate(categoryToEdit.targetDate ? categoryToEdit.targetDate.split('T')[0] : '');
+      setTargetDate(categoryToEdit.targetDate ? formatIsoDate(categoryToEdit.targetDate) : '');
       setKeepAmount(categoryToEdit.everydayTargetKeepAmount ?? '');
       setBankAccountId(categoryToEdit.bankAccountId ?? '');
     } else {

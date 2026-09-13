@@ -6,6 +6,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
+import { formatIsoDate } from '../../lib/format';
 import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from '@money-matters/types';
 
 export default function SetupCategoriesScreen() {
@@ -74,12 +75,12 @@ export default function SetupCategoriesScreen() {
       } else {
         // 1. Create main income source
         const numericAmount = parseFloat(params.incomeAmount || '0') || 0;
-        const todaySydney = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+        const todayStr = formatIsoDate(new Date());
         await createIncomeSource.mutateAsync({
           name: params.incomeName || t('setup.income.defaultName', { defaultValue: 'My Salary' }),
           amount: numericAmount.toFixed(2),
           isRecurring: true,
-          startDate: todaySydney,
+          startDate: todayStr,
           frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
         });
 

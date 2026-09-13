@@ -8,10 +8,8 @@ import { QuickExpenseDrawer } from "../../components/web/QuickExpenseDrawer";
 
 import { TrialBanner } from "../../components/TrialBanner";
 import { useSubscriptionStatus } from "../../hooks/useSubscriptionStatus";
-import { IconVisibilityProvider } from "@money-matters/ui";
 import { Spinner } from "@money-matters/ui/web";
 import { useNetworkStatus } from "../../providers/AppProviders";
-import { LocaleProvider } from "../../providers/LocaleProvider";
 import { trpc } from "../../lib/trpc";
 import { SidebarContent } from "./components/SidebarContent";
 import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
@@ -46,7 +44,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const hasMultipleTenants = (tenantsQuery.data?.length ?? 0) > 1;
 
-  const initialShowIcons = userPrefQuery.data?.showIcons ?? true;
   const userLocale = userPrefQuery.data?.language || "en";
 
   useEffect(() => {
@@ -245,9 +242,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <LocaleProvider>
-      <IconVisibilityProvider initialShowIcons={initialShowIcons}>
-        <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
         {/* ── Desktop Sidebar (Hidden in distraction-free mode or on mobile) ── */}
         {!isDistractionFree && (
           <aside
@@ -434,7 +429,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           />
         </div>
       </div>
-      </IconVisibilityProvider>
-    </LocaleProvider>
   );
 }

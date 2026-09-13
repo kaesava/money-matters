@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, fmtDate, AmountField, PoolPicker } from "@money-matters/ui/web";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, AmountField, PoolPicker } from "@money-matters/ui/web";
 import { ModalDialog } from "./ModalDialog";
 
 import { t } from "@money-matters/i18n";
@@ -90,7 +90,7 @@ export default function IncomeExpenseFormModal({
   mode,
   sourceToEdit,
 }: IncomeExpenseFormModalProps) {
-  const { currency, currencySymbol, minorUnits } = useLocale();
+  const { currency, currencySymbol, minorUnits, fmtDate } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
 

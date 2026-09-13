@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
+import { formatIsoDate } from '../lib/format';
 
 export interface EventToOverride {
   id: string;
@@ -24,7 +25,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
 
   useEffect(() => {
     if (eventToEdit) {
-      setExpectedDate(eventToEdit.expectedDate.split('T')[0] ?? eventToEdit.expectedDate);
+      setExpectedDate(formatIsoDate(eventToEdit.expectedDate));
       setExpectedAmount(eventToEdit.expectedAmount);
     }
   }, [eventToEdit]);

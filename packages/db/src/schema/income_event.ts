@@ -1,4 +1,4 @@
-import { pgTable, uuid, numeric, pgEnum, date, boolean, varchar } from "drizzle-orm/pg-core";
+import { pgTable, uuid, numeric, pgEnum, date, varchar } from "drizzle-orm/pg-core";
 import { incomeSources } from "./income.js";
 import { tenantAndTimestamps } from "./base.js";
 
@@ -14,7 +14,6 @@ export const incomeEvents = pgTable("income_events", {
   expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
   actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),
   note: varchar("note", { length: 500 }),
-  isOverridden: boolean("is_overridden").notNull().default(false),
   status: incomeEventStatusEnum("status").notNull().default("PENDING"),
   ...tenantAndTimestamps,
 });

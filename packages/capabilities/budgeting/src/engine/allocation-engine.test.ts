@@ -370,15 +370,14 @@ describe("paycheck cascade allocation engine", () => {
     expect(surplusLine?.proposedAmount).toBe(1200);
   });
 
-  it("supports top-up to cap for Everyday allowance when rolloverRule is RESET", () => {
+  it("allocates full cycle allowance for Everyday allowance", () => {
     const buckets: EngineBucket[] = [
       {
         id: "everyday-pool",
         name: "Everyday Cash",
         type: "EVERYDAY",
         everydayAllowanceAmount: 700, // Monthly $700 -> fortnightly cycle is $323.08
-        rolloverRule: "RESET", // Top-up to cap
-        currentBalance: 200, // Has $200 already
+        currentBalance: 200,
       },
       {
         id: "surplus-pool",
@@ -398,8 +397,8 @@ describe("paycheck cascade allocation engine", () => {
 
     expect(result.status).toBe("OK");
     const everydayLine = result.lines.find((l) => l.bucketId === "everyday-pool");
-    // Fortnightly allowance = $700 * 12 / 26 = $323.08. Since balance is $200, top-up needed = $323.08 - $200 = $123.08!
-    expect(everydayLine?.proposedAmount).toBe(123.08);
+    // Full fortnightly allowance = $700 * 12 / 26 = $323.08
+    expect(everydayLine?.proposedAmount).toBe(323.08);
   });
 
   it("isolates private pools: partner A income never allocates to partner B private pool", () => {

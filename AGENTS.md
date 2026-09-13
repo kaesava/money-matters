@@ -52,13 +52,15 @@ MUST use stable versions. MUST document version constraints.
 - MUST use `privateTenantProcedure` for any route reading/writing sensitive data (`categories`, `bank_accounts`, `transaction_ledger`) to inject both `app.current_tenant_id` and `app.current_user_id` into PostgreSQL RLS session context for 100% stealth privacy isolation.
 - Enforce PostgreSQL RLS (integrating with Neon DB Auth) at the database layer.
 
-## 6. Database Standards
+## 6. Database Standards & Schema Data Dictionary
 All tables MUST include:
 - `id`, `tenantId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`
 - Soft deletes REQUIRED.
 - Migrations MUST be deterministic.
 - Queries MUST be indexed, scoped by `tenantId`, and optimized.
 - NO N+1 queries/inserts/deletions. All database inserts must be executed in bulk. All deletions or archival updates of related arrays must use `inArray` operators rather than sequential queries inside for-loops.
+- **Authoritative Data Dictionary (`SCHEMA_DATA_DICTIONARY.md`)**: All database tables, columns, and consumer touchpoints MUST be documented and maintained in `SCHEMA_DATA_DICTIONARY.md`.
+- **Zero Dead Columns / Tables Policy**: Orphaned tables or dead/inert columns are strictly forbidden. The CI command `pnpm audit:schema` is automatically executed during `pnpm validate` to guarantee 100% of defined schema columns have active consumers.
 
 ## 7. Privacy & Governance
 - MUST implement data minimization.
@@ -77,8 +79,7 @@ All tables MUST include:
 - tRPC is primary API.
 - **Independent App SemVer**: Apps (`apps/web`, `apps/mobile`) follow independent Semantic Versioning (`MAJOR.MINOR.PATCH-PRERELEASE`) managed automatically via `pnpm version:bump`.
 - **App Version Capture & Diagnostics**: Web and Mobile clients dynamically resolve `AppVersionInfo` via `@money-matters/config` and display an inconspicuous version footer in the Settings view (`Money Matters v1.0.0-beta.1 (#42)`). Tapping/clicking copies JSON diagnostics.
-- **Bug Report Diagnostics**: All user bug reports automatically capture app version, build number, channel, platform, and device metadata.
-- **Database Tracking**: `app_versions` schema tracks active releases, build numbers, and `min_supported_api_version` compatibility rules.
+- **Bug Report Diagnostics**: All user feedback submissions capture app version, build number, channel, platform, and device metadata automatically formatted into `mailto:support@moneymatters.kaesava.au`.
 - Breaking changes REQUIRE new major version.
 - MUST maintain backward compatibility.
 
@@ -179,13 +180,13 @@ All tables MUST include:
 - NO `utils.ts` or generic helper files.
 - Files >250 lines MUST be refactored.
 - Functions >30 lines MUST be split.
-- **Zero Dead/Redundant Code & MECE Principle**: Zero dead, redundant, or orphaned code across all layers (database tables, table fields, API procedures/handlers, UI components, capabilities, and package scripts). All refactors MUST prune obsolete code paths, schema columns, and unneeded dependencies. Reusable logic, screens, and dialogs MUST adhere to MECE principles to avoid duplication.
+- **Zero Dead/Redundant Code & MECE Principle**: Zero dead, redundant, or orphaned code across all layers (database tables, table fields, API procedures/handlers, UI components, capabilities, and package scripts). All refactors MUST prune obsolete code paths, schema columns, and unneeded dependencies. Database tables and columns MUST strictly match `SCHEMA_DATA_DICTIONARY.md` and pass `pnpm audit:schema`. Reusable logic, screens, and dialogs MUST adhere to MECE principles to avoid duplication.
 - **Smart Commenting**: Prohibit trivial comments that restate what code does (e.g. `// increment count`). Mandate high-value "why" comments explaining complex business math (e.g. 5-step waterfall deficit repair steps), architectural decisions, concurrency locks, or edge-case handling.
 
 ## 23. CI/CD Enforcement, Validation Recovery Loop & Git Workflow
-- **Targeted Intermediate Checks**: As you build or modify code, you may execute specific validation commands (`pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:coverage`, `pnpm check-i18n`, `pnpm install`) for the targeted packages/modules as needed.
+- **Targeted Intermediate Checks**: As you build or modify code, you may execute specific validation commands (`pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:coverage`, `pnpm check-i18n`, `pnpm audit:schema`, `pnpm install`) for the targeted packages/modules as needed.
 - **Mandatory Final Validation (`pnpm validate`)**: Before completing any task, feature, or refactor, `pnpm validate` MUST run and pass completely.
-- **Iterative Fail-Safe Recovery Loop**: `pnpm validate` consists of multiple underlying commands (`install` → `typecheck` → `test:coverage` → `test` → `check-i18n` → `lint` → `build`). If `pnpm validate` fails:
+- **Iterative Fail-Safe Recovery Loop**: `pnpm validate` consists of multiple underlying commands (`install` → `check-i18n` → `audit:schema` → `typecheck` → `test:coverage` → `test` → `lint` → `build`). If `pnpm validate` fails:
   1. Identify the specific sub-command(s) that failed.
   2. Run ONLY the failed sub-command(s) sequentially while diagnosing and fixing the errors until they pass.
   3. Re-run `pnpm validate`.
@@ -215,4 +216,4 @@ A change is complete ONLY IF:
 - Tenant isolation enforced, Types strict, Validation strict, Tests passing, CI passing, No hardcoded strings, Observability in place, Security enforced, Documentation updated.
 
 ## 27. Documentation Integrity & Spec Synchronization
-- After any change (functional, technical, architectural, or schema), you MUST immediately update all relevant system markdown documents (`TECHNICAL_SPEC.md`, `FUNCTIONAL_SPEC.md`, `README.md`) to keep them 100% current and synchronized with the codebase state.
+- After any change (functional, technical, architectural, or schema), you MUST immediately update all relevant system markdown documents (`TECHNICAL_SPEC.md`, `FUNCTIONAL_SPEC.md`, `SCHEMA_DATA_DICTIONARY.md`, `README.md`) to keep them 100% current and synchronized with the codebase state.

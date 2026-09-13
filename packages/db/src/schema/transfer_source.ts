@@ -8,8 +8,6 @@ export const transferSources = pgTable("transfer_sources", {
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   sourcePoolId: uuid("source_pool_id").references(() => pools.id).notNull(),
   destinationPoolId: uuid("destination_pool_id").references(() => pools.id).notNull(),
-  rrule: varchar("rrule", { length: 255 }),
   startDate: date("start_date"),
-  endDate: date("end_date"),
   ...tenantAndTimestamps,
 });

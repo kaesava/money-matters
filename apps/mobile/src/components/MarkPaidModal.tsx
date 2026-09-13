@@ -16,7 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
-import { formatAUD } from '../lib/format';
+import { formatAUD, formatIsoDate } from '../lib/format';
 import { triggerHaptic } from '../lib/haptics';
 
 export interface MarkPaidEvent {
@@ -45,9 +45,7 @@ export function MarkPaidModal({
   const D = DESIGN_TOKENS;
   const utils = trpc.useUtils();
 
-  const todayStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Australia/Sydney',
-  }).format(new Date());
+  const todayStr = formatIsoDate(new Date());
 
   const [actualAmount, setActualAmount] = useState('');
   const [actualDate, setActualDate] = useState(todayStr);

@@ -4,18 +4,43 @@ import { PostHogProvider } from 'posthog-react-native';
 import { trpc, buildTrpcClient } from '../lib/trpc';
 import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
 import { IconVisibilityProvider, MobileToastProvider, MobileToastContainer } from '@money-matters/ui/mobile';
+import { setLanguage, SupportedLanguage } from '@money-matters/i18n';
+import { setMobileLocaleConfig } from '../lib/format';
 import { posthog } from '../config/posthog';
 
 interface AppProvidersProps {
   children: React.ReactNode;
 }
 
-function MobileIconVisibilityWrapper({ children }: { children: React.ReactNode }) {
+function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
     retry: false,
     staleTime: 60_000,
   });
-  const showIcons = userPrefQuery.data?.showIcons ?? true;
+  const pref = userPrefQuery.data;
+  const showIcons = pref?.showIcons ?? true;
+
+  React.useEffect(() => {
+    if (pref) {
+      const language = (pref.language as SupportedLanguage) || 'en';
+      setLanguage(language);
+
+      let resolvedLocale = pref.locale || 'auto';
+      if (resolvedLocale === 'auto') {
+        resolvedLocale = language === 'ja' ? 'ja-JP' : 'en-AU';
+      }
+      const timezone = pref.tenantTimezone || pref.timezone || 'Australia/Sydney';
+      const userTimezone = pref.timezone || timezone;
+      const currency = pref.currency || 'AUD';
+
+      setMobileLocaleConfig({
+        locale: resolvedLocale,
+        timezone: userTimezone,
+        currency,
+      });
+    }
+  }, [pref]);
+
   return (
     <IconVisibilityProvider initialShowIcons={showIcons}>
       {children}
@@ -89,12 +114,12 @@ export function AppProviders({ children }: AppProvidersProps) {
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <NotificationServiceProvider value={notificationServiceValue}>
-            <MobileIconVisibilityWrapper>
+            <MobilePreferencesSync>
               <MobileToastProvider>
                 {children}
                 <MobileToastContainer />
               </MobileToastProvider>
-            </MobileIconVisibilityWrapper>
+            </MobilePreferencesSync>
           </NotificationServiceProvider>
         </QueryClientProvider>
       </trpc.Provider>

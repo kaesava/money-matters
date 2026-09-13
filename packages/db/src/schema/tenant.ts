@@ -22,7 +22,6 @@ export const tenants = pgTable("tenants", {
   timezone: varchar("timezone", { length: 100 }).notNull().default("Australia/Sydney"),
   state: varchar("state", { length: 50 }),
   postcode: varchar("postcode", { length: 20 }),
-  fyEndMonthDay: varchar("fy_end_month_day", { length: 5 }).notNull().default("06-30"),
   premiumEnabled: boolean("premium_enabled").notNull().default(false),
   subscriptionStatus: varchar("subscription_status", { length: 30 })
     .notNull()

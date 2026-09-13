@@ -21,7 +21,6 @@ export async function updateCategoryCommand(
         enteredAmount: input.enteredAmount,
         budgetFrequency: input.budgetFrequency,
         icon: input.icon,
-        colour: input.colour,
         updatedBy: userId,
         updatedAt: new Date(),
       })

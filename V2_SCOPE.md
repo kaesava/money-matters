@@ -28,6 +28,7 @@
 | **Upcoming Queue Multi-Selection & Batch Actioning** | Deferred to Release 2 | Single-row actioning (*Mark Received / Paid*, *Delete*) delivered in V1; batch checkboxes and bulk mark action bar deferred to V2 |
 | **Full Outlook-Style Complex Recurrence Builder** | Deferred to Release 2 | V1 provides simple frequency enums (`WEEKLY`, `FORTNIGHTLY`, `MONTHLY`, `ANNUALLY`) + one-off target date picker via `useRecurrenceBuilder`. Full Outlook-style RRULE rule builder (e.g. 2nd Tuesday of every month, Nth weekday, custom intervals, complex until dates) deferred to V2. |
 | **Bank Statement CSV Import & Open Banking Sync** | Deferred to Release 2 | Backward-looking receipt categorization removed from V1 to protect forward-looking zero-friction payday allocation philosophy. V2 will evaluate Consumer Data Right (CDR) read-only bank feeds and a streamlined pool-centric onboarding catch-up assistant. |
+| **Historical Payday Split Reversal** | Excluded / Immutable by design | Confirmed payday allocation plans are strictly immutable in the database to safeguard ledger integrity and double-entry reconciliation. Users adjust funds prospectively via Quick Transfers or adjust future paydays. |
 
 ---
 

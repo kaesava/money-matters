@@ -31,7 +31,6 @@ export interface EngineBucket {
   isEssential?: boolean;
   isCommitted?: boolean;
   isSurplusTarget?: boolean;
-  rolloverRule?: "ROLLOVER" | "SWEEP" | "RESET" | null;
   monthlyAmount?: number | null;
   targetAmount?: number | null;
   everydayAllowanceAmount?: number | null;
@@ -285,16 +284,7 @@ export function runAllocationEngine(input: AllocationEngineInput): AllocationEng
   for (const bucket of everydayBuckets) {
     const monthlyAllowanceCents = toCents(bucket.everydayAllowanceAmount ?? bucket.monthlyAmount ?? bucket.targetAmount ?? 0);
     const cycleAllowanceCents = Math.round(monthlyAllowanceCents * cycleFactor);
-    const currentPositiveCents = Math.max(0, toCents(bucket.currentBalance));
-
-    let neededCents = cycleAllowanceCents;
-    if (bucket.rolloverRule === "RESET") {
-      // Top-up to cap: only allocate what is needed to bring balance to cycle allowance
-      neededCents = Math.max(0, cycleAllowanceCents - currentPositiveCents);
-    } else {
-      // Default: allocate full cycle allowance (sweep or rollover)
-      neededCents = cycleAllowanceCents;
-    }
+    const neededCents = cycleAllowanceCents;
 
     const toAllocate = Math.min(remainingCents, neededCents);
     if (toAllocate > 0 || neededCents > 0) {

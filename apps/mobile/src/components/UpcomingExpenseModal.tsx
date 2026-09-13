@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
-import { formatHealthStatus } from '../lib/format';
+import { formatHealthStatus, formatIsoDate, formatAUD } from '../lib/format';
 
 interface UpcomingExpenseModalProps {
   visible: boolean;
@@ -36,7 +36,7 @@ interface UpcomingExpenseModalProps {
 }
 
 function fmt(val: number) {
-  return `$${val.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatAUD(val);
 }
 
 export function UpcomingExpenseModal({
@@ -47,7 +47,7 @@ export function UpcomingExpenseModal({
   onSuccess,
 }: UpcomingExpenseModalProps) {
   const utils = trpc.useUtils();
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatIsoDate(new Date());
 
   const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const categories = categoriesQuery.data ?? [];

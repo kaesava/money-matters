@@ -58,7 +58,6 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
   const overrideEventMut = trpc.overrideEvent.useMutation();
   const saveBulkAllocationsMut = trpc.saveBulkAllocations.useMutation();
-  const revertAllocationPlanMut = trpc.revertAllocationPlan.useMutation();
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
 
   const [actualAmount, setActualAmount] = useState("0.00");
@@ -215,37 +214,17 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     }
   };
 
-  const handleRevertToAuto = async () => {
-    try {
-      setSubmitting(true);
-      await revertAllocationPlanMut.mutateAsync({ incomeEventId });
-      await utils.listAllAllocationPlans.invalidate();
-      await utils.previewPayday.invalidate({ incomeEventId });
-      toast.success(t("matrix.revertSuccess", { defaultValue: "Reset to suggested allocation." }));
-      setIsSavedPlan(false);
-      setIsConfirmedPlan(false);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to reset.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleRecalculateTrigger = () => {
     setShowRecalculateConfirm(true);
   };
 
   const handleRecalculateSavedConfirmed = async () => {
     setShowRecalculateConfirm(false);
-    if (isSavedPlan) {
-      await handleRevertToAuto();
+    if (actualAmount !== initialAmount || isSavedPlan) {
+      await handleRecalculateWaterfall();
     } else {
-      if (actualAmount !== initialAmount) {
-        await handleRecalculateWaterfall();
-      } else {
-        setLinesMap({ ...initialLinesMap });
-        toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Recalculated suggested allocation." }));
-      }
+      setLinesMap({ ...initialLinesMap });
+      toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Recalculated suggested allocation." }));
     }
   };
 

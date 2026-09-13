@@ -143,7 +143,7 @@ export function exportMyDataHandler(db: DbOrTx) {
       ),
       "Household_Profile.csv": arrayToCsv(
         tenantRecord ? [{ ...tenantRecord, ...tenantPrefs }] : [],
-        ["id", "name", "country", "state", "postcode", "fyEndMonthDay", "subscriptionStatus"]
+        ["id", "name", "country", "state", "postcode", "subscriptionStatus"]
       ),
       "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "bankProvider", "lastKnownBalance", "isPrivate"]),
       "Pools.csv": arrayToCsv(userPools, ["id", "name", "poolType", "bankAccountId", "targetAmount", "everydayAllowanceAmount"]),

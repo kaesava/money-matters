@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { DESIGN_TOKENS, MobileModalDialog, RecurrenceBuilder, useRecurrenceBuilder } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
+import { formatIsoDate } from '../lib/format';
 
 export interface SourceToEdit {
   id: string;
@@ -65,10 +66,9 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
       }
 
       if (sourceToEdit.startDate) {
-        const dStr = typeof sourceToEdit.startDate === 'string' ? sourceToEdit.startDate : sourceToEdit.startDate.toISOString();
-        setStartDate(dStr.split('T')[0] ?? '');
+        setStartDate(formatIsoDate(sourceToEdit.startDate));
       }
-      if (sourceToEdit.endDate) setEndDate(sourceToEdit.endDate.split('T')[0] ?? '');
+      if (sourceToEdit.endDate) setEndDate(formatIsoDate(sourceToEdit.endDate));
       if (sourceToEdit.categoryId) setCategoryId(sourceToEdit.categoryId);
     } else {
       setName('');
@@ -76,7 +76,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
       setIsRecurring(true);
       setFrequency('MONTHLY');
       setInterval(1);
-      setStartDate(new Date().toISOString().split('T')[0] ?? '');
+      setStartDate(formatIsoDate(new Date()));
       setEndDate(null);
       setCategoryId('');
     }

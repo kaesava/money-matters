@@ -18,7 +18,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
-    "validate": "pnpm check-i18n && turbo run typecheck lint test:coverage test && turbo run build",
+    "audit:schema": "node scripts/audit-schema-usage.mjs",
+    "validate": "pnpm check-i18n && pnpm audit:schema && turbo run typecheck lint test:coverage test && turbo run build",
     "version:bump": "node scripts/version-bump.mjs",
     "seed": "pnpm --filter @money-matters/db seed"
   },

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Pressable } from 'react-native';
 import { useIconVisibility } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 
 export interface InfoTooltipProps {
   content: string;
@@ -38,7 +39,7 @@ export function InfoTooltip({ content, title }: InfoTooltipProps) {
               style={styles.closeButton}
               onPress={() => setVisible(false)}
             >
-              <Text style={styles.closeButtonText}>Got it</Text>
+              <Text style={styles.closeButtonText}>{t('common.gotIt', { defaultValue: 'Got it' })}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

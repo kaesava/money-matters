@@ -347,7 +347,6 @@ export const incomeRouter = {
           actualDate: incomeEvents.actualDate,
           expectedAmount: incomeEvents.expectedAmount,
           actualAmount: incomeEvents.actualAmount,
-          isOverridden: incomeEvents.isOverridden,
           status: incomeEvents.status,
           note: incomeEvents.note,
           incomeSourceId: incomeEvents.incomeSourceId,
@@ -522,13 +521,11 @@ export const incomeRouter = {
       if (input.expectedAmount !== undefined) {
         setPayload.actualAmount = input.expectedAmount;
         if (!isScheduled) setPayload.expectedAmount = input.expectedAmount;
-        setPayload.isOverridden = isScheduled;
       }
 
       if (input.expectedDate !== undefined) {
         setPayload.actualDate = input.expectedDate;
         if (!isScheduled) setPayload.expectedDate = input.expectedDate;
-        setPayload.isOverridden = isScheduled;
       }
 
       const [updated] = await ctx.db

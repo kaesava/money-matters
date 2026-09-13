@@ -1,8 +1,8 @@
-import { pgTable, uuid, varchar, boolean, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, boolean, numeric } from "drizzle-orm/pg-core";
 import { tenantAndTimestamps } from "./base.js";
 import { pools } from "./pool.js";
 
-export { poolTypeEnum, rolloverRuleEnum } from "./pool.js";
+export { poolTypeEnum } from "./pool.js";
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -17,7 +17,6 @@ export const categories = pgTable("categories", {
 
   isEssential: boolean("is_essential").default(false).notNull(),
   icon: varchar("icon", { length: 100 }),
-  colour: varchar("colour", { length: 20 }),
 
   ...tenantAndTimestamps,
 });

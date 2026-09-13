@@ -50,7 +50,6 @@ export const TenantSchema = BaseSchema.extend({
   country: z.string().length(2).default("AU"),
   currency: z.string().length(3).default("AUD"),
   timezone: z.string().default("Australia/Sydney"),
-  fyEndMonthDay: z.string().regex(/^\d{2}-\d{2}$/).default("06-30"),
   premiumEnabled: z.boolean().default(false),
   subscriptionStatus: SubscriptionStatus.default("TRIAL_ACTIVE"),
   trialStartedAt: z.date().nullable().default(null),
@@ -114,12 +113,10 @@ export const PoolSchema = BaseSchema.extend({
   poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
   bankAccountId: z.string().uuid(),
   everydayAllowanceAmount: z.string().nullable().optional(),
-  rolloverRule: z.enum(["ROLLOVER", "SWEEP", "RESET"]).default("ROLLOVER").optional(),
   targetAmount: z.string().nullable().optional(),
   targetDate: z.string().nullable().optional(),
   isCommitted: z.boolean().default(false),
   isSurplusTarget: z.boolean().default(false),
-  waterfallPriority: z.number().int().default(50),
 }).strict();
 
 /**
@@ -134,7 +131,6 @@ export const CategorySchema = BaseSchema.extend({
   budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY").optional(),
   isEssential: z.boolean().default(false),
   icon: z.string().nullable().optional(),
-  colour: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
   lastNotifiedAt: z.date().nullable().optional(),
 }).strict();
 

@@ -4,10 +4,12 @@ import React, { useState } from "react";
 import JSZip from "jszip";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { useToast, InfoTooltip, Button } from "@money-matters/ui/web";
+import { useToast, InfoTooltip, Button, fmtDateIso } from "@money-matters/ui/web";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 export function PrivacySection() {
   const toast = useToast();
+  const { userTimezone } = useLocale();
   const [exporting, setExporting] = useState(false);
   const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
 
@@ -26,7 +28,7 @@ export function PrivacySection() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const dateStr = new Date().toISOString().slice(0, 10);
+        const dateStr = fmtDateIso(undefined, userTimezone);
         a.download = `money-matters-backup-${dateStr}.zip`;
         document.body.appendChild(a);
         a.click();

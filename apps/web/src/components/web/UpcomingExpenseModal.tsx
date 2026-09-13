@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, Button, AmountField } from "@money-matters/ui/web";
+import { useToast, Button, AmountField, fmtDateIso } from "@money-matters/ui/web";
 
 import { ModalDialog } from "./ModalDialog";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { MarkPaidModal, ShortfallTransferItem } from "../../app/dashboard/income-and-bills/components/MarkPaidModal";
+import { useLocale } from "../../providers/LocaleProvider";
 
 
 interface UpcomingExpenseModalProps {
@@ -32,11 +33,12 @@ export default function UpcomingExpenseModal({
 }: UpcomingExpenseModalProps) {
   const toast = useToast();
   const utils = trpc.useUtils();
+  const { userTimezone } = useLocale();
 
   const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: isOpen });
   const pools = useMemo(() => poolsQuery.data ?? [], [poolsQuery.data]);
 
-  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+  const todayStr = fmtDateIso(undefined, userTimezone);
 
   const [name, setName] = useState("");
   const [poolId, setPoolId] = useState("");
@@ -54,7 +56,7 @@ export default function UpcomingExpenseModal({
   const moveMoneyMut = trpc.moveMoney.useMutation();
 
   useEffect(() => {
-    const currentTodayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+    const currentTodayStr = fmtDateIso(undefined, userTimezone);
     if (eventToEdit) {
       setName(eventToEdit.name || "");
       setPoolId(eventToEdit.poolId || eventToEdit.categoryId || pools[0]?.id || "");

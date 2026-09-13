@@ -38,7 +38,6 @@ export async function createCategoryCommand(
         enteredAmount: input.enteredAmount || null,
         budgetFrequency: input.budgetFrequency || "MONTHLY",
         icon: input.icon || null,
-        colour: input.colour || null,
         tenantId,
         appId,
         createdBy: userId,

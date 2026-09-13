@@ -38,7 +38,6 @@ export async function overrideEventCommand(
 
       const isScheduled = Boolean(existingEvt?.incomeSourceId);
       const setPayload: Record<string, unknown> = {
-        isOverridden: true,
         updatedBy: userId,
         updatedAt: new Date(),
       };
@@ -119,7 +118,6 @@ export async function overrideEventCommand(
 
       const isScheduled = Boolean(existingEvt?.expenseSourceId);
       const setPayload: Record<string, unknown> = {
-        isOverridden: true,
         updatedBy: userId,
         updatedAt: new Date(),
       };

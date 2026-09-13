@@ -4,7 +4,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { Tabs, fmtDate } from "@money-matters/ui/web";
+import { Tabs } from "@money-matters/ui/web";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface CategoryScheduledEvent {
   id: string;
@@ -31,6 +32,7 @@ export function SlideOverCategoryDrawer({
   events,
   onMarkPaid,
 }: SlideOverCategoryDrawerProps) {
+  const { fmtDate } = useLocale();
   const [activeTab, setActiveTab] = useState<"categories" | "expenses" | "activity">("categories");
 
   // Fetch pool, categories, and transactions

@@ -7,6 +7,7 @@ import JSZip from 'jszip';
 import { t } from '@money-matters/i18n';
 import { trpc, setActiveSessionToken } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
+import { formatIsoDate } from '../../lib/format';
 import * as SecureStore from 'expo-secure-store';
 import { DeleteHouseholdCard } from './DeleteHouseholdCard';
 import { LeaveHouseholdCard } from './LeaveHouseholdCard';
@@ -32,7 +33,7 @@ export function PrivacyGovernanceSection() {
         });
 
         const base64 = await zip.generateAsync({ type: 'base64' });
-        const dateStr = new Date().toISOString().slice(0, 10);
+        const dateStr = formatIsoDate(new Date());
         const fileUri = `${FileSystem.cacheDirectory}money-matters-backup-${dateStr}.zip`;
 
         await FileSystem.writeAsStringAsync(fileUri, base64, {

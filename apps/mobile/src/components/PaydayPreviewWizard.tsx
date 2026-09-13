@@ -15,7 +15,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
-import { formatAUD } from '../lib/format';
+import { formatAUD, formatIsoDate } from '../lib/format';
 
 interface PaydayPreviewWizardProps {
   visible: boolean;
@@ -43,7 +43,7 @@ export function PaydayPreviewWizard({
   onSuccess,
 }: PaydayPreviewWizardProps) {
   const utils = trpc.useUtils();
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = formatIsoDate(new Date());
   const activeId = incomeEventId || eventToEdit?.id || null;
 
   const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
@@ -76,7 +76,7 @@ export function PaydayPreviewWizard({
       setSourceName(previewQuery.data.incomeEvent.name || eventToEdit?.sourceName || 'Paycheck');
       setOverrideAmount(previewQuery.data.incomeEvent.actualAmount || eventToEdit?.expectedAmount || '0.00');
       const rawDate = previewQuery.data.incomeEvent.expectedDate || eventToEdit?.expectedDate;
-      setSelectedDate(rawDate ? new Date(rawDate).toISOString().slice(0, 10) : todayStr);
+      setSelectedDate(rawDate ? formatIsoDate(rawDate) : todayStr);
       setNote(eventToEdit?.note || '');
       setReceivingAccountId(eventToEdit?.receivingAccountId || bankAccounts[0]?.id || '');
     } else {

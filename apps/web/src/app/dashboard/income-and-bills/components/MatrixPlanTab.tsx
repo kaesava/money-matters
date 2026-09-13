@@ -7,6 +7,7 @@ import { SlideOverCategoryDrawer, CategoryScheduledEvent } from "./SlideOverCate
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useToast, InfoTooltip, ConfirmDialog } from "@money-matters/ui/web";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 interface MatrixPlanTabProps {
   currentUserId: string;
@@ -16,16 +17,32 @@ interface MatrixPlanTabProps {
   onMarkPaid?: (eventId: string, amount: string, date: string) => void;
 }
 
-function formatDateShort(dateStr?: string, fallbackLabel?: string): string {
+function formatDateShort(
+  dateStr?: string,
+  fallbackLabel?: string,
+  timeZone: string = "Australia/Sydney",
+  locale: string = "en-AU"
+): string {
   if (!dateStr) return fallbackLabel || "";
-  const dateObj = new Date(dateStr + "T00:00:00");
-  if (isNaN(dateObj.getTime())) return fallbackLabel || dateStr;
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-    timeZone: "Australia/Sydney",
-  }).format(dateObj);
+  try {
+    let dateObj: Date;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      dateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    } else {
+      dateObj = new Date(dateStr);
+    }
+    if (isNaN(dateObj.getTime())) return fallbackLabel || dateStr;
+    const resolvedLocale = locale === "auto" ? undefined : locale;
+    return new Intl.DateTimeFormat(resolvedLocale, {
+      day: "2-digit",
+      month: "short",
+      year: "2-digit",
+      timeZone,
+    }).format(dateObj);
+  } catch {
+    return fallbackLabel || dateStr;
+  }
 }
 
 function MatrixCellInput({
@@ -68,13 +85,13 @@ export function MatrixPlanTab({
   expenseEvents,
   onMarkPaid,
 }: MatrixPlanTabProps) {
+  const { locale, userTimezone } = useLocale();
   const router = useRouter();
   const toast = useToast();
   const utils = trpc.useUtils();
   const deleteIncomeMut = trpc.deleteIncomeEvent.useMutation();
   const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
   const saveAutoAllocationMut = trpc.saveAutoAllocation.useMutation();
-  const revertPlanMut = trpc.revertAllocationPlan.useMutation();
 
   const [showFullHorizon, setShowFullHorizon] = useState(false);
   const [scopeFilter, setScopeFilter] = useState<"ALL" | "SHARED" | "PRIVATE">("ALL");
@@ -85,7 +102,6 @@ export function MatrixPlanTab({
   const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
   const [savingColId, setSavingColId] = useState<string | null>(null);
   const [colToSave, setColToSave] = useState<string | null>(null);
-  const [colToUnsave, setColToUnsave] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "CONFIRMED">("PENDING");
 
   // Per-income-event state: AUTO = no plan, SAVED = PENDING plan, CONFIRMED = confirmed plan.
@@ -218,19 +234,6 @@ export function MatrixPlanTab({
     }
   };
 
-  const confirmUnsaveColumn = async () => {
-    if (!colToUnsave) return;
-    try {
-      await revertPlanMut.mutateAsync({ incomeEventId: colToUnsave });
-      await utils.listAllAllocationPlans.invalidate();
-      toast.success(t("matrix.revertSuccess", { defaultValue: "Reverted. Income Split will be auto-calculated." }));
-    } catch (_err: unknown) {
-      toast.error("Failed to unsave payday.");
-    } finally {
-      setColToUnsave(null);
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6">
       {/* Controls & Expansion Header */}
@@ -346,7 +349,12 @@ export function MatrixPlanTab({
                 const isConfirmed = colState === "CONFIRMED";
                 const isSaved = colState === "SAVED";
 
-                const dateStr = formatDateShort(incomeEvt?.expectedDate, col.dateLabel);
+                const dateStr = formatDateShort(
+                  incomeEvt?.expectedDate,
+                  col.dateLabel,
+                  userTimezone,
+                  locale
+                );
 
                 return (
                   <th
@@ -408,28 +416,20 @@ export function MatrixPlanTab({
 
                           <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
 
-                          {!isSaved ? (
-                            <button
-                              type="button"
-                              disabled={savingColId === col.id}
-                              onClick={() => setColToSave(col.id)}
-                              className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
-                              title="Lock in Splits to prevent automatic calculation. You can easily revert to automatic splits with the Un-Save option."
-                            >
-                              {savingColId === col.id ? "…" : t("matrix.save", { defaultValue: "Save" })}
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setColToUnsave(col.id)}
-                              className="font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:underline cursor-pointer transition-colors"
-                              title="Revert saved split to automatic calculation"
-                            >
-                              {t("matrix.unsave", { defaultValue: "Reset" })}
-                            </button>
+                          {!isSaved && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={savingColId === col.id}
+                                onClick={() => setColToSave(col.id)}
+                                className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
+                                title="Lock in Splits to prevent automatic calculation."
+                              >
+                                {savingColId === col.id ? "…" : t("matrix.save", { defaultValue: "Save" })}
+                              </button>
+                              <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
+                            </>
                           )}
-
-                          <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
 
                           <button
                             type="button"
@@ -569,17 +569,6 @@ export function MatrixPlanTab({
         description={t("matrix.saveDialogDescription", { defaultValue: "Saving will turn off automatic calculations for this income event and lock in your entered amounts. You can easily revert at any time." })}
         confirmLabel={t("matrix.saveDialogConfirm", { defaultValue: "Save Income Split" })}
         variant="primary"
-      />
-
-      {/* Reset Warning Dialog */}
-      <ConfirmDialog
-        isOpen={!!colToUnsave}
-        onClose={() => setColToUnsave(null)}
-        onConfirm={confirmUnsaveColumn}
-        title={t("matrix.unsaveDialogTitle", { defaultValue: "Reset Plan?" })}
-        description={t("matrix.unsaveDialogDescription", { defaultValue: "Resetting will discard your manually entered amounts and restore automatic calculation for this income event. Continue?" })}
-        confirmLabel={t("matrix.unsaveDialogConfirm", { defaultValue: "Reset" })}
-        variant="warning"
       />
 
       {/* Delete Income Confirmation Dialog */}

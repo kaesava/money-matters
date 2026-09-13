@@ -1,16 +1,41 @@
 /**
  * Currency & Date Formatting Utility Suite
  * 
- * Provides AUD currency formatting ($XX.XX and compact $XK), localized en-AU date rendering,
- * and relative date labeling (Today, Yesterday).
+ * Provides dynamic currency formatting, localized date rendering,
+ * and relative date labeling (Today, Yesterday) synchronized with active user locale preferences.
  */
 
-/**
- * Formats a numeric value or numeric string as standard AUD currency ($XX.XX).
- *
- * @param value - Amount value to format
- * @returns Formatted currency string
- */
+import { t } from '@money-matters/i18n';
+import {
+  formatCurrency,
+  getCurrencySymbol,
+  fmtDate as uiFmtDate,
+  fmtDateIso as uiFmtDateIso,
+} from '@money-matters/ui';
+
+export interface MobileLocaleConfig {
+  locale: string;
+  timezone: string;
+  currency: string;
+}
+
+let currentMobileLocaleConfig: MobileLocaleConfig = {
+  locale: 'en-AU',
+  timezone: 'Australia/Sydney',
+  currency: 'AUD',
+};
+
+export function setMobileLocaleConfig(cfg: Partial<MobileLocaleConfig>): void {
+  currentMobileLocaleConfig = {
+    ...currentMobileLocaleConfig,
+    ...cfg,
+  };
+}
+
+export function getMobileLocaleConfig(): MobileLocaleConfig {
+  return currentMobileLocaleConfig;
+}
+
 export function formatHealthStatus(status?: string | null): string {
   if (!status) return 'On Track';
   switch (status.toUpperCase()) {
@@ -25,53 +50,76 @@ export function formatHealthStatus(status?: string | null): string {
   }
 }
 
-export function formatAUD(value: number | string): string {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num)) return '$0.00';
-  return `$${num.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/**
+ * Formats a numeric value or numeric string as standard currency using active mobile locale/currency.
+ */
+export function formatAUD(
+  value: number | string,
+  currency?: string,
+  locale?: string
+): string {
+  const c = currency || currentMobileLocaleConfig.currency;
+  const l = locale || currentMobileLocaleConfig.locale;
+  return formatCurrency(value, l, c);
 }
 
 /**
- * Formats a numeric value as compact AUD currency ($1.5k).
- *
- * @param value - Amount value to format
- * @returns Compact formatted currency string
+ * Formats a numeric value as compact currency (e.g. $1.5k).
  */
-export function formatAUDCompact(value: number | string): string {
+export function formatAUDCompact(
+  value: number | string,
+  currency?: string,
+  locale?: string
+): string {
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num)) return '$0';
-  if (num >= 1000) {
-    return `$${(num / 1000).toFixed(1)}k`;
+  const c = currency || currentMobileLocaleConfig.currency;
+  const l = locale || currentMobileLocaleConfig.locale;
+  const sym = getCurrencySymbol(l, c);
+  if (isNaN(num)) return `${sym}0`;
+  if (Math.abs(num) >= 1000) {
+    return `${sym}${(num / 1000).toFixed(1)}k`;
   }
-  return `$${num.toFixed(0)}`;
+  return `${sym}${num.toFixed(0)}`;
 }
 
-import { t } from '@money-matters/i18n';
-import { fmtDate as uiFmtDate } from '@money-matters/ui';
+/**
+ * Returns a timezone-aware ISO date string (YYYY-MM-DD) avoiding off-by-one shifts.
+ */
+export function formatIsoDate(
+  input?: string | Date | number | null,
+  timeZone?: string
+): string {
+  const tz = timeZone || currentMobileLocaleConfig.timezone;
+  return uiFmtDateIso(input, tz);
+}
+
+export { formatIsoDate as fmtDateIso };
 
 /**
  * Formats a Date or date string into regional locale format.
- *
- * @param date - Date instance or ISO string
- * @param locale - BCP-47 locale code (e.g. 'en-CA', 'en-AU')
- * @param timeZone - IANA timezone identifier
- * @returns Formatted date string
  */
-export function formatDate(date: string | Date, locale: string = 'en-AU', timeZone: string = 'Australia/Sydney'): string {
+export function formatDate(
+  date: string | Date,
+  locale?: string,
+  timeZone?: string
+): string {
+  const loc = locale || currentMobileLocaleConfig.locale;
+  const tz = timeZone || currentMobileLocaleConfig.timezone;
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '';
-  return uiFmtDate(d, timeZone, locale);
+  return uiFmtDate(d, tz, loc);
 }
 
 /**
  * Formats a Date into relative terms ('Today', 'Yesterday', or localized date).
- *
- * @param date - Date instance or ISO string
- * @param locale - BCP-47 locale code
- * @param timeZone - IANA timezone identifier
- * @returns Relative date label
  */
-export function formatRelativeDate(date: string | Date, locale: string = 'en-AU', timeZone: string = 'Australia/Sydney'): string {
+export function formatRelativeDate(
+  date: string | Date,
+  locale?: string,
+  timeZone?: string
+): string {
+  const loc = locale || currentMobileLocaleConfig.locale;
+  const tz = timeZone || currentMobileLocaleConfig.timezone;
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '';
   
@@ -84,7 +132,7 @@ export function formatRelativeDate(date: string | Date, locale: string = 'en-AU'
   } else if (d.toDateString() === yesterday.toDateString()) {
     return t('common.yesterday', { defaultValue: 'Yesterday' });
   } else {
-    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone }).format(d);
+    return new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', timeZone: tz }).format(d);
   }
 }
 
@@ -98,19 +146,21 @@ export interface ScheduleDetail {
   frequencyLabel: string;
 }
 
-export function formatScheduleDetail(rrule?: string | null, startDate?: string | null): ScheduleDetail {
+export function formatScheduleDetail(
+  rrule?: string | null,
+  startDate?: string | null,
+  locale?: string,
+  timeZone?: string
+): ScheduleDetail {
+  const loc = locale || currentMobileLocaleConfig.locale;
+  const tz = timeZone || currentMobileLocaleConfig.timezone;
   const isRecurring = Boolean(rrule && rrule.trim().length > 0);
 
-  const fmtDate = (dStr?: string | null) => {
-    if (!dStr) return null;
-    try {
-      const parts = dStr.split('T')[0].split('-');
-      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    } catch { /* invalid date string — fall through and return raw dStr */ }
-    return dStr;
-  };
-
-  const formattedDate = fmtDate(startDate);
+  let formattedDate: string | null = null;
+  if (startDate) {
+    const formatted = uiFmtDate(startDate, tz, loc);
+    formattedDate = formatted === 'N/A' ? startDate : formatted;
+  }
 
   if (!isRecurring) {
     return {

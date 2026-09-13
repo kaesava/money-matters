@@ -11,12 +11,10 @@ import {
   ResizableTh,
   useResizableColumns,
   ConfirmDialog,
-  useToast,
   RecordFilterBadge,
 } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
-import { trpc } from "../../../../lib/trpc";
 import { TransferModal } from "../../../../components/web/TransferModal";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
@@ -111,12 +109,8 @@ export function UpcomingTimelineTab({
   onConfirmTransferAndPay,
   onOpenTransferModalWithData: _onOpenTransferModalWithData,
 }: UpcomingTimelineTabProps) {
-  const toast = useToast();
   const { fmt, fmtDate: formatLocaleDate } = useLocale();
-  const utils = trpc.useUtils();
-  const revertPlanMut = trpc.revertAllocationPlan.useMutation();
   const todayStr = useMemo(() => getTenantDateString(new Date()), []);
-  const [incomeToUnsaveId, setIncomeToUnsaveId] = useState<string | null>(null);
   const [transferModalEvent, setTransferModalEvent] = useState<TimelineEventItem | null>(null);
 
   // Filter States
@@ -665,31 +659,6 @@ export function UpcomingTimelineTab({
             : "Are you sure you want to Delete this Expense?"
         }
         confirmLabel="Delete"
-        variant="danger"
-      />
-
-      <ConfirmDialog
-        isOpen={!!incomeToUnsaveId}
-        onClose={() => setIncomeToUnsaveId(null)}
-        onConfirm={async () => {
-          if (incomeToUnsaveId) {
-            try {
-              await revertPlanMut.mutateAsync({ incomeEventId: incomeToUnsaveId });
-              await utils.listAllAllocationPlans.invalidate();
-              await utils.listIncomeEvents.invalidate();
-              await utils.listExpenseEvents.invalidate();
-              await utils.listPools.invalidate();
-              toast.success(t("matrix.revertSuccess", { defaultValue: "Reset to suggested allocation." }));
-            } catch (_err) {
-              toast.error("Failed to reset payday.");
-            } finally {
-              setIncomeToUnsaveId(null);
-            }
-          }
-        }}
-        title={t("matrix.unsaveDialogTitle", { defaultValue: "Reset Plan?" })}
-        description={t("matrix.unsaveDialogDescription", { defaultValue: "Resetting will discard your manually entered amounts and restore automatic calculation for this income event. Continue?" })}
-        confirmLabel={t("common.unsave", { defaultValue: "Reset" })}
         variant="danger"
       />
       {markPaidModalEvent && (() => {

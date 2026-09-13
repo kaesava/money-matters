@@ -18,8 +18,6 @@ export * from "./expense_event.js";
 export * from "./transfer_source.js";
 export * from "./transfer_event.js";
 export * from "./app.js";
-export * from "./app_category.js";
 export * from "./early_access.js";
 export * from "./processed_webhooks.js";
-export * from "./app_version.js";
 export * from "./billing_invoice.js";

@@ -97,9 +97,7 @@ export function useSetupWizardState() {
   >({});
 
   const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const appPrefs = userPrefQuery.data?.appPreferences as Record<string, Record<string, boolean>> | undefined;
-  const prefsBlob = appPrefs?.["01908bde-34bb-7b19-a178-574211bc93aa"];
-  const showIcons = prefsBlob?.show_icons ?? true;
+  const showIcons = userPrefQuery.data?.showIcons ?? true;
 
   useEffect(() => {
     const isCompleted =

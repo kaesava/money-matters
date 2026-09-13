@@ -1,4 +1,4 @@
-import { pgTable, uuid, numeric, pgEnum, date, varchar, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, numeric, pgEnum, date, varchar } from "drizzle-orm/pg-core";
 import { expenseSources } from "./expense_source.js";
 import { pools } from "./pool.js";
 import { categories } from "./category.js";
@@ -17,7 +17,6 @@ export const expenseEvents = pgTable("expense_events", {
   expectedAmount: numeric("expected_amount", { precision: 12, scale: 2 }).notNull(),
   actualAmount: numeric("actual_amount", { precision: 12, scale: 2 }),
   note: varchar("note", { length: 500 }),
-  isOverridden: boolean("is_overridden").notNull().default(false),
   status: expenseEventStatusEnum("status").notNull().default("PENDING"),
   ...tenantAndTimestamps,
 });

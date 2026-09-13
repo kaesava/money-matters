@@ -12,6 +12,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
@@ -78,26 +79,23 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
 
     setSubmitting(true);
     try {
-      // Generate a client ticket reference
-      const ticketRef = Math.random().toString(36).substring(2, 8).toUpperCase();
-      
-      // Simulate network dispatch with telemetry
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const subject = encodeURIComponent(`[Feedback] ${title.trim()}`);
+      const bodyLines = [
+        `Category: ${category}`,
+        `Severity: ${frustration}`,
+        `Email: ${email.trim() || 'N/A'}`,
+        `App Version: ${versionInfo?.formattedVersion || 'Money Matters Mobile'}`,
+        '',
+        'Description:',
+        description.trim(),
+      ];
+      const body = encodeURIComponent(bodyLines.join('\n'));
+      const mailtoUrl = `mailto:support@moneymatters.kaesava.au?subject=${subject}&body=${body}`;
 
-      Alert.alert(
-        'Feedback Received 🎉',
-        `Thank you for helping us improve Money Matters!\n\nTicket Ref: #BUG-${ticketRef}\nA receipt will be sent to ${email || 'your account email'}.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              handleClose();
-            },
-          },
-        ]
-      );
+      await Linking.openURL(mailtoUrl);
+      handleClose();
     } catch (err) {
-      Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Failed to submit feedback.');
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Failed to open email client.');
     } finally {
       setSubmitting(false);
     }

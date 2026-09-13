@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ActivityInd
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
-import { formatDate } from '../lib/format';
+import { formatDate, formatIsoDate } from '../lib/format';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface CreateIncomeEventModalProps {
@@ -45,7 +45,7 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
       await createIncomeEvent.mutateAsync({
         incomeSourceId: sourceId,
         expectedAmount: parseFloat(amount).toFixed(2),
-        expectedDate: date.toISOString().split('T')[0],
+        expectedDate: formatIsoDate(date),
       });
       onClose();
     } catch (err) {

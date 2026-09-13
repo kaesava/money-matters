@@ -87,7 +87,6 @@ export async function canAffordSimulationQuery(
           targetDate: pools.targetDate,
           isCommitted: pools.isCommitted,
           isSurplusTarget: pools.isSurplusTarget,
-          waterfallPriority: pools.waterfallPriority,
           isPrivate: bankAccounts.isPrivate,
         })
         .from(pools)

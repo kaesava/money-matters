@@ -140,7 +140,6 @@ export async function runAllocationCommand(
       isEssential: poolIsEssentialMap.get(pool.id) ?? false,
       isCommitted: pool.isCommitted,
       isSurplusTarget: pool.isSurplusTarget,
-      rolloverRule: pool.rolloverRule,
       monthlyAmount: monthlyAmt,
       targetAmount: pool.targetAmount ? parseFloat(pool.targetAmount) : null,
       everydayAllowanceAmount: pool.everydayAllowanceAmount ? parseFloat(pool.everydayAllowanceAmount) : null,

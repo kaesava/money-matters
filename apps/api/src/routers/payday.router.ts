@@ -392,46 +392,6 @@ export const paydayRouter = {
       });
     }),
 
-  revertAllocationPlan: privateTenantProcedure
-    .input(
-      z.object({
-        incomeEventId: z.string().uuid(),
-      }).strict()
-    )
-    .mutation(async ({ input, ctx }) => {
-      requiresWriteAccess(ctx);
-
-      return await ctx.db.transaction(async (tx) => {
-        const [plan] = await tx
-          .select()
-          .from(allocationPlans)
-          .where(
-            and(
-              eq(allocationPlans.incomeEventId, input.incomeEventId),
-              eq(allocationPlans.tenantId, ctx.tenantId!)
-            )
-          )
-          .limit(1);
-
-        if (plan) {
-          if (plan.status === "CONFIRMED") {
-            throw new Error("Confirmed income splits cannot be reverted.");
-          }
-
-          await tx
-            .update(allocationPlans)
-            .set({
-              archivedAt: new Date(),
-              updatedAt: new Date(),
-              updatedBy: ctx.userId!,
-            })
-            .where(eq(allocationPlans.id, plan.id));
-        }
-
-        return { success: true };
-      });
-    }),
-
   getMatrixProjectionData: privateTenantProcedure
     .input(
       z

@@ -20,10 +20,8 @@ import {
   users,
   apps,
   deviceTokens,
-  appCategories,
   earlyAccessSubscribers,
   processedWebhooks,
-  appVersions,
   billingInvoices,
 } from "@money-matters/db";
 import { sql } from "drizzle-orm";
@@ -152,7 +150,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(incomeSources);
   await db.execute(sql`DELETE FROM public.category_schedules`).catch(() => {});
   await db.delete(categories);
-  await db.delete(appCategories).catch(() => {});
   await db.delete(pools);
   await db.delete(userPreferences);
   await db.delete(tenantUserPreferences);
@@ -162,7 +159,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   await db.delete(tenants);
   await db.delete(earlyAccessSubscribers).catch(() => {});
   await db.delete(processedWebhooks).catch(() => {});
-  await db.delete(appVersions).catch(() => {});
   await db.delete(users);
   await db.delete(apps);
 
@@ -193,7 +189,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       timezone: "Australia/Sydney",
       state: "NSW",
       postcode: "2000",
-      fyEndMonthDay: "06-30",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
@@ -214,7 +209,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       timezone: "Australia/Sydney",
       state: "VIC",
       postcode: "3000",
-      fyEndMonthDay: "06-30",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
@@ -235,7 +229,6 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       timezone: "Australia/Sydney",
       state: "QLD",
       postcode: "4000",
-      fyEndMonthDay: "06-30",
       premiumEnabled: true,
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt: now,
@@ -285,39 +278,39 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   // 5. Pools Definition
   const poolDefinitions = [
     // 1. Joint Everyday Pool
-    { key: "everyday", name: "Joint Everyday Pool", poolType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, everydayAllowanceAmount: "2641.54", rolloverRule: "ROLLOVER" as const, waterfallPriority: 40, icon: "wallet", colour: "#2563eb", isCommitted: false, isSurplusTarget: false },
+    { key: "everyday", name: "Joint Everyday Pool", poolType: "EVERYDAY" as const, bankAccountId: everydayAccount.id, everydayAllowanceAmount: "2641.54", isCommitted: false, isSurplusTarget: false },
     // 2. Household Bills Pool
-    { key: "bills", name: "Household Bills Pool", poolType: "REGULAR" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 10, targetAmount: "1099.00", icon: "home", colour: "#ef4444", isSurplusTarget: false },
+    { key: "bills", name: "Household Bills Pool", poolType: "REGULAR" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1099.00", isSurplusTarget: false },
     // 3. Granular Goal Pools (Linked to MISA Offset)
-    { key: "emergency", name: "Emergency Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 20, targetAmount: "20000.00", icon: "shield", colour: "#22c55e", isSurplusTarget: false },
-    { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 25, targetAmount: "61029.48", icon: "graduation-cap", colour: "#1b2b4b", isSurplusTarget: false },
-    { key: "raehan_gifts", name: "Raehan's Gifts", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 30, targetAmount: "25760.79", icon: "gift", colour: "#f59e0b", isSurplusTarget: false },
-    { key: "raehan_inyear", name: "Raehan FY27 In-Year Savings", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 35, targetAmount: "13000.00", targetDate: "2027-06-30", icon: "piggy-bank", colour: "#8b5cf6", isSurplusTarget: false },
-    { key: "council_rates", name: "Council Rates", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 12, targetAmount: "2700.00", icon: "landmark", colour: "#3b82f6", isSurplusTarget: false },
-    { key: "home_insurance", name: "Home/Contents Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 14, targetAmount: "2000.00", targetDate: "2027-06-30", icon: "file-shield", colour: "#06b6d4", isSurplusTarget: false },
-    { key: "car_rego", name: "Car Registration / Insurance / RACV", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 16, targetAmount: "5500.00", icon: "car", colour: "#f97316", isSurplusTarget: false },
-    { key: "car_servicing", name: "Car Servicing", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 18, targetAmount: "3000.00", icon: "wrench", colour: "#eab308", isSurplusTarget: false },
-    { key: "car_repairs", name: "Car Ad-hoc Repair & Fines", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 22, targetAmount: "4000.00", icon: "alert-triangle", colour: "#f43f5e", isSurplusTarget: false },
-    { key: "medicines", name: "Medicines, GP & Psychology", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 11, targetAmount: "14460.00", icon: "heart-pulse", colour: "#ec4899", isSurplusTarget: false },
-    { key: "clothes", name: "Clothes & Shoes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 42, targetAmount: "2400.00", icon: "shirt", colour: "#a855f7", isSurplusTarget: false },
-    { key: "costco", name: "Costco Bulk Runs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 44, targetAmount: "1200.00", icon: "shopping-bag", colour: "#14b8a6", isSurplusTarget: false },
-    { key: "charu_melb", name: "Family — Charu Aunty Melbourne", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 24, targetAmount: "1200.00", icon: "heart", colour: "#d946ef", isSurplusTarget: false },
-    { key: "charu_emerg", name: "Charu Aunty Medical Emergency", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 26, targetAmount: "1200.00", icon: "activity", colour: "#f43f5e", isSurplusTarget: false },
-    { key: "charu_travel", name: "International Travel — Charu Aunty Flight", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 46, targetAmount: "2000.00", targetDate: "2026-11-05", icon: "plane", colour: "#0ea5e9", isSurplusTarget: false },
-    { key: "seasonal_holidays", name: "Seasonal, School Holidays & Zoo Visits", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 48, targetAmount: "9000.00", icon: "sun", colour: "#f59e0b", isSurplusTarget: false },
-    { key: "int_holiday", name: "International Holiday FY27", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 50, targetAmount: "35000.00", targetDate: "2026-11-01", icon: "globe", colour: "#3b82f6", isSurplusTarget: false },
-    { key: "japaneasy", name: "Japaneasy Classes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 52, targetAmount: "500.00", icon: "book-open", colour: "#6366f1", isSurplusTarget: false },
-    { key: "rae_birthday", name: "Rae Birthday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 54, targetAmount: "1250.00", targetDate: "2026-10-22", icon: "cake", colour: "#ec4899", isSurplusTarget: false },
-    { key: "classes", name: "Classes & Activities", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 17, targetAmount: "16250.00", icon: "trophy", colour: "#8b5cf6", isSurplusTarget: false },
-    { key: "school_fees", name: "School Fees", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 13, targetAmount: "30000.00", icon: "school", colour: "#10b981", isSurplusTarget: false },
-    { key: "pet_emerg", name: "Pet Emergency Self-Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 28, targetAmount: "1000.00", icon: "paw-print", colour: "#14b8a6", isSurplusTarget: false },
-    { key: "pet_insurance", name: "Pet Insurance, Rego, Vet & Boarding", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 29, targetAmount: "7500.00", icon: "shield-plus", colour: "#06b6d4", isSurplusTarget: false },
-    { key: "inv_property", name: "Investment Property Gap", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 32, targetAmount: "2717.16", icon: "building", colour: "#64748b", isSurplusTarget: false },
-    { key: "unexpected", name: "Unexpected Expenses & Major Repairs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 34, targetAmount: "5000.00", icon: "hammer", colour: "#ef4444", isSurplusTarget: false },
-    { key: "tax_obligation", name: "Tax Obligation (incl PAYG)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, waterfallPriority: 15, targetAmount: "18500.00", icon: "receipt", colour: "#dc2626", isSurplusTarget: false },
-    { key: "next_yr_holiday", name: "Save for Next Year's Holiday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, waterfallPriority: 60, targetAmount: "33747.55", targetDate: "2027-06-30", icon: "palmtree", colour: "#10b981", isSurplusTarget: false },
-    { key: "business_idea", name: "Business Idea Fund", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, waterfallPriority: 70, targetAmount: "5000.00", icon: "lightbulb", colour: "#f59e0b", isSurplusTarget: false },
-    { key: "surplus_offset", name: "Surplus & Offset Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, waterfallPriority: 99, targetAmount: "50000.00", icon: "sparkles", colour: "#6366f1", isSurplusTarget: true },
+    { key: "emergency", name: "Emergency Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "20000.00", isSurplusTarget: false },
+    { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "61029.48", isSurplusTarget: false },
+    { key: "raehan_gifts", name: "Raehan's Gifts", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "25760.79", isSurplusTarget: false },
+    { key: "raehan_inyear", name: "Raehan FY27 In-Year Savings", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "13000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "council_rates", name: "Council Rates", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2700.00", isSurplusTarget: false },
+    { key: "home_insurance", name: "Home/Contents Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "car_rego", name: "Car Registration / Insurance / RACV", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5500.00", isSurplusTarget: false },
+    { key: "car_servicing", name: "Car Servicing", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "3000.00", isSurplusTarget: false },
+    { key: "car_repairs", name: "Car Ad-hoc Repair & Fines", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "4000.00", isSurplusTarget: false },
+    { key: "medicines", name: "Medicines, GP & Psychology", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "14460.00", isSurplusTarget: false },
+    { key: "clothes", name: "Clothes & Shoes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2400.00", isSurplusTarget: false },
+    { key: "costco", name: "Costco Bulk Runs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", isSurplusTarget: false },
+    { key: "charu_melb", name: "Family — Charu Aunty Melbourne", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", isSurplusTarget: false },
+    { key: "charu_emerg", name: "Charu Aunty Medical Emergency", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", isSurplusTarget: false },
+    { key: "charu_travel", name: "International Travel — Charu Aunty Flight", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2026-11-05", isSurplusTarget: false },
+    { key: "seasonal_holidays", name: "Seasonal, School Holidays & Zoo Visits", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "9000.00", isSurplusTarget: false },
+    { key: "int_holiday", name: "International Holiday FY27", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "35000.00", targetDate: "2026-11-01", isSurplusTarget: false },
+    { key: "japaneasy", name: "Japaneasy Classes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "500.00", isSurplusTarget: false },
+    { key: "rae_birthday", name: "Rae Birthday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1250.00", targetDate: "2026-10-22", isSurplusTarget: false },
+    { key: "classes", name: "Classes & Activities", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "16250.00", isSurplusTarget: false },
+    { key: "school_fees", name: "School Fees", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "30000.00", isSurplusTarget: false },
+    { key: "pet_emerg", name: "Pet Emergency Self-Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1000.00", isSurplusTarget: false },
+    { key: "pet_insurance", name: "Pet Insurance, Rego, Vet & Boarding", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "7500.00", isSurplusTarget: false },
+    { key: "inv_property", name: "Investment Property Gap", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2717.16", isSurplusTarget: false },
+    { key: "unexpected", name: "Unexpected Expenses & Major Repairs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5000.00", isSurplusTarget: false },
+    { key: "tax_obligation", name: "Tax Obligation (incl PAYG)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "18500.00", isSurplusTarget: false },
+    { key: "next_yr_holiday", name: "Save for Next Year's Holiday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "33747.55", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "business_idea", name: "Business Idea Fund", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "5000.00", isSurplusTarget: false },
+    { key: "surplus_offset", name: "Surplus & Offset Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "50000.00", isSurplusTarget: true },
   ];
 
   const insertedPools = await db.insert(pools).values(
@@ -326,12 +319,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       poolType: p.poolType,
       bankAccountId: p.bankAccountId,
       everydayAllowanceAmount: p.everydayAllowanceAmount,
-      rolloverRule: p.rolloverRule,
-      waterfallPriority: p.waterfallPriority,
       targetAmount: p.targetAmount,
       targetDate: p.targetDate,
-      icon: p.icon,
-      colour: p.colour,
       isCommitted: p.isCommitted,
       isSurplusTarget: p.isSurplusTarget,
       tenantId,
@@ -351,30 +340,30 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
 
   // 6. Sub-tag Categories for Everyday and Bills Pools
   const everydayCategories = [
-    { name: "Groceries", monthlyAmount: "1083.33", enteredAmount: "500.00", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "shopping-cart", colour: "#10b981" },
-    { name: "Eating Out (Weekdays, Weekends & Delivery)", monthlyAmount: "1950.00", enteredAmount: "900.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "utensils", colour: "#f59e0b" },
-    { name: "Petrol & Fuel", monthlyAmount: "400.00", enteredAmount: "184.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "fuel", colour: "#3b82f6" },
-    { name: "Gym & Fitness Activities", monthlyAmount: "390.00", enteredAmount: "180.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "dumbbell", colour: "#8b5cf6" },
-    { name: "Haircut, Beauty & Grooming Products", monthlyAmount: "525.00", enteredAmount: "242.31", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "sparkles", colour: "#ec4899" },
-    { name: "Dog Walking", monthlyAmount: "260.00", enteredAmount: "120.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "dog", colour: "#14b8a6" },
-    { name: "Pet Food, Treats & Store", monthlyAmount: "290.00", enteredAmount: "133.85", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "paw-print", colour: "#06b6d4" },
-    { name: "Pet Grooming", monthlyAmount: "120.00", enteredAmount: "55.38", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "scissors", colour: "#f97316" },
-    { name: "Movies, Cinema, Streaming & VPN", monthlyAmount: "205.83", enteredAmount: "95.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "tv", colour: "#6366f1" },
-    { name: "Rae Basketball, Books, Clothes & Pocket Money", monthlyAmount: "140.83", enteredAmount: "65.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "book-open", colour: "#a855f7" },
-    { name: "Gardening & Pruning", monthlyAmount: "119.17", enteredAmount: "55.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "flower-2", colour: "#22c55e" },
-    { name: "Public Transport Tickets", monthlyAmount: "108.33", enteredAmount: "50.00", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "train", colour: "#0ea5e9" },
-    { name: "Birthday Gifts, House Warmings & Teacher Presents", monthlyAmount: "60.00", enteredAmount: "27.69", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "gift", colour: "#f43f5e" },
-    { name: "Parking", monthlyAmount: "37.50", enteredAmount: "17.31", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "circle-parking", colour: "#64748b" },
-    { name: "Car Wash", monthlyAmount: "33.33", enteredAmount: "15.38", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "droplets", colour: "#38bdf8" },
+    { name: "Groceries", monthlyAmount: "1083.33", enteredAmount: "500.00", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "shopping-cart" },
+    { name: "Eating Out (Weekdays, Weekends & Delivery)", monthlyAmount: "1950.00", enteredAmount: "900.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "utensils" },
+    { name: "Petrol & Fuel", monthlyAmount: "400.00", enteredAmount: "184.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "fuel" },
+    { name: "Gym & Fitness Activities", monthlyAmount: "390.00", enteredAmount: "180.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "dumbbell" },
+    { name: "Haircut, Beauty & Grooming Products", monthlyAmount: "525.00", enteredAmount: "242.31", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "sparkles" },
+    { name: "Dog Walking", monthlyAmount: "260.00", enteredAmount: "120.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "dog" },
+    { name: "Pet Food, Treats & Store", monthlyAmount: "290.00", enteredAmount: "133.85", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "paw-print" },
+    { name: "Pet Grooming", monthlyAmount: "120.00", enteredAmount: "55.38", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "scissors" },
+    { name: "Movies, Cinema, Streaming & VPN", monthlyAmount: "205.83", enteredAmount: "95.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "tv" },
+    { name: "Rae Basketball, Books, Clothes & Pocket Money", monthlyAmount: "140.83", enteredAmount: "65.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "book-open" },
+    { name: "Gardening & Pruning", monthlyAmount: "119.17", enteredAmount: "55.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "flower-2" },
+    { name: "Public Transport Tickets", monthlyAmount: "108.33", enteredAmount: "50.00", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "train" },
+    { name: "Birthday Gifts, House Warmings & Teacher Presents", monthlyAmount: "60.00", enteredAmount: "27.69", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "gift" },
+    { name: "Parking", monthlyAmount: "37.50", enteredAmount: "17.31", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "circle-parking" },
+    { name: "Car Wash", monthlyAmount: "33.33", enteredAmount: "15.38", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "droplets" },
   ];
 
   const billsCategories = [
-    { name: "Home Loan Minimum Repayment", monthlyAmount: "0.00", enteredAmount: "0.00", budgetFrequency: "MONTHLY", isEssential: true, icon: "home", colour: "#ef4444" },
-    { name: "Personal Health Insurance (Couple) & Ambulance", monthlyAmount: "415.00", enteredAmount: "191.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "heart-pulse", colour: "#10b981" },
-    { name: "Gas & Electricity", monthlyAmount: "291.67", enteredAmount: "134.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "zap", colour: "#f59e0b" },
-    { name: "Mobile Phone, Home Phone & Internet", monthlyAmount: "220.00", enteredAmount: "101.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "wifi", colour: "#3b82f6" },
-    { name: "Water & Sewage", monthlyAmount: "133.33", enteredAmount: "61.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "droplet", colour: "#06b6d4" },
-    { name: "Charity / CareFlight", monthlyAmount: "39.00", enteredAmount: "18.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "heart-handshake", colour: "#ec4899" },
+    { name: "Home Loan Minimum Repayment", monthlyAmount: "0.00", enteredAmount: "0.00", budgetFrequency: "MONTHLY", isEssential: true, icon: "home" },
+    { name: "Personal Health Insurance (Couple) & Ambulance", monthlyAmount: "415.00", enteredAmount: "191.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "heart-pulse" },
+    { name: "Gas & Electricity", monthlyAmount: "291.67", enteredAmount: "134.62", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "zap" },
+    { name: "Mobile Phone, Home Phone & Internet", monthlyAmount: "220.00", enteredAmount: "101.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "wifi" },
+    { name: "Water & Sewage", monthlyAmount: "133.33", enteredAmount: "61.54", budgetFrequency: "FORTNIGHTLY", isEssential: true, icon: "droplet" },
+    { name: "Charity / CareFlight", monthlyAmount: "39.00", enteredAmount: "18.00", budgetFrequency: "FORTNIGHTLY", isEssential: false, icon: "heart-handshake" },
   ];
 
   const categoriesToInsert = [

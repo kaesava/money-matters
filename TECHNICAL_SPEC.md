@@ -1,7 +1,7 @@
 # TECHNICAL_SPEC.md — money-matters
 
 > **Last updated:** 2026-09-05  
-> **Status:** 100% production-ready standard. Fully executed and synchronized across all Master Plan phases & capability enhancements: Pool-Centric Architecture (`Bank Account → Pool → Category`), `getPoolBalancesMap` DB-side aggregate SUM(CASE WHEN...) balance utility in `@money-matters/db`, `budgetingRouter` consolidating pool, category, and budgeting RPC procedures, 100% `privateTenantProcedure` RLS session context injection across private routes (bank accounts, pools, categories, income, payday, expenses, reconciliation), transactional payday allocation plan revert with offsetting DEBIT ledger entries, cascading pool soft-archival to child categories, last-category-in-pool archival protection, Profile & Household Settings, AEST timezone date formatting, full user-facing `t(...)` string externalization, standardized terminology ("Everyday Spending", "Bills", "Expense", "History"), Centralized Form Input Defenses (12-digit amount cap, string HTML/script stripping, date-picker enforcement, mandatory red asterisk UX, and dynamic submit button state blocking), and active Neon PostgreSQL DB schema & seed dispatches.
+> **Status:** 100% production-ready standard. Fully executed and synchronized across all Master Plan phases & capability enhancements: Pool-Centric Architecture (`Bank Account → Pool → Category`), `getPoolBalancesMap` DB-side aggregate SUM(CASE WHEN...) balance utility in `@money-matters/db`, `budgetingRouter` consolidating pool, category, and budgeting RPC procedures, 100% `privateTenantProcedure` RLS session context injection across private routes (bank accounts, pools, categories, income, payday, expenses, reconciliation), immutable confirmed payday allocations with client-side form recalculation, cascading pool soft-archival to child categories, last-category-in-pool archival protection, Profile & Household Settings, AEST timezone date formatting, full user-facing `t(...)` string externalization, standardized terminology ("Everyday Spending", "Bills", "Expense", "History"), Centralized Form Input Defenses (12-digit amount cap, string HTML/script stripping, date-picker enforcement, mandatory red asterisk UX, and dynamic submit button state blocking), authoritative `SCHEMA_DATA_DICTIONARY.md` and automated `pnpm audit:schema` verification, and active Neon PostgreSQL DB schema & seed dispatches.
 
 ---
 
@@ -44,15 +44,13 @@ money-matters/
 │   ├── capabilities/
 │   │   ├── billing/         # Subscription state machine, Stripe checkout & customer portal, raw-body webhook processor
 │   │   ├── tenant/          # Household creation, partner invite, bank account CRUD, bank balance reconciliation
-│   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), immutable pool-bank linking, unbudgeted buffer validation, 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, payday allocation revert ledger reversals, cascading pool archival, last-category guard
-│   │   ├── transactions/    # Daily ledger, expense recording, transaction history
+│   │   ├── budgeting/       # Pool-centric architecture (`Bank Account → Pool → Category`), immutable pool-bank linking, unbudgeted buffer validation, 5-step waterfall allocation engine (Deficit Repair, Regular, Goal, Everyday, Surplus), rolling window maintainer, immutable confirmed allocations, cascading pool archival, last-category guard
+│   │   ├── transactions/    # Daily ledger, expense recording, transaction history, paired transfer resolution
 │   │   ├── simulation/      # Stateless "Can I Afford It?" engine with 6-verdict cumulative waterfall simulation & goal timeline impact analysis
-│   │   ├── notifications/   # Expo push + scheduled weekly digest Inngest workflow
-│   │   ├── file-notes/      # Notes, comments, attachments via Cloudflare R2
-│   │   └── bug-reports/     # In-app bug report persistence, Frustration scale & workflow category capture, tenant-isolated bugReports schema, Resend receipt/alert dispatches
+│   │   └── notifications/   # Expo push + scheduled weekly digest Inngest workflow
 │   ├── core/          # DB client, universal logger, auth session resolver, rate limiter, correlation ID hook
 │   ├── config/        # Zod env schemas, app registry, feature flags
-│   ├── db/            # Drizzle schemas (`app_categories`, `user_preferences` JSONB), migrations & seeds
+│   ├── db/            # Drizzle schemas (22 audited tables in SCHEMA_DATA_DICTIONARY.md), migrations & seeds
 │   ├── i18n/          # Centralized dictionary & type-safe t() helper
 │   ├── types/         # Zod domain contracts, setup presets, status state machines, API DTOs
 │   └── ui/            # Serene Finance UI components & design tokens
@@ -82,9 +80,9 @@ money-matters/
   - `sendWelcomeEmail`: Listens to `auth/user.signup`, sending a welcome transactional email via Resend (`sendEmail` abstraction).
   - `sendPartnerInviteEmail`: Listens to `partner/invited`, delivering partner invitation links (`https://moneymatters.kaesava.au/invite/[token]`) via Resend with 3 automatic retries.
   - `processAccountDeletion`: Listens to `user/account.delete-requested`, executing background account wipe logging, storage cleanup, and email confirmation dispatch.
-- **Complete Database RLS**: Row-Level Security policies active across 100% of persistent schema tables (`tenants`, `tenant_users`, `bank_accounts`, `categories`, `category_schedules`, `income_sources`, `income_events`, `transaction_ledger`, `user_preferences`, `expense_events`, `expense_sources`, `file_notes`, `device_tokens`).
+- **Complete Database RLS**: Row-Level Security policies active across 100% of persistent schema tables (`tenants`, `tenant_users`, `bank_accounts`, `pools`, `categories`, `income_sources`, `income_events`, `allocation_plans`, `allocation_plan_lines`, `transaction_ledger`, `user_preferences`, `tenant_user_preferences`, `expense_sources`, `expense_events`, `transfer_sources`, `transfer_events`, `device_tokens`, `billing_invoices`).
 - **Global User Preferences**: `user_preferences` table (1:1 per userId) stores global UI and presentation preferences: `language` (`en`, `ja`), `locale` (`auto`, `en-AU`, `en-US`, `en-GB`, `en-CA`, `ja-JP`), presentation `timezone`, `theme`, and `showIcons` (boolean, default `true`). Toggling "Show information icons" centrally controls `(i)` tooltip icon visibility across all screens, modals, confirmation dialogs, and drawers on both Web and Mobile across all tenants.
-- **Tenant User Preferences**: `tenant_user_preferences` (scoped to userId, tenantId, appId) stores tenant-specific operational state (`appPreferences: JSONB` containing alert toggles and `setup_completed` state; dead UI flags `quick_actions_collapsed`, `show_icons`, `filters_expanded`, `skip_pool_adjustment_confirmation` have been pruned).
+- **Tenant User Preferences**: `tenant_user_preferences` (scoped to userId, tenantId, appId) stores tenant-specific operational state (`preferences: JSONB`, `emailNotifications`, `pushNotifications`, `inAppNotifications`).
 - **Icon Visibility & Decluttered UI System**: `IconVisibilityProvider` and `useIconVisibility()` hook in `@money-matters/ui` dynamically control decorative icon rendering across Web and Mobile based on user preferences.
 - **Collapsible Filter System**: `FilterBar` (Web) and `MobileFilterBar` (Mobile) support collapsible filter groups with active filter count badges.
 
@@ -92,27 +90,33 @@ money-matters/
 
 ## 4. Canonical Data Model
 
-All persistent domain tables include: `id`, `tenantId`, `appId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`, `archivedBy`. Root identity tables (`tenants`, `tenant_users`, `users`, `apps`) use exact single-purpose keys with FK constraints.
+All persistent domain tables include: `id`, `tenantId`, `appId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`. Root identity tables (`tenants`, `tenant_users`, `users`, `apps`) use exact single-purpose keys with FK constraints. See `SCHEMA_DATA_DICTIONARY.md` for full column-level documentation.
 
 ```
 apps (id PK [stable UUID], name, slug UNIQUE)
   │ FK (appId)
   ▼
-tenants (id PK, appId FK→apps.id, name, country [varchar(2), default AU], currency [varchar(3), default AUD], timezone [default Australia/Sydney], subscriptionStatus: TRIAL_ACTIVE|TRIAL_EXPIRED|SUBSCRIBED|PAST_DUE|DEACTIVATED, trialStartedAt, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, subscribedAt, subscriptionEndsAt, cancelAtPeriodEnd, planType, nextBillingAt, trialConvertedAt)
+tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, stripeSubscriptionId, subscriptionStatus, currentPeriodEnd, cancelAtPeriodEnd)
   │
-  ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id [nullable for PENDING], role: OWNER|MEMBER, inviteEmail, inviteToken, inviteStatus: PENDING|ACCEPTED|REVOKED, invitedAt)
-  ├── bank_accounts (lastKnownBalance, unbudgetedBuffer, isPrivate, userId)
-  │   └── pools (tenantId, appId, name, poolType: EVERYDAY|REGULAR|GOAL, bankAccountId, everydayAllowanceAmount, rolloverRule, targetAmount, targetDate, isCommitted, isSurplusTarget)
-  │       ├── categories (tenantId, appId, poolId, name, icon, colour, monthlyAmount, budgetFrequency, isEssential)
-  │       └── transaction_ledger (poolId, categoryId [nullable], flowType: DEBIT|CREDIT, source: MANUAL|IMPORT, recordedAt, note)
-  ├── user_preferences (Global 1:1 per userId: userId UNIQUE, language [varchar(10), default en], locale [varchar(20), default auto], timezone [varchar(100)], theme, showIcons [boolean, default true])
-  ├── tenant_user_preferences (Scoped to userId, tenantId, appId: appPreferences: JSONB including alert toggles, setup_completed state)
-  ├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
-  ├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
-  │   └── income_events (expectedDate, expectedAmount, actualAmount, status: PENDING|CONFIRMED)
-  ├── expense_sources (name, amount, poolId, categoryId, rrule, startDate, endDate)
-  │   └── expense_events (expectedDate, expectedAmount, actualAmount, status: PENDING|CONFIRMED)
-  └── file_notes (entityType: POOL|CATEGORY|TRANSACTION, comment, fileKey, fileName, mimeType)
+  ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id, role: OWNER|MEMBER|VIEWER)
+  ├── bank_accounts (name, accountType, institution, accountNumberLast4, currentBalance, isPrivate, userId, isOffset, targetReserveAmount)
+  │   └── pools (bankAccountId, name, poolType: EVERYDAY|REGULAR|GOAL|IRREGULAR, isSurplusTarget, targetBalance)
+  │       ├── categories (poolId, name, isEssential, monthlyAmount, enteredAmount, budgetFrequency, icon)
+  │       └── transaction_ledger (poolId, categoryId, bankAccountId, planLineId, flowType: DEBIT|CREDIT, transactionType, amount, note, source, recordedAt, idempotencyKey, transferGroupId)
+  ├── user_preferences (userId, theme, locale, notificationsEnabled)
+  ├── tenant_user_preferences (tenantId, userId, emailNotifications, pushNotifications, inAppNotifications, preferences)
+  ├── income_sources (name, amount, isRecurring, frequency, interval, startDate, endDate, rrule, receivingAccountId, isPartner)
+  │   └── income_events (incomeSourceId, expectedDate, expectedAmount, actualAmount, status: PROJECTED|CONFIRMED|SKIPPED, receivingAccountId)
+  │       └── allocation_plans (incomeEventId, totalIncomeAmount, status: DRAFT|CONFIRMED|ARCHIVED)
+  │           └── allocation_plan_lines (planId, poolId, amount, ruleApplied)
+  ├── expense_sources (name, amount, isRecurring, frequency, interval, startDate, endDate, rrule, categoryId, targetPoolId)
+  │   └── expense_events (expenseSourceId, expectedDate, expectedAmount, actualAmount, status: PENDING|PAID|SKIPPED, paidDate)
+  ├── transfer_sources (name, amount, sourcePoolId, destinationPoolId, frequency, interval, startDate)
+  │   └── transfer_events (transferSourceId, expectedDate, expectedAmount, status: PENDING|COMPLETED|SKIPPED)
+  ├── device_tokens (userId, token, platform, lastSeenAt)
+  ├── early_access (email, ipAddress, userAgent, status)
+  ├── processed_webhooks (eventId, eventType, processedAt)
+  └── billing_invoices (stripeInvoiceId, amountPaid, currency, status, invoicePdf, hostedInvoiceUrl, paidAt)
 ```
 
 > **Tenant-App Relationship & Currency/Locale Architecture**:
@@ -182,7 +186,7 @@ tenants (id PK, appId FK→apps.id, name, country [varchar(2), default AU], curr
   - Automatically compares each pool's assigned `bankAccountId` with `incomeEvent.receivingAccountId`.
   - Pools in the same bank account are marked as *Retained in source account* with $0 external transfers.
   - Pools targeting other bank accounts are rolled up into **1 single transfer per destination bank account**, computing aggregate totals and listing constituent pools for 1-click clipboard copying.
-- **Revert to Automatic Allocation (`revertAllocationPlan`)**: Exposes `revertAllocationPlan` mutation. Clicking **Re-calculate** or **Reset** prompts for confirmation ("Reset Plan?") and deletes the `allocation_plan` row, restoring dynamic suggested allocation.
+- **Immutable Confirmed Paydays & Client-Side Recalculation**: Confirmed payday allocation plans are strictly immutable in the database to preserve historical ledger integrity. In unconfirmed/draft views, clicking **Re-calculate** or **Reset** resets the client-side input form back to the engine's suggested allocation without database mutations.
 
 
 ### 5.3 Bank Account Balance Alignment & V2 Ingestion Architecture
@@ -192,7 +196,7 @@ tenants (id PK, appId FK→apps.id, name, country [varchar(2), default AU], curr
   - Automatically compares actual bank balance against linked pool balance aggregates (`getPoolBalancesMap`), calculating exact surplus or shortfall.
   - Generates atomic `BALANCE_ADJUSTMENT` or `ACCOUNT_ALIGNMENT` ledger rows in `transaction_ledger` with zero transaction tagging overhead.
 - **Zipped Full Tenant CSV Export (`exportTenantData`)**:
-  - Secure tenant data backup bundling all relational entities (`categories.csv`, `income_sources.csv`, `expense_sources.csv`, `transaction_ledger.csv`, `bank_accounts.csv`, `allocation_plans.csv`, `file_notes.csv`) into a single zipped archive.
+  - Secure tenant data backup bundling all relational entities (`categories.csv`, `income_sources.csv`, `expense_sources.csv`, `transaction_ledger.csv`, `bank_accounts.csv`, `allocation_plans.csv`) into a single zipped archive.
 
 ### 5.4 Smart Scheduled Notifications (Inngest)
 1. **`notify-payday-incoming`**: Daily alert for upcoming payday tomorrow.
@@ -256,7 +260,7 @@ tenants (id PK, appId FK→apps.id, name, country [varchar(2), default AU], curr
 
 - **Timezone-Aware Formatting**: All dates are stored in UTC within the database. The presentation layer strictly uses `Intl.DateTimeFormat` configured with AEST/en-AU to ensure timezone-aware formatting across all transaction ledgers and reports.
 - **tRPC/Auth Proxy Logging Guards**: Client & Server Log Scrubbing is strictly enforced. Auth tokens, JWT credentials, and PII must never be emitted to stdout/stderr via `console.log`. Logger abstractions automatically sanitize sensitive fields in the tRPC and auth proxy paths.
-- **Zipped CSV Data Export Engine**: The `exportTenantData` capability securely generates all entity CSV files (`categories.csv`, `income_sources.csv`, `expense_sources.csv`, `transaction_ledger.csv`, `bank_accounts.csv`, `allocation_plans.csv`, `file_notes.csv`). On the web client, files are bundled using `JSZip` into a single `.zip` archive (`money-matters-export-YYYY-MM-DD.zip`), preventing browser multi-download blocking while enforcing stealth privacy (only shared data + current user's private records exported).
+- **Zipped CSV Data Export Engine**: The `exportTenantData` capability securely generates all entity CSV files (`categories.csv`, `income_sources.csv`, `expense_sources.csv`, `transaction_ledger.csv`, `bank_accounts.csv`, `allocation_plans.csv`). On the web client, files are bundled using `JSZip` into a single `.zip` archive (`money-matters-export-YYYY-MM-DD.zip`), preventing browser multi-download blocking while enforcing stealth privacy (only shared data + current user's private records exported).
 - **Settings & History Tabbed Navigation**: Settings is organized into a 3-tab layout (`Profile`, `Household`, `Account & Data`) with container width expanded to `max-w-5xl`. History (`/dashboard/history`) is organized into a 2-tab layout (`Transactions` ledger & `Payday Allocations` audit history). In the Transactions ledger, amounts strictly follow color conventions based on flow direction: positive credits (`+`) are green (`text-emerald-600 dark:text-emerald-400`) and negative debits (`-`) are red (`text-rose-600 dark:text-rose-400`), across all transaction types including transfers.
 - **Modal Dialog Portaling**: All modal dialogs (`ModalDialog`, `ConfirmDialog`) use `createPortal(..., document.body)` with client mount guards to break out of parent CSS stacking contexts and `backdrop-filter` containing blocks, guaranteeing consistent full-screen dark backdrops and centered modal presentation.
 - **Bulk Database Operations (Anti-N+1)**: All database writes and queries must be batched. Individual inserts or queries in loops are forbidden. Plan lines and ledger entries are prepared in-memory and written in bulk. Deletions and status transitions must use `inArray` operators (e.g. archiving category arrays or deleting account relations) to prevent query waterfalls.

@@ -21,7 +21,7 @@ import {
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import { formatAUD, formatRelativeDate } from '../../lib/format';
+import { formatAUD, formatRelativeDate, formatIsoDate } from '../../lib/format';
 import { TransactionRow } from '../../components/TransactionRow';
 import {
   MobilePaydayAllocationDetailModal,
@@ -73,19 +73,77 @@ export default function TransactionsScreen() {
     setRefreshing(false);
   };
 
+  const poolMap = React.useMemo(() => new Map(pools.map((p) => [p.id, p.name])), [pools]);
+
+  // Build a lookup map for transfer pairs by transferGroupId
+  const transferGroupMap = React.useMemo(() => {
+    const map = new Map<string, typeof transactions>();
+    for (const tx of transactions) {
+      if (tx.transferGroupId) {
+        const group = map.get(tx.transferGroupId) || [];
+        group.push(tx);
+        map.set(tx.transferGroupId, group);
+      }
+    }
+    return map;
+  }, [transactions]);
+
+  const mappedTransactions = React.useMemo(() => {
+    return transactions.map((tx) => {
+      const isTransfer = Boolean(tx.transferGroupId) ||
+        tx.transactionType === 'TRANSFER_OUT' ||
+        tx.transactionType === 'TRANSFER_IN' ||
+        tx.note?.startsWith('Transferred') ||
+        tx.note?.startsWith('Transfer from') ||
+        tx.note?.startsWith('Transfer to') ||
+        tx.note?.includes('➔');
+
+      let sourcePoolName: string | undefined;
+      let destPoolName: string | undefined;
+
+      if (tx.transferGroupId) {
+        const group = transferGroupMap.get(tx.transferGroupId);
+        const counterpart = group?.find((other) => other.id !== tx.id);
+        if (counterpart) {
+          if (tx.flowType === 'DEBIT') {
+            sourcePoolName = tx.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || 'Everyday';
+            destPoolName = counterpart.poolName || (counterpart.poolId ? poolMap.get(counterpart.poolId) : undefined) || 'Everyday';
+          } else {
+            sourcePoolName = counterpart.poolName || (counterpart.poolId ? poolMap.get(counterpart.poolId) : undefined) || 'Everyday';
+            destPoolName = tx.poolName || (tx.poolId ? poolMap.get(tx.poolId) : undefined) || 'Everyday';
+          }
+        }
+      }
+
+      const effectiveType: 'DEBIT' | 'CREDIT' | 'TRANSFER' = isTransfer
+        ? 'TRANSFER'
+        : (tx.flowType as 'DEBIT' | 'CREDIT');
+
+      return {
+        ...tx,
+        isTransfer,
+        effectiveType,
+        sourcePoolName,
+        destPoolName,
+      };
+    });
+  }, [transactions, poolMap, transferGroupMap]);
+
   // Filter Ledger
-  const filteredTxs = transactions.filter((tx) => {
+  const filteredTxs = mappedTransactions.filter((tx) => {
     const q = searchQuery.toLowerCase().trim();
     if (
       q &&
       !tx.note?.toLowerCase().includes(q) &&
       !tx.poolName?.toLowerCase().includes(q) &&
+      !tx.sourcePoolName?.toLowerCase().includes(q) &&
+      !tx.destPoolName?.toLowerCase().includes(q) &&
       !String(tx.amount || '').includes(q)
     ) {
       return false;
     }
 
-    if (flowFilter !== 'ALL' && tx.flowType !== flowFilter) return false;
+    if (flowFilter !== 'ALL' && tx.effectiveType !== flowFilter) return false;
 
     if (poolTypeFilter !== 'ALL') {
       const pool = pools.find((p) => p.id === tx.poolId);
@@ -103,7 +161,9 @@ export default function TransactionsScreen() {
     } else if (sortField === 'amount') {
       comparison = parseFloat(a.amount) - parseFloat(b.amount);
     } else if (sortField === 'categoryName') {
-      comparison = (a.poolName || '').localeCompare(b.poolName || '');
+      const aName = a.sourcePoolName && a.destPoolName ? `${a.sourcePoolName} ➔ ${a.destPoolName}` : a.poolName || '';
+      const bName = b.sourcePoolName && b.destPoolName ? `${b.sourcePoolName} ➔ ${b.destPoolName}` : b.poolName || '';
+      comparison = aName.localeCompare(bName);
     }
     return sortDir === 'asc' ? comparison : -comparison;
   });
@@ -113,11 +173,11 @@ export default function TransactionsScreen() {
 
   const handleExportCsv = async () => {
     if (sortedTxs.length === 0) return;
-    const headers = ['Date', 'Pool', 'Flow', 'Amount', 'Note'];
+    const headers = ['Date', 'Pool / Transfer', 'Flow', 'Amount', 'Note'];
     const rows = sortedTxs.map((tx) => [
-      `"${new Date(tx.recordedAt).toISOString().split('T')[0]}"`,
-      `"${tx.poolName || 'Everyday'}"`,
-      `"${tx.flowType}"`,
+      `"${formatIsoDate(tx.recordedAt)}"`,
+      `"${tx.sourcePoolName && tx.destPoolName ? `${tx.sourcePoolName} ➔ ${tx.destPoolName}` : tx.poolName || 'Everyday'}"`,
+      `"${tx.effectiveType}"`,
       `"${tx.amount}"`,
       `"${(tx.note || '').replace(/"/g, '""')}"`,
     ]);
@@ -270,8 +330,11 @@ export default function TransactionsScreen() {
             renderItem={({ item }) => (
               <TransactionRow
                 amount={item.amount}
-                flowType={item.flowType as any}
+                flowType={item.effectiveType}
                 poolName={item.poolName}
+                categoryName={item.categoryName}
+                sourcePoolName={item.sourcePoolName}
+                destPoolName={item.destPoolName}
                 note={item.note}
                 recordedAt={item.recordedAt}
               />

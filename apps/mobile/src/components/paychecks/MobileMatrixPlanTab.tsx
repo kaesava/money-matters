@@ -13,7 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
-import { formatAUD } from '../../lib/format';
+import { formatAUD, formatDate } from '../../lib/format';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 40;
@@ -125,7 +125,7 @@ export function MobileMatrixPlanTab() {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.payDate}>{item.dateLabel || item.date}</Text>
+                  <Text style={styles.payDate}>{item.date ? formatDate(item.date) : item.dateLabel}</Text>
                   <Text style={styles.sourceName}>{item.sourceName}</Text>
                 </View>
 

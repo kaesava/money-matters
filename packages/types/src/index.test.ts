@@ -39,19 +39,20 @@ describe('Domain Schemas Validation', () => {
     expect(() => BaseSchema.parse({ ...mockBase, extraKey: 'bad' })).toThrow();
   });
 
-  it('validates TenantSchema defaults and fiscal year format', () => {
+  it('validates TenantSchema defaults and properties', () => {
     const validTenant = TenantSchema.parse({
       ...mockBase,
       name: 'Acme Corp',
     });
-    expect(validTenant.fyEndMonthDay).toBe('06-30');
+    expect(validTenant.country).toBe('AU');
+    expect(validTenant.currency).toBe('AUD');
     expect(validTenant.premiumEnabled).toBe(false);
 
     expect(() =>
       TenantSchema.parse({
         ...mockBase,
         name: 'Acme',
-        fyEndMonthDay: 'invalid-date',
+        country: 'INVALID',
       })
     ).toThrow();
   });
@@ -103,9 +104,8 @@ describe('Domain Schemas Validation', () => {
       enteredAmount: '1200.00',
       budgetFrequency: 'MONTHLY',
       icon: 'home',
-      colour: '#123456',
     });
-    expect(category.colour).toBe('#123456');
+    expect(category.icon).toBe('home');
   });
 
   it('validates IncomeSourceSchema and IncomeSourceScheduleSchema', () => {

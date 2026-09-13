@@ -10,6 +10,7 @@ import {
   fmtTransactionAmount as formatBaseTxAmount,
   getCurrencySymbol,
   getCurrencyMinorUnits,
+  IconVisibilityProvider,
 } from "@money-matters/ui";
 import { authClient } from "../lib/auth";
 import { trpc } from "../lib/trpc";
@@ -126,6 +127,10 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   return (
-    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+    <LocaleContext.Provider value={value}>
+      <IconVisibilityProvider initialShowIcons={pref?.showIcons ?? true}>
+        {children}
+      </IconVisibilityProvider>
+    </LocaleContext.Provider>
   );
 }

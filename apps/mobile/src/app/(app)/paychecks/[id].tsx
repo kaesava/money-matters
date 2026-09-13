@@ -71,7 +71,6 @@ export default function IncomeSplitStudioScreen() {
 
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
   const saveBulkAllocationsMut = trpc.saveBulkAllocations.useMutation();
-  const revertAllocationPlanMut = trpc.revertAllocationPlan.useMutation();
 
   const [actualAmount, setActualAmount] = useState('0.00');
   const [sourceName, setSourceName] = useState('Paycheck');
@@ -163,9 +162,14 @@ export default function IncomeSplitStudioScreen() {
       confirmText: t('common.reset', { defaultValue: 'Reset' }),
       onConfirm: async () => {
         try {
-          await revertAllocationPlanMut.mutateAsync({ incomeEventId: id! });
-          previewQuery.refetch();
-          setIsSavedPlan(false);
+          if (previewQuery.data?.engineResult) {
+            const rawLines = extractLines(previewQuery.data.engineResult);
+            const initialMap: Record<string, string> = {};
+            rawLines.forEach((line) => {
+              initialMap[line.bucketId] = line.proposedAmount.toFixed(2);
+            });
+            setLinesMap(initialMap);
+          }
         } catch (err) {
           Alert.alert(
             t('common.error'),
