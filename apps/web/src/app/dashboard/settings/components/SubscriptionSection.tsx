@@ -4,21 +4,20 @@ import React, { useState } from "react";
 import { trpc } from "../../../../lib/trpc";
 import { Spinner, useToast } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "../../../../../../api/src/routers/_app";
+import { useLocale } from "../../../../providers/LocaleProvider";
+import { SubscriptionInvoicesTable } from "./SubscriptionInvoicesTable";
+import { SubscriptionCancellationCallout } from "./SubscriptionCancellationCallout";
+
+type RouterOutput = inferRouterOutputs<AppRouter>;
 
 interface SubscriptionSectionProps {
-  status?: {
-    status: "TRIAL_ACTIVE" | "TRIAL_GRACE" | "TRIAL_EXPIRED" | "SUBSCRIBED" | "PAST_DUE" | "DEACTIVATED";
-    trialEndsAt?: Date | string | null;
-    trialGraceEndsAt?: Date | string | null;
-    subscriptionEndsAt?: Date | string | null;
-    daysRemainingInTrial?: number | null;
-    cancelAtPeriodEnd?: boolean;
-    planType?: "monthly" | "annual" | "founding" | null;
-    nextBillingAt?: Date | string | null;
-  } | null;
+  status?: RouterOutput["getSubscriptionStatus"] | null;
 }
 
 export function SubscriptionSection({ status }: SubscriptionSectionProps) {
+  const { fmtDateMedium } = useLocale();
   const toast = useToast();
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -165,7 +164,7 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
             {isSubscribed && !status?.cancelAtPeriodEnd && status?.nextBillingAt && (
               <p className="text-xs text-zinc-500 mt-1 font-medium">
                 {t("subscription.renewsOn", {
-                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.nextBillingAt)),
+                  date: fmtDateMedium(status.nextBillingAt),
                 })}
               </p>
             )}
@@ -173,7 +172,7 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
             {status?.cancelAtPeriodEnd && status?.subscriptionEndsAt && (
               <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 font-medium">
                 {t("subscription.cancelingNotice", {
-                  date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.subscriptionEndsAt)),
+                  date: fmtDateMedium(status.subscriptionEndsAt),
                 })}
               </p>
             )}
@@ -202,55 +201,13 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
           </div>
         </div>
 
-        {/* Cancellation Reassurance Callout */}
-        {status?.cancelAtPeriodEnd && status?.subscriptionEndsAt && (
-          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <span className="text-xl shrink-0">⚠️</span>
-              <div>
-                <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                  {t("subscription.cancelingBannerTitle")}
-                </h4>
-                <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 leading-relaxed">
-                  {t("subscription.cancelingBannerDesc", {
-                    date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.subscriptionEndsAt)),
-                  })}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleOpenStripePortal}
-              disabled={loadingPortal}
-              className="shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all self-start sm:self-center shadow-xs cursor-pointer"
-            >
-              {t("subscription.resumeSubscription")} ↗
-            </button>
-          </div>
-        )}
-
-        {/* Upcoming 7-Day Renewal Advance Reminder */}
-        {isSubscribed && !status?.cancelAtPeriodEnd && status?.nextBillingAt && (() => {
-          const daysUntilBilling = Math.ceil((new Date(status.nextBillingAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          if (daysUntilBilling >= 0 && daysUntilBilling <= 7) {
-            return (
-              <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 flex items-start gap-3 text-xs">
-                <span className="text-base shrink-0">ℹ️</span>
-                <div>
-                  <h4 className="font-bold text-blue-900 dark:text-blue-200">
-                    {t("subscription.upcomingRenewalTitle")}
-                  </h4>
-                  <p className="text-blue-800/90 dark:text-blue-300/90 mt-0.5">
-                    {t("subscription.upcomingRenewalDesc", {
-                      date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(status.nextBillingAt)),
-                    })}
-                  </p>
-                </div>
-              </div>
-            );
-          }
-          return null;
-        })()}
+        <SubscriptionCancellationCallout
+          status={status}
+          isSubscribed={isSubscribed}
+          loadingPortal={loadingPortal}
+          onOpenPortal={handleOpenStripePortal}
+          fmtDateMedium={fmtDateMedium}
+        />
 
         <p className="text-xs text-zinc-500 leading-relaxed">
           {t("subscription.billingDesc")}
@@ -262,88 +219,22 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
             {t("subscription.includedFeaturesTitle")}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-            <div className="flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">✓</span>
-              <span>{t("subscription.includedFeature1")}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">✓</span>
-              <span>{t("subscription.includedFeature2")}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">✓</span>
-              <span>{t("subscription.includedFeature3")}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-emerald-500 font-bold">✓</span>
-              <span>{t("subscription.includedFeature4")}</span>
-            </div>
+            {(["subscription.includedFeature1", "subscription.includedFeature2", "subscription.includedFeature3", "subscription.includedFeature4"] as const).map((k) => (
+              <div key={k} className="flex items-center gap-1.5">
+                <span className="text-emerald-500 font-bold">✓</span>
+                <span>{t(k)}</span>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Invoices & Receipts Sub-panel */}
         {(isSubscribed || invoices.length > 0) && (
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-              {t("subscription.invoiceHistoryTitle")}
-            </p>
-
-            {invoicesQuery.isLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <Spinner size="sm" className="text-[#2563eb]" />
-              </div>
-            ) : invoices.length === 0 ? (
-              <p className="text-xs text-zinc-400 italic">
-                {t("subscription.noInvoices")}
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-zinc-100 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
-                      <th className="pb-2 text-left">{t("subscription.invoiceDate")}</th>
-                      <th className="pb-2 text-right">{t("subscription.invoiceAmount")}</th>
-                      <th className="pb-2 text-center">{t("subscription.invoiceStatus")}</th>
-                      <th className="pb-2 text-center">{t("subscription.invoiceReceipt")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800">
-                    {invoices.map((inv) => (
-                      <tr key={inv.id} className="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
-                        <td className="py-2.5 font-medium text-left">
-                          {inv.paidAt ? new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(new Date(inv.paidAt)) : "—"}
-                        </td>
-                        <td className="py-2.5 text-right font-mono tabular-nums font-bold">
-                          ${inv.amountPaid} {inv.currency}
-                        </td>
-                        <td className="py-2.5 text-center">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                            inv.status === "paid" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-                          }`}>
-                            {inv.status}
-                          </span>
-                        </td>
-                        <td className="py-2.5 text-center">
-                          {inv.invoicePdfUrl || inv.hostedInvoiceUrl ? (
-                            <a
-                              href={inv.invoicePdfUrl || inv.hostedInvoiceUrl || "#"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#2563eb] hover:underline font-bold text-xs"
-                            >
-                              {t("subscription.downloadReceipt")}
-                            </a>
-                          ) : (
-                            <span className="text-zinc-400">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <SubscriptionInvoicesTable
+            invoices={invoices}
+            isLoading={invoicesQuery.isLoading}
+            fmtDateMedium={fmtDateMedium}
+          />
         )}
 
         <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-400 font-medium">

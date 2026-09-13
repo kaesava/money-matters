@@ -1,35 +1,60 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import JSZip from 'jszip';
 import { t } from '@money-matters/i18n';
 import { trpc, setActiveSessionToken } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import * as SecureStore from 'expo-secure-store';
+import { DeleteHouseholdCard } from './DeleteHouseholdCard';
+import { LeaveHouseholdCard } from './LeaveHouseholdCard';
 
 export function PrivacyGovernanceSection() {
   const router = useRouter();
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [leaveConfirmText, setLeaveConfirmText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
-  const deleteAccountMutation = trpc.deleteMyAccount.useMutation();
-  const leaveHouseholdMutation = trpc.leaveMyHousehold.useMutation();
-
   const gov = govQuery.data;
 
   const handleExportData = async () => {
+    setIsExporting(true);
     try {
       const res = await exportQuery.refetch();
-      if (res.data) {
-        Alert.alert(
-          t('privacy.exportDataTitle'),
-          `Data export ready! Exported at: ${res.data.exportedAt}`
-        );
+      if (res.data?.csvFiles) {
+        const zip = new JSZip();
+        Object.entries(res.data.csvFiles).forEach(([fileName, content]) => {
+          if (typeof content === 'string') {
+            zip.file(fileName, content);
+          }
+        });
+
+        const base64 = await zip.generateAsync({ type: 'base64' });
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const fileUri = `${FileSystem.cacheDirectory}money-matters-backup-${dateStr}.zip`;
+
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/zip',
+            dialogTitle: 'Export Money Matters Backup',
+            UTI: 'public.zip-archive',
+          });
+        } else {
+          Alert.alert(t('privacy.exportDataTitle'), `Backup saved to ${fileUri}`);
+        }
+      } else {
+        Alert.alert(t('common.error'), 'No export data returned.');
       }
     } catch (err) {
       Alert.alert('Export Failed', err instanceof Error ? err.message : 'Could not export data.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -41,148 +66,41 @@ export function PrivacyGovernanceSection() {
     router.replace('/(auth)/sign-in');
   };
 
-  const handleDeleteAccount = () => {
-    if (!gov) return;
-    if (deleteConfirmText.trim().toLowerCase() !== gov.householdName.trim().toLowerCase()) {
-      Alert.alert('Confirmation Required', `Type ${gov.householdName} to confirm.`);
-      return;
-    }
-
-    Alert.alert(
-      t('privacy.deleteHouseholdTitle'),
-      t('privacy.deleteHouseholdNotice'),
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Erase Household',
-          style: 'destructive',
-          onPress: async () => {
-            setIsSubmitting(true);
-            try {
-              await deleteAccountMutation.mutateAsync();
-              Alert.alert(
-                t('privacy.deletionConfirmedTitle'),
-                t('privacy.deletionConfirmedBody'),
-                [{ text: 'OK', onPress: handleSignOutAndRedirect }]
-              );
-            } catch (err) {
-              Alert.alert('Deletion Error', err instanceof Error ? err.message : 'Account erasure failed.');
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleLeaveHousehold = () => {
-    if (leaveConfirmText.trim().toUpperCase() !== 'LEAVE HOUSEHOLD') {
-      Alert.alert('Confirmation Required', 'Type LEAVE HOUSEHOLD to confirm.');
-      return;
-    }
-
-    Alert.alert(
-      t('privacy.leaveHouseholdTitle'),
-      'Are you sure you want to leave this household?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave Household',
-          style: 'destructive',
-          onPress: async () => {
-            setIsSubmitting(true);
-            try {
-              await leaveHouseholdMutation.mutateAsync();
-              Alert.alert(
-                'Household Left',
-                t('privacy.leftHouseholdSuccess'),
-                [{ text: 'OK', onPress: handleSignOutAndRedirect }]
-              );
-            } catch (err) {
-              Alert.alert('Leave Error', err instanceof Error ? err.message : 'Leaving household failed.');
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>🛡️ {t('privacy.title')}</Text>
       <Text style={styles.cardSubtitle}>{t('privacy.aussiePrivacyDetail')}</Text>
 
-      <TouchableOpacity style={styles.exportBtn} onPress={handleExportData} activeOpacity={0.8}>
-        <Text style={styles.exportBtnText}>{t('privacy.exportButton')}</Text>
+      <TouchableOpacity
+        style={[styles.exportBtn, isExporting && { opacity: 0.6 }]}
+        onPress={handleExportData}
+        disabled={isExporting}
+        activeOpacity={0.8}
+      >
+        {isExporting ? (
+          <View style={styles.exportingRow}>
+            <ActivityIndicator size="small" color="#334155" />
+            <Text style={styles.exportBtnText}>Creating Zipped Archive...</Text>
+          </View>
+        ) : (
+          <Text style={styles.exportBtnText}>📦 {t('privacy.exportButton')}</Text>
+        )}
       </TouchableOpacity>
 
       {/* Leave Household section */}
       {gov && (!gov.isSoleOwner || !gov.isOwner) && (
-        <View style={styles.amberBox}>
-          <Text style={styles.amberTitle}>🚪 {t('privacy.leaveHouseholdTitle')}</Text>
-          <Text style={styles.amberSubtitle}>
-            Type LEAVE HOUSEHOLD below to confirm leaving this household budget.
-          </Text>
-
-          <TextInput
-            style={styles.amberInput}
-            placeholder="Type LEAVE HOUSEHOLD to confirm"
-            placeholderTextColor="#F59E0B"
-            value={leaveConfirmText}
-            onChangeText={setLeaveConfirmText}
-            autoCapitalize="characters"
-          />
-
-          <TouchableOpacity
-            style={[
-              styles.leaveBtn,
-              (leaveConfirmText.trim().toUpperCase() !== 'LEAVE HOUSEHOLD' || isSubmitting) && { opacity: 0.5 },
-            ]}
-            disabled={leaveConfirmText.trim().toUpperCase() !== 'LEAVE HOUSEHOLD' || isSubmitting}
-            onPress={handleLeaveHousehold}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.leaveBtnText}>{t('privacy.confirmLeaveCta')}</Text>
-          </TouchableOpacity>
-        </View>
+        <LeaveHouseholdCard onLeft={handleSignOutAndRedirect} />
       )}
 
       {/* Delete Household section */}
-      <View style={styles.dangerBox}>
-        <Text style={styles.dangerTitle}>⚠️ {t('privacy.deleteHouseholdTitle')}</Text>
-        <Text style={styles.dangerSubtitle}>{t('privacy.deleteHouseholdNotice')}</Text>
-
-        {gov && !gov.isOwner ? (
-          <Text style={styles.ownerOnlyText}>
-            ℹ️ {t('privacy.ownerOnlyDeleteNotice', { email: gov.partnerEmail || 'the owner' })}
-          </Text>
-        ) : (
-          <>
-            <TextInput
-              style={styles.dangerInput}
-              placeholder={gov ? `Type ${gov.householdName} to confirm` : 'Type household name to confirm'}
-              placeholderTextColor="#FDA4AF"
-              value={deleteConfirmText}
-              onChangeText={setDeleteConfirmText}
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.deleteBtn,
-                (!gov || deleteConfirmText.trim().toLowerCase() !== gov.householdName.trim().toLowerCase() || isSubmitting) && { opacity: 0.5 },
-              ]}
-              disabled={!gov || deleteConfirmText.trim().toLowerCase() !== gov.householdName.trim().toLowerCase() || isSubmitting}
-              onPress={handleDeleteAccount}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.deleteBtnText}>{t('privacy.confirmDeleteHouseholdCta')}</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+      {gov && (
+        <DeleteHouseholdCard
+          householdName={gov.householdName}
+          isOwner={gov.isOwner}
+          partnerEmail={gov.partnerEmail}
+          onDeleted={handleSignOutAndRedirect}
+        />
+      )}
     </View>
   );
 }
@@ -211,99 +129,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   exportBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: '#334155',
-  },
-  amberBox: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-    marginTop: 4,
-  },
-  amberTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#92400E',
-  },
-  amberSubtitle: {
-    fontSize: 10,
-    color: '#B45309',
-    lineHeight: 14,
-  },
-  amberInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 11,
-    color: '#92400E',
-    fontWeight: '700',
-  },
-  leaveBtn: {
-    backgroundColor: '#D97706',
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  leaveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  dangerBox: {
-    backgroundColor: '#FFF1F2',
-    borderWidth: 1,
-    borderColor: '#FECDD3',
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-    marginTop: 4,
-  },
-  dangerTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#9F1239',
-  },
-  dangerSubtitle: {
-    fontSize: 10,
-    color: '#BE123C',
-    lineHeight: 14,
-  },
-  ownerOnlyText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#9F1239',
-  },
-  dangerInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#FDA4AF',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 11,
-    color: '#9F1239',
-    fontWeight: '700',
-  },
-  deleteBtn: {
-    backgroundColor: '#E11D48',
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  deleteBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
   },
 });

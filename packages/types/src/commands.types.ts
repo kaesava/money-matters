@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const CreateTenantCommand = z.object({
   name: z.string().min(1),
-  country: z.string().length(2).optional(),
+  country: z.string().length(2),
   currency: z.string().length(3).optional(),
   timezone: z.string().optional(),
 }).strict();
@@ -18,7 +18,6 @@ export const UpdateTenantCommand = z.object({
 }).strict();
 
 export const UpdateUserPreferencesCommand = z.object({
-  quickActionsCollapsed: z.boolean().optional(),
   timezone: z.string().optional(),
   language: z.enum(["en", "ja"]).optional(),
   locale: z.string().optional(),

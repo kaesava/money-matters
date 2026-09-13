@@ -5,6 +5,7 @@ import { setLanguage, SupportedLanguage } from "@money-matters/i18n";
 import {
   formatCurrency,
   fmtDate as formatBaseDate,
+  fmtDateMedium as formatBaseDateMedium,
   fmtDateTime as formatBaseDateTime,
   fmtTransactionAmount as formatBaseTxAmount,
   getCurrencySymbol,
@@ -24,6 +25,7 @@ export interface LocaleContextValue {
   language: SupportedLanguage;
   fmt: (value: number | string | null | undefined) => string;
   fmtDate: (date: string | Date | number | null | undefined) => string;
+  fmtDateMedium: (date: string | Date | number | null | undefined) => string;
   fmtDateTime: (date: string | Date | number | null | undefined) => string;
   fmtTx: (
     value: number | string | null | undefined,
@@ -42,7 +44,8 @@ const DEFAULT_LOCALE_CONTEXT: LocaleContextValue = {
   language: "en",
   fmt: (v) => formatCurrency(v, "en-AU", "AUD"),
   fmtDate: (d) => formatBaseDate(d, "Australia/Sydney", "en-AU"),
-  fmtDateTime: (d) => formatBaseDateTime(d, "Australia/Sydney"),
+  fmtDateMedium: (d) => formatBaseDateMedium(d, "Australia/Sydney", "en-AU"),
+  fmtDateTime: (d) => formatBaseDateTime(d, "Australia/Sydney", "en-AU"),
   fmtTx: (v, f) => formatBaseTxAmount(v, f, "en-AU", "AUD"),
 };
 
@@ -105,8 +108,9 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       locale: resolvedLocale,
       language,
       fmt: (val) => formatCurrency(val, resolvedLocale, currency),
-      fmtDate: (d) => formatBaseDate(d, timezone, resolvedLocale),
-      fmtDateTime: (d) => formatBaseDateTime(d, userTimezone),
+      fmtDate: (d) => formatBaseDate(d, userTimezone, resolvedLocale),
+      fmtDateMedium: (d) => formatBaseDateMedium(d, userTimezone, resolvedLocale),
+      fmtDateTime: (d) => formatBaseDateTime(d, userTimezone, resolvedLocale),
       fmtTx: (val, flowType) =>
         formatBaseTxAmount(val, flowType, resolvedLocale, currency),
     };

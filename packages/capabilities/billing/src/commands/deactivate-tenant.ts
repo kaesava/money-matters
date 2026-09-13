@@ -17,7 +17,6 @@ export async function deactivateTenantCommand(
     .set({
       subscriptionStatus: newStatus === "GRACE_PERIOD" ? "PAST_DUE" : newStatus,
       premiumEnabled: false,
-      trialGraceEndsAt: graceEndsAt,
       updatedAt: now,
     })
     .where(eq(tenants.id, tenantId));

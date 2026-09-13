@@ -83,7 +83,8 @@ money-matters/
   - `sendPartnerInviteEmail`: Listens to `partner/invited`, delivering partner invitation links (`https://moneymatters.kaesava.au/invite/[token]`) via Resend with 3 automatic retries.
   - `processAccountDeletion`: Listens to `user/account.delete-requested`, executing background account wipe logging, storage cleanup, and email confirmation dispatch.
 - **Complete Database RLS**: Row-Level Security policies active across 100% of persistent schema tables (`tenants`, `tenant_users`, `bank_accounts`, `categories`, `category_schedules`, `income_sources`, `income_events`, `transaction_ledger`, `user_preferences`, `expense_events`, `expense_sources`, `file_notes`, `device_tokens`).
-- **App Preferences & UI Aesthetic Storage**: `user_preferences.app_preferences` JSONB blob keyed by `appId`, storing app-specific UI state (`quick_actions_collapsed`, `show_icons`, `filters_expanded`).
+- **Global User Preferences**: `user_preferences` table (1:1 per userId) stores global UI and presentation preferences: `language` (`en`, `ja`), `locale` (`auto`, `en-AU`, `en-US`, `en-GB`, `en-CA`, `ja-JP`), presentation `timezone`, `theme`, and `showIcons` (boolean, default `true`). Toggling "Show information icons" centrally controls `(i)` tooltip icon visibility across all screens, modals, confirmation dialogs, and drawers on both Web and Mobile across all tenants.
+- **Tenant User Preferences**: `tenant_user_preferences` (scoped to userId, tenantId, appId) stores tenant-specific operational state (`appPreferences: JSONB` containing alert toggles and `setup_completed` state; dead UI flags `quick_actions_collapsed`, `show_icons`, `filters_expanded`, `skip_pool_adjustment_confirmation` have been pruned).
 - **Icon Visibility & Decluttered UI System**: `IconVisibilityProvider` and `useIconVisibility()` hook in `@money-matters/ui` dynamically control decorative icon rendering across Web and Mobile based on user preferences.
 - **Collapsible Filter System**: `FilterBar` (Web) and `MobileFilterBar` (Mobile) support collapsible filter groups with active filter count badges.
 
@@ -97,15 +98,15 @@ All persistent domain tables include: `id`, `tenantId`, `appId`, `createdAt`, `c
 apps (id PK [stable UUID], name, slug UNIQUE)
   │ FK (appId)
   ▼
-tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], timezone [default Australia/Sydney], country [default AU], subscriptionStatus, trial*, stripe*)
+tenants (id PK, appId FK→apps.id, name, country [varchar(2), default AU], currency [varchar(3), default AUD], timezone [default Australia/Sydney], subscriptionStatus: TRIAL_ACTIVE|TRIAL_EXPIRED|SUBSCRIBED|PAST_DUE|DEACTIVATED, trialStartedAt, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, subscribedAt, subscriptionEndsAt, cancelAtPeriodEnd, planType, nextBillingAt, trialConvertedAt)
   │
   ├── tenant_users (tenantId FK→tenants.id, userId FK→users.id [nullable for PENDING], role: OWNER|MEMBER, inviteEmail, inviteToken, inviteStatus: PENDING|ACCEPTED|REVOKED, invitedAt)
   ├── bank_accounts (lastKnownBalance, unbudgetedBuffer, isPrivate, userId)
   │   └── pools (tenantId, appId, name, poolType: EVERYDAY|REGULAR|GOAL, bankAccountId, everydayAllowanceAmount, rolloverRule, targetAmount, targetDate, isCommitted, isSurplusTarget)
   │       ├── categories (tenantId, appId, poolId, name, icon, colour, monthlyAmount, budgetFrequency, isEssential)
   │       └── transaction_ledger (poolId, categoryId [nullable], flowType: DEBIT|CREDIT, source: MANUAL|IMPORT, recordedAt, note)
-  ├── user_preferences (Global 1:1 per userId: userId UNIQUE, language [varchar(10), default en], locale [varchar(20), default auto], timezone [varchar(100)], theme, showIcons)
-  ├── tenant_user_preferences (Scoped to userId, tenantId, appId: appPreferences: JSONB including alert toggles, UI flags, setup_completed state)
+  ├── user_preferences (Global 1:1 per userId: userId UNIQUE, language [varchar(10), default en], locale [varchar(20), default auto], timezone [varchar(100)], theme, showIcons [boolean, default true])
+  ├── tenant_user_preferences (Scoped to userId, tenantId, appId: appPreferences: JSONB including alert toggles, setup_completed state)
   ├── app_categories (appId, name, type: REGULAR|GOAL|EVERYDAY, icon, colour, annualisedAmount)
   ├── income_sources (name, amount, receivingAccountId, rrule, startDate, endDate)
   │   └── income_events (expectedDate, expectedAmount, actualAmount, status: PENDING|CONFIRMED)
@@ -116,9 +117,12 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 
 > **Tenant-App Relationship & Currency/Locale Architecture**:
 > - Every tenant belongs to exactly one app via `tenants.app_id → apps.id`.
+> - **Mandatory Country at Sign-Up**: Web and mobile sign-up flows mandate country selection (`SUPPORTED_COUNTRIES` with flags: `AU`, `US`, `GB`, `CA`, `JP`, `NZ`, `SG`, `EU/DE`), automatically seeding country-specific defaults (`COUNTRY_DEFAULTS`: default currency, accounting timezone, and regional date formatting locale).
 > - **Tenant Base Currency (`tenants.currency`)**: A single base currency is assigned per household (`AUD`, `USD`, `EUR`, `GBP`, `CAD`, `JPY`, `NZD`, `SGD`, defaulting to `AUD`). All financial calculations, pool balances, targets, and transaction ledger amounts operate in this single currency (no in-app multi-currency FX conversions). Household owners may edit the base currency in Household Details, triggering a confirmation dialog warning that historical numbers are not converted.
-> - **User Presentation Locale & Language (`user_preferences`)**: Language (`en`, `ja`) and formatting locale (`auto`, `en-AU`, `en-US`, `en-GB`, `ja-JP`) are cleanly decoupled in `user_preferences`. The web app's `LocaleProvider` dynamically computes `Intl.NumberFormat` and `Intl.DateTimeFormat` configurations based on the user's active preferences and tenant base currency.
-> - **Timezone Execution vs Presentation**: Scheduled paydays, rolling window materialization (`maintainRollingWindow`), and recurring event intervals execute strictly in `tenants.timezone` (default `Australia/Sydney`), guaranteeing household financial consistency regardless of where individual users log in. Display dates and times respect tenant timezone with optional user override.
+> - **Regional Date & Number Formatting**: User formatting locale (`auto`, `en-AU`, `en-US`, `en-GB`, `en-CA`, `ja-JP`) and language (`en`, `ja`) are cleanly decoupled. Date formatting respects the selected regional pattern (`en-AU`: `DD/MM/YYYY`, `en-CA`: `YYYY-MM-DD`, `en-US`: `MM/DD/YYYY`, `ja-JP`: `YYYY/MM/DD`) rendered universally via `new Intl.DateTimeFormat(resolvedLocale, { timeZone })`.
+> - **Timezone Decoupling (Accounting vs Presentation)**: Tenant accounting timezone (`tenants.timezone`) is decoupled from User presentation timezone (`user_preferences.timezone`). Scheduled paydays, rolling window materialization (`maintainRollingWindow`), and recurring event intervals execute strictly in `tenants.timezone`. User input dates are captured in the user's presentation timezone, converted to UTC for database storage, and formatted back to the user's presentation timezone on retrieval.
+> - **Trial Expiration & Extension Lifecycle**: The trial period is governed by `tenants.trial_ends_at` (dead field `trial_grace_ends_at` dropped). If an administrator or support workflow extends `trial_ends_at` into the future (`now <= trial_ends_at`), `getSubscriptionStatus` dynamically reactivates `TRIAL_ACTIVE` even if previously marked as `TRIAL_EXPIRED`.
+> - **Settings UX & Read-Only Safety**: Personal details ("My Details") and household details ("Household") views on Web and Mobile render in read-only mode by default to prevent accidental mutations. An explicit "Edit" button switches the view into an editable form with "Save" and "Cancel" actions. Attempting to cancel with dirty form state triggers an explicit discard confirmation dialog.
 > - **Zero-Decimal Currencies & AmountField**: Currencies with zero minor units (`JPY`) automatically suppress decimal points across all displays and block decimal point input in `<AmountField />`.
 > - **Modular Banking Calendar**: Settlement adjustments (`adjustForBankingCalendar`, `isNonBankingDay`) support national holiday rules parameterized by `countryCode` (Australian BECS holidays for `AU`; weekend-only settlement adjustment fallback for international tenants).
 
@@ -126,7 +130,8 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
 
 - **Auth Layer (`neon_auth`)**: Managed externally by Neon Auth / Better Auth. Handles identity authentication (passwords, JWTs, session tokens, magic links).
 - **Domain Layer (`public.users`)**: Platform-level user profile mirror (`id == neon_auth.user.id`). Foreign key `users_neon_auth_fk` enforces `ON DELETE CASCADE` from `neon_auth.user`. Syncs JIT via `upsertUserFromJwt`.
-- **Domain Tenant Engine (`public.tenants` & `public.tenant_users`)**: `public.tenants` owns financial settings (`fyEndMonthDay`), commercial billing (`subscriptionStatus`, Stripe customer IDs), and waterfall engine rules (`sweepEverydayLeftover`, `merchantRules`). `public.tenant_users` manages invite tokens, role RBAC, and membership lifecycle.
+- **Domain Tenant Engine (`public.tenants` & `public.tenant_users`)**: `public.tenants` owns financial settings (`fyEndMonthDay`), commercial billing (`subscriptionStatus`, Stripe customer IDs), and tenant-level configuration. `public.tenant_users` manages invite tokens, role RBAC, and membership lifecycle.
+- **Design Rationale**: Avoiding Neon Auth's `organization` plugin prevents contaminating the auth layer with domain budgeting math, maintains 100% type-safe Drizzle ORM schema control, avoids cross-schema migration risks, and ensures edge compatibility on Cloudflare Workers.
 - **Design Rationale**: Avoiding Neon Auth's `organization` plugin prevents contaminating the auth layer with domain budgeting math, maintains 100% type-safe Drizzle ORM schema control, avoids cross-schema migration risks, and ensures edge compatibility on Cloudflare Workers.
 
 ---
@@ -430,8 +435,59 @@ tenants (id PK, appId FK→apps.id, name, currency [varchar(3), default AUD], ti
   - `SimulatorEventCallout.tsx`: Dynamic event narrative displaying cashflow outcomes, step bill deductions (Rent Day 3, Electricity Day 18), continuous daily living drawdowns, and manual transfer records.
   - `simulationData.ts`: Pure mathematical timeline engine modeling step bills deductions, cumulative daily drawdowns, dynamic income scaling, and surplus sweep into Home Loan Offset reserve.
 - **`AdvantagesSection.tsx`**: 3 core mechanical guarantees: 5-Step Self-Healing Waterfall, 5-Level "Can We Afford This?" Engine, and Harmonious Shared & Personal Budgets (shared bill clarity + 100% confidential personal spending without surveillance).
-- **`PricingSection.tsx`**: Transparent household pricing ($9.95/mo or $89/yr, founding member $69/yr) enhanced with dynamic customer lifecycle personalization (active subscriber ribbon, trial days countdown, grace period read-only alerts, and direct portal/checkout CTAs).
 - **`LandingFooter.tsx`**: Standardized footer with brand links, legal routes, and customer-lifecycle-aware conversion banner.
+
+---
+
+## 11. Security, Stealth Privacy & Australian Privacy Principles (APPs)
+
+### 11.1 Cryptographic & In-Transit Protections
+- **In-Transit Encryption**: Strict TLS 1.3 enforced across all API endpoints (`api.moneymatters.kaesava.au`), Web apps (`moneymatters.kaesava.au`), and Cloudflare Worker microservices. Cleartext HTTP is blocked at the Cloudflare edge with automatic HTTPS redirection.
+- **At-Rest Encryption**: Database storage on Neon PostgreSQL is encrypted at rest using AES-256-GCM. Sensitive tenant identifiers, tokens, and financial ledgers utilize encrypted volumes with hardware-backed key rotation.
+- **Client Secure Storage**: Sensitive tokens on Android/mobile are stored in encrypted hardware-backed storage via `expo-secure-store` (Android KeyStore with AES-256).
+
+### 11.2 Stealth Tenant Isolation & PostgreSQL RLS
+- **Dual Session Context Injection (`privateTenantProcedure`)**:
+  All sensitive read/write routes (`bank_accounts`, `categories`, `transaction_ledger`, `income_sources`, `expense_sources`) execute inside a transactional context injecting PostgreSQL session variables:
+  ```sql
+  SET LOCAL app.current_tenant_id = '<tenant-uuid>';
+  SET LOCAL app.current_user_id = '<user-uuid>';
+  ```
+- **Stealth Personal Account Isolation**:
+  Bank accounts marked `is_private = true` and their associated pools are 100% invisible to other household members. The PostgreSQL RLS policy evaluates:
+  ```sql
+  CREATE POLICY stealth_bank_account_isolation ON bank_accounts
+  USING (
+    tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid
+    AND (is_private = false OR user_id = NULLIF(current_setting('app.current_user_id', true), '')::uuid)
+  );
+  ```
+  Neither API responses nor database queries leak private account balances, names, or transaction ledger rows to other household members.
+
+### 11.3 Australian Privacy Principles (APPs) Compliance Matrix
+Money Matters is engineered to comply with the 13 Australian Privacy Principles under the *Privacy Act 1988 (Cth)*:
+
+| Principle | Money Matters Implementation Proof |
+| :--- | :--- |
+| **APP 1: Open & transparent management** | Fully public Privacy Policy (`/privacy`), clearly detailing all data processed, zero third-party data broker sharing, zero advertising tracking. |
+| **APP 3: Collection of solicited personal info** | Strict data minimization: only financial names, expected dates, and pool balances necessary for forward-looking payday allocation are collected. |
+| **APP 5: Notification of collection** | Explicit in-app consent during sign-up and onboarding before creating household ledgers. |
+| **APP 6: Use or disclosure** | Financial data is processed exclusively for running the 5-Step Waterfall cascade, balance reconciliation, and guardrail alerts. Zero secondary disclosure. |
+| **APP 8: Cross-border disclosure** | Cloudflare Workers compute and Neon PostgreSQL storage adhere to ISO 27001 / SOC2 Type II certifications with Australian Sydney regional routing. |
+| **APP 10: Quality of personal information** | Balance reconciliation wizard (`<ReconciliationModal />`) allows users to correct differences between bank balances and pool totals at any time. |
+| **APP 11: Security of personal information** | Bank-grade AES-256-GCM at rest, TLS 1.3 in transit, PostgreSQL RLS, Upstash Redis rate limiting, automatic PII log redaction via universal logger. |
+| **APP 12: Access to personal information** | 1-Click Zipped CSV Backup provides instantaneous, self-serve access to 100% of stored household financial data in open, human-readable format. |
+| **APP 13: Correction & erasure of information** | Full self-service data erasure under `/settings` ("Delete Household & Wipe Data" and "Leave Household"). Hard deletion cascades and purges all tenant records. |
+
+### 11.4 1-Click Zipped CSV Backup & Data Portability
+- **Web Export**:
+  - `exportMyData` tRPC query extracts 12 normalized CSV tables (`Bank_Accounts.csv`, `Categories.csv`, `Category_Schedules.csv`, `Income_Sources.csv`, `Income_Events.csv`, `Expense_Sources.csv`, `Expense_Events.csv`, `Income_Split_Plans.csv`, `Income_Split_Plan_Lines.csv`, `Transaction_Ledger.csv`, `File_Notes.csv`, `Tenant_Audit.csv`).
+  - In-memory `JSZip` archives all CSV files and triggers direct browser download via Blob URL (`money-matters-backup-YYYY-MM-DD.zip`).
+- **Mobile Export**:
+  - `apps/mobile/src/components/settings/PrivacyGovernanceSection.tsx` consumes `exportMyData`.
+  - In-memory `JSZip` creates the zip archive, converts to base64, and writes to `FileSystem.cacheDirectory` via `expo-file-system/legacy`.
+  - Native OS share sheet is triggered via `expo-sharing` (`Sharing.shareAsync`), allowing 1-tap saving to Google Drive, local storage, email, or messaging apps.
+
 
 
 

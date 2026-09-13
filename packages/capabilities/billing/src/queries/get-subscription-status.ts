@@ -15,7 +15,6 @@ export async function getSubscriptionStatus(
     .select({
       subscriptionStatus: tenants.subscriptionStatus,
       trialEndsAt: tenants.trialEndsAt,
-      trialGraceEndsAt: tenants.trialGraceEndsAt,
       subscriptionEndsAt: tenants.subscriptionEndsAt,
       cancelAtPeriodEnd: tenants.cancelAtPeriodEnd,
       planType: tenants.planType,
@@ -37,20 +36,38 @@ export async function getSubscriptionStatus(
     const trialExpiry = new Date(tenant.trialEndsAt);
     if (now > trialExpiry) {
       rawStatus = "TRIAL_EXPIRED";
-      await db
-        .update(tenants)
-        .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
-        .where(eq(tenants.id, tenantId));
+      if (typeof db.update === "function") {
+        await db
+          .update(tenants)
+          .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
+          .where(eq(tenants.id, tenantId));
+      }
+    }
+  }
+
+  // Reactivate trial if marked expired but trialEndsAt is in the future
+  if (rawStatus === "TRIAL_EXPIRED" && tenant.trialEndsAt) {
+    const trialExpiry = new Date(tenant.trialEndsAt);
+    if (now <= trialExpiry) {
+      rawStatus = "TRIAL_ACTIVE";
+      if (typeof db.update === "function") {
+        await db
+          .update(tenants)
+          .set({ subscriptionStatus: "TRIAL_ACTIVE", premiumEnabled: true, updatedAt: now })
+          .where(eq(tenants.id, tenantId));
+      }
     }
   }
 
   // Normalize legacy TRIAL_GRACE records directly to TRIAL_EXPIRED
   if (rawStatus === "TRIAL_GRACE") {
     rawStatus = "TRIAL_EXPIRED";
-    await db
-      .update(tenants)
-      .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
-      .where(eq(tenants.id, tenantId));
+    if (typeof db.update === "function") {
+      await db
+        .update(tenants)
+        .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
+        .where(eq(tenants.id, tenantId));
+    }
   }
 
   // If status is SUBSCRIBED but scheduled for cancellation and period has ended
@@ -58,22 +75,12 @@ export async function getSubscriptionStatus(
     const periodEnd = new Date(tenant.subscriptionEndsAt);
     if (now > periodEnd) {
       rawStatus = "TRIAL_EXPIRED";
-      await db
-        .update(tenants)
-        .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
-        .where(eq(tenants.id, tenantId));
-    }
-  }
-
-  // If status is PAST_DUE, check if overdue period has elapsed
-  if (rawStatus === "PAST_DUE" && tenant.trialGraceEndsAt) {
-    const graceExpiry = new Date(tenant.trialGraceEndsAt);
-    if (now > graceExpiry) {
-      rawStatus = "TRIAL_EXPIRED";
-      await db
-        .update(tenants)
-        .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
-        .where(eq(tenants.id, tenantId));
+      if (typeof db.update === "function") {
+        await db
+          .update(tenants)
+          .set({ subscriptionStatus: "TRIAL_EXPIRED", premiumEnabled: false, updatedAt: now })
+          .where(eq(tenants.id, tenantId));
+      }
     }
   }
 
@@ -82,15 +89,22 @@ export async function getSubscriptionStatus(
     ? Math.max(0, Math.ceil((new Date(tenant.trialEndsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : null;
 
+  const isSubscribed = status === "SUBSCRIBED";
+  const isTrialActive =
+    (status === "TRIAL_ACTIVE" || (!isSubscribed && Boolean(tenant.trialEndsAt && now <= new Date(tenant.trialEndsAt)))) &&
+    (daysRemainingInTrial === null || daysRemainingInTrial > 0);
+  const isTrialExpired =
+    !isSubscribed &&
+    !isTrialActive &&
+    (status === "TRIAL_EXPIRED" || Boolean(tenant.trialEndsAt && now > new Date(tenant.trialEndsAt)));
+
   return SubscriptionStatusDto.parse({
     status,
     trialEndsAt: tenant.trialEndsAt ? new Date(tenant.trialEndsAt) : null,
-    trialGraceEndsAt: tenant.trialGraceEndsAt ? new Date(tenant.trialGraceEndsAt) : null,
     subscriptionEndsAt: tenant.subscriptionEndsAt ? new Date(tenant.subscriptionEndsAt) : null,
-    isTrialActive: status === "TRIAL_ACTIVE" && (daysRemainingInTrial === null || daysRemainingInTrial > 0),
-    isTrialGrace: false,
-    isTrialExpired: status === "TRIAL_EXPIRED" || (status === "TRIAL_ACTIVE" && daysRemainingInTrial === 0),
-    isSubscribed: status === "SUBSCRIBED",
+    isTrialActive,
+    isTrialExpired,
+    isSubscribed,
     isPastDue: status === "PAST_DUE",
     isDeactivated: status === "DEACTIVATED",
     daysRemainingInTrial,

@@ -34,6 +34,10 @@ export const ja: DeepStringRecord<typeof en> = {
   "common": {
     "amount": "金額 ($)",
     "date": "支払日",
+    "today": "今日",
+    "yesterday": "昨日",
+    "dueOn": "期日: {date}",
+    "statusLabel": "ステータス: {status}",
     "save": "保存",
     "saving": "保存中...",
     "cancel": "キャンセル",
@@ -183,6 +187,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "passwordPlaceholder": "••••••••",
     "nameLabel": "お名前",
     "namePlaceholder": "山田 太郎",
+    "countryLabel": "国・地域",
+    "countryPlaceholder": "国を選択してください",
     "signInCta": "ログイン",
     "signUpCta": "アカウント作成",
     "signInPrompt": "すでにアカウントをお持ちですか？",
@@ -1045,6 +1051,8 @@ export const ja: DeepStringRecord<typeof en> = {
       "accountData": "アカウントとデータ"
     },
     "profileTitle": "プロフィールと設定",
+    "myDetailsTitle": "マイ詳細",
+    "myDetailsSubtitle": "個人プロフィール、地域設定、表示オプションを管理します。",
     "displayNameLabel": "名前",
     "displayNamePlaceholder": "例: 山田 太郎",
     "loginEmailLabel": "ログインメール（主認証）",
@@ -1706,8 +1714,9 @@ export const ja: DeepStringRecord<typeof en> = {
       "confirm": "影響を確認して保存"
     },
     "sourceBurst": {
-      "empty": "定期的なイベントはまだ生成されていません。",
-      "reburstButton": "スケジュールを再生成",
+      "empty": "生成された定期イベントはまだありません。",
+      "upcomingEventsTitle": "定期スケジュールイベント ({count})",
+      "reburstButton": "スケジュールを再計算",
       "reburstSuccess": "将来のスケジュールが正常に再計算されました。",
       "endDateLabel": "終了日（任意）"
     },

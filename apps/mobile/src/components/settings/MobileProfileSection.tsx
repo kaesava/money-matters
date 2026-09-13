@@ -1,17 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { useIconVisibility } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -22,45 +12,76 @@ import {
   setBiometricLockEnabled,
   authenticateWithBiometrics,
 } from '../../lib/biometrics';
-
-const AUSTRALIAN_TIMEZONES = [
-  { label: 'Sydney, Melbourne, Canberra (AEST/AEDT)', value: 'Australia/Sydney' },
-  { label: 'Brisbane (AEST - No DST)', value: 'Australia/Brisbane' },
-  { label: 'Adelaide (ACST/ACDT)', value: 'Australia/Adelaide' },
-  { label: 'Perth (AWST)', value: 'Australia/Perth' },
-  { label: 'Darwin (ACST)', value: 'Australia/Darwin' },
-  { label: 'Hobart (AEST/AEDT)', value: 'Australia/Hobart' },
-];
+import { MobileProfileReadOnlyView } from './MobileProfileReadOnlyView';
+import { MobileProfileEditView } from './MobileProfileEditView';
 
 export function MobileProfileSection() {
-  const D = DESIGN_TOKENS;
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
+  const { setShowIcons: setContextShowIcons } = useIconVisibility();
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
     enabled: !!session?.user,
   });
 
+  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('Australia/Sydney');
+  const [language, setLanguage] = useState<'en' | 'ja'>('en');
+  const [locale, setLocale] = useState('auto');
+  const [showIcons, setShowIcons] = useState(true);
+
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState('Biometrics');
   const [saving, setSaving] = useState(false);
 
+  const initialDataRef = useRef({
+    name: '',
+    timezone: 'Australia/Sydney',
+    language: 'en' as 'en' | 'ja',
+    locale: 'auto',
+    showIcons: true,
+    avatarUri: null as string | null,
+  });
+
   useEffect(() => {
-    if (session?.user) {
-      setName(session.user.name || '');
-      setAvatarUri(session.user.image || null);
-    }
-    if (userPrefQuery.data?.timezone) {
-      setTimezone(userPrefQuery.data.timezone);
-    }
+    const uName = session?.user?.name || '';
+    const uAvatar = session?.user?.image || null;
+    const uTz = userPrefQuery.data?.timezone || 'Australia/Sydney';
+    const uLang = (userPrefQuery.data?.language as 'en' | 'ja') || 'en';
+    const uLoc = userPrefQuery.data?.locale || 'auto';
+    const uIcons = userPrefQuery.data?.showIcons ?? true;
+
+    setName(uName);
+    setAvatarUri(uAvatar);
+    setTimezone(uTz);
+    setLanguage(uLang);
+    setLocale(uLoc);
+    setShowIcons(uIcons);
+
+    initialDataRef.current = {
+      name: uName,
+      timezone: uTz,
+      language: uLang,
+      locale: uLoc,
+      showIcons: uIcons,
+      avatarUri: uAvatar,
+    };
+
     checkBiometricsAvailable().then(setBiometricsAvailable).catch(() => {});
     getBiometricTypeLabel().then(setBiometricLabel).catch(() => {});
     isBiometricLockEnabled().then(setBiometricsEnabled).catch(() => {});
   }, [session, userPrefQuery.data]);
+
+  const isDirty =
+    name !== initialDataRef.current.name ||
+    timezone !== initialDataRef.current.timezone ||
+    language !== initialDataRef.current.language ||
+    locale !== initialDataRef.current.locale ||
+    showIcons !== initialDataRef.current.showIcons ||
+    avatarUri !== initialDataRef.current.avatarUri;
 
   const handleToggleBiometrics = async () => {
     const nextState = !biometricsEnabled;
@@ -105,15 +126,71 @@ export function MobileProfileSection() {
     }
   };
 
+  const handleCancel = () => {
+    if (isDirty) {
+      Alert.alert(
+        t('modals.discardChanges.title', { defaultValue: 'Discard changes?' }),
+        t('modals.discardChanges.description', { defaultValue: 'Are you sure you want to discard your unsaved changes?' }),
+        [
+          { text: t('modals.discardChanges.cancel', { defaultValue: 'Keep Editing' }), style: 'cancel' },
+          {
+            text: t('modals.discardChanges.discard', { defaultValue: 'Discard Changes' }),
+            style: 'destructive',
+            onPress: () => {
+              const init = initialDataRef.current;
+              setName(init.name);
+              setTimezone(init.timezone);
+              setLanguage(init.language);
+              setLocale(init.locale);
+              setShowIcons(init.showIcons);
+              setAvatarUri(init.avatarUri);
+              setIsEditing(false);
+            },
+          },
+        ]
+      );
+    } else {
+      setIsEditing(false);
+    }
+  };
+
   const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert(t('common.error'), 'Name is required.');
+      return;
+    }
+
     setSaving(true);
     try {
       await updatePrefMut.mutateAsync({
         timezone,
+        language,
+        locale,
+        showIcons,
       });
 
-      utils.getUserPreferences.invalidate();
-      Alert.alert('Profile Updated', 'Your profile preferences have been saved.');
+      try {
+        await authClient.updateUser({
+          name: name.trim(),
+          image: avatarUri || undefined,
+        });
+      } catch (_e) {
+        // Silent fallback
+      }
+
+      initialDataRef.current = {
+        name: name.trim(),
+        timezone,
+        language,
+        locale,
+        showIcons,
+        avatarUri,
+      };
+
+      setContextShowIcons(showIcons);
+      await utils.getUserPreferences.invalidate();
+      setIsEditing(false);
+      Alert.alert(t('common.success'), 'Profile updated successfully.');
     } catch (err) {
       Alert.alert(
         t('common.error'),
@@ -124,288 +201,42 @@ export function MobileProfileSection() {
     }
   };
 
+  if (isEditing) {
+    return (
+      <MobileProfileEditView
+        name={name}
+        setName={setName}
+        avatarUri={avatarUri}
+        onPickAvatar={handlePickAvatar}
+        timezone={timezone}
+        setTimezone={setTimezone}
+        language={language}
+        setLanguage={setLanguage}
+        locale={locale}
+        setLocale={setLocale}
+        showIcons={showIcons}
+        setShowIcons={setShowIcons}
+        saving={saving}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
+    );
+  }
+
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>👤 Profile & Security</Text>
-
-      {/* Avatar Row */}
-      <View style={styles.avatarRow}>
-        <TouchableOpacity
-          onPress={handlePickAvatar}
-          style={styles.avatarContainer}
-        >
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>
-                {(session?.user?.name || 'U').charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-          <View style={styles.cameraPill}>
-            <Feather name="camera" size={11} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-
-        <View style={{ flex: 1 }}>
-          <Text style={styles.userName}>{session?.user?.name || 'User'}</Text>
-          <Text style={styles.userEmail}>{session?.user?.email || '—'}</Text>
-          <TouchableOpacity onPress={handlePickAvatar} style={styles.changePhotoBtn}>
-            <Text style={styles.changePhotoText}>Change Avatar Photo</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Biometric Security Toggle (if available) */}
-      {biometricsAvailable && (
-        <View style={styles.securityRow}>
-          <View style={{ flex: 1, paddingRight: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Feather name="shield" size={15} color="#2563eb" />
-              <Text style={styles.securityTitle}>{biometricLabel} App Lock</Text>
-            </View>
-            <Text style={styles.securitySubtitle}>
-              Auto-locks after 2 minutes of background inactivity to protect your stealth privacy.
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleToggleBiometrics}
-            style={[
-              styles.toggleBtn,
-              biometricsEnabled && styles.toggleBtnActive,
-            ]}
-          >
-            <View
-              style={[
-                styles.toggleThumb,
-                biometricsEnabled && styles.toggleThumbActive,
-              ]}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Timezone Selector */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Timezone</Text>
-        <View style={styles.tzStack}>
-          {AUSTRALIAN_TIMEZONES.map((tz) => {
-            const isSelected = timezone === tz.value;
-            return (
-              <TouchableOpacity
-                key={tz.value}
-                onPress={() => setTimezone(tz.value)}
-                style={[
-                  styles.tzChip,
-                  isSelected && styles.tzChipSelected,
-                ]}
-              >
-                <Feather
-                  name={isSelected ? 'check-circle' : 'circle'}
-                  size={14}
-                  color={isSelected ? '#2563eb' : '#94A3B8'}
-                />
-                <Text
-                  style={[
-                    styles.tzText,
-                    isSelected && styles.tzTextSelected,
-                  ]}
-                >
-                  {tz.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Save Button */}
-      <TouchableOpacity
-        onPress={handleSave}
-        disabled={saving}
-        style={[styles.saveBtn, saving && { opacity: 0.6 }]}
-      >
-        {saving ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.saveBtnText}>Save Preferences</Text>
-        )}
-      </TouchableOpacity>
-    </View>
+    <MobileProfileReadOnlyView
+      name={name}
+      email={session?.user?.email || ''}
+      avatarUri={avatarUri}
+      timezone={timezone}
+      language={language}
+      locale={locale}
+      showIcons={showIcons}
+      biometricsAvailable={biometricsAvailable}
+      biometricsEnabled={biometricsEnabled}
+      biometricLabel={biometricLabel}
+      onToggleBiometrics={handleToggleBiometrics}
+      onEdit={() => setIsEditing(true)}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 16,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 12,
-  },
-  avatarContainer: {
-    position: 'relative',
-  },
-  avatarImg: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
-  avatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#2563eb',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  cameraPill: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#1B2B4B',
-    borderRadius: 10,
-    padding: 4,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  userName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  userEmail: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  changePhotoBtn: {
-    marginTop: 6,
-  },
-  changePhotoText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2563eb',
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  tzStack: {
-    gap: 6,
-  },
-  tzChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  tzChipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  tzText: {
-    fontSize: 12,
-    color: '#334155',
-    flex: 1,
-  },
-  tzTextSelected: {
-    color: '#2563eb',
-    fontWeight: '700',
-  },
-  securityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
-    padding: 12,
-  },
-  securityTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  securitySubtitle: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-    lineHeight: 15,
-  },
-  toggleBtn: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#CBD5E1',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  toggleBtnActive: {
-    backgroundColor: '#2563eb',
-  },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  saveBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  saveBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-});
-
-export default MobileProfileSection;
-

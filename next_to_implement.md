@@ -1,37 +1,20 @@
+Do another sweep of the code and ensure that every data capture/presentation follows expectations, every tooltip presentation is contingent on the flag, locale settings are correctly captured and used (country, language, date formats, etc.) - sope: mobile + web app
+
+
+Now that you've done all this research, how do you store this in a way that makes future searches/code sweeps quick and efficient? How do we make sure it is maintained? Is there value in maintaining it (from a token usage point of view)? Should we add a note to AGENTS.md so any future agent coding can reference this? How can this be further improved/extended?
+
+
+
 # Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
+* Each of the requested changes may require a deep-dive into the code - optimise how you do this, but be prepared to go deep for 100% coverage.
 * Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
-* Ignore mobile app
-
-## General
-* Remembering that modals (like Transfer) can be triggered from multiple places (from within other modals, from screens, etc.) ensure nested modals in the app work as expected (for example, sequencing of Escape keypress)
-* Different activities (Transfers, Income Splits, Bank Account Reconciliation, Mark Spent, Run Split, etc.) produce Transactions, but the Description seems to be inconsistent. Make sure it is succint, don't include information that it already part of the record (like a Pool Name, Amount or Date), use user-friendly language. Recommend a way to allow the user to override this default Description in each scenario. Where would all the impacts be? Grill me.
-## Pool Picker
-* In the Pool Picker where users can select Categories or Pools (for example, for a Quick Expense), show the "expand Pools" triangle to the left of the Pool instead of the right of the amount.
-
-## HIstory
-* Details hyperlink shouldn't have "↗"
-
-## Income Split screen
-* When I save, it seems to overwrite the Notes against each allocation plan - don't. The only time you overwrite it is when the waterfall engine runs (initially or re-calculated/un-saved).
-
-## Bank Accounts
-## Bank Account List
-* "Expected $3,500.00. Balanced" should come below the Account Name (instead of the "Align " badge") - not in Linked Pools
-
-## Bank Account Reconciliation Modal
-* Don't use the phrase "Reconciliation" - the language (included in the title, tooltips, etc.) must be more user-friendly
-* tooltip next to Expected total not working
-* I can't seem to use decimal numbers in the adjustment boxes - ensure this is not an app wide issue
-
-## Transfer between Pools
-* I realise then when you allow users to transfer money (actually do the transfer - not set it up) between Pools, if they Pools are linked to different Bank Accounts, the user probably needs to actually move money too. Re-using the 1-Tap Payday Transfer Plan in the Income Split screen, show the user this after a Transfer once a Transfer is effected.
-
-
+* Applies to web & mobile app
 
 
 ################################# KESH currently testing / yet to test
+
 
 
 
@@ -43,10 +26,9 @@
 
 # Settings
 ## My Details
-* Show fields as readonly. If the user clicks on Edit (top right of the card), open the fields to read-write. If they make a change, save t
-* I tried saving 
 ## Household
-* I can see that the Household Name, Currency and Timezone are locked. However, are you sure the user has the opportunity to set them when a tenant is first created.
+
+
 # Archive/Unarchive
 
 

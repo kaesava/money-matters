@@ -55,7 +55,6 @@ export const TenantSchema = BaseSchema.extend({
   subscriptionStatus: SubscriptionStatus.default("TRIAL_ACTIVE"),
   trialStartedAt: z.date().nullable().default(null),
   trialEndsAt: z.date().nullable().default(null),
-  trialGraceEndsAt: z.date().nullable().default(null),
   stripeCustomerId: z.string().nullable().default(null),
   stripeSubscriptionId: z.string().nullable().default(null),
   stripePriceId: z.string().nullable().default(null),
@@ -69,10 +68,8 @@ export const TenantSchema = BaseSchema.extend({
 export const SubscriptionStatusDto = z.object({
   status: SubscriptionStatus,
   trialEndsAt: z.date().nullable(),
-  trialGraceEndsAt: z.date().nullable(),
   subscriptionEndsAt: z.date().nullable(),
   isTrialActive: z.boolean(),
-  isTrialGrace: z.boolean(),
   isTrialExpired: z.boolean(),
   isSubscribed: z.boolean(),
   isPastDue: z.boolean(),
@@ -405,7 +402,6 @@ export const ConfirmPlanCommand = z.object({
  * Schema for tenant member UI preferences and localization settings.
  */
 export const UserPreferencesSchema = z.object({
-  quickActionsCollapsed: z.boolean().default(false),
   timezone: z.string().default("UTC"),
   language: z.enum(["en", "ja"]).default("en"),
   locale: z.string().default("auto"),

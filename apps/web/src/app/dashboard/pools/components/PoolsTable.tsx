@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ResizableTh, PaginationBar, SkeletonTable, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../../providers/LocaleProvider";
 import { PoolTableRow, CategoryItem } from "../types";
 
 export interface PoolsTableProps {
@@ -52,6 +53,7 @@ export function PoolsTable({
   isLoading = false,
   searchQuery = "",
 }: PoolsTableProps) {
+  const { fmtDate } = useLocale();
   const [widths, setWidths] = useState({
     name: 300,
     bankAccount: 180,
@@ -381,12 +383,7 @@ export function PoolsTable({
                                   </span>
                                   {pool.poolType === "GOAL" && pool.targetDate && (
                                     <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 font-mono">
-                                      {new Intl.DateTimeFormat("en-AU", {
-                                        day: "numeric",
-                                        month: "short",
-                                        year: "numeric",
-                                        timeZone: "Australia/Sydney",
-                                      }).format(new Date(pool.targetDate + "T00:00:00"))}
+                                      {fmtDate(pool.targetDate)}
                                     </span>
                                   )}
                                 </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { QueryCache, MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostHogProvider } from 'posthog-react-native';
 import { trpc, buildTrpcClient } from '../lib/trpc';
@@ -8,6 +8,19 @@ import { posthog } from '../config/posthog';
 
 interface AppProvidersProps {
   children: React.ReactNode;
+}
+
+function MobileIconVisibilityWrapper({ children }: { children: React.ReactNode }) {
+  const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    retry: false,
+    staleTime: 60_000,
+  });
+  const showIcons = userPrefQuery.data?.showIcons ?? true;
+  return (
+    <IconVisibilityProvider initialShowIcons={showIcons}>
+      {children}
+    </IconVisibilityProvider>
+  );
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
@@ -37,7 +50,17 @@ export function AppProviders({ children }: AppProvidersProps) {
         }),
         defaultOptions: {
           queries: {
-            retry: 1,
+            retry: (failureCount, error) => {
+              if (
+                error instanceof Error &&
+                (error.message.includes('UNAUTHORIZED') ||
+                  error.message.includes('FORBIDDEN') ||
+                  error.message.includes('Authentication required'))
+              ) {
+                return false;
+              }
+              return failureCount < 2;
+            },
             staleTime: 1000 * 30, // 30s
           },
           mutations: {
@@ -66,12 +89,12 @@ export function AppProviders({ children }: AppProvidersProps) {
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <NotificationServiceProvider value={notificationServiceValue}>
-            <IconVisibilityProvider>
+            <MobileIconVisibilityWrapper>
               <MobileToastProvider>
                 {children}
                 <MobileToastContainer />
               </MobileToastProvider>
-            </IconVisibilityProvider>
+            </MobileIconVisibilityWrapper>
           </NotificationServiceProvider>
         </QueryClientProvider>
       </trpc.Provider>

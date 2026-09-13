@@ -31,6 +31,10 @@ export const IconVisibilityProvider: React.FC<IconVisibilityProviderProps> = ({
 }) => {
   const [showIcons, setShowIconsState] = useState<boolean>(initialShowIcons);
 
+  React.useEffect(() => {
+    setShowIconsState(initialShowIcons);
+  }, [initialShowIcons]);
+
   const setShowIcons = (show: boolean) => {
     setShowIconsState(show);
     onChange?.(show);

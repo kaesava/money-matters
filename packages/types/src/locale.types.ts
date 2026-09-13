@@ -57,6 +57,22 @@ export const DEFAULT_CURRENCY: SupportedCurrencyCode = "AUD";
 export const DEFAULT_TIMEZONE = "Australia/Sydney";
 export const DEFAULT_LOCALE = "en-AU";
 
+export interface CountryOption {
+  code: string;
+  name: string;
+  flag: string;
+}
+
+export const SUPPORTED_COUNTRIES: CountryOption[] = [
+  { code: "AU", name: "Australia", flag: "🇦🇺" },
+  { code: "CA", name: "Canada", flag: "🇨🇦" },
+  { code: "US", name: "United States", flag: "🇺🇸" },
+  { code: "NZ", name: "New Zealand", flag: "🇳🇿" },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
+  { code: "JP", name: "Japan", flag: "🇯🇵" },
+  { code: "SG", name: "Singapore", flag: "🇸🇬" },
+];
+
 export const CurrencyCodeSchema = z.string().length(3).refine(
   (val) => val.toUpperCase() in SUPPORTED_CURRENCIES,
   { message: "Unsupported currency code" }

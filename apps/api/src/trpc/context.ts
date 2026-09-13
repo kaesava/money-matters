@@ -143,7 +143,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
   if (!tenantId) {
     try {
       const handler = createTenantHandler(db);
-      const result = await handler({ name: "My Household" }, appId, claims.userId);
+      const result = await handler({ name: "My Household", country: "AU" }, appId, claims.userId);
       tenantId = result.tenantId;
       role = "OWNER";
 

@@ -43,7 +43,6 @@ describe('billing capability', () => {
     const mockTenant = {
       subscriptionStatus: 'TRIAL_ACTIVE',
       trialEndsAt: pastTrialDate,
-      trialGraceEndsAt: null,
       subscriptionEndsAt: null,
       cancelAtPeriodEnd: false,
       planType: null,
@@ -68,24 +67,21 @@ describe('billing capability', () => {
 
     const status = await getSubscriptionStatus(mockDb, 'tenant-123');
     expect(status.status).toBe('TRIAL_EXPIRED');
-    expect(status.isTrialGrace).toBe(false);
     expect(status.isTrialExpired).toBe(true);
   });
 
-  it('evaluates TRIAL_EXPIRED when grace period has ended', async () => {
-    const pastTrialDate = new Date(Date.now() - 86400 * 1000 * 10);
-    const pastGraceDate = new Date(Date.now() - 86400 * 1000 * 3);
+  it('reactivates TRIAL_ACTIVE when trialEndsAt is in future even if stored as TRIAL_EXPIRED', async () => {
+    const futureTrialDate = new Date(Date.now() + 86400 * 1000 * 3); // 3 days in future
     const mockTenant = {
-      subscriptionStatus: 'TRIAL_ACTIVE',
-      trialEndsAt: pastTrialDate,
-      trialGraceEndsAt: pastGraceDate,
+      subscriptionStatus: 'TRIAL_EXPIRED',
+      trialEndsAt: futureTrialDate,
       subscriptionEndsAt: null,
       cancelAtPeriodEnd: false,
       planType: null,
       nextBillingAt: null,
     };
 
-    const updateSetWhere = async () => [];
+    let updatedTo: string | undefined;
     const mockDb = {
       select: () => ({
         from: () => ({
@@ -95,16 +91,20 @@ describe('billing capability', () => {
         }),
       }),
       update: () => ({
-        set: () => ({
-          where: updateSetWhere,
-        }),
+        set: (vals: any) => {
+          updatedTo = vals.subscriptionStatus;
+          return {
+            where: async () => [],
+          };
+        },
       }),
     } as any;
 
     const status = await getSubscriptionStatus(mockDb, 'tenant-123');
-    expect(status.status).toBe('TRIAL_EXPIRED');
-    expect(status.isTrialExpired).toBe(true);
-    expect(status.isTrialGrace).toBe(false);
+    expect(status.status).toBe('TRIAL_ACTIVE');
+    expect(status.isTrialActive).toBe(true);
+    expect(status.isTrialExpired).toBe(false);
+    expect(updatedTo).toBe('TRIAL_ACTIVE');
   });
 
   it('verifies mock checkout session synchronously', async () => {

@@ -29,7 +29,6 @@ export const tenants = pgTable("tenants", {
     .default("TRIAL_ACTIVE"),
   trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
-  trialGraceEndsAt: timestamp("trial_grace_ends_at", { withTimezone: true }),
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
   stripePriceId: varchar("stripe_price_id", { length: 255 }),
@@ -39,7 +38,5 @@ export const tenants = pgTable("tenants", {
   planType: varchar("plan_type", { length: 30 }),
   nextBillingAt: timestamp("next_billing_at", { withTimezone: true }),
   trialConvertedAt: timestamp("trial_converted_at", { withTimezone: true }),
-  sweepEverydayLeftover: boolean("sweep_everyday_leftover").notNull().default(true),
-  lastSweepProcessedMonth: varchar("last_sweep_processed_month", { length: 7 }), // e.g. "2026-07"
   ...timestamps,
 });

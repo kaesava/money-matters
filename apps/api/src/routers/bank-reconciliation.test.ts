@@ -49,7 +49,7 @@ describe("Bank Reconciliation & Mapping Rules", () => {
     };
 
     const handler = createTenantHandler(mockDb);
-    const result = await handler({ name: "Test Tenant" }, "app-123", "user-123");
+    const result = await handler({ name: "Test Tenant", country: "AU" }, "app-123", "user-123");
 
     expect(result.success).toBe(true);
     expect(result.tenantId).toBeDefined();

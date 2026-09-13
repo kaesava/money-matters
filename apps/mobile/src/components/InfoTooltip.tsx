@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Pressable } from 'react-native';
+import { useIconVisibility } from '@money-matters/ui/mobile';
 
 export interface InfoTooltipProps {
   content: string;
@@ -7,7 +8,10 @@ export interface InfoTooltipProps {
 }
 
 export function InfoTooltip({ content, title }: InfoTooltipProps) {
+  const { showIcons } = useIconVisibility();
   const [visible, setVisible] = useState(false);
+
+  if (!showIcons) return null;
 
   return (
     <>

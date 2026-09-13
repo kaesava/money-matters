@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatAUD, formatDate } from '../../lib/format';
 
 export interface PaycheckIncomeEvent {
   id: string;
@@ -44,11 +44,11 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
         incomeEvents.map((item) => (
           <View key={item.id} style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.name || 'Paycheck'}</Text>
+              <Text style={styles.cardTitle}>{item.name || t('badges.income')}</Text>
               <Text style={styles.cardAmount}>{formatAUD(item.expectedAmount)}</Text>
             </View>
             <Text style={styles.cardDate}>
-              Due: {new Date(item.expectedDate).toLocaleDateString('en-AU')}
+              {t('common.dueOn', { date: formatDate(item.expectedDate) })}
             </Text>
             <TouchableOpacity
               style={styles.processBtn}
@@ -68,11 +68,11 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
         expenseEvents.map((item) => (
           <View key={item.id} style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{item.name || 'Expense'}</Text>
+              <Text style={styles.cardTitle}>{item.name || t('badges.bill')}</Text>
               <Text style={styles.cardAmount}>{formatAUD(item.expectedAmount)}</Text>
             </View>
             <Text style={styles.cardDate}>
-              Due: {new Date(item.expectedDate).toLocaleDateString('en-AU')}
+              {t('common.dueOn', { date: formatDate(item.expectedDate) })}
             </Text>
             <View style={styles.actionRow}>
               <TouchableOpacity

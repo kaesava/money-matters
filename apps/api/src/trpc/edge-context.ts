@@ -205,7 +205,7 @@ export async function resolveTenantMembership(
 
   try {
     const handler = createTenantHandler(requestDb);
-    const result = await handler({ name: 'My Household' }, MONEY_MATTERS_APP_ID, claims.userId);
+    const result = await handler({ name: 'My Household', country: 'AU' }, MONEY_MATTERS_APP_ID, claims.userId);
 
     inngest.send({
       name: 'auth/user.signup',

@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Button } from "@money-matters/ui/web";
+import { useLocale } from "../../../providers/LocaleProvider";
 
 interface ActiveSubscriptionCardProps {
   subStatus?: {
@@ -21,6 +22,7 @@ export function ActiveSubscriptionCard({
   loadingPortal,
 }: ActiveSubscriptionCardProps) {
   const router = useRouter();
+  const { fmtDateMedium } = useLocale();
 
   return (
     <div className="w-full max-w-xl mx-auto bg-white rounded-3xl p-8 md:p-10 border border-slate-200 shadow-xl flex flex-col items-center text-center gap-6">
@@ -43,9 +45,7 @@ export function ActiveSubscriptionCard({
       {subStatus?.nextBillingAt && !subStatus.cancelAtPeriodEnd && (
         <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold w-full max-w-md">
           {t("subscription.renewsOn", {
-            date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(
-              new Date(subStatus.nextBillingAt)
-            ),
+            date: fmtDateMedium(subStatus.nextBillingAt),
           })}
         </div>
       )}
@@ -60,9 +60,7 @@ export function ActiveSubscriptionCard({
           </div>
           <p className="text-xs text-amber-800 leading-relaxed">
             {t("subscription.cancelingBannerDesc", {
-              date: new Intl.DateTimeFormat("en-AU", { dateStyle: "medium" }).format(
-                new Date(subStatus.subscriptionEndsAt)
-              ),
+              date: fmtDateMedium(subStatus.subscriptionEndsAt),
             })}
           </p>
         </div>

@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { t } from '@money-matters/i18n';
-import { SUPPORTED_CURRENCIES } from '@money-matters/types';
 import { trpc } from '../../lib/trpc';
-
-const AUSTRALIAN_STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'] as const;
+import { HouseholdReadOnlyView } from './HouseholdReadOnlyView';
+import { HouseholdEditView } from './HouseholdEditView';
 
 export function HouseholdDetailsSection() {
   const utils = trpc.useUtils();
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const gov = govQuery.data;
 
+  const [isEditing, setIsEditing] = useState(false);
   const [householdName, setHouseholdName] = useState('');
   const [country, setCountry] = useState('AU');
   const [currency, setCurrency] = useState('AUD');
@@ -27,13 +18,35 @@ export function HouseholdDetailsSection() {
   const [postcode, setPostcode] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const initialDataRef = useRef({
+    householdName: '',
+    country: 'AU',
+    currency: 'AUD',
+    state: '',
+    postcode: '',
+  });
+
   useEffect(() => {
     if (gov) {
-      setHouseholdName(gov.householdName || '');
-      setCountry(gov.country || 'AU');
-      setCurrency(gov.currency || 'AUD');
-      setState(gov.state || '');
-      setPostcode(gov.postcode || '');
+      const hName = gov.householdName || '';
+      const cCode = gov.country || 'AU';
+      const curr = gov.currency || 'AUD';
+      const st = gov.state || '';
+      const pc = gov.postcode || '';
+
+      setHouseholdName(hName);
+      setCountry(cCode);
+      setCurrency(curr);
+      setState(st);
+      setPostcode(pc);
+
+      initialDataRef.current = {
+        householdName: hName,
+        country: cCode,
+        currency: curr,
+        state: st,
+        postcode: pc,
+      };
     }
   }, [gov]);
 
@@ -41,6 +54,7 @@ export function HouseholdDetailsSection() {
     onSuccess: () => {
       utils.getHouseholdGovernanceInfo.invalidate();
       utils.getUserPreferences.invalidate();
+      setIsEditing(false);
       Alert.alert(t('common.success'), 'Household details updated successfully.');
     },
     onError: (err) => {
@@ -51,12 +65,11 @@ export function HouseholdDetailsSection() {
   const isOwner = gov?.isOwner ?? false;
 
   const isDirty = Boolean(
-    gov &&
-      (householdName !== (gov.householdName || '') ||
-        country !== (gov.country || 'AU') ||
-        currency !== (gov.currency || 'AUD') ||
-        state !== (gov.state || '') ||
-        postcode !== (gov.postcode || ''))
+    householdName !== initialDataRef.current.householdName ||
+    country !== initialDataRef.current.country ||
+    currency !== initialDataRef.current.currency ||
+    state !== initialDataRef.current.state ||
+    postcode !== initialDataRef.current.postcode
   );
 
   const handleSelectCurrency = (newCurr: string) => {
@@ -78,6 +91,33 @@ export function HouseholdDetailsSection() {
       );
     } else {
       setCurrency(newCurr);
+    }
+  };
+
+  const handleCancel = () => {
+    if (isDirty) {
+      Alert.alert(
+        t('modals.discardChanges.title', { defaultValue: 'Discard changes?' }),
+        t('modals.discardChanges.description', { defaultValue: 'Are you sure you want to discard your unsaved changes?' }),
+        [
+          { text: t('modals.discardChanges.cancel', { defaultValue: 'Keep Editing' }), style: 'cancel' },
+          {
+            text: t('modals.discardChanges.discard', { defaultValue: 'Discard Changes' }),
+            style: 'destructive',
+            onPress: () => {
+              const init = initialDataRef.current;
+              setHouseholdName(init.householdName);
+              setCountry(init.country);
+              setCurrency(init.currency);
+              setState(init.state);
+              setPostcode(init.postcode);
+              setIsEditing(false);
+            },
+          },
+        ]
+      );
+    } else {
+      setIsEditing(false);
     }
   };
 
@@ -104,6 +144,13 @@ export function HouseholdDetailsSection() {
         state: state.trim(),
         postcode: postcode.trim(),
       });
+      initialDataRef.current = {
+        householdName: householdName.trim(),
+        country: country.trim(),
+        currency: currency.trim(),
+        state: state.trim(),
+        postcode: postcode.trim(),
+      };
     } finally {
       setSaving(false);
     }
@@ -111,277 +158,53 @@ export function HouseholdDetailsSection() {
 
   if (govQuery.isLoading) {
     return (
-      <View style={styles.card}>
+      <View style={styles.loadingCard}>
         <ActivityIndicator color="#2563eb" />
       </View>
     );
   }
 
+  if (isEditing) {
+    return (
+      <HouseholdEditView
+        householdName={householdName}
+        setHouseholdName={setHouseholdName}
+        currency={currency}
+        onSelectCurrency={handleSelectCurrency}
+        country={country}
+        setCountry={setCountry}
+        state={state}
+        setState={setState}
+        postcode={postcode}
+        setPostcode={setPostcode}
+        saving={saving}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
+    );
+  }
+
   return (
-    <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>🏠 Household Profile & Location</Text>
-        {!isOwner && (
-          <View style={styles.memberBadge}>
-            <Text style={styles.memberBadgeText}>Member View</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.cardSubtitle}>
-        Shared across all household members for budget calculations and tax year alignment.
-      </Text>
-
-      {/* Household Name */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Household Name <Text style={styles.requiredStar}>*</Text>
-        </Text>
-        <TextInput
-          style={[styles.textInput, !isOwner && styles.disabledInput]}
-          value={householdName}
-          onChangeText={setHouseholdName}
-          editable={isOwner}
-          placeholder="e.g. Smith Household"
-          placeholderTextColor="#94A3B8"
-        />
-      </View>
-
-      {/* Base Currency Chips */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Base Currency <Text style={styles.requiredStar}>*</Text>
-        </Text>
-        <View style={styles.currencyChips}>
-          {Object.values(SUPPORTED_CURRENCIES).map((c) => {
-            const isSelected = currency === c.code;
-            return (
-              <TouchableOpacity
-                key={c.code}
-                onPress={() => handleSelectCurrency(c.code)}
-                disabled={!isOwner}
-                style={[
-                  styles.currencyChip,
-                  isSelected && styles.currencyChipSelected,
-                  !isOwner && { opacity: 0.7 },
-                ]}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.currencyChipText,
-                    isSelected && styles.currencyChipTextSelected,
-                  ]}
-                >
-                  {c.code} ({c.symbol})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Australian State / Territory */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>State / Territory (Australia)</Text>
-        <View style={styles.stateChips}>
-          {AUSTRALIAN_STATES.map((s) => {
-            const isSelected = state === s;
-            return (
-              <TouchableOpacity
-                key={s}
-                onPress={() => isOwner && setState(isSelected ? '' : s)}
-                disabled={!isOwner}
-                style={[
-                  styles.stateChip,
-                  isSelected && styles.stateChipSelected,
-                  !isOwner && { opacity: 0.7 },
-                ]}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.stateChipText,
-                    isSelected && styles.stateChipTextSelected,
-                  ]}
-                >
-                  {s}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Postcode */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Postcode (4 Digits)</Text>
-        <TextInput
-          style={[styles.textInput, !isOwner && styles.disabledInput]}
-          value={postcode}
-          onChangeText={setPostcode}
-          editable={isOwner}
-          placeholder="2000"
-          placeholderTextColor="#94A3B8"
-          keyboardType="numeric"
-          maxLength={4}
-        />
-      </View>
-
-      {/* Save Button */}
-      {isOwner && (
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={!isDirty || saving}
-          style={[
-            styles.saveBtn,
-            (!isDirty || saving) && styles.saveBtnDisabled,
-          ]}
-          activeOpacity={0.8}
-        >
-          {saving ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={styles.saveBtnText}>Save Household Details</Text>
-          )}
-        </TouchableOpacity>
-      )}
-    </View>
+    <HouseholdReadOnlyView
+      householdName={householdName}
+      currency={currency}
+      country={country}
+      state={state}
+      postcode={postcode}
+      isOwner={isOwner}
+      onEdit={() => setIsEditing(true)}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  loadingCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    padding: 16,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    padding: 24,
     alignItems: 'center',
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  cardSubtitle: {
-    fontSize: 11,
-    color: '#64748B',
-    lineHeight: 16,
-  },
-  memberBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  memberBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  inputGroup: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  requiredStar: {
-    color: '#DC2626',
-  },
-  textInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    fontSize: 13,
-    color: '#1E293B',
-  },
-  disabledInput: {
-    backgroundColor: '#F1F5F9',
-    color: '#94A3B8',
-  },
-  currencyChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  currencyChip: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  currencyChipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  currencyChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  currencyChipTextSelected: {
-    color: '#2563eb',
-    fontWeight: '800',
-  },
-  stateChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  stateChip: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  stateChipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  stateChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  stateChipTextSelected: {
-    color: '#2563eb',
-    fontWeight: '800',
-  },
-  saveBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  saveBtnDisabled: {
-    backgroundColor: '#94A3B8',
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    justifyContent: 'center',
   },
 });
-
-export default HouseholdDetailsSection;

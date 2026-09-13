@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button } from "@money-matters/ui/web";
+import { SUPPORTED_COUNTRIES } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -24,6 +25,7 @@ export function SignUpForm({
   autoFocus = true,
 }: SignUpFormProps) {
   const [name, setName] = useState("");
+  const [country, setCountry] = useState("AU");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -77,7 +79,7 @@ export function SignUpForm({
       const sessionData = await authClient.getSession();
       if (sessionData.data?.session) {
         try {
-          await createTenant.mutateAsync({ name: name.trim() });
+          await createTenant.mutateAsync({ name: name.trim(), country });
         } catch (_tErr) {
           // Non-blocking on initial tenant creation
         }
@@ -113,6 +115,25 @@ export function SignUpForm({
           placeholder={t("auth.namePlaceholder")}
           className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
         />
+      </div>
+
+      <div>
+        <label htmlFor="signup-country" className="block text-xs font-semibold text-slate-700 mb-1">
+          {t("auth.countryLabel")}
+        </label>
+        <select
+          id="signup-country"
+          required
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
+        >
+          {SUPPORTED_COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.flag} {c.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

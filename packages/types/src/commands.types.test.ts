@@ -26,9 +26,11 @@ import {
 
 describe('Command Schemas Validation', () => {
   it('validates CreateTenantCommand and UpdateTenantCommand', () => {
-    const createRes = CreateTenantCommand.parse({ name: 'New Tenant' });
+    const createRes = CreateTenantCommand.parse({ name: 'New Tenant', country: 'AU' });
     expect(createRes.name).toBe('New Tenant');
-    expect(() => CreateTenantCommand.parse({ name: '' })).toThrow();
+    expect(createRes.country).toBe('AU');
+    expect(() => CreateTenantCommand.parse({ name: '', country: 'AU' })).toThrow();
+    expect(() => CreateTenantCommand.parse({ name: 'Valid' })).toThrow();
 
     const updateRes = UpdateTenantCommand.parse({ fyEndMonthDay: '12-31' });
     expect(updateRes.fyEndMonthDay).toBe('12-31');

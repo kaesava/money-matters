@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS, MobileLogo } from "@money-matters/ui/mobile";
+import { SUPPORTED_COUNTRIES } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -24,6 +25,7 @@ export default function SignUpScreen() {
   const router = useRouter();
   const posthog = usePostHog();
   const [name, setName] = useState("");
+  const [country, setCountry] = useState("AU");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -93,6 +95,7 @@ export default function SignUpScreen() {
       // 2. Create the tenant/household — the server derives userId from the JWT.
       await createTenant.mutateAsync({
         name: name.trim(),
+        country,
       });
 
       // Request and register push notifications token asynchronously
@@ -149,6 +152,25 @@ export default function SignUpScreen() {
             textContentType="name"
             autoComplete="name"
           />
+
+          <Text style={[styles.label, styles.labelGap]}>{t("auth.countryLabel")}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>
+            {SUPPORTED_COUNTRIES.map((c) => {
+              const isSelected = country === c.code;
+              return (
+                <TouchableOpacity
+                  key={c.code}
+                  onPress={() => setCountry(c.code)}
+                  style={[styles.countryChip, isSelected && styles.countryChipSelected]}
+                >
+                  <Text style={styles.countryFlag}>{c.flag}</Text>
+                  <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
+                    {c.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
           <Text style={[styles.label, styles.labelGap]}>{t("auth.emailLabel")}</Text>
           <TextInput
@@ -229,6 +251,25 @@ const styles = StyleSheet.create({
   form: { gap: 4 },
   label: { fontSize: 13, fontWeight: "600", color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
   labelGap: { marginTop: 14 },
+  countryRow: { flexDirection: "row", marginBottom: 6 },
+  countryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: DESIGN_TOKENS.colors.surface,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: DESIGN_TOKENS.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  countryChipSelected: {
+    borderColor: DESIGN_TOKENS.colors.accent,
+    backgroundColor: "#EFF6FF",
+  },
+  countryFlag: { fontSize: 16, marginRight: 6 },
+  countryText: { fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary },
+  countryTextSelected: { color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
   input: {
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1,

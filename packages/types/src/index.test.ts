@@ -279,7 +279,6 @@ describe('Domain Schemas Validation', () => {
     expect(confirmCmd.lines[0].confirmedAmount).toBe('350.00');
 
     const prefs = UserPreferencesSchema.parse({});
-    expect(prefs.quickActionsCollapsed).toBe(false);
     expect(prefs.timezone).toBe('UTC');
   });
 });

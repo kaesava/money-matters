@@ -178,7 +178,7 @@ export const tenantRouter = {
         language: (globalPref?.language as "en" | "ja") || "en",
         locale: globalPref?.locale || (currentTenant?.country ? `en-${currentTenant.country}` : "en-AU"),
         theme: globalPref?.theme ?? "system",
-        showIcons: globalPref?.showIcons ?? appBlob?.show_icons ?? true,
+        showIcons: globalPref?.showIcons ?? true,
         notificationEmail: globalPref?.notificationEmail ?? null,
         phoneCountryCode: globalPref?.phoneCountryCode ?? "+61",
         phoneNumber: globalPref?.phoneNumber ?? null,
@@ -189,14 +189,12 @@ export const tenantRouter = {
         setupCompleted: appBlob?.setup_completed ?? false,
         setupCompletedAt: appBlob?.setup_completed_at ?? null,
         appPreferences: tenantPref?.appPreferences ?? {},
-        quickActionsCollapsed: appBlob?.quick_actions_collapsed ?? false,
       };
     }),
 
   updateUserPreferences: tenantProcedure
     .input(
       z.object({
-        quickActionsCollapsed: z.boolean().optional(),
         timezone: z.string().optional(),
         language: z.enum(["en", "ja"]).optional(),
         locale: z.string().optional(),
@@ -264,8 +262,6 @@ export const tenantRouter = {
         ...(input.shortfallAlertsEnabled !== undefined ? { shortfall_alerts_enabled: input.shortfallAlertsEnabled } : {}),
         ...(input.billRemindersEnabled !== undefined ? { bill_reminders_enabled: input.billRemindersEnabled } : {}),
         ...(input.weeklyDigestEnabled !== undefined ? { weekly_digest_enabled: input.weeklyDigestEnabled } : {}),
-        ...(input.quickActionsCollapsed !== undefined ? { quick_actions_collapsed: input.quickActionsCollapsed } : {}),
-        ...(input.showIcons !== undefined ? { show_icons: input.showIcons } : {}),
         ...(input.setupCompleted !== undefined
           ? {
               setup_completed: input.setupCompleted,
@@ -690,7 +686,7 @@ export const tenantRouter = {
       notificationEmail: pref?.notificationEmail || u?.email || "",
       phoneCountryCode: pref?.phoneCountryCode || "+61",
       phoneNumber: pref?.phoneNumber || "",
-      timezone: tenantObj?.timezone || "Australia/Sydney",
+      timezone: pref?.timezone || tenantObj?.timezone || "Australia/Sydney",
       showIcons: pref?.showIcons ?? true,
     };
   }),

@@ -1,13 +1,12 @@
 "use client";
 
-import Image from "next/image";
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import { t } from "@money-matters/i18n";
-import { trpc } from "../../../../lib/trpc";
-import { authClient } from "../../../../lib/auth";
-import { PhoneInput, validateMobileNumber, useToast, InfoTooltip, Button } from "@money-matters/ui/web";
-import { SUPPORTED_LOCALES } from "@money-matters/types";
+import { ConfirmDialog } from "@money-matters/ui/web";
 import { AvatarCropModal } from "../../../../components/web/AvatarCropModal";
+import { ProfileReadOnlyView } from "./ProfileReadOnlyView";
+import { ProfileEditForm } from "./ProfileEditForm";
+import { useProfileForm } from "./useProfileForm";
 
 interface ProfileSectionProps {
   user?: {
@@ -19,377 +18,78 @@ interface ProfileSectionProps {
 }
 
 export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
-  const toast = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const userProfileQuery = trpc.getUserProfile.useQuery();
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
-  const updateProfileMutation = trpc.updateUserProfile.useMutation();
-  const updatePrefMutation = trpc.updateUserPreferences.useMutation();
-
-  const [displayName, setDisplayName] = useState(user?.name || "");
-  const [avatarUrl, setAvatarUrl] = useState<string>(user?.image || "");
-  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
-
-  const [notificationEmail, setNotificationEmail] = useState(user?.email || "");
-  const [phoneCountryCode, setPhoneCountryCode] = useState("+61");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [phoneError, setPhoneError] = useState<string | undefined>();
-  const [timezone, setTimezone] = useState(currentTimezone);
-  const [language, setLanguageState] = useState<"en" | "ja">("en");
-  const [locale, setLocale] = useState("auto");
-  const [showIcons, setShowIcons] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const initialDataRef = useRef({
-    displayName: user?.name || "",
-    notificationEmail: user?.email || "",
-    phoneCountryCode: "+61",
-    phoneNumber: "",
-    timezone: currentTimezone,
-    language: "en" as "en" | "ja",
-    locale: "auto",
-    showIcons: true,
-    avatarUrl: user?.image || "",
-  });
-
-  useEffect(() => {
-    if (userProfileQuery.data) {
-      const dName = userProfileQuery.data.displayName || user?.name || "";
-      const aUrl = userProfileQuery.data.avatarUrl || user?.image || "";
-      const nEmail = userProfileQuery.data.notificationEmail || user?.email || "";
-      const pCode = userProfileQuery.data.phoneCountryCode || "+61";
-      const pNum = userProfileQuery.data.phoneNumber || "";
-      const tZone = userProfileQuery.data.timezone || "Australia/Sydney";
-      const sIcons = userProfileQuery.data.showIcons ?? true;
-
-      const lang = (userPrefQuery.data?.language as "en" | "ja") || "en";
-      const loc = userPrefQuery.data?.locale || "auto";
-
-      setDisplayName(dName);
-      setAvatarUrl(aUrl);
-      setNotificationEmail(nEmail);
-      setPhoneCountryCode(pCode);
-      setPhoneNumber(pNum);
-      setTimezone(tZone);
-      setLanguageState(lang);
-      setLocale(loc);
-      setShowIcons(sIcons);
-
-      initialDataRef.current = {
-        displayName: dName,
-        notificationEmail: nEmail,
-        phoneCountryCode: pCode,
-        phoneNumber: pNum,
-        timezone: tZone,
-        language: lang,
-        locale: loc,
-        showIcons: sIcons,
-        avatarUrl: aUrl,
-      };
-    }
-  }, [userProfileQuery.data, userPrefQuery.data, user]);
-
-  const isDirty =
-    displayName !== initialDataRef.current.displayName ||
-    notificationEmail !== initialDataRef.current.notificationEmail ||
-    phoneCountryCode !== initialDataRef.current.phoneCountryCode ||
-    phoneNumber !== initialDataRef.current.phoneNumber ||
-    timezone !== initialDataRef.current.timezone ||
-    language !== initialDataRef.current.language ||
-    locale !== initialDataRef.current.locale ||
-    showIcons !== initialDataRef.current.showIcons ||
-    avatarUrl !== initialDataRef.current.avatarUrl;
-
-  const handleAvatarFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Avatar image size must be under 2MB.");
-      return;
-    }
-
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      toast.error("Please upload a PNG, JPG, or WEBP image file.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setRawImageSrc(event.target.result as string);
-        setIsCropperOpen(true);
-      }
-    };
-    reader.readAsDataURL(file);
-    // Reset file input value so re-selecting same file triggers onChange
-    e.target.value = "";
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!displayName.trim()) {
-      toast.error("Name is required.");
-      return;
-    }
-
-    if (!notificationEmail.trim()) {
-      toast.error("Notification email is required.");
-      return;
-    }
-
-    // Validate phone number format
-    const phoneCheck = validateMobileNumber(phoneCountryCode, phoneNumber);
-    if (!phoneCheck.isValid) {
-      setPhoneError(phoneCheck.errorMessage);
-      toast.error(phoneCheck.errorMessage!);
-      return;
-    }
-    setPhoneError(undefined);
-
-    setIsSaving(true);
-    try {
-      await updateProfileMutation.mutateAsync({
-        displayName: displayName.trim(),
-        notificationEmail: notificationEmail.trim(),
-        phoneCountryCode,
-        phoneNumber: phoneNumber.trim(),
-        avatarUrl,
-      });
-
-      await updatePrefMutation.mutateAsync({
-        language: language as "en" | "ja",
-        locale,
-        timezone,
-        showIcons,
-      });
-
-      try {
-        await authClient.updateUser({
-          name: displayName.trim(),
-          image: avatarUrl || undefined,
-        });
-      } catch (_e) {
-        // Better Auth update user silent fallback
-      }
-
-      await userProfileQuery.refetch();
-      await userPrefQuery.refetch();
-      toast.success(t("settings.profileSaved"));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save profile.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const initials = displayName
-    ? displayName
-        .split(" ")
-        .map((w: string) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "?";
+  const form = useProfileForm({ user, currentTimezone });
 
   return (
     <>
       <AvatarCropModal
-        isOpen={isCropperOpen}
-        imageSrc={rawImageSrc}
-        onClose={() => setIsCropperOpen(false)}
-        onCropSave={(croppedUri) => setAvatarUrl(croppedUri)}
+        isOpen={form.isCropperOpen}
+        imageSrc={form.rawImageSrc}
+        onClose={() => form.setIsCropperOpen(false)}
+        onCropSave={(croppedUri) => form.setAvatarUrl(croppedUri)}
       />
 
-      <form onSubmit={handleSave} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-6">
-        {/* Header & Avatar Upload */}
-        <div className="flex items-center gap-4 border-b border-slate-100 pb-5">
-          <div className="relative group shrink-0">
-            {avatarUrl ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setRawImageSrc(avatarUrl);
-                  setIsCropperOpen(true);
-                }}
-                className="cursor-pointer group relative block rounded-full focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-                title="Click to view / alter avatar"
-              >
-                <Image
-                  unoptimized
-                  src={avatarUrl}
-                  alt={displayName}
-                  width={56}
-                  height={56}
-                  className="w-14 h-14 rounded-full object-cover border-2 border-[#2563eb] shadow-xs group-hover:opacity-90 transition-opacity"
-                />
-              </button>
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-[#1B2B4B] flex items-center justify-center text-white text-lg font-extrabold shadow-xs">
-                {initials}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xs shadow-md hover:bg-blue-700 transition-colors cursor-pointer"
-              title={t("settings.avatarUploadLabel")}
-            >
-              📷
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png, image/jpeg, image/webp"
-              onChange={handleAvatarFileSelected}
-              className="hidden"
-            />
-          </div>
-          <div>
-            <h2 className="text-base font-extrabold text-[#1B2B4B]">{displayName || "User"}</h2>
-            <p className="text-xs text-slate-500">{user?.email}</p>
-          </div>
-        </div>
+      {form.isEditing ? (
+        <ProfileEditForm
+          displayName={form.displayName}
+          setDisplayName={form.setDisplayName}
+          loginEmail={user?.email || ""}
+          notificationEmail={form.notificationEmail}
+          setNotificationEmail={form.setNotificationEmail}
+          phoneCountryCode={form.phoneCountryCode}
+          setPhoneCountryCode={form.setPhoneCountryCode}
+          phoneNumber={form.phoneNumber}
+          setPhoneNumber={form.setPhoneNumber}
+          phoneError={form.phoneError}
+          timezone={form.timezone}
+          setTimezone={form.setTimezone}
+          language={form.language}
+          setLanguageState={form.setLanguageState}
+          locale={form.locale}
+          setLocale={form.setLocale}
+          showIcons={form.showIcons}
+          setShowIcons={form.setShowIcons}
+          avatarUrl={form.avatarUrl}
+          initials={form.initials}
+          isSaving={form.isSaving}
+          isDirty={form.isDirty}
+          onAvatarClick={() => {
+            form.setRawImageSrc(form.avatarUrl);
+            form.setIsCropperOpen(true);
+          }}
+          onAvatarFileSelected={form.handleAvatarFileSelected}
+          onSave={form.handleSave}
+          onCancel={form.handleCancel}
+        />
+      ) : (
+        <ProfileReadOnlyView
+          displayName={form.displayName}
+          loginEmail={user?.email || ""}
+          notificationEmail={form.notificationEmail}
+          phoneCountryCode={form.phoneCountryCode}
+          phoneNumber={form.phoneNumber}
+          timezone={form.timezone}
+          language={form.language}
+          locale={form.locale}
+          showIcons={form.showIcons}
+          avatarUrl={form.avatarUrl}
+          initials={form.initials}
+          onEdit={() => form.setIsEditing(true)}
+        />
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Name (Mandatory) */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-[#1B2B4B]">
-              {t("settings.displayNameLabel")} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={t("settings.displayNamePlaceholder")}
-              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
-          </div>
-
-          {/* Login Email (Primary Auth - Read Only) */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-500">{t("settings.loginEmailLabel")}</label>
-            <input
-              type="email"
-              value={user?.email || ""}
-              disabled
-              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-slate-50 text-slate-500 cursor-not-allowed"
-            />
-          </div>
-
-          {/* Notification Email (Mandatory) */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-[#1B2B4B]">
-              {t("settings.notificationEmailLabel")} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="email"
-              required
-              value={notificationEmail}
-              onChange={(e) => setNotificationEmail(e.target.value)}
-              placeholder="alerts@example.com"
-              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
-            <p className="text-[11px] text-slate-500">{t("settings.notificationEmailHint")}</p>
-          </div>
-
-          {/* Mobile Phone Number */}
-          <div>
-            <PhoneInput
-              countryCode={phoneCountryCode}
-              onCountryCodeChange={(code) => {
-                setPhoneCountryCode(code);
-                setPhoneError(undefined);
-              }}
-              phoneNumber={phoneNumber}
-              onPhoneNumberChange={(num) => {
-                setPhoneNumber(num);
-                setPhoneError(undefined);
-              }}
-              label={t("settings.phoneNumberLabel")}
-              error={phoneError}
-            />
-          </div>
-
-          {/* Language & Date Format */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-[#1B2B4B]">{t("settings.language")}</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguageState(e.target.value as "en" | "ja")}
-                className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              >
-                <option value="en">English (en)</option>
-                <option value="ja">日本語 (ja)</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-[#1B2B4B]">{t("settings.dateFormat")}</label>
-              <select
-                value={locale}
-                onChange={(e) => setLocale(e.target.value)}
-                className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              >
-                {SUPPORTED_LOCALES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label} ({l.dateFormatExample})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Timezone */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-[#1B2B4B]">{t("settings.items.timezone")}</label>
-            <select
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            >
-              <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
-              <option value="Australia/Melbourne">Australia/Melbourne (AEST)</option>
-              <option value="Australia/Brisbane">Australia/Brisbane (AEST - No DST)</option>
-              <option value="Australia/Adelaide">Australia/Adelaide (ACST)</option>
-              <option value="Australia/Perth">Australia/Perth (AWST)</option>
-              <option value="Pacific/Auckland">Pacific/Auckland (NZST)</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </div>
-
-          {/* Show Icons Toggle */}
-          <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50/50">
-            <div className="flex items-center gap-1.5">
-              <p className="text-xs font-bold text-[#1B2B4B]">{t("settings.items.showIcons")}</p>
-              <InfoTooltip
-                title={t("settings.items.showIcons")}
-                content={t("settings.items.showIconsHint")}
-              />
-            </div>
-            <input
-              type="checkbox"
-              checked={showIcons}
-              onChange={(e) => setShowIcons(e.target.checked)}
-              className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-            />
-          </div>
-        </div>
-
-        <div className="pt-2 flex justify-end">
-          <Button
-            type="submit"
-            loading={isSaving}
-            disabled={!isDirty || !displayName.trim() || !notificationEmail.trim()}
-          >
-            {t("settings.saveProfileCta")}
-          </Button>
-        </div>
-      </form>
+      {form.showDiscardDialog && (
+        <ConfirmDialog
+          isOpen={form.showDiscardDialog}
+          title={t("modals.discardChanges.title")}
+          description={t("modals.discardChanges.description")}
+          confirmLabel={t("modals.discardChanges.discard")}
+          cancelLabel={t("modals.discardChanges.cancel")}
+          variant="danger"
+          onConfirm={form.handleDiscardConfirm}
+          onClose={() => form.setShowDiscardDialog(false)}
+        />
+      )}
     </>
   );
 }

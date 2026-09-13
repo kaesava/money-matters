@@ -67,7 +67,6 @@ export async function createCheckoutSessionCommand(
           planType: input.planType || "annual",
           nextBillingAt: oneYearLater,
           trialConvertedAt: now,
-          trialGraceEndsAt: null,
           updatedAt: now,
         })
         .where(eq(tenants.id, tenantId));

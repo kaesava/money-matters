@@ -12,7 +12,6 @@ export async function activateTrialCommand(
 ): Promise<void> {
   const trialStartedAt = now;
   const trialEndsAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
-  const trialGraceEndsAt = new Date(now.getTime() + 67 * 24 * 60 * 60 * 1000);
 
   await db
     .update(tenants)
@@ -20,7 +19,6 @@ export async function activateTrialCommand(
       subscriptionStatus: "TRIAL_ACTIVE",
       trialStartedAt,
       trialEndsAt,
-      trialGraceEndsAt,
       updatedAt: now,
     })
     .where(eq(tenants.id, tenantId));

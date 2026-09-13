@@ -19,8 +19,6 @@ import { QuickActionFab } from "./components/QuickActionFab";
 import { NAV_ITEMS } from "./components/navItems";
 import { getWebVersionInfo } from "../../lib/version";
 
-const MONEY_MATTERS_APP_ID = "01908bde-34bb-7b19-a178-574211bc93aa";
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -48,9 +46,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const hasMultipleTenants = (tenantsQuery.data?.length ?? 0) > 1;
 
-  const initialShowIcons = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID]?.show_icons ?? true;
-  const prefs = userPrefQuery.data?.appPreferences?.[MONEY_MATTERS_APP_ID] as { locale?: "en" | "ja" } | undefined;
-  const userLocale = prefs?.locale || "en";
+  const initialShowIcons = userPrefQuery.data?.showIcons ?? true;
+  const userLocale = userPrefQuery.data?.language || "en";
 
   useEffect(() => {
     if (userLocale) {

@@ -18,7 +18,7 @@ import { useLocale } from "../../../providers/LocaleProvider";
 type PoolTypeFilter = "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
 
 function PoolsPageContent() {
-  const { fmt } = useLocale();
+  const { fmt, userTimezone, locale: resolvedLocale } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
   const router = useRouter();
@@ -79,23 +79,26 @@ function PoolsPageContent() {
     return () => window.removeEventListener("open-create-category-modal", handleOpenCreateModal);
   }, []);
 
-  const formatProjectionDate = (months: number) => {
-    if (months <= 0.05) return "Today";
+  const projectionTargetDate = useMemo(() => {
+    if (projectionMonths <= 0.05) return t("common.today");
     const d = new Date();
-    d.setDate(d.getDate() + Math.round(months * 30.4375));
-    return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" }).format(d);
-  };
-
-  const projectionTargetDate = useMemo(() => formatProjectionDate(projectionMonths), [projectionMonths]);
+    d.setDate(d.getDate() + Math.round(projectionMonths * 30.4375));
+    return new Intl.DateTimeFormat(resolvedLocale, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: userTimezone,
+    }).format(d);
+  }, [projectionMonths, resolvedLocale, userTimezone]);
 
   const axisDates = useMemo(() => {
     return [0, 3, 6, 9, 12].map((m) => {
-      if (m === 0) return "Today";
+      if (m === 0) return t("common.today");
       const d = new Date();
       d.setMonth(d.getMonth() + m);
-      return new Intl.DateTimeFormat("en-AU", { month: "short", year: "2-digit", timeZone: "Australia/Sydney" }).format(d);
+      return new Intl.DateTimeFormat(resolvedLocale, { month: "short", year: "2-digit", timeZone: userTimezone }).format(d);
     });
-  }, []);
+  }, [resolvedLocale, userTimezone]);
 
   const projectionQuery = trpc.getProjectedPoolBalances.useQuery(undefined, {
     enabled: showProjectionMatrix,
@@ -106,8 +109,8 @@ function PoolsPageContent() {
     if (projectionMonths <= 0.05) return null;
     const d = new Date();
     d.setDate(d.getDate() + Math.round(projectionMonths * 30.4375));
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(d);
-  }, [projectionMonths]);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: userTimezone }).format(d);
+  }, [projectionMonths, userTimezone]);
 
   // Find projected column ID matching targetDateISO
   const activeProjectionColId = useMemo(() => {

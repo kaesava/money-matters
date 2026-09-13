@@ -4,11 +4,12 @@ import { z } from "zod";
  * Zod schema validating an AppPreferencesBlob stored inside user_preferences.app_preferences JSONB.
  */
 export const AppPreferencesBlobSchema = z.object({
-  quick_actions_collapsed: z.boolean().optional(),
-  show_icons: z.boolean().optional(),
-  filters_expanded: z.boolean().optional(),
-  locale: z.enum(["en", "ja"]).optional(),
-  skip_pool_adjustment_confirmation: z.boolean().optional(),
+  payday_alerts_enabled: z.boolean().optional(),
+  shortfall_alerts_enabled: z.boolean().optional(),
+  bill_reminders_enabled: z.boolean().optional(),
+  weekly_digest_enabled: z.boolean().optional(),
+  setup_completed: z.boolean().optional(),
+  setup_completed_at: z.string().optional(),
 }).strict();
 
 export type AppPreferencesBlob = z.infer<typeof AppPreferencesBlobSchema>;

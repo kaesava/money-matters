@@ -87,19 +87,17 @@ export function getAmountColorClass(
 
 export function fmtDateTime(
   input: string | Date | number | null | undefined,
-  timeZone: string = "Australia/Sydney"
+  timeZone: string = "Australia/Sydney",
+  locale: string = "en-AU"
 ): string {
   if (!input) return "N/A";
   try {
     const d = new Date(input);
     if (isNaN(d.getTime())) return "N/A";
-    return new Intl.DateTimeFormat("en-AU", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
+    const resolvedLocale = locale === "auto" ? undefined : locale;
+    return new Intl.DateTimeFormat(resolvedLocale, {
+      dateStyle: "medium",
+      timeStyle: "short",
       timeZone,
     }).format(d);
   } catch {

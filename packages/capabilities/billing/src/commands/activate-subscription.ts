@@ -31,7 +31,6 @@ export async function activateSubscriptionCommand(
       nextBillingAt: params.subscriptionEndsAt,
       cancelAtPeriodEnd: false,
       trialConvertedAt: now,
-      trialGraceEndsAt: null,
       ...(params.planType ? { planType: params.planType } : {}),
       updatedAt: now,
     })

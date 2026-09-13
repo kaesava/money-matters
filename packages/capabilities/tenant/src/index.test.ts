@@ -48,7 +48,7 @@ describe('Capability Tenant Handlers', () => {
     };
 
     const handler = createTenantHandler(mockDb);
-    const result = await handler({ name: 'Acme Household' }, appId, userId);
+    const result = await handler({ name: 'Acme Household', country: 'AU' }, appId, userId);
 
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
@@ -75,7 +75,7 @@ describe('Capability Tenant Handlers', () => {
     };
 
     const handler = createTenantHandler(mockDb);
-    await expect(handler({ name: 'Second Household' }, appId, userId)).rejects.toThrow(
+    await expect(handler({ name: 'Second Household', country: 'AU' }, appId, userId)).rejects.toThrow(
       'You already have an active household'
     );
   });

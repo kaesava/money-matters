@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ActivityInd
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
+import { formatDate } from '../lib/format';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface CreateIncomeEventModalProps {
@@ -84,7 +85,7 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
 
           <Text style={styles.label}>{t('paychecks.createModal.date', { defaultValue: 'Expected Date' })}</Text>
           <TouchableOpacity style={styles.dateSelector} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateSelectorText}>{date.toLocaleDateString('en-AU')}</Text>
+            <Text style={styles.dateSelectorText}>{formatDate(date)}</Text>
           </TouchableOpacity>
 
           {showDatePicker && (

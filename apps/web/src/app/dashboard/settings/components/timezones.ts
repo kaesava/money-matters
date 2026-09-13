@@ -1,0 +1,17 @@
+export const COMMON_TIMEZONES = [
+  { value: "Australia/Sydney", label: "Sydney / Melbourne / Canberra (AEST/AEDT)" },
+  { value: "Australia/Brisbane", label: "Brisbane (AEST - No DST)" },
+  { value: "Australia/Adelaide", label: "Adelaide (ACST/ACDT)" },
+  { value: "Australia/Perth", label: "Perth (AWST)" },
+  { value: "Pacific/Auckland", label: "Auckland / Wellington (NZST/NZDT)" },
+  { value: "America/Toronto", label: "Toronto / Montreal (EST/EDT)" },
+  { value: "America/Vancouver", label: "Vancouver (PST/PDT)" },
+  { value: "America/New_York", label: "New York (EST/EDT)" },
+  { value: "America/Chicago", label: "Chicago (CST/CDT)" },
+  { value: "America/Denver", label: "Denver (MST/MDT)" },
+  { value: "America/Los_Angeles", label: "Los Angeles (PST/PDT)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Asia/Singapore", label: "Singapore (SGT)" },
+  { value: "UTC", label: "UTC (Universal Coordinated Time)" },
+];

@@ -46,25 +46,32 @@ export function formatAUDCompact(value: number | string): string {
   return `$${num.toFixed(0)}`;
 }
 
+import { t } from '@money-matters/i18n';
+import { fmtDate as uiFmtDate } from '@money-matters/ui';
+
 /**
- * Formats a Date or date string into en-AU short date string (e.g. '15 Aug 2026').
+ * Formats a Date or date string into regional locale format.
  *
  * @param date - Date instance or ISO string
+ * @param locale - BCP-47 locale code (e.g. 'en-CA', 'en-AU')
+ * @param timeZone - IANA timezone identifier
  * @returns Formatted date string
  */
-export function formatDate(date: string | Date): string {
+export function formatDate(date: string | Date, locale: string = 'en-AU', timeZone: string = 'Australia/Sydney'): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return uiFmtDate(d, timeZone, locale);
 }
 
 /**
- * Formats a Date into relative terms ('Today', 'Yesterday', or short date).
+ * Formats a Date into relative terms ('Today', 'Yesterday', or localized date).
  *
  * @param date - Date instance or ISO string
+ * @param locale - BCP-47 locale code
+ * @param timeZone - IANA timezone identifier
  * @returns Relative date label
  */
-export function formatRelativeDate(date: string | Date): string {
+export function formatRelativeDate(date: string | Date, locale: string = 'en-AU', timeZone: string = 'Australia/Sydney'): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '';
   
@@ -73,11 +80,11 @@ export function formatRelativeDate(date: string | Date): string {
   yesterday.setDate(today.getDate() - 1);
 
   if (d.toDateString() === today.toDateString()) {
-    return 'Today';
+    return t('common.today', { defaultValue: 'Today' });
   } else if (d.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
+    return t('common.yesterday', { defaultValue: 'Yesterday' });
   } else {
-    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone }).format(d);
   }
 }
 

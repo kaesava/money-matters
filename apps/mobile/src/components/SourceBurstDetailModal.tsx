@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-nativ
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
-import { formatAUD } from '../lib/format';
+import { formatAUD, formatDate } from '../lib/format';
 
 interface SourceBurstDetailModalProps {
   visible: boolean;
@@ -48,7 +48,9 @@ export function SourceBurstDetailModal({
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Upcoming Burst Events ({events.length})</Text>
+      <Text style={styles.sectionTitle}>
+        {t('modals.sourceBurst.upcomingEventsTitle', { count: events.length })}
+      </Text>
 
       {isLoading ? (
         <ActivityIndicator color={D.colors.accent} style={{ marginVertical: 20 }} />
@@ -60,13 +62,11 @@ export function SourceBurstDetailModal({
             <View key={evt.id} style={styles.row}>
               <View>
                 <Text style={styles.dateText}>
-                  {new Date(evt.expectedDate).toLocaleDateString('en-AU', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
+                  {formatDate(evt.expectedDate)}
                 </Text>
-                <Text style={styles.statusText}>Status: {evt.status}</Text>
+                <Text style={styles.statusText}>
+                  {t('common.statusLabel', { status: evt.status })}
+                </Text>
               </View>
               <Text style={[styles.amountText, mode === 'INCOME' ? { color: D.colors.success } : { color: D.colors.burnRed }]}>
                 {mode === 'INCOME' ? '+' : '-'}{formatAUD(evt.expectedAmount)}

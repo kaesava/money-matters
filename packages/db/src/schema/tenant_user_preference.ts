@@ -10,16 +10,6 @@ export interface AppPreferencesBlob {
   bill_reminders_enabled?: boolean;
   weekly_digest_enabled?: boolean;
 
-  // App-Specific UI Preferences
-  /** Whether the Quick Actions panel is collapsed. Default: false. */
-  quick_actions_collapsed?: boolean;
-  /** Whether decorative UI icons are displayed across views. Default: true. */
-  show_icons?: boolean;
-  /** Whether filter groups are expanded in list toolbars. Default: false. */
-  filters_expanded?: boolean;
-  /** Whether to skip popup confirmation when adjusting pool balances. Default: false. */
-  skip_pool_adjustment_confirmation?: boolean;
-
   // Setup / Onboarding completion state
   /** Whether user has completed initial app setup wizard. Default: false. */
   setup_completed?: boolean;

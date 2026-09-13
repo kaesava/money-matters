@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { tenants, tenantUsers, appCategories, pools, categories, bankAccounts, apps, users, DbOrTx } from "@money-matters/db";
-import { CreateTenantCommand } from "@money-matters/types";
+import { tenants, tenantUsers, appCategories, pools, categories, bankAccounts, apps, users, userPreferences, DbOrTx } from "@money-matters/db";
+import { CreateTenantCommand, COUNTRY_DEFAULTS } from "@money-matters/types";
 import { eq, and, isNull } from "drizzle-orm";
 
 /**
@@ -12,7 +12,6 @@ export function createTenantHandler(db: DbOrTx) {
     const now = new Date();
     const trialStartedAt = now;
     const trialEndsAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
-    const trialGraceEndsAt = new Date(now.getTime() + 67 * 24 * 60 * 60 * 1000);
 
     // 0. Guard app and user mirror records
     await db
@@ -76,8 +75,9 @@ export function createTenantHandler(db: DbOrTx) {
     const subscriptionStatus = hasUsedTrial ? "TRIAL_EXPIRED" : "TRIAL_ACTIVE";
 
     const country = input.country || "AU";
-    const currency = input.currency || "AUD";
-    const timezone = input.timezone || "Australia/Sydney";
+    const countryDefaults = (COUNTRY_DEFAULTS as Record<string, any>)[country] || COUNTRY_DEFAULTS["AU"];
+    const currency = input.currency || countryDefaults.currency;
+    const timezone = input.timezone || countryDefaults.timezone;
 
     // 3. Insert the tenant
     await db
@@ -92,7 +92,6 @@ export function createTenantHandler(db: DbOrTx) {
         subscriptionStatus,
         trialStartedAt: hasUsedTrial ? null : trialStartedAt,
         trialEndsAt: hasUsedTrial ? null : trialEndsAt,
-        trialGraceEndsAt: hasUsedTrial ? null : trialGraceEndsAt,
         cancelAtPeriodEnd: false,
         createdBy: userId,
         updatedBy: userId,

@@ -28,7 +28,6 @@ export async function verifyCheckoutSessionCommand(
         planType: "annual",
         cancelAtPeriodEnd: false,
         trialConvertedAt: now,
-        trialGraceEndsAt: null,
         updatedAt: now,
       })
       .where(eq(tenants.id, tenantId));
