@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { Stack, usePathname, useGlobalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as NavigationBar from 'expo-navigation-bar';
+import { setStyle as setNavigationBarStyle } from 'expo-navigation-bar';
 import { AppProviders } from '../providers/AppProviders';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { logger } from '../lib/logger';
@@ -38,7 +38,7 @@ function RootLayout() {
 
     if (Platform.OS === 'android') {
       try {
-        NavigationBar.setStyle('dark');
+        setNavigationBarStyle('dark');
       } catch {
         // ignore
       }

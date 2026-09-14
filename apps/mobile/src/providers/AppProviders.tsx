@@ -104,12 +104,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <PostHogProvider
       client={posthog}
-      autocapture={{
-        captureScreens: false, // Manual screen tracking via expo-router in _layout.tsx
-        captureTouches: true,
-        propsToCapture: ['testID'],
-        maxElementsCaptured: 20,
-      }}
+      autocapture={false}
     >
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
