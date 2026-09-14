@@ -36,12 +36,12 @@ export const MobileDonutRing: React.FC<MobileDonutRingProps> = ({
       Animated.timing(timeAnim, {
         toValue: targetTimeOffset,
         duration: 350,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(consumedAnim, {
         toValue: targetConsumedOffset,
         duration: 350,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   }, [targetTimeOffset, targetConsumedOffset]);
