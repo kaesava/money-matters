@@ -99,15 +99,7 @@ export function BankAccountTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 font-medium text-zinc-800">
-            {isLoading ? (
-              [1, 2, 3].map((idx) => (
-                <tr key={idx} className="animate-pulse">
-                  <td className="py-4 px-4"><div className="h-4 bg-zinc-200 rounded-md w-32" /></td>
-                  <td className="py-4 px-4 text-right"><div className="h-4 bg-zinc-200 rounded-md w-24 ml-auto" /></td>
-                  <td className="py-4 px-4 text-center"><div className="h-4 bg-zinc-200 rounded-md w-20 mx-auto" /></td>
-                </tr>
-              ))
-            ) : accounts.length === 0 ? (
+            {accounts.length === 0 ? (
               <tr>
                 <td colSpan={3} className="py-12 text-center text-zinc-400">
                   No bank accounts found matching your search.

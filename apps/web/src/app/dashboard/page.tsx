@@ -77,6 +77,11 @@ export default function DashboardPage() {
       };
     });
 
+  const nextPaycheck = upcomingIncomeList[0] ?? null;
+  const daysUntilPayday = nextPaycheck
+    ? Math.max(0, Math.ceil((new Date(nextPaycheck.expectedDate + "T00:00:00+10:00").getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+    : 14;
+
   const todayObj = new Date(todayStr);
 
   const expenseAttentionItems: WebAttentionItem[] = (expenseEventsQuery.data ?? [])
@@ -333,6 +338,7 @@ export default function DashboardPage() {
             everydayMonthlyBudget={everydayMonthlyBudget}
             billsBalance={billsBalance}
             billsMonthlyBudget={billsMonthlyBudget}
+            daysUntilPayday={daysUntilPayday}
             billsShortfall={billsShortfall}
             billsDue14DaysCount={billsDue14Days.length}
             totalBillsDue14Days={totalBillsDue14Days}

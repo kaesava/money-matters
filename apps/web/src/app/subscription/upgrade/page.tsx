@@ -24,7 +24,7 @@ export default function UpgradePage() {
     }
   }, [isAuthPending, session, router]);
 
-  const isFoundingOfferActive = true;
+  const isFoundingOfferActive = process.env.NEXT_PUBLIC_ENABLE_FOUNDING_OFFER !== "false";
 
   const subStatusQuery = trpc.getSubscriptionStatus.useQuery();
   const subStatus = subStatusQuery.data;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { ModalDialog } from "./ModalDialog";
+import { ModalDialog, Button } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 
 export interface AvatarCropModalProps {
@@ -164,20 +164,22 @@ export function AvatarCropModal({
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-3 w-full pt-3 border-t border-slate-100">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl transition-colors cursor-pointer"
           >
             {t("common.cancel")}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={handleApply}
-            className="px-5 py-2.5 bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md cursor-pointer"
           >
             {t("settings.saveAvatarPhoto")}
-          </button>
+          </Button>
         </div>
       </div>
     </ModalDialog>

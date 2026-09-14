@@ -272,17 +272,36 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 
 ## 6. Dashboard & UI Experience (Serene Finance Design System)
 
-- **Design System ("Serene Finance")**:
-  - Color Tokens: Serene Blue (`#2563eb`), Primary Navy (`#1B2B4B`), Surface Bright (`#ffffff`), Surface Dim (`#F7F8FA`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
-  - Typography: Inter for general UI text; **JetBrains Mono** (`font-mono`, `tabular-nums`) loaded via `next/font/google` for all monetary metrics across Web and Mobile.
-  - Dates: Dates are stored in UTC and rendered in timezone-aware AEST/en-AU format via `Intl.DateTimeFormat`.
-  - Web Shell: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views, responsive `width=device-width` viewport for standalone PWA / Android shortcut rendering.
-  - Mobile Shell: Header (`TopAppBar`) + bottom tab bar (`BottomNavBar`).
+### 6.0 Unified UI Design System, Form Inputs & Modal Standards ("Set Once & Re-Use")
+- **Aggressive Code Re-use & Zero Duplication**:
+  - All shared UI elements, forms, inputs, modals, buttons, and tokens are centralized in `@money-matters/ui` (`@money-matters/ui/web` and `@money-matters/ui/mobile`), eliminating redundant local implementations.
+- **Color & Typography Design Tokens (`tokens.ts`)**:
+  - Serene Blue (`#2563eb`), Primary Navy (`#1B2B4B`), Surface Bright (`#ffffff`), Surface Dim (`#F7F8FA`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
+  - Typography: Inter for general UI headings and body; **JetBrains Mono** (`font-mono`, `tabular-nums`) for all monetary metrics across Web and Mobile.
+  - Strict zero-hex policy: Raw inline hex colors are banned in favor of tokenized Tailwind classes and `tokens.colors`.
+- **Form Input Defenses & Consistency**:
+  - **Monetary Amounts (`AmountField` / `AmountInput`)**: Centrally enforces `$` currency indicator, monospace numerals (`font-mono tabular-nums`), non-negative values, max 12 digits, and max 2 decimal places.
+  - **Mandatory Field Labels (`FormLabel`)**: Mandatory fields are denoted with a subtle red asterisk (`*`).
+  - **Inline Field Errors (`FormFieldError`)**: Form validation errors render consistently as subtle red helper text directly below the invalid input, replacing native browser HTML5 bubbles and ad-hoc popups.
+  - **Form Error Banners (`FormErrorBanner`)**: Top-level API or submission error alerts display in a clean, subtle red-tinted banner with a warning icon at the head of the form.
+  - **Button State & Actions (`Button` / `MobileButton`)**: Submit actions remain disabled until the form is dirty and valid (`!isDirty || !isValid`). Includes built-in spinner loading states and distinct variants (`primary`, `secondary`, `destructive`, `ghost`).
+- **Modal & Drawer Hierarchy**:
+  - **LIFO Dismissal & Discard Confirmations**: Unified `ModalDialog` (web) and `MobileModalDialog` (mobile) track form dirtiness (`isDirty`). Attempting to dismiss via Cancel, backdrop click, or `Escape` key automatically prompts the user with an unsaved changes confirmation before discarding.
+  - **Standardized Confirm Dialogs**: User action confirmations (archiving, deleting, marking paid, discarding) use `<ConfirmDialog />` on web and `<MobileConfirmDialog />` (`showMobileConfirm`) on mobile. Native browser `confirm()` and `Alert.alert` popups are strictly banned.
+- **Universal Table & List Controls**:
+  - **Table Header & Cell Parity**: Left-aligned for text/names/categories/accounts; Center-aligned for dates/status/actions; Right-aligned for monetary amounts.
+  - **Conditional Pagination**: Pagination controls (`<PaginationBar />` and `<MobilePaginationBar />`) render conditionally only when the total record count is 5 or more (`totalItems >= 5`).
+  - **Skeleton Loading**: Data fetching states across tables and lists display `<SkeletonTable />` / `<SkeletonCard />` loading animations.
+- **Dates & Timezones**:
+  - Dates stored in UTC; rendered in timezone-aware AEST/en-AU format via `Intl.DateTimeFormat`.
+
+- **Web Shell**: Fixed sidebar (`SideNavBar`), frosted glass top bar (`TopNavBar`), spacious table views, responsive `width=device-width` viewport for standalone PWA / Android shortcut rendering.
+- **Mobile Shell**: Header (`TopAppBar`) + bottom tab bar (`BottomNavBar`).
 - **Dashboard Hierarchy & Visualizations (Action-First Bento Grid)**:
   - **Top-Header Actions**: Consolidated 2-button layout in the top header adjacent to the page title: Primary Serene Blue `+ Quick Action` button with dropdown chevron menu (`Record Expense`, `Record Income`, `Transfer between Pools`) and secondary `Can I Afford It?` button matching exact height and radius, eliminating button wrapping across all viewports.
   - **Income Split Planning & Dynamic Allocation Engine**: Multi-payday timeline view (`/dashboard/income-and-bills?tab=MATRIX`) named **Income Split Planning**. Displays a 12-month grid of upcoming income events and pool allocations. Uses a centralized cumulative projection engine (`runCumulativeProjection`) to project pool balances sequentially across all unconfirmed paydays while deducting intermediate scheduled expenses. Enforces an **Assumed Pro-Rata Burn Rate** for `EVERYDAY` discretionary pools (silently decaying balance based on days elapsed between paydays) and an **Anti-Runaway Cap** (`1.5x` monthly target ceiling) for `REGULAR` bill pools to prevent infinite accumulation, guaranteeing hyper-accurate long-term surplus projections. Clicking "Review" on any payday opens the **Income Split** action drawer with context-aware proposed allocations. Users can lock in splits ("Save"), run splits immediately ("Run Income Split" in red), or reset the form back to automatic calculations ("Reset"). Confirmed payday allocation splits are strictly immutable to safeguard ledger history.
   - **Action Queue (Top Row)**: Front-and-center focus on immediate user actions upon logging in. The top row pairs `AttentionItemsList` (Bills due soon requiring actioning or marking paid) on the left with `NextPaydayCard` (Upcoming Income allocation preview) on the right.
-  - **Secondary Bento Pools Section (`BentoPoolsSection`)**: Located in the middle row. Houses the dark Serene Navy (`#1B2B4B`) Everyday Spending card with a sleek horizontal pacing bar, and the clean white Bills Pool card featuring integrated 14-day shortfall warning status (`⚠️ Shortfall of $X` vs `✅ Next 14 days covered!`). Includes interactive pool balance adjustment with safety confirmation modals and Category Health filter chips (`Behind`, `Attention`, `On Track`).
+  - **Secondary Bento Pools Section (`BentoPoolsSection`)**: Located in the middle row. Houses the Serene Navy (`#1B2B4B`) Everyday Spending card featuring a prominent **Daily Spendable Pace (`$XX / day`)** with days-until-payday countdown, dynamic pacing status badges (`On Track ✓`, `Pace Tightened`, `Bills at Risk`), and a 1-click **Update Balance** quick action. The clean white Bills Pool card features integrated 14-day shortfall warning status (`⚠️ Shortfall of $X` vs `✅ Next 14 days covered!`). Eliminates manual everyday receipt/coffee entry in favor of automated theoretical pacing and reality recalibration upon bank reconciliation.
   - **Goal Progress & Pace Cards**: Enhanced goal card progress tracking with 8px progress bars (`GoalsProgressStrip`), target date countdowns, and celebration banners for near-completion goals.
   - **Attention Items (`AttentionItemsList`)**: Two-tier severity presentation (Red for overdue items; Amber for upcoming-only items due within 3 days). Clean text labels with icon-visibility toggle support.
   - **Quick Expense Card (`QuickExpenseCard`)**: Symmetric Expense/Income active state toggles, collapsed date selector (defaults to today), and inline feedback messaging.

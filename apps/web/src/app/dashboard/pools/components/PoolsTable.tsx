@@ -496,7 +496,7 @@ export function PoolsTable({
         </table>
       </div>
 
-      {totalItems > 0 && (
+      {totalItems >= 5 && (
         <PaginationBar
           page={page}
           totalPages={totalPages}

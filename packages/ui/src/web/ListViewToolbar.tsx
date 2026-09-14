@@ -4,6 +4,7 @@ import React from 'react';
 import { Search, RotateCcw, Plus, LayoutList, LayoutGrid } from 'lucide-react';
 import { t } from '@money-matters/i18n';
 import { RefreshButton } from './RefreshButton';
+import { SearchInput } from './SearchInput';
 import { FilterOption } from './GenericListView';
 
 interface ListViewToolbarProps {
@@ -88,14 +89,11 @@ export function ListViewToolbar({
       <div className="p-4 bg-white rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Left Side: Search + Category Selector */}
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3.5 top-3 text-zinc-400" />
-            <input
-              type="text"
+          <div className="flex-1 min-w-[200px]">
+            <SearchInput
               value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={onSearchChange}
               placeholder={searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
             />
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PaginationBar, useIconVisibility, useResizableColumns, ResizableTh, SkeletonTable } from "@money-matters/ui/web";
+import { PaginationBar, useIconVisibility, useResizableColumns, ResizableTh, SkeletonTable, SortHeader } from "@money-matters/ui/web";
 import { BurstModal, SourceItem, EventItem } from "./BurstModal";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
@@ -21,26 +21,6 @@ function parseSchedule(rrule?: string | null, startDate?: string | null, formatD
 
 type SortDir = "asc" | "desc";
 type SortKey = "name" | "amount" | "schedule" | "bucket";
-
-function SortHeader({
-  label, sortKey, currentKey, dir, onSort, align = "left",
-}: {
-  label: string; sortKey: SortKey; currentKey: SortKey; dir: SortDir; onSort: (k: SortKey) => void; align?: "left" | "right";
-}) {
-  const isActive = currentKey === sortKey;
-  return (
-    <button
-      type="button"
-      onClick={() => onSort(sortKey)}
-      className={`flex items-center gap-1 text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider hover:text-zinc-600 transition-colors select-none group ${align === "right" ? "ml-auto justify-end" : ""}`}
-    >
-      {label}
-      <span className={`ml-0.5 transition-opacity ${isActive ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
-        {isActive && dir === "asc" ? "↑" : "↓"}
-      </span>
-    </button>
-  );
-}
 
 export interface SourceTableProps {
   mode: "INCOME" | "EXPENSE";

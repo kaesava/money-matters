@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { View, StyleSheet, Alert } from 'react-native';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  MobileInput,
+  MobileButton,
+  FormErrorBanner,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 
@@ -17,131 +22,81 @@ export const InvitePartnerModal: React.FC<InvitePartnerModalProps> = ({
   onSuccess,
 }) => {
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [generalError, setGeneralError] = useState('');
 
   const invitePartnerMutation = trpc.invitePartner.useMutation({
     onSuccess: (data) => {
       Alert.alert(
-        t("partner.inviteSent"),
-        t("partner.inviteSentSuccess", { email: data.inviteEmail })
+        t('partner.inviteSent'),
+        t('partner.inviteSentSuccess', { email: data.inviteEmail })
       );
       setEmail('');
+      setEmailError('');
+      setGeneralError('');
       onSuccess?.();
       onClose();
     },
     onError: (err) => {
-      Alert.alert('Error', err.message);
+      setGeneralError(err.message);
     },
   });
 
   const handleSubmit = () => {
     if (!email.trim() || !email.includes('@')) {
-      Alert.alert(t("partner.invalidEmailAlertTitle"), t("partner.invalidEmailAlertBody"));
+      setEmailError(t('partner.invalidEmailAlertBody'));
       return;
     }
+    setEmailError('');
+    setGeneralError('');
     invitePartnerMutation.mutate({ email: email.trim() });
   };
 
+  const isDirty = Boolean(email.trim());
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.modalCard}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{t("partner.inviteTitle")}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Feather name="x" size={20} color={DESIGN_TOKENS.colors.textMuted} />
-            </TouchableOpacity>
-          </View>
+    <MobileModalDialog
+      visible={visible}
+      onClose={onClose}
+      isDirty={isDirty}
+      title={t('partner.inviteTitle')}
+      subtitle={t('partner.inviteSubtitle')}
+      footer={
+        <MobileButton
+          variant="primary"
+          onPress={handleSubmit}
+          loading={invitePartnerMutation.isPending}
+          disabled={!email.trim()}
+        >
+          {t('partner.sendInvite')}
+        </MobileButton>
+      }
+    >
+      <View style={styles.content}>
+        <FormErrorBanner message={generalError} />
 
-          <Text style={styles.subtitle}>
-            {t("partner.inviteSubtitle")}
-          </Text>
-
-          <View style={styles.field}>
-            <Text style={styles.label}>{t("partner.emailLabel")}</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder={t("partner.emailPlaceholder")}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={styles.input}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={styles.submitBtn}
-            onPress={handleSubmit}
-            disabled={invitePartnerMutation.isPending}
-            activeOpacity={0.8}
-          >
-            {invitePartnerMutation.isPending ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.submitBtnText}>{t("partner.sendInvite")}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        <MobileInput
+          label={t('partner.emailLabel')}
+          required
+          value={email}
+          onChangeText={(val) => {
+            setEmail(val);
+            if (emailError) setEmailError('');
+          }}
+          placeholder={t('partner.emailPlaceholder')}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          error={emailError}
+          autoFocus
+        />
       </View>
-    </Modal>
+    </MobileModalDialog>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: DESIGN_TOKENS.spacing.containerMargin,
-  },
-  modalCard: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderRadius: DESIGN_TOKENS.radius.lg,
-    padding: DESIGN_TOKENS.spacing.cardPadding,
-    gap: DESIGN_TOKENS.spacing.stackGap,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: DESIGN_TOKENS.colors.textMuted,
-    lineHeight: 18,
-  },
-  field: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderColor: DESIGN_TOKENS.colors.border,
-    borderRadius: DESIGN_TOKENS.radius.default,
-    paddingHorizontal: 12,
-    fontSize: 14,
-  },
-  submitBtn: {
-    backgroundColor: DESIGN_TOKENS.colors.primary,
-    height: 44,
-    borderRadius: DESIGN_TOKENS.radius.default,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  submitBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+  content: {
+    gap: 12,
   },
 });
 

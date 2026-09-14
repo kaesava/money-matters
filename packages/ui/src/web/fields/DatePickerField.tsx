@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
+import { FormLabel } from '../FormLabel';
+import { FormFieldError } from '../FormFieldError';
 
 export interface DatePickerFieldProps {
-  label: string;
+  label?: string;
   value?: string; // YYYY-MM-DD
   onChange: (val: string) => void;
   required?: boolean;
@@ -11,6 +13,8 @@ export interface DatePickerFieldProps {
   min?: string;
   max?: string;
   disabled?: boolean;
+  error?: string;
+  hint?: string;
   id?: string;
 }
 
@@ -23,15 +27,23 @@ export function DatePickerField({
   min,
   max,
   disabled = false,
+  error,
+  hint,
   id,
 }: DatePickerFieldProps) {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+
   return (
-    <div className={`space-y-1.5 ${className}`}>
-      <label htmlFor={id} className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-        {label} {required && <span className="text-rose-500">*</span>}
-      </label>
+    <div className={`w-full ${className}`}>
+      {label && (
+        <FormLabel htmlFor={inputId} required={required}>
+          {label}
+        </FormLabel>
+      )}
+      {hint && <p className="text-xs text-slate-500 mb-1.5 font-medium">{hint}</p>}
       <input
-        id={id}
+        id={inputId}
         type="date"
         value={value}
         min={min}
@@ -45,6 +57,7 @@ export function DatePickerField({
         onChange={(e) => onChange(e.target.value)}
         className="ui-input w-full text-sm bg-white cursor-pointer disabled:opacity-50"
       />
+      <FormFieldError error={error} />
     </div>
   );
 }

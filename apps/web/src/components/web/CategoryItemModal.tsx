@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, InfoTooltip, AmountField } from "@money-matters/ui/web";
-import { ModalDialog } from "./ModalDialog";
+import { useToast, ConfirmDialog, InfoTooltip, AmountField, ModalDialog, Button, Input, GenericSelectField, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { CategoryItem } from "../../app/dashboard/pools/types";
@@ -182,44 +181,29 @@ export function CategoryItemModal({
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
-        {errorMsg && (
-          <div className="p-3 bg-red-50 text-red-700 font-bold rounded-xl border border-red-200">
-            {errorMsg}
-          </div>
-        )}
+        <FormErrorBanner message={errorMsg} />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">
-            {t("categories.nameLabel")} <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Groceries, Electricity, Fuel"
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            autoFocus
-          />
-        </div>
+        <Input
+          label={t("categories.nameLabel")}
+          required
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Groceries, Electricity, Fuel"
+        />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">
-            {t("categories.targetPoolLabel")} <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={selectedPoolId}
-            disabled={isEdit}
-            onChange={(e) => setSelectedPoolId(e.target.value)}
-            className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-100"
-          >
-            <option value="" disabled>{t("categories.selectPool")}</option>
-            {availablePools.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.poolType === "EVERYDAY" ? "Everyday" : "Bills"})
-              </option>
-            ))}
-          </select>
-        </div>
+        <GenericSelectField
+          label={t("categories.targetPoolLabel")}
+          required
+          disabled={isEdit}
+          value={selectedPoolId}
+          onChange={setSelectedPoolId}
+          placeholder={t("categories.selectPool")}
+          options={availablePools.map((p) => ({
+            value: p.id,
+            label: `${p.name} (${p.poolType === "EVERYDAY" ? "Everyday" : "Bills"})`,
+          }))}
+        />
 
         {isEdit && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
@@ -229,7 +213,7 @@ export function CategoryItemModal({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 items-start">
           <div>
             <AmountField
               label={t("categories.targetAmountLabel")}
@@ -240,17 +224,17 @@ export function CategoryItemModal({
             />
           </div>
           <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">{t("categories.frequencyLabel")}</label>
-            <select
+            <GenericSelectField
+              label={t("categories.frequencyLabel")}
               value={frequency}
-              onChange={(e) => setFrequency(e.target.value as FrequencyOption)}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            >
-              <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
-              <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>
-              <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
-              <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
-            </select>
+              onChange={(val) => setFrequency(val as FrequencyOption)}
+              options={[
+                { value: "WEEKLY", label: t("categories.frequencyWeekly") },
+                { value: "FORTNIGHTLY", label: t("categories.frequencyFortnightly") },
+                { value: "MONTHLY", label: t("categories.frequencyMonthly") },
+                { value: "ANNUALLY", label: t("categories.frequencyAnnually") },
+              ]}
+            />
           </div>
         </div>
 
@@ -293,20 +277,23 @@ export function CategoryItemModal({
           ) : <div />}
 
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
-              className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50"
             >
               {t("categories.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
+              size="sm"
               disabled={submitting || !isDirty || !isValid}
-              className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              loading={submitting}
             >
-              {submitting ? "Saving..." : t("categories.saveCategory")}
-            </button>
+              {t("categories.saveCategory")}
+            </Button>
           </div>
         </div>
       </form>

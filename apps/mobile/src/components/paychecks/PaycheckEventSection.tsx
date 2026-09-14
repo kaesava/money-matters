@@ -24,7 +24,10 @@ export interface PaycheckEventSectionProps {
   incomeEvents: PaycheckIncomeEvent[];
   expenseEvents: PaycheckExpenseEvent[];
   onOpenPaydayWizard: (eventId: string) => void;
+  onEditUpcomingIncome?: (event: PaycheckIncomeEvent) => void;
+  onDeleteUpcomingIncome?: (event: PaycheckIncomeEvent) => void;
   onEditUpcomingExpense: (event: PaycheckExpenseEvent) => void;
+  onDeleteUpcomingExpense?: (event: PaycheckExpenseEvent) => void;
   onMarkExpensePaid: (eventId: string, amount: string) => void;
 }
 
@@ -32,7 +35,10 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
   incomeEvents,
   expenseEvents,
   onOpenPaydayWizard,
+  onEditUpcomingIncome,
+  onDeleteUpcomingIncome,
   onEditUpcomingExpense,
+  onDeleteUpcomingExpense,
   onMarkExpensePaid,
 }) => {
   return (
@@ -50,13 +56,33 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
             <Text style={styles.cardDate}>
               {t('common.dueOn', { date: formatDate(item.expectedDate) })}
             </Text>
-            <TouchableOpacity
-              style={styles.processBtn}
-              onPress={() => onOpenPaydayWizard(item.id)}
-            >
-              <Feather name="play" size={14} color="#FFF" />
-              <Text style={styles.processBtnText}>{t('modals.paydayPreview.runWaterfall')}</Text>
-            </TouchableOpacity>
+            <View style={styles.actionRow}>
+              {onDeleteUpcomingIncome && (
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => onDeleteUpcomingIncome(item)}
+                >
+                  <Feather name="trash-2" size={12} color="#ba1a1a" />
+                  <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
+                </TouchableOpacity>
+              )}
+              {onEditUpcomingIncome && (
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={() => onEditUpcomingIncome(item)}
+                >
+                  <Feather name="edit-2" size={12} color={DESIGN_TOKENS.colors.primary} />
+                  <Text style={styles.editBtnText}>{t('common.edit')}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.processBtn}
+                onPress={() => onOpenPaydayWizard(item.id)}
+              >
+                <Feather name="play" size={12} color="#FFF" />
+                <Text style={styles.processBtnText}>{t('modals.paydayPreview.runWaterfall')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ))
       )}
@@ -75,6 +101,15 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
               {t('common.dueOn', { date: formatDate(item.expectedDate) })}
             </Text>
             <View style={styles.actionRow}>
+              {onDeleteUpcomingExpense && (
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => onDeleteUpcomingExpense(item)}
+                >
+                  <Feather name="trash-2" size={12} color="#ba1a1a" />
+                  <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.editBtn}
                 onPress={() => onEditUpcomingExpense(item)}
@@ -175,6 +210,22 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     color: DESIGN_TOKENS.colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  deleteBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  deleteBtnText: {
+    color: '#ba1a1a',
     fontSize: 12,
     fontWeight: '700',
   },

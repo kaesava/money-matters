@@ -24,7 +24,7 @@ import {
   BankAccountItemToEdit,
 } from '../../../components/BankAccountFormModal';
 import { MobileReconciliationModal } from '../../../components/categories/MobileReconciliationModal';
-import { showMobileConfirm } from '../../../components/MobileConfirmDialog';
+import { showMobileConfirm } from '@money-matters/ui/mobile';
 
 export default function BankAccountsScreen() {
   const router = useRouter();

@@ -20,6 +20,7 @@ export interface MobilePaydayAllocationRecord {
   status: string;
   receivingAccountName?: string | null;
   note?: string | null;
+  createdAt?: string | Date | null;
   lines: Array<{
     id?: string;
     poolId: string;

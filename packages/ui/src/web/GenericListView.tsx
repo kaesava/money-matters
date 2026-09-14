@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { t } from '@money-matters/i18n';
 import { ListViewToolbar } from './ListViewToolbar';
 import { PaginationBar } from './PaginationBar';
+import { SkeletonTable } from './SkeletonTable';
 
 export interface ColumnDefinition<T> {
   key: string;
@@ -140,7 +141,7 @@ export function GenericListView<T extends { id: string }>({
 
       {/* Content Rendering */}
       {isLoading ? (
-        <div className="h-64 rounded-2xl animate-pulse bg-zinc-200/50" />
+        <SkeletonTable cols={columns.length} rows={pageSize || 5} />
       ) : items.length === 0 ? (
         <div className="p-12 rounded-2xl bg-white border border-zinc-100 text-center text-xs font-semibold text-zinc-400">
           {emptyStateText}
@@ -169,7 +170,7 @@ export function GenericListView<T extends { id: string }>({
                   className={`hover:bg-zinc-50/50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className={`px-6 py-4 ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
+                    <td key={col.key} className={`px-6 py-4 ${col.align === 'right' ? 'text-right font-mono tabular-nums' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
                       {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '')}
                     </td>
                   ))}
@@ -181,7 +182,7 @@ export function GenericListView<T extends { id: string }>({
       )}
 
       {/* Pagination Footer */}
-      {onPageChange && (
+      {onPageChange && totalItems >= 5 && (
         <PaginationBar
           page={page}
           totalPages={totalPages}

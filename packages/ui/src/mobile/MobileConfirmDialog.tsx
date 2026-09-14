@@ -6,6 +6,8 @@ export interface MobileConfirmOptions {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
   isDestructive?: boolean;
   onConfirm: () => void;
   onCancel?: () => void;
@@ -16,21 +18,26 @@ export function showMobileConfirm({
   message,
   confirmText,
   cancelText,
+  confirmLabel,
+  cancelLabel,
   isDestructive = true,
   onConfirm,
   onCancel,
 }: MobileConfirmOptions): void {
+  const resolvedCancel = cancelText || cancelLabel || t('modals.discardChanges.cancel') || 'Cancel';
+  const resolvedConfirm = confirmText || confirmLabel || (isDestructive ? t('modals.discardChanges.discard') || 'Confirm' : 'Confirm');
+
   Alert.alert(
     title,
     message,
     [
       {
-        text: cancelText || t('modals.discardChanges.cancel') || 'Cancel',
+        text: resolvedCancel,
         style: 'cancel',
         onPress: onCancel,
       },
       {
-        text: confirmText || (isDestructive ? t('modals.discardChanges.discard') || 'Confirm' : 'Confirm'),
+        text: resolvedConfirm,
         style: isDestructive ? 'destructive' : 'default',
         onPress: onConfirm,
       },

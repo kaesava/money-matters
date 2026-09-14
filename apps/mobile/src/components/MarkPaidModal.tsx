@@ -13,7 +13,14 @@ import {
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import {
+  DESIGN_TOKENS,
+  AmountInput,
+  MobileInput,
+  MobileButton,
+  FormErrorBanner,
+  FormFieldError,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatAUD, formatIsoDate } from '../lib/format';
@@ -52,6 +59,9 @@ export function MarkPaidModal({
   const [note, setNote] = useState('');
   const [fundingPoolId, setFundingPoolId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [amountError, setAmountError] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [generalError, setGeneralError] = useState('');
 
   const { data: pools } = trpc.listPools.useQuery(undefined, {
     enabled: visible,
@@ -66,6 +76,9 @@ export function MarkPaidModal({
       setActualDate(todayStr);
       setNote(event.name || '');
     }
+    setAmountError('');
+    setDateError('');
+    setGeneralError('');
   }, [event, todayStr]);
 
   if (!visible || !event) return null;
@@ -82,20 +95,24 @@ export function MarkPaidModal({
   const isShortfall = shortfall > 0;
 
   const handleConfirm = async () => {
+    let hasError = false;
     if (!actualAmount || isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert(t('common.error'), 'Please enter a valid payment amount.');
-      return;
+      setAmountError('Please enter a valid payment amount.');
+      hasError = true;
     }
 
     if (actualDate > todayStr) {
-      Alert.alert(
-        t('common.error'),
-        'Mark Paid cannot be recorded with a future date. Please select today or a past date.'
-      );
-      return;
+      setDateError('Mark Paid cannot be recorded with a future date. Please select today or a past date.');
+      hasError = true;
     }
 
+    if (hasError) return;
+
+    setAmountError('');
+    setDateError('');
+    setGeneralError('');
     setSubmitting(true);
+
     try {
       // If there was a shortfall and a funding pool was selected, transfer the difference first
       if (isShortfall && fundingPoolId && currentPool) {
@@ -125,8 +142,7 @@ export function MarkPaidModal({
       onSuccess?.();
       onClose();
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
+      setGeneralError(
         err instanceof Error ? err.message : 'Failed to mark bill as paid'
       );
     } finally {
@@ -158,6 +174,8 @@ export function MarkPaidModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
+            <FormErrorBanner message={generalError} />
+
             {/* Bill summary info */}
             <View style={styles.billInfo}>
               <Text style={styles.billName}>{event.name}</Text>
@@ -167,33 +185,30 @@ export function MarkPaidModal({
             </View>
 
             {/* Actual Amount input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Actual Amount Paid ($)</Text>
-              <View style={styles.amountWrap}>
-                <Text style={styles.currencySymbol}>$</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  keyboardType="decimal-pad"
-                  value={actualAmount}
-                  onChangeText={setActualAmount}
-                  placeholder="0.00"
-                  placeholderTextColor="#94A3B8"
-                  autoFocus
-                />
-              </View>
-            </View>
+            <AmountInput
+              label="Actual Amount Paid ($ AUD)"
+              required
+              value={actualAmount}
+              onChangeText={(v) => {
+                setActualAmount(v);
+                if (amountError) setAmountError('');
+              }}
+              error={amountError}
+              autoFocus
+            />
 
             {/* Actual Date input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Paid Date (YYYY-MM-DD)</Text>
-              <TextInput
-                style={styles.textInput}
-                value={actualDate}
-                onChangeText={setActualDate}
-                placeholder={todayStr}
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
+            <MobileInput
+              label="Paid Date (YYYY-MM-DD)"
+              required
+              value={actualDate}
+              onChangeText={(v) => {
+                setActualDate(v);
+                if (dateError) setDateError('');
+              }}
+              placeholder={todayStr}
+              error={dateError}
+            />
 
             {/* Shortfall Alert & Funding Pool Selector */}
             {isShortfall && (
@@ -246,29 +261,22 @@ export function MarkPaidModal({
             )}
 
             {/* Note input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Transaction Note (Optional)</Text>
-              <TextInput
-                style={styles.textInput}
-                value={note}
-                onChangeText={setNote}
-                placeholder="Paid bill..."
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
+            <MobileInput
+              label="Transaction Note (Optional)"
+              value={note}
+              onChangeText={setNote}
+              placeholder="Paid bill..."
+            />
 
-            {/* Action Buttons */}
-            <TouchableOpacity
+            {/* Action Button */}
+            <MobileButton
+              variant="primary"
               onPress={handleConfirm}
-              disabled={submitting}
-              style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+              loading={submitting}
+              style={{ marginTop: 8 }}
             >
-              {submitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>Confirm Payment</Text>
-              )}
-            </TouchableOpacity>
+              Confirm Payment
+            </MobileButton>
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

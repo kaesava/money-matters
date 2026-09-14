@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -14,15 +15,16 @@ import {
   DESIGN_TOKENS,
   MobileScreenWrapper,
   BankProviderBadge,
+  showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { formatAUD } from '../../../lib/format';
+import { TransactionRow } from '../../../components/TransactionRow';
 import { CategoryItemModal, CategoryItemToEdit } from '../../../components/CategoryItemModal';
 import { CategoryFormModal } from '../../../components/CategoryFormModal';
 import { MoveMoneyModal } from '../../../components/MoveMoneyModal';
-import { showMobileConfirm } from '../../../components/MobileConfirmDialog';
 
 export default function PoolDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,6 +36,9 @@ export default function PoolDetailScreen() {
   const [catModalVisible, setCatModalVisible] = useState(false);
   const [selectedCatForEdit, setSelectedCatForEdit] = useState<CategoryItemToEdit | null>(null);
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
+  const [catSearchQuery, setCatSearchQuery] = useState('');
+  const [catSortField, setCatSortField] = useState<'name' | 'amount'>('name');
+  const [catSortDir, setCatSortDir] = useState<'asc' | 'desc'>('asc');
 
   // Category bottom sheet inspector
   const [inspectCat, setInspectCat] = useState<{
@@ -48,7 +53,7 @@ export default function PoolDetailScreen() {
   const poolsQuery = trpc.listPools.useQuery();
   const categoriesQuery = trpc.listCategories.useQuery();
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
-  const txLedgerQuery = trpc.listTransactions.useQuery({ poolId: id });
+  const txLedgerQuery = trpc.listTransactions.useQuery({ poolId: id, limit: 10 });
 
   const archivePoolMut = trpc.archivePool.useMutation({
     onSuccess: () => {
@@ -72,6 +77,34 @@ export default function PoolDetailScreen() {
   const bankAccount = bankAccountsQuery.data?.find(
     (b) => b.id === pool?.bankAccountId
   );
+
+  const filteredCategories = useMemo(() => {
+    return poolCategories
+      .filter((c) => {
+        if (!catSearchQuery.trim()) return true;
+        return c.name.toLowerCase().includes(catSearchQuery.toLowerCase().trim());
+      })
+      .sort((a, b) => {
+        if (catSortField === 'name') {
+          const res = a.name.localeCompare(b.name);
+          return catSortDir === 'asc' ? res : -res;
+        }
+        const aAmt = parseFloat(a.monthlyAmount || a.enteredAmount || '0');
+        const bAmt = parseFloat(b.monthlyAmount || b.enteredAmount || '0');
+        return catSortDir === 'asc' ? aAmt - bAmt : bAmt - aAmt;
+      });
+  }, [poolCategories, catSearchQuery, catSortField, catSortDir]);
+
+  const recentTransactions = (txLedgerQuery.data ?? []).slice(0, 5);
+
+  const toggleCatSort = (field: 'name' | 'amount') => {
+    if (catSortField === field) {
+      setCatSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setCatSortField(field);
+      setCatSortDir('asc');
+    }
+  };
 
   const handleArchivePool = () => {
     if (!pool) return;
@@ -187,10 +220,10 @@ export default function PoolDetailScreen() {
           </View>
         </View>
 
-        {/* Nested Categories Section */}
+        {/* Nested Categories Section Header */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
-            Budget Categories ({poolCategories.length})
+            Budget Categories ({filteredCategories.length})
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -204,9 +237,50 @@ export default function PoolDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {poolCategories.length > 0 ? (
+        {/* Category Search & Sort Bar */}
+        {poolCategories.length > 0 && (
+          <View style={styles.catFilterBar}>
+            <View style={styles.catSearchWrap}>
+              <Feather name="search" size={14} color="#94A3B8" />
+              <TextInput
+                style={styles.catSearchInput}
+                placeholder={t('categories.searchCategories') || 'Search categories...'}
+                value={catSearchQuery}
+                onChangeText={setCatSearchQuery}
+                placeholderTextColor="#94A3B8"
+              />
+              {catSearchQuery ? (
+                <TouchableOpacity onPress={() => setCatSearchQuery('')}>
+                  <Feather name="x" size={14} color="#94A3B8" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            <View style={styles.catSortRow}>
+              <TouchableOpacity
+                onPress={() => toggleCatSort('name')}
+                style={[styles.catSortBtn, catSortField === 'name' && styles.catSortBtnActive]}
+              >
+                <Text style={[styles.catSortBtnText, catSortField === 'name' && styles.catSortBtnTextActive]}>
+                  Name {catSortField === 'name' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => toggleCatSort('amount')}
+                style={[styles.catSortBtn, catSortField === 'amount' && styles.catSortBtnActive]}
+              >
+                <Text style={[styles.catSortBtnText, catSortField === 'amount' && styles.catSortBtnTextActive]}>
+                  Amount {catSortField === 'amount' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {filteredCategories.length > 0 ? (
           <View style={styles.categoriesList}>
-            {poolCategories.map((cat) => (
+            {filteredCategories.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 activeOpacity={0.75}
@@ -239,7 +313,47 @@ export default function PoolDetailScreen() {
         ) : (
           <View style={styles.emptyCategoriesBox}>
             <Text style={styles.emptyCategoriesText}>
-              No nested categories inside this pool yet. Tap &apos;+ Add Category&apos; to break down your budget.
+              {poolCategories.length === 0
+                ? "No nested categories inside this pool yet. Tap '+ Add Category' to break down your budget."
+                : 'No categories matched your search.'}
+            </Text>
+          </View>
+        )}
+
+        {/* Recent Activity Section */}
+        <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
+          <Text style={styles.sectionTitle}>
+            {t('categories.recentActivity') || 'Recent Activity'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push(`/(app)/transactions?poolId=${pool.id}` as never)}
+            style={styles.viewHistoryBtn}
+          >
+            <Text style={styles.viewHistoryText}>
+              {t('categories.viewAllHistory') || 'View All History'}
+            </Text>
+            <Feather name="chevron-right" size={13} color="#2563eb" />
+          </TouchableOpacity>
+        </View>
+
+        {recentTransactions.length > 0 ? (
+          <View style={styles.recentTxList}>
+            {recentTransactions.map((tx) => (
+              <TransactionRow
+                key={tx.id}
+                amount={tx.amount}
+                flowType={tx.flowType as 'DEBIT' | 'CREDIT' | 'TRANSFER'}
+                poolName={tx.poolName}
+                categoryName={tx.categoryName}
+                note={tx.note}
+                recordedAt={tx.recordedAt}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyCategoriesBox}>
+            <Text style={styles.emptyCategoriesText}>
+              {t('categories.noRecentActivity') || 'No recent transactions for this pool.'}
             </Text>
           </View>
         )}
@@ -291,6 +405,36 @@ export default function PoolDetailScreen() {
                 </View>
               </View>
 
+              {/* Navigation Quick Links */}
+              <View style={styles.sheetLinksRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const name = inspectCat.name;
+                    setInspectCat(null);
+                    router.push(`/(app)/transactions?search=${encodeURIComponent(name)}` as never);
+                  }}
+                  style={styles.sheetLinkBtn}
+                >
+                  <Feather name="clock" size={13} color="#2563eb" />
+                  <Text style={styles.sheetLinkText}>
+                    {t('transactions.tabs.transactions') || 'History'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setInspectCat(null);
+                    router.push('/(app)/paychecks' as never);
+                  }}
+                  style={styles.sheetLinkBtn}
+                >
+                  <Feather name="calendar" size={13} color="#2563eb" />
+                  <Text style={styles.sheetLinkText}>
+                    {t('categories.viewExpenses') || 'Expenses'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.sheetActions}>
                 <TouchableOpacity
                   onPress={() => {
@@ -301,7 +445,7 @@ export default function PoolDetailScreen() {
                       name: c.name,
                       enteredAmount: c.enteredAmount,
                       monthlyAmount: c.monthlyAmount,
-                      budgetFrequency: c.budgetFrequency as any,
+                      budgetFrequency: (c.budgetFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY') || undefined,
                       isEssential: c.isEssential,
                     });
                     setCatModalVisible(true);
@@ -614,6 +758,89 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#1B2B4B',
+  },
+  catFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  catSearchWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  catSearchInput: {
+    flex: 1,
+    paddingVertical: 6,
+    fontSize: 12,
+    color: '#1B2B4B',
+  },
+  catSortRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  catSortBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  catSortBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  catSortBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  catSortBtnTextActive: {
+    color: '#1D4ED8',
+    fontWeight: '800',
+  },
+  viewHistoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  viewHistoryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  recentTxList: {
+    gap: 8,
+  },
+  sheetLinksRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sheetLinkBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingVertical: 8,
+  },
+  sheetLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
   },
   sheetActions: {
     flexDirection: 'row',

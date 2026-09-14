@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'rea
 import { useRouter, Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileScreenWrapper, showMobileConfirm } from '@money-matters/ui/mobile';
 import { authClient } from '../../lib/auth';
 import { setActiveSessionToken } from '../../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
@@ -38,34 +38,29 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = async () => {
-    Alert.alert(
-      t('settings.signOut', { defaultValue: 'Sign Out' }),
-      t('settings.signOutConfirm', { defaultValue: 'Are you sure you want to sign out?' }),
-      [
-        { text: t('common.cancel', { defaultValue: 'Cancel' }), style: 'cancel' },
-        {
-          text: t('settings.signOut', { defaultValue: 'Sign Out' }),
-          style: 'destructive',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await authClient.signOut();
-              await SecureStore.deleteItemAsync('money-matters_session_token');
-              await SecureStore.deleteItemAsync('money-matters-session-token');
-              setActiveSessionToken(null);
-              router.replace('/(auth)/sign-in');
-            } catch (err) {
-              Alert.alert(
-                t('common.error', { defaultValue: 'Error' }),
-                err instanceof Error ? err.message : String(err)
-              );
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+    showMobileConfirm({
+      title: t('settings.signOut', { defaultValue: 'Sign Out' }),
+      message: t('settings.signOutConfirm', { defaultValue: 'Are you sure you want to sign out?' }),
+      confirmText: t('settings.signOut', { defaultValue: 'Sign Out' }),
+      isDestructive: true,
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await authClient.signOut();
+          await SecureStore.deleteItemAsync('money-matters_session_token');
+          await SecureStore.deleteItemAsync('money-matters-session-token');
+          setActiveSessionToken(null);
+          router.replace('/(auth)/sign-in');
+        } catch (err) {
+          Alert.alert(
+            t('common.error', { defaultValue: 'Error' }),
+            err instanceof Error ? err.message : String(err)
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   return (

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, ConfirmDialog, InfoTooltip, Input, GenericSelectField, DatePickerField, AmountField } from "@money-matters/ui/web";
-import { ModalDialog } from "./ModalDialog";
+import { useToast, ConfirmDialog, InfoTooltip, Input, GenericSelectField, DatePickerField, AmountField, ModalDialog, Button, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 
@@ -205,11 +204,7 @@ export function CategoryFormModal({
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
-        {errorMsg && (
-          <div className="p-3 bg-red-50 text-red-700 font-bold rounded-xl border border-red-200">
-            {errorMsg}
-          </div>
-        )}
+        <FormErrorBanner message={errorMsg} />
 
         <Input
           label={t("categories.poolNameLabel")}
@@ -306,20 +301,23 @@ export function CategoryFormModal({
           )}
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={onClose}
-              className="px-4 py-2 border border-zinc-300 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100"
             >
               {t("categories.cancel")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
+              size="sm"
               disabled={submitting || !isDirty || !isValid}
-              className="px-5 py-2 bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              loading={submitting}
             >
-              {submitting ? t("common.saving", { defaultValue: "Saving..." }) : t("categories.savePool")}
-            </button>
+              {t("categories.savePool")}
+            </Button>
           </div>
         </div>
       </form>

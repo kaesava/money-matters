@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useId } from "react";
-import { createPortal } from "react-dom";
+import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { Button, useModalDismiss } from "@money-matters/ui/web";
+import { Button, ModalDialog } from "@money-matters/ui/web";
 import { useLocale } from "../../providers/LocaleProvider";
 
 export interface CrossBankTransferModalProps {
@@ -29,13 +28,6 @@ export function CrossBankTransferModal({
 }: CrossBankTransferModalProps) {
   const { fmt, currencySymbol, minorUnits } = useLocale();
   const [copied, setCopied] = useState(false);
-  const modalId = useId();
-
-  useModalDismiss({
-    id: `cross-bank-transfer-modal-${modalId}`,
-    isOpen,
-    onDismiss: onClose,
-  });
 
   const handleCopyAmount = () => {
     navigator.clipboard.writeText(amount.toFixed(minorUnits));
@@ -43,38 +35,22 @@ export function CrossBankTransferModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!isOpen) return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-xs"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-            <h3 className="font-extrabold text-base text-[#1B2B4B]">
-              {t("modals.crossBankTransfer.title", { defaultValue: "Bank Transfer Required" })}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg transition-colors cursor-pointer text-xs"
-            aria-label="Close"
-          >
-            ✕
-          </button>
+  return (
+    <ModalDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+          <span>{t("modals.crossBankTransfer.title", { defaultValue: "Bank Transfer Required" })}</span>
         </div>
-
-        <p className="text-xs text-slate-600 leading-relaxed">
-          {t("modals.crossBankTransfer.description", {
-            defaultValue: "You transferred funds between pools linked to different bank accounts. Remember to move the physical money in your banking app:",
-          })}
-        </p>
-
+      }
+      subtitle={t("modals.crossBankTransfer.description", {
+        defaultValue: "You transferred funds between pools linked to different bank accounts. Remember to move the physical money in your banking app:",
+      })}
+      maxWidthClass="max-w-md"
+    >
+      <div className="space-y-4">
         {/* Transfer Instruction Card */}
         <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between text-xs">
@@ -127,7 +103,6 @@ export function CrossBankTransferModal({
           </Button>
         </div>
       </div>
-    </div>,
-    document.body
+    </ModalDialog>
   );
 }

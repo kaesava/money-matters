@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
-import { Button, AmountField, DatePickerField } from "@money-matters/ui/web";
-import { ModalDialog } from "../../../../components/web/ModalDialog";
+import { Button, AmountField, DatePickerField, ModalDialog } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface CategoryOption {

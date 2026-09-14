@@ -45,6 +45,7 @@ export const baseEnvSchema = z
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
     // Feature flags
     NEXT_PUBLIC_ENABLE_AUTH: z.string().transform((v) => v === "true").default("true"),
+    NEXT_PUBLIC_ENABLE_FOUNDING_OFFER: z.string().transform((v) => v === "true").default("true"),
     // App Versioning metadata
     NEXT_PUBLIC_APP_VERSION: z.string().default("1.0.0-beta.1"),
     EXPO_PUBLIC_APP_VERSION: z.string().default("1.0.0-beta.1"),

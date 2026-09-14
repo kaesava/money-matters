@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useId } from "react";
 import { t } from "@money-matters/i18n";
-import { ModalDialog } from "./ModalDialog";
-import { ConfirmDialog, Button, AmountField, DatePickerField } from "@money-matters/ui/web";
+import { ConfirmDialog, Button, AmountField, DatePickerField, ModalDialog } from "@money-matters/ui/web";
 import { useLocale } from "../../providers/LocaleProvider";
 import { trpc } from "../../lib/trpc";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";

@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal,
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  AmountInput,
+  MobileInput,
+  MobileButton,
+  FormErrorBanner,
+  showMobileConfirm,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatHealthStatus, formatIsoDate, formatAUD } from '../lib/format';
@@ -147,14 +149,14 @@ export function UpcomingExpenseModal({
     if (!validateInput()) return;
 
     if (isNegativeWarning) {
-      Alert.alert(
-        'Negative Balance Warning',
-        `Payment of ${fmt(numAmount)} exceeds "${selectedCat?.name}" balance (${fmt(currentCatBal)}). Category balance will become negative (${fmt(projectedBal)}). Proceed?`,
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('common.confirm'), onPress: () => executeMarkPaid() },
-        ]
-      );
+      showMobileConfirm({
+        title: 'Negative Balance Warning',
+        message: `Payment of ${fmt(numAmount)} exceeds "${selectedCat?.name}" balance (${fmt(currentCatBal)}). Category balance will become negative (${fmt(projectedBal)}). Proceed?`,
+        confirmLabel: t('common.confirm'),
+        cancelLabel: t('common.cancel'),
+        isDestructive: false,
+        onConfirm: () => executeMarkPaid(),
+      });
       return;
     }
 
@@ -195,178 +197,163 @@ export function UpcomingExpenseModal({
 
   const handleDelete = () => {
     if (!eventToEdit?.id) return;
-    Alert.alert(
-      'Permanent Delete Warning',
-      'This upcoming expense record will be permanently deleted (not archived). Are you sure?',
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            setSubmitting(true);
-            try {
-              await deleteMut.mutateAsync({ eventId: eventToEdit.id!, eventType: 'EXPENSE' });
-              await utils.listExpenseEvents.invalidate();
-              if (onSuccess) onSuccess();
-              onClose();
-            } catch (err: unknown) {
-              setErrorMsg(err instanceof Error ? err.message : 'Failed to delete record.');
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
+    showMobileConfirm({
+      title: 'Permanent Delete Warning',
+      message: 'This upcoming expense record will be permanently deleted (not archived). Are you sure?',
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      isDestructive: true,
+      onConfirm: async () => {
+        setSubmitting(true);
+        try {
+          await deleteMut.mutateAsync({ eventId: eventToEdit.id!, eventType: 'EXPENSE' });
+          await utils.listExpenseEvents.invalidate();
+          if (onSuccess) onSuccess();
+          onClose();
+        } catch (err: unknown) {
+          setErrorMsg(err instanceof Error ? err.message : 'Failed to delete record.');
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
+  const isDirty = Boolean(name.trim() || amount.trim());
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.overlay}
-      >
-        <View style={styles.modalCard}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.title}>
-              {isQuickAdd ? t('modals.quickExpense.title') : `${t('modals.upcomingExpense.title')}: ${name || 'Expense'}`}
-            </Text>
+    <MobileModalDialog
+      visible={visible}
+      onClose={onClose}
+      isDirty={isDirty}
+      title={isQuickAdd ? t('modals.quickExpense.title') : `${t('modals.upcomingExpense.title')}: ${name || 'Expense'}`}
+      subtitle={isQuickAdd ? 'Record one-off out-of-pocket spend' : 'Review and record upcoming scheduled expense'}
+      footer={
+        <View style={styles.footerRow}>
+          {!isQuickAdd && eventToEdit?.id ? (
+            <MobileButton
+              variant="danger"
+              size="sm"
+              onPress={handleDelete}
+              disabled={submitting}
+            >
+              {t('common.delete')}
+            </MobileButton>
+          ) : null}
 
-            {errorMsg ? <Text style={styles.errorBanner}>{errorMsg}</Text> : null}
+          <View style={styles.rightActions}>
+            <MobileButton
+              variant="secondary"
+              size="sm"
+              onPress={handleSaveWithoutMarkingPaid}
+              loading={submitting}
+            >
+              {t('modals.upcomingExpense.saveWithoutPaid')}
+            </MobileButton>
 
-            {!isQuickAdd && eventToEdit?.isRecurring ? (
-              <View style={styles.seriesBanner}>
-                <Text style={styles.seriesTitle}>{t('modals.upcomingExpense.title')}</Text>
-                <Text style={styles.seriesDesc}>
-                  Editing this specific expense date or amount.
-                </Text>
-              </View>
-            ) : null}
-
-            <Text style={styles.label}>{t('modals.upcomingExpense.billName')}</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g. Electric Bill"
-            />
-
-            <View style={styles.row}>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>{t('modals.upcomingExpense.amount')}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="decimal-pad"
-                  placeholder="0.00"
-                />
-              </View>
-              <View style={styles.halfCol}>
-                <Text style={styles.label}>{t('modals.upcomingExpense.expectedDate')}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={expectedDate}
-                  onChangeText={setExpectedDate}
-                  placeholder="YYYY-MM-DD"
-                />
-              </View>
-            </View>
-
-            <Text style={styles.label}>{t('common.categoryOrAccount')}</Text>
-            <TextInput
-              style={[styles.input, !isQuickAdd && styles.readOnlyInput]}
-              value={selectedCat?.name || eventToEdit?.categoryName || 'Uncategorized'}
-              editable={isQuickAdd}
-            />
-
-            {selectedCat ? (
-              <View style={styles.infoCard}>
-                <Text style={styles.infoText}>
-                  Current Balance: <Text style={styles.bold}>{fmt(currentCatBal)}</Text>
-                </Text>
-                <Text style={styles.infoText}>
-                  Projected After: <Text style={styles.bold}>{fmt(projectedBal)}</Text>
-                </Text>
-                {isFutureDate && selectedCat.healthStatus ? (
-                  <Text style={styles.healthBadge}>Health: {formatHealthStatus(selectedCat.healthStatus)}</Text>
-                ) : null}
-              </View>
-            ) : null}
-
-            <Text style={styles.label}>{t('modals.upcomingExpense.notes')}</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={note}
-              onChangeText={setNote}
-              multiline
-              placeholder={t('fileNotes.placeholder')}
-            />
-
-            {isFutureDate ? (
-              <Text style={styles.futureGuidance}>
-                {t('modals.upcomingExpense.disclaimer')}
-              </Text>
-            ) : null}
-
-            {isNegativeWarning ? (
-              <Text style={styles.warnText}>
-                ⚠️ Payment of {fmt(numAmount)} exceeds "{selectedCat?.name}" balance. Balance will become negative ({fmt(projectedBal)}).
-              </Text>
-            ) : null}
-
-            <View style={styles.btnRow}>
-              {!isQuickAdd && eventToEdit?.id ? (
-                <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} disabled={submitting}>
-                  <Text style={styles.deleteBtnText}>🗑️ {t('common.delete')}</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-                <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleSaveWithoutMarkingPaid}
-                style={styles.saveNoPayBtn}
-                disabled={submitting}
-              >
-                <Text style={styles.saveNoPayText}>{t('modals.upcomingExpense.saveWithoutPaid')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleMarkPaid}
-                style={[styles.markPaidBtn, isFutureDate && styles.disabledBtn]}
-                disabled={submitting || isFutureDate}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.markPaidText}>{t('modals.upcomingExpense.markPaid')}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+            <MobileButton
+              variant="primary"
+              size="sm"
+              onPress={handleMarkPaid}
+              disabled={submitting || isFutureDate}
+              loading={submitting}
+            >
+              {t('modals.upcomingExpense.markPaid')}
+            </MobileButton>
+          </View>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      }
+    >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <FormErrorBanner message={errorMsg} />
+
+        {!isQuickAdd && eventToEdit?.isRecurring ? (
+          <View style={styles.seriesBanner}>
+            <Text style={styles.seriesTitle}>{t('modals.upcomingExpense.title')}</Text>
+            <Text style={styles.seriesDesc}>
+              Editing this specific expense date or amount.
+            </Text>
+          </View>
+        ) : null}
+
+        <MobileInput
+          label={t('modals.upcomingExpense.billName')}
+          required
+          value={name}
+          onChangeText={setName}
+          placeholder="e.g. Electric Bill"
+        />
+
+        <View style={styles.row}>
+          <View style={styles.halfCol}>
+            <AmountInput
+              label={t('modals.upcomingExpense.amount')}
+              required
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="0.00"
+            />
+          </View>
+          <View style={styles.halfCol}>
+            <MobileInput
+              label={t('modals.upcomingExpense.expectedDate')}
+              required
+              value={expectedDate}
+              onChangeText={setExpectedDate}
+              placeholder="YYYY-MM-DD"
+            />
+          </View>
+        </View>
+
+        <MobileInput
+          label={t('common.categoryOrAccount')}
+          value={selectedCat?.name || eventToEdit?.categoryName || 'Uncategorized'}
+          editable={false}
+        />
+
+        {selectedCat ? (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoText}>
+              Current Balance: <Text style={styles.bold}>{fmt(currentCatBal)}</Text>
+            </Text>
+            <Text style={styles.infoText}>
+              Projected After: <Text style={styles.bold}>{fmt(projectedBal)}</Text>
+            </Text>
+            {isFutureDate && selectedCat.healthStatus ? (
+              <Text style={styles.healthBadge}>Health: {formatHealthStatus(selectedCat.healthStatus)}</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        <MobileInput
+          label={t('modals.upcomingExpense.notes')}
+          value={note}
+          onChangeText={setNote}
+          multiline
+          placeholder={t('fileNotes.placeholder')}
+        />
+
+        {isFutureDate ? (
+          <Text style={styles.futureGuidance}>
+            {t('modals.upcomingExpense.disclaimer')}
+          </Text>
+        ) : null}
+
+        {isNegativeWarning ? (
+          <Text style={styles.warnText}>
+            ⚠️ Payment of {fmt(numAmount)} exceeds "{selectedCat?.name}" balance. Balance will become negative ({fmt(projectedBal)}).
+          </Text>
+        ) : null}
+      </ScrollView>
+    </MobileModalDialog>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 },
-  modalCard: { backgroundColor: '#FFF', borderRadius: 16, padding: 16, maxHeight: '90%' },
-  scrollContent: { gap: 10 },
-  title: { fontSize: 16, fontWeight: '800', color: '#1B2B4B' },
-  errorBanner: { backgroundColor: '#FEE2E2', color: '#991B1B', padding: 8, borderRadius: 8, fontSize: 12, fontWeight: 'bold' },
-  seriesBanner: { backgroundColor: '#CCFBF1', padding: 10, borderRadius: 10 },
-  seriesTitle: { fontWeight: '800', color: '#0F766E', fontSize: 12 },
-  seriesDesc: { color: '#0F766E', fontSize: 11 },
-  label: { fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase' },
-  input: { borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, padding: 10, fontSize: 13, color: '#1E293B' },
-  readOnlyInput: { backgroundColor: '#F1F5F9', color: '#64748B' },
-  textArea: { height: 60 },
+  scrollContent: { gap: 12, paddingBottom: 10 },
+  seriesBanner: { backgroundColor: '#EFF6FF', padding: 10, borderRadius: 10 },
+  seriesTitle: { fontWeight: '800', color: '#1E40AF', fontSize: 12 },
+  seriesDesc: { color: '#1E40AF', fontSize: 11 },
   row: { flexDirection: 'row', gap: 10 },
   halfCol: { flex: 1 },
   infoCard: { backgroundColor: '#F8FAFC', padding: 10, borderRadius: 10, gap: 4 },
@@ -375,14 +362,6 @@ const styles = StyleSheet.create({
   healthBadge: { fontSize: 11, fontWeight: '800', color: '#0F766E' },
   futureGuidance: { fontSize: 11, color: '#D97706', backgroundColor: '#FEF3C7', padding: 10, borderRadius: 10 },
   warnText: { fontSize: 11, color: '#B91C1C', backgroundColor: '#FEE2E2', padding: 10, borderRadius: 10, fontWeight: 'bold' },
-  btnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6, marginTop: 10, flexWrap: 'wrap' },
-  deleteBtn: { backgroundColor: '#FEE2E2', padding: 10, borderRadius: 8 },
-  deleteBtnText: { color: '#991B1B', fontWeight: 'bold', fontSize: 11 },
-  cancelBtn: { borderWidth: 1, borderColor: '#CBD5E1', padding: 10, borderRadius: 8 },
-  cancelBtnText: { color: '#475569', fontWeight: 'bold', fontSize: 11 },
-  saveNoPayBtn: { borderWidth: 1, borderColor: '#00B4A6', padding: 10, borderRadius: 8 },
-  saveNoPayText: { color: '#00B4A6', fontWeight: 'bold', fontSize: 11 },
-  markPaidBtn: { backgroundColor: '#1B2B4B', padding: 10, borderRadius: 8 },
-  disabledBtn: { backgroundColor: '#94A3B8' },
-  markPaidText: { color: '#FFF', fontWeight: '800', fontSize: 11 },
+  footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 8 },
+  rightActions: { flexDirection: 'row', gap: 8, alignItems: 'center', marginLeft: 'auto' },
 });

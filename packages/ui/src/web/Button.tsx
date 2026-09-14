@@ -3,21 +3,33 @@ import { Spinner } from './Spinner';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   loadingText?: string;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className = '', variant = 'primary', loading, loadingText, children, ...props }, ref) => {
-    let baseClass = 'ui-btn-primary';
-    if (variant === 'secondary') baseClass = 'ui-btn-secondary';
-    else if (variant === 'danger') baseClass = 'bg-rose-600 hover:bg-rose-700 text-white font-medium px-4 py-2 rounded-xl transition-colors';
-    else if (variant === 'ghost') baseClass = 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium px-4 py-2 rounded-xl transition-colors';
+  ({ className = '', variant = 'primary', size = 'md', loading, loadingText, children, ...props }, ref) => {
+    let variantClass = 'bg-[#2563eb] hover:bg-blue-700 text-white shadow-xs';
+    if (variant === 'secondary') {
+      variantClass = 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700';
+    } else if (variant === 'danger') {
+      variantClass = 'bg-[#ba1a1a] hover:bg-red-800 text-white shadow-xs';
+    } else if (variant === 'ghost') {
+      variantClass = 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300';
+    }
+
+    let sizeClass = 'px-4 py-2 text-sm rounded-xl';
+    if (size === 'sm') {
+      sizeClass = 'px-3 py-1.5 text-xs rounded-lg';
+    } else if (size === 'lg') {
+      sizeClass = 'px-5 py-2.5 text-base rounded-xl';
+    }
 
     return (
       <button
         ref={ref}
-        className={`${baseClass} ${className} relative inline-flex items-center justify-center font-bold whitespace-nowrap transition-all disabled:opacity-85 disabled:cursor-not-allowed`}
+        className={`relative inline-flex items-center justify-center font-bold whitespace-nowrap transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${variantClass} ${sizeClass} ${className}`}
         disabled={loading || props.disabled}
         {...props}
       >

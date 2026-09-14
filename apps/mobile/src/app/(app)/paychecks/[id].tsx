@@ -16,7 +16,7 @@ import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { formatAUD } from '../../../lib/format';
-import { showMobileConfirm } from '../../../components/MobileConfirmDialog';
+import { showMobileConfirm } from '@money-matters/ui/mobile';
 import { MobileBankTransferRollupCard } from '../../../components/paychecks/MobileBankTransferRollupCard';
 import { triggerHaptic } from '../../../lib/haptics';
 
@@ -297,8 +297,28 @@ export default function IncomeSplitStudioScreen() {
             </View>
 
             <View style={styles.heroIncomeWrap}>
-              <Text style={styles.heroIncomeLabel}>Total Income</Text>
-              <Text style={styles.heroIncomeAmount}>{formatAUD(totalIncome)}</Text>
+              <Text style={styles.heroIncomeLabel}>
+                {t('payday.actualAmountReceived') || 'Actual Amount'}
+              </Text>
+              {isConfirmedPlan ? (
+                <Text style={styles.heroIncomeAmount}>{formatAUD(totalIncome)}</Text>
+              ) : (
+                <View style={styles.heroIncomeInputWrap}>
+                  <Text style={styles.heroIncomeCurrency}>$</Text>
+                  <TextInput
+                    style={styles.heroIncomeInput}
+                    keyboardType="decimal-pad"
+                    value={actualAmount}
+                    onChangeText={(val) => {
+                      if (val === '' || /^\d{0,12}(\.\d{0,2})?$/.test(val)) {
+                        setActualAmount(val);
+                      }
+                    }}
+                    placeholder="0.00"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+              )}
             </View>
           </View>
 
@@ -557,6 +577,32 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontFamily: 'monospace',
     color: '#2563eb',
+  },
+  heroIncomeInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    marginTop: 2,
+    minWidth: 120,
+  },
+  heroIncomeCurrency: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#2563eb',
+    marginRight: 4,
+  },
+  heroIncomeInput: {
+    fontSize: 18,
+    fontWeight: '900',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+    paddingVertical: 4,
+    textAlign: 'right',
+    flex: 1,
   },
   recalcBtn: {
     flexDirection: 'row',

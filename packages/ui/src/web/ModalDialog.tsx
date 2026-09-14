@@ -1,8 +1,11 @@
-"use client";
-import React, { useEffect, useState, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { t } from "@money-matters/i18n";
-import { Button, useModalDismiss } from "@money-matters/ui/web";
+'use client';
+
+import React, { useEffect, useState, useCallback, useId } from 'react';
+import { createPortal } from 'react-dom';
+import { X, AlertTriangle } from 'lucide-react';
+import { t } from '@money-matters/i18n';
+import { Button } from './Button';
+import { useModalDismiss } from './modalStack';
 
 export interface ModalDialogProps {
   isOpen: boolean;
@@ -25,13 +28,13 @@ export function ModalDialog({
   onSave,
   children,
   maxWidthClass,
-  maxWidth = "max-w-lg",
+  maxWidth = 'max-w-lg',
 }: ModalDialogProps) {
   const [mounted, setMounted] = useState(false);
   const effectiveMaxWidth = maxWidthClass || maxWidth;
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const titleId = React.useId();
+  const titleId = useId();
 
   useEffect(() => {
     setMounted(true);
@@ -73,11 +76,22 @@ export function ModalDialog({
     isBlocked: saving,
   });
 
+  useModalDismiss({
+    id: `modal-confirm-${titleId}`,
+    isOpen: showConfirm,
+    onDismiss: () => setShowConfirm(false),
+    isBlocked: saving,
+  });
 
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity"
@@ -91,17 +105,19 @@ export function ModalDialog({
         {/* Header */}
         <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between gap-4">
           <div>
-            <h3 id={titleId} className="text-base font-extrabold text-[#1B2B4B]">{title}</h3>
+            <h3 id={titleId} className="text-base font-extrabold text-[#1B2B4B]">
+              {title}
+            </h3>
             {subtitle && <p className="text-xs text-zinc-400 font-medium">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={handleRequestClose}
             aria-label="Close modal dialog"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors font-bold text-sm"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
             title="Close (Esc)"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -109,44 +125,55 @@ export function ModalDialog({
         <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
 
-      {/* Unsaved Changes Confirmation Modal */}
+      {/* Unsaved Changes Confirmation Dialog */}
       {showConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-zinc-200 flex flex-col gap-4 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-2xl mx-auto font-bold border border-amber-200">
-              ⚠️
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto border border-amber-200">
+              <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-base font-extrabold text-[#1B2B4B]">{t("modals.unsavedChanges.title", { defaultValue: "Unsaved Changes" })}</h4>
+              <h4 className="text-base font-extrabold text-[#1B2B4B]">
+                {t('modals.unsavedChanges.title', { defaultValue: 'Unsaved Changes' })}
+              </h4>
               <p className="text-xs text-zinc-500 mt-1 font-medium">
-                {t("modals.unsavedChanges.description", { defaultValue: "You have unsaved changes in this form. Would you like to save them before leaving?" })}
+                {t('modals.unsavedChanges.description', {
+                  defaultValue: 'You have unsaved changes in this form. Would you like to save them before leaving?',
+                })}
               </p>
             </div>
             <div className="flex flex-col gap-2 mt-2">
               {onSave && (
                 <Button
                   type="button"
+                  variant="primary"
                   onClick={handleConfirmSave}
                   loading={saving}
-                  className="w-full py-2.5"
+                  className="w-full"
                 >
-                  {t("common.save", { defaultValue: "Save Changes" })}
+                  {t('common.save', { defaultValue: 'Save Changes' })}
                 </Button>
               )}
-              <button
+              <Button
                 type="button"
+                variant="danger"
                 onClick={handleConfirmDiscard}
-                className="w-full py-2.5 rounded-xl font-bold text-xs text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all"
+                className="w-full"
               >
-                {t("modals.unsavedChanges.discard", { defaultValue: "Discard Changes" })}
-              </button>
-              <button
+                {t('modals.unsavedChanges.discard', { defaultValue: 'Discard Changes' })}
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setShowConfirm(false)}
-                className="w-full py-2 rounded-xl font-bold text-xs text-zinc-500 hover:text-zinc-800 transition-all"
+                className="w-full"
               >
-                {t("modals.unsavedChanges.keepEditing", { defaultValue: "Keep Editing" })}
-              </button>
+                {t('modals.unsavedChanges.keepEditing', { defaultValue: 'Keep Editing' })}
+              </Button>
             </div>
           </div>
         </div>
@@ -155,3 +182,5 @@ export function ModalDialog({
     document.body
   );
 }
+
+export default ModalDialog;

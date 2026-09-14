@@ -1,6 +1,6 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
-import { SlideOverDrawer, PoolPicker, InfoTooltip, ConfirmDialog, Button, AmountField } from "@money-matters/ui/web";
+import { SlideOverDrawer, PoolPicker, InfoTooltip, ConfirmDialog, Button, AmountField, FormErrorBanner, FormLabel } from "@money-matters/ui/web";
 import { useQuickActionState } from "./quick/useQuickActionState";
 import { QuickPickBadges } from "./quick/QuickPickBadges";
 import { CrossBankTransferModal } from "./CrossBankTransferModal";
@@ -123,18 +123,14 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 onSelect={handleSelectPreset}
               />
 
-              {error && (
-                <div className="text-xs font-bold p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
-                  {error}
-                </div>
-              )}
+              <FormErrorBanner message={error} />
 
               {isTransfer ? (
                 <>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                    <FormLabel required>
                       {t("drawers.quickExpense.transferName", { defaultValue: "Transfer Name" })}
-                    </label>
+                    </FormLabel>
                     <input
                       type="text"
                       required
@@ -146,9 +142,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-                      From Pool (Source)
-                    </label>
+                    <FormLabel required>From Pool (Source)</FormLabel>
                     <PoolPicker
                       pools={categories.map((p) => ({
                         id: p.id,
@@ -166,9 +160,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-                      To Pool (Destination)
-                    </label>
+                    <FormLabel required>To Pool (Destination)</FormLabel>
                     <PoolPicker
                       pools={categories.map((p) => ({
                         id: p.id,
@@ -188,9 +180,9 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
               ) : (
                 <>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                    <FormLabel required>
                       {isIncome ? "Income Source / Description" : "Expense Name / Merchant"}
-                    </label>
+                    </FormLabel>
                     <input
                       type="text"
                       required
@@ -203,9 +195,9 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
 
                   {!isIncome && (
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                      <FormLabel required>
                         {t("drawers.quickExpense.category", { defaultValue: "Pool" })}
-                      </label>
+                      </FormLabel>
                       <PoolPicker
                         pools={categories.map((p) => ({
                           id: p.id,
@@ -230,9 +222,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
 
                   {isIncome && bankAccounts.length > 0 && (
                     <div className="flex flex-col gap-1">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-                        Bank Account (Optional)
-                      </label>
+                      <FormLabel>Bank Account (Optional)</FormLabel>
                       <select
                         value={receivingAccountId}
                         onChange={(e) => setReceivingAccountId(e.target.value)}
@@ -259,9 +249,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 />
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
-                    Date
-                  </label>
+                  <FormLabel required>Date</FormLabel>
                   <input
                     type="date"
                     required
@@ -274,13 +262,13 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={onClose}
-                  className="px-4 py-2.5 text-xs font-bold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all"
                 >
                   {t("common.cancel", { defaultValue: "Cancel" })}
-                </button>
+                </Button>
                 {isIncome && (
                   <button
                     type="button"

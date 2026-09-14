@@ -8,17 +8,26 @@ import { formatAUD } from '../lib/format';
 
 export interface AttentionItem {
   readonly id: string;
+  readonly type?: 'EXPENSE' | 'TRANSFER';
   readonly name: string;
   readonly expectedAmount: number;
   readonly expectedDate: string;
-  readonly categoryId: string | null;
+  readonly categoryId?: string | null;
   readonly isOverdue: boolean;
-  readonly categoryBalance: number;
+  readonly categoryBalance?: number;
+  readonly sourcePoolId?: string | null;
+  readonly sourcePoolName?: string | null;
+  readonly destinationPoolId?: string | null;
+  readonly destinationPoolName?: string | null;
 }
 
 export interface AttentionItemsListProps {
   readonly items: readonly AttentionItem[];
   readonly onMarkPaid: (item: AttentionItem) => void;
+  readonly onSkipExpense?: (item: AttentionItem) => void;
+  readonly onExecuteTransfer?: (item: AttentionItem) => void;
+  readonly onDeleteTransfer?: (item: AttentionItem) => void;
+  readonly onTopUpShortfall?: (item: AttentionItem) => void;
   readonly hasMissingSchedules?: boolean;
   readonly needsBankReconciliation?: boolean;
 }
@@ -26,11 +35,14 @@ export interface AttentionItemsListProps {
 export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
   items,
   onMarkPaid,
+  onSkipExpense,
+  onExecuteTransfer,
+  onDeleteTransfer,
+  onTopUpShortfall,
   hasMissingSchedules,
   needsBankReconciliation,
 }) => {
   const router = useRouter();
-  const D = DESIGN_TOKENS;
 
   if (
     (!items || items.length === 0) &&
@@ -84,7 +96,7 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
         </TouchableOpacity>
       )}
 
-      {/* Overdue and Approaching Bills */}
+      {/* Overdue and Approaching Bills & Transfers */}
       {items && items.length > 0 && (
         <View style={styles.container}>
           <View style={styles.header}>
@@ -97,8 +109,64 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
           </View>
 
           {items.map((item) => {
-            const shortfall = item.expectedAmount - item.categoryBalance;
+            const isTransfer = item.type === 'TRANSFER';
+            const catBal = item.categoryBalance ?? 0;
+            const shortfall = item.expectedAmount - catBal;
             const isFunded = shortfall <= 0;
+
+            if (isTransfer) {
+              return (
+                <View key={item.id} style={styles.itemRow}>
+                  <View style={styles.itemLeft}>
+                    <View style={styles.transferTitleRow}>
+                      <Feather name="repeat" size={13} color="#2563eb" />
+                      <Text style={styles.itemName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                    </View>
+                    <View style={styles.statusRow}>
+                      <Text
+                        style={[
+                          styles.badge,
+                          item.isOverdue ? styles.overdueBadge : styles.dueSoonBadge,
+                        ]}
+                      >
+                        {item.isOverdue ? 'Overdue' : `Due ${item.expectedDate}`}
+                      </Text>
+                      <Text style={styles.transferRouteText} numberOfLines={1}>
+                        {item.sourcePoolName || 'Source'} ➔ {item.destinationPoolName || 'Dest'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.itemRight}>
+                    <Text style={styles.amount}>
+                      {formatAUD(item.expectedAmount)}
+                    </Text>
+                    <View style={styles.actionButtonsRow}>
+                      {onDeleteTransfer && (
+                        <TouchableOpacity
+                          style={styles.skipBtn}
+                          onPress={() => onDeleteTransfer(item)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.skipBtnText}>Skip</Text>
+                        </TouchableOpacity>
+                      )}
+                      {onExecuteTransfer && (
+                        <TouchableOpacity
+                          style={styles.payBtn}
+                          onPress={() => onExecuteTransfer(item)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.payBtnText}>Execute</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              );
+            }
 
             return (
               <View key={item.id} style={styles.itemRow}>
@@ -116,9 +184,14 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
                     {isFunded ? (
                       <Text style={styles.fundedText}>Category funded ✓</Text>
                     ) : (
-                      <Text style={styles.shortText}>
-                        Short by {formatAUD(shortfall)} ⚠️
-                      </Text>
+                      <TouchableOpacity
+                        onPress={() => onTopUpShortfall?.(item)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.shortText}>
+                          Short by {formatAUD(shortfall)} ⚠️ (Top up)
+                        </Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>
@@ -127,13 +200,24 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
                   <Text style={styles.amount}>
                     {formatAUD(item.expectedAmount)}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.payBtn}
-                    onPress={() => onMarkPaid(item)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.payBtnText}>Mark Paid</Text>
-                  </TouchableOpacity>
+                  <View style={styles.actionButtonsRow}>
+                    {onSkipExpense && (
+                      <TouchableOpacity
+                        style={styles.skipBtn}
+                        onPress={() => onSkipExpense(item)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.skipBtnText}>Skip</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={styles.payBtn}
+                      onPress={() => onMarkPaid(item)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.payBtnText}>Mark Paid</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             );
@@ -230,6 +314,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1B2B4B',
   },
+  transferTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  transferRouteText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2563eb',
+    flexShrink: 1,
+  },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,6 +366,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontFamily: 'monospace',
     color: '#1B2B4B',
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  skipBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  skipBtnText: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '700',
   },
   payBtn: {
     backgroundColor: '#2563eb',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 
@@ -14,36 +15,31 @@ export function LeaveHouseholdCard({ onLeft }: LeaveHouseholdCardProps) {
 
   const handleLeaveHousehold = () => {
     if (leaveConfirmText.trim().toUpperCase() !== 'LEAVE HOUSEHOLD') {
-      Alert.alert('Confirmation Required', 'Type LEAVE HOUSEHOLD to confirm.');
       return;
     }
 
-    Alert.alert(
-      t('privacy.leaveHouseholdTitle'),
-      'Are you sure you want to leave this household?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Leave Household',
-          style: 'destructive',
-          onPress: async () => {
-            setIsSubmitting(true);
-            try {
-              await leaveHouseholdMutation.mutateAsync();
-              Alert.alert(
-                'Household Left',
-                t('privacy.leftHouseholdSuccess'),
-                [{ text: 'OK', onPress: onLeft }]
-              );
-            } catch (err) {
-              Alert.alert('Leave Error', err instanceof Error ? err.message : 'Leaving household failed.');
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
+    showMobileConfirm({
+      title: t('privacy.leaveHouseholdTitle'),
+      message: 'Are you sure you want to leave this household?',
+      confirmLabel: 'Leave Household',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      onConfirm: async () => {
+        setIsSubmitting(true);
+        try {
+          await leaveHouseholdMutation.mutateAsync();
+          Alert.alert(
+            'Household Left',
+            t('privacy.leftHouseholdSuccess'),
+            [{ text: 'OK', onPress: onLeft }]
+          );
+        } catch (err) {
+          Alert.alert('Leave Error', err instanceof Error ? err.message : 'Leaving household failed.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
+    });
   };
 
   return (

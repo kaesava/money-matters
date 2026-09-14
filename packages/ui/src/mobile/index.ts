@@ -35,3 +35,16 @@ export * from './fields/RecurrenceBuilder';
 export * from '../hooks/useRecurrenceBuilder';
 export * from '../utils/formatDate';
 export { fmtDateTime } from '../lib/format';
+
+export { default as FormLabel, FormLabel as MobileFormLabel } from './FormLabel';
+export type { FormLabelProps as MobileFormLabelProps } from './FormLabel';
+export { default as FormFieldError, FormFieldError as MobileFormFieldError } from './FormFieldError';
+export type { FormFieldErrorProps as MobileFormFieldErrorProps } from './FormFieldError';
+export { default as FormErrorBanner, FormErrorBanner as MobileFormErrorBanner } from './FormErrorBanner';
+export type { FormErrorBannerProps as MobileFormErrorBannerProps } from './FormErrorBanner';
+export { default as AmountInput, AmountInput as MobileAmountInput } from './AmountInput';
+export type { AmountInputProps as MobileAmountInputProps } from './AmountInput';
+export { default as ChipSelect, ChipSelect as MobileChipSelect } from './ChipSelect';
+export type { ChipSelectProps as MobileChipSelectProps, ChipOption } from './ChipSelect';
+export { default as showMobileConfirm, showMobileConfirm as showConfirm } from './MobileConfirmDialog';
+export type { MobileConfirmOptions } from './MobileConfirmDialog';

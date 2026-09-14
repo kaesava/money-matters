@@ -1,7 +1,27 @@
-Do another sweep of the code and ensure that every data capture/presentation follows expectations, every tooltip presentation is contingent on the flag, locale settings are correctly captured and used (country, language, date formats, etc.) - sope: mobile + web app
+
+#######
+
+## Subscriptions
+* How do I select between the different plans to offer (for example, whether ot offer the Annual special $69 or leave the default annual at $89)? Should I do it via a configuration file or environment variable, etc.? What is best practice?
+* How flexible is the UI in adapting to what I select?
+* Even though I chose the annual subscription ($69), and clicked on "Claim $69/yr Special Rate" (change the button label to something more user-friendly), it took me to the Stripe page with $9.95/month. Ensure that Monthly ($9.95), Annual ($89) and Annual Special ($69) are correctly selected in the Stripe page
+
+## Everyday accounts
+* I feel like we should not track Everyday balance - because this will require the user to enter every spend, which goes against the reason for the app. Instead, we perhaps assume a constant daily spend against everyday categories (when calculating Can I Afford, Waterfall for Income Split, etc.)? Think critically about how best to represent remaining budget. Consider the bank reconciliation functionality. Consider how we display this in the Home Screen, Pools, Pool Picker, etc. Think about edge cases.
 
 
-Now that you've done all this research, how do you store this in a way that makes future searches/code sweeps quick and efficient? How do we make sure it is maintained? Is there value in maintaining it (from a token usage point of view)? Should we add a note to AGENTS.md so any future agent coding can reference this? How can this be further improved/extended?
+####### CONSISTENT UI - In Progress
+
+Ensure UI is consistent across the web app.
+Ensure UI is consistent across the mobile app.
+I'm looking for
+Minimum overriding, maximum "set once and re-use" - for example, input field formats (currency, dates, numbers, etc.), marking mandatory fields, drop-down conventions, buttons & behaviour, hyperlnks & behavious, tables & behaviour (like sorting, searching, pagination), loading animation (across tables, screens, data), error messages (colour, placement, etc.) on submission vs. bad input, warnings & dialogs, drawers and behaviours, nested modals and behariour, colours, themes, text consistecy (font, capitilisations, font size, colour), etc.
+I expect significant code size reduction because of aggressive re-use (which also protects from future builds where conventions automatically apply)
+
+######## MOBILE APP PARITY - In Progres
+
+Ensure mobile app functionality (across every CRUD operation, flow, UX (like sort, search, links, input fields, etc.) across every screen, modal, dialog, popup, table, etc.) is in party with the web app. Be critical. Identify functional gaps. Effectively, every single thing I can do on the web app, I can also do on the mobile app (focus on Android for now) - and I mean everything, big or small!
+
 
 
 

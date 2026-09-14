@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, AmountField, PoolPicker } from "@money-matters/ui/web";
-import { ModalDialog } from "./ModalDialog";
+import { useToast, RecurrenceBuilder, useRecurrenceBuilder, ConfirmDialog, Button, AmountField, PoolPicker, ModalDialog, Input, GenericSelectField, FormErrorBanner } from "@money-matters/ui/web";
 
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
@@ -374,25 +373,16 @@ export default function IncomeExpenseFormModal({
         maxWidth="max-w-md"
       >
         <div className="space-y-4 pt-2 text-xs font-medium text-zinc-700">
-          {errorMsg && (
-            <div className="p-3 bg-red-50 text-red-700 font-bold rounded-xl border border-red-200">
-              {errorMsg}
-            </div>
-          )}
+          <FormErrorBanner message={errorMsg} />
 
-          <div>
-            <label className="block font-bold text-[#1B2B4B] mb-1">
-              {mode === "INCOME" ? "Income Name" : "Expense Name"} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={mode === "INCOME" ? "e.g. Salary, Client Retainer" : "e.g. Rent, Netflix, Energy"}
-              className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-            />
-          </div>
+          <Input
+            label={mode === "INCOME" ? t("incomeAndBills.incomeSchedule", { defaultValue: "Income Name" }) : t("incomeAndBills.billSchedule", { defaultValue: "Expense Name" })}
+            required
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={mode === "INCOME" ? "e.g. Salary, Client Retainer" : "e.g. Rent, Netflix, Energy"}
+          />
 
           <AmountField
             label={`Expected Amount (${currencySymbol})`}
@@ -405,25 +395,16 @@ export default function IncomeExpenseFormModal({
           />
 
           {mode === "INCOME" && (
-            <div>
-              <label className="block font-bold text-[#1B2B4B] mb-1">
-                {t("modals.incomeExpenseForm.receivingBankAccount", { defaultValue: "Receiving Bank Account" })}
-              </label>
-              <select
-                value={receivingAccountId}
-                onChange={(e) => setReceivingAccountId(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-xl text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-              >
-                <option value="">
-                  {t("modals.incomeExpenseForm.defaultMainAccount", { defaultValue: "Default Main Account" })}
-                </option>
-                {bankAccounts.map((acct) => (
-                  <option key={acct.id} value={acct.id}>
-                    {acct.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <GenericSelectField
+              label={t("modals.incomeExpenseForm.receivingBankAccount", { defaultValue: "Receiving Bank Account" })}
+              value={receivingAccountId}
+              onChange={setReceivingAccountId}
+              placeholder={t("modals.incomeExpenseForm.defaultMainAccount", { defaultValue: "Default Main Account" })}
+              options={bankAccounts.map((acct) => ({
+                value: acct.id,
+                label: acct.name,
+              }))}
+            />
           )}
 
           {mode === "EXPENSE" && (
@@ -463,20 +444,23 @@ export default function IncomeExpenseFormModal({
             )}
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50 transition-colors"
-              >
-                {t("common.cancel", { defaultValue: "Cancel" })}
-              </button>
               <Button
                 type="button"
+                variant="secondary"
+                size="sm"
+                onClick={onClose}
+              >
+                {t("common.cancel", { defaultValue: "Cancel" })}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
                 onClick={handleSave}
                 loading={submitting || archiving}
                 disabled={!isDirty || !isValid || submitting || archiving}
               >
-                {isEdit ? "Update" : "Create"}
+                {isEdit ? t("common.update", { defaultValue: "Update" }) : t("common.create", { defaultValue: "Create" })}
               </Button>
             </div>
           </div>

@@ -9,6 +9,7 @@ export interface BentoPoolsSectionProps {
   readonly everydayMonthlyBudget?: number;
   readonly billsBalance: number;
   readonly billsMonthlyBudget?: number;
+  readonly daysUntilPayday?: number;
   
   // Integrated Shortfall Alert Props
   readonly billsShortfall: number;
@@ -16,6 +17,7 @@ export interface BentoPoolsSectionProps {
   readonly totalBillsDue14Days: number;
 
   readonly onMoveMoney: () => void;
+  readonly onReconcile?: () => void;
   readonly formatAUD?: (val: number | string) => string;
 }
 
@@ -24,10 +26,12 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   everydayMonthlyBudget = 0,
   billsBalance,
   billsMonthlyBudget = 0,
+  daysUntilPayday,
   billsShortfall,
   billsDue14DaysCount,
   totalBillsDue14Days,
   onMoveMoney,
+  onReconcile,
   formatAUD,
 }) => {
   const { fmt } = useLocale();
@@ -37,13 +41,16 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
   const month = today.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const currentDay = today.getDate();
-  const elapsedPct = (currentDay / daysInMonth) * 100;
 
-  // Everyday pacing calculation
-  const everydaySpentPct = everydayMonthlyBudget > 0 
-    ? Math.min(100, Math.max(0, ((everydayMonthlyBudget - everydayBalance) / everydayMonthlyBudget) * 100))
-    : 0;
-  const isEverydayPacingOk = everydaySpentPct <= elapsedPct;
+  const effectiveDays = daysUntilPayday !== undefined && daysUntilPayday > 0
+    ? daysUntilPayday
+    : Math.max(1, daysInMonth - currentDay);
+
+  const dailySpendable = Math.max(0, everydayBalance / effectiveDays);
+  const targetDailyBudget = everydayMonthlyBudget > 0 ? (everydayMonthlyBudget * 12) / 365 : 0;
+
+  const isBillsRisk = billsShortfall > 0;
+  const isPacingTight = !isBillsRisk && targetDailyBudget > 0 && dailySpendable < targetDailyBudget * 0.8;
 
   return (
     <div className="space-y-4">
@@ -53,37 +60,65 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-[11px] font-extrabold uppercase tracking-widest text-gray-500">
-                {t('dashboard.hero.everydayBalance') || 'Everyday Spending Pool'}
+                {t('dashboard.hero.everydayDailyRateLabel') || 'Daily Spendable'}
               </span>
+              {isBillsRisk ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                  {t('dashboard.hero.atRisk') || 'Bills at Risk'}
+                </span>
+              ) : isPacingTight ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  {t('dashboard.hero.pacingTightenedBadge') || 'Pace Tightened'}
+                </span>
+              ) : (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  {t('dashboard.hero.trackingOnTrack') || 'On Track ✓'}
+                </span>
+              )}
             </div>
 
             <div>
-              <div className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
-                {format(everydayBalance)}
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-extrabold font-mono tabular-nums tracking-tight text-[#1B2B4B] dark:text-zinc-100">
+                  {format(dailySpendable)}
+                </span>
+                <span className="text-xs font-sans font-bold text-gray-400">/ day</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Discretionary spending balance
+              <p className="text-xs text-gray-500 mt-1 font-medium">
+                {daysUntilPayday !== undefined && daysUntilPayday <= 0
+                  ? t('dashboard.hero.everydayPacingDaysLeftToday', { amount: format(everydayBalance) })
+                  : t('dashboard.hero.everydayPacingDaysLeft', { amount: format(everydayBalance), days: effectiveDays })}
               </p>
             </div>
           </div>
 
-          {/* Pacing Bar */}
-          <div className="space-y-1.5 pt-4 mt-auto border-t border-gray-100 dark:border-zinc-800">
+          {/* Pacing Bar & Quick Reconcile */}
+          <div className="space-y-2 pt-4 mt-auto border-t border-gray-100 dark:border-zinc-800">
             <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-              <span>Monthly Budget: {format(everydayMonthlyBudget)}</span>
-              <span>{Math.round(everydaySpentPct)}% spent</span>
+              <span>{t('dashboard.hero.everydayAllowanceCycle', { amount: format(everydayMonthlyBudget) })}</span>
+              {onReconcile ? (
+                <button
+                  type="button"
+                  onClick={onReconcile}
+                  className="text-[#2563eb] hover:text-blue-700 font-extrabold cursor-pointer normal-case"
+                >
+                  {t('dashboard.hero.reconcileQuickAction') || 'Update Balance'} →
+                </button>
+              ) : (
+                <a
+                  href="/dashboard/bank-accounts"
+                  className="text-[#2563eb] hover:text-blue-700 font-extrabold cursor-pointer normal-case"
+                >
+                  {t('dashboard.hero.reconcileQuickAction') || 'Update Balance'} →
+                </a>
+              )}
             </div>
             <div className="relative h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-visible">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
-                  isEverydayPacingOk ? 'bg-emerald-500' : 'bg-rose-500'
+                  isBillsRisk ? 'bg-rose-500' : isPacingTight ? 'bg-amber-500' : 'bg-emerald-500'
                 }`}
-                style={{ width: `${everydaySpentPct}%` }}
-              />
-              <div
-                className="absolute top-1/2 -translate-y-1/2 w-1.5 h-3.5 bg-blue-600 rounded-full shadow-2xs pointer-events-none"
-                style={{ left: `${elapsedPct}%` }}
-                title="Today"
+                style={{ width: `${Math.min(100, Math.max(5, (dailySpendable / (targetDailyBudget || 1)) * 100))}%` }}
               />
             </div>
           </div>

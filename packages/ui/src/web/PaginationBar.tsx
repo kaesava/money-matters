@@ -22,7 +22,7 @@ export function PaginationBar({
   onPageChange,
   onPageSizeChange,
 }: PaginationBarProps) {
-  if (totalItems === 0) return null;
+  if (totalItems < 5) return null;
 
   const startItem = Math.min((page - 1) * pageSize + 1, totalItems);
   const endItem = Math.min(page * pageSize, totalItems);
@@ -43,7 +43,7 @@ export function PaginationBar({
             id="page-size-select"
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="px-2.5 py-1 rounded-xl border border-zinc-200 bg-zinc-50 font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+            className="px-2.5 py-1 rounded-xl border border-zinc-200 bg-zinc-50 font-bold text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 cursor-pointer"
           >
             {pageSizeOptions.map((opt) => (
               <option key={opt} value={opt}>

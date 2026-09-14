@@ -45,5 +45,10 @@ export const DESIGN_TOKENS = {
     stackGap: 12,
     cardPadding: 16,
     sectionGap: 24
+  },
+  fonts: {
+    heading: "Serene Finance",
+    body: "Inter",
+    mono: "JetBrains Mono, monospace"
   }
 } as const;

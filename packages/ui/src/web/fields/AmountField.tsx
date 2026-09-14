@@ -1,7 +1,7 @@
-'use client';
-
 import React, { useId, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { FormLabel } from '../FormLabel';
+import { FormFieldError } from '../FormFieldError';
 
 export interface AmountFieldProps {
   /** Controlled string value — keep as empty string when blank */
@@ -180,13 +180,9 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
     return (
       <div className={`w-full ${containerClassName}`}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className={`ui-label ${labelClassName}`}
-          >
+          <FormLabel htmlFor={inputId} required={required} className={labelClassName}>
             {label}
-            {required && <span className="text-rose-500 ml-0.5">*</span>}
-          </label>
+          </FormLabel>
         )}
 
         <div className="relative flex items-center">
@@ -250,11 +246,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
           </div>
         </div>
 
-        {error && (
-          <p className="mt-1 text-xs font-semibold text-rose-600 animate-in fade-in slide-in-from-top-1">
-            {error}
-          </p>
-        )}
+        <FormFieldError error={error} />
       </div>
     );
   }

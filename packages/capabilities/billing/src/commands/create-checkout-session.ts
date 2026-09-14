@@ -19,11 +19,11 @@ export async function createCheckoutSessionCommand(
   // Resolve target price ID from input or environment variables
   let targetPriceId = input.priceId;
 
-  if (input.planType === "monthly" || (!targetPriceId && env.STRIPE_PRICE_MONTHLY)) {
+  if (input.planType === "monthly") {
     targetPriceId = env.STRIPE_PRICE_MONTHLY || process.env.STRIPE_PRICE_MONTHLY || targetPriceId;
-  } else if (input.planType === "founding" || (!targetPriceId && env.STRIPE_PRICE_FOUNDING_ANNUAL)) {
+  } else if (input.planType === "founding") {
     targetPriceId = env.STRIPE_PRICE_FOUNDING_ANNUAL || process.env.STRIPE_PRICE_FOUNDING_ANNUAL || targetPriceId;
-  } else if (input.planType === "annual" || (!targetPriceId && env.STRIPE_PRICE_ANNUAL)) {
+  } else if (input.planType === "annual") {
     targetPriceId = env.STRIPE_PRICE_ANNUAL || process.env.STRIPE_PRICE_ANNUAL || targetPriceId;
   }
 

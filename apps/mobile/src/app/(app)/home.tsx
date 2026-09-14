@@ -24,7 +24,7 @@ import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
 import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpenseModal';
 import { MoveMoneyModal } from '../../components/MoveMoneyModal';
-import { PaydayPreviewWizard } from '../../components/PaydayPreviewWizard';
+import { showMobileConfirm } from '@money-matters/ui/mobile';
 
 import { triggerHaptic } from '../../lib/haptics';
 
@@ -41,7 +41,6 @@ export default function HomeScreen() {
   const [quickModalVisible, setQuickModalVisible] = useState(false);
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
-  const [paydayWizardEventId, setPaydayWizardEventId] = useState<string | null>(null);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({
@@ -52,10 +51,38 @@ export default function HomeScreen() {
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
+  const transferEventsQuery = trpc.listTransferEvents.useQuery();
   const billCoverageQuery = trpc.listBillCoverage.useQuery();
 
   const pools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];
+
+  const executeTransferMutation = trpc.executeTransferEvent.useMutation({
+    onSuccess: () => {
+      transferEventsQuery.refetch();
+      poolsQuery.refetch();
+      utils.listTransactions.invalidate();
+    },
+  });
+
+  const deleteTransferMutation = trpc.deleteTransferEvent.useMutation({
+    onSuccess: () => {
+      transferEventsQuery.refetch();
+    },
+  });
+
+  const deleteExpenseMutation = trpc.deleteExpenseEvent.useMutation({
+    onSuccess: () => {
+      expenseEventsQuery.refetch();
+      poolsQuery.refetch();
+    },
+  });
+
+  const deleteIncomeMutation = trpc.deleteIncomeEvent.useMutation({
+    onSuccess: () => {
+      incomeEventsQuery.refetch();
+    },
+  });
 
   // Redirect to setup if no pools exist
   React.useEffect(() => {
@@ -73,6 +100,7 @@ export default function HomeScreen() {
       bankAccountsQuery.refetch(),
       incomeEventsQuery.refetch(),
       expenseEventsQuery.refetch(),
+      transferEventsQuery.refetch(),
       billCoverageQuery.refetch(),
     ]);
     setRefreshing(false);
@@ -108,7 +136,7 @@ export default function HomeScreen() {
   const threeDaysLater = new Date(todayObj);
   threeDaysLater.setDate(threeDaysLater.getDate() + 3);
 
-  const attentionItems: AttentionItem[] = (expenseEventsQuery.data ?? [])
+  const expenseAttentionItems: AttentionItem[] = (expenseEventsQuery.data ?? [])
     .filter((e) => e.status === 'PENDING')
     .filter((e) => new Date(e.expectedDate) <= threeDaysLater)
     .map((e) => {
@@ -121,6 +149,7 @@ export default function HomeScreen() {
       const isOverdue = new Date(e.expectedDate) < todayObj;
       return {
         id: e.id,
+        type: 'EXPENSE' as const,
         name: e.name,
         expectedAmount: parseFloat(e.expectedAmount),
         expectedDate: e.expectedDate,
@@ -129,6 +158,33 @@ export default function HomeScreen() {
         categoryBalance: poolBal,
       };
     });
+
+  const transferAttentionItems: AttentionItem[] = (transferEventsQuery.data ?? [])
+    .filter((e) => e.status === 'PENDING')
+    .map((e) => {
+      const srcPool = pools.find((p) => p.id === e.sourcePoolId);
+      const destPool = pools.find((p) => p.id === e.destinationPoolId);
+      const isOverdue = new Date(e.expectedDate) < todayObj;
+      return {
+        id: e.id,
+        type: 'TRANSFER' as const,
+        name: e.name || `Transfer: ${srcPool?.name ?? 'Source'} ➔ ${destPool?.name ?? 'Destination'}`,
+        expectedAmount: parseFloat(e.expectedAmount),
+        expectedDate: e.expectedDate,
+        sourcePoolId: e.sourcePoolId,
+        sourcePoolName: srcPool?.name ?? e.sourcePoolName ?? 'Source',
+        destinationPoolId: e.destinationPoolId,
+        destinationPoolName: destPool?.name ?? e.destinationPoolName ?? 'Destination',
+        isOverdue,
+        categoryBalance: 0,
+      };
+    });
+
+  const attentionItems: AttentionItem[] = [...expenseAttentionItems, ...transferAttentionItems].sort((a, b) => {
+    if (a.isOverdue && !b.isOverdue) return -1;
+    if (!a.isOverdue && b.isOverdue) return 1;
+    return new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
+  });
 
   const hasMissingSchedules = pools.some(
     (p) =>
@@ -142,6 +198,36 @@ export default function HomeScreen() {
   const billsShortfall = Math.max(0, upcomingBillsTotal - billsPoolBalance);
 
   const goalsList = pools.filter((p) => p.poolType === 'GOAL');
+  const everydayPool = pools.find((p) => p.poolType === 'EVERYDAY');
+  const billsPool = pools.find((p) => p.poolType === 'REGULAR');
+
+  const handleSkipExpense = (item: AttentionItem) => {
+    showMobileConfirm({
+      title: 'Skip Expense',
+      message: `Are you sure you want to skip "${item.name}"?`,
+      confirmText: 'Skip',
+      onConfirm: () => deleteExpenseMutation.mutate({ eventId: item.id }),
+    });
+  };
+
+  const handleDeleteTransfer = (item: AttentionItem) => {
+    showMobileConfirm({
+      title: 'Delete Scheduled Transfer',
+      message: `Are you sure you want to delete this scheduled transfer?`,
+      confirmText: 'Delete',
+      onConfirm: () => deleteTransferMutation.mutate({ eventId: item.id }),
+    });
+  };
+
+  const handleExecuteTransfer = (item: AttentionItem) => {
+    executeTransferMutation.mutate({
+      eventId: item.id,
+      name: item.name,
+      amount: item.expectedAmount.toFixed(2),
+      sourcePoolId: item.sourcePoolId || undefined,
+      destinationPoolId: item.destinationPoolId || undefined,
+    });
+  };
 
   return (
     <MobileScreenWrapper
@@ -208,7 +294,8 @@ export default function HomeScreen() {
               {t('canIAfford.title') || 'Can We Afford This?'}
             </Text>
             <Text style={styles.affordSubtitle}>
-              Simulate a purchase against your safe-to-spend allowance
+              {t('dashboard.affordSubtitle') ||
+                'Simulate a purchase against your safe-to-spend allowance'}
             </Text>
           </View>
           <Feather name="chevron-right" size={18} color="#2563eb" />
@@ -216,11 +303,17 @@ export default function HomeScreen() {
 
         {/* Bento Pools Summary Strip */}
         <View style={styles.bentoSection}>
-          <Text style={styles.sectionHeading}>Pools Health</Text>
+          <Text style={styles.sectionHeading}>
+            {t('dashboard.bentoPoolsHealth') || 'Pools Health'}
+          </Text>
           <View style={styles.bentoGrid}>
             {/* Everyday Pool Card */}
             <TouchableOpacity
-              onPress={() => router.push('/(app)/categories')}
+              onPress={() =>
+                everydayPool
+                  ? router.push(`/(app)/pools/${everydayPool.id}` as never)
+                  : router.push('/(app)/categories')
+              }
               style={styles.bentoCard}
             >
               <View style={styles.bentoTop}>
@@ -228,12 +321,18 @@ export default function HomeScreen() {
                 <Text style={styles.bentoTag}>Everyday</Text>
               </View>
               <Text style={styles.bentoBalance}>{formatAUD(everydayBalance)}</Text>
-              <Text style={styles.bentoSub}>Remaining allowance</Text>
+              <Text style={styles.bentoSub}>
+                {t('dashboard.remainingAllowance') || 'Remaining allowance'}
+              </Text>
             </TouchableOpacity>
 
             {/* Regular Bills Pool Card */}
             <TouchableOpacity
-              onPress={() => router.push('/(app)/categories')}
+              onPress={() =>
+                billsPool
+                  ? router.push(`/(app)/pools/${billsPool.id}` as never)
+                  : router.push('/(app)/categories')
+              }
               style={styles.bentoCard}
             >
               <View style={styles.bentoTop}>
@@ -244,11 +343,11 @@ export default function HomeScreen() {
               <View style={styles.billsStatusRow}>
                 {billsShortfall > 0 ? (
                   <Text style={styles.billsShortText}>
-                    ⚠️ Short {formatAUD(billsShortfall)}
+                    ⚠️ {t('dashboard.billsShortAmount', { amount: formatAUD(billsShortfall) }) || `Short ${formatAUD(billsShortfall)}`}
                   </Text>
                 ) : (
                   <Text style={styles.billsCoveredText}>
-                    ✅ 14 days covered
+                    ✅ {t('dashboard.bills14DaysCovered') || '14 days covered'}
                   </Text>
                 )}
               </View>
@@ -275,6 +374,10 @@ export default function HomeScreen() {
               categoryId: item.categoryId,
             })
           }
+          onSkipExpense={handleSkipExpense}
+          onExecuteTransfer={handleExecuteTransfer}
+          onDeleteTransfer={handleDeleteTransfer}
+          onTopUpShortfall={() => setMoveMoneyVisible(true)}
         />
 
         {/* Quick Actions Grid */}

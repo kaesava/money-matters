@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  Modal,
   TouchableOpacity,
   StyleSheet,
   Share,
 } from 'react-native';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileModalDialog, MobileButton } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../lib/format';
 
@@ -49,86 +48,64 @@ export function CrossBankTransferModal({
   };
 
   return (
-    <Modal
+    <MobileModalDialog
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={t('modals.crossBankTransfer.title') || 'Bank Transfer Required'}
+      subtitle={t('modals.crossBankTransfer.description') ||
+        'You transferred funds between pools linked to different bank accounts. Remember to move the physical money in your banking app:'}
+      footer={
+        <MobileButton variant="primary" onPress={onClose}>
+          {t('common.done') || 'Done'}
+        </MobileButton>
+      }
     >
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          <View style={styles.header}>
-            <View style={styles.headerTitleRow}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.title}>
-                {t('modals.crossBankTransfer.title') || 'Bank Transfer Required'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={onClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.closeBtn}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.description}>
-            {t('modals.crossBankTransfer.description') ||
-              'You transferred funds between pools linked to different bank accounts. Remember to move the physical money in your banking app:'}
+      <View style={styles.instructionCard}>
+        <View style={styles.row}>
+          <Text style={styles.label}>
+            {t('modals.crossBankTransfer.fromAccount') || 'From Bank Account:'}
           </Text>
+          <Text style={styles.accountValue}>{sourceAccountName}</Text>
+        </View>
 
-          <View style={styles.instructionCard}>
-            <View style={styles.row}>
-              <Text style={styles.label}>
-                {t('modals.crossBankTransfer.fromAccount') || 'From Bank Account:'}
+        <View style={styles.row}>
+          <Text style={styles.label}>
+            {t('modals.crossBankTransfer.toAccount') || 'To Bank Account:'}
+          </Text>
+          <View style={styles.destValueCol}>
+            <Text style={styles.accountValue}>{destAccountName}</Text>
+            {payId ? (
+              <Text style={styles.subDetail}>PayID: {payId}</Text>
+            ) : null}
+            {bsb && accountNumber ? (
+              <Text style={styles.subDetail}>
+                BSB: {bsb} • Acc: {accountNumber}
               </Text>
-              <Text style={styles.accountValue}>{sourceAccountName}</Text>
-            </View>
+            ) : null}
+          </View>
+        </View>
 
-            <View style={styles.row}>
-              <Text style={styles.label}>
-                {t('modals.crossBankTransfer.toAccount') || 'To Bank Account:'}
-              </Text>
-              <View style={styles.destValueCol}>
-                <Text style={styles.accountValue}>{destAccountName}</Text>
-                {payId ? (
-                  <Text style={styles.subDetail}>PayID: {payId}</Text>
-                ) : null}
-                {bsb && accountNumber ? (
-                  <Text style={styles.subDetail}>
-                    BSB: {bsb} • Acc: {accountNumber}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
+        <View style={styles.amountDivider} />
 
-            <View style={styles.amountDivider} />
-
-            <View style={styles.amountRow}>
-              <View>
-                <Text style={styles.amountLabel}>
-                  {t('modals.crossBankTransfer.amount') || 'Amount to Move'}
-                </Text>
-                <Text style={styles.amountVal}>{formatAUD(amount)}</Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleCopyAmount}
-                style={styles.copyBtn}
-              >
-                <Text style={styles.copyBtnText}>
-                  {copied ? '✓ Copied' : 'Share / Copy $'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.amountRow}>
+          <View>
+            <Text style={styles.amountLabel}>
+              {t('modals.crossBankTransfer.amount') || 'Amount to Move'}
+            </Text>
+            <Text style={styles.amountVal}>{formatAUD(amount)}</Text>
           </View>
 
-          <TouchableOpacity onPress={onClose} style={styles.doneBtn}>
-            <Text style={styles.doneBtnText}>{t('common.done') || 'Done'}</Text>
+          <TouchableOpacity
+            onPress={handleCopyAmount}
+            style={styles.copyBtn}
+          >
+            <Text style={styles.copyBtnText}>
+              {copied ? '✓ Copied' : 'Share / Copy $'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </MobileModalDialog>
   );
 }
 

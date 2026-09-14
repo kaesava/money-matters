@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { t } from '@money-matters/i18n';
+import { DESIGN_TOKENS } from '../tokens';
 
 export interface MobilePaginationBarProps {
   page: number;
@@ -21,7 +22,7 @@ export function MobilePaginationBar({
   onPageChange,
   onPageSizeChange,
 }: MobilePaginationBarProps) {
-  if (totalItems === 0) return null;
+  if (totalItems < 5) return null;
 
   const startItem = Math.min((page - 1) * pageSize + 1, totalItems);
   const endItem = Math.min(page * pageSize, totalItems);
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F4F5',
   },
   pageSizeBadgeActive: {
-    backgroundColor: '#00B4A6',
+    backgroundColor: DESIGN_TOKENS.colors.sereneBlue,
   },
   pageSizeText: {
     fontSize: 11,

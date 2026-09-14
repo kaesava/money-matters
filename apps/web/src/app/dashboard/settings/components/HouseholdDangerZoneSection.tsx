@@ -6,8 +6,7 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { authClient } from "../../../../lib/auth";
-import { useToast, InfoTooltip, Button } from "@money-matters/ui/web";
-import { ModalDialog } from "../../../../components/web/ModalDialog";
+import { useToast, InfoTooltip, Button, ModalDialog } from "@money-matters/ui/web";
 
 export function HouseholdDangerZoneSection() {
   const router = useRouter();

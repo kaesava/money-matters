@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
   Switch,
-  Modal,
   StyleSheet,
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
   Linking,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  MobileInput,
+  MobileButton,
+  ChipSelect,
+  FormLabel,
+  FormFieldError,
+  FormErrorBanner,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { authClient } from '../lib/auth';
 import { getMobileVersionInfo } from '../lib/version';
@@ -52,6 +54,9 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
   const [email, setEmail] = useState(session?.user?.email || '');
   const [consent, setConsent] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [titleError, setTitleError] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
+  const [generalError, setGeneralError] = useState('');
 
   const resetForm = () => {
     setTitle('');
@@ -60,6 +65,9 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
     setDescription('');
     setEmail(session?.user?.email || '');
     setConsent(true);
+    setTitleError('');
+    setDescriptionError('');
+    setGeneralError('');
   };
 
   const handleClose = () => {
@@ -68,16 +76,23 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
   };
 
   const handleSubmit = async () => {
+    let hasError = false;
     if (!title.trim()) {
-      Alert.alert(t('common.error'), 'Please enter a feedback summary.');
-      return;
+      setTitleError('Please enter a feedback summary.');
+      hasError = true;
     }
     if (!description.trim()) {
-      Alert.alert(t('common.error'), 'Please describe your feedback or issue.');
-      return;
+      setDescriptionError('Please describe your feedback or issue.');
+      hasError = true;
     }
 
+    if (hasError) return;
+
+    setTitleError('');
+    setDescriptionError('');
+    setGeneralError('');
     setSubmitting(true);
+
     try {
       const subject = encodeURIComponent(`[Feedback] ${title.trim()}`);
       const bodyLines = [
@@ -95,129 +110,103 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
       await Linking.openURL(mailtoUrl);
       handleClose();
     } catch (err) {
-      Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Failed to open email client.');
+      setGeneralError(err instanceof Error ? err.message : 'Failed to open email client.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const categoryOptions = CATEGORIES.map((cat) => ({
+    key: cat.key,
+    label: cat.label,
+  }));
+
+  const frustrationOptions = FRUSTRATIONS.map((f) => ({
+    key: f.key,
+    label: f.label,
+  }));
+
+  const isDirty = Boolean(title.trim() || description.trim());
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalBackdrop}
-      >
-        <View style={styles.modalContainer}>
-          {/* Modal Header */}
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>💬 Provide Feedback</Text>
-              <Text style={styles.modalSubtitle}>Help shape Money Matters for Android</Text>
-            </View>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Feather name="x" size={20} color="#64748B" />
-            </TouchableOpacity>
-          </View>
+    <MobileModalDialog
+      visible={visible}
+      onClose={handleClose}
+      isDirty={isDirty}
+      title="💬 Provide Feedback"
+      subtitle="Help shape Money Matters for Android"
+      footer={
+        <MobileButton
+          variant="primary"
+          onPress={handleSubmit}
+          loading={submitting}
+          disabled={!title.trim() || !description.trim()}
+        >
+          Send Feedback
+        </MobileButton>
+      }
+    >
+      <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+        <FormErrorBanner message={generalError} />
 
-          <ScrollView style={styles.modalBody} contentContainerStyle={{ gap: 14, paddingBottom: 24 }}>
-            {/* Feedback Summary */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Feedback Summary <Text style={styles.requiredStar}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Brief summary of your feedback or issue..."
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
+        {/* Feedback Summary */}
+        <MobileInput
+          label="Feedback Summary"
+          required
+          value={title}
+          onChangeText={(val) => {
+            setTitle(val);
+            if (titleError) setTitleError('');
+          }}
+          placeholder="Brief summary of your feedback or issue..."
+          error={titleError}
+          autoFocus
+        />
 
-            {/* Workflow Category Chips */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Workflow Category</Text>
-              <View style={styles.chipsWrap}>
-                {CATEGORIES.map((cat) => {
-                  const isSelected = category === cat.key;
-                  return (
-                    <TouchableOpacity
-                      key={cat.key}
-                      onPress={() => setCategory(cat.key)}
-                      style={[styles.chip, isSelected && styles.chipSelected]}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                        {cat.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
+        {/* Workflow Category Chips */}
+        <View style={styles.inputGroup}>
+          <FormLabel>Workflow Category</FormLabel>
+          <ChipSelect
+            options={categoryOptions}
+            value={category}
+            onChange={(val) => setCategory(val as typeof category)}
+          />
+        </View>
 
-            {/* Frustration Level */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Frustration Level</Text>
-              <View style={styles.chipsWrap}>
-                {FRUSTRATIONS.map((f) => {
-                  const isSelected = frustration === f.key;
-                  return (
-                    <TouchableOpacity
-                      key={f.key}
-                      onPress={() => setFrustration(f.key)}
-                      style={[
-                        styles.chip,
-                        isSelected && styles.chipSelected,
-                        isSelected && f.key === 'URGENT' && styles.chipUrgent,
-                      ]}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          isSelected && styles.chipTextSelected,
-                          isSelected && f.key === 'URGENT' && styles.chipTextUrgent,
-                        ]}
-                      >
-                        {f.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
+        {/* Frustration Level */}
+        <View style={styles.inputGroup}>
+          <FormLabel>Frustration Level</FormLabel>
+          <ChipSelect
+            options={frustrationOptions}
+            value={frustration}
+            onChange={(val) => setFrustration(val as typeof frustration)}
+          />
+        </View>
 
-            {/* Description */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Description & Details <Text style={styles.requiredStar}>*</Text>
-              </Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Describe your feedback, suggestion, or what happened in detail..."
-                placeholderTextColor="#94A3B8"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
+        {/* Description */}
+        <MobileInput
+          label="Description & Details"
+          required
+          value={description}
+          onChangeText={(val) => {
+            setDescription(val);
+            if (descriptionError) setDescriptionError('');
+          }}
+          placeholder="Describe your feedback, suggestion, or what happened in detail..."
+          multiline
+          numberOfLines={4}
+          error={descriptionError}
+        />
 
-            {/* Contact Email */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Receipt / Contact Email</Text>
-              <TextInput
-                style={styles.textInput}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="your@example.com"
-                placeholderTextColor="#94A3B8"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+        {/* Contact Email */}
+        <MobileInput
+          label="Receipt / Contact Email"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="your@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
 
             {/* Consent Toggle */}
             <View style={styles.consentRow}>
@@ -239,24 +228,8 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
               <Text style={styles.telemetryItem}>Platform: Android ({versionInfo.channel} channel)</Text>
               <Text style={styles.telemetryItem}>Commit: {versionInfo.gitCommit}</Text>
             </View>
-
-            {/* Submit Button */}
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={submitting}
-              style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-              activeOpacity={0.8}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.submitBtnText}>Send Feedback</Text>
-              )}
-            </TouchableOpacity>
           </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    </MobileModalDialog>
   );
 }
 

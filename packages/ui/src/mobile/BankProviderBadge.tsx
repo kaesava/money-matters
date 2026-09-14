@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewProps, StyleProp, TextStyle } from 'react-native';
 
-export type BankProvider = 'CBA' | 'Westpac' | 'ANZ' | 'NAB' | 'ING' | 'Macquarie' | 'Other' | string;
+export type BankProvider = 'CBA' | 'Westpac' | 'ANZ' | 'NAB' | 'ING' | 'Macquarie' | 'Other';
 
 export interface BankProviderBadgeProps extends ViewProps {
-  provider?: BankProvider | null;
+  provider?: BankProvider | string | null;
   textStyle?: StyleProp<TextStyle>;
   size?: 'sm' | 'md';
 }

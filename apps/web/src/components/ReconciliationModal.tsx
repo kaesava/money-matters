@@ -44,15 +44,15 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   const isSurplus = variance > 0;
   const absVariance = Math.abs(variance);
 
-  // Filter visible pools: hide $0 balance pools during shortfalls
+  // Filter visible pools: keep everyday pools visible even if $0, as they absorb spending
   const visiblePools = useMemo(() => {
     if (!isSurplus) {
-      return pools.filter((p) => p.currentBalance > 0);
+      return pools.filter((p) => p.poolType === "EVERYDAY" || p.currentBalance > 0);
     }
     return pools;
   }, [pools, isSurplus]);
 
-  const hasHiddenZeroPools = !isSurplus && pools.some((p) => p.currentBalance <= 0);
+  const hasHiddenZeroPools = !isSurplus && pools.some((p) => p.poolType !== "EVERYDAY" && p.currentBalance <= 0);
 
   // State for entered adjustment amounts per poolId
   const [adjustments, setAdjustments] = useState<Record<string, string>>({});
@@ -67,7 +67,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
     isBlocked: isSubmitting,
   });
 
-  // Pre-fill sweep goal pool with 100% of variance on open
+  // Pre-fill everyday or sweep goal pool with 100% of variance on open
   useEffect(() => {
     if (!isOpen) return;
 
@@ -76,9 +76,10 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
       initialAdjustments[p.id] = "0.00";
     });
 
-    const sweepPool = visiblePools.find((p) => p.isSurplusTarget) || visiblePools[0];
+    const everydayPool = visiblePools.find((p) => p.poolType === "EVERYDAY");
+    const sweepPool = everydayPool || visiblePools.find((p) => p.isSurplusTarget) || visiblePools[0];
     if (sweepPool) {
-      if (!isSurplus && sweepPool.currentBalance < absVariance) {
+      if (!isSurplus && sweepPool.poolType !== "EVERYDAY" && sweepPool.currentBalance < absVariance) {
         // Sweep goal doesn't have full funds, pre-fill max available or clear
         initialAdjustments[sweepPool.id] = Math.min(sweepPool.currentBalance, absVariance).toFixed(2);
       } else {
@@ -110,8 +111,9 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
       return;
     }
     const valNum = parseFloat(inputVal) || 0;
-    // Enforce drawdown cap for shortfalls
-    if (!isSurplus && valNum > maxAvailable) {
+    // Enforce drawdown cap for shortfalls on non-EVERYDAY pools
+    const targetPool = visiblePools.find((p) => p.id === poolId);
+    if (!isSurplus && targetPool?.poolType !== "EVERYDAY" && valNum > maxAvailable) {
       setAdjustments((prev) => ({
         ...prev,
         [poolId]: maxAvailable.toFixed(2),

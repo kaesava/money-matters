@@ -1,6 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
+import { FormLabel } from '../FormLabel';
+import { FormFieldError } from '../FormFieldError';
 
 export interface SelectOption {
   value: string;
@@ -8,12 +10,15 @@ export interface SelectOption {
 }
 
 export interface GenericSelectFieldProps {
-  label: string;
+  label?: string;
   value: string;
   onChange: (val: string) => void;
   options: SelectOption[];
   required?: boolean;
   disabled?: boolean;
+  error?: string;
+  hint?: string;
+  id?: string;
   className?: string;
   placeholder?: string;
 }
@@ -25,15 +30,25 @@ export function GenericSelectField({
   options,
   required = false,
   disabled = false,
+  error,
+  hint,
+  id,
   className = '',
   placeholder,
 }: GenericSelectFieldProps) {
+  const generatedId = useId();
+  const selectId = id || generatedId;
+
   return (
-    <div className={`space-y-1.5 ${className}`}>
-      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-        {label} {required && <span className="text-rose-500">*</span>}
-      </label>
+    <div className={`w-full ${className}`}>
+      {label && (
+        <FormLabel htmlFor={selectId} required={required}>
+          {label}
+        </FormLabel>
+      )}
+      {hint && <p className="text-xs text-slate-500 mb-1.5 font-medium">{hint}</p>}
       <select
+        id={selectId}
         disabled={disabled}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -46,6 +61,7 @@ export function GenericSelectField({
           </option>
         ))}
       </select>
+      <FormFieldError error={error} />
     </div>
   );
 }

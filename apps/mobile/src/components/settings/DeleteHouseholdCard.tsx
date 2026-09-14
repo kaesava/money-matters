@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 
@@ -22,36 +23,31 @@ export function DeleteHouseholdCard({
 
   const handleDeleteAccount = () => {
     if (deleteConfirmText.trim().toLowerCase() !== householdName.trim().toLowerCase()) {
-      Alert.alert('Confirmation Required', `Type ${householdName} to confirm.`);
       return;
     }
 
-    Alert.alert(
-      t('privacy.deleteHouseholdTitle'),
-      t('privacy.deleteHouseholdNotice'),
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Erase Household',
-          style: 'destructive',
-          onPress: async () => {
-            setIsSubmitting(true);
-            try {
-              await deleteAccountMutation.mutateAsync();
-              Alert.alert(
-                t('privacy.deletionConfirmedTitle'),
-                t('privacy.deletionConfirmedBody'),
-                [{ text: 'OK', onPress: onDeleted }]
-              );
-            } catch (err) {
-              Alert.alert('Deletion Error', err instanceof Error ? err.message : 'Account erasure failed.');
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
+    showMobileConfirm({
+      title: t('privacy.deleteHouseholdTitle'),
+      message: t('privacy.deleteHouseholdNotice'),
+      confirmLabel: 'Erase Household',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      onConfirm: async () => {
+        setIsSubmitting(true);
+        try {
+          await deleteAccountMutation.mutateAsync();
+          Alert.alert(
+            t('privacy.deletionConfirmedTitle'),
+            t('privacy.deletionConfirmedBody'),
+            [{ text: 'OK', onPress: onDeleted }]
+          );
+        } catch (err) {
+          Alert.alert('Deletion Error', err instanceof Error ? err.message : 'Account erasure failed.');
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
+    });
   };
 
   return (

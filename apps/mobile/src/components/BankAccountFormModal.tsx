@@ -4,9 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
-  Alert,
-  ActivityIndicator,
   ScrollView,
   Switch,
 } from 'react-native';
@@ -15,6 +12,12 @@ import {
   MobileModalDialog,
   BankProviderBadge,
   BankProvider,
+  MobileInput,
+  AmountInput,
+  MobileButton,
+  FormLabel,
+  FormFieldError,
+  FormErrorBanner,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
@@ -28,7 +31,9 @@ export interface BankAccountItemToEdit {
   isPrivate?: boolean;
 }
 
-const PROVIDERS: BankProvider[] = [
+export type SupportedBankProvider = 'CBA' | 'Westpac' | 'ANZ' | 'NAB' | 'ING' | 'Macquarie' | 'Other';
+
+const PROVIDERS: SupportedBankProvider[] = [
   'CBA',
   'Westpac',
   'ANZ',
@@ -56,16 +61,19 @@ export function BankAccountFormModal({
   const utils = trpc.useUtils();
 
   const [name, setName] = useState('');
-  const [provider, setProvider] = useState<BankProvider>('CBA');
+  const [provider, setProvider] = useState<SupportedBankProvider>('CBA');
   const [balance, setBalance] = useState('0.00');
   const [buffer, setBuffer] = useState('0.00');
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [bufferError, setBufferError] = useState('');
+  const [generalError, setGeneralError] = useState('');
 
   useEffect(() => {
     if (accountToEdit) {
       setName(accountToEdit.name || '');
-      setProvider((accountToEdit.bankProvider as BankProvider) || 'CBA');
+      setProvider((accountToEdit.bankProvider as SupportedBankProvider) || 'CBA');
       setBalance(accountToEdit.lastKnownBalance || '0.00');
       setBuffer(accountToEdit.unbudgetedBuffer || '0.00');
       setIsPrivate(Boolean(accountToEdit.isPrivate));
@@ -76,36 +84,43 @@ export function BankAccountFormModal({
       setBuffer('0.00');
       setIsPrivate(false);
     }
+    setNameError('');
+    setBufferError('');
+    setGeneralError('');
   }, [accountToEdit, visible]);
 
   const createMut = trpc.createBankAccount.useMutation();
   const updateMut = trpc.updateBankAccount.useMutation();
 
   const handleSubmit = async () => {
+    let hasError = false;
     if (!name.trim()) {
-      Alert.alert(t('common.error'), 'Account name is required.');
-      return;
+      setNameError('Account name is required.');
+      hasError = true;
     }
 
     const balNum = parseFloat(balance) || 0;
     const bufNum = parseFloat(buffer) || 0;
 
     if (bufNum > balNum) {
-      Alert.alert(
-        t('common.error'),
-        'Unbudgeted buffer cannot exceed total bank account balance.'
-      );
-      return;
+      setBufferError('Unbudgeted buffer cannot exceed total bank account balance.');
+      hasError = true;
     }
 
+    if (hasError) return;
+
+    setNameError('');
+    setBufferError('');
+    setGeneralError('');
     setSubmitting(true);
+
     try {
       if (isEdit && accountToEdit?.id) {
         await updateMut.mutateAsync({
           accountId: accountToEdit.id,
           data: {
             name: name.trim(),
-            bankProvider: provider as any,
+            bankProvider: provider,
             lastKnownBalance: balNum.toFixed(2),
             unbudgetedBuffer: bufNum.toFixed(2),
             isPrivate,
@@ -114,7 +129,7 @@ export function BankAccountFormModal({
       } else {
         await createMut.mutateAsync({
           name: name.trim(),
-          bankProvider: provider as any,
+          bankProvider: provider,
           lastKnownBalance: balNum.toFixed(2),
           unbudgetedBuffer: bufNum.toFixed(2),
           isPrivate,
@@ -126,8 +141,7 @@ export function BankAccountFormModal({
       onSuccess?.();
       onClose();
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
+      setGeneralError(
         err instanceof Error ? err.message : 'Failed to save bank account'
       );
     } finally {
@@ -135,34 +149,50 @@ export function BankAccountFormModal({
     }
   };
 
+  const isDirty = Boolean(name.trim() || balance !== '0.00' || buffer !== '0.00');
+
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
+      isDirty={isDirty}
       title={isEdit ? 'Edit Bank Account' : 'Add Bank Account'}
       subtitle={
         isEdit
           ? 'Update account balances & provider'
           : 'Link a new physical checking or offset account'
       }
+      footer={
+        <MobileButton
+          variant="primary"
+          onPress={handleSubmit}
+          loading={submitting}
+          disabled={!name.trim()}
+        >
+          {isEdit ? 'Save Changes' : 'Link Account'}
+        </MobileButton>
+      }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
+        <FormErrorBanner message={generalError} />
+
         {/* Name */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Account Name *</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g. CBA Smart Access, ANZ Offset Checking"
-            placeholderTextColor="#94A3B8"
-            style={styles.textInput}
-            autoFocus={!isEdit}
-          />
-        </View>
+        <MobileInput
+          label="Account Name"
+          required
+          value={name}
+          onChangeText={(val) => {
+            setName(val);
+            if (nameError) setNameError('');
+          }}
+          placeholder="e.g. CBA Smart Access, ANZ Offset Checking"
+          error={nameError}
+          autoFocus={!isEdit}
+        />
 
         {/* Bank Provider Picker */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Financial Institution</Text>
+          <FormLabel>Financial Institution</FormLabel>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -184,38 +214,27 @@ export function BankAccountFormModal({
         </View>
 
         {/* Statement Balance */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Statement Balance ($)</Text>
-          <View style={styles.amountInputWrap}>
-            <Text style={styles.currencySymbol}>$</Text>
-            <TextInput
-              value={balance}
-              onChangeText={setBalance}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor="#94A3B8"
-              style={styles.amountInput}
-            />
-          </View>
-        </View>
+        <AmountInput
+          label="Statement Balance ($ AUD)"
+          required
+          value={balance}
+          onChangeText={setBalance}
+          placeholder="0.00"
+        />
 
         {/* Unbudgeted Buffer */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Unbudgeted Emergency Buffer ($)</Text>
-          <View style={styles.amountInputWrap}>
-            <Text style={styles.currencySymbol}>$</Text>
-            <TextInput
-              value={buffer}
-              onChangeText={setBuffer}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor="#94A3B8"
-              style={styles.amountInput}
-            />
-          </View>
-          <Text style={styles.helperText}>
-            Protected cash buffer ring-fenced from pool allocations.
-          </Text>
+          <AmountInput
+            label="Unbudgeted Emergency Buffer ($ AUD)"
+            value={buffer}
+            onChangeText={(val) => {
+              setBuffer(val);
+              if (bufferError) setBufferError('');
+            }}
+            placeholder="0.00"
+            error={bufferError}
+            hint="Protected cash buffer ring-fenced from pool allocations."
+          />
         </View>
 
         {/* Stealth Private Account Switch */}
@@ -232,21 +251,6 @@ export function BankAccountFormModal({
             trackColor={{ false: '#E2E8F0', true: '#2563eb' }}
           />
         </View>
-
-        {/* Submit */}
-        <TouchableOpacity
-          onPress={handleSubmit}
-          disabled={submitting}
-          style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitBtnText}>
-              {isEdit ? 'Save Changes' : 'Link Account'}
-            </Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
     </MobileModalDialog>
   );

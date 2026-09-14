@@ -157,4 +157,64 @@ describe('billing capability', () => {
     expect(invoices[0].amountPaid).toBe('69.00');
     expect(invoices[0].stripeInvoiceId).toBe('in_123');
   });
+
+  it('creates checkout session in mock mode for founding planType and records planType', async () => {
+    let capturedPlanType: string | undefined;
+    const mockDb = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ id: 'tenant-123' }],
+          }),
+        }),
+      }),
+      update: () => ({
+        set: (vals: any) => {
+          capturedPlanType = vals.planType;
+          return {
+            where: async () => [],
+          };
+        },
+      }),
+    } as any;
+
+    const res = await createCheckoutSessionCommand(mockDb, 'tenant-123', 'user@example.com', {
+      planType: 'founding',
+      successUrl: 'https://kaesava.au/success',
+      cancelUrl: 'https://kaesava.au/cancel',
+    });
+
+    expect(res.url).toContain('session_id=mock_checkout_session_success');
+    expect(capturedPlanType).toBe('founding');
+  });
+
+  it('creates checkout session in mock mode for annual planType', async () => {
+    let capturedPlanType: string | undefined;
+    const mockDb = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ id: 'tenant-123' }],
+          }),
+        }),
+      }),
+      update: () => ({
+        set: (vals: any) => {
+          capturedPlanType = vals.planType;
+          return {
+            where: async () => [],
+          };
+        },
+      }),
+    } as any;
+
+    const res = await createCheckoutSessionCommand(mockDb, 'tenant-123', 'user@example.com', {
+      planType: 'annual',
+      successUrl: 'https://kaesava.au/success',
+      cancelUrl: 'https://kaesava.au/cancel',
+    });
+
+    expect(res.url).toContain('session_id=mock_checkout_session_success');
+    expect(capturedPlanType).toBe('annual');
+  });
 });

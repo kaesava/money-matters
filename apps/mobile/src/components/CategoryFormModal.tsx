@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { View, Text, StyleSheet } from 'react-native';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  MobileInput,
+  AmountInput,
+  ChipSelect,
+  MobileButton,
+  FormLabel,
+  FormFieldError,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatIsoDate } from '../lib/format';
@@ -19,7 +28,6 @@ export interface CategoryItem {
   healthStatus?: string | null;
 }
 
-
 interface CategoryFormModalProps {
   visible: boolean;
   categoryToEdit?: CategoryItem | null;
@@ -32,6 +40,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
   const bankAccounts = bankAccountsQuery.data ?? [];
 
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState('');
   const [type, setType] = useState<'GOAL' | 'REGULAR' | 'EVERYDAY'>('GOAL');
   const [targetAmount, setTargetAmount] = useState('');
   const [monthlyAmount, setMonthlyAmount] = useState('');
@@ -57,6 +66,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
       setKeepAmount('');
       setBankAccountId('');
     }
+    setNameError('');
   }, [categoryToEdit, visible]);
 
   const createMut = trpc.createPool.useMutation({
@@ -75,9 +85,10 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      Alert.alert(t('common.error'), t('categories.nameRequired'));
+      setNameError(t('categories.nameRequired'));
       return;
     }
+    setNameError('');
 
     const defaultBankAccountId = bankAccountId || bankAccounts[0]?.id || '';
 
@@ -104,166 +115,140 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
   };
 
   const isPending = createMut.isPending || updateMut.isPending;
-  const D = DESIGN_TOKENS;
+  const isDirty = Boolean(name.trim() || targetAmount.trim() || monthlyAmount.trim() || keepAmount.trim());
+
+  const typeOptions = [
+    { key: 'GOAL', label: t('categories.typeGoal') },
+    { key: 'REGULAR', label: t('categories.typeRegular') },
+    { key: 'EVERYDAY', label: t('categories.typeEveryday') },
+  ];
+
+  const bankOptions = [
+    { key: '', label: '-- None --' },
+    ...bankAccounts.map((acc) => ({ key: acc.id, label: acc.name })),
+  ];
 
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
+      isDirty={isDirty}
       title={categoryToEdit ? t('modals.categoryForm.titleEdit') : t('modals.categoryForm.titleNew')}
       subtitle={categoryToEdit ? 'Update category properties' : 'Add a new savings goal or bill pool'}
+      footer={
+        <MobileButton
+          variant="primary"
+          loading={isPending}
+          disabled={!name.trim()}
+          onPress={handleSubmit}
+        >
+          {categoryToEdit ? t('common.saveChanges') : t('modals.categoryForm.submitNew')}
+        </MobileButton>
+      }
     >
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('categories.nameLabel')}</Text>
-        <TextInput
+      <View style={styles.content}>
+        <MobileInput
+          label={t('categories.nameLabel')}
+          required
           value={name}
-          onChangeText={setName}
+          onChangeText={(val) => {
+            setName(val);
+            if (nameError) setNameError('');
+          }}
           placeholder="e.g. Groceries, Netflix, Emergency Fund"
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
+          error={nameError}
+          autoFocus={!categoryToEdit}
         />
-      </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('modals.categoryForm.typeLabel')}</Text>
-        <View style={styles.typeRow}>
-          {(['GOAL', 'REGULAR', 'EVERYDAY'] as const).map((tVal) => (
-            <TouchableOpacity
-              key={tVal}
-              disabled={Boolean(categoryToEdit)}
-              onPress={() => setType(tVal)}
-              style={[styles.typeBtn, type === tVal && styles.typeBtnActive, categoryToEdit && { opacity: 0.6 }]}
-            >
-              <Text style={[styles.typeBtnText, type === tVal && styles.typeBtnTextActive]}>
-                {tVal === 'GOAL' ? t('categories.typeGoal') : tVal === 'REGULAR' ? t('categories.typeRegular') : t('categories.typeEveryday')}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.formGroup}>
+          <FormLabel required>{t('modals.categoryForm.typeLabel')}</FormLabel>
+          <ChipSelect
+            options={typeOptions}
+            value={type}
+            onChange={(val) => setType(val as 'GOAL' | 'REGULAR' | 'EVERYDAY')}
+            disabled={Boolean(categoryToEdit)}
+          />
         </View>
-      </View>
 
-      {type === 'GOAL' && (
-        <>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('modals.categoryForm.targetLabel')}</Text>
-            <TextInput
+        {type === 'GOAL' && (
+          <>
+            <AmountInput
+              label={t('modals.categoryForm.targetLabel')}
+              required
               value={targetAmount}
               onChangeText={setTargetAmount}
               placeholder="0.00"
-              keyboardType="numeric"
-              placeholderTextColor={D.colors.textMuted}
-              style={styles.input}
             />
-          </View>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('categories.targetDateLabel')}</Text>
-            <TextInput
+            <MobileInput
+              label={t('categories.targetDateLabel')}
               value={targetDate}
               onChangeText={setTargetDate}
-              placeholder="2026-12-31"
-              placeholderTextColor={D.colors.textMuted}
-              style={styles.input}
+              placeholder="YYYY-MM-DD"
             />
-          </View>
-        </>
-      )}
+          </>
+        )}
 
-      {type === 'REGULAR' && (
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>{t('categories.monthlyAmountLabel')}</Text>
-          <TextInput
+        {type === 'REGULAR' && (
+          <AmountInput
+            label={t('categories.monthlyAmountLabel')}
+            required
             value={monthlyAmount}
             onChangeText={setMonthlyAmount}
             placeholder="0.00"
-            keyboardType="numeric"
-            placeholderTextColor={D.colors.textMuted}
-            style={styles.input}
           />
-        </View>
-      )}
+        )}
 
-      {type === 'EVERYDAY' && (
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>{t('categories.targetKeepLabel')}</Text>
-          <TextInput
+        {type === 'EVERYDAY' && (
+          <AmountInput
+            label={t('categories.targetKeepLabel')}
+            required
             value={keepAmount}
             onChangeText={setKeepAmount}
-            placeholder="e.g. 500.00"
-            keyboardType="numeric"
-            placeholderTextColor={D.colors.textMuted}
-            style={styles.input}
+            placeholder="500.00"
+          />
+        )}
+
+        <View style={styles.formGroup}>
+          <FormLabel>{t('categories.linkedAccountLabel')}</FormLabel>
+          <ChipSelect
+            options={bankOptions}
+            value={bankAccountId}
+            onChange={setBankAccountId}
+            disabled={Boolean(categoryToEdit)}
           />
         </View>
-      )}
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('categories.linkedAccountLabel')}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bankRow}>
-          <TouchableOpacity
-            disabled={Boolean(categoryToEdit)}
-            onPress={() => setBankAccountId('')}
-            style={[styles.bankChip, !bankAccountId && styles.bankChipActive, categoryToEdit && { opacity: 0.6 }]}
-          >
-            <Text style={[styles.bankChipText, !bankAccountId && styles.bankChipTextActive]}>-- None --</Text>
-          </TouchableOpacity>
-          {bankAccounts.map((acc) => (
-            <TouchableOpacity
-              key={acc.id}
-              disabled={Boolean(categoryToEdit)}
-              onPress={() => setBankAccountId(acc.id)}
-              style={[styles.bankChip, bankAccountId === acc.id && styles.bankChipActive, categoryToEdit && { opacity: 0.6 }]}
-            >
-              <Text style={[styles.bankChipText, bankAccountId === acc.id && styles.bankChipTextActive]}>
-                {acc.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {Boolean(categoryToEdit) && (
+          <View style={styles.warningBox}>
+            <Text style={styles.warningText}>
+              {t('categories.immutabilityWarning', { defaultValue: 'Pool type and linked account cannot be changed once created.' })}
+            </Text>
+          </View>
+        )}
       </View>
-
-      {Boolean(categoryToEdit) && (
-        <View style={{ padding: 10, backgroundColor: '#FFFBEB', borderRadius: 8, borderWidth: 1, borderColor: '#FCD34D', marginBottom: 10 }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#92400E', lineHeight: 16 }}>
-            {t('categories.immutabilityWarning', { defaultValue: 'Pool type and linked account cannot be changed once created.' })}
-          </Text>
-        </View>
-      )}
-
-      <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
-        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{categoryToEdit ? t('common.saveChanges') : t('modals.categoryForm.submitNew')}</Text>}
-      </TouchableOpacity>
     </MobileModalDialog>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  formGroup: { gap: 6, marginBottom: 10 },
-  label: { fontSize: 12, fontWeight: '700', color: D.colors.textPrimary },
-  input: {
+  content: {
+    gap: 12,
+  },
+  formGroup: {
+    gap: 2,
+  },
+  warningBox: {
+    padding: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: DESIGN_TOKENS.radius.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: D.radius.md,
-    padding: 12,
-    fontSize: 14,
-    color: D.colors.textPrimary,
+    borderColor: '#FCD34D',
+    marginTop: 4,
   },
-  typeRow: { flexDirection: 'row', gap: 6 },
-  typeBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#F3F4F6', alignItems: 'center' },
-  typeBtnActive: { backgroundColor: '#00B4A6' },
-  typeBtnText: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted },
-  typeBtnTextActive: { color: '#FFF' },
-  bankRow: { flexDirection: 'row', gap: 6 },
-  bankChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, backgroundColor: '#F3F4F6' },
-  bankChipActive: { backgroundColor: D.colors.primary },
-  bankChipText: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted },
-  bankChipTextActive: { color: '#FFF' },
-  submitBtn: {
-    backgroundColor: '#00B4A6',
-    paddingVertical: 14,
-    borderRadius: D.radius.md,
-    alignItems: 'center',
-    marginTop: 12,
+  warningText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400E',
+    lineHeight: 16,
   },
-  submitBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
 });

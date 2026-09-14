@@ -1,25 +1,44 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, TextInputProps, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TextInputProps,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
+import { DESIGN_TOKENS } from '../tokens';
+import { FormLabel } from './FormLabel';
+import { FormFieldError } from './FormFieldError';
 
 export interface InputProps extends TextInputProps {
   label?: string;
+  required?: boolean;
   error?: string;
+  hint?: string;
   containerStyle?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
 }
 
 export const Input = React.forwardRef<TextInput, InputProps>(
-  ({ label, error, containerStyle, labelStyle, style, ...props }, ref) => {
+  ({ label, required, error, hint, containerStyle, labelStyle, style, ...props }, ref) => {
     return (
       <View style={[styles.container, containerStyle]}>
-        {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
+        {label && (
+          <FormLabel required={required} style={labelStyle}>
+            {label}
+          </FormLabel>
+        )}
+        {hint && <Text style={styles.hint}>{hint}</Text>}
         <TextInput
           ref={ref}
           style={[styles.input, error ? styles.inputError : null, style]}
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
           {...props}
         />
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        <FormFieldError error={error} />
       </View>
     );
   }
@@ -27,35 +46,30 @@ export const Input = React.forwardRef<TextInput, InputProps>(
 
 Input.displayName = 'Input';
 
+const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    marginBottom: 12,
   },
-  label: {
-    fontSize: 14,
+  hint: {
+    fontSize: 12,
+    color: D.colors.textMuted,
+    marginBottom: 6,
     fontWeight: '500',
-    color: '#1e293b',
-    marginBottom: 8,
   },
   input: {
-    backgroundColor: '#ffffff',
+    backgroundColor: D.colors.surface,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    color: '#1e293b',
-    marginBottom: 16,
+    borderColor: D.colors.border,
+    borderRadius: D.radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: D.colors.textPrimary,
   },
   inputError: {
-    borderColor: '#ef4444',
-  },
-  errorText: {
-    marginTop: -12,
-    marginBottom: 16,
-    fontSize: 12,
-    color: '#ef4444',
-    fontWeight: '600',
+    borderColor: D.colors.critical,
   },
 });
 

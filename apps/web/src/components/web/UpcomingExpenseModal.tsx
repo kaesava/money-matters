@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast, Button, AmountField, fmtDateIso } from "@money-matters/ui/web";
-
-import { ModalDialog } from "./ModalDialog";
+import { useToast, Button, AmountField, fmtDateIso, ModalDialog, Input, DatePickerField, GenericSelectField, FormErrorBanner } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { MarkPaidModal, ShortfallTransferItem } from "../../app/dashboard/income-and-bills/components/MarkPaidModal";
@@ -220,25 +218,16 @@ export default function UpcomingExpenseModal({
       maxWidth="max-w-md"
     >
       <div className="space-y-4 text-xs font-medium text-zinc-700">
-        {errorMsg && (
-          <div className="p-3 bg-red-50 text-red-700 font-bold rounded-xl border border-red-200">
-            {errorMsg}
-          </div>
-        )}
+        <FormErrorBanner message={errorMsg} />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">
-            Bill / Merchant Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Energy Australia, Netflix, Gym"
-            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          />
-        </div>
+        <Input
+          label="Bill / Merchant Name"
+          required
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Energy Australia, Netflix, Gym"
+        />
 
         <AmountField
           label="Amount ($)"
@@ -247,55 +236,43 @@ export default function UpcomingExpenseModal({
           onChange={setAmount}
         />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">
-            {t("modals.incomeExpenseForm.assignPool", { defaultValue: "Assign to Pool" })} <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={poolId}
-            onChange={(e) => setPoolId(e.target.value)}
-            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          >
-            {pools.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.poolType})
-              </option>
-            ))}
-          </select>
-        </div>
+        <GenericSelectField
+          label={t("modals.incomeExpenseForm.assignPool", { defaultValue: "Assign to Pool" })}
+          required
+          value={poolId}
+          onChange={setPoolId}
+          options={pools.map((p) => ({
+            value: p.id,
+            label: `${p.name} (${p.poolType})`,
+          }))}
+        />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">{t("modals.upcomingExpense.dueDate", { defaultValue: "Due Date" })}</label>
-          <input
-            type="date"
-            value={expectedDate}
-            onChange={(e) => setExpectedDate(e.target.value)}
-            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          />
-        </div>
+        <DatePickerField
+          label={t("modals.upcomingExpense.dueDate", { defaultValue: "Due Date" })}
+          value={expectedDate}
+          onChange={setExpectedDate}
+        />
 
-        <div>
-          <label className="block font-bold text-[#1B2B4B] mb-1">Note (Optional)</label>
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Reference or memo"
-            className="w-full px-3 py-2 border border-[#d2d5d8] dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-          />
-        </div>
+        <Input
+          label="Note (Optional)"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Reference or memo"
+        />
 
         <div className="flex justify-end gap-2 pt-4 border-t border-zinc-200">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-zinc-300 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50"
-          >
-            {t("common.cancel", { defaultValue: "Cancel" })}
-          </button>
           <Button
             type="button"
             variant="secondary"
+            size="sm"
+            onClick={onClose}
+          >
+            {t("common.cancel", { defaultValue: "Cancel" })}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             onClick={handleSaveUpcoming}
             loading={submitting}
             disabled={!isDirty || !isValid || submitting}
@@ -304,13 +281,14 @@ export default function UpcomingExpenseModal({
           </Button>
           <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={handleMarkPaidClick}
             loading={submitting}
             disabled={!isValid || submitting}
           >
             {t("actions.markPaid", { defaultValue: "Mark Paid" })}
           </Button>
-
         </div>
       </div>
 

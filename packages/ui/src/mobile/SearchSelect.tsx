@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { t } from '@money-matters/i18n';
+import { DESIGN_TOKENS } from '../tokens';
 import { SearchSelectModal } from './SearchSelectModal';
 
 export interface MobileSearchSelectOption {
@@ -120,6 +121,7 @@ export const SearchSelect: React.FC<MobileSearchSelectProps> = ({
   );
 };
 
+const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#00B4A6',
+    color: D.colors.sereneBlue,
   },
   listContent: {
     paddingVertical: 8,
@@ -229,7 +231,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F8FAFC',
   },
   optionItemSelected: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: '#EFF6FF',
   },
   optionTextContainer: {
     flex: 1,
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   optionLabelSelected: {
-    color: '#00B4A6',
+    color: D.colors.sereneBlue,
     fontWeight: '700',
   },
   optionSubLabel: {
@@ -251,7 +253,7 @@ const styles = StyleSheet.create({
   checkmark: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#00B4A6',
+    color: D.colors.sereneBlue,
     marginLeft: 12,
   },
   emptyContainer: {

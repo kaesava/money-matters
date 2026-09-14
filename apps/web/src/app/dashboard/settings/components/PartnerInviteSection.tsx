@@ -6,8 +6,7 @@ import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useSubscriptionStatus } from "../../../../hooks/useSubscriptionStatus";
-import { Spinner, InfoTooltip, useToast, Button } from "@money-matters/ui/web";
-import { ModalDialog } from "../../../../components/web/ModalDialog";
+import { Spinner, InfoTooltip, useToast, Button, ModalDialog } from "@money-matters/ui/web";
 
 export function PartnerInviteSection() {
   const toast = useToast();

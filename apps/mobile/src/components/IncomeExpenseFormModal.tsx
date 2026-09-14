@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog, RecurrenceBuilder, useRecurrenceBuilder } from '@money-matters/ui/mobile';
+import { View, StyleSheet, Alert } from 'react-native';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  MobileInput,
+  AmountInput,
+  ChipSelect,
+  MobileButton,
+  FormLabel,
+  FormFieldError,
+  RecurrenceBuilder,
+  useRecurrenceBuilder,
+} from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 import { formatIsoDate } from '../lib/format';
 
@@ -15,7 +26,6 @@ export interface SourceToEdit {
   categoryId?: string | null;
   receivingAccountId?: string | null;
 }
-
 
 interface IncomeExpenseFormModalProps {
   visible: boolean;
@@ -32,6 +42,9 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [amountError, setAmountError] = useState('');
+  const [categoryError, setCategoryError] = useState('');
 
   const recurrenceBuilder = useRecurrenceBuilder();
   const { frequency, isRecurring, startDate, endDate, setStartDate, setEndDate, setIsRecurring, setFrequency, setInterval } = recurrenceBuilder;
@@ -80,6 +93,9 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
       setEndDate(null);
       setCategoryId('');
     }
+    setNameError('');
+    setAmountError('');
+    setCategoryError('');
   }, [sourceToEdit, visible]);
 
   const createIncomeMut = trpc.createIncomeSource.useMutation({
@@ -107,15 +123,25 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   });
 
   const handleSubmit = () => {
-    if (!name.trim() || !amount || parseFloat(amount) <= 0) {
-      Alert.alert('Validation Error', 'Please provide a valid name and positive amount.');
-      return;
+    let hasError = false;
+    if (!name.trim()) {
+      setNameError('Please provide a name');
+      hasError = true;
+    }
+    if (!amount || parseFloat(amount) <= 0) {
+      setAmountError('Please provide a positive amount');
+      hasError = true;
+    }
+    if (mode === 'EXPENSE' && !categoryId) {
+      setCategoryError('Please assign to a category');
+      hasError = true;
     }
 
-    if (mode === 'EXPENSE' && !categoryId) {
-      Alert.alert('Validation Error', 'Expense bill must be assigned to a category.');
-      return;
-    }
+    if (hasError) return;
+
+    setNameError('');
+    setAmountError('');
+    setCategoryError('');
 
     if (mode === 'INCOME') {
       if (sourceToEdit) {
@@ -155,92 +181,83 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   const isPending =
     createIncomeMut.isPending || updateIncomeMut.isPending || createExpenseMut.isPending;
 
-  const D = DESIGN_TOKENS;
+  const isDirty = Boolean(name.trim() || amount.trim());
+
+  const categoryOptions = categories.map((c) => ({
+    key: c.id,
+    label: c.name,
+  }));
 
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={sourceToEdit ? `Edit ${mode === 'INCOME' ? 'Income' : 'Expense'}: ${sourceToEdit.name}` : (mode === 'INCOME' ? 'Setup Income' : 'Setup Expense or Bill')}
-      subtitle={mode === 'INCOME' ? 'Setup any upcoming one-off or repeating income' : "Setup any upcoming expenses or bills you're expecting"}
+      isDirty={isDirty}
+      title={sourceToEdit ? `Edit ${mode === 'INCOME' ? 'Income Schedule' : 'Expense'}: ${sourceToEdit.name}` : (mode === 'INCOME' ? 'Setup Income Schedule' : 'Setup Expense or Bill')}
+      subtitle={mode === 'INCOME' ? 'Setup any upcoming one-off or repeating income schedule' : "Setup any upcoming expenses or bills you're expecting"}
+      footer={
+        <MobileButton
+          variant="primary"
+          loading={isPending}
+          disabled={!name.trim() || !amount.trim()}
+          onPress={handleSubmit}
+        >
+          {sourceToEdit ? 'Update' : 'Create'}
+        </MobileButton>
+      }
     >
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>{mode === 'INCOME' ? 'Income Name' : 'Bill Name'}</Text>
-        <TextInput
+      <View style={styles.content}>
+        <MobileInput
+          label={mode === 'INCOME' ? 'Income Name' : 'Bill Name'}
+          required
           value={name}
-          onChangeText={setName}
+          onChangeText={(val) => {
+            setName(val);
+            if (nameError) setNameError('');
+          }}
           placeholder={mode === 'INCOME' ? 'e.g. Primary Salary, Freelance' : 'e.g. Electricity, Internet, Gym'}
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
+          error={nameError}
+          autoFocus={!sourceToEdit}
         />
-      </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Amount ($)</Text>
-        <TextInput
+        <AmountInput
+          label="Amount ($ AUD)"
+          required
           value={amount}
-          onChangeText={setAmount}
+          onChangeText={(val) => {
+            setAmount(val);
+            if (amountError) setAmountError('');
+          }}
           placeholder="0.00"
-          keyboardType="numeric"
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
+          error={amountError}
         />
+
+        {mode === 'EXPENSE' && (
+          <View style={styles.formGroup}>
+            <FormLabel required>Category</FormLabel>
+            <ChipSelect
+              options={categoryOptions}
+              value={categoryId}
+              onChange={(val) => {
+                setCategoryId(val);
+                if (categoryError) setCategoryError('');
+              }}
+            />
+            <FormFieldError error={categoryError} />
+          </View>
+        )}
+
+        <RecurrenceBuilder builder={recurrenceBuilder} />
       </View>
-
-      {mode === 'EXPENSE' && (
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            {categories.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                onPress={() => setCategoryId(c.id)}
-                style={[styles.chip, categoryId === c.id && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, categoryId === c.id && styles.chipTextActive]}>{c.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      <RecurrenceBuilder builder={recurrenceBuilder} />
-
-      <TouchableOpacity onPress={handleSubmit} disabled={isPending} style={styles.submitBtn} activeOpacity={0.8}>
-        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{sourceToEdit ? 'Update' : 'Create'}</Text>}
-      </TouchableOpacity>
     </MobileModalDialog>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  formGroup: { gap: 6, marginBottom: 10 },
-  label: { fontSize: 12, fontWeight: '700', color: D.colors.textPrimary },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: D.radius.md,
-    padding: 12,
-    fontSize: 14,
-    color: D.colors.textPrimary,
+  content: {
+    gap: 12,
   },
-  row: { flexDirection: 'row', gap: 6 },
-  typeBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#F3F4F6', alignItems: 'center' },
-  typeBtnActive: { backgroundColor: '#00B4A6' },
-  typeBtnText: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted },
-  typeBtnTextActive: { color: '#FFF' },
-  chipRow: { flexDirection: 'row', gap: 6 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, backgroundColor: '#F3F4F6' },
-  chipActive: { backgroundColor: D.colors.primary },
-  chipText: { fontSize: 11, fontWeight: '700', color: D.colors.textMuted },
-  chipTextActive: { color: '#FFF' },
-  submitBtn: {
-    backgroundColor: '#00B4A6',
-    paddingVertical: 14,
-    borderRadius: D.radius.md,
-    alignItems: 'center',
-    marginTop: 12,
+  formGroup: {
+    gap: 4,
   },
-  submitBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
 });

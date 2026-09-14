@@ -1,9 +1,12 @@
-"use client";
-import React, { useId } from 'react';
+'use client';
+
+import React, { useId, useState, useCallback } from 'react';
+import { ArrowLeft, X } from 'lucide-react';
 import { t } from '@money-matters/i18n';
 import { useModalDismiss } from './modalStack';
+import { ConfirmDialog } from './ConfirmDialog';
 
-interface SlideOverDrawerProps {
+export interface SlideOverDrawerProps {
   title: React.ReactNode;
   subtitle?: string;
   onClose: () => void;
@@ -22,14 +25,23 @@ export function SlideOverDrawer({
   children,
   headerActions,
   widthClass = 'max-w-md',
-  isDirty: _isDirty = false,
+  isDirty = false,
 }: SlideOverDrawerProps) {
   const drawerId = useId();
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleRequestClose = useCallback(() => {
+    if (isDirty) {
+      setShowConfirm(true);
+    } else {
+      onClose();
+    }
+  }, [isDirty, onClose]);
 
   useModalDismiss({
     id: `drawer-${drawerId}`,
-    isOpen: true,
-    onDismiss: onClose,
+    isOpen: !showConfirm,
+    onDismiss: handleRequestClose,
   });
 
   return (
@@ -37,7 +49,7 @@ export function SlideOverDrawer({
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm transition-opacity" 
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} 
+        onClick={(e) => { if (e.target === e.currentTarget) handleRequestClose(); }} 
       />
 
       {/* Modal Dialog Body */}
@@ -48,12 +60,10 @@ export function SlideOverDrawer({
             <button
               type="button"
               onClick={onBack}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-colors"
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-colors cursor-pointer"
               title={t('common.back', { defaultValue: 'Back' })}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
+              <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           <div className="flex-1 min-w-0">
@@ -68,13 +78,11 @@ export function SlideOverDrawer({
             {headerActions}
             <button
               type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-colors"
+              onClick={handleRequestClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-colors cursor-pointer"
               title={t('common.close', { defaultValue: 'Close' })}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -84,6 +92,24 @@ export function SlideOverDrawer({
           {children}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={() => {
+          setShowConfirm(false);
+          onClose();
+        }}
+        title={t('modals.unsavedChanges.title', { defaultValue: 'Unsaved Changes' })}
+        description={t('modals.unsavedChanges.description', {
+          defaultValue: 'You have unsaved changes in this drawer. Would you like to leave without saving?',
+        })}
+        confirmLabel={t('modals.unsavedChanges.discard', { defaultValue: 'Discard Changes' })}
+        cancelLabel={t('modals.unsavedChanges.keepEditing', { defaultValue: 'Keep Editing' })}
+        variant="danger"
+      />
     </div>
   );
 }
+
+export default SlideOverDrawer;

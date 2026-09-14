@@ -7,17 +7,20 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  Alert,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { DESIGN_TOKENS, MobilePaginationBar, useMobileToast } from "@money-matters/ui/mobile";
+import { MobileScreenWrapper, MobilePaginationBar, useMobileToast } from "@money-matters/ui/mobile";
 import { trpc } from "../../../lib/trpc";
+import { authClient } from "../../../lib/auth";
 
 export default function MobileArchivedItemsScreen() {
   const router = useRouter();
   const toast = useMobileToast();
+  const { data: session } = authClient.useSession();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CATEGORY" | "POOL" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT">("ALL");
+  const [refreshing, setRefreshing] = useState(false);
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -34,6 +37,12 @@ export default function MobileArchivedItemsScreen() {
     },
   });
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await archivedQuery.refetch();
+    setRefreshing(false);
+  };
+
   const items = archivedQuery.data ?? [];
 
   const filtered = items.filter((item) => {
@@ -46,115 +55,117 @@ export default function MobileArchivedItemsScreen() {
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <View style={styles.container}>
-      {/* Top Navigation */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.title}>Archived Items</Text>
-          <Text style={styles.subtitle}>Restore archived items back to active views</Text>
+    <MobileScreenWrapper
+      title="Archived Items"
+      user={session?.user}
+      showBack
+      onBackPress={() => router.back()}
+    >
+      <View style={styles.container}>
+        {/* Search Input */}
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search archived items..."
+          placeholderTextColor="#9CA3AF"
+          value={search}
+          onChangeText={setSearch}
+        />
+
+        {/* Filter Pills */}
+        <View style={styles.pillContainer}>
+          {(["ALL", "CATEGORY", "POOL", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
+            <TouchableOpacity
+              key={type}
+              onPress={() => setFilterType(type)}
+              style={[styles.pill, filterType === type && styles.pillActive]}
+            >
+              <Text style={[styles.pillText, filterType === type && styles.pillTextActive]}>
+                {type === "ALL"
+                  ? "All"
+                  : type === "CATEGORY"
+                  ? "Categories"
+                  : type === "POOL"
+                  ? "Pools"
+                  : type === "INCOME_SOURCE"
+                  ? "Income"
+                  : type === "EXPENSE_SOURCE"
+                  ? "Expenses"
+                  : "Accounts"}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </View>
 
-      {/* Search Input */}
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search archived items..."
-        placeholderTextColor="#9CA3AF"
-        value={search}
-        onChangeText={setSearch}
-      />
-
-      {/* Filter Pills */}
-      <View style={styles.pillContainer}>
-        {(["ALL", "CATEGORY", "POOL", "INCOME_SOURCE", "EXPENSE_SOURCE", "BANK_ACCOUNT"] as const).map((type) => (
-          <TouchableOpacity
-            key={type}
-            onPress={() => setFilterType(type)}
-            style={[styles.pill, filterType === type && styles.pillActive]}
-          >
-            <Text style={[styles.pillText, filterType === type && styles.pillTextActive]}>
-              {type === "ALL"
-                ? "All"
-                : type === "CATEGORY"
-                ? "Categories"
-                : type === "POOL"
-                ? "Pools"
-                : type === "INCOME_SOURCE"
-                ? "Income"
-                : type === "EXPENSE_SOURCE"
-                ? "Expenses"
-                : "Accounts"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* List */}
-      {archivedQuery.isLoading ? (
-        <ActivityIndicator style={{ marginTop: 32 }} color={DESIGN_TOKENS.colors.accent} />
-      ) : filtered.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>📦</Text>
-          <Text style={styles.emptyText}>No archived items found</Text>
-        </View>
-      ) : (
-        <>
-          <FlatList
-            data={paginated}
-            keyExtractor={(item) => `${item.itemType}-${item.id}`}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.row}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{item.itemType.replace("_", " ")}</Text>
+        {/* List */}
+        {archivedQuery.isLoading ? (
+          <ActivityIndicator style={{ marginTop: 32 }} color="#2563eb" />
+        ) : filtered.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyText}>No archived items found</Text>
+          </View>
+        ) : (
+          <>
+            <FlatList
+              data={paginated}
+              keyExtractor={(item) => `${item.itemType}-${item.id}`}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#2563eb"
+                />
+              }
+              renderItem={({ item }) => (
+                <View style={styles.card}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.row}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{item.itemType.replace("_", " ")}</Text>
+                      </View>
                     </View>
+                    {item.subtitle ? <Text style={styles.subtext}>{item.subtitle}</Text> : null}
                   </View>
-                  {item.subtitle ? <Text style={styles.subtext}>{item.subtitle}</Text> : null}
+
+                  <TouchableOpacity
+                    onPress={() =>
+                      restoreMutation.mutate({
+                        itemId: item.id,
+                        itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
+                      })
+                    }
+                    disabled={restoreMutation.isPending}
+                    style={styles.restoreButton}
+                  >
+                    <Text style={styles.restoreText}>Restore</Text>
+                  </TouchableOpacity>
                 </View>
+              )}
+              contentContainerStyle={{ gap: 10, paddingBottom: 16 }}
+            />
 
-                <TouchableOpacity
-                  onPress={() =>
-                    restoreMutation.mutate({
-                      itemId: item.id,
-                      itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
-                    })
-                  }
-                  disabled={restoreMutation.isPending}
-                  style={styles.restoreButton}
-                >
-                  <Text style={styles.restoreText}>Restore</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            contentContainerStyle={{ gap: 10, paddingBottom: 16 }}
-          />
-
-          <MobilePaginationBar
-            page={page}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={filtered.length}
-            pageSizeOptions={[10, 20, 50]}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-          />
-        </>
-      )}
-    </View>
+            <MobilePaginationBar
+              page={page}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filtered.length}
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </>
+        )}
+      </View>
+    </MobileScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
     paddingHorizontal: 16,
-    paddingTop: 56,
+    paddingTop: 12,
   },
   header: {
     flexDirection: "row",

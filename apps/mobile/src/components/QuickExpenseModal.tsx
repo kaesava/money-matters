@@ -14,7 +14,15 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { usePostHog } from "posthog-react-native";
-import { DESIGN_TOKENS } from "@money-matters/ui/mobile";
+import {
+  DESIGN_TOKENS,
+  AmountInput,
+  MobileInput,
+  MobileButton,
+  FormLabel,
+  FormFieldError,
+  FormErrorBanner,
+} from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
 import { formatAUD, formatIsoDate } from "../lib/format";
@@ -43,13 +51,32 @@ export function QuickExpenseModal({
   onClose,
   onIncomeSuccess,
 }: QuickExpenseModalProps) {
+  const todayStr = formatIsoDate(new Date());
+  const yesterdayObj = new Date();
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterdayStr = formatIsoDate(yesterdayObj);
+
   const [type, setType] = useState<QuickActionType>(initialType);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(todayStr);
   const [selectedPoolId, setSelectedPoolId] = useState("");
   const [destPoolId, setDestPoolId] = useState("");
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [amountError, setAmountError] = useState("");
+  const [dateError, setDateError] = useState("");
+  const [poolError, setPoolError] = useState("");
+  const [generalError, setGeneralError] = useState("");
+
+  const clearErrors = () => {
+    setNameError("");
+    setAmountError("");
+    setDateError("");
+    setPoolError("");
+    setGeneralError("");
+  };
 
   // Cross-bank transfer state
   const [crossBankData, setCrossBankData] = useState<{
@@ -78,13 +105,15 @@ export function QuickExpenseModal({
   React.useEffect(() => {
     if (visible) {
       setType(initialType);
+      setDate(todayStr);
+      clearErrors();
       // Auto-select Everyday pool as default for DEBIT
       const everyday = pools?.find((p) => p.poolType === "EVERYDAY");
       if (everyday) {
         setSelectedPoolId(everyday.id);
       }
     }
-  }, [visible, initialType, pools]);
+  }, [visible, initialType, pools, todayStr]);
 
   const D = DESIGN_TOKENS;
   const everydayPool = pools?.find((p) => p.poolType === "EVERYDAY");
@@ -105,27 +134,41 @@ export function QuickExpenseModal({
     triggerHaptic("selection");
     setName(pick.name);
     setAmount(pick.amount);
+    setDate(todayStr);
     if (everydayPool) {
       setSelectedPoolId(everydayPool.id);
     }
+    clearErrors();
   };
 
   const handleRecord = async () => {
+    clearErrors();
     const numAmount = parseFloat(amount);
+    let hasError = false;
+
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      Alert.alert(t("common.error"), "Please enter a valid amount.");
-      return;
+      setAmountError(t("drawers.quickExpense.validAmountError", { defaultValue: "Please enter a valid amount." }));
+      hasError = true;
+    }
+
+    if (!date.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date.trim()) || isNaN(new Date(date.trim()).getTime())) {
+      setDateError(t("drawers.quickExpense.invalidDate", { defaultValue: "Please enter a valid date (YYYY-MM-DD)." }));
+      hasError = true;
+    } else if (type === "TRANSFER" && date.trim() < todayStr) {
+      setDateError(t("drawers.quickExpense.pastDateError", { defaultValue: "Transfers cannot be performed for past dates." }));
+      hasError = true;
     }
 
     if (type === "DEBIT") {
       if (!name.trim()) {
-        Alert.alert(t("common.error"), "Please enter an expense name.");
-        return;
+        setNameError(t("drawers.quickExpense.nameRequired", { defaultValue: "Name is required." }));
+        hasError = true;
       }
       if (!selectedPoolId) {
-        Alert.alert(t("common.error"), "Please select a pool.");
-        return;
+        setPoolError(t("drawers.quickExpense.poolSelectionRequired", { defaultValue: "Please select a pool." }));
+        hasError = true;
       }
+      if (hasError) return;
 
       setIsSubmitting(true);
       try {
@@ -133,6 +176,7 @@ export function QuickExpenseModal({
           poolId: selectedPoolId,
           amount: numAmount.toFixed(2),
           flowType: "DEBIT",
+          date: date.trim(),
           note: note.trim() || name.trim(),
           idempotencyKey:
             typeof crypto !== "undefined" && crypto.randomUUID
@@ -151,8 +195,7 @@ export function QuickExpenseModal({
         utils.listTransactions.invalidate();
         resetAndClose();
       } catch (err) {
-        Alert.alert(
-          t("common.error"),
+        setGeneralError(
           err instanceof Error ? err.message : "Failed to record expense"
         );
       } finally {
@@ -160,18 +203,17 @@ export function QuickExpenseModal({
       }
     } else if (type === "CREDIT") {
       if (!name.trim()) {
-        Alert.alert(t("common.error"), "Please enter an income source name.");
-        return;
+        setNameError(t("drawers.quickExpense.nameRequired", { defaultValue: "Please enter an income source name." }));
+        hasError = true;
       }
+      if (hasError) return;
 
       setIsSubmitting(true);
       try {
-        const todayStr = formatIsoDate(new Date());
-
         const created = await createUpcomingIncomeMutation.mutateAsync({
           name: name.trim(),
           amount: numAmount.toFixed(2),
-          expectedDate: todayStr,
+          expectedDate: date.trim(),
           note: note.trim() || name.trim(),
         });
 
@@ -187,8 +229,7 @@ export function QuickExpenseModal({
           onIncomeSuccess(created.id);
         }
       } catch (err) {
-        Alert.alert(
-          t("common.error"),
+        setGeneralError(
           err instanceof Error ? err.message : "Failed to record income"
         );
       } finally {
@@ -196,19 +237,13 @@ export function QuickExpenseModal({
       }
     } else if (type === "TRANSFER") {
       if (!selectedPoolId || !destPoolId) {
-        Alert.alert(
-          t("common.error"),
-          "Please select both source and destination pools."
-        );
-        return;
+        setPoolError(t("drawers.quickExpense.poolsRequired", { defaultValue: "Please select both source and destination pools." }));
+        hasError = true;
+      } else if (selectedPoolId === destPoolId) {
+        setPoolError(t("drawers.quickExpense.poolsDifferent", { defaultValue: "Source and destination pools must be different." }));
+        hasError = true;
       }
-      if (selectedPoolId === destPoolId) {
-        Alert.alert(
-          t("common.error"),
-          "Source and destination pools must be different."
-        );
-        return;
-      }
+      if (hasError) return;
 
       setIsSubmitting(true);
       try {
@@ -216,6 +251,7 @@ export function QuickExpenseModal({
           sourcePoolId: selectedPoolId,
           destinationPoolId: destPoolId,
           amount: numAmount.toFixed(2),
+          targetDate: date.trim() === todayStr ? undefined : date.trim(),
           note: note.trim() || undefined,
         });
 
@@ -245,8 +281,7 @@ export function QuickExpenseModal({
           resetAndClose();
         }
       } catch (err) {
-        Alert.alert(
-          t("common.error"),
+        setGeneralError(
           err instanceof Error ? err.message : "Failed to transfer funds"
         );
       } finally {
@@ -258,7 +293,10 @@ export function QuickExpenseModal({
   const resetAndClose = () => {
     setName("");
     setAmount("");
+    setDate(todayStr);
     setNote("");
+    setDestPoolId("");
+    clearErrors();
     onClose();
   };
 
@@ -296,7 +334,10 @@ export function QuickExpenseModal({
                   styles.segmentBtn,
                   type === "DEBIT" && styles.segmentBtnActiveDebit,
                 ]}
-                onPress={() => setType("DEBIT")}
+                onPress={() => {
+                  setType("DEBIT");
+                  clearErrors();
+                }}
               >
                 <Text
                   style={[
@@ -313,7 +354,10 @@ export function QuickExpenseModal({
                   styles.segmentBtn,
                   type === "CREDIT" && styles.segmentBtnActiveCredit,
                 ]}
-                onPress={() => setType("CREDIT")}
+                onPress={() => {
+                  setType("CREDIT");
+                  clearErrors();
+                }}
               >
                 <Text
                   style={[
@@ -330,7 +374,10 @@ export function QuickExpenseModal({
                   styles.segmentBtn,
                   type === "TRANSFER" && styles.segmentBtnActiveTransfer,
                 ]}
-                onPress={() => setType("TRANSFER")}
+                onPress={() => {
+                  setType("TRANSFER");
+                  clearErrors();
+                }}
               >
                 <Text
                   style={[
@@ -353,6 +400,8 @@ export function QuickExpenseModal({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.form}
               >
+                <FormErrorBanner message={generalError} />
+
                 {/* Quick Picks for Expense */}
                 {type === "DEBIT" && (
                   <View style={styles.quickPicksSection}>
@@ -379,19 +428,18 @@ export function QuickExpenseModal({
 
                 {/* Amount Input */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Amount ($)</Text>
-                  <View style={styles.amountInputWrap}>
-                    <Text style={styles.currencySymbol}>$</Text>
-                    <TextInput
-                      style={styles.amountInput}
-                      placeholder="0.00"
-                      keyboardType="decimal-pad"
-                      value={amount}
-                      onChangeText={setAmount}
-                      placeholderTextColor={D.colors.textMuted}
-                      autoFocus={type === "DEBIT"}
-                    />
-                  </View>
+                  <AmountInput
+                    label="Amount ($ AUD)"
+                    required
+                    value={amount}
+                    onChangeText={(val) => {
+                      setAmount(val);
+                      if (amountError) setAmountError("");
+                    }}
+                    error={amountError}
+                    placeholder="0.00"
+                    autoFocus={type === "DEBIT"}
+                  />
                   {isOverdraft && (
                     <Text style={styles.overdraftWarning}>
                       ⚠️ Exceeds pool balance ({formatAUD(getPoolBalance(selectedPool))})
@@ -399,40 +447,98 @@ export function QuickExpenseModal({
                   )}
                 </View>
 
+                {/* Date Input with Quick Shortcuts */}
+                <View style={styles.inputGroup}>
+                  <FormLabel required>{t("common.date", { defaultValue: "Date" })}</FormLabel>
+                  <View style={styles.dateQuickRow}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setDate(todayStr);
+                        if (dateError) setDateError("");
+                      }}
+                      style={[
+                        styles.dateQuickBtn,
+                        date === todayStr && styles.dateQuickBtnActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.dateQuickBtnText,
+                          date === todayStr && styles.dateQuickBtnTextActive,
+                        ]}
+                      >
+                        {t("common.today", { defaultValue: "Today" })}
+                      </Text>
+                    </TouchableOpacity>
+                    {type !== "TRANSFER" && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setDate(yesterdayStr);
+                          if (dateError) setDateError("");
+                        }}
+                        style={[
+                          styles.dateQuickBtn,
+                          date === yesterdayStr && styles.dateQuickBtnActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.dateQuickBtnText,
+                            date === yesterdayStr && styles.dateQuickBtnTextActive,
+                          ]}
+                        >
+                          {t("common.yesterday", { defaultValue: "Yesterday" })}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <MobileInput
+                    placeholder="YYYY-MM-DD"
+                    value={date}
+                    onChangeText={(val) => {
+                      setDate(val);
+                      if (dateError) setDateError("");
+                    }}
+                    error={dateError}
+                  />
+                </View>
+
                 {/* Name Input */}
                 {type !== "TRANSFER" && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>
-                      {type === "CREDIT" ? "Income Name / Source" : "Expense Name"}
-                    </Text>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder={
-                        type === "CREDIT" ? "e.g. Side Gig, Tax Refund" : "e.g. Coffee, Groceries"
-                      }
-                      value={name}
-                      onChangeText={setName}
-                      placeholderTextColor={D.colors.textMuted}
-                    />
-                  </View>
+                  <MobileInput
+                    label={type === "CREDIT" ? "Income Name / Source" : "Expense Name"}
+                    required
+                    value={name}
+                    onChangeText={(val) => {
+                      setName(val);
+                      if (nameError) setNameError("");
+                    }}
+                    placeholder={
+                      type === "CREDIT" ? "e.g. Side Gig, Tax Refund" : "e.g. Coffee, Groceries"
+                    }
+                    error={nameError}
+                  />
                 )}
 
                 {/* Source Pool Selection */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>
+                  <FormLabel required>
                     {type === "TRANSFER"
                       ? "From Pool (Source)"
                       : type === "CREDIT"
                       ? "Receiving Pool"
                       : "Paid From Pool"}
-                  </Text>
+                  </FormLabel>
                   <View style={styles.poolsGrid}>
                     {pools?.map((p) => {
                       const isSelected = p.id === selectedPoolId;
                       return (
                         <TouchableOpacity
                           key={p.id}
-                          onPress={() => setSelectedPoolId(p.id)}
+                          onPress={() => {
+                            setSelectedPoolId(p.id);
+                            if (poolError) setPoolError("");
+                          }}
                           style={[
                             styles.poolChip,
                             isSelected && styles.poolChipSelected,
@@ -458,12 +564,13 @@ export function QuickExpenseModal({
                       );
                     })}
                   </View>
+                  <FormFieldError error={poolError} />
                 </View>
 
                 {/* Destination Pool for Transfer */}
                 {type === "TRANSFER" && (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>To Pool (Destination)</Text>
+                    <FormLabel required>To Pool (Destination)</FormLabel>
                     <View style={styles.poolsGrid}>
                       {pools
                         ?.filter((p) => p.id !== selectedPoolId)
@@ -472,7 +579,10 @@ export function QuickExpenseModal({
                           return (
                             <TouchableOpacity
                               key={p.id}
-                              onPress={() => setDestPoolId(p.id)}
+                              onPress={() => {
+                                setDestPoolId(p.id);
+                                if (poolError) setPoolError("");
+                              }}
                               style={[
                                 styles.poolChip,
                                 isSelected && styles.poolChipSelected,
@@ -502,43 +612,26 @@ export function QuickExpenseModal({
                 )}
 
                 {/* Optional Note */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Note (Optional)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Add custom notes..."
-                    value={note}
-                    onChangeText={setNote}
-                    placeholderTextColor={D.colors.textMuted}
-                  />
-                </View>
+                <MobileInput
+                  label="Note (Optional)"
+                  placeholder="Add custom notes..."
+                  value={note}
+                  onChangeText={setNote}
+                />
 
                 {/* Action Button */}
-                <TouchableOpacity
+                <MobileButton
+                  variant="primary"
                   onPress={handleRecord}
-                  disabled={isSubmitting}
-                  style={[
-                    styles.submitBtn,
-                    type === "CREDIT"
-                      ? styles.submitBtnCredit
-                      : type === "TRANSFER"
-                      ? styles.submitBtnTransfer
-                      : styles.submitBtnDebit,
-                    isSubmitting && { opacity: 0.6 },
-                  ]}
+                  loading={isSubmitting}
+                  style={{ marginTop: 8 }}
                 >
-                  {isSubmitting ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.submitBtnText}>
-                      {type === "DEBIT"
-                        ? "Record Expense"
-                        : type === "CREDIT"
-                        ? "Record Income"
-                        : "Transfer Funds"}
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                  {type === "DEBIT"
+                    ? "Record Expense"
+                    : type === "CREDIT"
+                    ? "Record Income"
+                    : "Transfer Funds"}
+                </MobileButton>
               </ScrollView>
             )}
           </View>
@@ -757,6 +850,32 @@ const styles = StyleSheet.create({
   },
   poolChipBalSelected: {
     color: "#2563eb",
+  },
+  dateQuickRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 4,
+  },
+  dateQuickBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  dateQuickBtnActive: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#2563eb",
+  },
+  dateQuickBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  dateQuickBtnTextActive: {
+    color: "#2563eb",
+    fontWeight: "800",
   },
   submitBtn: {
     borderRadius: 14,

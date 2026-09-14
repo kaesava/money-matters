@@ -166,7 +166,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 1. **`IMMEDIATE DUE-DATE FEASIBILITY GUARD` (Step 1)**: Guarantees 100% funding for upcoming bills due on or before the next payday cutoff (`expectedDate <= nextPaydayCutoff`). Prioritizes essential bills (`isEssential: true`, derived from child categories) first, then standard bills, ensuring rent/mortgage and utility direct debits never bounce.
 2. **`RESERVE SINKING FUNDS` (Step 2)**: Smoothly accrues pro-rata cycle targets for future bills due beyond next payday using exact cycle factors: $1/26$ for fortnightly, $1/52$ for weekly, and $1/12$ for monthly paychecks. Only allocates the delta above Step 1 funding.
 3. **`COMMITTED GOALS` (Step 3)**: Prioritizes committed target-date goals sorted by target date. When target date is on or before next payday, allocates 100% of remaining gap; otherwise paces gap across remaining paychecks.
-4. **`EVERYDAY TIME-BASED ALLOWANCE` (Step 4)**: Allocates cycle allowance ($1/26$ fortnightly, $1/12$ monthly). Supports top-up to cap (`rolloverRule === 'RESET'`) and default full fresh deposit (`'ROLLOVER'` / `'SWEEP'`).
+4. **`EVERYDAY TIME-BASED ALLOWANCE` (Step 4)**: Allocates cycle allowance ($1/26$ fortnightly, $1/12$ monthly). In accordance with the Serene Finance Blended Zero-Friction model, discretionary everyday living expenses (coffees, groceries, petrol) do not require manual ledger transaction logging. Instead, Everyday is governed by theoretical daily burn pacing ($R_{daily} = \text{cycleAllowance} / \text{daysInCycle}$) between paydays, with 1-click Bank Reconciliation dynamically absorbing variance and recalibrating the remaining daily pace ($/day) without scolding or manual category bookkeeping. Supports rollover & accumulate on payday.
 5. **`UNCOMMITTED GOALS & RESIDUAL SURPLUS SWEEP` (Step 5)**: Funds uncommitted goals and sweeps 100% of remaining residual cents into the designated surplus bucket (`isSurplusTarget === true`). Unallocated cash is strictly $0.00.
 
 ### 5.2.1 Payday Preview, Rolling Window & Persistence Resolution Hierarchy (`previewPaydayQuery`, `runCumulativeProjection`)
@@ -312,7 +312,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 | **Upstash Redis** | Sliding-Window API Rate Limiting | `.env` / Cloudflare Secrets (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) | **READY** (REST pipeline sliding window) | In-process sliding window fallback map |
 | **Resend** | Transactional Email & Partner Invites | `.env` (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) | **READY** (`notifications@moneymatters.kaesava.au`) | Console simulation mode when key absent |
 | **Inngest Cloud** | Async Workflows & Release 1 Weekly Email Cron | `.env` (`INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`), `/api/inngest` | **READY** (Production signing key & background event dispatch; mobile push crons staged for Release 2) | Local Inngest CLI (`pnpm run dev:inngest`) |
-| **Stripe API** | Subscriptions, Billing & Webhooks | `.env` / Platform Secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs) | **READY** (Raw signature validation & 7-day read-only grace period) | Vitest mock handlers / Test mode price IDs |
+| **Stripe API** | Subscriptions, Billing & Webhooks | `.env` / Platform Secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL`, `STRIPE_PRICE_FOUNDING_ANNUAL`, `NEXT_PUBLIC_ENABLE_FOUNDING_OFFER`) | **READY** (Raw signature validation, 7-day read-only grace period, and strict `planType` checkout routing) | Vitest mock handlers / Test mode price IDs |
 | **Sentry SaaS** | APM & Exception Tracking | `.env` (`SENTRY_DSN`), `next.config.ts`, `sentry.*.config.ts` | **READY** (Integrated across Fastify API, Next.js Web, Expo Mobile) | Gated to production builds (`NODE_ENV === 'production'`) |
 | **PostHog SaaS** | Product Analytics & Feature Flags | `.env` (`POSTHOG_API_KEY`, `POSTHOG_HOST`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`) | **READY** (Integrated across Fastify API, Next.js Web, Expo Mobile) | Safe null-logger fallback in development |
 
@@ -405,6 +405,25 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   - `updateExpenseSource` compares existing and incoming recurrence rules (`frequency`, `interval`, `startDate`, `endDate`, `dayOfWeek`, `dayOfMonth`). If recurrence patterns remain identical, schedule properties (name, amount, pool) are updated in-place without re-bursting future events, preserving individually modified or deleted occurrences.
 - **Data Export Stealth Privacy (`packages/capabilities/tenant/src/export-data.ts`)**:
   - Enforces strict pool privacy filtering on export: pools are included only if `!p.bankAccountId || allowedBankAccountIds.has(p.bankAccountId) || p.createdBy === userId`. Export filenames standardized to `Income_Split_Plans.csv` and `Income_Split_Plan_Lines.csv`.
+
+### 9.8 Shared UI Component Library & Cross-Platform Form Standards (`packages/ui`)
+- **Web UI Primitives (`@money-matters/ui/web`)**:
+  - `Button`: Primary (`#2563eb`), Secondary, Destructive (`#ba1a1a`), and Ghost variants with built-in spinner loading states.
+  - `FormLabel`: Unified form label supporting mandatory indicator asterisk (`required={true}`) and both `label` string prop or JSX children.
+  - `FormFieldError`: Subtle red inline error message displayed immediately below form inputs.
+  - `FormErrorBanner`: Top-level form alert banner with warning icon for API/submission failures.
+  - `ModalDialog`: Centralized accessible modal dialog supporting title, description, footer actions, LIFO stack registration, and dirty-state discard confirmation.
+  - `SortHeader`: Standardized table column sort header component with active/direction indicators and proper header cell alignment.
+  - `TextLink`: Serene Blue text link component with accessible underline styles.
+  - `AmountField`: Enforces `$` currency adornment, 12-digit max limit, 2 decimal places, and monospace JetBrains numerals.
+- **Mobile UI Primitives (`@money-matters/ui/mobile`)**:
+  - `Button` (`MobileButton`): Branded native touchable button with primary, secondary, destructive, and ghost styles and activity indicator.
+  - `Input` (`MobileInput`): Standardized mobile text input integrated with `FormLabel` and `FormFieldError`.
+  - `AmountInput`: Monetary amount input with currency symbol, numeric keyboard, 12-digit boundary, and 2 decimal places.
+  - `ChipSelect`: Generic multi/single-choice chip selector supporting key/value options and Serene Blue active highlights.
+  - `MobileModalDialog`: Centralized bottom sheet / dialog overlay with scrollable content, footer actions, and dirty discard protection.
+  - `MobileConfirmDialog` (`showMobileConfirm`): Universal promise-based native confirmation dialog replacing `Alert.alert` for all destructive and confirmation flows.
+  - `MobilePaginationBar`: Mobile pagination controls conditionally rendered only when `totalItems >= 5`.
 
 ---
 
