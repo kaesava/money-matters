@@ -21,8 +21,8 @@ export function LeaveHouseholdCard({ onLeft }: LeaveHouseholdCardProps) {
     showMobileConfirm({
       title: t('privacy.leaveHouseholdTitle'),
       message: 'Are you sure you want to leave this household?',
-      confirmLabel: 'Leave Household',
-      cancelLabel: 'Cancel',
+      confirmText: 'Leave Household',
+      cancelText: 'Cancel',
       isDestructive: true,
       onConfirm: async () => {
         setIsSubmitting(true);

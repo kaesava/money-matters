@@ -407,23 +407,38 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   - Enforces strict pool privacy filtering on export: pools are included only if `!p.bankAccountId || allowedBankAccountIds.has(p.bankAccountId) || p.createdBy === userId`. Export filenames standardized to `Income_Split_Plans.csv` and `Income_Split_Plan_Lines.csv`.
 
 ### 9.8 Shared UI Component Library & Cross-Platform Form Standards (`packages/ui`)
-- **Web UI Primitives (`@money-matters/ui/web`)**:
-  - `Button`: Primary (`#2563eb`), Secondary, Destructive (`#ba1a1a`), and Ghost variants with built-in spinner loading states.
-  - `FormLabel`: Unified form label supporting mandatory indicator asterisk (`required={true}`) and both `label` string prop or JSX children.
-  - `FormFieldError`: Subtle red inline error message displayed immediately below form inputs.
-  - `FormErrorBanner`: Top-level form alert banner with warning icon for API/submission failures.
-  - `ModalDialog`: Centralized accessible modal dialog supporting title, description, footer actions, LIFO stack registration, and dirty-state discard confirmation.
-  - `SortHeader`: Standardized table column sort header component with active/direction indicators and proper header cell alignment.
-  - `TextLink`: Serene Blue text link component with accessible underline styles.
-  - `AmountField`: Enforces `$` currency adornment, 12-digit max limit, 2 decimal places, and monospace JetBrains numerals.
-- **Mobile UI Primitives (`@money-matters/ui/mobile`)**:
-  - `Button` (`MobileButton`): Branded native touchable button with primary, secondary, destructive, and ghost styles and activity indicator.
-  - `Input` (`MobileInput`): Standardized mobile text input integrated with `FormLabel` and `FormFieldError`.
-  - `AmountInput`: Monetary amount input with currency symbol, numeric keyboard, 12-digit boundary, and 2 decimal places.
-  - `ChipSelect`: Generic multi/single-choice chip selector supporting key/value options and Serene Blue active highlights.
-  - `MobileModalDialog`: Centralized bottom sheet / dialog overlay with scrollable content, footer actions, and dirty discard protection.
-  - `MobileConfirmDialog` (`showMobileConfirm`): Universal promise-based native confirmation dialog replacing `Alert.alert` for all destructive and confirmation flows.
-  - `MobilePaginationBar`: Mobile pagination controls conditionally rendered only when `totalItems >= 5`.
+- **Architectural Tenet ("Set Once & Re-Use")**:
+  - All reusable UI elements, form fields, validation helpers, modal containers, and design tokens are defined centrally in `@money-matters/ui` (`@money-matters/ui/web` and `@money-matters/ui/mobile`).
+  - Apps (`apps/web`, `apps/mobile`) act as thin composition layers. Defining local modal wrappers, custom confirm popups, ad-hoc buttons, or duplicate amount inputs inside apps is strictly forbidden.
+- **Web UI Primitives Catalog (`@money-matters/ui/web`)**:
+  - `Button`: Primary (`#2563eb`), Secondary, Destructive (`#ba1a1a`), and Ghost variants. Accepts `isLoading: boolean` prop to render an inline spinner and preserve button dimensions without geometry jump. Disables pointer events while loading.
+  - `FormLabel`: Unified label element. Accepts `required?: boolean` (renders subtle red `*`), `htmlFor?: string`, and either `label?: string` prop or JSX children.
+  - `FormFieldError`: Accessible inline error display (`role="alert"`). Renders subtle red helper text (`text-xs text-rose-600 dark:text-rose-400 mt-1`) directly below the targeted input.
+  - `FormErrorBanner`: Top-level form alert banner with warning icon for API or submission failures (`bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800/60 dark:text-rose-200`).
+  - `ModalDialog`: Accessible modal overlay. Subscribes to global LIFO modal stack (`useModalDismiss`). Accepts `isDirty?: boolean` prop; when dirty, any attempt to dismiss via Cancel button, backdrop click, or `Escape` key automatically intercepts and renders a nested discard confirmation prompt.
+  - `ConfirmDialog`: Promise-friendly action confirmation dialog replacing native browser `confirm()`.
+  - `SortHeader`: Table column header component with active/direction indicators (`▲`/`▼`), maintaining alignment parity with underlying data cells.
+  - `TextLink`: Accessible link primitive with Serene Blue styling and subtle focus rings.
+  - `AmountField`: Form input primitive enforcing `$` currency adornment, 12-digit max limit, 2 decimal places, monospace numerals (`font-mono tabular-nums`), and non-negative boundaries.
+  - `DatePickerField`: Native date input wrapper with timezone-aware ISO date formatting (`YYYY-MM-DD`).
+  - `GenericSelectField` & `SearchSelect`: Searchable dropdown selects with Serene styling and keyboard navigation.
+  - `PaginationBar`: Standardized table pagination controls. **Conditionally rendered only when `totalItems >= 5`**.
+  - `SkeletonTable`: Standardized skeleton loading table with configurable row and column counts.
+- **Mobile UI Primitives Catalog (`@money-matters/ui/mobile`)**:
+  - `MobileButton` (`Button`): Native touchable button with primary (`#2563eb`), secondary, destructive (`#ba1a1a`), and ghost variants. Automatically displays `ActivityIndicator` during `isLoading` or `isSubmitting` states.
+  - `MobileInput` (`Input`): Native text input integrated with `FormLabel` and `FormFieldError`.
+  - `AmountInput`: Monetary amount input with `$` currency prefix, numeric keypad (`keyboardType="decimal-pad"`), 12-digit limit, and 2 decimal place formatting.
+  - `ChipSelect`: Flexible single/multi-select chip component supporting `key`/`value` or `value`/`label` options with Serene Blue active state.
+  - `MobileModalDialog`: Centralized modal sheet / bottom drawer with scrollable body, fixed header/footer, and `isDirty` discard confirmation interception.
+  - `MobileConfirmDialog` (`showMobileConfirm`): Universal native confirmation modal replacing `Alert.alert` for all destructive, archival, and discard actions.
+  - `MobilePaginationBar`: Mobile pagination bar with Prev/Next controls, **conditionally rendered only when `totalItems >= 5`**.
+  - `BankProviderBadge`: Branded badges for Australian banks (`CBA`, `Westpac`, `ANZ`, `NAB`, `ING`, `Macquarie`, `Other`).
+- **Form State & Interaction Governance**:
+  - **Submit Button Blocking**: Primary form submission actions MUST remain disabled unless form state is dirty and valid (`!isDirty || !isValid`).
+  - **Autofocus**: First editable text/amount input in any modal or form MUST receive `autoFocus`.
+  - **Zero Ad-Hoc Hex Colors**: All styling MUST strictly consume Serene Finance tokens (`tokens.colors`, `tokens.fonts`) or standard Serene Tailwind classes.
+- **Mobile TypeScript Cache Management (`.tsbuildinfo`)**:
+  - `apps/mobile/tsconfig.json` operates in incremental compilation mode (`.tsbuildinfo`). When `@money-matters/ui` or any workspace package adds or alters exports, developers/agents MUST execute `rm -f apps/mobile/.tsbuildinfo` before `pnpm --filter @money-matters/mobile typecheck` to prevent false typecheck errors caused by stale build cache.
 
 ---
 

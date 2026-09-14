@@ -152,8 +152,8 @@ export function UpcomingExpenseModal({
       showMobileConfirm({
         title: 'Negative Balance Warning',
         message: `Payment of ${fmt(numAmount)} exceeds "${selectedCat?.name}" balance (${fmt(currentCatBal)}). Category balance will become negative (${fmt(projectedBal)}). Proceed?`,
-        confirmLabel: t('common.confirm'),
-        cancelLabel: t('common.cancel'),
+        confirmText: t('common.confirm'),
+        cancelText: t('common.cancel'),
         isDestructive: false,
         onConfirm: () => executeMarkPaid(),
       });
@@ -200,8 +200,8 @@ export function UpcomingExpenseModal({
     showMobileConfirm({
       title: 'Permanent Delete Warning',
       message: 'This upcoming expense record will be permanently deleted (not archived). Are you sure?',
-      confirmLabel: t('common.delete'),
-      cancelLabel: t('common.cancel'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
       isDestructive: true,
       onConfirm: async () => {
         setSubmitting(true);

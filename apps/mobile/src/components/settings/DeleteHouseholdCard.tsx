@@ -29,8 +29,8 @@ export function DeleteHouseholdCard({
     showMobileConfirm({
       title: t('privacy.deleteHouseholdTitle'),
       message: t('privacy.deleteHouseholdNotice'),
-      confirmLabel: 'Erase Household',
-      cancelLabel: 'Cancel',
+      confirmText: 'Erase Household',
+      cancelText: 'Cancel',
       isDestructive: true,
       onConfirm: async () => {
         setIsSubmitting(true);

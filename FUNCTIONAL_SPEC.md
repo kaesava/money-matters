@@ -275,23 +275,26 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 ### 6.0 Unified UI Design System, Form Inputs & Modal Standards ("Set Once & Re-Use")
 - **Aggressive Code Re-use & Zero Duplication**:
   - All shared UI elements, forms, inputs, modals, buttons, and tokens are centralized in `@money-matters/ui` (`@money-matters/ui/web` and `@money-matters/ui/mobile`), eliminating redundant local implementations.
+  - Defining ad-hoc input styling, custom modal wrappers, local confirm popups, or duplicate button components inside `apps/web` or `apps/mobile` is strictly banned.
 - **Color & Typography Design Tokens (`tokens.ts`)**:
   - Serene Blue (`#2563eb`), Primary Navy (`#1B2B4B`), Surface Bright (`#ffffff`), Surface Dim (`#F7F8FA`), Growth Green (`#22c55e`), Burn Red (`#ba1a1a`).
   - Typography: Inter for general UI headings and body; **JetBrains Mono** (`font-mono`, `tabular-nums`) for all monetary metrics across Web and Mobile.
   - Strict zero-hex policy: Raw inline hex colors are banned in favor of tokenized Tailwind classes and `tokens.colors`.
 - **Form Input Defenses & Consistency**:
-  - **Monetary Amounts (`AmountField` / `AmountInput`)**: Centrally enforces `$` currency indicator, monospace numerals (`font-mono tabular-nums`), non-negative values, max 12 digits, and max 2 decimal places.
+  - **Monetary Amounts (`AmountField` / `AmountInput`)**: Centrally enforces `$` currency indicator, monospace numerals (`font-mono tabular-nums`), non-negative values, max 12 digits, and max 2 decimal places. Inputs automatically format on blur without losing active caret position during numeric typing.
   - **Mandatory Field Labels (`FormLabel`)**: Mandatory fields are denoted with a subtle red asterisk (`*`).
   - **Inline Field Errors (`FormFieldError`)**: Form validation errors render consistently as subtle red helper text directly below the invalid input, replacing native browser HTML5 bubbles and ad-hoc popups.
   - **Form Error Banners (`FormErrorBanner`)**: Top-level API or submission error alerts display in a clean, subtle red-tinted banner with a warning icon at the head of the form.
-  - **Button State & Actions (`Button` / `MobileButton`)**: Submit actions remain disabled until the form is dirty and valid (`!isDirty || !isValid`). Includes built-in spinner loading states and distinct variants (`primary`, `secondary`, `destructive`, `ghost`).
+  - **Button State & Actions (`Button` / `MobileButton`)**: Submit actions remain disabled until the form is dirty and valid (`!isDirty || !isValid`). Includes built-in spinner loading states that prevent duplicate clicks and preserve button geometry. Distinct variants: `primary`, `secondary`, `destructive`, and `ghost`.
+  - **Focus Management**: The first editable input on any modal or form automatically receives focus (`autoFocus`).
 - **Modal & Drawer Hierarchy**:
   - **LIFO Dismissal & Discard Confirmations**: Unified `ModalDialog` (web) and `MobileModalDialog` (mobile) track form dirtiness (`isDirty`). Attempting to dismiss via Cancel, backdrop click, or `Escape` key automatically prompts the user with an unsaved changes confirmation before discarding.
   - **Standardized Confirm Dialogs**: User action confirmations (archiving, deleting, marking paid, discarding) use `<ConfirmDialog />` on web and `<MobileConfirmDialog />` (`showMobileConfirm`) on mobile. Native browser `confirm()` and `Alert.alert` popups are strictly banned.
 - **Universal Table & List Controls**:
   - **Table Header & Cell Parity**: Left-aligned for text/names/categories/accounts; Center-aligned for dates/status/actions; Right-aligned for monetary amounts.
+  - **Sortable Columns (`SortHeader`)**: Standardized sort header with visual direction arrows (`▲`/`▼`) and keyboard accessibility.
   - **Conditional Pagination**: Pagination controls (`<PaginationBar />` and `<MobilePaginationBar />`) render conditionally only when the total record count is 5 or more (`totalItems >= 5`).
-  - **Skeleton Loading**: Data fetching states across tables and lists display `<SkeletonTable />` / `<SkeletonCard />` loading animations.
+  - **Skeleton Loading**: Data fetching states across tables and lists display `<SkeletonTable />` / `<SkeletonCard />` loading animations to eliminate cumulative layout shift (CLS).
 - **Dates & Timezones**:
   - Dates stored in UTC; rendered in timezone-aware AEST/en-AU format via `Intl.DateTimeFormat`.
 
