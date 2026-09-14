@@ -30,7 +30,14 @@ if (!isExpoGo) {
   }
 }
 
-export function usePushNotifications() {
+export interface ForegroundNotificationPayload {
+  title?: string;
+  body?: string;
+}
+
+export function usePushNotifications(
+  onNotificationReceived?: (notification: ForegroundNotificationPayload) => void
+) {
   const { useRegisterToken } = useNotificationService();
   const registerMutation = useRegisterToken();
   const hasRegistered = useRef(false);
@@ -82,14 +89,20 @@ export function usePushNotifications() {
         console.error('[PushNotifications] Registration error (non-fatal):', error);
       }
     })();
-  }, []);
+  }, [registerMutation]);
 
   useEffect(() => {
     if (isExpoGo || !Notifications) return;
     const subscription = Notifications.addNotificationReceivedListener((notification: import('expo-notifications').Notification) => {
       console.info('[PushNotifications] Foreground notification received:', notification.request.content);
+      if (onNotificationReceived) {
+        onNotificationReceived({
+          title: notification.request.content.title ?? undefined,
+          body: notification.request.content.body ?? undefined,
+        });
+      }
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [onNotificationReceived]);
 }

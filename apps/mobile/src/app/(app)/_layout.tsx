@@ -4,7 +4,6 @@ import { View, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS, useMobileToast } from '@money-matters/ui/mobile';
 import { t, setLanguage } from '@money-matters/i18n';
 import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
-import * as Notifications from 'expo-notifications';
 import { Feather } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -56,27 +55,18 @@ export default function AppLayout() {
     }
   }, [subQuery.data?.isTrialExpired, currentScreen, segments, router]);
 
-  // Automatically register device push token upon authenticated layout mount
-  usePushNotifications();
-
-  // Foreground notification handler: displays in-app toast when push arrives
-  React.useEffect(() => {
-    const subscription = Notifications.addNotificationReceivedListener((notification) => {
-      const title = notification.request.content.title;
-      const body = notification.request.content.body;
-      if (title || body) {
+  // Automatically register device push token upon authenticated layout mount & handle foreground notifications
+  usePushNotifications(
+    React.useCallback((notification: { title?: string; body?: string }) => {
+      if (notification.title || notification.body) {
         showToast({
           type: 'info',
-          title: title || 'Notification',
-          message: body || '',
+          title: notification.title || 'Notification',
+          message: notification.body || '',
         });
       }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [showToast]);
+    }, [showToast])
+  );
 
   const isFabHidden =
     currentScreen === 'settings' ||
