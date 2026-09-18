@@ -365,8 +365,8 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - **Mobile Hardware & Platform Services**:
   - `apps/mobile/src/lib/biometrics.ts`: Hardware security & local authentication wrapper (`expo-local-authentication`, `expo-secure-store`) with 2-minute background inactivity lock.
   - `apps/mobile/src/lib/haptics.ts`: Tactile feedback engine (`expo-haptics`) supporting light/medium/heavy/success impact patterns and user preferences.
-  - `apps/mobile/src/lib/trpc.ts`: Centralized 401 token refresh interceptor reloading refreshed JWT credentials upon session expiry.
-  - `apps/mobile/eas.json`: EAS Build matrix supporting `development` (internal client), `preview` (standalone APK for testing), and `production` (Google Play App Bundle / AAB).
+  - `apps/mobile/src/lib/trpc.ts`: Centralized 401 token refresh interceptor reloading refreshed JWT credentials upon session expiry, with multi-key SecureStore and cookie extraction (`getStoredTokenAndCookie`) for seamless background tRPC authentication.
+  - `apps/mobile/eas.json`: EAS Build matrix supporting `development` (internal client), `preview` (standalone APK for testing), and `production` (Google Play App Bundle / AAB). Pinned to Expo SDK 54 with `react-native-screens` 4.16.0 compatibility.
 - **Mobile Primitives in `@money-matters/ui`**:
   - `packages/ui/src/mobile/BankProviderBadge.tsx`: Branded provider badges for Australian banks (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other).
   - `packages/ui/src/mobile/ToastContext.tsx`: Non-blocking mobile toast alert system (`MobileToastProvider`, `useMobileToast`).
