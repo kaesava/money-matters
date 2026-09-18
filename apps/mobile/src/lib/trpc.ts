@@ -26,6 +26,45 @@ export function setActiveTenantId(tenantId: string | null) {
 
 const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] ?? "https://kesh-imac.tail09ef18.ts.net";
 
+async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie: string | null }> {
+  let token: string | null = null;
+  let cookie: string | null = null;
+
+  try {
+    const directToken =
+      (await SecureStore.getItemAsync("money-matters_session_token")) ||
+      (await SecureStore.getItemAsync("money-matters-session-token"));
+    if (directToken) {
+      token = directToken;
+    }
+  } catch {
+    // Ignore storage read failures for optional cached tokens
+  }
+
+  try {
+    const cookieStr = await SecureStore.getItemAsync("money-matters_cookie");
+    if (cookieStr) {
+      const parsed = JSON.parse(cookieStr) as Record<string, { value?: string }>;
+      const cookieParts: string[] = [];
+      for (const [key, obj] of Object.entries(parsed)) {
+        if (obj?.value) {
+          cookieParts.push(`${key}=${obj.value}`);
+          if (!token && key.includes("session_token")) {
+            token = obj.value;
+          }
+        }
+      }
+      if (cookieParts.length > 0) {
+        cookie = cookieParts.join("; ");
+      }
+    }
+  } catch {
+    // Ignore storage read failures for optional cached cookies
+  }
+
+  return { token, cookie };
+}
+
 export function buildTrpcClient() {
   return trpc.createClient({
     links: [
@@ -42,9 +81,7 @@ export function buildTrpcClient() {
 
             // 401 Unauthorized Interceptor: Attempt token refresh & single retry
             if (res.status === 401) {
-              const freshToken =
-                (await SecureStore.getItemAsync("money-matters_session_token")) ||
-                (await SecureStore.getItemAsync("money-matters-session-token"));
+              const { token: freshToken, cookie: freshCookie } = await getStoredTokenAndCookie();
 
               if (freshToken && freshToken !== activeSessionToken) {
                 activeSessionToken = freshToken;
@@ -52,6 +89,9 @@ export function buildTrpcClient() {
                   ...((options?.headers as Record<string, string>) || {}),
                   Authorization: `Bearer ${freshToken}`,
                 };
+                if (freshCookie) {
+                  newHeaders["cookie"] = freshCookie;
+                }
                 res = await fetch(url, {
                   ...options,
                   headers: newHeaders,
@@ -76,17 +116,12 @@ export function buildTrpcClient() {
           }
         },
         async headers() {
-          let token = activeSessionToken;
-          
-          if (!token) {
-            const sessionToken = await SecureStore.getItemAsync("money-matters_session_token") || 
-                                 await SecureStore.getItemAsync("money-matters-session-token");
-            if (sessionToken) {
-              token = sessionToken;
-              activeSessionToken = token;
-            }
+          const { token: storedToken, cookie } = await getStoredTokenAndCookie();
+          let token = activeSessionToken || storedToken;
+          if (token && !activeSessionToken) {
+            activeSessionToken = token;
           }
-          
+
           let tenantId = activeTenantId;
           if (!tenantId) {
             tenantId = await SecureStore.getItemAsync("money_matters_active_tenant_id");
@@ -96,6 +131,9 @@ export function buildTrpcClient() {
           const headersObj: Record<string, string> = {};
           if (token) {
             headersObj["Authorization"] = `Bearer ${token}`;
+          }
+          if (cookie) {
+            headersObj["cookie"] = cookie;
           }
           if (tenantId) {
             headersObj["x-tenant-id"] = tenantId;
