@@ -55,9 +55,11 @@ export function CrossBankTransferModal({
       subtitle={t('modals.crossBankTransfer.description') ||
         'You transferred funds between pools linked to different bank accounts. Remember to move the physical money in your banking app:'}
       footer={
-        <MobileButton variant="primary" onPress={onClose}>
-          {t('common.done') || 'Done'}
-        </MobileButton>
+        <MobileButton
+          variant="primary"
+          onPress={onClose}
+          title={t('common.done') || 'Done'}
+        />
       }
     >
       <View style={styles.instructionCard}>

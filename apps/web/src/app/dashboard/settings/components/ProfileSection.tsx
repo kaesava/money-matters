@@ -15,10 +15,25 @@ interface ProfileSectionProps {
     image?: string | null;
   } | null;
   currentTimezone: string;
+  onDirtyChange?: (isDirty: boolean) => void;
+  registerDiscard?: (discardFn: () => void) => void;
 }
 
-export function ProfileSection({ user, currentTimezone }: ProfileSectionProps) {
+export function ProfileSection({
+  user,
+  currentTimezone,
+  onDirtyChange,
+  registerDiscard,
+}: ProfileSectionProps) {
   const form = useProfileForm({ user, currentTimezone });
+
+  React.useEffect(() => {
+    onDirtyChange?.(form.isDirty && form.isEditing);
+  }, [form.isDirty, form.isEditing, onDirtyChange]);
+
+  React.useEffect(() => {
+    registerDiscard?.(form.handleDiscardConfirm);
+  }, [form.handleDiscardConfirm, registerDiscard]);
 
   return (
     <>

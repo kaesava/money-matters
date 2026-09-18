@@ -70,6 +70,10 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator color={spinnerColor} size="small" />
+      ) : typeof children === 'string' || typeof children === 'number' ? (
+        <Text style={[styles.baseText, txtStyle, textStyle]}>
+          {children}
+        </Text>
       ) : children ? (
         children
       ) : (

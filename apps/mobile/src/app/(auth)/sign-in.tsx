@@ -53,6 +53,12 @@ export default function SignInScreen() {
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
+      if (result.data?.user?.email) {
+        await SecureStore.setItemAsync("money-matters_user_email", result.data.user.email);
+      }
+      if (result.data?.user?.name) {
+        await SecureStore.setItemAsync("money-matters_user_name", result.data.user.name);
+      }
 
       // Identify the user and capture sign-in event
       const userId = result.data?.user?.id;

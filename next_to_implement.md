@@ -1,27 +1,18 @@
+* Pools > Category Edit modal > Warning when editing a Category should say "Once set, the pool is locked to keep your transaction history clean. If you need to, please archive this category and create a new one." instead of "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.". The latter applies when editing a Pool.
+* Currency - move the increment/decrement buttons to the right of the input box (not left), and ensure it doesn't sit on top of numbers being entered). Fix mobile if it applies there too.
+* Archive Pool popup - no Confirm button in web - only Cancel! Fix!
+* The search magnifying glass symbol
+* Web - Settings > My Details - Remove the pencil icon next to Edit
+* Web - Settings > My Details and Settings > Household (when screen in edit mode) - Don't need the Save/Cancel buttons on top and bottom - remove the ones on top. Also, when I click to another tab/screen in navigation, manage the experience with best practice (perhaps depending on whether a change was made?). Right now, it's doing this weird screen flicker and seems to be putting the form in read mode. Fix on both tabs.
+* Web - Settings > Data & Description: Remove the "Everything included in your Household plan" section with the 4 check points. Also the support email is info@moneymatters.kaesava.au (change throughout app). Also, ensure "Read our full Privacy Policy" opens in a new window/tab.
+* http://localhost:3000/privacy/delete-account - Wait, why do we need this page, a user can delete their tenant from the Settings - remove this page (and any links to it)
+* Settings > Data & Subscription : Is the paragraph under "Data Privacy & Complete Export" accurate, complete & truthful? Ensure it is.
+* http://localhost:3000/privacy - Is this accurate, complete & truthful? Ensure it is.
+* Settings > Archived Data - remove icons from page
+* Settingds > Archived Data - Remove "Categories, pools, bills, and accounts you soft-delete will appear here for restoration."
 
-#######
 
-## Subscriptions
-* How do I select between the different plans to offer (for example, whether ot offer the Annual special $69 or leave the default annual at $89)? Should I do it via a configuration file or environment variable, etc.? What is best practice?
-* How flexible is the UI in adapting to what I select?
-* Even though I chose the annual subscription ($69), and clicked on "Claim $69/yr Special Rate" (change the button label to something more user-friendly), it took me to the Stripe page with $9.95/month. Ensure that Monthly ($9.95), Annual ($89) and Annual Special ($69) are correctly selected in the Stripe page
-
-## Everyday accounts
-* I feel like we should not track Everyday balance - because this will require the user to enter every spend, which goes against the reason for the app. Instead, we perhaps assume a constant daily spend against everyday categories (when calculating Can I Afford, Waterfall for Income Split, etc.)? Think critically about how best to represent remaining budget. Consider the bank reconciliation functionality. Consider how we display this in the Home Screen, Pools, Pool Picker, etc. Think about edge cases.
-
-
-####### CONSISTENT UI - In Progress
-
-Ensure UI is consistent across the web app.
-Ensure UI is consistent across the mobile app.
-I'm looking for
-Minimum overriding, maximum "set once and re-use" - for example, input field formats (currency, dates, numbers, etc.), marking mandatory fields, drop-down conventions, buttons & behaviour, hyperlnks & behavious, tables & behaviour (like sorting, searching, pagination), loading animation (across tables, screens, data), error messages (colour, placement, etc.) on submission vs. bad input, warnings & dialogs, drawers and behaviours, nested modals and behariour, colours, themes, text consistecy (font, capitilisations, font size, colour), etc.
-I expect significant code size reduction because of aggressive re-use (which also protects from future builds where conventions automatically apply)
-
-######## MOBILE APP PARITY - In Progres
-
-Ensure mobile app functionality (across every CRUD operation, flow, UX (like sort, search, links, input fields, etc.) across every screen, modal, dialog, popup, table, etc.) is in party with the web app. Be critical. Identify functional gaps. Effectively, every single thing I can do on the web app, I can also do on the mobile app (focus on Android for now) - and I mean everything, big or small!
-
+If any of the above apply (need change/fix) in mobile, do so too
 
 
 
@@ -356,48 +347,6 @@ _________
 #### Recurring Payment deduction
 #### Billing Portal
 ### Data Sovereignty & Zipped CSV Backup
-
-
-
-
-
-
-
-# TEST
-
- Configure Stripe Smart Retries (Settings → Revenue Recovery)
- Configure Stripe Customer Portal (Settings → Billing → Customer Portal → enable cancel, update payment)
-
-
-## Web App
-# AGENT - To Do
-
-# ME to Do (AI to ignore)
-
-## App Shakeout & QA Task List (Web & Mobile)
-
-### Phase 1: Authentication & Onboarding
- Sign Up / Sign In: Register new account on Web (/sign-up) and Mobile. Verify redirect to /setup. Test invalid password & duplicate email edge cases.
-
-
-### Phase 2: Core Budgeting & Waterfall
- Dashboard Metrics: Confirm monetary amounts render in JetBrains Mono font. Verify Total Income, Committed Bills Pool, Free Everyday, and Savings totals.
- Deficit Repair Edge Case: Set upcoming expense higher than available income -> verify 5-step waterfall deficit repair highlights deficit in red (#ba1a1a).
- Category Management (/dashboard/categories): Create, edit, archive, and restore categories. Test "Move Money" modal between envelopes.
-
-### Phase 3: Payday & Transactions
- Payday Cascade (/dashboard/paychecks): Preview & execute payday -> verify funds distribute across Bills, Everyday, and Buffer.
- CSV Import (Web): Upload sample bank CSV -> map columns -> verify transactions populate and envelope balances update.
- Reconciliation: Open Bank Account Reconciliation modal -> enter actual balance -> verify variance adjustment transaction created.
-
-### Phase 4: Multi-Tenancy & Billing
- Partner Invites: Send invite from /dashboard/settings -> accept link /invite/[token] in incognito window -> verify second user sees shared tenant.
- Tenant Isolation (RLS): Attempt cross-tenant query -> verify PostgreSQL RLS blocks unauthorized access.
- Stripe Upgrade (/subscription/upgrade): Upgrade to Household plan using test card -> verify status updates to ACTIVE and /subscription/manage opens Customer Portal.
-
-### Phase 5: Mobile Offline & Native UX
- Offline Mode: Enable Airplane mode -> view categories & transactions via local SQLite cache. Re-enable network -> verify sync.
- Quick Expense Modal: Add transaction via native numeric keypad -> verify smooth modal dismissal and list update.
 
 
 

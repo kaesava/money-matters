@@ -77,9 +77,7 @@ export function ArchivedSection() {
         <SkeletonTable rows={3} cols={2} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-zinc-200 shadow-xs gap-2">
-          <span className="text-3xl">📦</span>
           <p className="text-sm font-bold text-[#1B2B4B]">No archived data found</p>
-          <p className="text-xs text-slate-500">Categories, pools, bills, and accounts you soft-delete will appear here for restoration.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">

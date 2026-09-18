@@ -87,7 +87,7 @@ export function ActiveSubscriptionCard({
       </div>
 
       <div className="mt-2 text-center text-xs text-slate-400 font-medium">
-        {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
+        {t("subscription.supportHelpText", { email: "info@moneymatters.kaesava.au" })}
       </div>
     </div>
   );

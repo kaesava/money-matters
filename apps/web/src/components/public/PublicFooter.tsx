@@ -30,9 +30,6 @@ export function PublicFooter() {
           <Link href="/privacy" className="hover:text-[#2563eb] transition-colors">
             {t("landing.footerPrivacy")}
           </Link>
-          <Link href="/privacy/delete-account" className="hover:text-[#2563eb] transition-colors">
-            {t("privacy.deletePageTitle")}
-          </Link>
           <Link href="/blog" className="hover:text-[#2563eb] transition-colors">
             {t("landing.footerBlog")}
           </Link>

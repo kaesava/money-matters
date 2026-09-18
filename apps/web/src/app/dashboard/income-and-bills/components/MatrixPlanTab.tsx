@@ -346,8 +346,8 @@ export function MatrixPlanTab({
               {visibleColumns.map((col) => {
                 const incomeEvt = incomeEvents.find((e) => e.id === col.id);
                 const colState = columnStateMap[col.id] ?? "AUTO";
-                const isConfirmed = colState === "CONFIRMED";
-                const isSaved = colState === "SAVED";
+                const isConfirmed = colState === "CONFIRMED" || incomeEvt?.status === "CONFIRMED";
+                const isSaved = !isConfirmed && colState === "SAVED";
 
                 const dateStr = formatDateShort(
                   incomeEvt?.expectedDate,

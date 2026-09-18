@@ -101,7 +101,6 @@ export default function MobileArchivedItemsScreen() {
           <ActivityIndicator style={{ marginTop: 32 }} color="#2563eb" />
         ) : filtered.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📦</Text>
             <Text style={styles.emptyText}>No archived items found</Text>
           </View>
         ) : (

@@ -282,35 +282,35 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     // 2. Household Bills Pool
     { key: "bills", name: "Household Bills Pool", poolType: "REGULAR" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1099.00", isSurplusTarget: false },
     // 3. Granular Goal Pools (Linked to MISA Offset)
-    { key: "emergency", name: "Emergency Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "20000.00", isSurplusTarget: false },
-    { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "61029.48", isSurplusTarget: false },
-    { key: "raehan_gifts", name: "Raehan's Gifts", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "25760.79", isSurplusTarget: false },
+    { key: "emergency", name: "Emergency Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "20000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "raehan_prev", name: "Raehan Future Fund (Prev FY)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "61029.48", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "raehan_gifts", name: "Raehan's Gifts", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "25760.79", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "raehan_inyear", name: "Raehan FY27 In-Year Savings", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "13000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "council_rates", name: "Council Rates", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2700.00", isSurplusTarget: false },
+    { key: "council_rates", name: "Council Rates", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2700.00", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "home_insurance", name: "Home/Contents Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "car_rego", name: "Car Registration / Insurance / RACV", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5500.00", isSurplusTarget: false },
-    { key: "car_servicing", name: "Car Servicing", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "3000.00", isSurplusTarget: false },
-    { key: "car_repairs", name: "Car Ad-hoc Repair & Fines", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "4000.00", isSurplusTarget: false },
-    { key: "medicines", name: "Medicines, GP & Psychology", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "14460.00", isSurplusTarget: false },
-    { key: "clothes", name: "Clothes & Shoes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2400.00", isSurplusTarget: false },
-    { key: "costco", name: "Costco Bulk Runs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", isSurplusTarget: false },
-    { key: "charu_melb", name: "Family — Charu Aunty Melbourne", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", isSurplusTarget: false },
-    { key: "charu_emerg", name: "Charu Aunty Medical Emergency", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", isSurplusTarget: false },
+    { key: "car_rego", name: "Car Registration / Insurance / RACV", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5500.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "car_servicing", name: "Car Servicing", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "3000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "car_repairs", name: "Car Ad-hoc Repair & Fines", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "4000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "medicines", name: "Medicines, GP & Psychology", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "14460.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "clothes", name: "Clothes & Shoes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2400.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "costco", name: "Costco Bulk Runs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "charu_melb", name: "Family — Charu Aunty Melbourne", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "charu_emerg", name: "Charu Aunty Medical Emergency", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1200.00", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "charu_travel", name: "International Travel — Charu Aunty Flight", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2000.00", targetDate: "2026-11-05", isSurplusTarget: false },
-    { key: "seasonal_holidays", name: "Seasonal, School Holidays & Zoo Visits", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "9000.00", isSurplusTarget: false },
+    { key: "seasonal_holidays", name: "Seasonal, School Holidays & Zoo Visits", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "9000.00", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "int_holiday", name: "International Holiday FY27", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "35000.00", targetDate: "2026-11-01", isSurplusTarget: false },
-    { key: "japaneasy", name: "Japaneasy Classes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "500.00", isSurplusTarget: false },
+    { key: "japaneasy", name: "Japaneasy Classes", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "500.00", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "rae_birthday", name: "Rae Birthday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1250.00", targetDate: "2026-10-22", isSurplusTarget: false },
-    { key: "classes", name: "Classes & Activities", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "16250.00", isSurplusTarget: false },
-    { key: "school_fees", name: "School Fees", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "30000.00", isSurplusTarget: false },
-    { key: "pet_emerg", name: "Pet Emergency Self-Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1000.00", isSurplusTarget: false },
-    { key: "pet_insurance", name: "Pet Insurance, Rego, Vet & Boarding", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "7500.00", isSurplusTarget: false },
-    { key: "inv_property", name: "Investment Property Gap", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2717.16", isSurplusTarget: false },
-    { key: "unexpected", name: "Unexpected Expenses & Major Repairs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5000.00", isSurplusTarget: false },
-    { key: "tax_obligation", name: "Tax Obligation (incl PAYG)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "18500.00", isSurplusTarget: false },
+    { key: "classes", name: "Classes & Activities", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "16250.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "school_fees", name: "School Fees", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "30000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "pet_emerg", name: "Pet Emergency Self-Insurance", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "1000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "pet_insurance", name: "Pet Insurance, Rego, Vet & Boarding", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "7500.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "inv_property", name: "Investment Property Gap", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "2717.16", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "unexpected", name: "Unexpected Expenses & Major Repairs", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "5000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "tax_obligation", name: "Tax Obligation (incl PAYG)", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: true, targetAmount: "18500.00", targetDate: "2027-06-30", isSurplusTarget: false },
     { key: "next_yr_holiday", name: "Save for Next Year's Holiday", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "33747.55", targetDate: "2027-06-30", isSurplusTarget: false },
-    { key: "business_idea", name: "Business Idea Fund", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "5000.00", isSurplusTarget: false },
-    { key: "surplus_offset", name: "Surplus & Offset Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "50000.00", isSurplusTarget: true },
+    { key: "business_idea", name: "Business Idea Fund", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "5000.00", targetDate: "2027-06-30", isSurplusTarget: false },
+    { key: "surplus_offset", name: "Surplus & Offset Reserve", poolType: "GOAL" as const, bankAccountId: misaAccount.id, isCommitted: false, targetAmount: "50000.00", targetDate: "2027-06-30", isSurplusTarget: true },
   ];
 
   const insertedPools = await db.insert(pools).values(
@@ -320,7 +320,7 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       bankAccountId: p.bankAccountId,
       everydayAllowanceAmount: p.everydayAllowanceAmount,
       targetAmount: p.targetAmount,
-      targetDate: p.targetDate,
+      targetDate: p.targetDate ?? undefined,
       isCommitted: p.isCommitted,
       isSurplusTarget: p.isSurplusTarget,
       tenantId,
@@ -578,6 +578,20 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
     });
 
     await db.insert(allocationPlanLines).values(planLinesToInsert);
+
+    const snehaEv = insertedIncomeEvents.find((e) => e.expectedDate === past.date && e.name === "Sneha - Salary");
+    if (snehaEv) {
+      await db.insert(allocationPlans).values({
+        incomeEventId: snehaEv.id,
+        totalIncomeAmount: paydayInfo.sneha,
+        status: "CONFIRMED" as const,
+        confirmedAt: new Date(past.date + "T09:00:00Z"),
+        tenantId,
+        appId,
+        createdBy: snehaUserId,
+        updatedBy: snehaUserId,
+      });
+    }
   }
 
   // 10. Transaction Ledger — Exact Reconstructed Historical Replay (01-Jul-2026 to 13-Sep-2026)

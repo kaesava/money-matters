@@ -14,7 +14,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   // ---------------------------------------------------------------------------
   // 1. PUBLIC MARKETING, LEGAL & PRIVACY GOVERNANCE PAGES
   // ---------------------------------------------------------------------------
-  test.describe('1. Public Marketing, Legal & Privacy Pages (`/`, `/terms`, `/privacy/delete-account`)', () => {
+  test.describe('1. Public Marketing, Legal & Privacy Pages (`/`, `/terms`, `/privacy`)', () => {
     test('1.1 Landing Hero Header, SEO Metadata & Navigation Links', async ({ page }) => {
       await page.goto('/');
 
@@ -71,23 +71,12 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
-    test('1.4 Privacy Governance & Data Erasure Page (`/privacy/delete-account`)', async ({ page }) => {
-      await page.goto('/privacy/delete-account');
+    test('1.4 Privacy Policy Page Audit (`/privacy`)', async ({ page }) => {
+      await page.goto('/privacy');
 
-      // Verify Page Header & Governance Badges
-      await expect(page.locator('h1, h2, main').first()).toBeVisible();
-
-      // Check CSV Data Export CTA Button
-      const exportDataBtn = page.locator('button:has-text("Export My Data"), button:has-text("Download CSV")').first();
-      if (await exportDataBtn.isVisible()) {
-        await expect(exportDataBtn).toBeEnabled();
-      }
-
-      // Check Account Deletion Trigger Button
-      const deleteAccountBtn = page.locator('button:has-text("Delete My Account"), button:has-text("Request Deletion")').first();
-      if (await deleteAccountBtn.isVisible()) {
-        await expect(deleteAccountBtn).toBeVisible();
-      }
+      // Verify Page Title & Content
+      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(page.locator('text=Privacy Policy').first()).toBeVisible();
     });
 
     test('1.5 Interactive Payday Timeline Simulator & Pool Transfer Modal (`/#simulator`)', async ({ page }) => {

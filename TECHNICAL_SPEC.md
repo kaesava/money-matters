@@ -446,7 +446,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 
 ### 10.1 Unified Public Layout Components (`apps/web/src/components/public`)
 - **`PublicHeader.tsx`**:
-  - Standardized unauthenticated top navigation bar across `/terms`, `/privacy`, `/privacy/delete-account`, `/subscription/upgrade`, and `/invite/[token]`.
+  - Standardized unauthenticated top navigation bar across `/terms`, `/privacy`, `/subscription/upgrade`, and `/invite/[token]`.
   - Brand identity rendering: SVG Logo mark + "Money Matters" (sans legacy attribution).
   - Navigation actions: Responsive back-links (*← Back to Home*, *← Back to Dashboard*) and direct *Sign In* trigger.
 - **`PublicFooter.tsx`**:

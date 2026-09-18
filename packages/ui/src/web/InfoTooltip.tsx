@@ -38,7 +38,8 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
   const updatePosition = () => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const tooltipWidth = 280;
+    const viewportWidth = typeof window !== 'undefined' ? (document.documentElement.clientWidth || window.innerWidth) : 800;
+    const tooltipWidth = Math.min(280, Math.max(160, viewportWidth - 32));
     const isNearTop =
       overridePosition === 'bottom' ||
       (overridePosition !== 'top' && rect.top < 260);
@@ -51,8 +52,7 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
     }
 
     const minLeft = 16;
-    const maxLeft =
-      typeof window !== 'undefined' ? window.innerWidth - tooltipWidth - 16 : 300;
+    const maxLeft = Math.max(minLeft, viewportWidth - tooltipWidth - 16);
     const clampedLeft = Math.max(minLeft, Math.min(left, maxLeft));
     const triggerCenter = rect.left + rect.width / 2;
     const arrowLeft = Math.max(
@@ -128,6 +128,7 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
                 coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
               left: `${coords.left}px`,
               width: '280px',
+              maxWidth: 'calc(100vw - 32px)',
             }}
             className="fixed p-3 bg-[#1B2B4B] text-white text-xs rounded-xl shadow-2xl z-[9999] pointer-events-none transition-opacity animate-in fade-in duration-150"
           >

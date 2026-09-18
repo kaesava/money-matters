@@ -55,19 +55,6 @@ export function HouseholdEditForm({
           </h2>
           <InfoTooltip content="Update your household name, base currency, and location details. Shared across household members." />
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            {t("common.cancel")}
-          </Button>
-          <Button
-            type="submit"
-            loading={isSubmitting}
-            disabled={isSubmitting || !isDirty}
-          >
-            {t("common.save")}
-          </Button>
-        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">

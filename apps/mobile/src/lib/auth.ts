@@ -5,7 +5,12 @@ import * as SecureStore from "expo-secure-store";
 
 const NEON_AUTH_URL = process.env["EXPO_PUBLIC_NEON_AUTH_URL"];
 
-const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://kesh-imac.tail09ef18.ts.net";
+const DEFAULT_AUTH_ORIGIN = __DEV__
+  ? "https://kesh-imac.tail09ef18.ts.net"
+  : "https://moneymatters.kaesava.au";
+
+const AUTH_ORIGIN =
+  process.env["EXPO_PUBLIC_AUTH_ORIGIN"] || DEFAULT_AUTH_ORIGIN;
 
 if (!NEON_AUTH_URL) {
   throw new Error(
@@ -25,7 +30,7 @@ export const authClient = createAuthClient({
   baseURL: NEON_AUTH_URL,
   fetchOptions: {
     headers: {
-      Origin: API_URL,
+      Origin: AUTH_ORIGIN,
     },
   },
   plugins: [
@@ -33,6 +38,7 @@ export const authClient = createAuthClient({
       scheme: "moneymatters",
       storage: SecureStore,
       storagePrefix: "money-matters",
+      cookiePrefix: ["neon-auth", "better-auth"],
     }) as unknown as ReturnType<typeof jwtClient>,
     jwtClient(),
     emailOTPClient(),

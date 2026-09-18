@@ -113,19 +113,6 @@ export function ProfileEditForm({
             <p className="text-xs text-slate-500">{loginEmail}</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            {t("common.cancel")}
-          </Button>
-          <Button
-            type="submit"
-            loading={isSaving}
-            disabled={!isDirty || !displayName.trim() || !notificationEmail.trim()}
-          >
-            {t("common.save")}
-          </Button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

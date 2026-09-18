@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { InfoTooltip, Tabs } from "@money-matters/ui/web";
+import { InfoTooltip, Tabs, ConfirmDialog } from "@money-matters/ui/web";
 import { authClient } from "../../../lib/auth";
 import posthog from "../../../lib/posthog-client";
 import { trpc } from "../../../lib/trpc";
@@ -25,6 +25,13 @@ function SettingsPageContent() {
   const currentTab = searchParams.get("tab") || "profile";
   const [activeTab, setActiveTab] = useState(status?.isTrialExpired ? "account-data" : currentTab);
 
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [isProfileDirty, setIsProfileDirty] = useState(false);
+  const [isHouseholdDirty, setIsHouseholdDirty] = useState(false);
+  const discardProfileRef = React.useRef<(() => void) | null>(null);
+  const discardHouseholdRef = React.useRef<(() => void) | null>(null);
+
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const currentTimezone = userPrefQuery.data?.timezone || "Australia/Sydney";
 
@@ -33,17 +40,45 @@ function SettingsPageContent() {
       if (activeTab !== "account-data") {
         setActiveTab("account-data");
       }
-    } else if (currentTab !== activeTab) {
+    } else if (currentTab !== activeTab && !isProfileDirty && !isHouseholdDirty) {
       setActiveTab(currentTab);
     }
-  }, [status?.isTrialExpired, currentTab, activeTab]);
+  }, [status?.isTrialExpired, currentTab, activeTab, isProfileDirty, isHouseholdDirty]);
 
   const handleTabChange = (tabId: string) => {
     if (status?.isTrialExpired && tabId !== "account-data") {
       return;
     }
+    if (tabId === activeTab) return;
+
+    if (activeTab === "profile" && isProfileDirty) {
+      setPendingTab(tabId);
+      setShowDiscardConfirm(true);
+      return;
+    }
+
+    if (activeTab === "household" && isHouseholdDirty) {
+      setPendingTab(tabId);
+      setShowDiscardConfirm(true);
+      return;
+    }
+
     setActiveTab(tabId);
-    router.replace(`/dashboard/settings?tab=${tabId}`, { scroll: false });
+    window.history.replaceState(null, "", `/dashboard/settings?tab=${tabId}`);
+  };
+
+  const handleConfirmDiscard = () => {
+    if (activeTab === "profile" && discardProfileRef.current) {
+      discardProfileRef.current();
+    } else if (activeTab === "household" && discardHouseholdRef.current) {
+      discardHouseholdRef.current();
+    }
+    setShowDiscardConfirm(false);
+    if (pendingTab) {
+      setActiveTab(pendingTab);
+      window.history.replaceState(null, "", `/dashboard/settings?tab=${pendingTab}`);
+      setPendingTab(null);
+    }
   };
 
   const handleSignOut = async () => {
@@ -85,32 +120,50 @@ function SettingsPageContent() {
       <Tabs tabs={tabsList} activeTab={activeTab} onChange={handleTabChange} />
 
       {/* Tab Panels */}
-      {activeTab === "profile" && (
-        <div className="space-y-6">
-          <ProfileSection user={session?.user} currentTimezone={currentTimezone} />
-        </div>
-      )}
+      <div className={activeTab === "profile" ? "space-y-6" : "hidden"}>
+        <ProfileSection
+          user={session?.user}
+          currentTimezone={currentTimezone}
+          onDirtyChange={setIsProfileDirty}
+          registerDiscard={(fn) => {
+            discardProfileRef.current = fn;
+          }}
+        />
+      </div>
 
-      {activeTab === "household" && (
-        <div className="space-y-6">
-          <HouseholdDetailsSection />
-          <PartnerInviteSection />
-          <HouseholdDangerZoneSection />
-        </div>
-      )}
+      <div className={activeTab === "household" ? "space-y-6" : "hidden"}>
+        <HouseholdDetailsSection
+          onDirtyChange={setIsHouseholdDirty}
+          registerDiscard={(fn) => {
+            discardHouseholdRef.current = fn;
+          }}
+        />
+        <PartnerInviteSection />
+        <HouseholdDangerZoneSection />
+      </div>
 
-      {activeTab === "archived" && (
-        <div className="space-y-6">
-          <ArchivedSection />
-        </div>
-      )}
+      <div className={activeTab === "archived" ? "space-y-6" : "hidden"}>
+        <ArchivedSection />
+      </div>
 
-      {activeTab === "account-data" && (
-        <div className="space-y-6">
-          <SubscriptionSection status={status} />
-          <PrivacySection />
-        </div>
-      )}
+      <div className={activeTab === "account-data" ? "space-y-6" : "hidden"}>
+        <SubscriptionSection status={status} />
+        <PrivacySection />
+      </div>
+
+      <ConfirmDialog
+        isOpen={showDiscardConfirm}
+        title={t("modals.discardChanges.title")}
+        description={t("modals.discardChanges.description")}
+        confirmLabel={t("modals.discardChanges.discard")}
+        cancelLabel={t("modals.discardChanges.cancel")}
+        variant="danger"
+        onConfirm={handleConfirmDiscard}
+        onClose={() => {
+          setShowDiscardConfirm(false);
+          setPendingTab(null);
+        }}
+      />
     </div>
   );
 }

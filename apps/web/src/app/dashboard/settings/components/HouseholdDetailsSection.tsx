@@ -7,7 +7,15 @@ import { t } from "@money-matters/i18n";
 import { HouseholdReadOnlyView } from "./HouseholdReadOnlyView";
 import { HouseholdEditForm } from "./HouseholdEditForm";
 
-export function HouseholdDetailsSection() {
+interface HouseholdDetailsSectionProps {
+  onDirtyChange?: (isDirty: boolean) => void;
+  registerDiscard?: (discardFn: () => void) => void;
+}
+
+export function HouseholdDetailsSection({
+  onDirtyChange,
+  registerDiscard,
+}: HouseholdDetailsSectionProps = {}) {
   const toast = useToast();
   const utils = trpc.useUtils();
   
@@ -89,6 +97,14 @@ export function HouseholdDetailsSection() {
     setShowDiscardDialog(false);
     setIsEditing(false);
   };
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty && isEditing);
+  }, [isDirty, isEditing, onDirtyChange]);
+
+  useEffect(() => {
+    registerDiscard?.(handleDiscardConfirm);
+  }, [handleDiscardConfirm, registerDiscard]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

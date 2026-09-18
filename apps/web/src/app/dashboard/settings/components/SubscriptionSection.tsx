@@ -213,21 +213,6 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
           {t("subscription.billingDesc")}
         </p>
 
-        {/* Inclusions Row */}
-        <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-            {t("subscription.includedFeaturesTitle")}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-            {(["subscription.includedFeature1", "subscription.includedFeature2", "subscription.includedFeature3", "subscription.includedFeature4"] as const).map((k) => (
-              <div key={k} className="flex items-center gap-1.5">
-                <span className="text-emerald-500 font-bold">✓</span>
-                <span>{t(k)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Invoices & Receipts Sub-panel */}
         {(isSubscribed || invoices.length > 0) && (
           <SubscriptionInvoicesTable
@@ -238,7 +223,7 @@ export function SubscriptionSection({ status }: SubscriptionSectionProps) {
         )}
 
         <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-400 font-medium">
-          {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
+          {t("subscription.supportHelpText", { email: "info@moneymatters.kaesava.au" })}
         </div>
       </div>
     </section>

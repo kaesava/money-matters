@@ -102,9 +102,6 @@ export function LandingFooter({ onAuthClick }: LandingFooterProps) {
             <Link href="/privacy" prefetch={false} className="hover:text-[#2563eb] transition-colors">
               {t("landing.footerPrivacy")}
             </Link>
-            <Link href="/privacy/delete-account" prefetch={false} className="hover:text-[#2563eb] transition-colors">
-              {t("privacy.deletePageTitle")}
-            </Link>
             <Link href="/blog" prefetch={false} className="hover:text-[#2563eb] transition-colors">
               {t("landing.footerBlog")}
             </Link>

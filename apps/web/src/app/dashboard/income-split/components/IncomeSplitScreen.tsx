@@ -401,6 +401,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             isAmountModified={actualAmount !== initialAmount}
             onRecalculateWaterfall={handleRecalculateWaterfall}
             submitting={submitting}
+            isConfirmedPlan={isConfirmedPlan}
           />
 
           <IncomeSplitPoolTable

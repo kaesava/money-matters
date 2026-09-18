@@ -38,12 +38,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
     {
-      url: `${baseUrl}/privacy/delete-account`,
-      lastModified: releaseDate,
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-    {
       url: `${baseUrl}/sign-in`,
       lastModified: releaseDate,
       changeFrequency: "monthly",

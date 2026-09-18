@@ -400,10 +400,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
                     Terms of Use
                   </a>
-                  <span>•</span>
-                  <a href="/privacy/delete-account" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                    Data Security & Erasure
-                  </a>
                 </div>
               </footer>
             )}

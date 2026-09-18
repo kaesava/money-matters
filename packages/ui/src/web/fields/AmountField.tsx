@@ -185,61 +185,64 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
           </FormLabel>
         )}
 
-        <div className="relative flex items-center">
-          {/* Leading currency symbol with generous clearance */}
-          <span
-            className={`absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none font-medium ${
-              isNegative ? 'text-rose-600 font-bold' : 'text-slate-400'
-            }`}
-          >
-            {effectiveSymbol}
-          </span>
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            {/* Leading currency symbol with generous clearance */}
+            <span
+              className={`absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none font-medium ${
+                isNegative ? 'text-rose-600 font-bold' : 'text-slate-400'
+              }`}
+            >
+              {effectiveSymbol}
+            </span>
 
-          {/* Numeric input — native spinners hidden via Tailwind arbitrary variants */}
-          <input
-            ref={ref}
-            id={inputId}
-            name={name}
-            type="text"
-            inputMode="decimal"
-            autoFocus={autoFocus}
-            disabled={disabled}
-            placeholder={placeholder}
-            value={value}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onFocus={handleFocus}
-            className={[
-              'ui-input w-full !pl-12 !pr-10 font-mono tabular-nums',
-              isNegative ? 'text-rose-600 font-bold' : '',
-              '[appearance:textfield]',
-              '[&::-webkit-outer-spin-button]:appearance-none',
-              '[&::-webkit-inner-spin-button]:appearance-none',
-              className,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          />
+            {/* Numeric input — native spinners hidden via Tailwind arbitrary variants */}
+            <input
+              ref={ref}
+              id={inputId}
+              name={name}
+              type="text"
+              inputMode="decimal"
+              autoFocus={autoFocus}
+              disabled={disabled}
+              placeholder={placeholder}
+              value={value}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              onFocus={handleFocus}
+              className={[
+                'ui-input w-full !pl-12 !pr-4 font-mono tabular-nums',
+                isNegative ? 'text-rose-600 font-bold' : '',
+                '[appearance:textfield]',
+                '[&::-webkit-outer-spin-button]:appearance-none',
+                '[&::-webkit-inner-spin-button]:appearance-none',
+                className,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            />
+          </div>
 
-          {/* Stacked chevron steppers pinned firmly to the right */}
-          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex flex-col">
+          {/* Stepper buttons positioned strictly to the right of the input box */}
+          <div className="flex flex-col shrink-0 border border-slate-200 rounded-xl overflow-hidden bg-slate-50 shadow-2xs">
             <button
               type="button"
               tabIndex={-1}
               disabled={disabled}
               onClick={() => step_(step)}
               aria-label="Increase amount"
-              className="flex items-center justify-center h-4 w-5 text-slate-400 hover:text-[#2563eb] transition-colors disabled:opacity-40 cursor-pointer"
+              className="flex items-center justify-center h-5 w-7 text-slate-400 hover:text-[#2563eb] hover:bg-slate-100 transition-colors disabled:opacity-40 cursor-pointer"
             >
               <ChevronUp size={12} strokeWidth={2.5} />
             </button>
+            <div className="h-px bg-slate-200 w-full" />
             <button
               type="button"
               tabIndex={-1}
               disabled={disabled}
               onClick={() => step_(-step)}
               aria-label="Decrease amount"
-              className="flex items-center justify-center h-4 w-5 text-slate-400 hover:text-[#2563eb] transition-colors disabled:opacity-40 cursor-pointer"
+              className="flex items-center justify-center h-5 w-7 text-slate-400 hover:text-[#2563eb] hover:bg-slate-100 transition-colors disabled:opacity-40 cursor-pointer"
             >
               <ChevronDown size={12} strokeWidth={2.5} />
             </button>

@@ -308,6 +308,7 @@ export default function TransactionsScreen() {
     <MobileScreenWrapper
       title={t('transactions.title') || 'History'}
       user={session?.user}
+      scrollable={false}
       onNavigateHome={() => router.push('/(app)/home')}
       onNavigateCategories={() => router.push('/(app)/categories')}
       onNavigateSettings={() => router.push('/(app)/settings')}

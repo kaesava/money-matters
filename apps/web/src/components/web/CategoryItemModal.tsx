@@ -208,7 +208,7 @@ export function CategoryItemModal({
         {isEdit && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
             {t("categories.immutabilityWarningCategory", {
-              defaultValue: "Once set, pool types are locked to keep your transaction history clean. If you need to, please archive this category and create a new one.",
+              defaultValue: "Once set, the pool is locked to keep your transaction history clean. If you need to, please archive this category and create a new one.",
             })}
           </div>
         )}

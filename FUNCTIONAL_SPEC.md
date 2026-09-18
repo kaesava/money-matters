@@ -380,7 +380,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
    - Amount changes cascade to unperformed upcoming occurrences (`status === 'PENDING'`).
    - Archival deletes unperformed future occurrences while retaining historical paid ledger entries.
 3. **Household Governance & Account Erasure**:
-   - Role-aware household deletion and leave controls (`/dashboard/settings/delete-account` and public `/privacy/delete-account`).
+   - Role-aware household deletion and leave controls (`/dashboard/settings/delete-account`).
    - Sole Owners delete household with exact Household Name typing requirement.
    - Owners with partners can delete (notifies partner by email) or leave (transfers ownership to partner, deletes owner's private pools/accounts, notifies partner).
    - Partners can leave (deletes partner's private pools/accounts, notifies owner).
@@ -530,7 +530,7 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
 - **Dedicated Pre-Login Routes (<250 lines rule compliant)**:
   - `/sign-in` & `/sign-up`: Modular auth flows powered by `<SocialAuthButtons />`, `<PasswordStrengthIndicator />`, and `<OtpVerificationView />`.
   - `/forgot-password` & `/reset-password`: Self-service password recovery with 100% externalized i18n copy.
-  - `/terms`, `/privacy`, & `/privacy/delete-account`: Public legal documentation and GDPR/CDR compliant account deletion instructions.
+  - `/terms` & `/privacy`: Public legal documentation and GDPR/CDR compliant account privacy information.
   - `/subscription/upgrade`: Transparent pricing and founding member subscription checkout with extracted `<ActiveSubscriptionCard />`.
   - `/invite/[token]`: Household partner invitation acceptance landing page.
 

@@ -123,7 +123,7 @@ export default function SubscriptionExpiredPage() {
           </div>
 
           <div className="pt-2 text-center text-[11px] text-slate-400 font-medium">
-            {t("subscription.supportHelpText", { email: "support@moneymatters.kaesava.au" })}
+            {t("subscription.supportHelpText", { email: "info@moneymatters.kaesava.au" })}
           </div>
         </div>
       </main>

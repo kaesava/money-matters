@@ -62,6 +62,8 @@ export function PrivacySection() {
             <div>
               <a
                 href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1"
               >
                 <span>Read our full Privacy Policy</span>

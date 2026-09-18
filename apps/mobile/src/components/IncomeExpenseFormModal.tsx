@@ -201,9 +201,8 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
           loading={isPending}
           disabled={!name.trim() || !amount.trim()}
           onPress={handleSubmit}
-        >
-          {sourceToEdit ? 'Update' : 'Create'}
-        </MobileButton>
+          title={sourceToEdit ? 'Update' : 'Create'}
+        />
       }
     >
       <View style={styles.content}>

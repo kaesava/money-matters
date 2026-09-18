@@ -12,6 +12,7 @@ import {
   setBiometricLockEnabled,
   authenticateWithBiometrics,
 } from '../../lib/biometrics';
+import * as SecureStore from 'expo-secure-store';
 import { MobileProfileReadOnlyView } from './MobileProfileReadOnlyView';
 import { MobileProfileEditView } from './MobileProfileEditView';
 
@@ -26,11 +27,20 @@ export function MobileProfileSection() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
+  const [storedEmail, setStoredEmail] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('Australia/Sydney');
   const [language, setLanguage] = useState<'en' | 'ja'>('en');
   const [locale, setLocale] = useState('auto');
   const [showIcons, setShowIcons] = useState(true);
+
+  useEffect(() => {
+    SecureStore.getItemAsync('money-matters_user_email')
+      .then((em) => {
+        if (em) setStoredEmail(em);
+      })
+      .catch(() => {});
+  }, []);
 
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
@@ -226,7 +236,7 @@ export function MobileProfileSection() {
   return (
     <MobileProfileReadOnlyView
       name={name}
-      email={session?.user?.email || ''}
+      email={session?.user?.email || storedEmail || ''}
       avatarUri={avatarUri}
       timezone={timezone}
       language={language}
