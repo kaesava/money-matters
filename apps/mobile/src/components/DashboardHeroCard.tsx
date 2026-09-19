@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-nativ
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, monthProgress } from '@money-matters/ui';
 import { CanAffordVerdictType } from '@money-matters/types';
-import { formatAUD } from '../lib/format';
+import { formatAUD, formatDate } from '../lib/format';
 import { MobileDonutRing } from './MobileDonutRing';
 import { CanAffordCard } from './CanAffordCard';
 
@@ -153,7 +153,7 @@ export const DashboardHeroCard: React.FC<DashboardHeroCardProps> = ({
             <View style={{ flex: 1 }}>
               <Text style={styles.payTitle} numberOfLines={1}>Next Pay: {nextPayday.name}</Text>
               <Text style={styles.paySub} numberOfLines={1}>
-                {formatAUD(nextPayday.amount)} • {daysAwayText} ({nextPayday.expectedDate})
+                {formatAUD(nextPayday.amount)} • {daysAwayText} ({formatDate(nextPayday.expectedDate)})
               </Text>
             </View>
           </View>

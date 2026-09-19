@@ -3,6 +3,7 @@
 import React from "react";
 import { Button, InfoTooltip } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface IncomeSplitHeaderProps {
   readonly title: string;
@@ -39,6 +40,7 @@ export function IncomeSplitHeader({
   onSaveSplit,
   onConfirmSplit,
 }: IncomeSplitHeaderProps) {
+  const { fmtDate } = useLocale();
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 px-4 md:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
       {/* Left Navigation and Title */}
@@ -97,7 +99,7 @@ export function IncomeSplitHeader({
             )}
           </div>
           <p className="text-[11px] text-zinc-500 font-medium mt-0.5">
-            {expectedDate} • {t("paydayDrawer.subtitle", { defaultValue: "Review and confirm your Income Split across Pools" })}
+            {fmtDate(expectedDate)} • {t("paydayDrawer.subtitle", { defaultValue: "Review and confirm your Income Split across Pools" })}
           </p>
         </div>
       </div>

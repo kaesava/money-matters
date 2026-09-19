@@ -57,7 +57,7 @@ export function TransferModal({
   onDeleteTransfer,
   formatAUD,
 }: TransferModalProps) {
-  const { fmt, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
+  const { fmt, fmtDate, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
   const format = formatAUD ?? fmt;
   const nameInputId = useId();
 
@@ -276,8 +276,8 @@ export function TransferModal({
               <span className="text-sm">ℹ️</span>
               <span>
                 {t("modals.transfer.pastDateAdjustedNotice", {
-                  date: originalDate,
-                  defaultValue: `The transfer date previously scheduled for ${originalDate} has now been defaulted to today.`,
+                  date: fmtDate(originalDate),
+                  defaultValue: `The transfer date previously scheduled for ${fmtDate(originalDate)} has now been defaulted to today.`,
                 })}
               </span>
             </div>

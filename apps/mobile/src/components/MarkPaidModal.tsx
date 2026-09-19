@@ -23,7 +23,7 @@ import {
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
-import { formatAUD, formatIsoDate } from '../lib/format';
+import { formatAUD, formatIsoDate, formatDate } from '../lib/format';
 import { triggerHaptic } from '../lib/haptics';
 
 export interface MarkPaidEvent {
@@ -180,7 +180,7 @@ export function MarkPaidModal({
             <View style={styles.billInfo}>
               <Text style={styles.billName}>{event.name}</Text>
               <Text style={styles.billMeta}>
-                Expected {formatAUD(event.expectedAmount)} on {event.expectedDate}
+                Expected {formatAUD(event.expectedAmount)} on {formatDate(event.expectedDate)}
               </Text>
             </View>
 
@@ -209,6 +209,18 @@ export function MarkPaidModal({
               placeholder={todayStr}
               error={dateError}
             />
+
+            {event.expectedDate > todayStr && (
+              <View style={styles.futureDateNotice}>
+                <Feather name="info" size={14} color="#2563eb" style={{ marginTop: 1 }} />
+                <Text style={styles.futureDateNoticeText}>
+                  {t("incomeBillsTabs.expenseFutureDateAdjustedNotice", {
+                    date: formatDate(event.expectedDate),
+                    defaultValue: `The expense was scheduled for a future date (${formatDate(event.expectedDate)}). Defaulted to today for immediate spending.`,
+                  })}
+                </Text>
+              </View>
+            )}
 
             {/* Shortfall Alert & Funding Pool Selector */}
             {isShortfall && (
@@ -448,6 +460,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  futureDateNotice: {
+    padding: 10,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+  },
+  futureDateNoticeText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#1D4ED8',
+    fontWeight: '500',
   },
 });
 

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { FileText } from "lucide-react";
 import { t } from "@money-matters/i18n";
+import { useLocale } from "../../../../providers/LocaleProvider";
 
 interface AllocationLineItem {
   bucketId: string;
@@ -58,6 +59,7 @@ export function IncomeSplitPoolTable({
   onLineAmountChange,
   onLineReasoningChange,
 }: IncomeSplitPoolTableProps) {
+  const { fmtDate } = useLocale();
   // Collapsed state for each group (default: none collapsed)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [openReasoningPools, setOpenReasoningPools] = useState<Record<string, boolean>>({});
@@ -221,7 +223,7 @@ export function IncomeSplitPoolTable({
                               <div>
                                 <div>{fmt(targetNum)}</div>
                                 {poolObj?.targetDate && (
-                                  <div className="text-[10px] text-zinc-400 font-sans">{poolObj.targetDate}</div>
+                                  <div className="text-[10px] text-zinc-400 font-sans">{fmtDate(poolObj.targetDate)}</div>
                                 )}
                               </div>
                             ) : "—");

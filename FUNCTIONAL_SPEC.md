@@ -479,9 +479,11 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
      - Color coding: Green (`bg-emerald-500`) when on or ahead of pace, Amber (`bg-amber-500`) when within 20% behind, Red (`bg-rose-500`) when lagging or overdue.
    - Fixes 0% default calculation bug so unstarted goals display 0% instead of 100%.
 
-6. **Mark Spent Workflow Refinements**:
+6. **Mark Spent Workflow & Date Formatting Parity**:
    - Transaction ledger note automatically prepends the Expense event name.
    - Allows past dates to support retroactive entry of paid bills, while strictly forbidding future dates (`max={todayStr}`).
+   - If an expense scheduled for a future date is actioned early, the date defaults to today and displays an informational notice formatted in the user's regional locale (e.g. `DD/MM/YYYY` in `en-AU`) rather than raw ISO format, maintaining consistency with date pickers.
+   - Date display consistency is strictly enforced across all modals (Mark Spent, Transfer, Upcoming Expense, Payday Allocation, Budget Impact Review), alerts, cards, and list views across both Web and Mobile apps, adhering 100% to user presentation timezone and regional date locale.
 
 ---
 

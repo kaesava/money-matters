@@ -99,28 +99,40 @@ export { formatIsoDate as fmtDateIso };
  * Formats a Date or date string into regional locale format.
  */
 export function formatDate(
-  date: string | Date,
+  date: string | Date | null | undefined,
   locale?: string,
   timeZone?: string
 ): string {
+  if (!date) return '';
   const loc = locale || currentMobileLocaleConfig.locale;
   const tz = timeZone || currentMobileLocaleConfig.timezone;
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
-  return uiFmtDate(d, tz, loc);
+  const formatted = uiFmtDate(date, tz, loc);
+  return formatted === 'N/A' ? '' : formatted;
 }
 
 /**
  * Formats a Date into relative terms ('Today', 'Yesterday', or localized date).
  */
 export function formatRelativeDate(
-  date: string | Date,
+  date: string | Date | null | undefined,
   locale?: string,
   timeZone?: string
 ): string {
+  if (!date) return '';
   const loc = locale || currentMobileLocaleConfig.locale;
   const tz = timeZone || currentMobileLocaleConfig.timezone;
-  const d = typeof date === 'string' ? new Date(date) : date;
+  
+  let d: Date;
+  if (typeof date === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [year, month, day] = date.split('-').map(Number);
+      d = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    } else {
+      d = new Date(date);
+    }
+  } else {
+    d = date;
+  }
   if (isNaN(d.getTime())) return '';
   
   const today = new Date();

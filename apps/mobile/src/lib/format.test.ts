@@ -15,9 +15,12 @@ describe('Mobile Format Utilities', () => {
   });
 
   it('formats dates in en-AU format', () => {
-    const formatted = formatDate('2026-08-15');
-    expect(formatted).toContain('2026');
+    const formatted = formatDate('2026-08-15', 'en-AU', 'Australia/Sydney');
+    expect(formatted).toBe('15/08/2026');
+    expect(formatDate('2026-12-31', 'en-US', 'America/New_York')).toBe('12/31/2026');
+    expect(formatDate('2026-12-31', 'en-CA', 'America/Toronto')).toBe('2026-12-31');
     expect(formatDate('invalid')).toBe('');
+    expect(formatDate(null)).toBe('');
   });
 
   it('formats relative dates accurately', () => {

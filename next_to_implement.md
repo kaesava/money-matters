@@ -1,18 +1,20 @@
-* Pools > Category Edit modal > Warning when editing a Category should say "Once set, the pool is locked to keep your transaction history clean. If you need to, please archive this category and create a new one." instead of "Once set, pool types and bank accounts are locked to keep your transaction history clean. If you need to, please archive this pool and create a new one.". The latter applies when editing a Pool.
-* Currency - move the increment/decrement buttons to the right of the input box (not left), and ensure it doesn't sit on top of numbers being entered). Fix mobile if it applies there too.
-* Archive Pool popup - no Confirm button in web - only Cancel! Fix!
-* The search magnifying glass symbol
-* Web - Settings > My Details - Remove the pencil icon next to Edit
-* Web - Settings > My Details and Settings > Household (when screen in edit mode) - Don't need the Save/Cancel buttons on top and bottom - remove the ones on top. Also, when I click to another tab/screen in navigation, manage the experience with best practice (perhaps depending on whether a change was made?). Right now, it's doing this weird screen flicker and seems to be putting the form in read mode. Fix on both tabs.
-* Web - Settings > Data & Description: Remove the "Everything included in your Household plan" section with the 4 check points. Also the support email is info@moneymatters.kaesava.au (change throughout app). Also, ensure "Read our full Privacy Policy" opens in a new window/tab.
-* http://localhost:3000/privacy/delete-account - Wait, why do we need this page, a user can delete their tenant from the Settings - remove this page (and any links to it)
-* Settings > Data & Subscription : Is the paragraph under "Data Privacy & Complete Export" accurate, complete & truthful? Ensure it is.
-* http://localhost:3000/privacy - Is this accurate, complete & truthful? Ensure it is.
-* Settings > Archived Data - remove icons from page
-* Settingds > Archived Data - Remove "Categories, pools, bills, and accounts you soft-delete will appear here for restoration."
+# MOBILE ONLY
+* I was expecting 5 tabs but I see a 6th with a strange icon - fix
+* 
 
+# WEB APP
+## General
+## Settings > My Details
+* Show checkbox to the left of "Show information icons (i)"
+* I changed date format to Japan - I see " 2027年3月11日" in some places (like when I turned on the simulator in the Pools screen) and "2027/6/30" in others (like the Pools table for Goals Pools).
 
-If any of the above apply (need change/fix) in mobile, do so too
+## Pools
+* Critical Bug - I'm unable to see Everyday and Bills Pools in the table. I even created a new Pool, but I still can't see it
+* Change "Projection Timeline" to "Projection Mode" and "Hide Projection timeline" to "End Projection Mode"
+* When in Projection mode, prevent the user from adding/editing pools/categories - effectively the screen becomes read-only (Search, pagination and sort should still work)
+
+## Pools > Create Pool
+* "Calculated Target" - rename to be more user-friendly. I don't think we use the word target? If we do, keep it.
 
 
 

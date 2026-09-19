@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { DESIGN_TOKENS } from "@money-matters/ui/mobile";
+import { formatDate } from "../lib/format";
 
 export interface MobileBudgetImpactReviewItem {
   id?: string;
@@ -53,6 +54,10 @@ export function MobileBudgetImpactReviewModal({
     return diff > 0 ? `+$${diff.toFixed(2)}` : `-$${Math.abs(diff).toFixed(2)}`;
   };
 
+  const displayNextPayday = /^\d{4}-\d{2}-\d{2}/.test(nextPaydayDateStr)
+    ? formatDate(nextPaydayDateStr)
+    : nextPaydayDateStr;
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -70,7 +75,7 @@ export function MobileBudgetImpactReviewModal({
           {/* Effective Date Banner */}
           <View style={styles.banner}>
             <Text style={styles.bannerText}>
-              ℹ️ New pool caps take effect on your {nextPaydayDateStr}. Current in-progress balances remain untouched.
+              ℹ️ New pool caps take effect on your {displayNextPayday}. Current in-progress balances remain untouched.
             </Text>
           </View>
 

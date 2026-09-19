@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
-import { formatAUD } from '../../lib/format';
+import { formatAUD, formatDate } from '../../lib/format';
 
 export interface MobilePaydayAllocationRecord {
   id: string;
@@ -56,7 +56,7 @@ export function MobilePaydayAllocationDetailModal({
       visible={visible}
       onClose={onClose}
       title="Payday Allocation Details"
-      subtitle={`${allocation.incomeName} • ${allocation.expectedDate}`}
+      subtitle={`${allocation.incomeName} • ${formatDate(allocation.expectedDate)}`}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
         {/* Status and Total */}

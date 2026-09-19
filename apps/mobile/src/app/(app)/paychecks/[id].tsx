@@ -15,7 +15,7 @@ import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
-import { formatAUD } from '../../../lib/format';
+import { formatAUD, formatDate } from '../../../lib/format';
 import { showMobileConfirm } from '@money-matters/ui/mobile';
 import { MobileBankTransferRollupCard } from '../../../components/paychecks/MobileBankTransferRollupCard';
 import { triggerHaptic } from '../../../lib/haptics';
@@ -293,7 +293,7 @@ export default function IncomeSplitStudioScreen() {
                 )}
               </View>
               <Text style={styles.sourceTitle}>{sourceName}</Text>
-              <Text style={styles.payDateMeta}>Expected {expectedDate}</Text>
+              <Text style={styles.payDateMeta}>Expected {formatDate(expectedDate)}</Text>
             </View>
 
             <View style={styles.heroIncomeWrap}>

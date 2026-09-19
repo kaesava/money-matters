@@ -3,12 +3,14 @@
 import React from 'react';
 import { t } from '@money-matters/i18n';
 import { CanAffordVerdictType } from '@money-matters/types';
+import { useLocale } from '../../../../providers/LocaleProvider';
 
 interface AffordCheckVerdictProps {
   data: CanAffordVerdictType;
 }
 
 export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
+  const { fmtDate } = useLocale();
   const getVerdictStyle = () => {
     switch (data.verdict) {
       case 'SAFE_YES':
@@ -37,7 +39,7 @@ export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
           container: 'bg-blue-50 border-blue-200 text-blue-950 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-100',
           badge: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300',
           emoji: t('canIAfford.verdictEmojiWaitForPaycycle'),
-          title: t('canIAfford.verdictWaitForPaycycle', { date: data.canAffordAt }),
+          title: t('canIAfford.verdictWaitForPaycycle', { date: fmtDate(data.canAffordAt) }),
         };
       case 'GOAL_DELAYED':
         return {
@@ -70,7 +72,7 @@ export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
             {data.verdict === 'SAFE_YES' && (
               <div>
                 <p className="text-sm opacity-90 mt-0.5 font-medium">
-                  {t('canIAfford.remainingUntilPayday', { amount: data.everydayRemaining, date: data.nextPaydayDate })}
+                  {t('canIAfford.remainingUntilPayday', { amount: data.everydayRemaining, date: fmtDate(data.nextPaydayDate) })}
                 </p>
                 <p className="text-xs opacity-75 mt-0.5">
                   {t('canIAfford.safeCushionLabel', { amount: data.safeCushion })} • {t('canIAfford.billsProtectedNotice')}
@@ -85,7 +87,7 @@ export function AffordCheckVerdict({ data }: AffordCheckVerdictProps) {
             {data.verdict === 'PACING_TIGHT' && (
               <div>
                 <p className="text-sm opacity-90 mt-0.5 font-medium">
-                  {t('canIAfford.remainingUntilPayday', { amount: data.everydayRemaining, date: data.nextPaydayDate })}
+                  {t('canIAfford.remainingUntilPayday', { amount: data.everydayRemaining, date: fmtDate(data.nextPaydayDate) })}
                 </p>
                 <p className="text-xs opacity-75 mt-0.5">
                   {t('canIAfford.tightCushionNotice', { amount: data.cushionShortfall, cushion: data.safeCushion })}

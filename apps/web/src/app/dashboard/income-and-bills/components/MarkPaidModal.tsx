@@ -49,7 +49,7 @@ export function MarkPaidModal({
   onConfirmMarkPaid,
   onOpenTransferModal,
 }: MarkPaidModalProps) {
-  const { fmt, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
+  const { fmt, fmtDate, currency, currencySymbol, minorUnits, timezone: contextTz } = useLocale();
   const [amountStr, setAmountStr] = useState<string>("");
   const [dateStr, setDateStr] = useState<string>("");
   const [wasFutureDate, setWasFutureDate] = useState(false);
@@ -269,8 +269,8 @@ export function MarkPaidModal({
             <span className="text-sm">ℹ️</span>
             <span>
               {t("incomeBillsTabs.expenseFutureDateAdjustedNotice", {
-                date: originalDate,
-                defaultValue: `The expense was scheduled for a future date (${originalDate}). Defaulted to today for immediate spending.`,
+                date: fmtDate(originalDate),
+                defaultValue: `The expense was scheduled for a future date (${fmtDate(originalDate)}). Defaulted to today for immediate spending.`,
               })}
             </span>
           </div>

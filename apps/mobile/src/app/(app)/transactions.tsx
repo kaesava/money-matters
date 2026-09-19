@@ -21,7 +21,7 @@ import {
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import { formatAUD, formatRelativeDate, formatIsoDate } from '../../lib/format';
+import { formatAUD, formatRelativeDate, formatIsoDate, formatDate } from '../../lib/format';
 import { TransactionRow } from '../../components/TransactionRow';
 import {
   MobilePaydayAllocationDetailModal,
@@ -791,7 +791,7 @@ export default function TransactionsScreen() {
                         </View>
                       </View>
                       <Text style={styles.paydayName}>{item.incomeName}</Text>
-                      <Text style={styles.paydayDate}>{item.expectedDate}</Text>
+                      <Text style={styles.paydayDate}>{formatDate(item.expectedDate)}</Text>
                       {item.receivingAccountName && (
                         <Text style={styles.receivingAccountText}>
                           🏦 {item.receivingAccountName}

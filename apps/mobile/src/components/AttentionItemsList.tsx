@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../lib/format';
+import { formatAUD, formatDate } from '../lib/format';
 
 export interface AttentionItem {
   readonly id: string;
@@ -131,7 +131,7 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
                           item.isOverdue ? styles.overdueBadge : styles.dueSoonBadge,
                         ]}
                       >
-                        {item.isOverdue ? 'Overdue' : `Due ${item.expectedDate}`}
+                        {item.isOverdue ? 'Overdue' : `Due ${formatDate(item.expectedDate)}`}
                       </Text>
                       <Text style={styles.transferRouteText} numberOfLines={1}>
                         {item.sourcePoolName || 'Source'} ➔ {item.destinationPoolName || 'Dest'}
@@ -179,7 +179,7 @@ export const AttentionItemsList: React.FC<AttentionItemsListProps> = ({
                         item.isOverdue ? styles.overdueBadge : styles.dueSoonBadge,
                       ]}
                     >
-                      {item.isOverdue ? 'Overdue' : `Due ${item.expectedDate}`}
+                      {item.isOverdue ? 'Overdue' : `Due ${formatDate(item.expectedDate)}`}
                     </Text>
                     {isFunded ? (
                       <Text style={styles.fundedText}>Category funded ✓</Text>
