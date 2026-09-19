@@ -5,7 +5,6 @@ import {
   bankAccounts,
   incomeSources,
   transactionLedger,
-  tenantUserPreferences,
   tenants,
   getPoolBalancesMap,
 } from "@money-matters/db";
@@ -439,57 +438,6 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
             updatedBy: userId,
           })
           .where(eq(tenants.id, tenantId));
-
-        const prefQuery = tx
-          .select()
-          .from(tenantUserPreferences)
-          .where(
-            and(
-              eq(tenantUserPreferences.tenantId, tenantId),
-              eq(tenantUserPreferences.userId, userId)
-            )
-          );
-
-        const existingPref = typeof (prefQuery as any).limit === "function"
-          ? await (prefQuery as any).limit(1)
-          : await prefQuery;
-
-        if (existingPref && existingPref.length > 0) {
-          const currentPrefs = (existingPref[0].appPreferences as Record<string, any>) || {};
-          const currentMoneyMatters = currentPrefs["money-matters"] || {};
-          await tx
-            .update(tenantUserPreferences)
-            .set({
-              appPreferences: {
-                ...currentPrefs,
-                "money-matters": {
-                  ...currentMoneyMatters,
-                  setup_completed: true,
-                  setup_completed_at: now.toISOString(),
-                },
-              },
-              updatedAt: now,
-              updatedBy: userId,
-            })
-            .where(eq(tenantUserPreferences.id, existingPref[0].id));
-        } else {
-          await tx.insert(tenantUserPreferences).values({
-            id: randomUUID(),
-            tenantId,
-            appId,
-            userId,
-            appPreferences: {
-              "money-matters": {
-                setup_completed: true,
-                setup_completed_at: now.toISOString(),
-              },
-            },
-            createdAt: now,
-            createdBy: userId,
-            updatedAt: now,
-            updatedBy: userId,
-          });
-        }
       }
 
       return {

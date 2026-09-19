@@ -150,8 +150,6 @@ async function main() {
             shortfall_alerts_enabled: true,
             bill_reminders_enabled: true,
             weekly_digest_enabled: true,
-            setup_completed: true,
-            setup_completed_at: new Date().toISOString(),
           },
         },
         createdBy: userId!,

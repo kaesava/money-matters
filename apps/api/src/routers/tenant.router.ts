@@ -141,23 +141,7 @@ export const tenantRouter = {
           .where(eq(tenants.id, ctx.tenantId))
           .limit(1);
 
-        if (tenant?.setupStatus === "COMPLETED" || Boolean(tenant?.setupCompletedAt)) {
-          setupCompleted = true;
-        } else if (ctx.userId) {
-          const appId = ctx.appId || MONEY_MATTERS_APP_ID;
-          const [tenantPref] = await ctx.db
-            .select()
-            .from(tenantUserPreferences)
-            .where(
-              and(
-                eq(tenantUserPreferences.userId, ctx.userId),
-                eq(tenantUserPreferences.tenantId, ctx.tenantId),
-                eq(tenantUserPreferences.appId, appId)
-              )
-            );
-          const appBlob = tenantPref?.appPreferences?.[appId];
-          setupCompleted = Boolean(appBlob?.setup_completed);
-        }
+        setupCompleted = tenant?.setupStatus === "COMPLETED" || Boolean(tenant?.setupCompletedAt);
       }
 
       return {
@@ -193,15 +177,13 @@ export const tenantRouter = {
           )
         );
 
-      const appBlob = tenantPref?.appPreferences?.[appId];
       const { tenants } = await import("@money-matters/db");
       const [currentTenant] = ctx.tenantId
         ? await ctx.db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1)
         : [null];
 
-      const isTenantSetupDone = currentTenant?.setupStatus === "COMPLETED" || Boolean(currentTenant?.setupCompletedAt);
-      const setupCompleted = isTenantSetupDone || Boolean(appBlob?.setup_completed);
-      const setupCompletedAt = currentTenant?.setupCompletedAt?.toISOString() || appBlob?.setup_completed_at || null;
+      const setupCompleted = currentTenant?.setupStatus === "COMPLETED" || Boolean(currentTenant?.setupCompletedAt);
+      const setupCompletedAt = currentTenant?.setupCompletedAt?.toISOString() || null;
 
       return {
         id: globalPref?.id || tenantPref?.id,
@@ -287,14 +269,6 @@ export const tenantRouter = {
 
       const updatedAppBlob: AppPreferencesBlob = {
         ...currentAppBlob,
-        ...(input.setupCompleted !== undefined
-          ? {
-              setup_completed: input.setupCompleted,
-              setup_completed_at: input.setupCompleted
-                ? currentAppBlob.setup_completed_at || new Date().toISOString()
-                : undefined,
-            }
-          : {}),
         ...(input.appPreferences?.[appId] ? input.appPreferences[appId] : {}),
       };
 

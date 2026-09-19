@@ -156,13 +156,11 @@ Global individual user preferences.
 - **Consumers**: `apps/api` (`tenant.router.ts`), User Settings UI.
 
 ### 14. `tenant_user_preferences` (`packages/db/src/schema/tenant_user_preference.ts`)
-Scoped preferences per user within a specific household/tenant.
+Scoped preferences per user within a specific household/tenant and application.
 - `tenantId` (uuid, not null): Target tenant.
 - `userId` (uuid, not null): Target user.
-- `emailNotifications` (boolean, not null, default `true`): Email alert delivery flag.
-- `pushNotifications` (boolean, not null, default `true`): Push notification delivery flag.
-- `inAppNotifications` (boolean, not null, default `true`): In-app badge delivery flag.
-- `preferences` (jsonb, nullable): Custom JSON extensible attributes.
+- `appId` (uuid, not null): Target application.
+- `appPreferences` (jsonb, not null): Scoped per-user tenant notification delivery preferences (`payday_alerts_enabled`, `shortfall_alerts_enabled`, `bill_reminders_enabled`, `weekly_digest_enabled`).
 - **Consumers**: `packages/capabilities/notifications`, `apps/api` (`tenant.router.ts`), Notification Settings UI.
 
 ### 15. `expense_sources` (`packages/db/src/schema/expense_source.ts`)

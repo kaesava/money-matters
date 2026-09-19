@@ -264,10 +264,10 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
   ]);
 
   await db.insert(tenantUserPreferences).values([
-    { userId, tenantId, appId, appPreferences: { [appId]: { setup_completed: true, setup_completed_at: now.toISOString() } }, createdBy: userId, updatedBy: userId },
-    { userId: snehaUserId, tenantId, appId, appPreferences: { [appId]: { setup_completed: true, setup_completed_at: now.toISOString() } }, createdBy: snehaUserId, updatedBy: snehaUserId },
-    { userId: raehanUserId, tenantId: raehanTenantId, appId, appPreferences: { [appId]: { setup_completed: true, setup_completed_at: now.toISOString() } }, createdBy: raehanUserId, updatedBy: raehanUserId },
-    { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: { setup_completed: true, setup_completed_at: now.toISOString() } }, createdBy: testerUserId, updatedBy: testerUserId },
+    { userId, tenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: userId, updatedBy: userId },
+    { userId: snehaUserId, tenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: snehaUserId, updatedBy: snehaUserId },
+    { userId: raehanUserId, tenantId: raehanTenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: raehanUserId, updatedBy: raehanUserId },
+    { userId: testerUserId, tenantId: testerTenantId, appId, appPreferences: { [appId]: { payday_alerts_enabled: true, shortfall_alerts_enabled: true, bill_reminders_enabled: true, weekly_digest_enabled: true } }, createdBy: testerUserId, updatedBy: testerUserId },
   ]);
 
   // 4. Bank Accounts (Shared Joint Accounts)

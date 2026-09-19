@@ -9,12 +9,6 @@ export interface AppPreferencesBlob {
   shortfall_alerts_enabled?: boolean;
   bill_reminders_enabled?: boolean;
   weekly_digest_enabled?: boolean;
-
-  // Setup / Onboarding completion state
-  /** Whether user has completed initial app setup wizard. Default: false. */
-  setup_completed?: boolean;
-  /** ISO timestamp when setup was completed. */
-  setup_completed_at?: string;
 }
 
 /**

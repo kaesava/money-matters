@@ -8,8 +8,6 @@ export const AppPreferencesBlobSchema = z.object({
   shortfall_alerts_enabled: z.boolean().optional(),
   bill_reminders_enabled: z.boolean().optional(),
   weekly_digest_enabled: z.boolean().optional(),
-  setup_completed: z.boolean().optional(),
-  setup_completed_at: z.string().optional(),
 }).strict();
 
 export type AppPreferencesBlob = z.infer<typeof AppPreferencesBlobSchema>;
