@@ -29,7 +29,7 @@ export function HouseholdReadOnlyView({
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>🏠 Household Profile & Location</Text>
+        <Text style={styles.cardTitle}>Household Profile & Location</Text>
         {isOwner ? (
           <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
             <Feather name="edit-2" size={13} color="#2563eb" />

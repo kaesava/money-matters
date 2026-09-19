@@ -25,7 +25,7 @@ export function PreferencesSection() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>⚙️ {t('settings.title')}</Text>
+      <Text style={styles.cardTitle}>{t('settings.preferences', { defaultValue: 'Preferences' })}</Text>
 
       {/* Language switcher */}
       <View style={styles.row}>

@@ -51,26 +51,20 @@ export default function AffordCheckScreen() {
   };
 
   return (
-    <MobileScreenWrapper title={t('canIAfford.title') || 'Can I Afford It?'}>
+    <MobileScreenWrapper
+      title={t('canIAfford.title', { defaultValue: 'Can We Afford This?' })}
+      showBack
+      onBackPress={() => router.back()}
+    >
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
       >
-        {/* Back Navigation */}
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Feather name="arrow-left" size={16} color="#64748B" />
-          <Text style={styles.backText}>
-            {t('canIAfford.backToDashboard') || 'Back'}
-          </Text>
-        </TouchableOpacity>
-
         {/* Subtitle description */}
         <Text style={styles.subtitle}>
-          {t('canIAfford.horizonNote') ||
-            'Instant simulation against your available Everyday balance and ring-fenced bills.'}
+          {t('canIAfford.horizonNote', {
+            defaultValue: 'Instant simulation against your available Everyday balance and ring-fenced bills.',
+          })}
         </Text>
 
         {/* Mode Selector Pill */}
@@ -220,12 +214,12 @@ export default function AffordCheckScreen() {
               ]}
             >
               <Text style={styles.verdictTitle}>
-                {data.verdict === 'SAFE_YES' && '🟢 Yes, Safe to Buy'}
-                {data.verdict === 'PACING_TIGHT' && '🟡 Yes, but Tight Pacing'}
-                {data.verdict === 'BILLS_RISK' && '⚠️ Risk: Bills Buffer Consumed'}
-                {data.verdict === 'WAIT_FOR_PAYCYCLE' && '🔵 Wait for Next Payday'}
-                {data.verdict === 'GOAL_DELAYED' && '🟠 Delays Savings Target'}
-                {data.verdict === 'HARD_NO' && '🔴 No, Insufficient Funds'}
+                {data.verdict === 'SAFE_YES' && t('canIAfford.verdictSafeYes', { defaultValue: 'Yes, Safe to Buy' })}
+                {data.verdict === 'PACING_TIGHT' && t('canIAfford.verdictPacingTight', { defaultValue: 'Yes, but Tight Pacing' })}
+                {data.verdict === 'BILLS_RISK' && t('canIAfford.verdictBillsRisk', { defaultValue: 'Risk: Bills Buffer Consumed' })}
+                {data.verdict === 'WAIT_FOR_PAYCYCLE' && t('canIAfford.verdictWaitForPaycycle', { defaultValue: 'Wait for Next Payday' })}
+                {data.verdict === 'GOAL_DELAYED' && t('canIAfford.verdictGoalDelayed', { defaultValue: 'Delays Savings Target' })}
+                {data.verdict === 'HARD_NO' && t('canIAfford.verdictHardNo', { defaultValue: 'No, Insufficient Funds' })}
               </Text>
 
               {data.rationaleSteps && data.rationaleSteps.length > 0 && (

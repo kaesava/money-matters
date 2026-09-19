@@ -45,7 +45,7 @@ export function HouseholdEditView({
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>✏️ Edit Household</Text>
+        <Text style={styles.cardTitle}>Edit Household</Text>
         <View style={styles.actionRow}>
           <TouchableOpacity onPress={onCancel} style={styles.cancelBtn}>
             <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>

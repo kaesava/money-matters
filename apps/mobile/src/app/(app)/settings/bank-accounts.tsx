@@ -57,19 +57,31 @@ export default function BankAccountsScreen() {
 
   const handleArchive = (acc: (typeof accounts)[0]) => {
     showMobileConfirm({
-      title: 'Archive Bank Account',
-      message: `Are you sure you want to archive "${acc.name}"? Linked pools must be re-mapped before archival.`,
-      confirmText: 'Archive',
+      title: t('settings.bankAccounts.deleteConfirmTitle', { defaultValue: 'Archive Bank Account' }),
+      message: t('settings.bankAccounts.deleteConfirmBody', {
+        defaultValue: 'Are you sure you want to archive "{name}"? Linked pools must be re-mapped before archival.',
+        name: acc.name,
+      }),
+      confirmText: t('common.archive', { defaultValue: 'Archive' }),
+      cancelText: t('common.cancel', { defaultValue: 'Cancel' }),
+      isDestructive: true,
       onConfirm: () => archiveAccountMut.mutate({ accountId: acc.id }),
     });
   };
 
   return (
     <MobileScreenWrapper
-      title={t('settings.bankAccounts.title') || 'Linked Bank Accounts'}
+      title={t('settings.accounts', { defaultValue: 'Bank Accounts' })}
       user={session?.user}
       showBack
       onBackPress={() => router.back()}
+      infoTooltip={{
+        title: t('tooltips.bankAccounts.title', { defaultValue: 'About Bank Accounts' }),
+        content: t('tooltips.bankAccounts.content', {
+          defaultValue:
+            'Linking your pools (Everyday, Bills, Savings) to your actual bank accounts ensures your payday waterfall matches your real-world bank balances for effortless 1-tap reconciliation.',
+        }),
+      }}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -85,9 +97,11 @@ export default function BankAccountsScreen() {
         {/* Top Action Header */}
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.sectionHeaderTitle}>Bank Accounts ({accounts.length})</Text>
+            <Text style={styles.sectionHeaderTitle}>
+              {t('settings.accounts', { defaultValue: 'Bank Accounts' })} ({accounts.length})
+            </Text>
             <Text style={styles.sectionHeaderSubtitle}>
-              Manage physical bank accounts and balance alignment
+              {t('tooltips.bankAccounts.content', { defaultValue: 'Manage physical bank accounts and balance alignment' })}
             </Text>
           </View>
           <TouchableOpacity
@@ -98,7 +112,9 @@ export default function BankAccountsScreen() {
             style={styles.addAccountBtn}
           >
             <Feather name="plus" size={14} color="#FFFFFF" />
-            <Text style={styles.addAccountText}>Add Account</Text>
+            <Text style={styles.addAccountText}>
+              {t('settings.bankAccounts.addAccount', { defaultValue: 'Add Account' })}
+            </Text>
           </TouchableOpacity>
         </View>
 

@@ -364,7 +364,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   - `apps/mobile/src/app/(app)/pools/[id].tsx`: Pool detail view with category list, category item bottom sheet modal (`CategoryItemModal.tsx`), move money, and archive controls.
   - `apps/mobile/src/app/(app)/afford-check.tsx`: Standalone "Can We Afford This?" simulator with 5-level verdict, daily pacing velocity impact, and goal completion delay estimation.
   - `apps/mobile/src/app/(app)/transactions.tsx`: Consolidated 2-tab history screen accessible via Header Avatar menu (Tab 1: Transactions Ledger with paired transfer detection `Source ➔ Dest`, search, advanced filters, pagination, CSV export; Tab 2: Payday Allocations audit log with `MobilePaydayAllocationDetailModal`).
-  - `apps/mobile/src/app/(app)/settings.tsx`: Complete settings hub reorganized into 4 top segmented tabs (`[🏡 Household | ⚙️ Preferences | 💳 Plan | 🛡️ Privacy]`) eliminating vertical scrolling and matching web modularity.
+  - `apps/mobile/src/app/(app)/settings.tsx`: Complete settings hub reorganized into 4 top segmented tabs (`[Household | Preferences | Plan | Privacy]`) eliminating vertical scrolling and matching web modularity.
   - `apps/mobile/src/app/(app)/settings/bank-accounts.tsx`: Bank accounts management accessible via Header Avatar menu with provider branding (`BankProviderBadge`), linked pool balances, stealth private toggles, and 1-click balance alignment.
   - `apps/mobile/src/app/(app)/settings/archived.tsx`: Restorable archive viewer for pools, categories, income schedules, and expense bills.
   - `apps/mobile/src/app/(app)/settings/history.tsx`: Seamless redirection to `/(app)/transactions?tab=payday-allocations` (MECE compliance).

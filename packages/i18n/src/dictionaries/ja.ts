@@ -35,6 +35,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "title": "世帯の切り替え",
     "subtitle": "管理する世帯を選択してください",
     "active": "有効",
+    "switchAction": "切り替え",
     "switchSuccess": "{name}に切り替えました",
     "switchError": "世帯の切り替えに失敗しました"
   },
@@ -150,6 +151,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "showMore": "詳細を見る →",
     "overdue": "期限超過",
     "transfer": "振替",
+    "expense": "支出",
+    "income": "収入",
+    "all": "すべて",
     "saveOnly": "保存のみ",
     "splitIncome": "収入振り分け",
     "proceed": "続行",
@@ -158,6 +162,7 @@ export const ja: DeepStringRecord<typeof en> = {
 
   "toasts": {
     "saved": "正常に保存されました",
+    "created": "正常に作成されました",
     "updated": "正常に更新されました",
     "archived": "正常にアーカイブされました",
     "deleted": "正常に削除されました",
@@ -449,6 +454,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "endProjectionMode": "End Projection Mode",
     "projectionModeReadOnlyNotice": "Projection Mode active (Read-Only). Adding or editing pools and categories is disabled while viewing projected balances.",
     "archivePool": "Archive Pool",
+    "editPool": "プールを編集",
+    "currentBalance": "現在残高",
+    "budgetCategories": "予算カテゴリー",
     "archiveCategory": "Archive Category",
     "cancel": "Cancel",
     "frequencyLabel": "Frequency",
@@ -1145,12 +1153,25 @@ export const ja: DeepStringRecord<typeof en> = {
     "title": "設定",
     "loadingSettings": "設定を読み込み中...",
     "tabs": {
-      "profile": "プロフィール",
+      "profile": "登録情報",
       "household": "世帯",
-      "accountData": "アカウントとデータ",
-      "preferences": "個人設定",
-      "plan": "プラン",
-      "privacy": "プライバシー"
+      "archived": "アーカイブデータ",
+      "accountData": "データとサブスクリプション"
+    },
+    "preferences": "環境設定",
+    "archived": {
+      "restoreSuccess": "アイテムを正常に復元しました。",
+      "restoreTitle": "アイテムの復元",
+      "restoreConfirm": "「{name}」を復元してもよろしいですか？アクティブ状態に戻ります。",
+      "restoreAction": "復元",
+      "categories": "カテゴリー",
+      "pools": "プール",
+      "income": "収入",
+      "expenses": "支出",
+      "accounts": "口座",
+      "searchPlaceholder": "アーカイブされたアイテムを検索...",
+      "emptyTitle": "アーカイブデータはありません",
+      "emptySubtitle": "アーカイブしたアイテムはここに表示され、いつでも復元できます。"
     },
     "profileTitle": "プロフィールと設定",
     "myDetailsTitle": "マイ詳細",
@@ -1411,11 +1432,17 @@ export const ja: DeepStringRecord<typeof en> = {
     "noIncomeSchedules": "収入スケジュールが見つかりません。",
     "noExpenseBills": "請求スケジュールが見つかりません。",
     "deleteIncomeEvent": "収入予定イベントを削除",
-    "deleteIncomeEventConfirm": "この今後の収入イベントを削除してもよろしいですか？"
+    "deleteIncomeEventConfirm": "この今後の収入イベントを削除してもよろしいですか？",
+    "resetConfirmTitle": "配分をリセットしますか？",
+    "resetConfirmMessage": "カスタムの振り分けが破棄され、提案された配分にリセットされます。続行しますか？"
   },
   "incomeAndBills": {
     "incomeSchedule": "収入の名称",
     "billSchedule": "支出の名称"
+  },
+  "history": {
+    "transactionsTab": "取引履歴",
+    "allocationsTab": "給与日配分"
   },
   "forms": {
     "scheduleType": "スケジュールタイプ",
@@ -1752,6 +1779,9 @@ export const ja: DeepStringRecord<typeof en> = {
     },
     "quickExpense": {
       "title": "クイック支出登録",
+      "expenseTitle": "支出を記録",
+      "incomeTitle": "収入を記録",
+      "transferTitle": "プール間でお金を移動",
       "categorySelect": "カテゴリーを選択",
       "categoryPlaceholder": "タップしてカテゴリーを選択",
       "dateLabel": "日付 (YYYY-MM-DD)",
@@ -1866,13 +1896,13 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "通知設定",
       "backCta": "← 戻る",
       "loading": "通知設定を読み込み中...",
-      "weeklyDigestTitle": "📊 週次バランスダイジェスト",
+      "weeklyDigestTitle": "週次バランスダイジェスト",
       "weeklyDigestDesc": "毎週日曜日の夕方に、貯蓄・支出の合計と翌週の予測をメールで受け取ります。",
-      "paydayTitle": "🎉 給料日配分アラート",
+      "paydayTitle": "給料日配分アラート",
       "paydayDesc": "予定された給料日の朝に1タップで配分できるアラートを受け取ります。",
-      "shortfallTitle": "⚠️ 残高不足・超過アラート",
+      "shortfallTitle": "残高不足・超過アラート",
       "shortfallDesc": "請求書や取引によってカテゴリーがマイナスになった際に即座に警告を受け取ります。",
-      "billTitle": "⚡ 支払期日リマインダー",
+      "billTitle": "支払期日リマインダー",
       "billDesc": "定期支払い（家賃、ローン、光熱費など）の3日前にリマインダーを受け取ります。",
       "activeEmailBadge": "Release 1 有効 (メール)",
       "release2MobileBadge": "Release 2 (モバイルPush)"

@@ -64,15 +64,15 @@ export function SubscriptionPlanSection() {
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>💳 {t('subscription.sectionTitle')}</Text>
+        <Text style={styles.cardTitle}>{t('subscription.sectionTitle')}</Text>
         {isSubscribed && !isCanceling && (
           <View style={styles.activeBadge}>
-            <Text style={styles.activeBadgeText}>✓ {t('subscription.activeBadge')}</Text>
+            <Text style={styles.activeBadgeText}>{t('subscription.activeBadge')}</Text>
           </View>
         )}
         {isCanceling && (
           <View style={styles.cancelingBadge}>
-            <Text style={styles.cancelingBadgeText}>⚠️ {t('subscription.cancelingBadge')}</Text>
+            <Text style={styles.cancelingBadgeText}>{t('subscription.cancelingBadge')}</Text>
           </View>
         )}
       </View>

@@ -45,7 +45,7 @@ export function MobileProfileReadOnlyView({
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>👤 {t('settings.myDetailsTitle', { defaultValue: 'My Details' })}</Text>
+        <Text style={styles.cardTitle}>{t('settings.myDetailsTitle', { defaultValue: 'My Details' })}</Text>
         <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
           <Feather name="edit-2" size={13} color="#2563eb" />
           <Text style={styles.editBtnText}>{t('common.edit')}</Text>

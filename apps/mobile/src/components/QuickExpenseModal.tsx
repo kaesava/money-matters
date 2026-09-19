@@ -40,10 +40,10 @@ interface QuickExpenseModalProps {
 }
 
 const QUICK_PICKS = [
-  { name: "Coffee", amount: "5.50", icon: "☕" },
-  { name: "Lunch", amount: "18.00", icon: "🥗" },
-  { name: "Groceries", amount: "80.00", icon: "🛒" },
-  { name: "Fuel", amount: "70.00", icon: "⛽" },
+  { name: "Coffee", amount: "5.50" },
+  { name: "Lunch", amount: "18.00" },
+  { name: "Groceries", amount: "80.00" },
+  { name: "Fuel", amount: "70.00" },
 ];
 
 export function QuickExpenseModal({
@@ -318,10 +318,10 @@ export function QuickExpenseModal({
             <View style={styles.header}>
               <Text style={styles.headerTitle}>
                 {type === "DEBIT"
-                  ? "Log Quick Expense"
+                  ? t('modals.quickExpense.expenseTitle', { defaultValue: 'Record Expense' })
                   : type === "CREDIT"
-                  ? "Quick Record Income"
-                  : "Move Money Between Pools"}
+                  ? t('modals.quickExpense.incomeTitle', { defaultValue: 'Record Income' })
+                  : t('modals.quickExpense.transferTitle', { defaultValue: 'Move Money Between Pools' })}
               </Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <Feather name="x" size={20} color={D.colors.textMuted} />
@@ -331,9 +331,9 @@ export function QuickExpenseModal({
             {/* 3-Way Segmented Control */}
             <SegmentedTabs<QuickActionType>
               tabs={[
-                { key: "DEBIT", label: "Expense", icon: "arrow-down-right" },
-                { key: "CREDIT", label: "Income", icon: "arrow-up-right" },
-                { key: "TRANSFER", label: "Transfer", icon: "repeat" },
+                { key: "DEBIT", label: t('common.expense', { defaultValue: 'Expense' }) },
+                { key: "CREDIT", label: t('common.income', { defaultValue: 'Income' }) },
+                { key: "TRANSFER", label: t('common.transfer', { defaultValue: 'Transfer' }) },
               ]}
               activeKey={type}
               onChange={(val) => {
@@ -357,7 +357,9 @@ export function QuickExpenseModal({
                 {/* Quick Picks for Expense */}
                 {type === "DEBIT" && (
                   <View style={styles.quickPicksSection}>
-                    <Text style={styles.quickPickLabel}>⚡ Quick Picks</Text>
+                    <Text style={styles.quickPickLabel}>
+                      {t('quickPick.recent', { defaultValue: 'Quick Picks' })}
+                    </Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -370,7 +372,7 @@ export function QuickExpenseModal({
                           style={styles.quickPickChip}
                         >
                           <Text style={styles.quickPickChipText}>
-                            {qp.icon} {qp.name} ${qp.amount}
+                            {qp.name} ${qp.amount}
                           </Text>
                         </TouchableOpacity>
                       ))}

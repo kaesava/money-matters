@@ -309,15 +309,22 @@ export default function TransactionsScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('transactions.title') || 'History'}
+      title={t('transactions.title', { defaultValue: 'History' })}
       scrollable={false}
+      infoTooltip={{
+        title: t('tooltips.transactions.title', { defaultValue: 'About Transactions History' }),
+        content: t('tooltips.transactions.content', {
+          defaultValue:
+            'A complete record of all your earnings, bill payments, and everyday spending. Use filters or search to quickly find any past transaction.',
+        }),
+      }}
     >
       <View style={styles.container}>
         {/* 2-Tab Segment Bar */}
         <SegmentedTabs<HistoryTab>
           tabs={[
-            { key: 'LEDGER', label: t('transactions.ledgerTab') || 'Transactions', icon: 'list' },
-            { key: 'PAYDAYS', label: t('transactions.paydayTab') || 'Payday Allocations', icon: 'calendar' },
+            { key: 'LEDGER', label: t('history.transactionsTab', { defaultValue: 'Transactions' }) },
+            { key: 'PAYDAYS', label: t('history.allocationsTab', { defaultValue: 'Payday Allocations' }) },
           ]}
           activeKey={activeTab}
           onChange={setActiveTab}

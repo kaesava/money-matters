@@ -27,13 +27,15 @@ import { MobileTenantSwitcherModal } from '../../components/settings/MobileTenan
 
 import { getMobileVersionInfo } from '../../lib/version';
 
-export type SettingsTab = 'HOUSEHOLD' | 'PREFERENCES' | 'PLAN' | 'PRIVACY';
+import { MobileArchivedSection } from '../../components/settings/MobileArchivedSection';
+
+export type SettingsTab = 'profile' | 'household' | 'archived' | 'account-data';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const toast = useMobileToast();
   const { data: session } = authClient.useSession();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('HOUSEHOLD');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [loading, setLoading] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [tenantSwitcherVisible, setTenantSwitcherVisible] = useState(false);
@@ -78,17 +80,25 @@ export default function SettingsScreen() {
 
   const tabs: SegmentTabItem<SettingsTab>[] = useMemo(
     () => [
-      { key: 'HOUSEHOLD', label: t('settings.tabs.household', { defaultValue: 'Household' }), icon: 'home' },
-      { key: 'PREFERENCES', label: t('settings.tabs.preferences', { defaultValue: 'Preferences' }), icon: 'sliders' },
-      { key: 'PLAN', label: t('settings.tabs.plan', { defaultValue: 'Plan' }), icon: 'credit-card' },
-      { key: 'PRIVACY', label: t('settings.tabs.privacy', { defaultValue: 'Privacy' }), icon: 'shield' },
+      { key: 'profile', label: t('settings.tabs.profile', { defaultValue: 'My Details' }) },
+      { key: 'household', label: t('settings.tabs.household', { defaultValue: 'Household' }) },
+      { key: 'archived', label: t('settings.tabs.archived', { defaultValue: 'Archived Data' }) },
+      { key: 'account-data', label: t('settings.tabs.accountData', { defaultValue: 'Data & Subscription' }) },
     ],
     []
   );
 
   return (
     <View style={{ flex: 1 }}>
-      <AppScreenWrapper title={t('settings.title')}>
+      <AppScreenWrapper
+        title={t('settings.title', { defaultValue: 'Settings' })}
+        infoTooltip={{
+          title: t('tooltips.settings.title', { defaultValue: 'About Settings' }),
+          content: t('tooltips.settings.content', {
+            defaultValue: 'Manage your household profile, preferences, and account configuration.',
+          }),
+        }}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -100,17 +110,60 @@ export default function SettingsScreen() {
             onChange={setActiveTab}
           />
 
-          {/* TAB 1: HOUSEHOLD */}
-          {activeTab === 'HOUSEHOLD' && (
+          {/* TAB 1: MY DETAILS */}
+          {activeTab === 'profile' && (
+            <View style={styles.tabSection}>
+              {/* User Profile Details & Avatar */}
+              <MobileProfileSection />
+
+              {/* App Preferences: Language, Theme, Icons, Biometrics */}
+              <PreferencesSection />
+
+              {/* Push Notifications Card */}
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>
+                  {t('notifications.settings.title', { defaultValue: 'Notifications' })}
+                </Text>
+                <TouchableOpacity
+                  style={styles.navLink}
+                  onPress={() => router.push('/(app)/settings/notifications' as Href)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.navLinkLeft}>
+                    <Feather name="bell" size={16} color="#2563eb" />
+                    <Text style={styles.navLinkText}>
+                      {t('settings.notificationsLink', { defaultValue: 'Push Notifications & Reminders' })}
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Sign Out Button */}
+              <TouchableOpacity
+                style={[styles.signOutBtn, loading && { opacity: 0.7 }]}
+                onPress={handleSignOut}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Feather name="log-out" size={16} color="#E11D48" />
+                <Text style={styles.signOutBtnText}>
+                  {loading
+                    ? t('common.loading', { defaultValue: 'Signing out...' })
+                    : t('settings.signOut', { defaultValue: 'Sign Out' })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* TAB 2: HOUSEHOLD */}
+          {activeTab === 'household' && (
             <View style={styles.tabSection}>
               {/* Active Household Card & Switcher Button */}
               <View style={styles.activeHouseholdCard}>
                 <View style={styles.activeHouseholdLeft}>
-                  <View style={styles.householdIconBox}>
-                    <Text style={{ fontSize: 20 }}>🏡</Text>
-                  </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.activeHouseholdLabel}>{t('tenantSwitcher.label')}</Text>
+                    <Text style={styles.activeHouseholdLabel}>{t('tenantSwitcher.label', { defaultValue: 'Active Household' })}</Text>
                     <Text style={styles.activeHouseholdName} numberOfLines={1}>
                       {currentTenant?.name || 'My Household'}
                     </Text>
@@ -125,7 +178,9 @@ export default function SettingsScreen() {
                     activeOpacity={0.7}
                   >
                     <Feather name="refresh-cw" size={14} color="#2563eb" />
-                    <Text style={styles.switchButtonText}>Switch</Text>
+                    <Text style={styles.switchButtonText}>
+                      {t('tenantSwitcher.switchAction', { defaultValue: 'Switch' })}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -161,7 +216,7 @@ export default function SettingsScreen() {
                 >
                   <View style={styles.navLinkLeft}>
                     <Feather name="refresh-cw" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>{t('setup.recalibrateTitle')}</Text>
+                    <Text style={styles.navLinkText}>{t('setup.recalibrateTitle', { defaultValue: 'Recalibrate Setup Wizard' })}</Text>
                   </View>
                   <Feather name="chevron-right" size={16} color="#94A3B8" />
                 </TouchableOpacity>
@@ -173,63 +228,31 @@ export default function SettingsScreen() {
                 >
                   <View style={styles.navLinkLeft}>
                     <Feather name="clock" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>Payday Allocation History</Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.navLink}
-                  onPress={() => router.push('/(app)/settings/archived' as Href)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.navLinkLeft}>
-                    <Feather name="archive" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>Archived Categories, Pools & Bills</Text>
+                    <Text style={styles.navLinkText}>
+                      {t('settings.allocationHistoryLink', { defaultValue: 'Payday Allocation History' })}
+                    </Text>
                   </View>
                   <Feather name="chevron-right" size={16} color="#94A3B8" />
                 </TouchableOpacity>
               </View>
+
+              {/* Danger Zone */}
+              <HouseholdDangerZoneSection />
             </View>
           )}
 
-          {/* TAB 2: PREFERENCES */}
-          {activeTab === 'PREFERENCES' && (
+          {/* TAB 3: ARCHIVED DATA */}
+          {activeTab === 'archived' && (
             <View style={styles.tabSection}>
-              {/* User Profile Details & Avatar */}
-              <MobileProfileSection />
-
-              {/* App Preferences: Language, Theme, Icons, Biometrics */}
-              <PreferencesSection />
-
-              {/* Push Notifications Card */}
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>Notifications</Text>
-                <TouchableOpacity
-                  style={styles.navLink}
-                  onPress={() => router.push('/(app)/settings/notifications' as Href)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.navLinkLeft}>
-                    <Feather name="bell" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>Push Notifications & Reminders</Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              </View>
+              <MobileArchivedSection />
             </View>
           )}
 
-          {/* TAB 3: PLAN */}
-          {activeTab === 'PLAN' && (
+          {/* TAB 4: DATA & SUBSCRIPTION */}
+          {activeTab === 'account-data' && (
             <View style={styles.tabSection}>
               <SubscriptionPlanSection />
-            </View>
-          )}
 
-          {/* TAB 4: PRIVACY */}
-          {activeTab === 'PRIVACY' && (
-            <View style={styles.tabSection}>
               <PrivacyGovernanceSection />
 
               {/* Feedback Button */}
@@ -239,22 +262,8 @@ export default function SettingsScreen() {
                 activeOpacity={0.8}
               >
                 <Feather name="message-square" size={16} color="#2563eb" />
-                <Text style={styles.feedbackBtnText}>Provide Feedback or Report a Problem</Text>
-              </TouchableOpacity>
-
-              {/* Danger Zone */}
-              <HouseholdDangerZoneSection />
-
-              {/* Sign Out Button */}
-              <TouchableOpacity
-                style={[styles.signOutBtn, loading && { opacity: 0.7 }]}
-                onPress={handleSignOut}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                <Feather name="log-out" size={16} color="#E11D48" />
-                <Text style={styles.signOutBtnText}>
-                  {loading ? 'Signing out...' : t('settings.signOut', { defaultValue: 'Sign Out' })}
+                <Text style={styles.feedbackBtnText}>
+                  {t('settings.reportBugLink', { defaultValue: 'Provide Feedback' })}
                 </Text>
               </TouchableOpacity>
 

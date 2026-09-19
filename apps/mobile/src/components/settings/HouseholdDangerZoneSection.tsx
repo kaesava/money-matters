@@ -187,7 +187,7 @@ export function HouseholdDangerZoneSection() {
                 </Text>
                 {gov.partnerEmail ? (
                   <Text style={styles.partnerWarningText}>
-                    ⚠️ {t('privacy.deletePartnerWarning', { email: gov.partnerEmail })}
+                    {t('privacy.deletePartnerWarning', { email: gov.partnerEmail })}
                   </Text>
                 ) : null}
 

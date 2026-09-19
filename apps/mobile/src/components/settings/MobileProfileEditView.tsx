@@ -53,7 +53,7 @@ export function MobileProfileEditView({
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>✏️ {t('settings.myDetailsTitle', { defaultValue: 'Edit Details' })}</Text>
+        <Text style={styles.cardTitle}>{t('settings.myDetailsTitle', { defaultValue: 'Edit Details' })}</Text>
         <View style={styles.actionRow}>
           <TouchableOpacity onPress={onCancel} style={styles.cancelBtn}>
             <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>

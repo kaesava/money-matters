@@ -13,6 +13,7 @@ import { ScreenMenuModal } from "./ScreenMenuModal";
 
 export interface ScreenWrapperProps {
   title?: string;
+  infoTooltip?: { title?: string; content: string };
   user?: { name?: string | null; email?: string | null; image?: string | null } | null;
   showProfile?: boolean;
   showBack?: boolean;
@@ -32,6 +33,7 @@ export interface ScreenWrapperProps {
 
 export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   title,
+  infoTooltip,
   user,
   showProfile = true,
   showBack = false,
@@ -79,6 +81,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       />
       <ScreenHeader
         title={title}
+        infoTooltip={infoTooltip}
         showBack={showBack}
         onBackPress={onBackPress}
         onNavigateHome={onNavigateHome}

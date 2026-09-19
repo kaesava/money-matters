@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileModalDialog, useMobileToast } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileModalDialog, MobileButton, AmountInput, useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { formatAUD } from '../../lib/format';
@@ -127,35 +127,38 @@ export function MobileReconciliationModal({
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title="Align Bank Balance"
+      title={t('modals.reconciliation.title', { defaultValue: 'Align Bank Balance' })}
       subtitle={`Reconcile ${account.name} with your budget pools`}
+      footer={
+        <MobileButton
+          variant="primary"
+          loading={submitting}
+          disabled={submitting || (variance !== 0 && !selectedPoolId)}
+          onPress={handleReconcile}
+        >
+          {t('modals.reconciliation.submit', { defaultValue: 'Confirm Balance Alignment' })}
+        </MobileButton>
+      }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
         {/* Actual Bank Statement Balance */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Actual Bank Statement Balance ($)</Text>
-          <View style={styles.amountWrap}>
-            <Text style={styles.currencySymbol}>$</Text>
-            <TextInput
-              style={styles.amountInput}
-              keyboardType="decimal-pad"
-              value={actualBalanceStr}
-              onChangeText={setActualBalanceStr}
-              placeholder="0.00"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-        </View>
+        <AmountInput
+          label={t('modals.reconciliation.actualBalance', { defaultValue: 'Actual Bank Account Balance' })}
+          required
+          value={actualBalanceStr}
+          onChangeText={setActualBalanceStr}
+          placeholder="0.00"
+        />
 
         {/* Comparison & Discrepancy Card */}
         <View style={styles.discrepancyCard}>
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>Expected (Sum of Pools)</Text>
+            <Text style={styles.statLabel}>{t('categories.calculatedTarget', { defaultValue: 'Expected (Sum of Pools)' })}</Text>
             <Text style={styles.statVal}>{formatAUD(poolsTotal)}</Text>
           </View>
 
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>Actual Bank Balance</Text>
+            <Text style={styles.statLabel}>{t('modals.reconciliation.actualBalance', { defaultValue: 'Actual Bank Balance' })}</Text>
             <Text style={styles.statVal}>{formatAUD(actualBalanceNum)}</Text>
           </View>
 
@@ -173,7 +176,7 @@ export function MobileReconciliationModal({
               ]}
             >
               {variance === 0
-                ? 'Balanced ✓'
+                ? 'Balanced'
                 : `${isSurplus ? '+' : ''}${formatAUD(variance)}`}
             </Text>
           </View>
@@ -222,7 +225,7 @@ export function MobileReconciliationModal({
 
         {/* Optional Custom Reason Note */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Alignment Reason Note (Optional)</Text>
+          <Text style={styles.label}>{t('modals.reconciliation.notes', { defaultValue: 'Alignment Reason Note (Optional)' })}</Text>
           <TextInput
             style={styles.textInput}
             value={reasonNote}
@@ -231,19 +234,6 @@ export function MobileReconciliationModal({
             placeholderTextColor="#94A3B8"
           />
         </View>
-
-        {/* Submit */}
-        <TouchableOpacity
-          onPress={handleReconcile}
-          disabled={submitting}
-          style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitBtnText}>Confirm Balance Alignment</Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
     </MobileModalDialog>
   );

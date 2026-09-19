@@ -4,8 +4,11 @@ import { Feather } from "@expo/vector-icons";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "../tokens";
 
+import { InfoTooltip } from "./InfoTooltip";
+
 interface ScreenHeaderProps {
   title?: string;
+  infoTooltip?: { title?: string; content: string };
   showBack?: boolean;
   onBackPress?: () => void;
   onNavigateHome?: () => void;
@@ -18,6 +21,7 @@ interface ScreenHeaderProps {
 
 export function ScreenHeader({
   title,
+  infoTooltip,
   showBack,
   onBackPress,
   onNavigateHome,
@@ -47,18 +51,22 @@ export function ScreenHeader({
             style={styles.brandContainer}
             activeOpacity={0.7}
           >
-            <Text style={styles.brandLogo}>🪙</Text>
             <Text style={styles.brandText}>{t("app.title")}</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Middle Area: Title */}
+      {/* Middle Area: Title & InfoTooltip */}
       <View style={styles.titleContainer}>
         {title ? (
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {title}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%", justifyContent: "center" }}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            {infoTooltip && (
+              <InfoTooltip title={infoTooltip.title} content={infoTooltip.content} />
+            )}
+          </View>
         ) : null}
       </View>
 

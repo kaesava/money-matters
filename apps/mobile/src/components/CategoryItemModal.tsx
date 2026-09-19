@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
   Switch,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileModalDialog, useMobileToast } from '@money-matters/ui/mobile';
+import {
+  MobileModalDialog,
+  MobileInput,
+  AmountInput,
+  ChipSelect,
+  MobileButton,
+  FormLabel,
+  useMobileToast,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 
@@ -32,6 +36,8 @@ export interface CategoryItemModalProps {
   onSuccess?: () => void;
 }
 
+type FrequencyOption = 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
+
 export function CategoryItemModal({
   visible,
   poolId,
@@ -45,9 +51,7 @@ export function CategoryItemModal({
 
   const [name, setName] = useState('');
   const [enteredAmount, setEnteredAmount] = useState('');
-  const [frequency, setFrequency] = useState<
-    'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY'
-  >('MONTHLY');
+  const [frequency, setFrequency] = useState<FrequencyOption>('MONTHLY');
   const [isEssential, setIsEssential] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -58,7 +62,7 @@ export function CategoryItemModal({
         setEnteredAmount(
           categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || ''
         );
-        setFrequency(categoryToEdit.budgetFrequency || 'MONTHLY');
+        setFrequency((categoryToEdit.budgetFrequency as FrequencyOption) || 'MONTHLY');
         setIsEssential(Boolean(categoryToEdit.isEssential));
       } else {
         setName('');
@@ -72,19 +76,41 @@ export function CategoryItemModal({
   const createMut = trpc.createCategory.useMutation();
   const updateMut = trpc.updateCategory.useMutation();
 
+  const calculatedMonthly = useMemo(() => {
+    const numAmt = parseFloat(enteredAmount);
+    if (isNaN(numAmt) || numAmt <= 0) return '0.00';
+    let monthlyAmt = numAmt;
+    if (frequency === 'WEEKLY') monthlyAmt = (numAmt * 52) / 12;
+    else if (frequency === 'FORTNIGHTLY') monthlyAmt = (numAmt * 26) / 12;
+    else if (frequency === 'ANNUALLY') monthlyAmt = numAmt / 12;
+    return monthlyAmt.toFixed(2);
+  }, [enteredAmount, frequency]);
+
+  const isDirty = useMemo(() => {
+    if (!isEdit) {
+      return Boolean(name.trim() || enteredAmount.trim());
+    }
+    if (!categoryToEdit) return false;
+    const origName = categoryToEdit.name || '';
+    const origAmount = categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || '';
+    const origFreq = (categoryToEdit.budgetFrequency as FrequencyOption) || 'MONTHLY';
+    const origEssential = Boolean(categoryToEdit.isEssential);
+
+    return (
+      name.trim() !== origName ||
+      enteredAmount !== origAmount ||
+      frequency !== origFreq ||
+      isEssential !== origEssential
+    );
+  }, [isEdit, categoryToEdit, name, enteredAmount, frequency, isEssential]);
+
   const handleSubmit = async () => {
     if (!name.trim()) {
-      toast.error('Please enter a category name.', t('common.error'));
+      toast.error(t('categories.nameRequired'), t('common.error'));
       return;
     }
 
     const numAmt = parseFloat(enteredAmount);
-    let monthlyAmt = numAmt;
-    if (!isNaN(numAmt) && numAmt > 0) {
-      if (frequency === 'WEEKLY') monthlyAmt = (numAmt * 52) / 12;
-      else if (frequency === 'FORTNIGHTLY') monthlyAmt = (numAmt * 26) / 12;
-      else if (frequency === 'ANNUALLY') monthlyAmt = numAmt / 12;
-    }
 
     setSubmitting(true);
     try {
@@ -94,7 +120,7 @@ export function CategoryItemModal({
           data: {
             name: name.trim(),
             enteredAmount: !isNaN(numAmt) && numAmt > 0 ? numAmt.toFixed(2) : undefined,
-            monthlyAmount: !isNaN(monthlyAmt) && monthlyAmt > 0 ? monthlyAmt.toFixed(2) : undefined,
+            monthlyAmount: !isNaN(parseFloat(calculatedMonthly)) && parseFloat(calculatedMonthly) > 0 ? calculatedMonthly : undefined,
             budgetFrequency: frequency,
             isEssential,
           },
@@ -104,20 +130,20 @@ export function CategoryItemModal({
           poolId,
           name: name.trim(),
           enteredAmount: !isNaN(numAmt) && numAmt > 0 ? numAmt.toFixed(2) : undefined,
-          monthlyAmount: !isNaN(monthlyAmt) && monthlyAmt > 0 ? monthlyAmt.toFixed(2) : undefined,
+          monthlyAmount: !isNaN(parseFloat(calculatedMonthly)) && parseFloat(calculatedMonthly) > 0 ? calculatedMonthly : undefined,
           budgetFrequency: frequency,
           isEssential,
         });
       }
 
-      toast.success(isEdit ? 'Category updated successfully.' : 'Category created successfully.');
+      toast.success(isEdit ? t('toasts.saved') : t('toasts.created'));
       utils.listCategories.invalidate();
       utils.listPools.invalidate();
       onSuccess?.();
       onClose();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to save category',
+        err instanceof Error ? err.message : t('categories.saveFailed'),
         t('common.error')
       );
     } finally {
@@ -125,87 +151,79 @@ export function CategoryItemModal({
     }
   };
 
+  const freqOptions = [
+    { key: 'WEEKLY', label: t('categories.frequencyWeekly') },
+    { key: 'FORTNIGHTLY', label: t('categories.frequencyFortnightly') },
+    { key: 'MONTHLY', label: t('categories.frequencyMonthly') },
+    { key: 'ANNUALLY', label: t('categories.frequencyAnnually') },
+  ];
+
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={isEdit ? 'Edit Category' : 'Add Category'}
+      isDirty={isDirty}
+      title={isEdit ? t('categories.editTitle', { name: categoryToEdit?.name || '' }) : t('categories.addCategory')}
       subtitle={
         isEdit
-          ? 'Update budget category details'
-          : 'Create a new category in this pool'
+          ? t('categories.updateSubtitle')
+          : t('categories.createSubtitle')
+      }
+      footer={
+        <MobileButton
+          variant="primary"
+          loading={submitting}
+          disabled={!name.trim() || !enteredAmount.trim() || submitting}
+          onPress={handleSubmit}
+        >
+          {isEdit ? t('categories.saveCategory') : t('categories.createButton')}
+        </MobileButton>
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
         {/* Name */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Category Name *</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g. Groceries, Electricity, Fuel"
-            value={name}
-            onChangeText={setName}
-            placeholderTextColor="#94A3B8"
-            autoFocus={!isEdit}
-          />
-        </View>
+        <MobileInput
+          label={t('categories.nameLabel')}
+          required
+          placeholder={t('categories.namePlaceholder')}
+          value={name}
+          onChangeText={setName}
+          autoFocus={!isEdit}
+        />
 
-        {/* Amount & Frequency */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Budget Target Amount ($)</Text>
-          <View style={styles.amountInputWrap}>
-            <Text style={styles.currencySymbol}>$</Text>
-            <TextInput
-              style={styles.amountInput}
-              placeholder="0.00"
-              keyboardType="decimal-pad"
-              value={enteredAmount}
-              onChangeText={setEnteredAmount}
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-        </View>
+        {/* Amount */}
+        <AmountInput
+          label={t('categories.targetAmountLabel')}
+          required
+          placeholder="0.00"
+          value={enteredAmount}
+          onChangeText={setEnteredAmount}
+        />
 
         {/* Frequency Chips */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Frequency</Text>
-          <View style={styles.freqRow}>
-            {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map(
-              (f) => (
-                <TouchableOpacity
-                  key={f}
-                  onPress={() => setFrequency(f)}
-                  style={[
-                    styles.freqChip,
-                    frequency === f && styles.freqChipActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.freqText,
-                      frequency === f && styles.freqTextActive,
-                    ]}
-                  >
-                    {f === 'WEEKLY'
-                      ? 'Wk'
-                      : f === 'FORTNIGHTLY'
-                      ? 'Fortnight'
-                      : f === 'MONTHLY'
-                      ? 'Month'
-                      : 'Year'}
-                  </Text>
-                </TouchableOpacity>
-              )
-            )}
-          </View>
+          <FormLabel>{t('categories.frequencyLabel')}</FormLabel>
+          <ChipSelect
+            options={freqOptions}
+            value={frequency}
+            onChange={(val) => setFrequency(val as FrequencyOption)}
+          />
         </View>
+
+        {/* Monthly Equivalent Banner if not monthly */}
+        {enteredAmount && parseFloat(enteredAmount) > 0 && frequency !== 'MONTHLY' && (
+          <View style={styles.equivBanner}>
+            <Text style={styles.equivLabel}>{t('categories.monthlyEquivalent')}</Text>
+            <Text style={styles.equivVal}>${calculatedMonthly} / mo</Text>
+          </View>
+        )}
 
         {/* Essential Bill Toggle */}
         <View style={styles.switchRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.switchLabel}>Essential Priority Bill</Text>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={styles.switchLabel}>{t('categories.prioritiseCategory')}</Text>
             <Text style={styles.switchSubtext}>
-              Funded with top priority in paycheck waterfall allocations.
+              {t('categories.priorityCategoryInfo')}
             </Text>
           </View>
           <Switch
@@ -214,21 +232,6 @@ export function CategoryItemModal({
             trackColor={{ false: '#E2E8F0', true: '#2563eb' }}
           />
         </View>
-
-        {/* Submit */}
-        <TouchableOpacity
-          onPress={handleSubmit}
-          disabled={submitting}
-          style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitBtnText}>
-              {isEdit ? 'Save Changes' : 'Create Category'}
-            </Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
     </MobileModalDialog>
   );
@@ -240,71 +243,29 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   inputGroup: {
-    gap: 6,
+    gap: 4,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  textInput: {
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1B2B4B',
-    backgroundColor: '#F8FAFC',
-  },
-  amountInputWrap: {
+  equivBanner: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
     borderRadius: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#F8FAFC',
+    paddingVertical: 10,
   },
-  currencySymbol: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#64748B',
-    marginRight: 12,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '900',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-    paddingVertical: 8,
-  },
-  freqRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  freqChip: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  freqChipActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  freqText: {
-    fontSize: 11,
+  equivLabel: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#1E40AF',
   },
-  freqTextActive: {
-    color: '#2563eb',
+  equivVal: {
+    fontSize: 13,
     fontWeight: '800',
+    fontFamily: 'monospace',
+    color: '#2563eb',
   },
   switchRow: {
     flexDirection: 'row',
@@ -322,18 +283,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
-  },
-  submitBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
   },
 });
 

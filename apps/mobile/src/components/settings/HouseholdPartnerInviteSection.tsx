@@ -32,7 +32,7 @@ export function HouseholdPartnerInviteSection() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>👥 Invite Household Partner</Text>
+      <Text style={styles.cardTitle}>Invite Household Partner</Text>
       <Text style={styles.cardSubtitle}>
         Share visibility and joint budgeting across your household by inviting your partner.
       </Text>

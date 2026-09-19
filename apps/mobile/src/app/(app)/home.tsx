@@ -10,12 +10,13 @@ import {
 import { useRouter } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { formatAUD, formatIsoDate } from '../../lib/format';
 
+import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { DashboardHeroCard } from '../../components/DashboardHeroCard';
 import { AttentionItemsList, AttentionItem } from '../../components/AttentionItemsList';
 import { GoalsProgressStrip } from '../../components/dashboard/GoalsProgressStrip';
@@ -224,11 +225,15 @@ export default function HomeScreen() {
   };
 
   return (
-    <MobileScreenWrapper
-      user={session?.user}
-      onNavigateHome={() => router.push('/(app)/home')}
-      onNavigateCategories={() => router.push('/(app)/categories')}
-      onNavigateSettings={() => router.push('/(app)/settings')}
+    <AppScreenWrapper
+      title={t('nav.dashboard', { defaultValue: 'Home' })}
+      infoTooltip={{
+        title: t('tooltips.dashboard.title', { defaultValue: 'About Your Dashboard' }),
+        content: t('tooltips.dashboard.content', {
+          defaultValue:
+            'Your command centre for financial peace. Money Matters ring-fences fixed bills and savings goals upfront so you can spend your Everyday balance with complete peace of mind.',
+        }),
+      }}
     >
       {/* Customer Trial & Lifecycle Banner */}
       <TrialBanner />
@@ -244,18 +249,6 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Greeting Header */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>
-            {t('dashboard.welcome', {
-              name: session?.user?.name
-                ? session.user.name.split(' ')[0]
-                : 'Mate',
-            })}
-          </Text>
-          <Text style={styles.headerTitle}>{t('dashboard.title') || 'Dashboard'}</Text>
-        </View>
-
         {/* Top Hero Card with Everyday Balance Ring & Next Payday */}
         <DashboardHeroCard
           everydayBalance={everydayBalance}
@@ -311,12 +304,11 @@ export default function HomeScreen() {
               style={styles.bentoCard}
             >
               <View style={styles.bentoTop}>
-                <Text style={styles.bentoIcon}>☕</Text>
                 <Text style={styles.bentoTag}>Everyday</Text>
               </View>
               <Text style={styles.bentoBalance}>{formatAUD(everydayBalance)}</Text>
               <Text style={styles.bentoSub}>
-                {t('dashboard.remainingAllowance') || 'Remaining allowance'}
+                {t('dashboard.remainingAllowance', { defaultValue: 'Remaining allowance' })}
               </Text>
             </TouchableOpacity>
 
@@ -330,18 +322,20 @@ export default function HomeScreen() {
               style={styles.bentoCard}
             >
               <View style={styles.bentoTop}>
-                <Text style={styles.bentoIcon}>📅</Text>
                 <Text style={styles.bentoTag}>Bills</Text>
               </View>
               <Text style={styles.bentoBalance}>{formatAUD(billsPoolBalance)}</Text>
               <View style={styles.billsStatusRow}>
                 {billsShortfall > 0 ? (
                   <Text style={styles.billsShortText}>
-                    ⚠️ {t('dashboard.billsShortAmount', { amount: formatAUD(billsShortfall) }) || `Short ${formatAUD(billsShortfall)}`}
+                    {t('dashboard.billsShortAmount', {
+                      amount: formatAUD(billsShortfall),
+                      defaultValue: `Short ${formatAUD(billsShortfall)}`,
+                    })}
                   </Text>
                 ) : (
                   <Text style={styles.billsCoveredText}>
-                    ✅ {t('dashboard.bills14DaysCovered') || '14 days covered'}
+                    {t('dashboard.bills14DaysCovered', { defaultValue: '14 days covered' })}
                   </Text>
                 )}
               </View>
@@ -455,7 +449,7 @@ export default function HomeScreen() {
           summaryQuery.refetch();
         }}
       />
-    </MobileScreenWrapper>
+    </AppScreenWrapper>
   );
 }
 

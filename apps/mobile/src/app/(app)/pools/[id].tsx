@@ -16,6 +16,7 @@ import {
   MobileScreenWrapper,
   BankProviderBadge,
   showMobileConfirm,
+  SearchInput,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
@@ -181,7 +182,9 @@ export default function PoolDetailScreen() {
             </View>
 
             <View style={styles.balanceCol}>
-              <Text style={styles.balanceLabel}>Current Balance</Text>
+              <Text style={styles.balanceLabel}>
+                {t('categories.currentBalance', { defaultValue: 'Current Balance' })}
+              </Text>
               <Text style={styles.balanceAmount}>
                 {formatAUD(pool.currentBalance)}
               </Text>
@@ -195,7 +198,9 @@ export default function PoolDetailScreen() {
               style={styles.actionBtn}
             >
               <Feather name="repeat" size={14} color="#2563eb" />
-              <Text style={styles.actionBtnText}>Move Money</Text>
+              <Text style={styles.actionBtnText}>
+                {t('dashboard.moveMoney', { defaultValue: 'Move Money' })}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -204,7 +209,7 @@ export default function PoolDetailScreen() {
             >
               <Feather name="edit-2" size={14} color="#64748B" />
               <Text style={[styles.actionBtnText, { color: '#64748B' }]}>
-                Edit Pool
+                {t('categories.editPool', { defaultValue: 'Edit Pool' })}
               </Text>
             </TouchableOpacity>
 
@@ -214,7 +219,7 @@ export default function PoolDetailScreen() {
             >
               <Feather name="archive" size={14} color="#94A3B8" />
               <Text style={[styles.actionBtnText, { color: '#94A3B8' }]}>
-                Archive
+                {t('common.archive', { defaultValue: 'Archive' })}
               </Text>
             </TouchableOpacity>
           </View>
@@ -223,7 +228,7 @@ export default function PoolDetailScreen() {
         {/* Nested Categories Section Header */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
-            Budget Categories ({filteredCategories.length})
+            {t('categories.budgetCategories', { defaultValue: 'Budget Categories' })} ({filteredCategories.length})
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -233,28 +238,20 @@ export default function PoolDetailScreen() {
             style={styles.addCategoryBtn}
           >
             <Feather name="plus" size={14} color="#2563eb" />
-            <Text style={styles.addCategoryText}>Add Category</Text>
+            <Text style={styles.addCategoryText}>
+              {t('categories.addCategory', { defaultValue: 'Add Category' })}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Category Search & Sort Bar */}
         {poolCategories.length > 0 && (
           <View style={styles.catFilterBar}>
-            <View style={styles.catSearchWrap}>
-              <Feather name="search" size={14} color="#94A3B8" />
-              <TextInput
-                style={styles.catSearchInput}
-                placeholder={t('categories.searchCategories') || 'Search categories...'}
-                value={catSearchQuery}
-                onChangeText={setCatSearchQuery}
-                placeholderTextColor="#94A3B8"
-              />
-              {catSearchQuery ? (
-                <TouchableOpacity onPress={() => setCatSearchQuery('')}>
-                  <Feather name="x" size={14} color="#94A3B8" />
-                </TouchableOpacity>
-              ) : null}
-            </View>
+            <SearchInput
+              placeholder={t('categories.searchCategories', { defaultValue: 'Search categories...' })}
+              value={catSearchQuery}
+              onChangeText={setCatSearchQuery}
+            />
 
             <View style={styles.catSortRow}>
               <TouchableOpacity

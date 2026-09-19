@@ -53,12 +53,12 @@ export function DeleteHouseholdCard({
 
   return (
     <View style={styles.dangerBox}>
-      <Text style={styles.dangerTitle}>⚠️ {t('privacy.deleteHouseholdTitle')}</Text>
+      <Text style={styles.dangerTitle}>{t('privacy.deleteHouseholdTitle')}</Text>
       <Text style={styles.dangerSubtitle}>{t('privacy.deleteHouseholdNotice')}</Text>
 
       {!isOwner ? (
         <Text style={styles.ownerOnlyText}>
-          ℹ️ {t('privacy.ownerOnlyDeleteNotice', { email: partnerEmail || 'the owner' })}
+          {t('privacy.ownerOnlyDeleteNotice', { email: partnerEmail || 'the owner' })}
         </Text>
       ) : (
         <>

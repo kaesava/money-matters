@@ -45,7 +45,7 @@ export function LeaveHouseholdCard({ onLeft }: LeaveHouseholdCardProps) {
 
   return (
     <View style={styles.amberBox}>
-      <Text style={styles.amberTitle}>🚪 {t('privacy.leaveHouseholdTitle')}</Text>
+      <Text style={styles.amberTitle}>{t('privacy.leaveHouseholdTitle')}</Text>
       <Text style={styles.amberSubtitle}>
         Type LEAVE HOUSEHOLD below to confirm leaving this household budget.
       </Text>

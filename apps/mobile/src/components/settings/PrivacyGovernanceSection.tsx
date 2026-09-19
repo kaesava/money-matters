@@ -70,7 +70,7 @@ export function PrivacyGovernanceSection() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>🛡️ {t('privacy.title')}</Text>
+      <Text style={styles.cardTitle}>{t('privacy.title')}</Text>
       <Text style={styles.cardSubtitle}>{t('privacy.aussiePrivacyDetail')}</Text>
 
       <TouchableOpacity
@@ -85,7 +85,7 @@ export function PrivacyGovernanceSection() {
             <Text style={styles.exportBtnText}>Creating Zipped Archive...</Text>
           </View>
         ) : (
-          <Text style={styles.exportBtnText}>📦 {t('privacy.exportButton')}</Text>
+          <Text style={styles.exportBtnText}>{t('privacy.exportButton')}</Text>
         )}
       </TouchableOpacity>
 

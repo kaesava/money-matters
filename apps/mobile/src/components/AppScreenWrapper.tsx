@@ -11,6 +11,7 @@ export interface AppScreenWrapperProps extends Omit<MobileScreenWrapperProps, 'c
 
 export function AppScreenWrapper({
   title,
+  infoTooltip,
   user: userProp,
   showProfile = true,
   showBack = false,
@@ -55,6 +56,7 @@ export function AppScreenWrapper({
     <>
       <MobileScreenWrapper
         title={title}
+        infoTooltip={infoTooltip}
         user={user}
         showProfile={showProfile}
         showBack={showBack}

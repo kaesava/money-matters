@@ -81,8 +81,15 @@ export default function PoolsScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('nav.myMoney') || 'Pools'}
+      title={t('nav.myMoney', { defaultValue: 'Pools' })}
       scrollable={false}
+      infoTooltip={{
+        title: t('tooltips.categories.title', { defaultValue: 'About Your Virtual Pools' }),
+        content: t('tooltips.categories.content', {
+          defaultValue:
+            'Manage your spending pools and savings goals. The 5-Step Waterfall automatically fills your Bills pool and savings upfront on payday.',
+        }),
+      }}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -167,7 +174,7 @@ export default function PoolsScreen() {
             {/* Everyday Pool Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>☕ {t('categories.everydaySpending') || 'Everyday Spending'}</Text>
+                <Text style={styles.groupTitle}>{t('categories.everydaySpending', { defaultValue: 'Everyday Spending' })}</Text>
                 <Text style={styles.groupCount}>{everydayPools.length}</Text>
               </View>
 
@@ -219,7 +226,7 @@ export default function PoolsScreen() {
             {/* Regular Bills Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>📅 {t('categories.regularBills') || 'Regular Bills & Commitments'}</Text>
+                <Text style={styles.groupTitle}>{t('categories.regularBills', { defaultValue: 'Regular Bills & Commitments' })}</Text>
                 <Text style={styles.groupCount}>{billsPools.length}</Text>
               </View>
 
@@ -264,7 +271,7 @@ export default function PoolsScreen() {
             {/* Savings Goals Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>🎯 {t('categories.savingsGoals') || 'Savings Goals'}</Text>
+                <Text style={styles.groupTitle}>{t('categories.savingsGoals', { defaultValue: 'Savings Goals' })}</Text>
                 <Text style={styles.groupCount}>{goalPools.length}</Text>
               </View>
 
