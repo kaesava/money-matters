@@ -8,13 +8,14 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
-  MobileScreenWrapper,
   BankProviderBadge,
+  SkeletonCard,
 } from '@money-matters/ui/mobile';
+import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -79,12 +80,9 @@ export default function PoolsScreen() {
   const goalPools = pools.filter((p) => p.poolType === 'GOAL');
 
   return (
-    <MobileScreenWrapper
+    <AppScreenWrapper
       title={t('nav.myMoney') || 'Pools'}
-      user={session?.user}
-      onNavigateHome={() => router.push('/(app)/home')}
-      onNavigateCategories={() => router.push('/(app)/categories')}
-      onNavigateSettings={() => router.push('/(app)/settings')}
+      scrollable={false}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -100,7 +98,7 @@ export default function PoolsScreen() {
         {/* Top Header Row with Add Pool & Move Money */}
         <View style={styles.topActionsRow}>
           <TouchableOpacity
-            onPress={() => router.push({ pathname: '/(setup)/income' as any, params: { mode: 'rerun' } })}
+            onPress={() => router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href)}
             style={styles.recalibrateBtn}
           >
             <Feather name="settings" size={14} color="#64748B" />
@@ -112,7 +110,7 @@ export default function PoolsScreen() {
             style={styles.moveMoneyBtn}
           >
             <Feather name="repeat" size={14} color="#2563eb" />
-            <Text style={styles.moveMoneyText}>Move Money</Text>
+            <Text style={styles.moveMoneyText}>{t('dashboard.moveMoney') || 'Move Money'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -120,7 +118,7 @@ export default function PoolsScreen() {
             style={styles.addPoolBtn}
           >
             <Feather name="plus" size={14} color="#FFFFFF" />
-            <Text style={styles.addPoolText}>Add Pool</Text>
+            <Text style={styles.addPoolText}>{t('categories.addPool') || 'Add Pool'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -130,8 +128,8 @@ export default function PoolsScreen() {
             <Feather name="clock" size={14} color="#2563eb" />
             <Text style={styles.timelineTitle}>
               {selectedHorizon === 0
-                ? 'Current Real-Time Balances'
-                : `Projected Balances (+${selectedHorizon} Months)`}
+                ? (t('categories.currentRealTimeBalances') || 'Current Real-Time Balances')
+                : (t('categories.projectedBalances', { months: selectedHorizon }) || `Projected Balances (+${selectedHorizon} Months)`)}
             </Text>
           </View>
 
@@ -155,7 +153,7 @@ export default function PoolsScreen() {
                     selectedHorizon === m && styles.horizonTextActive,
                   ]}
                 >
-                  {m === 0 ? 'Today' : `+${m}M`}
+                  {m === 0 ? (t('common.today') || 'Today') : `+${m}M`}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -163,13 +161,13 @@ export default function PoolsScreen() {
         </View>
 
         {poolsQuery.isLoading ? (
-          <ActivityIndicator size="large" color="#2563eb" style={{ marginVertical: 30 }} />
+          <SkeletonCard count={3} />
         ) : (
           <View style={styles.sectionsContainer}>
             {/* Everyday Pool Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>☕ Everyday Spending</Text>
+                <Text style={styles.groupTitle}>☕ {t('categories.everydaySpending') || 'Everyday Spending'}</Text>
                 <Text style={styles.groupCount}>{everydayPools.length}</Text>
               </View>
 
@@ -221,7 +219,7 @@ export default function PoolsScreen() {
             {/* Regular Bills Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>📅 Regular Bills & Commitments</Text>
+                <Text style={styles.groupTitle}>📅 {t('categories.regularBills') || 'Regular Bills & Commitments'}</Text>
                 <Text style={styles.groupCount}>{billsPools.length}</Text>
               </View>
 
@@ -266,7 +264,7 @@ export default function PoolsScreen() {
             {/* Savings Goals Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>🎯 Savings Goals</Text>
+                <Text style={styles.groupTitle}>🎯 {t('categories.savingsGoals') || 'Savings Goals'}</Text>
                 <Text style={styles.groupCount}>{goalPools.length}</Text>
               </View>
 
@@ -333,7 +331,7 @@ export default function PoolsScreen() {
         onClose={() => setMoveMoneyVisible(false)}
         onSuccess={() => poolsQuery.refetch()}
       />
-    </MobileScreenWrapper>
+    </AppScreenWrapper>
   );
 }
 

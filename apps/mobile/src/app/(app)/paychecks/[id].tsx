@@ -7,16 +7,14 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileScreenWrapper, useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 import { authClient } from '../../../lib/auth';
 import { formatAUD, formatDate } from '../../../lib/format';
-import { showMobileConfirm } from '@money-matters/ui/mobile';
 import { MobileBankTransferRollupCard } from '../../../components/paychecks/MobileBankTransferRollupCard';
 import { triggerHaptic } from '../../../lib/haptics';
 
@@ -28,22 +26,17 @@ interface AllocationLineItem {
 }
 
 function extractLines(engineResult: unknown): AllocationLineItem[] {
-  if (!engineResult) return [];
-  let raw: Array<Record<string, unknown>> = [];
-  if (Array.isArray(engineResult)) {
-    raw = engineResult;
-  } else if (
-    typeof engineResult === 'object' &&
-    engineResult !== null &&
-    'lines' in engineResult
-  ) {
-    raw = Array.isArray((engineResult as { lines?: unknown[] }).lines)
-      ? (engineResult as { lines: Array<Record<string, unknown>> }).lines
-      : [];
-  }
-  return raw.map((item) => ({
-    bucketId: String(item.bucketId || item.poolId || ''),
-    bucketName: String(item.bucketName || item.poolName || 'Unknown Pool'),
+  const res = engineResult as {
+    lines?: Array<{
+      bucketId?: string;
+      bucketName?: string;
+      proposedAmount?: number | string;
+      reasoning?: string;
+    }>;
+  };
+  return (res?.lines || []).map((item) => ({
+    bucketId: String(item.bucketId || ''),
+    bucketName: String(item.bucketName || 'Pool'),
     proposedAmount:
       typeof item.proposedAmount === 'number'
         ? item.proposedAmount
@@ -53,6 +46,7 @@ function extractLines(engineResult: unknown): AllocationLineItem[] {
 }
 
 export default function IncomeSplitStudioScreen() {
+  const toast = useMobileToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { data: session } = authClient.useSession();
@@ -70,6 +64,7 @@ export default function IncomeSplitStudioScreen() {
   );
 
   const confirmPaydayMut = trpc.confirmPayday.useMutation();
+  const overrideEventMut = trpc.overrideEvent.useMutation();
   const saveBulkAllocationsMut = trpc.saveBulkAllocations.useMutation();
 
   const [actualAmount, setActualAmount] = useState('0.00');
@@ -81,34 +76,72 @@ export default function IncomeSplitStudioScreen() {
   const [isConfirmedPlan, setIsConfirmedPlan] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const handleRecalculate = () => {
+    showMobileConfirm({
+      title: t('paydayDrawer.recalculateConfirmTitle', { defaultValue: 'Reset Plan?' }),
+      message: t('paydayDrawer.recalculateConfirmDescription', { defaultValue: 'Are you sure you want to recalculate suggested allocations from the 5-step waterfall? Any custom edits will be replaced.' }),
+      confirmText: t('common.confirm', { defaultValue: 'Reset' }),
+      cancelText: t('common.cancel', { defaultValue: 'Cancel' }),
+      onConfirm: async () => {
+        try {
+          setSubmitting(true);
+          await overrideEventMut.mutateAsync({
+            eventId: id!,
+            eventType: 'INCOME',
+            name: sourceName,
+            actualAmount: parseFloat(actualAmount).toFixed(2),
+            actualDate: expectedDate,
+            expectedAmount: parseFloat(actualAmount).toFixed(2),
+            expectedDate: expectedDate,
+          });
+          await utils.previewPayday.invalidate({ incomeEventId: id! });
+          toast.success(t('paydayDrawer.recalculateSuccess', { defaultValue: 'Recalculated suggested allocation.' }));
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Failed to recalculate.');
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
+  };
+
   useEffect(() => {
     if (previewQuery.data) {
       const evt = previewQuery.data.incomeEvent;
-      setSourceName(evt.name || 'Paycheck');
-      const amt = evt.actualAmount || evt.expectedAmount;
-      setActualAmount(amt);
-      setExpectedDate(evt.expectedDate);
+      if (evt) {
+        setSourceName(evt.name || 'Paycheck');
+        const amt = evt.actualAmount || evt.expectedAmount || '0.00';
+        setActualAmount(amt);
+        setExpectedDate(evt.expectedDate || '');
+      }
 
       const rawLines = extractLines(previewQuery.data.engineResult);
-      const initMap: Record<string, string> = {};
-      const initReasoningMap: Record<string, string> = {};
-      rawLines.forEach((l) => {
-        initMap[l.bucketId] = l.proposedAmount.toFixed(2);
-        initReasoningMap[l.bucketId] = l.reasoning;
+      const initialMap: Record<string, string> = {};
+      const initialReasoning: Record<string, string> = {};
+      rawLines.forEach((line) => {
+        initialMap[line.bucketId] = line.proposedAmount.toFixed(2);
+        if (line.reasoning) initialReasoning[line.bucketId] = line.reasoning;
       });
-      setLinesMap(initMap);
-      setReasoningMap(initReasoningMap);
+      setLinesMap(initialMap);
+      setReasoningMap(initialReasoning);
 
-      const engineResult = previewQuery.data.engineResult as unknown as {
-        isCustomPlan?: boolean;
-        isConfirmedPlan?: boolean;
-      };
+      const engineResult = previewQuery.data.engineResult as unknown as { isCustomPlan?: boolean; isConfirmedPlan?: boolean };
       setIsSavedPlan(engineResult?.isCustomPlan ?? false);
       setIsConfirmedPlan(engineResult?.isConfirmedPlan ?? false);
     }
   }, [previewQuery.data]);
 
   const totalIncome = parseFloat(actualAmount) || 0;
+  const totalAllocated = useMemo(() => {
+    return Object.values(linesMap).reduce(
+      (sum, val) => sum + (parseFloat(val) || 0),
+      0
+    );
+  }, [linesMap]);
+
+  const unallocatedAmount = Math.round((totalIncome - totalAllocated) * 100) / 100;
+  const isDeficit = unallocatedAmount < 0;
+  const deficitAmount = Math.abs(unallocatedAmount);
 
   const sweepPool = useMemo(() => {
     return (
@@ -118,21 +151,7 @@ export default function IncomeSplitStudioScreen() {
     );
   }, [pools]);
 
-  const nonSweepAllocatedSum = useMemo(() => {
-    let sum = 0;
-    for (const [poolId, valStr] of Object.entries(linesMap)) {
-      if (sweepPool && poolId === sweepPool.id) continue;
-      const num = parseFloat(valStr);
-      if (!isNaN(num) && num > 0) {
-        sum += num;
-      }
-    }
-    return Math.round(sum * 100) / 100;
-  }, [linesMap, sweepPool]);
-
-  const sweepPoolRemainder = Math.round((totalIncome - nonSweepAllocatedSum) * 100) / 100;
-  const isDeficit = nonSweepAllocatedSum > totalIncome;
-  const deficitAmount = Math.max(0, nonSweepAllocatedSum - totalIncome);
+  const sweepPoolRemainder = Math.max(0, unallocatedAmount);
 
   const handleAmountChange = (poolId: string, val: string) => {
     if (val === '' || /^\d{0,12}(\.\d{0,2})?$/.test(val)) {
@@ -153,10 +172,10 @@ export default function IncomeSplitStudioScreen() {
     }
   };
 
-  const handleRecalculate = () => {
+  const handleResetToEngine = () => {
     showMobileConfirm({
-      title: t('paydayDrawer.recalculateConfirmTitle', { defaultValue: 'Reset to Suggested Plan?' }),
-      message: t('paydayDrawer.recalculateConfirmDescription', {
+      title: t('payday.resetConfirmTitle', { defaultValue: 'Reset Allocations?' }),
+      message: t('payday.resetConfirmMessage', {
         defaultValue: 'Your custom split will be discarded and reset to the suggested allocation. Continue?',
       }),
       confirmText: t('common.reset', { defaultValue: 'Reset' }),
@@ -171,9 +190,9 @@ export default function IncomeSplitStudioScreen() {
             setLinesMap(initialMap);
           }
         } catch (err) {
-          Alert.alert(
-            t('common.error'),
-            err instanceof Error ? err.message : 'Failed to recalculate'
+          toast.error(
+            err instanceof Error ? err.message : 'Failed to recalculate',
+            t('common.error')
           );
         }
       },
@@ -197,11 +216,11 @@ export default function IncomeSplitStudioScreen() {
 
       setIsSavedPlan(true);
       utils.listAllAllocationPlans.invalidate();
-      Alert.alert('Draft Saved', 'Your custom allocation draft has been saved.');
+      toast.success('Your custom allocation draft has been saved.', 'Draft Saved');
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
-        err instanceof Error ? err.message : 'Failed to save draft'
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to save draft',
+        t('common.error')
       );
     } finally {
       setSubmitting(false);
@@ -210,9 +229,9 @@ export default function IncomeSplitStudioScreen() {
 
   const handleConfirmSplit = async () => {
     if (isDeficit) {
-      Alert.alert(
-        'Over-allocated Deficit',
-        `Allocations exceed income by ${formatAUD(deficitAmount)}. Please adjust amounts before confirming.`
+      toast.error(
+        `Allocations exceed income by ${formatAUD(deficitAmount)}. Please adjust amounts before confirming.`,
+        'Over-allocated Deficit'
       );
       return;
     }
@@ -242,9 +261,9 @@ export default function IncomeSplitStudioScreen() {
         params: { incomeEventId: id },
       } as never);
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
-        err instanceof Error ? err.message : 'Failed to confirm income split'
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to confirm income split',
+        t('common.error')
       );
     } finally {
       setSubmitting(false);

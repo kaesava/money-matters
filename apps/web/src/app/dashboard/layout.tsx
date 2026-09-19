@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { t, setLanguage } from "@money-matters/i18n";
 import { authClient } from "../../lib/auth";
@@ -26,6 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isExchanging, setIsExchanging] = useState(false);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, { enabled: !!session?.user });
+  const userProfileQuery = trpc.getUserProfile.useQuery(undefined, { enabled: !!session?.user });
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: !!session?.user });
   const tenantsQuery = trpc.listUserTenants.useQuery(undefined, { enabled: !!session?.user });
   const { status: subStatus, isLoading: isSubLoading } = useSubscriptionStatus();
@@ -121,6 +123,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         categoriesQuery.refetch(),
         tenantsQuery.refetch(),
         userPrefQuery.refetch(),
+        userProfileQuery.refetch(),
         utils.invalidate(),
       ]);
     } catch (_e) {
@@ -223,6 +226,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-64";
   const isDistractionFree = pathname.startsWith("/dashboard/income-split");
 
+  const avatarUrl = userProfileQuery.data?.avatarUrl || session?.user?.image || null;
+
   const renderSidebar = () => (
     <SidebarContent
       sidebarCollapsed={sidebarCollapsed}
@@ -231,6 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       pathname={pathname}
       setMobileMenuOpen={setMobileMenuOpen}
       sessionUser={session?.user}
+      avatarUrl={avatarUrl}
       initials={initials}
       onNavigateToSettings={() => router.push("/dashboard/settings")}
       onSignOut={handleSignOut}
@@ -313,12 +319,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </span>
 
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black"
-                  style={{ backgroundColor: "#2563eb" }}
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard/settings")}
+                  className="cursor-pointer rounded-full overflow-hidden"
+                  title={t("settings.profile")}
+                  aria-label={t("settings.profile")}
                 >
-                  {initials}
-                </div>
+                  {avatarUrl ? (
+                    <Image
+                      unoptimized
+                      src={avatarUrl}
+                      alt={session?.user?.name || "User"}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover ring-1 ring-white/20"
+                    />
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black ring-1 ring-white/20"
+                      style={{ backgroundColor: "#2563eb" }}
+                    >
+                      {initials}
+                    </div>
+                  )}
+                </button>
               </div>
             </header>
           )}

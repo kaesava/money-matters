@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  MobileDatePickerField,
+  AmountInput,
+  useMobileToast,
+  FormErrorBanner,
+} from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 import { formatIsoDate } from '../lib/format';
 
@@ -20,26 +28,33 @@ interface EventOverrideModalProps {
 }
 
 export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }: EventOverrideModalProps) {
+  const toast = useMobileToast();
   const [expectedDate, setExpectedDate] = useState('');
   const [expectedAmount, setExpectedAmount] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (eventToEdit) {
       setExpectedDate(formatIsoDate(eventToEdit.expectedDate));
       setExpectedAmount(eventToEdit.expectedAmount);
+      setErrorMsg('');
     }
   }, [eventToEdit]);
 
   const overrideEventMut = trpc.overrideEvent.useMutation({
     onSuccess: () => {
+      toast.success(t('common.saveSuccess', { defaultValue: 'Override saved successfully.' }));
       onSuccess?.();
       onClose();
+    },
+    onError: (err) => {
+      setErrorMsg(err.message);
     },
   });
 
   const handleSubmit = async () => {
     if (!eventToEdit || !expectedDate || !expectedAmount || parseFloat(expectedAmount) <= 0) {
-      Alert.alert('Validation Error', 'Please enter a valid date (YYYY-MM-DD) and positive amount.');
+      setErrorMsg(t('drawers.quickExpense.invalidAmount', { defaultValue: 'Please enter a valid date and positive amount.' }));
       return;
     }
 
@@ -58,31 +73,30 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
     <MobileModalDialog
       visible={visible && !!eventToEdit}
       onClose={onClose}
-      title="Override Event"
+      title={t('modals.eventOverride.title', { defaultValue: 'Override Event' })}
       subtitle={eventToEdit ? `Edit upcoming event: ${eventToEdit.name}` : ''}
     >
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Expected Date (YYYY-MM-DD)</Text>
-        <TextInput
-          value={expectedDate}
-          onChangeText={setExpectedDate}
-          placeholder="2026-08-01"
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
-        />
-      </View>
+      <FormErrorBanner message={errorMsg} />
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Expected Amount ($)</Text>
-        <TextInput
-          value={expectedAmount}
-          onChangeText={setExpectedAmount}
-          placeholder="0.00"
-          keyboardType="numeric"
-          placeholderTextColor={D.colors.textMuted}
-          style={styles.input}
-        />
-      </View>
+      <MobileDatePickerField
+        label={t('common.date', { defaultValue: 'Expected Date' })}
+        value={expectedDate}
+        onChange={(val) => {
+          setExpectedDate(val);
+          if (errorMsg) setErrorMsg('');
+        }}
+        required
+      />
+
+      <AmountInput
+        label={t('common.amount', { defaultValue: 'Expected Amount' })}
+        required
+        value={expectedAmount}
+        onChangeText={(val) => {
+          setExpectedAmount(val);
+          if (errorMsg) setErrorMsg('');
+        }}
+      />
 
       <TouchableOpacity
         onPress={handleSubmit}
@@ -90,7 +104,11 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
         style={styles.submitBtn}
         activeOpacity={0.8}
       >
-        {isPending ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Save Event Override</Text>}
+        {isPending ? (
+          <ActivityIndicator color="#FFF" />
+        ) : (
+          <Text style={styles.submitBtnText}>{t('common.save', { defaultValue: 'Save Event Override' })}</Text>
+        )}
       </TouchableOpacity>
     </MobileModalDialog>
   );
@@ -98,22 +116,12 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
 
 const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
-  formGroup: { gap: 6, marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: '700', color: D.colors.textPrimary },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: D.radius.md,
-    padding: 12,
-    fontSize: 15,
-    color: D.colors.textPrimary,
-  },
   submitBtn: {
-    backgroundColor: '#00B4A6',
+    backgroundColor: '#2563eb',
     paddingVertical: 14,
     borderRadius: D.radius.md,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 12,
   },
-  submitBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
+  submitBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
 });

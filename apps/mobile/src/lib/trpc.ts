@@ -24,7 +24,32 @@ export function setActiveTenantId(tenantId: string | null) {
   }
 }
 
-const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] ?? "https://kesh-imac.tail09ef18.ts.net";
+export function getActiveTenantId(): string | null {
+  return activeTenantId;
+}
+
+export async function switchActiveTenant(
+  tenantId: string,
+  queryClientOrUtils?: {
+    invalidateQueries?: () => Promise<unknown> | void;
+    resetQueries?: () => Promise<unknown> | void;
+    invalidate?: () => Promise<unknown> | void;
+  }
+) {
+  setActiveTenantId(tenantId);
+  if (queryClientOrUtils) {
+    if (typeof queryClientOrUtils.resetQueries === 'function') {
+      await queryClientOrUtils.resetQueries();
+    }
+    if (typeof queryClientOrUtils.invalidate === 'function') {
+      await queryClientOrUtils.invalidate();
+    } else if (typeof queryClientOrUtils.invalidateQueries === 'function') {
+      await queryClientOrUtils.invalidateQueries();
+    }
+  }
+}
+
+const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] ?? "https://api.moneymatters.kaesava.au";
 
 async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie: string | null }> {
   let token: string | null = null;

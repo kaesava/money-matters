@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import JSZip from 'jszip';
+import { useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc, setActiveSessionToken } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -14,6 +15,7 @@ import { LeaveHouseholdCard } from './LeaveHouseholdCard';
 
 export function PrivacyGovernanceSection() {
   const router = useRouter();
+  const toast = useMobileToast();
   const [isExporting, setIsExporting] = useState(false);
 
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
@@ -33,8 +35,7 @@ export function PrivacyGovernanceSection() {
         });
 
         const base64 = await zip.generateAsync({ type: 'base64' });
-        const dateStr = formatIsoDate(new Date());
-        const fileUri = `${FileSystem.cacheDirectory}money-matters-backup-${dateStr}.zip`;
+        const fileUri = `${FileSystem.documentDirectory}MoneyMatters-Export-${formatIsoDate(new Date())}.zip`;
 
         await FileSystem.writeAsStringAsync(fileUri, base64, {
           encoding: FileSystem.EncodingType.Base64,
@@ -47,13 +48,13 @@ export function PrivacyGovernanceSection() {
             UTI: 'public.zip-archive',
           });
         } else {
-          Alert.alert(t('privacy.exportDataTitle'), `Backup saved to ${fileUri}`);
+          toast.info(`Backup saved to ${fileUri}`, t('privacy.exportDataTitle'));
         }
       } else {
-        Alert.alert(t('common.error'), 'No export data returned.');
+        toast.error('No export data returned.', t('common.error'));
       }
     } catch (err) {
-      Alert.alert('Export Failed', err instanceof Error ? err.message : 'Could not export data.');
+      toast.error(err instanceof Error ? err.message : 'Could not export data.', 'Export Failed');
     } finally {
       setIsExporting(false);
     }

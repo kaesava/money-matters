@@ -9,21 +9,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileLogo } from "@money-matters/ui/mobile";
+import { DESIGN_TOKENS, MobileLogo, useMobileToast } from "@money-matters/ui/mobile";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
 import { registerPushNotificationsAsync } from "../../lib/push";
 
-const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://kesh-imac.tail09ef18.ts.net";
+const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://api.moneymatters.kaesava.au";
 
 export default function SignInScreen() {
+  const toast = useMobileToast();
   const router = useRouter();
   const posthog = usePostHog();
   const [email, setEmail] = useState("");
@@ -41,9 +41,9 @@ export default function SignInScreen() {
       });
 
       if (result.error) {
-        Alert.alert(
-          t("auth.signInErrorTitle"),
-          result.error.message ?? t("auth.signInErrorGeneric")
+        toast.error(
+          result.error.message ?? t("auth.signInErrorGeneric"),
+          t("auth.signInErrorTitle")
         );
         return;
       }
@@ -86,7 +86,7 @@ export default function SignInScreen() {
       // Navigate to main app; the index route will redirect based on household status.
       router.replace("/(app)/home");
     } catch (err) {
-      Alert.alert(t("auth.signInErrorTitle"), t("auth.signInErrorGeneric"));
+      toast.error(t("auth.signInErrorGeneric"), t("auth.signInErrorTitle"));
     } finally {
       setLoading(false);
     }
@@ -112,9 +112,9 @@ export default function SignInScreen() {
       posthog.capture('user_signed_in', { method: 'google' });
       router.replace("/(app)/home");
     } catch (err) {
-      Alert.alert(
-        t("auth.signInErrorTitle", { defaultValue: "Sign In Error" }),
-        err instanceof Error ? err.message : t("auth.signInErrorGeneric", { defaultValue: "Failed to sign in." })
+      toast.error(
+        err instanceof Error ? err.message : t("auth.signInErrorGeneric", { defaultValue: "Failed to sign in." }),
+        t("auth.signInErrorTitle", { defaultValue: "Sign In Error" })
       );
     } finally {
       setLoading(false);
@@ -123,9 +123,9 @@ export default function SignInScreen() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert(
-        t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
-        t("auth.enterEmailPrompt", { defaultValue: "Please enter your email address first." })
+      toast.error(
+        t("auth.enterEmailPrompt", { defaultValue: "Please enter your email address first." }),
+        t("auth.forgotPassword", { defaultValue: "Forgot password?" })
       );
       return;
     }
@@ -138,21 +138,21 @@ export default function SignInScreen() {
       });
 
       if (res.error) {
-        Alert.alert(
-          t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
-          res.error.message ?? t("auth.forgotPasswordError", { defaultValue: "Could not request password reset." })
+        toast.error(
+          res.error.message ?? t("auth.forgotPasswordError", { defaultValue: "Could not request password reset." }),
+          t("auth.forgotPassword", { defaultValue: "Forgot password?" })
         );
         return;
       }
 
-      Alert.alert(
-        t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
-        t("auth.forgotPasswordSuccess", { defaultValue: "A password reset link has been sent to your email." })
+      toast.success(
+        t("auth.forgotPasswordSuccess", { defaultValue: "A password reset link has been sent to your email." }),
+        t("auth.forgotPassword", { defaultValue: "Forgot password?" })
       );
     } catch (err) {
-      Alert.alert(
-        t("auth.forgotPassword", { defaultValue: "Forgot password?" }),
-        err instanceof Error ? err.message : String(err)
+      toast.error(
+        err instanceof Error ? err.message : String(err),
+        t("auth.forgotPassword", { defaultValue: "Forgot password?" })
       );
     } finally {
       setLoading(false);

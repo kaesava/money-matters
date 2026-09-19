@@ -3,6 +3,7 @@ import { View as RNView, Text as RNText, TouchableOpacity as RNTouchableOpacity,
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '../../tokens';
 import { useRecurrenceBuilder } from '../../hooks/useRecurrenceBuilder';
+import { DatePickerField } from './DatePickerField';
 
 interface RecurrenceBuilderProps {
   builder: ReturnType<typeof useRecurrenceBuilder>;
@@ -84,28 +85,19 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
         </>
       )}
 
-      <RNView style={styles.formGroup}>
-        <RNText style={styles.label}>{isRecurring ? "First Payment / Due Date" : "Event Date"} (YYYY-MM-DD)</RNText>
-        <RNTextInput
-          value={startDate}
-          onChangeText={setStartDate}
-          placeholder="2026-08-01"
-          placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-          style={styles.input}
-        />
-      </RNView>
+      <DatePickerField
+        label={isRecurring ? "First Payment / Due Date" : "Event Date"}
+        value={startDate}
+        onChange={setStartDate}
+        required
+      />
 
       {isRecurring && (
-        <RNView style={styles.formGroup}>
-          <RNText style={styles.label}>End Date (Optional, YYYY-MM-DD)</RNText>
-          <RNTextInput
-            value={endDate || ""}
-            onChangeText={(val) => setEndDate(val || null)}
-            placeholder="No end date"
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            style={styles.input}
-          />
-        </RNView>
+        <DatePickerField
+          label="End Date (Optional)"
+          value={endDate || ""}
+          onChange={(val) => setEndDate(val || null)}
+        />
       )}
     </RNView>
   );

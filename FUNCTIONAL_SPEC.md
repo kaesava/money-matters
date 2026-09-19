@@ -322,12 +322,38 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - **Inconspicuous App Version Footer**: An understated version footer (`Money Matters v1.0.0-beta.1 (#42) • beta channel`) displayed at the bottom of the Settings view on Web and Mobile. Tapping/clicking copies complete environment diagnostics JSON to the clipboard for support troubleshooting.
 
 ### 6.1 Native Android Mobile App Experience (`apps/mobile`) — 100% Feature Parity
+- **Bottom Navigation (4 Primary Tabs)**:
+  - **1. Home (`/(app)/home`)**: High-level financial cockpit with Hero card, linked bank balances, bento pool cards, and attention queue.
+  - **2. Schedules (`/(app)/paychecks`)**: Renamed from "Income & Expenses", houses the 12-Month Rolling Cash-Flow Matrix Plan (`MobileMatrixPlanTab`) and recurring Income/Expense schedules.
+  - **3. Upcoming (`/(app)/upcoming`)**: Dedicated tab taking users directly into the chronological events timeline (`/(app)/paychecks?tab=events`), allowing instant access to pending paychecks and scheduled bills without extra taps.
+  - **4. Pools (`/(app)/categories`)**: Visual pool and category management with forward projection scrubber and 1-click balance alignment.
+  - Dynamic edge-to-edge padding via `useSafeAreaInsets` ensures the tab bar floats cleanly above Android's system gesture bar.
+- **Header Avatar & Profile Menu (`ScreenHeader` & `ScreenMenuModal`)**:
+  - Displays the user's avatar image if uploaded, or a clean person icon / initials avatar.
+  - Tapping opens the financial profile menu:
+    - User Identity Card: Avatar, User Name, Email, Active Household Badge.
+    - **Change Household**: Displayed only if the user belongs to >1 household. Opens `MobileTenantSwitcherModal`, marks the active household with `✓ Active`, and provides 1-tap switching persisted to `SecureStore`.
+    - **Bank Accounts**: Direct link to `/(app)/settings/bank-accounts`.
+    - **History**: Direct link to `/(app)/transactions`.
+    - **Settings**: Direct link to `/(app)/settings`.
+    - **Sign Out**: Guarded by styled `<MobileConfirmDialog />`.
+- **Serene Finance Date Picker (`<DatePickerField />` & `<CalendarModal />`)**:
+  - Standardized across all mobile modals and screens (`QuickExpenseModal`, `CreateIncomeEventModal`, `EventOverrideModal`, `RecurrenceBuilder`, `settings/income.tsx`).
+  - Displays localized AEST/en-AU formatted date with calendar icon.
+  - Quick-pick shortcut chips: `[ Today ]`, `[ Yesterday ]`, `[ Tomorrow ]` with active pill indicators.
+  - Custom bottom-sheet calendar modal with month/year traversal and circular date selection adhering to Serene Finance tokens.
+- **Settings Screen Reorganization (`/(app)/settings`)**:
+  - Modular 4-tab segmented control eliminating vertical scroll fatigue:
+    1. **🏡 Household**: Active Household Card with switch button, Household Details form, Partner & Member invites, and Quick Hub links.
+    2. **⚙️ Preferences**: User Profile, Presentation Preferences (Locale, Language, Timezone, Icons), Biometric App Lock, and Push Notifications.
+    3. **💳 Plan**: Active Subscription status, trial countdown, feature entitlements, and upgrade link.
+    4. **🛡️ Privacy**: APPs & RLS compliance, 12-table Zipped CSV Export, Data Erasure request, In-App Diagnostics/Feedback, and guarded Danger Zone.
 - **Home & Dashboard (`/(app)/home`)**:
   - Hero card displaying household name, AEST formatted current date, and primary action bar.
   - Linked Bank Account summary strip with provider badges (`BankProviderBadge`) and last known balances.
   - Bento pool cards: Everyday Spending (dark navy with pacing meter), Bills Pool (shortfall alerts & 14-day coverage), and Goal progress strip (`GoalsProgressStrip`).
   - Action Queue / Attention Items list (`AttentionItemsList`) with overdue/due soon alerts and deep links.
-  - Quick Action FAB & `QuickExpenseModal` (3-way segmented control: Expense, Income, Transfer with quick-pick chips).
+  - Quick Action FAB & `QuickExpenseModal` with `<MobileDatePickerField />` and `<MobileSegmentedTabs />`.
   - Pull-to-refresh (`RefreshControl`) updating all core tenant, pool, category, and event queries.
   - Active Trial banner with remaining trial countdown and upgrade link.
 - **Paychecks & 12-Month Matrix Hub (`/(app)/paychecks`)**:
@@ -352,8 +378,8 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - **Tab 1: Transactions Ledger**: Paired transfer detection (`Source ➔ Dest`), search, multi-filter dropdowns, pagination bar, and CSV export via native `Share.share`.
   - **Tab 2: Payday Allocations**: Historical waterfall allocation runs with itemized 5-step breakdown modal (`MobilePaydayAllocationDetailModal`).
   - `(app)/settings/history.tsx` seamlessly redirects to `/(app)/transactions?tab=payday-allocations` (MECE compliance).
-- **Settings & Household Governance (`/(app)/settings`)**:
-  - Modular sections: Profile & Avatar (`MobileProfileSection`), Household Details & Currency (`HouseholdDetailsSection`), Partner Invites (`HouseholdPartnerInviteSection`), Bank Accounts (`settings/bank-accounts`), Archived Data (`settings/archived`), In-App Feedback (`FeedbackFormModal`), and Household Danger Zone (`HouseholdDangerZoneSection`).
+- **100% Elimination of Native `Alert.alert`**:
+  - All native `Alert.alert(...)` modals eradicated monorepo-wide in favor of `showMobileConfirm(...)`, `useMobileToast()`, `<FormFieldError />`, and `<FormErrorBanner />`.
 - **Biometric App Lock & Inactivity Security**:
   - Optional Face ID / Touch ID / Fingerprint / Device PIN app lock with toggle switch in Profile Settings.
   - Automatically engages a secure authentication overlay (`BiometricLockOverlay`) when the app is backgrounded for 2 or more minutes.

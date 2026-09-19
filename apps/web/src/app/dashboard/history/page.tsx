@@ -301,19 +301,17 @@ function TransactionsPageContent() {
 
               <div className="w-full sm:w-56 text-xs">
                 <PoolPicker
-                  pools={[
-                    { id: "ALL", name: "All Pools" },
-                    ...pools.map((p) => ({
-                      id: p.id,
-                      name: p.name,
-                      poolType: p.poolType,
-                      currentBalance: p.currentBalance,
-                      isPrivate: p.isPrivate ?? undefined,
-                    })),
-                  ]}
+                  pools={pools.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    poolType: p.poolType,
+                    currentBalance: p.currentBalance,
+                    isPrivate: p.isPrivate ?? undefined,
+                  }))}
+                  allowAllOption={true}
                   selectedPoolId={selectedPool || "ALL"}
                   allowCategorySelection={false}
-                  placeholder="All Pools"
+                  placeholder={t("common.allPools")}
                   showBalance={false}
                   onChange={(sel) => setSelectedPool(sel.poolId || "ALL")}
                 />

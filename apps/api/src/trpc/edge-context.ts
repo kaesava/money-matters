@@ -2,7 +2,7 @@ import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 import { verifyJwt, upsertUserFromJwt, logger, createDbClient } from '@money-matters/core';
 import { db, tenantUsers, tenants } from '@money-matters/db';
 import { createTenantHandler } from '@money-matters/capability-tenant';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, isNull, sql, desc, asc } from 'drizzle-orm';
 import { inngest } from '../inngest/client.js';
 
 export const MONEY_MATTERS_APP_ID = '01908bde-34bb-7b19-a178-574211bc93aa';
@@ -188,7 +188,8 @@ export async function resolveTenantMembership(
         eq(tenantUsers.inviteStatus, 'ACCEPTED'),
         isNull(tenantUsers.archivedAt)
       )
-    );
+    )
+    .orderBy(desc(tenantUsers.role), asc(tenantUsers.createdAt));
 
   const matchedMembership = requestedTenantId
     ? userMemberships.find((m) => m.tenantId === requestedTenantId)

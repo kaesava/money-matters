@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs, useSegments, useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DESIGN_TOKENS, useMobileToast } from '@money-matters/ui/mobile';
 import { t, setLanguage } from '@money-matters/i18n';
 import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
@@ -26,6 +27,7 @@ function TabIcon({
 }
 
 export default function AppLayout() {
+  const insets = useSafeAreaInsets();
   const { data: session } = authClient.useSession();
   const { showToast } = useMobileToast();
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
@@ -79,7 +81,13 @@ export default function AppLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarStyle: styles.tabBar,
+          tabBarStyle: [
+            styles.tabBar,
+            {
+              height: 56 + Math.max(insets.bottom, 10),
+              paddingBottom: Math.max(insets.bottom, 8),
+            },
+          ],
           tabBarActiveTintColor: DESIGN_TOKENS.colors.accent,
           tabBarInactiveTintColor: DESIGN_TOKENS.colors.textMuted,
           tabBarShowLabel: true,
@@ -89,7 +97,7 @@ export default function AppLayout() {
         <Tabs.Screen
           name="home"
           options={{
-            title: t('home.title') || 'Home',
+            title: t('nav.home') || 'Home',
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="home" color={color} size={size} />
             ),
@@ -98,41 +106,34 @@ export default function AppLayout() {
         <Tabs.Screen
           name="paychecks"
           options={{
-            title: t('nav.payday') || 'Income & Bills',
+            title: t('nav.schedules') || 'Schedules',
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="calendar" color={color} size={size} />
             ),
           }}
         />
         <Tabs.Screen
-          name="categories"
+          name="upcoming"
           options={{
-            title: t('nav.myMoney') || 'Pools',
-            tabBarIcon: ({ color, size }) => (
-              <TabIcon name="grid" color={color} size={size} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="transactions"
-          options={{
-            title: t('nav.history') || 'History',
+            title: t('nav.upcoming') || 'Upcoming',
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="clock" color={color} size={size} />
             ),
           }}
         />
         <Tabs.Screen
-          name="settings"
+          name="categories"
           options={{
-            title: t('nav.settings') || 'Settings',
+            title: t('nav.categories') || 'Pools',
             tabBarIcon: ({ color, size }) => (
-              <TabIcon name="settings" color={color} size={size} />
+              <TabIcon name="grid" color={color} size={size} />
             ),
           }}
         />
 
         {/* Hidden push routes — not in tab bar */}
+        <Tabs.Screen name="transactions" options={{ href: null }} />
+        <Tabs.Screen name="settings" options={{ href: null }} />
         <Tabs.Screen name="afford-check" options={{ href: null }} />
         <Tabs.Screen name="pools/[id]" options={{ href: null }} />
         <Tabs.Screen name="categories/[id]" options={{ href: null }} />

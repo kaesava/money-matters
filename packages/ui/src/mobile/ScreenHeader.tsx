@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ViewStyle, TextStyle, ImageStyle } from "react-native";
+import { View, Text, TouchableOpacity, Image, ViewStyle, TextStyle, ImageStyle } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "../tokens";
@@ -10,7 +10,7 @@ interface ScreenHeaderProps {
   onBackPress?: () => void;
   onNavigateHome?: () => void;
   showProfile?: boolean;
-  user?: { name?: string | null; email?: string | null } | null;
+  user?: { name?: string | null; email?: string | null; image?: string | null } | null;
   getInitials: () => string;
   onOpenMenu: () => void;
   styles: Record<string, ViewStyle | TextStyle | ImageStyle>;
@@ -70,9 +70,20 @@ export function ScreenHeader({
             style={styles.avatarButton}
             activeOpacity={0.8}
           >
-            <View style={styles.avatar}>
-              <Feather name="user" size={18} color={DESIGN_TOKENS.colors.onAccent} />
-            </View>
+            {user?.image ? (
+              <Image
+                source={{ uri: user.image }}
+                style={[styles.avatar as ImageStyle, { borderWidth: 1.5, borderColor: '#FFFFFF' }]}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                {user?.name ? (
+                  <Text style={styles.avatarText}>{getInitials()}</Text>
+                ) : (
+                  <Feather name="user" size={18} color={DESIGN_TOKENS.colors.onAccent} />
+                )}
+              </View>
+            )}
           </TouchableOpacity>
         ) : (
           <View style={{ width: 36 }} />

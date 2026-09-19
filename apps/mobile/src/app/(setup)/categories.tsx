@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, ActivityIndicator, Alert
+  View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, ActivityIndicator
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { formatIsoDate } from '../../lib/format';
 import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from '@money-matters/types';
 
 export default function SetupCategoriesScreen() {
+  const toast = useMobileToast();
   const router = useRouter();
   const params = useLocalSearchParams<{ incomeName: string; incomeAmount: string; incomeFrequency: string; mode?: string }>();
 
@@ -150,7 +151,7 @@ export default function SetupCategoriesScreen() {
 
       router.replace('/(app)/home');
     } catch (err) {
-      Alert.alert("Setup Failed", "We couldn't save your setup values. Please try again.");
+      toast.error("We couldn't save your setup values. Please try again.", 'Setup Failed');
       console.error(err);
     } finally {
       setIsSubmitting(false);

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 
 export function HouseholdPartnerInviteSection() {
+  const toast = useMobileToast();
   const [partnerEmail, setPartnerEmail] = useState('');
   const [partnerInviting, setPartnerInviting] = useState(false);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
@@ -11,17 +13,18 @@ export function HouseholdPartnerInviteSection() {
 
   const handleInvitePartner = async () => {
     if (!partnerEmail.trim() || !partnerEmail.includes('@')) {
-      Alert.alert('Invalid Email', 'Please enter a valid partner email address.');
+      toast.error('Please enter a valid partner email address.', 'Invalid Email');
       return;
     }
     setPartnerInviting(true);
     setInviteSuccessMsg(null);
     try {
       const res = await inviteMutation.mutateAsync({ email: partnerEmail.trim() });
+      toast.success('Invite link created successfully!');
       setInviteSuccessMsg(`Invite link created! Share token: ${res.inviteToken}`);
       setPartnerEmail('');
     } catch (err) {
-      Alert.alert('Invite Error', err instanceof Error ? err.message : 'Failed to generate partner invite.');
+      toast.error(err instanceof Error ? err.message : 'Failed to generate partner invite.', 'Invite Error');
     } finally {
       setPartnerInviting(false);
     }

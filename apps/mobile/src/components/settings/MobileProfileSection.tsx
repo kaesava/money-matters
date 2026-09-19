@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useIconVisibility } from '@money-matters/ui/mobile';
+import { useIconVisibility, useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -19,6 +18,7 @@ import { MobileProfileEditView } from './MobileProfileEditView';
 export function MobileProfileSection() {
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
+  const toast = useMobileToast();
   const { setShowIcons: setContextShowIcons } = useIconVisibility();
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
@@ -112,9 +112,9 @@ export function MobileProfileSection() {
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Please grant access to your photo library to choose a profile avatar.'
+      toast.warning(
+        'Please grant access to your photo library to choose a profile avatar.',
+        'Permission Required'
       );
       return;
     }
@@ -138,27 +138,23 @@ export function MobileProfileSection() {
 
   const handleCancel = () => {
     if (isDirty) {
-      Alert.alert(
-        t('modals.discardChanges.title', { defaultValue: 'Discard changes?' }),
-        t('modals.discardChanges.description', { defaultValue: 'Are you sure you want to discard your unsaved changes?' }),
-        [
-          { text: t('modals.discardChanges.cancel', { defaultValue: 'Keep Editing' }), style: 'cancel' },
-          {
-            text: t('modals.discardChanges.discard', { defaultValue: 'Discard Changes' }),
-            style: 'destructive',
-            onPress: () => {
-              const init = initialDataRef.current;
-              setName(init.name);
-              setTimezone(init.timezone);
-              setLanguage(init.language);
-              setLocale(init.locale);
-              setShowIcons(init.showIcons);
-              setAvatarUri(init.avatarUri);
-              setIsEditing(false);
-            },
-          },
-        ]
-      );
+      showMobileConfirm({
+        title: t('modals.discardChanges.title', { defaultValue: 'Discard changes?' }),
+        message: t('modals.discardChanges.description', { defaultValue: 'Are you sure you want to discard your unsaved changes?' }),
+        confirmText: t('modals.discardChanges.discard', { defaultValue: 'Discard Changes' }),
+        cancelText: t('modals.discardChanges.cancel', { defaultValue: 'Keep Editing' }),
+        isDestructive: true,
+        onConfirm: () => {
+          const init = initialDataRef.current;
+          setName(init.name);
+          setTimezone(init.timezone);
+          setLanguage(init.language);
+          setLocale(init.locale);
+          setShowIcons(init.showIcons);
+          setAvatarUri(init.avatarUri);
+          setIsEditing(false);
+        },
+      });
     } else {
       setIsEditing(false);
     }
@@ -166,7 +162,7 @@ export function MobileProfileSection() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert(t('common.error'), 'Name is required.');
+      toast.error('Name is required.', t('common.error'));
       return;
     }
 
@@ -200,11 +196,11 @@ export function MobileProfileSection() {
       setContextShowIcons(showIcons);
       await utils.getUserPreferences.invalidate();
       setIsEditing(false);
-      Alert.alert(t('common.success'), 'Profile updated successfully.');
+      toast.success('Profile updated successfully.', t('common.success'));
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
-        err instanceof Error ? err.message : 'Failed to update profile'
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update profile',
+        t('common.error')
       );
     } finally {
       setSaving(false);

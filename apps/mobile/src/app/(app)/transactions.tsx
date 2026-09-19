@@ -15,9 +15,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
-  MobileScreenWrapper,
   MobilePaginationBar,
+  SegmentedTabs,
+  SearchInput,
+  SkeletonCard,
 } from '@money-matters/ui/mobile';
+import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -305,61 +308,20 @@ export default function TransactionsScreen() {
   };
 
   return (
-    <MobileScreenWrapper
+    <AppScreenWrapper
       title={t('transactions.title') || 'History'}
-      user={session?.user}
       scrollable={false}
-      onNavigateHome={() => router.push('/(app)/home')}
-      onNavigateCategories={() => router.push('/(app)/categories')}
-      onNavigateSettings={() => router.push('/(app)/settings')}
     >
       <View style={styles.container}>
         {/* 2-Tab Segment Bar */}
-        <View style={styles.tabSegmentBar}>
-          <TouchableOpacity
-            onPress={() => setActiveTab('LEDGER')}
-            style={[
-              styles.tabSegmentBtn,
-              activeTab === 'LEDGER' && styles.tabSegmentBtnActive,
-            ]}
-          >
-            <Feather
-              name="list"
-              size={14}
-              color={activeTab === 'LEDGER' ? '#1B2B4B' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.tabSegmentText,
-                activeTab === 'LEDGER' && styles.tabSegmentTextActive,
-              ]}
-            >
-              {t('transactions.ledgerTab') || 'Transactions'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setActiveTab('PAYDAYS')}
-            style={[
-              styles.tabSegmentBtn,
-              activeTab === 'PAYDAYS' && styles.tabSegmentBtnActive,
-            ]}
-          >
-            <Feather
-              name="calendar"
-              size={14}
-              color={activeTab === 'PAYDAYS' ? '#1B2B4B' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.tabSegmentText,
-                activeTab === 'PAYDAYS' && styles.tabSegmentTextActive,
-              ]}
-            >
-              {t('transactions.paydayTab') || 'Payday Allocations'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <SegmentedTabs<HistoryTab>
+          tabs={[
+            { key: 'LEDGER', label: t('transactions.ledgerTab') || 'Transactions', icon: 'list' },
+            { key: 'PAYDAYS', label: t('transactions.paydayTab') || 'Payday Allocations', icon: 'calendar' },
+          ]}
+          activeKey={activeTab}
+          onChange={setActiveTab}
+        />
 
         {/* Tab 1: Transactions Ledger */}
         {activeTab === 'LEDGER' && (
@@ -378,23 +340,15 @@ export default function TransactionsScreen() {
               <View style={styles.filterSection}>
                 {/* Search & CSV row */}
                 <View style={styles.searchRow}>
-                  <View style={styles.searchWrap}>
-                    <Feather name="search" size={16} color="#94A3B8" />
-                    <TextInput
-                      style={styles.searchInput}
+                  <View style={{ flex: 1 }}>
+                    <SearchInput
                       placeholder={t('transactions.searchPlaceholder') || 'Search transactions...'}
                       value={searchQuery}
                       onChangeText={(val) => {
                         setSearchQuery(val);
                         setPage(1);
                       }}
-                      placeholderTextColor="#94A3B8"
                     />
-                    {searchQuery ? (
-                      <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <Feather name="x" size={14} color="#94A3B8" />
-                      </TouchableOpacity>
-                    ) : null}
                   </View>
 
                   <TouchableOpacity
@@ -596,7 +550,9 @@ export default function TransactionsScreen() {
             )}
             ListEmptyComponent={
               transactionsQuery.isLoading ? (
-                <ActivityIndicator color="#2563eb" style={{ marginVertical: 40 }} />
+                <View style={{ paddingVertical: 12 }}>
+                  <SkeletonCard count={4} />
+                </View>
               ) : (
                 <View style={styles.emptyContainer}>
                   <Feather name="clock" size={32} color="#94A3B8" />
@@ -643,23 +599,15 @@ export default function TransactionsScreen() {
               <View style={styles.filterSection}>
                 {/* Search & Export Row */}
                 <View style={styles.searchRow}>
-                  <View style={styles.searchWrap}>
-                    <Feather name="search" size={16} color="#94A3B8" />
-                    <TextInput
-                      style={styles.searchInput}
+                  <View style={{ flex: 1 }}>
+                    <SearchInput
                       placeholder={t('transactions.searchPaydaysPlaceholder') || 'Search income or bank account...'}
                       value={planSearchQuery}
                       onChangeText={(val) => {
                         setPlanSearchQuery(val);
                         setPlanPage(1);
                       }}
-                      placeholderTextColor="#94A3B8"
                     />
-                    {planSearchQuery ? (
-                      <TouchableOpacity onPress={() => setPlanSearchQuery('')}>
-                        <Feather name="x" size={14} color="#94A3B8" />
-                      </TouchableOpacity>
-                    ) : null}
                   </View>
 
                   <TouchableOpacity
@@ -812,7 +760,9 @@ export default function TransactionsScreen() {
             }}
             ListEmptyComponent={
               allPlansQuery.isLoading ? (
-                <ActivityIndicator color="#2563eb" style={{ marginVertical: 40 }} />
+                <View style={{ paddingVertical: 12 }}>
+                  <SkeletonCard count={4} />
+                </View>
               ) : (
                 <View style={styles.emptyContainer}>
                   <Feather name="calendar" size={32} color="#94A3B8" />
@@ -853,7 +803,7 @@ export default function TransactionsScreen() {
           router.push(`/(app)/paychecks/${incomeEventId}` as never)
         }
       />
-    </MobileScreenWrapper>
+    </AppScreenWrapper>
   );
 }
 

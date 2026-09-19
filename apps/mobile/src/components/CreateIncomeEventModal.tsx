@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileDatePickerField, AmountInput } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
-import { formatDate, formatIsoDate } from '../lib/format';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { formatIsoDate } from '../lib/format';
 
 interface CreateIncomeEventModalProps {
   visible: boolean;
@@ -14,11 +13,11 @@ interface CreateIncomeEventModalProps {
 export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventModalProps) {
   const { data: incomeSources = [] } = trpc.listIncomeSources.useQuery();
   const createIncomeEvent = trpc.createIncomeEvent.useMutation();
+  const utils = trpc.useUtils();
 
   const [sourceId, setSourceId] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateIso, setDateIso] = useState(() => formatIsoDate(new Date()));
   const [submitting, setSubmitting] = useState(false);
 
   // Initialize selected source details when sources load
@@ -45,8 +44,9 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
       await createIncomeEvent.mutateAsync({
         incomeSourceId: sourceId,
         expectedAmount: parseFloat(amount).toFixed(2),
-        expectedDate: formatIsoDate(date),
+        expectedDate: dateIso,
       });
+      await utils.listIncomeEvents.invalidate();
       onClose();
     } catch (err) {
       console.error(err);
@@ -61,7 +61,7 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
         <View style={styles.sheet}>
           <Text style={styles.title}>{t('paychecks.createModal.title', { defaultValue: 'Add Income' })}</Text>
 
-          <Text style={styles.label}>{t('paychecks.createModal.source', { defaultValue: 'Income Source' })}</Text>
+          <Text style={styles.label}>{t('paychecks.createModal.source', { defaultValue: 'Income Schedule' })}</Text>
           <View style={styles.pickerContainer}>
             {incomeSources.map(s => (
               <TouchableOpacity
@@ -74,32 +74,19 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
             ))}
           </View>
 
-          <Text style={styles.label}>{t('paychecks.createModal.amount', { defaultValue: 'Expected Amount' })}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
+          <AmountInput
+            label={t('paychecks.createModal.amount', { defaultValue: 'Expected Amount' })}
+            required
             value={amount}
             onChangeText={setAmount}
-            placeholder="0"
           />
 
-          <Text style={styles.label}>{t('paychecks.createModal.date', { defaultValue: 'Expected Date' })}</Text>
-          <TouchableOpacity style={styles.dateSelector} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateSelectorText}>{formatDate(date)}</Text>
-          </TouchableOpacity>
-
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="default"
-              onChange={(_event: unknown, selectedDate?: Date) => {
-                setShowDatePicker(Platform.OS === 'ios');
-                if (selectedDate) setDate(selectedDate);
-              }}
-            />
-
-          )}
+          <MobileDatePickerField
+            label={t('paychecks.createModal.date', { defaultValue: 'Expected Date' })}
+            value={dateIso}
+            onChange={setDateIso}
+            required
+          />
 
           <View style={styles.actions}>
             <TouchableOpacity style={[styles.btn, styles.cancelBtn]} onPress={onClose}>
@@ -121,15 +108,12 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   title: { fontSize: 18, fontWeight: '700', color: D.colors.primary, marginBottom: 20 },
   label: { fontSize: 12, fontWeight: '600', color: D.colors.textMuted, marginBottom: 8, textTransform: 'uppercase' },
-  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: D.radius.md, padding: 12, fontSize: 15, marginBottom: 16, color: D.colors.textPrimary },
   pickerContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   pickerItem: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
   pickerItemActive: { borderColor: D.colors.accent, backgroundColor: D.colors.accent + '10' },
   pickerItemText: { fontSize: 13, color: D.colors.textPrimary },
   pickerItemTextActive: { color: D.colors.accent, fontWeight: '600' },
-  dateSelector: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: D.radius.md, padding: 12, marginBottom: 24 },
-  dateSelectorText: { fontSize: 15, color: D.colors.textPrimary },
-  actions: { flexDirection: 'row', gap: 12 },
+  actions: { flexDirection: 'row', gap: 12, marginTop: 8 },
   btn: { flex: 1, paddingVertical: 12, borderRadius: D.radius.md, alignItems: 'center', justifyContent: 'center' },
   cancelBtn: { backgroundColor: '#F3F4F6' },
   cancelBtnText: { color: D.colors.textMuted, fontWeight: '600' },

@@ -587,19 +587,17 @@ function IncomeAndBillsContent() {
                 <div className="flex justify-end mb-4">
                   <div className="w-64 sm:w-72 text-xs">
                     <PoolPicker
-                      pools={[
-                        { id: "", name: "All Pools" },
-                        ...pools.map((p) => ({
-                          id: p.id,
-                          name: p.name,
-                          poolType: p.poolType,
-                          currentBalance: p.currentBalance,
-                          isPrivate: p.isPrivate ?? undefined,
-                        })),
-                      ]}
+                      pools={pools.map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        poolType: p.poolType,
+                        currentBalance: p.currentBalance,
+                        isPrivate: p.isPrivate ?? undefined,
+                      }))}
+                      allowAllOption={true}
                       selectedPoolId={selectedExpensePoolId || ""}
                       allowCategorySelection={false}
-                      placeholder="All Pools"
+                      placeholder={t("common.allPools")}
                       showBalance={false}
                       onChange={(sel) => setSelectedExpensePoolId(sel.poolId)}
                     />

@@ -2,18 +2,18 @@ import React, { useState } from "react";
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
-  Platform,
   ScrollView,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DESIGN_TOKENS } from "../tokens";
 import { ScreenHeader } from "./ScreenHeader";
 import { ScreenMenuModal } from "./ScreenMenuModal";
 
 export interface ScreenWrapperProps {
   title?: string;
-  user?: { name?: string | null; email?: string | null } | null;
+  user?: { name?: string | null; email?: string | null; image?: string | null } | null;
   showProfile?: boolean;
   showBack?: boolean;
   onBackPress?: () => void;
@@ -21,6 +21,11 @@ export interface ScreenWrapperProps {
   onNavigateHome?: () => void;
   onNavigateCategories?: () => void;
   onNavigateSettings?: () => void;
+  onNavigateBankAccounts?: () => void;
+  onNavigateHistory?: () => void;
+  onOpenTenantSwitcher?: () => void;
+  hasMultipleTenants?: boolean;
+  activeTenantName?: string;
   children: React.ReactNode;
   scrollable?: boolean;
 }
@@ -35,9 +40,15 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   onNavigateHome,
   onNavigateCategories,
   onNavigateSettings,
+  onNavigateBankAccounts,
+  onNavigateHistory,
+  onOpenTenantSwitcher,
+  hasMultipleTenants,
+  activeTenantName,
   children,
   scrollable = true,
 }) => {
+  const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = useState(false);
   const D = DESIGN_TOKENS;
 
@@ -61,7 +72,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar
         barStyle="dark-content"
         backgroundColor={D.colors.background}
@@ -99,18 +110,22 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         onNavigateHome={onNavigateHome}
         onNavigateCategories={onNavigateCategories}
         onNavigateSettings={onNavigateSettings}
+        onNavigateBankAccounts={onNavigateBankAccounts}
+        onNavigateHistory={onNavigateHistory}
+        onOpenTenantSwitcher={onOpenTenantSwitcher}
+        hasMultipleTenants={hasMultipleTenants}
+        activeTenantName={activeTenantName}
         onSignOut={onSignOut}
         styles={styles}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: DESIGN_TOKENS.colors.background,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   header: {
     height: 64,

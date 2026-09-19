@@ -448,7 +448,8 @@ function BankAccountsDashboardContent() {
               showBalance={false}
               selectedPoolId={typeFilter === "ALL" ? null : typeFilter}
               allowCategorySelection={false}
-              placeholder="All Pools"
+              allowAllOption={true}
+              placeholder={t("common.allPools")}
               onChange={(sel) => setTypeFilter(sel.poolId || "ALL")}
             />
           </div>

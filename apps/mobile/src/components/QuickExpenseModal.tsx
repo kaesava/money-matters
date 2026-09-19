@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +21,8 @@ import {
   FormLabel,
   FormFieldError,
   FormErrorBanner,
+  MobileDatePickerField,
+  SegmentedTabs,
 } from "@money-matters/ui/mobile";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../lib/trpc";
@@ -328,67 +329,18 @@ export function QuickExpenseModal({
             </View>
 
             {/* 3-Way Segmented Control */}
-            <View style={styles.segmentContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.segmentBtn,
-                  type === "DEBIT" && styles.segmentBtnActiveDebit,
-                ]}
-                onPress={() => {
-                  setType("DEBIT");
-                  clearErrors();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    type === "DEBIT" && styles.segmentTextActiveDebit,
-                  ]}
-                >
-                  💸 Expense
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.segmentBtn,
-                  type === "CREDIT" && styles.segmentBtnActiveCredit,
-                ]}
-                onPress={() => {
-                  setType("CREDIT");
-                  clearErrors();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    type === "CREDIT" && styles.segmentTextActiveCredit,
-                  ]}
-                >
-                  💰 Income
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.segmentBtn,
-                  type === "TRANSFER" && styles.segmentBtnActiveTransfer,
-                ]}
-                onPress={() => {
-                  setType("TRANSFER");
-                  clearErrors();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    type === "TRANSFER" && styles.segmentTextActiveTransfer,
-                  ]}
-                >
-                  ⚡ Transfer
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <SegmentedTabs<QuickActionType>
+              tabs={[
+                { key: "DEBIT", label: "Expense", icon: "arrow-down-right" },
+                { key: "CREDIT", label: "Income", icon: "arrow-up-right" },
+                { key: "TRANSFER", label: "Transfer", icon: "repeat" },
+              ]}
+              activeKey={type}
+              onChange={(val) => {
+                setType(val);
+                clearErrors();
+              }}
+            />
 
             {poolsLoading ? (
               <ActivityIndicator
@@ -447,61 +399,17 @@ export function QuickExpenseModal({
                   )}
                 </View>
 
-                {/* Date Input with Quick Shortcuts */}
-                <View style={styles.inputGroup}>
-                  <FormLabel required>{t("common.date", { defaultValue: "Date" })}</FormLabel>
-                  <View style={styles.dateQuickRow}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setDate(todayStr);
-                        if (dateError) setDateError("");
-                      }}
-                      style={[
-                        styles.dateQuickBtn,
-                        date === todayStr && styles.dateQuickBtnActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dateQuickBtnText,
-                          date === todayStr && styles.dateQuickBtnTextActive,
-                        ]}
-                      >
-                        {t("common.today", { defaultValue: "Today" })}
-                      </Text>
-                    </TouchableOpacity>
-                    {type !== "TRANSFER" && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setDate(yesterdayStr);
-                          if (dateError) setDateError("");
-                        }}
-                        style={[
-                          styles.dateQuickBtn,
-                          date === yesterdayStr && styles.dateQuickBtnActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.dateQuickBtnText,
-                            date === yesterdayStr && styles.dateQuickBtnTextActive,
-                          ]}
-                        >
-                          {t("common.yesterday", { defaultValue: "Yesterday" })}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <MobileInput
-                    placeholder="YYYY-MM-DD"
-                    value={date}
-                    onChangeText={(val) => {
-                      setDate(val);
-                      if (dateError) setDateError("");
-                    }}
-                    error={dateError}
-                  />
-                </View>
+                {/* Beautiful Serene Date Picker */}
+                <MobileDatePickerField
+                  label={t("common.date", { defaultValue: "Date" })}
+                  value={date}
+                  onChange={(newDate) => {
+                    setDate(newDate);
+                    if (dateError) setDateError("");
+                  }}
+                  required
+                  error={dateError}
+                />
 
                 {/* Name Input */}
                 {type !== "TRANSFER" && (

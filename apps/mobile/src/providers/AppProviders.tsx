@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { QueryCache, MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostHogProvider } from 'posthog-react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { trpc, buildTrpcClient } from '../lib/trpc';
 import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
 import { IconVisibilityProvider, MobileToastProvider, MobileToastContainer } from '@money-matters/ui/mobile';
@@ -102,22 +103,24 @@ export function AppProviders({ children }: AppProvidersProps) {
   };
 
   return (
-    <PostHogProvider
-      client={posthog}
-      autocapture={false}
-    >
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <NotificationServiceProvider value={notificationServiceValue}>
-            <MobilePreferencesSync>
-              <MobileToastProvider>
-                {children}
-                <MobileToastContainer />
-              </MobileToastProvider>
-            </MobilePreferencesSync>
-          </NotificationServiceProvider>
-        </QueryClientProvider>
-      </trpc.Provider>
-    </PostHogProvider>
+    <SafeAreaProvider>
+      <PostHogProvider
+        client={posthog}
+        autocapture={false}
+      >
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <NotificationServiceProvider value={notificationServiceValue}>
+              <MobilePreferencesSync>
+                <MobileToastProvider>
+                  {children}
+                  <MobileToastContainer />
+                </MobileToastProvider>
+              </MobilePreferencesSync>
+            </NotificationServiceProvider>
+          </QueryClientProvider>
+        </trpc.Provider>
+      </PostHogProvider>
+    </SafeAreaProvider>
   );
 }

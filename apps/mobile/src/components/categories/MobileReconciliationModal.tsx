@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileModalDialog, useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { formatAUD } from '../../lib/format';
@@ -28,8 +27,7 @@ export interface MobileReconciliationModalProps {
       id: string;
       name: string;
       poolType: string;
-      currentBalance: number;
-      isSurplusTarget?: boolean;
+      currentBalance: string | number;
     }>;
   } | null;
   onClose: () => void;
@@ -43,35 +41,36 @@ export function MobileReconciliationModal({
   onSuccess,
 }: MobileReconciliationModalProps) {
   const D = DESIGN_TOKENS;
+  const toast = useMobileToast();
   const utils = trpc.useUtils();
 
-  const [actualBalanceInput, setActualBalanceInput] = useState('');
+  const [actualBalanceStr, setActualBalanceStr] = useState('');
   const [selectedPoolId, setSelectedPoolId] = useState('');
   const [reasonNote, setReasonNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (account) {
-      setActualBalanceInput(account.lastKnownBalance || '0.00');
-      // Default to Everyday or surplus target pool among linked pools
-      const defaultPool =
-        account.linkedPools?.find((p) => p.isSurplusTarget) ||
-        account.linkedPools?.find((p) => p.poolType === 'EVERYDAY') ||
-        account.linkedPools?.[0];
-      if (defaultPool) {
-        setSelectedPoolId(defaultPool.id);
+    if (visible && account) {
+      setActualBalanceStr(
+        account.lastKnownBalance ? String(account.lastKnownBalance) : '0.00'
+      );
+      // Pre-select the first linked pool if available
+      if (account.linkedPools && account.linkedPools.length > 0) {
+        setSelectedPoolId(account.linkedPools[0].id);
+      } else {
+        setSelectedPoolId('');
       }
-      setReasonNote('Balance Alignment');
+      setReasonNote('');
     }
-  }, [account, visible]);
+  }, [visible, account]);
 
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
 
-  if (!visible || !account) return null;
+  if (!account) return null;
 
-  const actualBalanceNum = parseFloat(actualBalanceInput) || 0;
-  const poolsTotal = (account.linkedPools || []).reduce(
-    (sum, p) => sum + (p.currentBalance || 0),
+  const actualBalanceNum = parseFloat(actualBalanceStr) || 0;
+  const poolsTotal = (account.linkedPools ?? []).reduce(
+    (sum, p) => sum + (parseFloat(String(p.currentBalance)) || 0),
     0
   );
   const variance = Math.round((actualBalanceNum - poolsTotal) * 100) / 100;
@@ -80,9 +79,9 @@ export function MobileReconciliationModal({
 
   const handleReconcile = async () => {
     if (!selectedPoolId) {
-      Alert.alert(
-        t('common.error'),
-        'Please select a pool to absorb the balance adjustment.'
+      toast.error(
+        'Please select a pool to absorb the balance adjustment.',
+        t('common.error')
       );
       return;
     }
@@ -107,6 +106,7 @@ export function MobileReconciliationModal({
         ],
       });
 
+      toast.success('Account reconciled successfully.');
       utils.listBankAccounts.invalidate();
       utils.listBankAccountsWithExpected.invalidate();
       utils.listPools.invalidate();
@@ -114,9 +114,9 @@ export function MobileReconciliationModal({
       onSuccess?.();
       onClose();
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
-        err instanceof Error ? err.message : 'Failed to reconcile balance'
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to reconcile balance',
+        t('common.error')
       );
     } finally {
       setSubmitting(false);
@@ -139,8 +139,8 @@ export function MobileReconciliationModal({
             <TextInput
               style={styles.amountInput}
               keyboardType="decimal-pad"
-              value={actualBalanceInput}
-              onChangeText={setActualBalanceInput}
+              value={actualBalanceStr}
+              onChangeText={setActualBalanceStr}
               placeholder="0.00"
               placeholderTextColor="#94A3B8"
             />

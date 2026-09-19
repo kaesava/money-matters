@@ -9,11 +9,10 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  SafeAreaView,
-  Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 import { formatAUD, formatIsoDate } from '../lib/format';
 
@@ -210,37 +209,35 @@ interface PaydayLine {
     }
   };
 
+  const insets = useSafeAreaInsets();
+  const toast = useMobileToast();
+
   const handleDelete = () => {
     if (!activeId) return;
-    Alert.alert(
-      'Permanent Delete Warning',
-      'This upcoming income deposit will be permanently deleted (not archived). Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setSubmitting(true);
-            try {
-              await deleteMutation.mutateAsync({ eventId: activeId, eventType: 'INCOME' });
-              await utils.listIncomeEvents.invalidate();
-              onSuccess?.();
-              onClose();
-            } catch (err: unknown) {
-              setErrorMsg(err instanceof Error ? err.message : 'Failed to delete income record.');
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
+    showMobileConfirm({
+      title: 'Permanent Delete Warning',
+      message: 'This upcoming income deposit will be permanently deleted (not archived). Are you sure?',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      isDestructive: true,
+      onConfirm: async () => {
+        setSubmitting(true);
+        try {
+          await deleteMutation.mutateAsync({ eventId: activeId, eventType: 'INCOME' });
+          await utils.listIncomeEvents.invalidate();
+          onSuccess?.();
+          onClose();
+        } catch (err: unknown) {
+          setErrorMsg(err instanceof Error ? err.message : 'Failed to delete income record.');
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
-
   const showReasonAlert = (catName: string, reason: string) => {
-    Alert.alert(`Allocation Reason: ${catName}`, reason || 'Standard budget target allocation.');
+    toast.info(`${catName}: ${reason || 'Standard budget target allocation.'}`);
   };
 
   const rawEngineResult = previewQuery.data?.engineResult as unknown as { lines?: PaydayLine[] } | undefined;
@@ -248,7 +245,7 @@ interface PaydayLine {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backBtn}>
             <Feather name="x" size={20} color="#1B2B4B" />
@@ -385,7 +382,7 @@ interface PaydayLine {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
 
   );

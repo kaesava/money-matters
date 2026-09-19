@@ -2,7 +2,7 @@ import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { verifyJwt, upsertUserFromJwt, logger } from "@money-matters/core";
 import { db, tenantUsers, tenants } from "@money-matters/db";
 import { createTenantHandler } from "@money-matters/capability-tenant";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, desc, asc } from "drizzle-orm";
 import type { createEdgeContext } from "./edge-context.js";
 import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
@@ -128,7 +128,8 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
         eq(tenantUsers.inviteStatus, "ACCEPTED"),
         isNull(tenantUsers.archivedAt)
       )
-    );
+    )
+    .orderBy(desc(tenantUsers.role), asc(tenantUsers.createdAt));
 
   const matchedMembership = requestedTenantId
     ? userMemberships.find((m) => m.tenantId === requestedTenantId)

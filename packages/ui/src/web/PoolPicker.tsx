@@ -1,41 +1,17 @@
 "use client";
 
 import React, { useState, useId, useRef, useEffect, useMemo } from "react";
-import { Lock, ChevronDown, Search } from "lucide-react";
+import { Lock, ChevronDown, Search, X, Check } from "lucide-react";
 import { t } from "@money-matters/i18n";
+import { PoolPickerGroup } from "./PoolPickerGroup";
+import {
+  PoolOption,
+  PoolPickerProps,
+  formatPoolBalance,
+  groupPoolsByType,
+} from "./poolPickerUtils";
 
-export interface PoolOption {
-  id: string;
-  name: string;
-  poolType?: "EVERYDAY" | "REGULAR" | "GOAL" | string;
-  currentBalance?: number | string | null;
-  balance?: number | string | null;
-  isPrivate?: boolean;
-  categories?: Array<{
-    id: string;
-    name: string;
-  }>;
-}
-
-export interface PoolPickerProps {
-  pools: PoolOption[];
-  showBalance: boolean;
-  selectedPoolId?: string | null;
-  selectedCategoryId?: string | null;
-  onChange: (selection: { poolId: string; categoryId: string | null; label: string }) => void;
-  allowCategorySelection?: boolean;
-  placeholder?: string;
-  disabled?: boolean;
-  className?: string;
-  error?: string;
-}
-
-const POOL_TYPE_LABELS: Record<string, string> = {
-  EVERYDAY: "Everyday Pools",
-  REGULAR: "Bills Pools",
-  GOAL: "Goals",
-  OTHER: "Other Pools",
-};
+export type { PoolOption, PoolPickerProps };
 
 export function PoolPicker({
   pools,
@@ -44,6 +20,8 @@ export function PoolPicker({
   selectedCategoryId,
   onChange,
   allowCategorySelection = true,
+  allowAllOption = false,
+  allOptionLabel,
   placeholder,
   disabled = false,
   className = "",
@@ -61,7 +39,6 @@ export function PoolPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonId = useId();
 
-  // Close on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -72,40 +49,46 @@ export function PoolPicker({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset search on close
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery("");
     }
   }, [isOpen]);
 
-  const currentPool = pools.find((p) => p.id === selectedPoolId);
+  const explicitAllOption = pools.find(
+    (p) => p.id === "" || p.id === "ALL" || p.name.toLowerCase().includes("all pools")
+  );
+  const showAllOption = allowAllOption || Boolean(explicitAllOption);
+  const allLabel = explicitAllOption?.name || allOptionLabel || t("common.allPools", { defaultValue: "All Pools" });
+  const isAllSelected = !selectedPoolId || selectedPoolId === "" || selectedPoolId === "ALL";
+
+  const regularPools = useMemo(
+    () => pools.filter((p) => p.id !== "" && p.id !== "ALL" && !p.name.toLowerCase().includes("all pools")),
+    [pools]
+  );
+
+  const currentPool = regularPools.find((p) => p.id === selectedPoolId);
   const currentCategory = currentPool?.categories?.find((c) => c.id === selectedCategoryId);
 
-  let displayLabel = placeholder || t("common.selectPool", { defaultValue: "Select Pool" });
-  if (currentPool) {
+  let displayLabel = placeholder || (showAllOption ? allLabel : t("common.selectPool", { defaultValue: "Select Pool" }));
+  if (!isAllSelected && currentPool) {
     if (selectedCategoryId && currentCategory) {
       displayLabel = `${currentPool.name} › ${currentCategory.name}`;
     } else {
       displayLabel = currentPool.name;
     }
+  } else if (isAllSelected && showAllOption) {
+    displayLabel = allLabel;
   }
 
-  const formatBalance = (val: number | string | null | undefined) => {
-    if (val === null || val === undefined || val === "") return null;
-    const num = typeof val === "number" ? val : parseFloat(val);
-    if (isNaN(num)) return null;
-    return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const toggleTypeExpand = (type: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
-  };
-
-  const togglePoolExpand = (poolId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedPools((prev) => ({ ...prev, [poolId]: !prev[poolId] }));
+  const handleSelectAll = () => {
+    onChange({
+      poolId: explicitAllOption?.id === "ALL" ? "ALL" : "",
+      categoryId: null,
+      label: allLabel,
+    });
+    setIsOpen(false);
+    setSearchQuery("");
   };
 
   const handleSelectPool = (pool: PoolOption) => {
@@ -126,54 +109,11 @@ export function PoolPicker({
     setIsOpen(false);
   };
 
-  // Group pools by type - ensure "All Pools" option is pinned to the top
-  const allOption = useMemo(
-    () => pools.find((p) => p.id === "" || p.id === "ALL" || p.name.toLowerCase().includes("all pools")),
-    [pools]
-  );
-  const regularPools = useMemo(
-    () => pools.filter((p) => p.id !== "" && p.id !== "ALL" && !p.name.toLowerCase().includes("all pools")),
-    [pools]
+  const groupedPools = useMemo(
+    () => groupPoolsByType(regularPools, searchQuery, allowCategorySelection),
+    [regularPools, searchQuery, allowCategorySelection]
   );
 
-  const groupedPools = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-
-    const filteredPools = regularPools.filter((p) => {
-      if (!q) return true;
-      const poolMatch = p.name.toLowerCase().includes(q);
-      const catMatch = allowCategorySelection && p.categories?.some((c) => c.name.toLowerCase().includes(q));
-      return poolMatch || catMatch;
-    });
-
-    const groups: Array<{ type: string; label: string; items: PoolOption[] }> = [
-      { type: "EVERYDAY", label: POOL_TYPE_LABELS.EVERYDAY, items: [] },
-      { type: "REGULAR", label: POOL_TYPE_LABELS.REGULAR, items: [] },
-      { type: "GOAL", label: POOL_TYPE_LABELS.GOAL, items: [] },
-    ];
-
-    const otherItems: PoolOption[] = [];
-
-    for (const pool of filteredPools) {
-      if (pool.poolType === "EVERYDAY") {
-        groups[0].items.push(pool);
-      } else if (pool.poolType === "REGULAR") {
-        groups[1].items.push(pool);
-      } else if (pool.poolType === "GOAL") {
-        groups[2].items.push(pool);
-      } else {
-        otherItems.push(pool);
-      }
-    }
-
-    if (otherItems.length > 0) {
-      groups.push({ type: "OTHER", label: POOL_TYPE_LABELS.OTHER, items: otherItems });
-    }
-
-    return groups.filter((g) => g.items.length > 0);
-  }, [regularPools, searchQuery, allowCategorySelection]);
-
-  // Auto-expand on search
   useEffect(() => {
     if (searchQuery.trim()) {
       setExpandedTypes({ EVERYDAY: true, REGULAR: true, GOAL: true, OTHER: true });
@@ -198,11 +138,28 @@ export function PoolPicker({
             : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800/60"
         } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
       >
-        <span className="flex items-center gap-2 truncate">
+        <span className="flex items-center gap-2 truncate flex-1 min-w-0">
           {currentPool?.isPrivate && <Lock className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
           <span className="truncate">{displayLabel}</span>
         </span>
-        <ChevronDown className="h-4 w-4 text-slate-400 shrink-0 ml-2" />
+        <span className="flex items-center gap-1 shrink-0 ml-2">
+          {showAllOption && !isAllSelected && !disabled && (
+            <span
+              role="button"
+              tabIndex={0}
+              title={t("common.clear", { defaultValue: "Clear" })}
+              aria-label={t("common.clear", { defaultValue: "Clear" })}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectAll();
+              }}
+              className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          )}
+          <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
+        </span>
       </button>
 
       {error && <p className="mt-1 text-xs font-medium text-rose-500">{error}</p>}
@@ -226,128 +183,48 @@ export function PoolPicker({
 
           {/* List Container */}
           <div className="overflow-y-auto p-1.5 space-y-2 flex-1">
-            {allOption && (!searchQuery || allOption.name.toLowerCase().includes(searchQuery.toLowerCase().trim())) && (
+            {showAllOption && (!searchQuery || allLabel.toLowerCase().includes(searchQuery.toLowerCase().trim())) && (
               <div
-                onClick={() => handleSelectPool(allOption)}
-                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold cursor-pointer transition-colors border border-slate-100 dark:border-slate-800 ${
-                  !selectedPoolId
-                    ? "bg-blue-50 text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400"
-                    : "text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80"
+                onClick={handleSelectAll}
+                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-bold cursor-pointer transition-colors border ${
+                  isAllSelected
+                    ? "bg-blue-50 border-blue-200 text-[#2563eb] dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-400"
+                    : "border-slate-100 dark:border-slate-800 text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80"
                 }`}
               >
-                <span>{allOption.name}</span>
+                <span>{allLabel}</span>
+                {isAllSelected && <Check className="h-3.5 w-3.5 text-[#2563eb] dark:text-blue-400" />}
               </div>
             )}
 
-            {groupedPools.length === 0 && !allOption ? (
+            {groupedPools.length === 0 && !showAllOption ? (
               <div className="px-3 py-4 text-center text-xs text-slate-400 font-medium">
                 {searchQuery ? `No pools found matching "${searchQuery}"` : t("common.noPoolsAvailable", { defaultValue: "No pools available" })}
               </div>
             ) : (
-              groupedPools.map((group) => {
-                const isTypeExpanded = expandedTypes[group.type] ?? true;
-
-                return (
-                  <div key={group.type} className="rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800/80">
-                    {/* Pool Type Header */}
-                    <div
-                      onClick={(e) => toggleTypeExpand(group.type, e)}
-                      className="flex items-center justify-between px-3 py-1.5 bg-slate-100/90 dark:bg-slate-800/80 cursor-pointer hover:bg-slate-200/80 transition-colors select-none"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400">
-                          {isTypeExpanded ? "▼" : "▶"}
-                        </span>
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1B2B4B] dark:text-blue-300">
-                          {group.label} ({group.items.length})
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Group Items */}
-                    {isTypeExpanded && (
-                      <div className="p-1 space-y-0.5 bg-white dark:bg-slate-900">
-                        {group.items.map((pool) => {
-                          const isPoolExpanded = Boolean(expandedPools[pool.id]);
-                          const hasCategories = allowCategorySelection && pool.categories && pool.categories.length > 0;
-                          const isSelected = selectedPoolId === pool.id && !selectedCategoryId;
-                          const balStr = showBalance ? formatBalance(pool.currentBalance ?? pool.balance) : null;
-
-                          return (
-                            <div key={pool.id} className="rounded-lg overflow-hidden">
-                              <div
-                                onClick={() => handleSelectPool(pool)}
-                                className={`flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-semibold cursor-pointer transition-colors ${
-                                  isSelected
-                                    ? "bg-blue-50 text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400"
-                                    : "text-slate-800 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/80"
-                                }`}
-                              >
-                                <div className="flex items-center gap-1.5 truncate min-w-0 flex-1">
-                                  {hasCategories ? (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => togglePoolExpand(pool.id, e)}
-                                      className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded hover:bg-slate-200/60 transition-colors cursor-pointer shrink-0"
-                                      title={isPoolExpanded ? "Collapse categories" : "Expand categories"}
-                                    >
-                                      <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400">
-                                        {isPoolExpanded ? "▼" : "▶"}
-                                      </span>
-                                    </button>
-                                  ) : (
-                                    <span className="w-4 shrink-0" />
-                                  )}
-                                  {pool.isPrivate && <Lock className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
-                                  <span className="truncate">{pool.name}</span>
-                                  {hasCategories && (
-                                    <span className="text-[10px] font-bold text-slate-400 shrink-0">
-                                      ({pool.categories!.length})
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center shrink-0 ml-2">
-                                  {balStr && (
-                                    <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums">
-                                      {balStr}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Child Categories */}
-                              {hasCategories && isPoolExpanded && (
-                                <div className="ml-4 border-l-2 border-slate-200 dark:border-slate-800 pl-2 my-1 space-y-0.5">
-                                  {pool.categories!.map((cat) => {
-                                    const isCatSelected = selectedPoolId === pool.id && selectedCategoryId === cat.id;
-                                    return (
-                                      <div
-                                        key={cat.id}
-                                        onClick={() => handleSelectCategory(pool, cat)}
-                                        className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-[11px] font-medium cursor-pointer transition-colors ${
-                                          isCatSelected
-                                            ? "bg-blue-50 text-[#2563eb] font-bold dark:bg-blue-950/40 dark:text-blue-400"
-                                            : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-                                        }`}
-                                      >
-                                        <div className="flex items-center gap-1.5 truncate">
-                                          <span className="text-slate-400">•</span>
-                                          <span className="truncate">{cat.name}</span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              groupedPools.map((group) => (
+                <PoolPickerGroup
+                  key={group.type}
+                  group={group}
+                  isTypeExpanded={expandedTypes[group.type] ?? true}
+                  onToggleTypeExpand={(type, e) => {
+                    e.stopPropagation();
+                    setExpandedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
+                  }}
+                  expandedPools={expandedPools}
+                  onTogglePoolExpand={(poolId, e) => {
+                    e.stopPropagation();
+                    setExpandedPools((prev) => ({ ...prev, [poolId]: !prev[poolId] }));
+                  }}
+                  selectedPoolId={selectedPoolId}
+                  selectedCategoryId={selectedCategoryId}
+                  allowCategorySelection={allowCategorySelection}
+                  showBalance={showBalance}
+                  onSelectPool={handleSelectPool}
+                  onSelectCategory={handleSelectCategory}
+                  formatBalance={formatPoolBalance}
+                />
+              ))
             )}
           </div>
         </div>
@@ -355,4 +232,3 @@ export function PoolPicker({
     </div>
   );
 }
-

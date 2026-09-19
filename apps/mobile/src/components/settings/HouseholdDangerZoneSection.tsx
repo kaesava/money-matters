@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import * as SecureStore from 'expo-secure-store';
 import { trpc, setActiveSessionToken } from '../../lib/trpc';
@@ -20,6 +20,7 @@ import { authClient } from '../../lib/auth';
 
 export function HouseholdDangerZoneSection() {
   const router = useRouter();
+  const toast = useMobileToast();
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const deleteMutation = trpc.deleteMyAccount.useMutation();
   const leaveMutation = trpc.leaveMyHousehold.useMutation();
@@ -49,13 +50,13 @@ export function HouseholdDangerZoneSection() {
     try {
       await leaveMutation.mutateAsync();
       setActiveModal(null);
-      Alert.alert(
-        'Household Left',
+      toast.success(
         t('privacy.leftHouseholdSuccess'),
-        [{ text: 'OK', onPress: handleSignOutAndExit }]
+        'Household Left'
       );
+      handleSignOutAndExit();
     } catch (err) {
-      Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Failed to leave household.');
+      toast.error(err instanceof Error ? err.message : 'Failed to leave household.', t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -67,13 +68,13 @@ export function HouseholdDangerZoneSection() {
     try {
       await deleteMutation.mutateAsync();
       setActiveModal(null);
-      Alert.alert(
-        t('privacy.deletionConfirmedTitle'),
+      toast.success(
         t('privacy.deletionConfirmedBody'),
-        [{ text: 'OK', onPress: handleSignOutAndExit }]
+        t('privacy.deletionConfirmedTitle')
       );
+      handleSignOutAndExit();
     } catch (err) {
-      Alert.alert(t('common.error'), err instanceof Error ? err.message : 'Failed to delete household.');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete household.', t('common.error'));
     } finally {
       setIsSubmitting(false);
     }

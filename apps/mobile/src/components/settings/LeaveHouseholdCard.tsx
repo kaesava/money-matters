@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
-import { showMobileConfirm } from '@money-matters/ui/mobile';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 
@@ -9,6 +9,7 @@ interface LeaveHouseholdCardProps {
 }
 
 export function LeaveHouseholdCard({ onLeft }: LeaveHouseholdCardProps) {
+  const toast = useMobileToast();
   const [leaveConfirmText, setLeaveConfirmText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const leaveHouseholdMutation = trpc.leaveMyHousehold.useMutation();
@@ -28,13 +29,13 @@ export function LeaveHouseholdCard({ onLeft }: LeaveHouseholdCardProps) {
         setIsSubmitting(true);
         try {
           await leaveHouseholdMutation.mutateAsync();
-          Alert.alert(
-            'Household Left',
+          toast.success(
             t('privacy.leftHouseholdSuccess'),
-            [{ text: 'OK', onPress: onLeft }]
+            'Household Left'
           );
+          onLeft();
         } catch (err) {
-          Alert.alert('Leave Error', err instanceof Error ? err.message : 'Leaving household failed.');
+          toast.error(err instanceof Error ? err.message : 'Leaving household failed.', 'Leave Error');
         } finally {
           setIsSubmitting(false);
         }

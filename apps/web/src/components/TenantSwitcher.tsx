@@ -47,17 +47,9 @@ export const TenantSwitcher: React.FC = () => {
               }`}
             >
               <span>{tenant.name}</span>
-              {tenant.isCurrent && <span className="text-emerald-600 font-bold">✓ Active</span>}
+              {tenant.isCurrent && <span className="text-emerald-600 font-bold">✓ {t("tenantSwitcher.active")}</span>}
             </button>
           ))}
-          <div className="border-t border-slate-100 mt-2 pt-2 px-3">
-            <button
-              onClick={() => window.location.href = '/dashboard/settings'}
-              className="text-xs text-blue-600 font-bold hover:underline"
-            >
-              {t("tenantSwitcher.joinOrInvite")}
-            </button>
-          </div>
         </div>
       )}
     </div>

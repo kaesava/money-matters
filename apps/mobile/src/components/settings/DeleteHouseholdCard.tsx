@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
-import { showMobileConfirm } from '@money-matters/ui/mobile';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 
@@ -17,6 +17,7 @@ export function DeleteHouseholdCard({
   partnerEmail,
   onDeleted,
 }: DeleteHouseholdCardProps) {
+  const toast = useMobileToast();
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const deleteAccountMutation = trpc.deleteMyAccount.useMutation();
@@ -36,13 +37,13 @@ export function DeleteHouseholdCard({
         setIsSubmitting(true);
         try {
           await deleteAccountMutation.mutateAsync();
-          Alert.alert(
-            t('privacy.deletionConfirmedTitle'),
+          toast.success(
             t('privacy.deletionConfirmedBody'),
-            [{ text: 'OK', onPress: onDeleted }]
+            t('privacy.deletionConfirmedTitle')
           );
+          onDeleted();
         } catch (err) {
-          Alert.alert('Deletion Error', err instanceof Error ? err.message : 'Account erasure failed.');
+          toast.error(err instanceof Error ? err.message : 'Account erasure failed.', 'Deletion Error');
         } finally {
           setIsSubmitting(false);
         }

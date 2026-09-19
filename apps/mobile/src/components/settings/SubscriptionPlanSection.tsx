@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Linking, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Linking, StyleSheet } from 'react-native';
+import { useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
 
 export function SubscriptionPlanSection() {
+  const toast = useMobileToast();
   const statusQuery = trpc.getSubscriptionStatus.useQuery();
   const checkoutMut = trpc.createCheckoutSession.useMutation();
   const portalMut = trpc.createCustomerPortalSession.useMutation();
@@ -19,13 +21,11 @@ export function SubscriptionPlanSection() {
         planName = t('subscription.planFounding');
       } else if (status.planType === 'annual') {
         planName = t('subscription.planAnnual');
-      } else if (status.planType === 'monthly') {
-        planName = t('subscription.planMonthly');
       } else {
-        planName = t('subscription.planActive');
+        planName = t('subscription.planMonthly');
       }
-    } else if (status.status === 'TRIAL_ACTIVE') {
-      planName = t('subscription.planTrial', { days: String(status.daysRemainingInTrial ?? 0) });
+    } else if (status.status === 'TRIAL_ACTIVE' || status.status === 'TRIAL_GRACE') {
+      planName = t('subscription.planTrial');
     } else if (status.status === 'TRIAL_EXPIRED') {
       planName = t('subscription.planExpired');
     } else if (status.status === 'PAST_DUE') {
@@ -44,7 +44,7 @@ export function SubscriptionPlanSection() {
         Linking.openURL(res.url);
       }
     } catch (err) {
-      Alert.alert('Checkout Error', err instanceof Error ? err.message : 'Failed to launch checkout.');
+      toast.error(err instanceof Error ? err.message : 'Failed to launch checkout.', 'Checkout Error');
     }
   };
 
@@ -57,7 +57,7 @@ export function SubscriptionPlanSection() {
         Linking.openURL(res.url);
       }
     } catch (err) {
-      Alert.alert('Billing Portal Error', err instanceof Error ? err.message : 'Failed to open customer portal.');
+      toast.error(err instanceof Error ? err.message : 'Failed to open customer portal.', 'Billing Portal Error');
     }
   };
 

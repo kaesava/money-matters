@@ -355,27 +355,43 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 
 ### 9.4 Mobile Component & Routing Architecture (`apps/mobile`)
 - **Routing Structure (Expo Router File-Based Routing)**:
-  - `apps/mobile/src/app/(app)/_layout.tsx`: Root tab bar and header navigation shell.
+  - `apps/mobile/src/app/(app)/_layout.tsx`: Root 4-tab bar (`Home`, `Schedules`, `Upcoming`, `Pools`) and header shell dynamically padded using `useSafeAreaInsets` above Android's system gesture bar.
   - `apps/mobile/src/app/(app)/home.tsx`: Dashboard with Hero card, linked bank accounts summary, 3 bento cards, attention queue, pull-to-refresh, trial status banner.
-  - `apps/mobile/src/app/(app)/paychecks.tsx`: Income and bills command center with 3 tabs: Upcoming timeline, 12-Month Rolling Matrix Plan (`MobileMatrixPlanTab.tsx`), and Income/Expense recurring schedules.
+  - `apps/mobile/src/app/(app)/paychecks.tsx`: Income and bills command center with 3 tabs: Upcoming timeline, 12-Month Rolling Matrix Plan (`MobileMatrixPlanTab.tsx`), and Income/Expense recurring schedules ("Schedules" tab). Supports deep-linking to `tab=events`.
+  - `apps/mobile/src/app/(app)/upcoming.tsx`: Dedicated 4th tab deep-linking directly into the Events & Timeline view of `paychecks?tab=events`.
   - `apps/mobile/src/app/(app)/paychecks/[id].tsx`: Parameterized distraction-free Income Split Studio with plan source badges, direct amount inputs with quick chips, interactive auto-surplus/deficit meter, bank-aware rollup card (`MobileBankTransferRollupCard`), and execution confirmation.
   - `apps/mobile/src/app/(app)/categories.tsx`: Pools and Categories management hub with 12M timeline scrubber, categorized pool cards, and balance reconciliation modal (`MobileReconciliationModal.tsx`).
   - `apps/mobile/src/app/(app)/pools/[id].tsx`: Pool detail view with category list, category item bottom sheet modal (`CategoryItemModal.tsx`), move money, and archive controls.
   - `apps/mobile/src/app/(app)/afford-check.tsx`: Standalone "Can We Afford This?" simulator with 5-level verdict, daily pacing velocity impact, and goal completion delay estimation.
-  - `apps/mobile/src/app/(app)/transactions.tsx`: Consolidated 2-tab history screen (Tab 1: Transactions Ledger with paired transfer detection `Source ➔ Dest`, advanced filters, pagination, CSV export; Tab 2: Payday Allocations audit log with `MobilePaydayAllocationDetailModal`).
-  - `apps/mobile/src/app/(app)/settings.tsx`: Complete settings hub with modular sections (`MobileProfileSection`, `HouseholdDetailsSection`, `HouseholdPartnerInviteSection`, `HouseholdDangerZoneSection`, `PrivacyGovernanceSection`).
-  - `apps/mobile/src/app/(app)/settings/bank-accounts.tsx`: Bank accounts management with provider branding (`BankProviderBadge`), linked pool balances, stealth private toggles, and 1-click balance alignment.
+  - `apps/mobile/src/app/(app)/transactions.tsx`: Consolidated 2-tab history screen accessible via Header Avatar menu (Tab 1: Transactions Ledger with paired transfer detection `Source ➔ Dest`, search, advanced filters, pagination, CSV export; Tab 2: Payday Allocations audit log with `MobilePaydayAllocationDetailModal`).
+  - `apps/mobile/src/app/(app)/settings.tsx`: Complete settings hub reorganized into 4 top segmented tabs (`[🏡 Household | ⚙️ Preferences | 💳 Plan | 🛡️ Privacy]`) eliminating vertical scrolling and matching web modularity.
+  - `apps/mobile/src/app/(app)/settings/bank-accounts.tsx`: Bank accounts management accessible via Header Avatar menu with provider branding (`BankProviderBadge`), linked pool balances, stealth private toggles, and 1-click balance alignment.
   - `apps/mobile/src/app/(app)/settings/archived.tsx`: Restorable archive viewer for pools, categories, income schedules, and expense bills.
   - `apps/mobile/src/app/(app)/settings/history.tsx`: Seamless redirection to `/(app)/transactions?tab=payday-allocations` (MECE compliance).
   - `apps/mobile/src/app/(setup)/income.tsx`, `apps/mobile/src/app/(setup)/categories.tsx`, `apps/mobile/src/app/(setup)/complete.tsx`: 3-step interactive onboarding wizard with Australian family presets and AEST timezone-aware date pickers.
-- **Mobile Hardware & Platform Services**:
+- **Header Avatar & Profile Menu (`ScreenHeader` & `ScreenMenuModal`)**:
+  - Displays user avatar photo if available; otherwise renders person icon / user initials.
+  - Tapping opens the financial profile menu modal featuring:
+    1. User Card: Photo/Avatar, Display Name, Email, Active Household Badge.
+    2. **Change Household**: Displayed only if user belongs to >1 household, allows 1-tap switching via `MobileTenantSwitcherModal`, and marks the active household with `✓ Active`.
+    3. **Bank Accounts**: Direct navigation to `/(app)/settings/bank-accounts`.
+    4. **History**: Direct navigation to `/(app)/transactions`.
+    5. **Settings**: Direct navigation to `/(app)/settings`.
+    6. **Sign Out**: Guarded by styled `<MobileConfirmDialog />`.
+- **Mobile Hardware, Platform Services & Edge-to-Edge**:
+  - `react-native-safe-area-context`: Wrapped at root level in `AppProviders.tsx`, replacing deprecated `SafeAreaView` with dynamic `useSafeAreaInsets` across all screens, headers, modals, and tab bars for full Android edge-to-edge compatibility.
   - `apps/mobile/src/lib/biometrics.ts`: Hardware security & local authentication wrapper (`expo-local-authentication`, `expo-secure-store`) with 2-minute background inactivity lock.
   - `apps/mobile/src/lib/haptics.ts`: Tactile feedback engine (`expo-haptics`) supporting light/medium/heavy/success impact patterns and user preferences.
-  - `apps/mobile/src/lib/trpc.ts`: Centralized 401 token refresh interceptor reloading refreshed JWT credentials upon session expiry, with multi-key SecureStore and cookie extraction (`getStoredTokenAndCookie`) for seamless background tRPC authentication.
+  - `apps/mobile/src/lib/trpc.ts`: Centralized 401 token refresh interceptor reloading refreshed JWT credentials upon session expiry, with multi-key SecureStore, active tenant switching (`switchActiveTenant` / `money_matters_active_tenant_id`), and cookie extraction (`getStoredTokenAndCookie`) for seamless background tRPC authentication.
   - `apps/mobile/eas.json`: EAS Build matrix supporting `development` (internal client), `preview` (standalone APK for testing), and `production` (Google Play App Bundle / AAB). Pinned to Expo SDK 54 with `react-native-screens` 4.16.0 compatibility.
 - **Mobile Primitives in `@money-matters/ui`**:
   - `packages/ui/src/mobile/BankProviderBadge.tsx`: Branded provider badges for Australian banks (CBA, Westpac, ANZ, NAB, ING, Macquarie, Other).
   - `packages/ui/src/mobile/ToastContext.tsx`: Non-blocking mobile toast alert system (`MobileToastProvider`, `useMobileToast`).
+  - `packages/ui/src/mobile/fields/DatePickerField.tsx` & `CalendarModal.tsx`: Standardized Serene Finance Date Picker with AEST date display, quick chips (`Today`, `Yesterday`, `Tomorrow`), and custom bottom-sheet calendar modal.
+  - `packages/ui/src/mobile/SegmentedTabs.tsx`: Serene pill-style segmented tab control with smooth transitions.
+  - `packages/ui/src/mobile/SearchInput.tsx`: Standardized search input with 44dp touch target, `left-3.5` search icon, and `pl-10` padding.
+  - `packages/ui/src/mobile/SkeletonCard.tsx`: Shimmer loading skeleton for cards and table rows.
+  - `packages/ui/src/mobile/fields/Checkbox.tsx` & `SelectField.tsx`: Standardized form inputs consuming Serene design tokens.
 
 
 ### 9.5 Expenses Router Note Formatting (`apps/api/src/routers/expenses.router.ts`)
@@ -391,6 +407,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 ### 9.7 UI Primitives, LIFO Modal Stack & Interaction Hierarchy (`packages/ui`)
 - **`PoolPicker`**:
   - Requires mandatory `showBalance: boolean` prop. Controls whether pool chips and dropdown options display current balance badges (useful for contextual selection where balance display might be redundant or clutter the UI).
+  - Supports `allowAllOption?: boolean` (and `allOptionLabel?: string`) for filter dropdown contexts, rendering a pinned "All Pools" option at the top with active checkmark indicator, plus a quick clear `(X)` reset button on the trigger field when a pool/category filter is applied.
 - **Centralized LIFO Modal Stack Manager (`modalStack.ts` / `useModalDismiss`)**:
   - Managed via `@money-matters/ui/web` (`packages/ui/src/web/modalStack.ts`), maintaining a global Last-In-First-Out (LIFO) modal registry.
   - Subscribes `ConfirmDialog`, `SlideOverDrawer`, `ModalDialog`, `ReconciliationModal`, and `CrossBankTransferModal`.

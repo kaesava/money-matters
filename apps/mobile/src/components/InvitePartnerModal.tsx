@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import {
   DESIGN_TOKENS,
   MobileModalDialog,
   MobileInput,
   MobileButton,
   FormErrorBanner,
+  useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
@@ -21,15 +22,16 @@ export const InvitePartnerModal: React.FC<InvitePartnerModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const toast = useMobileToast();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [generalError, setGeneralError] = useState('');
 
   const invitePartnerMutation = trpc.invitePartner.useMutation({
     onSuccess: (data) => {
-      Alert.alert(
-        t('partner.inviteSent'),
-        t('partner.inviteSentSuccess', { email: data.inviteEmail })
+      toast.success(
+        t('partner.inviteSentSuccess', { email: data.inviteEmail }),
+        t('partner.inviteSent')
       );
       setEmail('');
       setEmailError('');

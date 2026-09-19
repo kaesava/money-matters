@@ -9,12 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileLogo } from "@money-matters/ui/mobile";
+import { DESIGN_TOKENS, MobileLogo, useMobileToast } from "@money-matters/ui/mobile";
 import { SUPPORTED_COUNTRIES } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
@@ -22,11 +21,12 @@ import * as SecureStore from "expo-secure-store";
 import { registerPushNotificationsAsync } from "../../lib/push";
 
 export default function SignUpScreen() {
+  const toast = useMobileToast();
   const router = useRouter();
   const posthog = usePostHog();
   const [name, setName] = useState("");
-  const [country, setCountry] = useState("AU");
   const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("AU");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,25 +36,25 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !name) {
-      Alert.alert(
-        t("auth.signUpErrorTitle"),
-        t("common.required", { defaultValue: "This field is required." })
+      toast.error(
+        t("common.required", { defaultValue: "This field is required." }),
+        t("auth.signUpErrorTitle")
       );
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert(
-        t("auth.signUpErrorTitle"),
-        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." })
+      toast.error(
+        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." }),
+        t("auth.signUpErrorTitle")
       );
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert(
-        t("auth.signUpErrorTitle"),
-        t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." })
+      toast.error(
+        t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." }),
+        t("auth.signUpErrorTitle")
       );
       return;
     }
@@ -69,9 +69,9 @@ export default function SignUpScreen() {
       });
 
       if (signUpResult.error) {
-        Alert.alert(
-          t("auth.signUpErrorTitle"),
-          signUpResult.error.message ?? t("auth.signUpErrorGeneric")
+        toast.error(
+          signUpResult.error.message ?? t("auth.signUpErrorGeneric"),
+          t("auth.signUpErrorTitle")
         );
         return;
       }
@@ -114,9 +114,9 @@ export default function SignUpScreen() {
       // 3. Navigate to the setup wizard
       router.replace("/(setup)/income");
     } catch (err) {
-      Alert.alert(
-        t("auth.signUpErrorTitle"),
-        err instanceof Error ? err.message : String(err)
+      toast.error(
+        err instanceof Error ? err.message : String(err),
+        t("auth.signUpErrorTitle")
       );
     } finally {
       setLoading(false);

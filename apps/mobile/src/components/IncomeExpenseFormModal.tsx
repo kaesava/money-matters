@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import {
   DESIGN_TOKENS,
   MobileModalDialog,
@@ -11,6 +11,7 @@ import {
   FormFieldError,
   RecurrenceBuilder,
   useRecurrenceBuilder,
+  useMobileToast,
 } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 import { formatIsoDate } from '../lib/format';
@@ -36,6 +37,7 @@ interface IncomeExpenseFormModalProps {
 }
 
 export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, onSuccess }: IncomeExpenseFormModalProps) {
+  const toast = useMobileToast();
   const categoriesQuery = trpc.listCategories.useQuery(undefined, { enabled: visible && mode === 'EXPENSE' });
   const categories = categoriesQuery.data ?? [];
 
@@ -90,7 +92,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
       setFrequency('MONTHLY');
       setInterval(1);
       setStartDate(formatIsoDate(new Date()));
-      setEndDate(null);
+      setEndDate('');
       setCategoryId('');
     }
     setNameError('');
@@ -108,7 +110,7 @@ export function IncomeExpenseFormModal({ visible, mode, sourceToEdit, onClose, o
   const updateIncomeMut = trpc.updateIncomeSource.useMutation({
     onSuccess: (res: { hasConfirmedHistory?: boolean }) => {
       if (res?.hasConfirmedHistory) {
-        Alert.alert('Notice', "Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.");
+        toast.info("Note: Paydays that have already been confirmed won't be changed. Only unperformed future occurrences have been updated.", 'Notice');
       }
       onSuccess?.();
       onClose();

@@ -9,14 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS } from "@money-matters/ui/mobile";
+import { DESIGN_TOKENS, useMobileToast } from "@money-matters/ui/mobile";
 import { authClient } from "../../lib/auth";
 
 export default function ResetPasswordScreen() {
+  const toast = useMobileToast();
   const router = useRouter();
   const { token, error } = useLocalSearchParams<{ token?: string; error?: string }>();
   const { data: session, isPending: sessionPending } = authClient.useSession();
@@ -25,8 +25,7 @@ export default function ResetPasswordScreen() {
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    if (sessionPending) return;
-    if (!token && !error) {
+    if (!sessionPending) {
       if (session) {
         router.replace("/(app)/home");
       } else {
@@ -37,46 +36,46 @@ export default function ResetPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (error) {
-      Alert.alert(t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }), error);
+      toast.error(error, t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }));
       return;
     }
 
     if (!token) {
-      Alert.alert(
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
-        t("auth.invalidToken", { defaultValue: "Invalid or missing password reset token." })
+      toast.error(
+        t("auth.invalidToken", { defaultValue: "Invalid or missing password reset token." }),
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
       );
       return;
     }
 
     if (!newPassword) {
-      Alert.alert(
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
-        t("auth.passwordRequired", { defaultValue: "Password is required." })
+      toast.error(
+        t("auth.passwordRequired", { defaultValue: "Password is required." }),
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
       );
       return;
     }
 
     if (newPassword.length < 8) {
-      Alert.alert(
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
-        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." })
+      toast.error(
+        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." }),
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
       );
       return;
     }
 
     if (!/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword)) {
-      Alert.alert(
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
-        t("auth.passwordComplexityRequired", { defaultValue: "Password must contain at least one number or special character." })
+      toast.error(
+        t("auth.passwordComplexityRequired", { defaultValue: "Password must contain at least one number or special character." }),
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
       );
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert(
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
-        t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." })
+      toast.error(
+        t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." }),
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
       );
       return;
     }
@@ -89,27 +88,22 @@ export default function ResetPasswordScreen() {
       });
 
       if (res.error) {
-        Alert.alert(
-          t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
-          res.error.message ?? t("auth.resetPasswordGenericError", { defaultValue: "Failed to reset password." })
+        toast.error(
+          res.error.message ?? t("auth.resetPasswordGenericError", { defaultValue: "Failed to reset password." }),
+          t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
         );
         return;
       }
 
-      Alert.alert(
-        t("auth.resetPasswordSuccessTitle", { defaultValue: "Success" }),
+      toast.success(
         t("auth.resetPasswordSuccessMessage", { defaultValue: "Your password has been successfully reset. Please sign in with your new password." }),
-        [
-          {
-            text: t("common.done", { defaultValue: "Done" }),
-            onPress: () => router.replace("/(auth)/sign-in"),
-          },
-        ]
+        t("auth.resetPasswordSuccessTitle", { defaultValue: "Success" })
       );
+      router.replace("/(auth)/sign-in");
     } catch (err) {
-      Alert.alert(
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }),
-        err instanceof Error ? err.message : String(err)
+      toast.error(
+        err instanceof Error ? err.message : String(err),
+        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
       );
     } finally {
       setLoading(false);

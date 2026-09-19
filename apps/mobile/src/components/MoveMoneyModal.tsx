@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { DESIGN_TOKENS, MobileModalDialog, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../lib/trpc';
 import { formatAUD } from '../lib/format';
 
@@ -11,6 +11,7 @@ interface MoveMoneyModalProps {
 }
 
 export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalProps) {
+  const toast = useMobileToast();
   const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const categories = categoriesQuery.data ?? [];
 
@@ -28,11 +29,15 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
 
   const moveMoneyMut = trpc.moveMoney.useMutation({
     onSuccess: () => {
+      toast.success('Money moved successfully.');
       setFromCategoryId('');
       setToCategoryId('');
       setAmount('');
       onSuccess?.();
       onClose();
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to move money.');
     },
   });
 
@@ -44,12 +49,12 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
 
   const handleSubmit = async () => {
     if (!fromCategoryId || !toCategoryId || !amount || parseFloat(amount) <= 0) {
-      Alert.alert('Validation Error', 'Please select source/destination categories and a valid amount.');
+      toast.error('Please select source/destination pools and a valid amount.');
       return;
     }
 
     if (fromCategoryId === toCategoryId) {
-      Alert.alert('Validation Error', 'Source and destination categories must be different.');
+      toast.error('Source and destination pools must be different.');
       return;
     }
 

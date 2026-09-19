@@ -51,7 +51,11 @@ if (process.env.SENTRY_DSN) {
 
 server.register(cors, {
   origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    const isLocalDevOrigin = !isDev
+      ? false
+      : typeof origin === "string" && /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.0\.2\.2)(:\d+)?$/.test(origin);
+
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || isLocalDevOrigin) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin '${origin}' not allowed`), false);

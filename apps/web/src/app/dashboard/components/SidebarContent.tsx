@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { t } from "@money-matters/i18n";
 import { Logo } from "@money-matters/ui/web";
 import { SidebarTrialNavItem } from "../../../components/TrialStatusBadge";
@@ -20,7 +21,8 @@ export interface SidebarContentProps {
   navItems: readonly NavItem[];
   pathname: string;
   setMobileMenuOpen: (open: boolean) => void;
-  sessionUser?: { name?: string | null; email?: string | null } | null;
+  sessionUser?: { name?: string | null; email?: string | null; image?: string | null } | null;
+  avatarUrl?: string | null;
   initials: string;
   onNavigateToSettings: () => void;
   onSignOut: () => void;
@@ -33,10 +35,13 @@ export function SidebarContent({
   pathname,
   setMobileMenuOpen,
   sessionUser,
+  avatarUrl,
   initials,
   onNavigateToSettings,
   onSignOut,
 }: SidebarContentProps) {
+  const effectiveAvatar = avatarUrl || sessionUser?.image || null;
+
   return (
     <div className="flex flex-col h-full">
       {/* Brand Logo header */}
@@ -109,33 +114,65 @@ export function SidebarContent({
         </div>
       </nav>
 
-      {/* User profile section at the bottom */}
-      <div className="p-4 border-t border-white/10 shrink-0">
+      {/* User profile and prominent sign out section at bottom */}
+      <div className="p-3 border-t border-white/10 shrink-0 space-y-2">
         <div
           onClick={onNavigateToSettings}
-          className={`flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors ${sidebarCollapsed ? "justify-center" : ""}`}
-          title="View User Profile in Settings"
+          className={`flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group ${sidebarCollapsed ? "justify-center" : ""}`}
+          title={t("settings.profile")}
         >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15" style={{ backgroundColor: "#2563eb" }}>
-            {initials}
-          </div>
+          {effectiveAvatar ? (
+            <Image
+              unoptimized
+              src={effectiveAvatar}
+              alt={sessionUser?.name || "User"}
+              width={36}
+              height={36}
+              className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-white/15 group-hover:ring-[#2563eb] transition-all"
+            />
+          ) : (
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0 ring-2 ring-white/15 group-hover:ring-[#2563eb] transition-all"
+              style={{ backgroundColor: "#2563eb" }}
+            >
+              {initials}
+            </div>
+          )}
           {!sidebarCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-extrabold text-white truncate">{sessionUser?.name}</p>
+              <p className="text-xs font-extrabold text-white truncate group-hover:text-blue-300 transition-colors">
+                {sessionUser?.name}
+              </p>
               <p className="text-[10px] text-[#9EACC7] truncate">{sessionUser?.email}</p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSignOut();
-                }}
-                className="text-[10px] font-semibold text-[#9EACC7] hover:text-rose-400 transition-colors mt-1 block text-left cursor-pointer"
-              >
-                {t("settings.signOut")} →
-              </button>
             </div>
           )}
         </div>
+
+        {/* Prominent Sign Out Button */}
+        {!sidebarCollapsed ? (
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 hover:border-rose-500/40 transition-all cursor-pointer shadow-xs active:scale-98"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>{t("settings.signOut")}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onSignOut}
+            title={t("settings.signOut")}
+            aria-label={t("settings.signOut")}
+            className="w-9 h-9 mx-auto flex items-center justify-center rounded-xl text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/25 transition-all cursor-pointer active:scale-95"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

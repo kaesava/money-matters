@@ -8,9 +8,16 @@ import {
   RefreshControl,
   TextInput,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileScreenWrapper } from '@money-matters/ui/mobile';
+import {
+  DESIGN_TOKENS,
+  SegmentedTabs,
+  SearchInput,
+  SkeletonCard,
+  showMobileConfirm,
+} from '@money-matters/ui/mobile';
+import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -23,16 +30,28 @@ import { EventOverrideModal } from '../../components/EventOverrideModal';
 import { PaycheckEventSection, PaycheckIncomeEvent, PaycheckExpenseEvent } from '../../components/paychecks/PaycheckEventSection';
 import { IncomeSourceCard, IncomeSourceItem } from '../../components/paychecks/IncomeSourceCard';
 import { ExpenseBillCard, ExpenseSourceItem } from '../../components/paychecks/ExpenseBillCard';
-import { showMobileConfirm } from '@money-matters/ui/mobile';
 
 export type PaycheckTabSegment = 'MATRIX' | 'EVENTS' | 'SOURCES';
 
-export default function IncomeAndBillsScreen() {
+interface IncomeAndBillsScreenProps {
+  initialTab?: PaycheckTabSegment;
+}
+
+export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScreenProps = {}) {
   const router = useRouter();
+  const searchParams = useLocalSearchParams<{ tab?: string }>();
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
 
-  const [activeSegment, setActiveSegment] = useState<PaycheckTabSegment>('MATRIX');
+  const resolvedInitialTab: PaycheckTabSegment = initialTab || (
+    searchParams.tab?.toUpperCase() === 'EVENTS'
+      ? 'EVENTS'
+      : searchParams.tab?.toUpperCase() === 'SOURCES'
+      ? 'SOURCES'
+      : 'MATRIX'
+  );
+
+  const [activeSegment, setActiveSegment] = useState<PaycheckTabSegment>(resolvedInitialTab);
   const [refreshing, setRefreshing] = useState(false);
 
   const [formModalVisible, setFormModalVisible] = useState(false);
@@ -164,12 +183,9 @@ export default function IncomeAndBillsScreen() {
   });
 
   return (
-    <MobileScreenWrapper
-      title={t('nav.payday') || 'Income & Bills'}
-      user={session?.user}
-      onNavigateHome={() => router.push('/(app)/home')}
-      onNavigateCategories={() => router.push('/(app)/categories')}
-      onNavigateSettings={() => router.push('/(app)/settings')}
+    <AppScreenWrapper
+      title={t('nav.schedules') || 'Schedules'}
+      scrollable={false}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -182,58 +198,16 @@ export default function IncomeAndBillsScreen() {
           />
         }
       >
-        {/* 3-Way Segmented Navigation Header */}
-        <View style={styles.segmentContainer}>
-          <TouchableOpacity
-            style={[
-              styles.segmentBtn,
-              activeSegment === 'MATRIX' && styles.segmentBtnActive,
+        <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10 }}>
+          <SegmentedTabs<PaycheckTabSegment>
+            tabs={[
+              { key: 'MATRIX', label: '12M Matrix', icon: 'grid' },
+              { key: 'EVENTS', label: 'Timeline', icon: 'clock' },
+              { key: 'SOURCES', label: 'Schedules', icon: 'repeat' },
             ]}
-            onPress={() => setActiveSegment('MATRIX')}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                activeSegment === 'MATRIX' && styles.segmentTextActive,
-              ]}
-            >
-              📊 12M Matrix
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.segmentBtn,
-              activeSegment === 'EVENTS' && styles.segmentBtnActive,
-            ]}
-            onPress={() => setActiveSegment('EVENTS')}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                activeSegment === 'EVENTS' && styles.segmentTextActive,
-              ]}
-            >
-              📅 Timeline
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.segmentBtn,
-              activeSegment === 'SOURCES' && styles.segmentBtnActive,
-            ]}
-            onPress={() => setActiveSegment('SOURCES')}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                activeSegment === 'SOURCES' && styles.segmentTextActive,
-              ]}
-            >
-              🔄 Schedules
-            </Text>
-          </TouchableOpacity>
+            activeKey={activeSegment}
+            onChange={setActiveSegment}
+          />
         </View>
 
         {/* View 1: 12-Month Matrix Plan Carousel */}
@@ -305,20 +279,12 @@ export default function IncomeAndBillsScreen() {
         {activeSegment === 'SOURCES' && (
           <View style={styles.sourcesView}>
             {/* Search row for schedules */}
-            <View style={styles.scheduleSearchWrap}>
-              <Feather name="search" size={15} color="#94A3B8" />
-              <TextInput
-                style={styles.scheduleSearchInput}
+            <View style={{ marginBottom: 16 }}>
+              <SearchInput
                 placeholder={t('payday.searchSchedules') || 'Search schedules...'}
                 value={scheduleSearchQuery}
                 onChangeText={setScheduleSearchQuery}
-                placeholderTextColor="#94A3B8"
               />
-              {scheduleSearchQuery ? (
-                <TouchableOpacity onPress={() => setScheduleSearchQuery('')}>
-                  <Feather name="x" size={14} color="#94A3B8" />
-                </TouchableOpacity>
-              ) : null}
             </View>
 
             {/* Income Schedules section */}
@@ -333,12 +299,14 @@ export default function IncomeAndBillsScreen() {
                 style={styles.addScheduleBtn}
               >
                 <Feather name="plus" size={14} color="#2563eb" />
-                <Text style={styles.addScheduleText}>Add Income</Text>
+                <Text style={styles.addScheduleText}>Add Income Schedule</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.cardsStack}>
-              {filteredIncomeSources.length === 0 ? (
+              {incomeSourcesQuery.isLoading ? (
+                <SkeletonCard count={2} />
+              ) : filteredIncomeSources.length === 0 ? (
                 <Text style={styles.emptySchedulesText}>
                   {t('payday.noIncomeSchedules') || 'No income schedules found.'}
                 </Text>
@@ -379,13 +347,15 @@ export default function IncomeAndBillsScreen() {
               >
                 <Feather name="plus" size={14} color="#ba1a1a" />
                 <Text style={[styles.addScheduleText, { color: '#ba1a1a' }]}>
-                  Add Bill
+                  Add Expense Bill
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.cardsStack}>
-              {filteredExpenseSources.length === 0 ? (
+              {expenseSourcesQuery.isLoading ? (
+                <SkeletonCard count={2} />
+              ) : filteredExpenseSources.length === 0 ? (
                 <Text style={styles.emptySchedulesText}>
                   {t('payday.noExpenseBills') || 'No expense bills found.'}
                 </Text>
@@ -473,7 +443,7 @@ export default function IncomeAndBillsScreen() {
           incomeEventsQuery.refetch();
         }}
       />
-    </MobileScreenWrapper>
+    </AppScreenWrapper>
   );
 }
 

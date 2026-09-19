@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { HouseholdReadOnlyView } from './HouseholdReadOnlyView';
 import { HouseholdEditView } from './HouseholdEditView';
 
 export function HouseholdDetailsSection() {
+  const toast = useMobileToast();
   const utils = trpc.useUtils();
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const gov = govQuery.data;
@@ -28,25 +30,19 @@ export function HouseholdDetailsSection() {
 
   useEffect(() => {
     if (gov) {
-      const hName = gov.householdName || '';
-      const cCode = gov.country || 'AU';
-      const curr = gov.currency || 'AUD';
-      const st = gov.state || '';
-      const pc = gov.postcode || '';
-
-      setHouseholdName(hName);
-      setCountry(cCode);
-      setCurrency(curr);
-      setState(st);
-      setPostcode(pc);
-
-      initialDataRef.current = {
-        householdName: hName,
-        country: cCode,
-        currency: curr,
-        state: st,
-        postcode: pc,
+      const data = {
+        householdName: gov.householdName || '',
+        country: gov.country || 'AU',
+        currency: gov.currency || 'AUD',
+        state: gov.state || '',
+        postcode: gov.postcode || '',
       };
+      setHouseholdName(data.householdName);
+      setCountry(data.country);
+      setCurrency(data.currency);
+      setState(data.state);
+      setPostcode(data.postcode);
+      initialDataRef.current = data;
     }
   }, [gov]);
 
@@ -55,10 +51,10 @@ export function HouseholdDetailsSection() {
       utils.getHouseholdGovernanceInfo.invalidate();
       utils.getUserPreferences.invalidate();
       setIsEditing(false);
-      Alert.alert(t('common.success'), 'Household details updated successfully.');
+      toast.success('Household details updated successfully.');
     },
     onError: (err) => {
-      Alert.alert(t('common.error'), err.message || 'Failed to update household details.');
+      toast.error(err.message || 'Failed to update household details.');
     },
   });
 
@@ -75,20 +71,16 @@ export function HouseholdDetailsSection() {
   const handleSelectCurrency = (newCurr: string) => {
     if (!isOwner) return;
     if (newCurr !== (gov?.currency || 'AUD')) {
-      Alert.alert(
-        t('settings.currencyConfirmTitle'),
-        t('settings.currencyConfirmBody', {
+      showMobileConfirm({
+        title: t('settings.currencyConfirmTitle'),
+        message: t('settings.currencyConfirmBody', {
           oldCurrency: gov?.currency || 'AUD',
           newCurrency: newCurr,
         }),
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          {
-            text: t('common.confirm'),
-            onPress: () => setCurrency(newCurr),
-          },
-        ]
-      );
+        confirmText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        onConfirm: () => setCurrency(newCurr),
+      });
     } else {
       setCurrency(newCurr);
     }
@@ -96,26 +88,22 @@ export function HouseholdDetailsSection() {
 
   const handleCancel = () => {
     if (isDirty) {
-      Alert.alert(
-        t('modals.discardChanges.title', { defaultValue: 'Discard changes?' }),
-        t('modals.discardChanges.description', { defaultValue: 'Are you sure you want to discard your unsaved changes?' }),
-        [
-          { text: t('modals.discardChanges.cancel', { defaultValue: 'Keep Editing' }), style: 'cancel' },
-          {
-            text: t('modals.discardChanges.discard', { defaultValue: 'Discard Changes' }),
-            style: 'destructive',
-            onPress: () => {
-              const init = initialDataRef.current;
-              setHouseholdName(init.householdName);
-              setCountry(init.country);
-              setCurrency(init.currency);
-              setState(init.state);
-              setPostcode(init.postcode);
-              setIsEditing(false);
-            },
-          },
-        ]
-      );
+      showMobileConfirm({
+        title: t('modals.discardChanges.title', { defaultValue: 'Discard changes?' }),
+        message: t('modals.discardChanges.description', { defaultValue: 'Are you sure you want to discard your unsaved changes?' }),
+        confirmText: t('modals.discardChanges.discard', { defaultValue: 'Discard Changes' }),
+        cancelText: t('modals.discardChanges.cancel', { defaultValue: 'Keep Editing' }),
+        isDestructive: true,
+        onConfirm: () => {
+          const init = initialDataRef.current;
+          setHouseholdName(init.householdName);
+          setCountry(init.country);
+          setCurrency(init.currency);
+          setState(init.state);
+          setPostcode(init.postcode);
+          setIsEditing(false);
+        },
+      });
     } else {
       setIsEditing(false);
     }
@@ -125,12 +113,12 @@ export function HouseholdDetailsSection() {
     if (!isOwner) return;
 
     if (!householdName.trim()) {
-      Alert.alert(t('common.error'), 'Household name cannot be blank.');
+      toast.error('Household name cannot be blank.');
       return;
     }
 
     if (country === 'AU' && postcode.trim() && !/^\d{4}$/.test(postcode.trim())) {
-      Alert.alert(t('common.error'), 'Australian postcode must be exactly 4 digits.');
+      toast.error('Australian postcode must be exactly 4 digits.');
       return;
     }
 

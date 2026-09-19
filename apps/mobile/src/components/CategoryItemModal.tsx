@@ -7,11 +7,10 @@ import {
   ScrollView,
   Switch,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, MobileModalDialog, useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
 
@@ -40,9 +39,9 @@ export function CategoryItemModal({
   onClose,
   onSuccess,
 }: CategoryItemModalProps) {
-  const isEdit = Boolean(categoryToEdit?.id);
-  const D = DESIGN_TOKENS;
+  const toast = useMobileToast();
   const utils = trpc.useUtils();
+  const isEdit = Boolean(categoryToEdit?.id);
 
   const [name, setName] = useState('');
   const [enteredAmount, setEnteredAmount] = useState('');
@@ -53,27 +52,29 @@ export function CategoryItemModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (categoryToEdit) {
-      setName(categoryToEdit.name || '');
-      setEnteredAmount(
-        categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || ''
-      );
-      setFrequency(categoryToEdit.budgetFrequency || 'MONTHLY');
-      setIsEssential(Boolean(categoryToEdit.isEssential));
-    } else {
-      setName('');
-      setEnteredAmount('');
-      setFrequency('MONTHLY');
-      setIsEssential(false);
+    if (visible) {
+      if (categoryToEdit) {
+        setName(categoryToEdit.name || '');
+        setEnteredAmount(
+          categoryToEdit.enteredAmount || categoryToEdit.monthlyAmount || ''
+        );
+        setFrequency(categoryToEdit.budgetFrequency || 'MONTHLY');
+        setIsEssential(Boolean(categoryToEdit.isEssential));
+      } else {
+        setName('');
+        setEnteredAmount('');
+        setFrequency('MONTHLY');
+        setIsEssential(false);
+      }
     }
-  }, [categoryToEdit, visible]);
+  }, [visible, categoryToEdit]);
 
   const createMut = trpc.createCategory.useMutation();
   const updateMut = trpc.updateCategory.useMutation();
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      Alert.alert(t('common.error'), 'Please enter a category name.');
+      toast.error('Please enter a category name.', t('common.error'));
       return;
     }
 
@@ -109,14 +110,15 @@ export function CategoryItemModal({
         });
       }
 
+      toast.success(isEdit ? 'Category updated successfully.' : 'Category created successfully.');
       utils.listCategories.invalidate();
       utils.listPools.invalidate();
       onSuccess?.();
       onClose();
     } catch (err) {
-      Alert.alert(
-        t('common.error'),
-        err instanceof Error ? err.message : 'Failed to save category'
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to save category',
+        t('common.error')
       );
     } finally {
       setSubmitting(false);

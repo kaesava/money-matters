@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  SafeAreaView,
   ViewStyle,
   TextStyle,
   ImageStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
 import { MobileSearchSelectOption } from './SearchSelect';
 
@@ -39,6 +39,7 @@ export function SearchSelectModal({
   renderOption,
   styles,
 }: SearchSelectModalProps) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal
       visible={visible}
@@ -46,7 +47,7 @@ export function SearchSelectModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <View style={[styles.modalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.modalHeader}>
           <View style={styles.searchInputContainer}>
             <Text style={styles.searchIcon}>🔍</Text>
@@ -102,7 +103,7 @@ export function SearchSelectModal({
             );
           }}
         />
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
