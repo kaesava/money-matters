@@ -22,6 +22,7 @@ import {
   AcceptInviteCommand,
   SyncLedgerMutationCommand,
   WaterfallExecutionPayload,
+  SaveSetupBudgetCommand,
 } from './commands.types';
 
 describe('Command Schemas Validation', () => {
@@ -210,5 +211,37 @@ describe('Command Schemas Validation', () => {
       executionLockId: '33333333-3333-4333-8333-333333333333',
     });
     expect(waterfall.paycheckAmount).toBe('3200.00');
+  });
+
+  it('validates SaveSetupBudgetCommand', () => {
+    const valid = SaveSetupBudgetCommand.parse({
+      incomes: [
+        { name: 'Primary Salary', type: 'SALARY', amount: '3500.00', frequency: 'FORTNIGHTLY' },
+      ],
+      bankAccounts: [
+        { name: 'Everyday Account', bankProvider: 'CBA', lastKnownBalance: '800.00' },
+      ],
+      pools: [
+        { name: 'Everyday Spending', poolType: 'EVERYDAY', everydayAllowanceAmount: '800.00' },
+      ],
+      categories: [
+        { name: 'Groceries', poolType: 'EVERYDAY', monthlyAmount: '600.00', icon: 'shopping-cart' },
+      ],
+      archivedPools: [],
+      archivedCategoryIds: [],
+      archetypeApplied: 'AUSSIE_2_ACCOUNT',
+    });
+    expect(valid.incomes).toHaveLength(1);
+    expect(valid.archetypeApplied).toBe('AUSSIE_2_ACCOUNT');
+
+    // Rejects empty incomes
+    expect(() =>
+      SaveSetupBudgetCommand.parse({
+        incomes: [],
+        bankAccounts: [{ name: 'Bank' }],
+        pools: [{ name: 'Pool', poolType: 'EVERYDAY' }],
+        categories: [],
+      })
+    ).toThrow();
   });
 });

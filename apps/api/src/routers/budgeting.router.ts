@@ -14,6 +14,7 @@ import {
   getMonthlySummaryQuery,
   listArchivedItemsQuery,
   getProjectedPoolBalancesQuery,
+  saveSetupBudgetHandler,
 } from "@money-matters/capability-budgeting";
 import {
   CreatePoolCommand,
@@ -21,6 +22,7 @@ import {
   MoveMoneyCommand,
   CreateCategoryCommand,
   UpdateCategoryCommand,
+  SaveSetupBudgetCommand,
 } from "@money-matters/types";
 import { z } from 'zod';
 
@@ -144,5 +146,13 @@ export const budgetingRouter = {
   getProjectedPoolBalances: privateTenantProcedure
     .query(async ({ ctx }) => {
       return await getProjectedPoolBalancesQuery(ctx.tenantId!, ctx.appId!, ctx.userId!, ctx.db);
+    }),
+
+  saveSetupBudget: privateTenantProcedure
+    .input(SaveSetupBudgetCommand)
+    .mutation(async ({ input, ctx }) => {
+      requiresWriteAccess(ctx);
+      const handler = saveSetupBudgetHandler(ctx.db);
+      return await handler(input, ctx.appId!, ctx.userId!, ctx.tenantId!);
     }),
 };

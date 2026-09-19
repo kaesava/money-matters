@@ -27,9 +27,7 @@ export default function SetupCategoriesScreen() {
   // Queries & Mutations
   const bankAccountsQuery = trpc.listBankAccountsWithExpected.useQuery();
   const existingCategoriesQuery = trpc.listPools.useQuery(undefined, { enabled: params.mode === 'rerun' });
-  const createIncomeSource = trpc.createIncomeSource.useMutation();
-  const createCategory = trpc.createPool.useMutation();
-  const updateUserPreferences = trpc.updateUserPreferences.useMutation();
+  const saveSetupBudgetMut = trpc.saveSetupBudget.useMutation();
 
   const allPresets = [...AUSTRALIAN_FAMILY_PRESETS, ...customPresets];
 
@@ -67,42 +65,88 @@ export default function SetupCategoriesScreen() {
   const handleCompleteSetup = async () => {
     setIsSubmitting(true);
     try {
-      const isRerun = params.mode === 'rerun';
+      const existingAccounts = bankAccountsQuery.data ?? [];
+      const bankAccountsPayload = existingAccounts.length > 0
+        ? existingAccounts.map((a) => ({
+            id: a.id,
+            name: a.name,
+            bankProvider: a.bankProvider,
+            lastKnownBalance: (parseFloat(a.lastKnownBalance || '0') || 0).toFixed(2),
+            unbudgetedBuffer: (parseFloat(a.unbudgetedBuffer || '0') || 0).toFixed(2),
+            isPrivate: a.isPrivate ?? false,
+          }))
+        : [
+            {
+              name: 'Everyday Spending Card',
+              bankProvider: 'CBA',
+              lastKnownBalance: '1000.00',
+              unbudgetedBuffer: '0.00',
+              isPrivate: false,
+            },
+          ];
 
-      if (isRerun) {
-        Alert.alert("Budget Reconciliation", "Budget reconciliation features are scheduled for Release 2.");
-        setIsSubmitting(false);
-        return;
-      } else {
-        // 1. Create main income source
-        const numericAmount = parseFloat(params.incomeAmount || '0') || 0;
-        const todayStr = formatIsoDate(new Date());
-        await createIncomeSource.mutateAsync({
+      const defaultBankAccountId = (bankAccountsPayload[0] as { id?: string })?.id;
+      const selectedList = allPresets.filter((p) => selected.has(p.id));
+
+      const poolsPayload = selectedList.map((cat) => {
+        const targetAmt = targets[cat.id] || allPresets.find((p) => p.id === cat.id)!.suggestedMonthlyAud.toString();
+        const monthly = parseFloat(targetAmt) || 100;
+        return {
+          name: cat.name,
+          poolType: cat.type as 'EVERYDAY' | 'REGULAR' | 'GOAL',
+          targetAmount: monthly.toFixed(2),
+          targetDate: cat.type === 'GOAL' ? formatIsoDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)) : undefined,
+          isSurplusTarget: cat.id === excessBucketId,
+          isCommitted: cat.type === 'GOAL',
+          isPrivate: false,
+          bankAccountId: defaultBankAccountId,
+        };
+      });
+
+      const categoriesPayload = selectedList.map((cat) => {
+        const targetAmt = targets[cat.id] || allPresets.find((p) => p.id === cat.id)!.suggestedMonthlyAud.toString();
+        const monthly = parseFloat(targetAmt) || 100;
+        return {
+          name: cat.name,
+          poolType: cat.type as 'EVERYDAY' | 'REGULAR' | 'GOAL',
+          monthlyAmount: monthly.toFixed(2),
+          enteredAmount: monthly.toFixed(2),
+          budgetFrequency: 'MONTHLY' as const,
+          icon: cat.emoji || 'wallet',
+          isEssential: cat.type === 'REGULAR',
+        };
+      });
+
+      const numericAmount = parseFloat(params.incomeAmount || '0') || 2000;
+      const incomesPayload = [
+        {
           name: params.incomeName || t('setup.income.defaultName', { defaultValue: 'My Salary' }),
           amount: numericAmount.toFixed(2),
-          isRecurring: true,
-          startDate: todayStr,
           frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
-        });
+          type: 'SALARY' as const,
+          receivingAccountId: defaultBankAccountId,
+        },
+      ];
 
-        // 2. Save categories & pools
-        const defaultBankAccountId = bankAccountsQuery.data?.[0]?.id || '';
-        const selectedList = allPresets.filter((p) => selected.has(p.id));
-        await Promise.all(
-          selectedList.map(async (cat) => {
-            const targetAmt = targets[cat.id] || allPresets.find((p) => p.id === cat.id)!.suggestedMonthlyAud.toString();
-            return await createCategory.mutateAsync({
-              name: cat.name,
-              poolType: cat.type,
-              bankAccountId: defaultBankAccountId,
-              targetAmount: parseFloat(targetAmt) > 0 ? parseFloat(targetAmt).toFixed(2) : undefined,
-            });
-          })
-        );
-
-        // 3. Mark setup as completed in the database
-        await updateUserPreferences.mutateAsync({ setupCompleted: true });
-      }
+      await saveSetupBudgetMut.mutateAsync({
+        incomes: incomesPayload,
+        bankAccounts: bankAccountsPayload,
+        pools: poolsPayload.length > 0 ? poolsPayload : [
+          {
+            name: 'Everyday Spending',
+            poolType: 'EVERYDAY',
+            everydayAllowanceAmount: '1000.00',
+            isSurplusTarget: false,
+            isCommitted: false,
+            isPrivate: false,
+            bankAccountId: defaultBankAccountId,
+          },
+        ],
+        categories: categoriesPayload,
+        archivedPools: [],
+        archivedCategoryIds: [],
+        archetypeApplied: 'ALL_IN_ONE_CUSTOM',
+      });
 
       router.replace('/(app)/home');
     } catch (err) {
@@ -118,12 +162,7 @@ export default function SetupCategoriesScreen() {
       title: t('setup.skipConfirmTitle'),
       message: t('setup.skipConfirmMessage'),
       confirmText: t('setup.skipConfirmButton'),
-      onConfirm: async () => {
-        try {
-          await updateUserPreferences.mutateAsync({ setupCompleted: true });
-        } catch (_e) {
-          // Ignore
-        }
+      onConfirm: () => {
         router.replace('/(app)/home');
       },
     });
@@ -133,7 +172,8 @@ export default function SetupCategoriesScreen() {
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.topNavRow}>
         <View style={styles.progressRow}>
-          <View style={styles.progressDot} />
+          <View style={[styles.progressDot, styles.progressDotActive]} />
+          <View style={[styles.progressDot, styles.progressDotActive]} />
           <View style={[styles.progressDot, styles.progressDotActive]} />
         </View>
         <TouchableOpacity
@@ -145,7 +185,7 @@ export default function SetupCategoriesScreen() {
         </TouchableOpacity>
       </View>
       
-      <Text style={styles.stepLabel}>{t('setup.stepOfTwo', { step: 2, total: 2, defaultValue: 'Step 2 of 2' })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 3, total: 3, defaultValue: 'Step 3 of 3' })}</Text>
       <Text style={styles.title}>{t('setup.bills.title', { defaultValue: 'Which bills do you have?' })}</Text>
       <Text style={styles.subtitle}>{t('setup.bills.subtitle', { defaultValue: "Tick the ones that apply and adjust the monthly amounts." })}</Text>
 

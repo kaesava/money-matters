@@ -285,3 +285,51 @@ export const BillingInvoiceSchema = z.object({
 }).strict();
 export type BillingInvoiceDto = z.infer<typeof BillingInvoiceSchema>;
 
+export const SaveSetupBudgetCommand = z.object({
+  incomes: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().min(1).max(100),
+    type: z.enum(["SALARY", "FREELANCE", "INVESTMENT", "OTHER"]),
+    amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/),
+    frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "CUSTOM"]),
+    receivingAccountId: z.string().optional().nullable(),
+  })).min(1),
+  bankAccounts: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().min(1).max(100),
+    bankProvider: z.string().optional().nullable(),
+    lastKnownBalance: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
+    unbudgetedBuffer: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/).default("0.00"),
+    isPrivate: z.boolean().default(false),
+  })).min(1),
+  pools: z.array(z.object({
+    id: z.string().optional(),
+    bankAccountId: z.string().optional().nullable(),
+    name: z.string().min(1).max(100),
+    poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]),
+    targetAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
+    targetDate: z.string().optional().nullable(),
+    everydayAllowanceAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
+    isSurplusTarget: z.boolean().default(false),
+    isCommitted: z.boolean().default(false),
+    isPrivate: z.boolean().default(false),
+  })).min(1),
+  categories: z.array(z.object({
+    id: z.string().optional(),
+    poolId: z.string().optional().nullable(),
+    poolType: z.enum(["EVERYDAY", "REGULAR", "GOAL"]).optional(),
+    name: z.string().min(1).max(100),
+    icon: z.string().default("wallet"),
+    monthlyAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).default("0.00"),
+    enteredAmount: z.string().regex(/^(\d{1,12}(\.\d{1,2})?)?$/).optional().nullable(),
+    budgetFrequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY", "ANNUALLY"]).default("MONTHLY"),
+    isEssential: z.boolean().default(false),
+  })),
+  archivedPools: z.array(z.object({
+    poolId: z.string(),
+    sweepDestinationPoolId: z.string().optional().nullable(),
+  })).default([]),
+  archivedCategoryIds: z.array(z.string()).default([]),
+  archetypeApplied: z.enum(["AUSSIE_2_ACCOUNT", "COUPLES_HYBRID", "ALL_IN_ONE_CUSTOM"]).optional(),
+}).strict();
+

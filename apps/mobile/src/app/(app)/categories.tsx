@@ -100,6 +100,14 @@ export default function PoolsScreen() {
         {/* Top Header Row with Add Pool & Move Money */}
         <View style={styles.topActionsRow}>
           <TouchableOpacity
+            onPress={() => router.push({ pathname: '/(setup)/income' as any, params: { mode: 'rerun' } })}
+            style={styles.recalibrateBtn}
+          >
+            <Feather name="settings" size={14} color="#64748B" />
+            <Text style={styles.recalibrateText}>{t('setup.recalibrateTitle')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={() => setMoveMoneyVisible(true)}
             style={styles.moveMoneyBtn}
           >
@@ -339,6 +347,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  recalibrateBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+  },
+  recalibrateText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
   },
   moveMoneyBtn: {
     flex: 1,

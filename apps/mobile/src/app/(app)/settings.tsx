@@ -84,6 +84,14 @@ export default function SettingsScreen() {
             <Text style={styles.cardTitle}>📂 Management & Logs</Text>
             <TouchableOpacity
               style={styles.navLink}
+              onPress={() => router.push('/(setup)/income?mode=rerun' as Href)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.navLinkText}>⚙️ {t('setup.recalibrateTitle')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navLink}
               onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
               activeOpacity={0.8}
             >

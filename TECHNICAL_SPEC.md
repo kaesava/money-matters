@@ -148,7 +148,13 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - Generates normalized monthly targets across **Regular Bills**, **Goal Sinking Funds**, and **Everyday Spending Categories** (Groceries, Dining, Personal, Incidentals).
 - Supports full category customization (custom category additions, amount overrides, and category deletions).
 - Enforces an automated **Database-Backed Setup Redirect Guard (`setupCompleted`)** on dashboard entry: Users with `setupCompleted: false` in `tenantUserPreferences` are automatically routed to the setup wizard (`/setup` on Web, `/(setup)/income` on Mobile). Cancelling, skipping, or completing setup updates `setupCompleted: true` in Neon DB, guaranteeing 100% cross-platform parity between Web and Mobile with zero reliance on client-side `localStorage`.
-- **Re-Run Budget Setup (`mode=rerun`)**: Accessible via `Settings → Re-run Budget Setup` on Web (`/setup?mode=rerun`) and Mobile (`/(setup)?mode=rerun`). Executes the backend `reSetupBudget` capability (`packages/capabilities/budgeting/src/commands/re-setup-budget.command.ts`) to adjust pool caps and categories while soft-archiving removed categories with transactions to preserve historical audit trails.
+- **Unified Setup & Safe Re-calibration Command (`saveSetupBudgetCommand`)**:
+  - Implemented in `packages/capabilities/budgeting/src/commands/save-setup-budget.command.ts` and exposed via `budgeting.saveSetupBudget` mutation under `privateTenantProcedure`.
+  - Serves as the single unified backend engine for both initial setup and safe re-calibration across Web and Mobile.
+  - Handles atomic bulk upserts of bank accounts, pools, and categories with zero N+1 database queries.
+  - **Australian Banking Archetypes**: Supports 3 household architectures: (1) Aussie 2-Account Blueprint (`AUSSIE_2_ACCOUNT`), (2) Couples Hybrid (`COUPLES_HYBRID`), and (3) All-in-One Virtual (`ALL_IN_ONE_CUSTOM`).
+  - **60-Second Sub-Account Cheat Sheet**: In-app modal drawer detailing fee-free sub-account creation across CBA, Up, Macquarie, ING, and Big 4 banks in under 60 seconds.
+  - **Safe 3-Step Re-calibration (`isRerun: true`)**: Skips the lifestyle quiz on re-runs to preserve customized user categories. If an active pool with positive balance ($> \$0.00$) is removed, triggers the Move Remaining Balance modal and atomically records balanced `TRANSFER_OUT` / `TRANSFER_IN` ledger records before soft-archiving the pool.
 
 ### 5.2 5-Step Waterfall Cascade Engine & Category Bucket Rules
 - **Category Bucket Rules**:

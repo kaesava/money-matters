@@ -390,12 +390,33 @@ function BankAccountsDashboardContent() {
           <button
             type="button"
             onClick={openAddModal}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <span>Add Bank Account</span>
           </button>
         </div>
       </div>
+
+      {/* Household Banking Optimizer banner when user has 1 or fewer bank accounts or all pools on 1 account */}
+      {accounts.length <= 1 && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-xs font-black text-[#1B2B4B] flex items-center gap-1.5">
+              <span>💡</span>
+              <span>{t("bankAccounts.optimizerBannerTitle")}</span>
+            </h3>
+            <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+              {t("bankAccounts.optimizerBannerDesc")}
+            </p>
+          </div>
+          <a
+            href="/setup?mode=rerun"
+            className="px-3.5 py-2 text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-xs shrink-0 self-start sm:self-center cursor-pointer"
+          >
+            {t("bankAccounts.optimizerBannerAction")}
+          </a>
+        </div>
+      )}
 
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between shadow-xs">

@@ -210,28 +210,36 @@ Once a user reviews and confirms an allocation plan:
 
 ---
 
-## 3. Onboarding Experience (Full Interactive Estimation & Setup Engine)
+## 3. Onboarding & Setup Re-calibration Experience
 
 The onboarding flow delivers an engaging interactive estimation experience completing in under 60 seconds with 2025/2026 ABS benchmark estimates across both Web & Mobile:
 
 1. **Step 1: Income & Earnings (Dynamic Multi-Income Entry)**:
    - Dynamic list of income sources (Primary Income, Side Hustle, Consulting, etc.) allowing users to add as many income sources as needed one at a time.
    - Per-income item details: Name/label, take-home amount ($), and frequency (Weekly / Fortnightly / Monthly). No partner-centric assumptions, supporting both single individuals and multi-income households.
-2. **Step 2: Lifestyle Setup (Per-Item Vehicle & Child Configurations)**:
-   - **Housing**: Own (Mortgage) | Own (Outright) | Rent (Solo) | Rent (Sharehouse).
-   - **Transport (Per-Vehicle Configuration)**: Checkbox for vehicle ownership with dynamic per-vehicle configuration (Vehicle name/label + vehicle class: Small/Hatchback, Mid-size SUV/Sedan, Luxury/4WD). Plus options for Public Transport and Rideshare.
-   - **Family (Per-Child Configuration)**: Checkbox for dependents with dynamic per-child configuration (Child name/label + school stage: Childcare, Primary, Secondary + school type: Public, Catholic, Private).
-   - **Health & Wellbeing**: Private Health Cover, Gym/Fitness, out-of-pocket medical.
-   - **Debt & Pets**: Active debt minimum repayments ($), pet count.
-   - **Obligations & Giving**: Charity donations, family financial support ($).
-   - **Everyday Spend Sliders**: Weekly spend sliders for Groceries ($270 default), Dining & Fun ($240 default), Personal ($100 default) + dynamic incidental buffer `M`.
-3. **Step 3: Estimated Budget Review & Category Management**:
-   - Presents a clear, user-friendly breakdown: *"Based on your answers, we've estimated your monthly bills, goal funds, and everyday spending."*
-   - Includes **Everyday Spending Categories** (Groceries & Supermarket, Eating Out & Takeaway, Personal & Entertainment, Everyday Incidentals).
-   - Allows users to adjust monthly target amounts ($), add custom categories, or **remove categories** (with a ✕ button).
-4. **Step 4: Monthly Budget Plan Summary**:
-   - Clear, accessible summary comparing Total Monthly Income vs Total Monthly Allocated (Everyday, Bills, Savings Goals).
-   - Highlights Net Surplus or Deficit.
+2. **Step 2: Australian Household Banking Architecture (Archetypes & Routing)**:
+   - **3 Household Archetypes**:
+     1. *The Aussie 2-Account Blueprint (Recommended)*: Everyday Spending Card (tap & go, zero guilt) + Bills & Savings Goals (direct debits, ring-fenced). Eliminates daily budgeting friction.
+     2. *Couples: Yours, Mine & Ours (Popular for Couples)*: Joint Bills + Joint Everyday + Private Personal Accounts with stealth privacy built-in.
+     3. *All-in-One Account (Virtual Tracking)*: 1 Single Account. Money Matters tracks pools virtually on screen with zero barrier to entry. Pro-tip banners in payday transfer plans and bank accounts guide users toward graduating to 2 accounts when ready.
+   - **60-Second Australian Bank Cheat Sheet**: In-app modal drawer detailing how to open a fee-free sub-account directly inside current banking apps (CBA Smart Access/Goal Saver, Up Savers/2Up, Macquarie Transaction, ING Orange Everyday, and Big 4) in under 60 seconds.
+3. **Step 3: Goals & Commitments (Initial Setup)**:
+   - Configures targeted savings goals (Emergency Reserve, Holiday, Car, etc.) with target amounts and due dates.
+4. **Step 4: Lifestyle Setup (Initial Setup)**:
+   - Housing, transport (per-vehicle configuration), family (dependents), health cover, debt repayments, pets, and giving.
+5. **Step 5: Estimated Budget Review & Category Management**:
+   - Compares Total Monthly Income vs Total Monthly Allocated (Everyday, Bills, Savings Goals).
+   - Allows users to adjust monthly target amounts ($), add custom categories, or remove categories.
+
+### Safe Forward-Looking Setup Re-calibration (`mode=rerun`)
+- **3-Step Streamlined Flow**:
+  - Accessible via Settings ("Re-calibrate Household Budget") or Pools header ("⚙️ Re-calibrate Household Budget").
+  - Skips Lifestyle Quiz to protect custom category amounts from being overwritten by ABS national averages.
+  - Step 1: Incomes $\rightarrow$ Step 2: Bank Accounts & Routing $\rightarrow$ Step 3: Pools & Category Targets.
+- **Atomic Balance Sweep on Pool Deletion**:
+  - If a user deletes an active pool that holds positive funds ($> \$0.00$), the system blocks silent loss and presents the **Move Remaining Balance** modal.
+  - Prompts destination pool selection (defaulting to the Surplus Target pool).
+  - Atomically records balanced `TRANSFER_OUT` and `TRANSFER_IN` ledger entries before soft-archiving the pool, guaranteeing 100% historical ledger integrity.
 
 ### UX Guardrails & Flow Controls
 - **Discard Warning & Skip Guard**: Clicking "Cancel" on Web or "Skip for now" on Mobile prompts a confirmation modal. Confirming skip/discard updates `setupCompleted: true` in the database, allowing users to proceed to the Dashboard with default seeded categories and avoiding endless setup redirect loops.

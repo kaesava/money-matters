@@ -175,6 +175,14 @@ export function MobileBankTransferRollupCard({
           <Text style={styles.noTransfersText}>
             ✅ All allocations stay within {sourceAccountName}. No physical external bank transfer required!
           </Text>
+          <View style={styles.singleAccountTip}>
+            <Text style={styles.singleAccountTipTitle}>
+              {t('cards.paydayTransfer.singleAccountProTipTitle')}
+            </Text>
+            <Text style={styles.singleAccountTipDesc}>
+              {t('cards.paydayTransfer.singleAccountProTipDesc')}
+            </Text>
+          </View>
         </View>
       )}
 
@@ -292,12 +300,32 @@ const styles = StyleSheet.create({
     borderColor: '#BBF7D0',
     borderRadius: 12,
     padding: 12,
+    gap: 8,
   },
   noTransfersText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#15803D',
     lineHeight: 16,
+  },
+  singleAccountTip: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
+    padding: 10,
+    gap: 4,
+    marginTop: 4,
+  },
+  singleAccountTipTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E40AF',
+  },
+  singleAccountTipDesc: {
+    fontSize: 11,
+    color: '#3B82F6',
+    lineHeight: 15,
   },
   retainedSection: {
     borderTopWidth: 1,

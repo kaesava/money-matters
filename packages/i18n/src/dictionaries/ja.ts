@@ -25,7 +25,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "dashboardNav": "ダッシュボードナビゲーション",
     "reconcile": "残高調整",
     "transactions": "履歴",
-    "history": "履歴"
+    "history": "履歴",
+    "recalibrateBudget": "予算の再設定"
   },
   "tenantSwitcher": {
     "label": "世帯の切り替え",
@@ -843,6 +844,12 @@ export const ja: DeepStringRecord<typeof en> = {
     "previousStep": "戻る",
     "stepOf": "ステップ {step} / {total}",
     "stepOfTwo": "ステップ {step} / 2",
+    "recalibrateTitle": "世帯予算の再調整",
+    "recalibrateSubtitle": "過去の取引履歴を失うことなく、収入、銀行口座、プールの配分を確認および更新します。",
+    "sweepModalTitle": "残りの残高を移動",
+    "sweepModalDesc": "プール「{poolName}」には {balance} の残高があります。プールを削除する前に、この資金をどこに移動しますか？",
+    "sweepDestinationLabel": "移動先プール",
+    "sweepConfirmButton": "残高を移動してプールを削除",
     "bankAccountsStep": {
       "title": "銀行口座とプールルーティング",
       "tooltip": "実際の銀行口座を予算プール（日常支出、固定費、貯蓄目標）にリンクします。各世帯には少なくとも1つのアクティブな銀行口座が必要です。",
@@ -852,7 +859,38 @@ export const ja: DeepStringRecord<typeof en> = {
       "edit": "編集",
       "unlinked": "未リンク",
       "backIncome": "← 戻る: 収入",
-      "nextGoals": "次へ: 貯蓄目標 →"
+      "nextGoals": "次へ: 貯蓄目標 →",
+      "archetypeTitle": "世帯の銀行口座構成を選択",
+      "archetypeSubtitle": "世帯に最適な構成を選択してください。口座名や残高はいつでも調整できます。",
+      "archetype2AccountTitle": "オーストラリア標準 2口座モデル",
+      "archetype2AccountBadge": "おすすめ",
+      "archetype2AccountDesc": "日常支出カード（タッチ決済・ストレスゼロ）＋ 請求書・貯蓄目標口座（口座振替専用・保護済み）。",
+      "archetypeCouplesTitle": "カップル向け: 共有と個人の両立",
+      "archetypeCouplesBadge": "カップルに人気",
+      "archetypeCouplesDesc": "共同請求書 ＋ 共同日常支出 ＋ 個人プライベート口座（プライバシー保護機能付き）。",
+      "archetype1AccountTitle": "オールインワン（1口座）",
+      "archetype1AccountBadge": "仮想トラッキング",
+      "archetype1AccountDesc": "口座は1つだけ。画面上で仮想的にプールを管理します。いつでも2口座にステップアップ可能。",
+      "cheatSheetLink": "💡 60秒で現在の銀行で無料サブ口座を開設する方法",
+      "cheatSheetTitle": "オーストラリアの主要銀行 60秒チートシート",
+      "cheatSheetSubtitle": "オーストラリア在住者の90%以上は、銀行を変えることなくアプリ内で60秒以内に手数料無料のサブ口座を開設できます。",
+      "cheatSheetClose": "閉じる",
+      "cheatSheetCba": "コモンウェルス銀行 (CommBank)",
+      "cheatSheetCbaSteps": "CommBankアプリ: Accounts > Open new account > Smart Access または Goal Saver。即時・手数料無料。",
+      "cheatSheetUp": "Up Bank",
+      "cheatSheetUpSteps": "Upアプリ: Savers > + Add Saver（5秒）。カップルの場合は2Up共有口座を連携。",
+      "cheatSheetMacquarie": "マッコーリー銀行 (Macquarie)",
+      "cheatSheetMacquarieSteps": "Macquarieアプリ: Open an account > Transaction Account。手数料無料・即時バーチャルカード発行。",
+      "cheatSheetIng": "ING Australia",
+      "cheatSheetIngSteps": "INGアプリ: Orange Everyday または Savings Maximiser を追加。月額手数料無料。",
+      "cheatSheetOther": "ANZ / NAB / Westpac",
+      "cheatSheetOtherSteps": "アプリ内で追加口座を開設。口座維持手数料が無料（$0）であることを確認してください。",
+      "recalibrateTitle": "世帯予算の再設定",
+      "recalibrateSubtitle": "過去の取引履歴を失うことなく、収入・銀行口座・プール配分を見直して更新します。",
+      "sweepModalTitle": "残高の移動",
+      "sweepModalDesc": "プール「{poolName}」には {balance} の残高があります。プールを削除する前に、この資金をどこに移動しますか？",
+      "sweepDestinationLabel": "移動先プール",
+      "sweepConfirmButton": "残高を移動してプールを削除"
     },
     "income": {
       "title": "収入・給与",
@@ -1842,7 +1880,10 @@ export const ja: DeepStringRecord<typeof en> = {
       "expectedTooltip": "この銀行口座に現在リンクされているすべてのプールで利用可能な合計残高です。",
       "reasonLabel": "理由（任意）",
       "reasonPlaceholder": "例: 利息入金、口座手数料、残高調整"
-    }
+    },
+    "optimizerBannerTitle": "世帯の銀行口座最適化",
+    "optimizerBannerDesc": "現在はオールインワンの仮想モードで運用中です。日常支出用カードと請求書用口座を分けることで、日々の予算管理の不安を解消できます。",
+    "optimizerBannerAction": "2口座モデルを確認"
   },
   "bugReport": {
     "title": "フィードバックを送信",
@@ -1999,7 +2040,10 @@ export const ja: DeepStringRecord<typeof en> = {
       "noTransferNeeded": "振替不要 — 以下の資金は同一口座内に保持されます:",
       "transfersRequired": "必要な振替",
       "copyTooltip": "銀行アプリ用にクリップボードへコピー",
-      "coversPools": "{count}個のプールを対象: "
+      "coversPools": "{count}個のプールを対象: ",
+      "singleAccountProTipTitle": "💡 ストレスフリーなタッチ決済を実現",
+      "singleAccountProTipDesc": "現在の設定では、日常支出用のお金と請求書用のバッファが同じ口座に入っています。日常支出を別カードに分けることで、家賃や光熱費を誤って使う心配なく安心して使えます。",
+      "singleAccountLearnMore": "仕組みを見る →"
     },
     "bankTransfer": {
       "badge": "銀行口座のアクションが必要です",

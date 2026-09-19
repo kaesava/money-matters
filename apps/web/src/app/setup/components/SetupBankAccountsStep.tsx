@@ -5,6 +5,7 @@ import { trpc } from "../../../lib/trpc";
 import { t } from "@money-matters/i18n";
 import { useToast, ConfirmDialog } from "@money-matters/ui/web";
 import { BankAccountFormModal } from "../../dashboard/bank-accounts/components/BankAccountFormModal";
+import { AussieBankCheatSheetModal } from "./AussieBankCheatSheetModal";
 
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
@@ -79,12 +80,70 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
   const [accIsPrivate, setAccIsPrivate] = useState(false);
   const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
+  const [selectedArchetype, setSelectedArchetype] = useState<string>(
+    displayAccounts.length >= 2 ? "AUSSIE_2_ACCOUNT" : "ALL_IN_ONE_CUSTOM"
+  );
 
   const handlePoolToggle = (poolId: string) => {
     if (selectedPoolIds.includes(poolId)) {
       setSelectedPoolIds(selectedPoolIds.filter((id) => id !== poolId));
     } else {
       setSelectedPoolIds([...selectedPoolIds, poolId]);
+    }
+  };
+
+  const applyArchetype = async (type: "AUSSIE_2_ACCOUNT" | "COUPLES_HYBRID" | "ALL_IN_ONE_CUSTOM") => {
+    setSelectedArchetype(type);
+    try {
+      if (type === "AUSSIE_2_ACCOUNT") {
+        if (displayAccounts.length === 1) {
+          const first = displayAccounts[0];
+          await updateAccountMut.mutateAsync({
+            accountId: first.id,
+            data: { name: "Everyday Spending Card", bankProvider: (first.bankProvider as BankName) || "CBA" },
+          });
+          await createAccountMut.mutateAsync({
+            name: "Bills & Savings Account",
+            bankProvider: "CBA",
+            lastKnownBalance: "1000.00",
+            unbudgetedBuffer: "0.00",
+            isPrivate: false,
+          });
+        }
+      } else if (type === "COUPLES_HYBRID") {
+        if (displayAccounts.length < 3) {
+          if (displayAccounts[0]) {
+            await updateAccountMut.mutateAsync({
+              accountId: displayAccounts[0].id,
+              data: { name: "Joint Bills & Rent", bankProvider: (displayAccounts[0].bankProvider as BankName) || "CBA" },
+            });
+          }
+          await createAccountMut.mutateAsync({
+            name: "Joint Everyday Spending",
+            bankProvider: "CBA",
+            lastKnownBalance: "500.00",
+            unbudgetedBuffer: "0.00",
+            isPrivate: false,
+          });
+          await createAccountMut.mutateAsync({
+            name: "My Private Spending",
+            bankProvider: "Other",
+            lastKnownBalance: "200.00",
+            unbudgetedBuffer: "0.00",
+            isPrivate: true,
+          });
+        }
+      } else if (type === "ALL_IN_ONE_CUSTOM") {
+        if (displayAccounts.length === 1) {
+          await updateAccountMut.mutateAsync({
+            accountId: displayAccounts[0].id,
+            data: { name: "Primary Account", bankProvider: (displayAccounts[0].bankProvider as BankName) || "CBA" },
+          });
+        }
+      }
+    } catch (_err) {
+      // Handled in mutation onError
     }
   };
 
@@ -216,6 +275,110 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
           <span>➕</span>
           <span>{t("setup.bankAccountsStep.addAccount")}</span>
         </button>
+      </div>
+
+      {/* Archetype Selector Section */}
+      <div className="space-y-3 p-4 rounded-2xl border border-blue-100 bg-blue-50/40">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#2563eb]">
+              {t("setup.bankAccountsStep.archetypeTitle")}
+            </h3>
+            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+              {t("setup.bankAccountsStep.archetypeSubtitle")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCheatSheet(true)}
+            className="text-[11px] font-extrabold text-[#2563eb] hover:text-blue-800 hover:underline cursor-pointer flex items-center gap-1"
+          >
+            {t("setup.bankAccountsStep.cheatSheetLink")}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Card 1: 2-Account Blueprint */}
+          <div
+            onClick={() => applyArchetype("AUSSIE_2_ACCOUNT")}
+            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+              selectedArchetype === "AUSSIE_2_ACCOUNT"
+                ? "border-[#2563eb] bg-white shadow-xs ring-2 ring-blue-100"
+                : "border-slate-200 bg-white/70 hover:border-slate-300"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                  {t("setup.bankAccountsStep.archetype2AccountBadge")}
+                </span>
+                {selectedArchetype === "AUSSIE_2_ACCOUNT" && (
+                  <span className="text-xs font-black text-[#2563eb]">✓</span>
+                )}
+              </div>
+              <h4 className="text-xs font-extrabold text-[#1B2B4B]">
+                {t("setup.bankAccountsStep.archetype2AccountTitle")}
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                {t("setup.bankAccountsStep.archetype2AccountDesc")}
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Couples */}
+          <div
+            onClick={() => applyArchetype("COUPLES_HYBRID")}
+            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+              selectedArchetype === "COUPLES_HYBRID"
+                ? "border-[#2563eb] bg-white shadow-xs ring-2 ring-blue-100"
+                : "border-slate-200 bg-white/70 hover:border-slate-300"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800">
+                  {t("setup.bankAccountsStep.archetypeCouplesBadge")}
+                </span>
+                {selectedArchetype === "COUPLES_HYBRID" && (
+                  <span className="text-xs font-black text-[#2563eb]">✓</span>
+                )}
+              </div>
+              <h4 className="text-xs font-extrabold text-[#1B2B4B]">
+                {t("setup.bankAccountsStep.archetypeCouplesTitle")}
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                {t("setup.bankAccountsStep.archetypeCouplesDesc")}
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: All-in-One */}
+          <div
+            onClick={() => applyArchetype("ALL_IN_ONE_CUSTOM")}
+            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+              selectedArchetype === "ALL_IN_ONE_CUSTOM"
+                ? "border-[#2563eb] bg-white shadow-xs ring-2 ring-blue-100"
+                : "border-slate-200 bg-white/70 hover:border-slate-300"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">
+                  {t("setup.bankAccountsStep.archetype1AccountBadge")}
+                </span>
+                {selectedArchetype === "ALL_IN_ONE_CUSTOM" && (
+                  <span className="text-xs font-black text-[#2563eb]">✓</span>
+                )}
+              </div>
+              <h4 className="text-xs font-extrabold text-[#1B2B4B]">
+                {t("setup.bankAccountsStep.archetype1AccountTitle")}
+              </h4>
+              <p className="text-[11px] text-slate-500 mt-1 leading-normal">
+                {t("setup.bankAccountsStep.archetype1AccountDesc")}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Bank Accounts Grid */}
@@ -354,6 +517,11 @@ export function SetupBankAccountsStep({ accounts, onNext, onBack }: SetupBankAcc
         description={`Remove bank account "${editingAccount?.name || ""}"?`}
         confirmLabel="Remove Account"
         variant="danger"
+      />
+
+      <AussieBankCheatSheetModal
+        isOpen={showCheatSheet}
+        onClose={() => setShowCheatSheet(false)}
       />
     </div>
   );

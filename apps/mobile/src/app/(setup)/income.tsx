@@ -53,7 +53,7 @@ export default function SetupIncomeScreen() {
   const handleNext = () => {
     if (!name.trim() || !amount.trim() || isNaN(parseFloat(amount))) return;
     router.push({
-      pathname: '/(setup)/categories',
+      pathname: '/(setup)/accounts',
       params: {
         incomeName: name.trim(),
         incomeAmount: amount,
@@ -71,6 +71,7 @@ export default function SetupIncomeScreen() {
         <View style={styles.progressRow}>
           <View style={[styles.progressDot, styles.progressDotActive]} />
           <View style={styles.progressDot} />
+          <View style={styles.progressDot} />
         </View>
         <TouchableOpacity
           onPress={handleSkip}
@@ -81,7 +82,7 @@ export default function SetupIncomeScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.stepLabel}>{t('setup.stepOfTwo', { step: 1, total: 2, defaultValue: 'Step 1 of 2' })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 1, total: 3, defaultValue: 'Step 1 of 3' })}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
         <Text style={styles.title}>{t('setup.income.titleSimple', { defaultValue: 'How much do you get paid?' })}</Text>
         <InfoTooltip

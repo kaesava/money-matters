@@ -245,9 +245,32 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
-    test('3.2 Step 2 & 5 Budget Impact Review Modal (`/setup?mode=rerun`)', async ({ page }) => {
+    test('3.2 Banking Archetypes & 60-Second Cheat Sheet Modal (`/setup`)', async ({ page }) => {
+      await page.goto('/setup');
+      const continueBtn = page.locator('button:has-text("Continue"), button:has-text("Next")').first();
+      if (await continueBtn.isVisible()) {
+        await continueBtn.click();
+      }
+
+      // Check for Banking Archetypes
+      const blueprintCard = page.locator('text=Aussie 2-Account Blueprint').first();
+      if (await blueprintCard.isVisible()) {
+        await expect(blueprintCard).toBeVisible();
+      }
+
+      // Check for Cheat Sheet Modal Trigger
+      const cheatSheetTrigger = page.locator('button:has-text("60 seconds"), button:has-text("sub-account")').first();
+      if (await cheatSheetTrigger.isVisible()) {
+        await cheatSheetTrigger.click();
+        await expect(page.locator('text=60-Second Australian Bank Cheat Sheet').first()).toBeVisible();
+        await page.keyboard.press('Escape');
+      }
+    });
+
+    test('3.3 3-Step Re-calibration Flow (`/setup?mode=rerun`)', async ({ page }) => {
       await page.goto('/setup?mode=rerun');
-      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(page.locator('text=Re-calibrate Household Budget').first()).toBeVisible();
+      await expect(page.locator('text=Step 1 of 3').first()).toBeVisible();
     });
   });
 

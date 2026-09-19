@@ -101,6 +101,25 @@ export function HouseholdReadOnlyView({
           </span>
         </div>
       </div>
+
+      {/* Household Budget Re-calibration Card */}
+      <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1">
+          <span className="text-xs font-black text-[#1B2B4B] flex items-center gap-1.5">
+            <span>⚙️</span>
+            <span>{t("setup.recalibrateTitle")}</span>
+          </span>
+          <p className="text-[11px] text-slate-500 max-w-xl leading-relaxed">
+            {t("setup.recalibrateSubtitle")}
+          </p>
+        </div>
+        <a
+          href="/setup?mode=rerun"
+          className="px-3.5 py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-all shadow-2xs shrink-0 self-start sm:self-center cursor-pointer"
+        >
+          {t("setup.recalibrateTitle")}
+        </a>
+      </div>
     </div>
   );
 }

@@ -419,6 +419,16 @@ function PoolsPageContent() {
             </button>
           )}
           {!showProjectionMatrix && (
+            <a
+              href="/setup?mode=rerun"
+              className="px-3.5 py-2.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              title={t("setup.recalibrateSubtitle")}
+            >
+              <span>⚙️</span>
+              <span>{t("setup.recalibrateTitle")}</span>
+            </a>
+          )}
+          {!showProjectionMatrix && (
             <button
               type="button"
               onClick={() => {

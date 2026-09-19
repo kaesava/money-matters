@@ -1,24 +1,16 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface BankTransferPool {
-  id: string;
-  name: string;
-  poolType?: string;
-  bankAccountId?: string | null;
-  bankAccountName?: string | null;
+  id: string; name: string; poolType?: string; bankAccountId?: string | null; bankAccountName?: string | null;
 }
 
 export interface BankTransferAccount {
-  id: string;
-  name: string;
-  institution?: string | null;
-  bsb?: string | null;
-  accountNumber?: string | null;
-  payId?: string | null;
+  id: string; name: string; institution?: string | null; bsb?: string | null; accountNumber?: string | null; payId?: string | null;
 }
 
 export interface BankTransferRollupCardProps {
@@ -229,6 +221,26 @@ export function BankTransferRollupCard({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Pro-Tip Banner if user has all pools on 1 single account */}
+      {externalTransfers.length === 0 && (
+        <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-blue-950 dark:text-blue-200">
+              {t("cards.paydayTransfer.singleAccountProTipTitle")}
+            </span>
+            <Link
+              href="/blog/the-2-account-blueprint"
+              className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400 hover:underline shrink-0 cursor-pointer"
+            >
+              {t("cards.paydayTransfer.singleAccountLearnMore")}
+            </Link>
+          </div>
+          <p className="text-[11px] text-blue-900/80 dark:text-blue-300/80 leading-relaxed">
+            {t("cards.paydayTransfer.singleAccountProTipDesc")}
+          </p>
         </div>
       )}
     </div>

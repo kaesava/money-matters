@@ -80,5 +80,75 @@ export const BLOG_POSTS: BlogPost[] = [
       "Proactive push alerts prevent overdrafts before direct debits hit.",
       "Shared partner visibility keeps both decision-makers on the same page."
     ]
+  },
+  {
+    slug: "the-2-account-blueprint",
+    title: "The 2-Account Blueprint: Why Aussie Households Split Everyday Spending From Bills",
+    subtitle: "How physical separation eliminates daily budgeting anxiety and unlocks truly guilt-free tap-and-go spending.",
+    category: "BANKING ARCHITECTURE",
+    readTimeMinutes: 5,
+    publishedAt: "September 1, 2026",
+    authorName: "Kesh",
+    authorRole: "Principal Software Architect & Founder",
+    excerpt: "When your daily coffee card is the same account where your mortgage lives, spending always feels risky. Here is how two accounts automate financial calm.",
+    paragraphs: [
+      "Most Australians manage their daily lives from a single bank account. Their salary lands in it, rent or mortgage is debited from it, electricity bills pull from it, and their phone or debit card taps from it at the grocery store.",
+      "This setup creates subconscious friction. Every time you tap your card for lunch or drinks on a Saturday, you see an aggregate balance of $3,500. But how much of that is actually yours to spend freely, and how much is reserved for council rates and car insurance due in 12 days?",
+      "To answer that, traditional budgeting apps demand that you manually log every coffee, tag every transaction, and calculate your daily spending velocity. That is exhausting and unsustainable.",
+      "The 2-Account Blueprint solves this mechanically. You designate one account for Bills & Sinking Funds (direct debits only) and a separate card for Everyday Discretionary Spending.",
+      "On payday, Money Matters' waterfall calculates your safe allowance and tells you to transfer that exact figure to your Everyday card. From that second on, you never have to check a budget or log an expense. When the card reaches zero, spending pauses—and your bills are 100% ring-fenced and secure."
+    ],
+    keyTakeaways: [
+      "Card taps should never share a balance with direct debits and rent.",
+      "Separating accounts eliminates the need for daily expense logging or mental math.",
+      "Your Everyday debit card becomes your hard spending boundary with zero guilt."
+    ]
+  },
+  {
+    slug: "yours-mine-ours-couples-banking",
+    title: "Yours, Mine, and Ours: How Modern Aussie Couples Manage Shared Finances Without Sacrificing Freedom",
+    subtitle: "The hybrid banking framework combining shared household commitments with complete personal autonomy.",
+    category: "COUPLES FINANCE",
+    readTimeMinutes: 6,
+    publishedAt: "September 8, 2026",
+    authorName: "Kesh",
+    authorRole: "Principal Software Architect & Founder",
+    excerpt: "How Australian couples eliminate money arguments by funding joint bills together while keeping personal spending cards 100% private.",
+    paragraphs: [
+      "Money is one of the most common sources of friction in relationships, but the root cause is rarely the amount of income. It is the clash between shared responsibility and personal autonomy.",
+      "Complete financial pooling often leads to resentment: one partner feels judged for buying golf clubs, while the other feels scrutinized for skincare or dining with friends. Conversely, keeping finances 100% separate makes managing shared rent, groceries, and kids' expenses a nightmare of constant transfers and manual splitting.",
+      "The gold standard for Australian couples is the 'Yours, Mine, and Ours' hybrid model. The household maintains a Joint Bills Account (for rent/mortgage, utilities, groceries) and each partner maintains a Private Personal Account.",
+      "Both partners contribute their agreed share into the Joint Bills pool on payday. The remainder is split into each partner's personal account as 'no-questions-asked' money.",
+      "With Money Matters' built-in stealth privacy and PostgreSQL Row-Level Security, partners share full transparency over household bills while personal accounts remain strictly visible only to their owner."
+    ],
+    keyTakeaways: [
+      "Shared household commitments require mutual visibility; personal spending does not.",
+      "Personal 'no-questions-asked' accounts eliminate guilt and resentment.",
+      "Stealth privacy at the database layer ensures personal autonomy without hiding household obligations."
+    ]
+  },
+  {
+    slug: "60-second-aussie-sub-accounts-guide",
+    title: "The 60-Second Sub-Account Guide: How to Add a Fee-Free Second Account at CommBank, Up, Macquarie, and ING",
+    subtitle: "You don't need to switch banks or fill out mountains of paperwork to get the 2-account advantage.",
+    category: "PRACTICAL GUIDE",
+    readTimeMinutes: 4,
+    publishedAt: "September 15, 2026",
+    authorName: "Kesh",
+    authorRole: "Principal Software Architect & Founder",
+    excerpt: "A step-by-step cheat sheet for creating instant, fee-free sub-accounts inside Australia's most popular banking apps.",
+    paragraphs: [
+      "When people hear they should separate their everyday spending from their bills, the most common hesitation is: 'I don't want to open another bank account with ID checks, credit checks, and monthly fees.'",
+      "Here is the reality: over 90% of Australians already bank with an institution that allows you to spin up a fee-free sub-account or digital saver directly inside their mobile app in under 60 seconds.",
+      "At Commonwealth Bank, you can tap Accounts > Open new account > Smart Access or Goal Saver. It is instant and free.",
+      "At Up Bank, you can create up to 10 Savers in 5 seconds with custom emojis, or link a 2Up shared account with your partner.",
+      "At Macquarie Bank, you can open up to 10 transaction and savings accounts instantly with zero fees, while earning high interest across every balance.",
+      "At ING, Orange Everyday connects seamlessly to Savings Maximiser. By setting up a recurring payday transfer or PayID between your existing accounts, you unlock complete financial calm without leaving your existing bank."
+    ],
+    keyTakeaways: [
+      "You do not need to switch banks to achieve physical separation.",
+      "Major Australian banks offer instant, fee-free digital sub-accounts.",
+      "PayID and Osko make transfers between your accounts instant and automatic on payday."
+    ]
   }
 ];
