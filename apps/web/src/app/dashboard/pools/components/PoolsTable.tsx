@@ -26,6 +26,8 @@ export interface PoolsTableProps {
   fmtMoney: (val: number | null | undefined) => string;
   isLoading?: boolean;
   searchQuery?: string;
+  typeFilter?: "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
+  isProjectionMode?: boolean;
 }
 
 const POOL_TYPE_LABELS: Record<"EVERYDAY" | "REGULAR" | "GOAL", string> = {
@@ -52,6 +54,8 @@ export function PoolsTable({
   fmtMoney,
   isLoading = false,
   searchQuery = "",
+  typeFilter = "ALL",
+  isProjectionMode = false,
 }: PoolsTableProps) {
   const { fmtDate } = useLocale();
   const [widths, setWidths] = useState({
@@ -115,21 +119,26 @@ export function PoolsTable({
     document.addEventListener("mouseup", onMouseUp);
   };
 
-  // Group pools by type
-  const poolTypes: Array<"EVERYDAY" | "REGULAR" | "GOAL"> = ["EVERYDAY", "REGULAR", "GOAL"];
+  // Group pools by type (filtered to active typeFilter if not "ALL")
+  const poolTypes: Array<"EVERYDAY" | "REGULAR" | "GOAL"> =
+    typeFilter && typeFilter !== "ALL"
+      ? [typeFilter]
+      : ["EVERYDAY", "REGULAR", "GOAL"];
 
-  const groupedPools = poolTypes.map((type) => {
-    const items = pools.filter((p) => p.poolType === type);
-    const totalBalance = items.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-    const totalTarget = items.reduce((sum, p) => sum + (p.targetAmount || 0), 0);
-    return {
-      type,
-      label: POOL_TYPE_LABELS[type],
-      items,
-      totalBalance,
-      totalTarget,
-    };
-  });
+  const groupedPools = poolTypes
+    .map((type) => {
+      const items = pools.filter((p) => p.poolType === type);
+      const totalBalance = items.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+      const totalTarget = items.reduce((sum, p) => sum + (p.targetAmount || 0), 0);
+      return {
+        type,
+        label: POOL_TYPE_LABELS[type],
+        items,
+        totalBalance,
+        totalTarget,
+      };
+    })
+    .filter((g) => g.items.length > 0);
 
   if (isLoading) {
     return (
@@ -249,7 +258,7 @@ export function PoolsTable({
                           <span className="text-xs font-black uppercase tracking-wide text-[#1B2B4B]">
                             {group.label} ({group.items.length})
                           </span>
-                          {onAddPool && (
+                          {onAddPool && !isProjectionMode && (
                             <button
                               type="button"
                               onClick={() => onAddPool(group.type)}
@@ -297,13 +306,19 @@ export function PoolsTable({
                                     <span className="w-4 inline-block" />
                                   )}
 
-                                  <button
-                                    type="button"
-                                    onClick={() => onEditPool(pool.rawPool)}
-                                    className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer"
-                                  >
-                                    {pool.name}
-                                  </button>
+                                  {isProjectionMode ? (
+                                    <span className="font-bold text-zinc-800 text-left">
+                                      {pool.name}
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => onEditPool(pool.rawPool)}
+                                      className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer"
+                                    >
+                                      {pool.name}
+                                    </button>
+                                  )}
 
                                   {pool.rawPool.isSurplusTarget && (
                                     <span className="inline-flex items-center gap-1">
@@ -324,7 +339,7 @@ export function PoolsTable({
                                     </span>
                                   )}
 
-                                  {!isGoal && (
+                                  {!isGoal && !isProjectionMode && (
                                     <button
                                       type="button"
                                       onClick={() => onAddCategoryForPool(pool.id)}
@@ -425,14 +440,21 @@ export function PoolsTable({
                                 <tr key={cat.id} className="bg-slate-50/50 hover:bg-slate-100/60 transition-colors">
                                   {/* Level 3 Name */}
                                   <td className="py-2 px-4 pl-14">
-                                    <button
-                                      type="button"
-                                      onClick={() => onEditCategory?.(cat)}
-                                      className="font-semibold text-zinc-700 hover:text-[#2563eb] hover:underline text-left cursor-pointer flex items-center gap-1.5"
-                                    >
-                                      <span>•</span>
-                                      <span>{cat.name}</span>
-                                    </button>
+                                    {isProjectionMode ? (
+                                      <span className="font-semibold text-zinc-700 text-left flex items-center gap-1.5">
+                                        <span>•</span>
+                                        <span>{cat.name}</span>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => onEditCategory?.(cat)}
+                                        className="font-semibold text-zinc-700 hover:text-[#2563eb] hover:underline text-left cursor-pointer flex items-center gap-1.5"
+                                      >
+                                        <span>•</span>
+                                        <span>{cat.name}</span>
+                                      </button>
+                                    )}
                                   </td>
 
                                   <td className="py-2 px-4 text-center text-zinc-400">—</td>

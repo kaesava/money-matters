@@ -85,7 +85,7 @@ export function HouseholdDetailsSection({
     }
   };
 
-  const handleDiscardConfirm = () => {
+  const handleDiscardConfirm = React.useCallback(() => {
     if (gov) {
       setHouseholdName(gov.householdName || "");
       setCountry(gov.country || "AU");
@@ -96,7 +96,7 @@ export function HouseholdDetailsSection({
     }
     setShowDiscardDialog(false);
     setIsEditing(false);
-  };
+  }, [gov]);
 
   useEffect(() => {
     onDirtyChange?.(isDirty && isEditing);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
@@ -36,7 +36,6 @@ export function useDashboardData() {
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const transferEventsQuery = trpc.listTransferEvents.useQuery();
-  const userPrefQuery = trpc.getUserPreferences.useQuery();
 
   const reconcileMutation = trpc.reconcileBankBalance.useMutation({
     onSuccess: () => {
@@ -50,20 +49,6 @@ export function useDashboardData() {
     },
   });
 
-  useEffect(() => {
-    const isSkippedOrCompleted =
-      Boolean(userPrefQuery.data?.setupCompleted) ||
-      (typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true");
-
-    if (
-      poolsQuery.isSuccess &&
-      poolsQuery.data &&
-      poolsQuery.data.length === 0 &&
-      !isSkippedOrCompleted
-    ) {
-      router.push("/setup");
-    }
-  }, [poolsQuery.isSuccess, poolsQuery.data, userPrefQuery.data, router]);
 
   const recordExpenseMutation = trpc.recordExpense.useMutation({
     onSuccess: (_, variables) => {

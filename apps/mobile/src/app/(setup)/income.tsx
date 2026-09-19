@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
+import { trpc } from '../../lib/trpc';
 
 import { InfoTooltip } from '../../components/InfoTooltip';
 
@@ -31,6 +32,24 @@ export default function SetupIncomeScreen() {
   const [amount, setAmount] = useState('');
   const [frequency, setFrequency] = useState<Frequency>('FORTNIGHTLY');
 
+  const updatePref = trpc.updateUserPreferences.useMutation();
+
+  const handleSkip = () => {
+    showMobileConfirm({
+      title: t('setup.skipConfirmTitle'),
+      message: t('setup.skipConfirmMessage'),
+      confirmText: t('setup.skipConfirmButton'),
+      onConfirm: async () => {
+        try {
+          await updatePref.mutateAsync({ setupCompleted: true });
+        } catch (_e) {
+          // Ignore
+        }
+        router.replace('/(app)/home');
+      },
+    });
+  };
+
   const handleNext = () => {
     if (!name.trim() || !amount.trim() || isNaN(parseFloat(amount))) return;
     router.push({
@@ -48,9 +67,18 @@ export default function SetupIncomeScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.progressRow}>
-        <View style={[styles.progressDot, styles.progressDotActive]} />
-        <View style={styles.progressDot} />
+      <View style={styles.topNavRow}>
+        <View style={styles.progressRow}>
+          <View style={[styles.progressDot, styles.progressDotActive]} />
+          <View style={styles.progressDot} />
+        </View>
+        <TouchableOpacity
+          onPress={handleSkip}
+          style={styles.skipBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.skipBtnText}>{t('setup.skipForNow')}</Text>
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.stepLabel}>{t('setup.stepOfTwo', { step: 1, total: 2, defaultValue: 'Step 1 of 2' })}</Text>
@@ -120,7 +148,22 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     backgroundColor: DESIGN_TOKENS.colors.background,
   },
-  progressRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
+  topNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  progressRow: { flexDirection: 'row', gap: 6 },
+  skipBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  skipBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: DESIGN_TOKENS.colors.textMuted,
+  },
   progressDot: {
     width: 48, height: 4, borderRadius: 2,
     backgroundColor: '#E5E7EB',

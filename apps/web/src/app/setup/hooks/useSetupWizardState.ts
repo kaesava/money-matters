@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { trpc } from "../../../lib/trpc";
 import posthog from "../../../lib/posthog-client";
 import {
@@ -98,15 +98,15 @@ export function useSetupWizardState() {
 
   const userPrefQuery = trpc.getUserPreferences.useQuery();
   const showIcons = userPrefQuery.data?.showIcons ?? true;
+  const searchParams = useSearchParams();
+  const isRerun = searchParams?.get("mode") === "rerun";
 
   useEffect(() => {
-    const isCompleted =
-      Boolean(userPrefQuery.data?.setupCompleted) ||
-      (typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true");
-    if (isCompleted) {
+    if (isRerun) return;
+    if (userPrefQuery.data?.setupCompleted) {
       router.replace("/dashboard");
     }
-  }, [userPrefQuery.data?.setupCompleted, router]);
+  }, [isRerun, userPrefQuery.data?.setupCompleted, router]);
 
   const quizAnswers: QuizAnswers = useMemo(
     () => ({
@@ -234,9 +234,6 @@ export function useSetupWizardState() {
 
   const handleDiscard = async () => {
     setShowDiscardModal(false);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("skip_setup_wizard", "true");
-    }
     try {
       await updatePrefMut.mutateAsync({ setupCompleted: true });
     } catch (_e) {

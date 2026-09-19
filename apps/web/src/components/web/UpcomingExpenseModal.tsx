@@ -69,7 +69,7 @@ export default function UpcomingExpenseModal({
       setNote("");
     }
     setErrorMsg("");
-  }, [eventToEdit, isOpen, pools]);
+  }, [eventToEdit, isOpen, pools, userTimezone]);
 
   const isDirty = useMemo(() => {
     if (!eventToEdit) {

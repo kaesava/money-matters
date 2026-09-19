@@ -147,8 +147,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - Executes real-time estimation using 2025/2026 ABS & RACQ Australian benchmark algorithms in `@money-matters/types` (`calculateQuizEstimates`).
 - Generates normalized monthly targets across **Regular Bills**, **Goal Sinking Funds**, and **Everyday Spending Categories** (Groceries, Dining, Personal, Incidentals).
 - Supports full category customization (custom category additions, amount overrides, and category deletions).
-- Includes **Info Tooltips (ℹ️)** explaining calculation rationale and a **Discard Warning Modal** on cancellation.
-- Enforces an automated **Zero-Categories Redirect Guard** on dashboard entry.
+- Enforces an automated **Database-Backed Setup Redirect Guard (`setupCompleted`)** on dashboard entry: Users with `setupCompleted: false` in `tenantUserPreferences` are automatically routed to the setup wizard (`/setup` on Web, `/(setup)/income` on Mobile). Cancelling, skipping, or completing setup updates `setupCompleted: true` in Neon DB, guaranteeing 100% cross-platform parity between Web and Mobile with zero reliance on client-side `localStorage`.
 - **Re-Run Budget Setup (`mode=rerun`)**: Accessible via `Settings → Re-run Budget Setup` on Web (`/setup?mode=rerun`) and Mobile (`/(setup)?mode=rerun`). Executes the backend `reSetupBudget` capability (`packages/capabilities/budgeting/src/commands/re-setup-budget.command.ts`) to adjust pool caps and categories while soft-archiving removed categories with transactions to preserve historical audit trails.
 
 ### 5.2 5-Step Waterfall Cascade Engine & Category Bucket Rules

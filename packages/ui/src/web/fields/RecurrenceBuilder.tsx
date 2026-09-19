@@ -1,7 +1,7 @@
 import React from "react";
 import { t } from "@money-matters/i18n";
 import { useRecurrenceBuilder } from "../../hooks/useRecurrenceBuilder";
-import { Input } from "../Input";
+import { DatePickerField } from "./DatePickerField";
 
 interface RecurrenceBuilderProps {
   builder: ReturnType<typeof useRecurrenceBuilder>;
@@ -109,39 +109,27 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
             </div>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {t("forms.firstDate")}
-            </label>
-            <input
-              type="date"
+            <DatePickerField
+              label={t("forms.firstDate")}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full bg-white"
+              onChange={setStartDate}
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              End Date (Optional)
-            </label>
-            <input
-              type="date"
+            <DatePickerField
+              label="End Date (Optional)"
               value={endDate || ""}
-              onChange={(e) => setEndDate(e.target.value || null)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full bg-white"
+              onChange={(val) => setEndDate(val || null)}
             />
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {t("forms.eventDate")}
-            </label>
-            <input
-              type="date"
+            <DatePickerField
+              label={t("forms.eventDate")}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-4 py-2.5 text-xs font-bold rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-zinc-900 w-full bg-white"
+              onChange={setStartDate}
             />
           </div>
           <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] font-semibold leading-relaxed">

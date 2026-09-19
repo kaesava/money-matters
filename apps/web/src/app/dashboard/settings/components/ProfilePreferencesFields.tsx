@@ -85,20 +85,21 @@ export function ProfilePreferencesFields({
       </div>
 
       {/* Show Icons Toggle */}
-      <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50/50">
-        <div className="flex items-center gap-1.5">
-          <p className="text-xs font-bold text-[#1B2B4B]">{t("settings.items.showIcons")}</p>
+      <div className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl bg-slate-50/50">
+        <input
+          id="toggle-show-icons"
+          type="checkbox"
+          checked={showIcons}
+          onChange={(e) => setShowIcons(e.target.checked)}
+          className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb] cursor-pointer"
+        />
+        <label htmlFor="toggle-show-icons" className="flex items-center gap-1.5 cursor-pointer select-none flex-1">
+          <span className="text-xs font-bold text-[#1B2B4B]">{t("settings.items.showIcons")}</span>
           <InfoTooltip
             title={t("settings.items.showIcons")}
             content={t("settings.items.showIconsHint")}
           />
-        </div>
-        <input
-          type="checkbox"
-          checked={showIcons}
-          onChange={(e) => setShowIcons(e.target.checked)}
-          className="w-4 h-4 rounded text-[#2563eb] focus:ring-[#2563eb]"
-        />
+        </label>
       </div>
     </>
   );

@@ -94,7 +94,7 @@ function TransactionsPageContent() {
         source: tx.source || "MANUAL",
       };
     });
-  }, [transactionsQuery.data, categories, poolMap]);
+  }, [transactionsQuery.data, categories, poolMap, fmtDate]);
 
   const matchedPool = poolIdParam ? pools.find((p) => p.id === poolIdParam) : null;
   const matchedCategory = categoryIdParam ? categories.find((c) => c.id === categoryIdParam) : null;

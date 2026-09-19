@@ -17,8 +17,14 @@ import { useLocale } from "../../../providers/LocaleProvider";
 
 type PoolTypeFilter = "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
 
+const POOL_TYPE_ORDER: Record<string, number> = {
+  EVERYDAY: 0,
+  REGULAR: 1,
+  GOAL: 2,
+};
+
 function PoolsPageContent() {
-  const { fmt, userTimezone, locale: resolvedLocale } = useLocale();
+  const { fmt, fmtDate, userTimezone, locale: resolvedLocale } = useLocale();
   const toast = useToast();
   const utils = trpc.useUtils();
   const router = useRouter();
@@ -83,13 +89,8 @@ function PoolsPageContent() {
     if (projectionMonths <= 0.05) return t("common.today");
     const d = new Date();
     d.setDate(d.getDate() + Math.round(projectionMonths * 30.4375));
-    return new Intl.DateTimeFormat(resolvedLocale, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: userTimezone,
-    }).format(d);
-  }, [projectionMonths, resolvedLocale, userTimezone]);
+    return fmtDate(d);
+  }, [projectionMonths, fmtDate]);
 
   const axisDates = useMemo(() => {
     return [0, 3, 6, 9, 12].map((m) => {
@@ -291,6 +292,14 @@ function PoolsPageContent() {
   // Sorting logic
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
+      if (sortField !== "poolType") {
+        const orderA = POOL_TYPE_ORDER[a.poolType] ?? 99;
+        const orderB = POOL_TYPE_ORDER[b.poolType] ?? 99;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+      }
+
       let aVal: string | number | null = null;
       let bVal: string | number | null = null;
 
@@ -398,27 +407,38 @@ function PoolsPageContent() {
                 : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
             }`}
           >
-            {showProjectionMatrix ? "Hide Projection Timeline" : "Projection Timeline"}
+            {showProjectionMatrix ? t("categories.endProjectionMode") : t("categories.projectionMode")}
           </button>
-          <button
-            type="button"
-            onClick={() => setIsMoveMoneyOpen(true)}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
-          >
-            <span>{t("categories.actions.moveMoney")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setPoolToEdit(null);
-              setIsPoolModalOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
-          >
-            <span>Add Pool</span>
-          </button>
+          {!showProjectionMatrix && (
+            <button
+              type="button"
+              onClick={() => setIsMoveMoneyOpen(true)}
+              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-blue-50 text-[#2563eb] hover:bg-blue-100 border border-blue-200 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+            >
+              <span>{t("categories.actions.moveMoney")}</span>
+            </button>
+          )}
+          {!showProjectionMatrix && (
+            <button
+              type="button"
+              onClick={() => {
+                setPoolToEdit(null);
+                setIsPoolModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <span>Add Pool</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {showProjectionMatrix && (
+        <div className="p-3 bg-blue-50/90 border border-blue-200 rounded-xl text-blue-900 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-150">
+          <span>🔒</span>
+          <span>{t("categories.projectionModeReadOnlyNotice")}</span>
+        </div>
+      )}
 
       {/* Projection Matrix */}
       {showProjectionMatrix && (
@@ -588,7 +608,7 @@ function PoolsPageContent() {
         {showProjectionMatrix && projectionMonths > 0.05 && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden select-none">
             <span className="transform -rotate-12 text-7xl md:text-9xl font-black text-slate-900/[0.06] dark:text-white/[0.06] tracking-widest whitespace-nowrap uppercase">
-              PROJECTION
+              PROJECTION MODE
             </span>
           </div>
         )}
@@ -607,24 +627,35 @@ function PoolsPageContent() {
             setPage(1);
           }}
           onEditPool={(pool) => {
+            if (showProjectionMatrix) return;
             setPoolToEdit(pool);
             setIsPoolModalOpen(true);
           }}
           onOpenCategoryDrawer={(pool) => {
             setSelectedPoolForDrawer(pool);
           }}
-          onAddCategoryForPool={handleOpenAddCategoryModal}
+          onAddCategoryForPool={(poolId) => {
+            if (showProjectionMatrix) return;
+            handleOpenAddCategoryModal(poolId);
+          }}
           onEditCategory={(cat) => {
+            if (showProjectionMatrix) return;
             setCategoryToEdit(cat);
             setIsCategoryModalOpen(true);
           }}
-          onAddPool={(pType) => {
-            setPoolToEdit(pType ? ({ id: "", type: pType, poolType: pType, name: "", currentBalance: "0.00" } as CategorySummaryItem) : null);
-            setIsPoolModalOpen(true);
-          }}
+          onAddPool={
+            showProjectionMatrix
+              ? undefined
+              : (pType) => {
+                  setPoolToEdit(pType ? ({ id: "", type: pType, poolType: pType, name: "", currentBalance: "0.00" } as CategorySummaryItem) : null);
+                  setIsPoolModalOpen(true);
+                }
+          }
           fmtMoney={fmtMoney}
           isLoading={poolsQuery.isLoading}
           searchQuery={searchQuery}
+          typeFilter={typeFilter}
+          isProjectionMode={showProjectionMatrix}
         />
       </div>
 
@@ -675,9 +706,11 @@ function PoolsPageContent() {
         pool={selectedPoolForDrawer}
         onClose={() => setSelectedPoolForDrawer(null)}
         onAddCategory={(poolId) => {
+          if (showProjectionMatrix) return;
           handleOpenAddCategoryModal(poolId);
         }}
         onEditCategory={(cat) => {
+          if (showProjectionMatrix) return;
           handleOpenEditCategoryModal(cat);
         }}
       />

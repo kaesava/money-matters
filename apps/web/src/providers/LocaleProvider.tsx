@@ -11,6 +11,7 @@ import {
   getCurrencySymbol,
   getCurrencyMinorUnits,
   IconVisibilityProvider,
+  DateLocaleProvider,
 } from "@money-matters/ui";
 import { authClient } from "../lib/auth";
 import { trpc } from "../lib/trpc";
@@ -128,9 +129,11 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <LocaleContext.Provider value={value}>
-      <IconVisibilityProvider initialShowIcons={pref?.showIcons ?? true}>
-        {children}
-      </IconVisibilityProvider>
+      <DateLocaleProvider locale={resolvedLocale} timeZone={userTimezone}>
+        <IconVisibilityProvider initialShowIcons={pref?.showIcons ?? true}>
+          {children}
+        </IconVisibilityProvider>
+      </DateLocaleProvider>
     </LocaleContext.Provider>
   );
 }

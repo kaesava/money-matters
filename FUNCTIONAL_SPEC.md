@@ -234,9 +234,8 @@ The onboarding flow delivers an engaging interactive estimation experience compl
    - Highlights Net Surplus or Deficit.
 
 ### UX Guardrails & Flow Controls
-- **Info Tooltips (ℹ️)**: Contextual tooltips on each step explaining *why* information is collected and *how* the 5-step waterfall allocations operate.
-- **Discard Warning Guard**: Clicking "Cancel" opens a consistent confirmation modal warning users that un-saved setup changes will be discarded.
-- **Zero-Categories Login Guard**: Logging in or navigating to the Dashboard (`/dashboard` on Web, `/(app)/home` on Mobile) with 0 active categories automatically redirects the user directly to the setup wizard.
+- **Discard Warning & Skip Guard**: Clicking "Cancel" on Web or "Skip for now" on Mobile prompts a confirmation modal. Confirming skip/discard updates `setupCompleted: true` in the database, allowing users to proceed to the Dashboard with default seeded categories and avoiding endless setup redirect loops.
+- **Database-Backed Setup Guard (`setupCompleted`)**: Logging in or navigating to the Dashboard (`/dashboard` on Web, `/(app)/home` on Mobile) when `setupCompleted` is `false` in `tenantUserPreferences` automatically redirects the user directly to the setup wizard. Both platforms synchronize this state through Neon DB.
 
 ---
 

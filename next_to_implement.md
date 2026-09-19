@@ -2,27 +2,6 @@
 * I was expecting 5 tabs but I see a 6th with a strange icon - fix
 * 
 
-# WEB APP
-## General
-## Settings > My Details
-* Show checkbox to the left of "Show information icons (i)"
-* I changed date format to Japan - I see " 2027年3月11日" in some places (like when I turned on the simulator in the Pools screen) and "2027/6/30" in others (like the Pools table for Goals Pools).
-
-## Pools
-* Critical Bug - I'm unable to see Everyday and Bills Pools in the table. I even created a new Pool, but I still can't see it
-* Change "Projection Timeline" to "Projection Mode" and "Hide Projection timeline" to "End Projection Mode"
-* When in Projection mode, prevent the user from adding/editing pools/categories - effectively the screen becomes read-only (Search, pagination and sort should still work)
-
-## Pools > Create Pool
-* "Calculated Target" - rename to be more user-friendly. I don't think we use the word target? If we do, keep it.
-
-
-
-# Rules
-* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
-* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
-* Each of the requested changes may require a deep-dive into the code - optimise how you do this, but be prepared to go deep for 100% coverage.
-* Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
 * Applies to web & mobile app
 
 

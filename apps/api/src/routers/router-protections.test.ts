@@ -8,6 +8,7 @@ describe("Router protections & procedure sanity checks", () => {
   it("exports tenantRouter with required downtime/early access subscription procedure", () => {
     expect(tenantRouter).toBeDefined();
     expect(tenantRouter.subscribeEarlyAccess).toBeDefined();
+    expect(tenantRouter.getTenantStatus).toBeDefined();
   });
 
   it("exports budgetingRouter with required pool and category procedures", () => {

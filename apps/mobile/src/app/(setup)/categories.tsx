@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { formatIsoDate } from '../../lib/format';
 import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from '@money-matters/types';
@@ -29,6 +29,7 @@ export default function SetupCategoriesScreen() {
   const existingCategoriesQuery = trpc.listPools.useQuery(undefined, { enabled: params.mode === 'rerun' });
   const createIncomeSource = trpc.createIncomeSource.useMutation();
   const createCategory = trpc.createPool.useMutation();
+  const updateUserPreferences = trpc.updateUserPreferences.useMutation();
 
   const allPresets = [...AUSTRALIAN_FAMILY_PRESETS, ...customPresets];
 
@@ -98,6 +99,9 @@ export default function SetupCategoriesScreen() {
             });
           })
         );
+
+        // 3. Mark setup as completed in the database
+        await updateUserPreferences.mutateAsync({ setupCompleted: true });
       }
 
       router.replace('/(app)/home');
@@ -109,12 +113,36 @@ export default function SetupCategoriesScreen() {
     }
   };
 
+  const handleSkip = () => {
+    showMobileConfirm({
+      title: t('setup.skipConfirmTitle'),
+      message: t('setup.skipConfirmMessage'),
+      confirmText: t('setup.skipConfirmButton'),
+      onConfirm: async () => {
+        try {
+          await updateUserPreferences.mutateAsync({ setupCompleted: true });
+        } catch (_e) {
+          // Ignore
+        }
+        router.replace('/(app)/home');
+      },
+    });
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.progressRow}>
-        <View style={styles.progressDot} />
-        <View style={[styles.progressDot, styles.progressDotActive]} />
+      <View style={styles.topNavRow}>
+        <View style={styles.progressRow}>
+          <View style={styles.progressDot} />
+          <View style={[styles.progressDot, styles.progressDotActive]} />
+        </View>
+        <TouchableOpacity
+          onPress={handleSkip}
+          style={styles.skipBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.skipBtnText}>{t('setup.skipForNow')}</Text>
+        </TouchableOpacity>
       </View>
       
       <Text style={styles.stepLabel}>{t('setup.stepOfTwo', { step: 2, total: 2, defaultValue: 'Step 2 of 2' })}</Text>
@@ -246,7 +274,22 @@ export default function SetupCategoriesScreen() {
 const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: D.spacing.containerMargin, paddingTop: 56, paddingBottom: 40, backgroundColor: D.colors.background },
-  progressRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
+  topNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  progressRow: { flexDirection: 'row', gap: 6 },
+  skipBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  skipBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: D.colors.textMuted,
+  },
   progressDot: { width: 48, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB' },
   progressDotActive: { backgroundColor: D.colors.accent },
   stepLabel: { fontSize: 12, color: D.colors.textMuted, marginBottom: 4 },

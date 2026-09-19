@@ -84,12 +84,6 @@ export default function HomeScreen() {
     },
   });
 
-  // Redirect to setup if no pools exist
-  React.useEffect(() => {
-    if (poolsQuery.isSuccess && poolsQuery.data && poolsQuery.data.length === 0) {
-      router.replace('/(setup)/income');
-    }
-  }, [poolsQuery.isSuccess, poolsQuery.data, router]);
 
   const onRefresh = async () => {
     triggerHaptic('light');

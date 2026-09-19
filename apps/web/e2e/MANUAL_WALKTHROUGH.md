@@ -41,4 +41,4 @@ pnpm test:e2e
 - [x] **Rate Limiting**: Burst requests (>120 req/min) return `429 Too Many Requests`.
 - [x] **File Notes IDOR**: Requesting pre-signed S3 download URLs for another tenant's `fileKey` returns `400/403`.
 - [x] **Read-Only Past-Due Tenant**: Tenants in past-due grace period can view dashboard but mutation calls trigger `403 FORBIDDEN (subscription_read_only)`.
-- [x] **Zero-Categories Guard**: Accessing `/dashboard` with 0 active categories automatically redirects to `/setup`.
+- [x] **Database-Backed Setup Guard**: Accessing `/dashboard` when `setupCompleted` is `false` automatically redirects to `/setup`.

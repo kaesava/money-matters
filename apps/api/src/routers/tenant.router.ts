@@ -128,9 +128,28 @@ export const tenantRouter = {
 
   getTenantStatus: authenticatedProcedure
     .query(async ({ ctx }) => {
+      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
+      let setupCompleted = false;
+
+      if (ctx.tenantId && ctx.userId) {
+        const [tenantPref] = await ctx.db
+          .select()
+          .from(tenantUserPreferences)
+          .where(
+            and(
+              eq(tenantUserPreferences.userId, ctx.userId),
+              eq(tenantUserPreferences.tenantId, ctx.tenantId),
+              eq(tenantUserPreferences.appId, appId)
+            )
+          );
+        const appBlob = tenantPref?.appPreferences?.[appId];
+        setupCompleted = Boolean(appBlob?.setup_completed);
+      }
+
       return {
         hasTenant: ctx.tenantId !== null,
         tenantId: ctx.tenantId,
+        setupCompleted,
       };
     }),
 

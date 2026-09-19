@@ -53,23 +53,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [userLocale]);
 
 
-  // Zero-Categories Guard: redirect to setup wizard if user has 0 categories and hasn't explicitly cancelled/completed setup
+  // Setup Guard: redirect to setup wizard if user has not completed or dismissed setup
   useEffect(() => {
-    const isSkippedOrCompleted =
-      Boolean(userPrefQuery.data?.setupCompleted) ||
-      (typeof window !== "undefined" && localStorage.getItem("skip_setup_wizard") === "true");
     if (
       !isPending &&
       session?.user &&
-      !categoriesQuery.isLoading &&
-      categoriesQuery.data &&
-      categoriesQuery.data.length === 0 &&
-      !isSkippedOrCompleted &&
+      !userPrefQuery.isLoading &&
+      userPrefQuery.data &&
+      !userPrefQuery.data.setupCompleted &&
       !pathname.startsWith("/setup")
     ) {
       router.replace("/setup");
     }
-  }, [isPending, session, categoriesQuery.isLoading, categoriesQuery.data, userPrefQuery.data, pathname, router]);
+  }, [isPending, session, userPrefQuery.isLoading, userPrefQuery.data, pathname, router]);
 
   // Exchange neon_auth_session_verifier for session token cookie
   useEffect(() => {

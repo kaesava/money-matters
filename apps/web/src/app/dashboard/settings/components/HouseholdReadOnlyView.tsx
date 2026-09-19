@@ -41,7 +41,7 @@ export function HouseholdReadOnlyView({
 
         {isOwner && (
           <Button variant="secondary" onClick={onEdit} className="shrink-0">
-            ✏️ {t("common.edit")}
+            {t("common.edit")}
           </Button>
         )}
       </div>

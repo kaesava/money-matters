@@ -11,3 +11,4 @@ export * from './utils/formatDate';
 
 
 export * from './hooks/useRecurrenceBuilder';
+export * from './hooks/DateLocaleContext';

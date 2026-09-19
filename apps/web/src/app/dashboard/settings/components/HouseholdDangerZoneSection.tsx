@@ -100,16 +100,31 @@ export function HouseholdDangerZoneSection() {
       <ModalDialog
         isOpen={activeModal === "LEAVE"}
         onClose={() => setActiveModal(null)}
-        title="Confirm Departure: Leave Household"
-        subtitle="Remove yourself from this shared household space."
+        title={t("privacy.leaveHouseholdModalTitle")}
+        subtitle={t("privacy.leaveHouseholdModalSubtitle")}
         maxWidthClass="max-w-md"
       >
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-amber-950">
             <p className="text-xs font-semibold leading-relaxed">
-              {gov.isOwner
-                ? t("privacy.leaveOwnerWarning", { email: gov.partnerEmail || "your partner" })
-                : t("privacy.leaveMemberWarning", { householdName: gov.householdName, email: gov.partnerEmail || "the owner" })}
+              {(() => {
+                if (!gov.isOwner) {
+                  return t("privacy.leaveMemberWarning", {
+                    householdName: gov.householdName,
+                    email: gov.partnerEmail || "the owner",
+                  });
+                }
+                const otherMembers = (gov.membersList || []).filter((m) => !m.isOwner);
+                if (otherMembers.length <= 1) {
+                  const targetEmail = otherMembers[0]?.email || otherMembers[0]?.name || gov.partnerEmail || "your partner";
+                  return t("privacy.leaveOwnerSingleMemberWarning", { email: targetEmail });
+                }
+                const successor = otherMembers[0]?.email || otherMembers[0]?.name || "the next member";
+                return t("privacy.leaveOwnerMultiMemberWarning", {
+                  successor,
+                  count: otherMembers.length,
+                });
+              })()}
             </p>
           </div>
 
@@ -151,8 +166,15 @@ export function HouseholdDangerZoneSection() {
       <ModalDialog
         isOpen={activeModal === "DELETE"}
         onClose={() => setActiveModal(null)}
-        title="Irreversible Action: Delete Household & Data"
-        subtitle="Permanently erase all household records, categories, plans, and ledgers."
+        title={
+          <div className="flex items-center gap-2">
+            <span>{t("privacy.deleteHouseholdModalTitle")}</span>
+            <InfoTooltip
+              title={t("privacy.deleteHouseholdModalTitle")}
+              content={t("privacy.deleteHouseholdModalTooltip")}
+            />
+          </div>
+        }
         maxWidthClass="max-w-md"
       >
         <div className="space-y-4">
@@ -162,7 +184,13 @@ export function HouseholdDangerZoneSection() {
             </p>
             {gov.partnerEmail && (
               <p className="text-xs font-bold text-red-900 pt-1 border-t border-red-200">
-                ⚠️ {t("privacy.deletePartnerWarning", { email: gov.partnerEmail })}
+                ⚠️ {(() => {
+                  const otherMembers = (gov.membersList || []).filter((m) => !m.isOwner);
+                  if (otherMembers.length > 1) {
+                    return t("privacy.deleteMultiPartnerWarning");
+                  }
+                  return t("privacy.deletePartnerWarning", { email: gov.partnerEmail });
+                })()}
               </p>
             )}
           </div>
@@ -180,7 +208,7 @@ export function HouseholdDangerZoneSection() {
               onClick={() => setActiveModal(null)}
               className="inline-flex items-center gap-1 text-xs font-bold text-[#2563eb] hover:underline pt-1 cursor-pointer"
             >
-              <span>Go to Data Sovereignty &amp; Zipped CSV Backup →</span>
+              <span>{t("privacy.downloadZipBackup")}</span>
             </Link>
           </div>
 

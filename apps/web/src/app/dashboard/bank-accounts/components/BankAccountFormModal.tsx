@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useId, useEffect, useState } from "react";
-import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField, AmountField } from "@money-matters/ui/web";
+import React, { useId, useState } from "react";
+import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField, AmountField, ModalDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
@@ -70,25 +70,11 @@ export function BankAccountFormModal({
 }: BankAccountFormModalProps) {
   const { currency, currencySymbol, minorUnits } = useLocale();
   const toast = useToast();
-  const modalId = useId();
   const privateCheckId = useId();
 
   const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [poolStealTarget, setPoolStealTarget] = useState<{ pool: PoolRecord; ownerName: string } | null>(null);
-
-
-  // Escape key handler for modal dismissal
-  useEffect(() => {
-    if (!isOpen) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
 
   const initialPoolIds = editingAccount ? pools.filter(p => p.bankAccountId === editingAccount.id).map(p => p.id) : [];
 
@@ -136,19 +122,14 @@ export function BankAccountFormModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150" role="dialog" aria-modal="true" aria-labelledby={modalId}>
-      <form
-        onSubmit={onSubmit}
-        className="bg-white rounded-2xl p-6 max-w-md w-full flex flex-col gap-4 shadow-xl border border-zinc-100 relative"
-      >
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <h3 id={modalId} className="text-base font-bold text-[#1B2B4B]">
-            {editingAccount ? "Edit Bank Account" : "Add New Bank Account"}
-          </h3>
-          <button type="button" onClick={onClose} aria-label="Close modal" className="text-zinc-400 hover:text-zinc-600 font-bold">
-            ✕
-          </button>
-        </div>
+    <ModalDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      isDirty={isDirty}
+      title={editingAccount ? "Edit Bank Account" : "Add New Bank Account"}
+      maxWidth="max-w-md"
+    >
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
 
         {(errorMsg || isNegativeAvailable) && (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
@@ -409,7 +390,7 @@ export function BankAccountFormModal({
         confirmLabel="Archive Account"
         variant="danger"
       />
-    </div>
+    </ModalDialog>
   );
 }
 

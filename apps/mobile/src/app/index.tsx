@@ -35,7 +35,7 @@ export default function IndexRoute() {
     return <Redirect href="/(auth)/sign-in" />;
   }
 
-  if (error || !status?.hasTenant) {
+  if (error || !status?.hasTenant || !status?.setupCompleted) {
     return <Redirect href="/(setup)/income" />;
   }
 
