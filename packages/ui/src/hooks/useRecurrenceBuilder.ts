@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fmtDateIso } from "../utils/formatDate";
 
 export type RecurrenceState = {
   isRecurring: boolean;
@@ -14,7 +15,7 @@ export function useRecurrenceBuilder(initialRrule?: string | null, initialStartD
   const [isRecurring, setIsRecurring] = useState<boolean>(!!initialRrule);
   const [frequency, setFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "ANNUALLY">("MONTHLY");
   const [interval, setInterval] = useState<number>(1);
-  const [startDate, setStartDate] = useState<string>(initialStartDate || new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState<string>(initialStartDate || fmtDateIso());
   const [endDate, setEndDate] = useState<string | null>(initialEndDate || null);
 
   // Parse initial rrule if provided

@@ -7,6 +7,10 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../lib/trpc";
 import { useLocale } from "../../providers/LocaleProvider";
 
+/** Converts a server ISO string (UTC) to a YYYY-MM-DD string in AEST timezone, avoiding UTC off-by-one errors. */
+const toAestDateString = (iso: string): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date(iso));
+
 interface SourceToEdit {
   id: string;
   name: string;
@@ -161,8 +165,8 @@ export default function IncomeExpenseFormModal({
       setInterval(origInterval);
 
       const defaultToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
-      setStartDate(sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : defaultToday);
-      setEndDate(sourceToEdit.endDate ? sourceToEdit.endDate.split("T")[0] : null);
+      setStartDate(sourceToEdit.startDate ? toAestDateString(sourceToEdit.startDate) : defaultToday);
+      setEndDate(sourceToEdit.endDate ? toAestDateString(sourceToEdit.endDate) : null);
     } else {
       setName("");
       setAmount("");
@@ -325,8 +329,8 @@ export default function IncomeExpenseFormModal({
       return name.trim() !== "" || amount.trim() !== "";
     }
     const defaultToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
-    const origStartDate = sourceToEdit.startDate ? sourceToEdit.startDate.split("T")[0] : defaultToday;
-    const origEndDate = sourceToEdit.endDate ? sourceToEdit.endDate.split("T")[0] : null;
+    const origStartDate = sourceToEdit.startDate ? toAestDateString(sourceToEdit.startDate) : defaultToday;
+    const origEndDate = sourceToEdit.endDate ? toAestDateString(sourceToEdit.endDate) : null;
     const { origIsRecurring, origFrequency, origInterval } = parseSourceRecurrence(sourceToEdit);
 
     return (

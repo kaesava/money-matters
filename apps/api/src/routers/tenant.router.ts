@@ -481,7 +481,7 @@ export const tenantRouter = {
       return await handler(ctx.tenantId!, ctx.userId!, ctx.appId!);
     }),
 
-  deleteMyAccount: authenticatedProcedure
+  deleteMyAccount: ownerProcedure
     .mutation(async ({ ctx }) => {
       const handler = deleteMyAccountHandler(ctx.db);
       const result = await handler(ctx.tenantId!, ctx.userId!, ctx.email!, ctx.appId!);

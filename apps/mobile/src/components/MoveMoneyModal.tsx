@@ -16,8 +16,8 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
   const categoriesQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
   const categories = categoriesQuery.data ?? [];
 
-  const [fromCategoryId, setFromCategoryId] = useState('');
-  const [toCategoryId, setToCategoryId] = useState('');
+  const [fromPoolId, setFromPoolId] = useState('');
+  const [toPoolId, setToPoolId] = useState('');
   const [amount, setAmount] = useState('');
 
   const getBalance = (c: { currentBalance?: string | number }) =>
@@ -31,8 +31,8 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
   const moveMoneyMut = trpc.moveMoney.useMutation({
     onSuccess: () => {
       toast.success(t('toasts.saved'));
-      setFromCategoryId('');
-      setToCategoryId('');
+      setFromPoolId('');
+      setToPoolId('');
       setAmount('');
       onSuccess?.();
       onClose();
@@ -43,18 +43,18 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
   });
 
   const applyPreset = (fromId: string, toId: string, presetAmt: string) => {
-    setFromCategoryId(fromId);
-    setToCategoryId(toId);
+    setFromPoolId(fromId);
+    setToPoolId(toId);
     setAmount(presetAmt);
   };
 
   const handleSubmit = async () => {
-    if (!fromCategoryId || !toCategoryId || !amount || parseFloat(amount) <= 0) {
+    if (!fromPoolId || !toPoolId || !amount || parseFloat(amount) <= 0) {
       toast.error('Please select source and destination pools and enter a valid amount.');
       return;
     }
 
-    if (fromCategoryId === toCategoryId) {
+    if (fromPoolId === toPoolId) {
       toast.error('Source and destination pools must be different.');
       return;
     }
@@ -64,13 +64,13 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
 
   const performTransfer = () => {
     moveMoneyMut.mutate({
-      sourcePoolId: fromCategoryId,
-      destinationPoolId: toCategoryId,
+      sourcePoolId: fromPoolId,
+      destinationPoolId: toPoolId,
       amount: parseFloat(amount).toFixed(2),
     });
   };
 
-  const isDirty = Boolean(fromCategoryId || toCategoryId || amount);
+  const isDirty = Boolean(fromPoolId || toPoolId || amount);
 
   return (
     <MobileModalDialog
@@ -83,7 +83,7 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
         <MobileButton
           variant="primary"
           loading={moveMoneyMut.isPending}
-          disabled={!fromCategoryId || !toCategoryId || !amount || parseFloat(amount) <= 0 || moveMoneyMut.isPending}
+          disabled={!fromPoolId || !toPoolId || !amount || parseFloat(amount) <= 0 || moveMoneyMut.isPending}
           onPress={handleSubmit}
         >
           {t('modals.moveMoney.submit')}
@@ -120,10 +120,10 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
             {categories.map((c) => (
               <TouchableOpacity
                 key={`from-${c.id}`}
-                onPress={() => setFromCategoryId(c.id)}
-                style={[styles.pickerItem, fromCategoryId === c.id && styles.pickerItemActive]}
+                onPress={() => setFromPoolId(c.id)}
+                style={[styles.pickerItem, fromPoolId === c.id && styles.pickerItemActive]}
               >
-                <Text style={[styles.pickerItemText, fromCategoryId === c.id && styles.pickerItemTextActive]}>
+                <Text style={[styles.pickerItemText, fromPoolId === c.id && styles.pickerItemTextActive]}>
                   {c.name} ({formatAUD(c.currentBalance)})
                 </Text>
               </TouchableOpacity>
@@ -137,10 +137,10 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
             {categories.map((c) => (
               <TouchableOpacity
                 key={`to-${c.id}`}
-                onPress={() => setToCategoryId(c.id)}
-                style={[styles.pickerItem, toCategoryId === c.id && styles.pickerItemActive]}
+                onPress={() => setToPoolId(c.id)}
+                style={[styles.pickerItem, toPoolId === c.id && styles.pickerItemActive]}
               >
-                <Text style={[styles.pickerItemText, toCategoryId === c.id && styles.pickerItemTextActive]}>
+                <Text style={[styles.pickerItemText, toPoolId === c.id && styles.pickerItemTextActive]}>
                   {c.name} ({formatAUD(c.currentBalance)})
                 </Text>
               </TouchableOpacity>
@@ -157,7 +157,7 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
         />
 
         {/* Payday Safety Guard */}
-        {everydayCat && fromCategoryId === everydayCat.id && parseFloat(amount || '0') > 0 && (
+        {everydayCat && fromPoolId === everydayCat.id && parseFloat(amount || '0') > 0 && (
           <View style={styles.guardBanner}>
             <Text style={styles.guardBannerTitle}>Payday Safety Guard</Text>
             <Text style={styles.guardBannerText}>
