@@ -1,7 +1,12 @@
 # MOBILE ONLY
-* I was expecting 5 tabs but I see a 6th with a strange icon - fix
+* [x] I was expecting 5 tabs but I see a 6th with a strange icon - fixed: hid unconfigured `settings/privacy` screen (`options={{ href: null }}`) from the Expo Router bottom tab bar in `apps/mobile/src/app/(app)/_layout.tsx`.
 * 
 
+# Rules
+* Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
+* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
+* Each of the requested changes may require a deep-dive into the code - optimise how you do this, but be prepared to go deep for 100% coverage.
+* Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
 * Applies to web & mobile app
 
 

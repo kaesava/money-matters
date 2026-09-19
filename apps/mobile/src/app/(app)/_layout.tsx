@@ -146,6 +146,7 @@ export default function AppLayout() {
         <Tabs.Screen name="settings/income" options={{ href: null }} />
         <Tabs.Screen name="settings/archived" options={{ href: null }} />
         <Tabs.Screen name="settings/history" options={{ href: null }} />
+        <Tabs.Screen name="settings/privacy" options={{ href: null }} />
       </Tabs>
 
       {/* Floating Action Button */}
