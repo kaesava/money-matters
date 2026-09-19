@@ -113,6 +113,8 @@ async function main() {
         trialStartedAt: now,
         trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
         appId,
+        setupCompletedAt: now,
+        setupStatus: "COMPLETED",
         createdBy: userId!,
         updatedBy: userId!,
       });

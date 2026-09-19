@@ -37,5 +37,7 @@ export const tenants = pgTable("tenants", {
   planType: varchar("plan_type", { length: 30 }),
   nextBillingAt: timestamp("next_billing_at", { withTimezone: true }),
   trialConvertedAt: timestamp("trial_converted_at", { withTimezone: true }),
+  setupCompletedAt: timestamp("setup_completed_at", { withTimezone: true }),
+  setupStatus: varchar("setup_status", { length: 30 }).notNull().default("PENDING"),
   ...timestamps,
 });

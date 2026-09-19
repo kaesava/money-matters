@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { saveSetupBudgetHandler } from "./save-setup-budget.command";
-import { pools, categories, bankAccounts, incomeSources, transactionLedger } from "@money-matters/db";
+import { pools, categories, bankAccounts, incomeSources, transactionLedger, tenants } from "@money-matters/db";
 
 vi.mock("@money-matters/db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@money-matters/db")>();
@@ -64,7 +64,7 @@ describe("saveSetupBudgetHandler", () => {
       update: vi.fn().mockImplementation((table: any) => ({
         set: vi.fn().mockImplementation((setVals: any) => ({
           where: vi.fn().mockImplementation(() => {
-            const tableName = table?.name || "unknown";
+            const tableName = table === tenants ? "tenants" : table?.name || "unknown";
             updatedRows[tableName] = updatedRows[tableName] || [];
             updatedRows[tableName].push(setVals);
             return Promise.resolve([setVals]);
@@ -113,6 +113,8 @@ describe("saveSetupBudgetHandler", () => {
     expect(result.persistedCounts.bankAccounts).toBe(2);
     expect(result.persistedCounts.pools).toBe(3);
     expect(result.persistedCounts.categories).toBe(2);
+    expect(updatedRows["tenants"]).toBeDefined();
+    expect(updatedRows["tenants"][0].setupStatus).toBe("COMPLETED");
   });
 
   it("prevents archiving the EVERYDAY pool", async () => {

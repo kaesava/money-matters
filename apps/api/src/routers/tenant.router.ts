@@ -128,22 +128,36 @@ export const tenantRouter = {
 
   getTenantStatus: authenticatedProcedure
     .query(async ({ ctx }) => {
-      const appId = ctx.appId || MONEY_MATTERS_APP_ID;
       let setupCompleted = false;
 
-      if (ctx.tenantId && ctx.userId) {
-        const [tenantPref] = await ctx.db
-          .select()
-          .from(tenantUserPreferences)
-          .where(
-            and(
-              eq(tenantUserPreferences.userId, ctx.userId),
-              eq(tenantUserPreferences.tenantId, ctx.tenantId),
-              eq(tenantUserPreferences.appId, appId)
-            )
-          );
-        const appBlob = tenantPref?.appPreferences?.[appId];
-        setupCompleted = Boolean(appBlob?.setup_completed);
+      if (ctx.tenantId) {
+        const { tenants } = await import("@money-matters/db");
+        const [tenant] = await ctx.db
+          .select({
+            setupStatus: tenants.setupStatus,
+            setupCompletedAt: tenants.setupCompletedAt,
+          })
+          .from(tenants)
+          .where(eq(tenants.id, ctx.tenantId))
+          .limit(1);
+
+        if (tenant?.setupStatus === "COMPLETED" || Boolean(tenant?.setupCompletedAt)) {
+          setupCompleted = true;
+        } else if (ctx.userId) {
+          const appId = ctx.appId || MONEY_MATTERS_APP_ID;
+          const [tenantPref] = await ctx.db
+            .select()
+            .from(tenantUserPreferences)
+            .where(
+              and(
+                eq(tenantUserPreferences.userId, ctx.userId),
+                eq(tenantUserPreferences.tenantId, ctx.tenantId),
+                eq(tenantUserPreferences.appId, appId)
+              )
+            );
+          const appBlob = tenantPref?.appPreferences?.[appId];
+          setupCompleted = Boolean(appBlob?.setup_completed);
+        }
       }
 
       return {
@@ -185,6 +199,10 @@ export const tenantRouter = {
         ? await ctx.db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1)
         : [null];
 
+      const isTenantSetupDone = currentTenant?.setupStatus === "COMPLETED" || Boolean(currentTenant?.setupCompletedAt);
+      const setupCompleted = isTenantSetupDone || Boolean(appBlob?.setup_completed);
+      const setupCompletedAt = currentTenant?.setupCompletedAt?.toISOString() || appBlob?.setup_completed_at || null;
+
       return {
         id: globalPref?.id || tenantPref?.id,
         userId: ctx.userId!,
@@ -201,8 +219,8 @@ export const tenantRouter = {
         notificationEmail: globalPref?.notificationEmail ?? null,
         phoneCountryCode: globalPref?.phoneCountryCode ?? "+61",
         phoneNumber: globalPref?.phoneNumber ?? null,
-        setupCompleted: appBlob?.setup_completed ?? false,
-        setupCompletedAt: appBlob?.setup_completed_at ?? null,
+        setupCompleted,
+        setupCompletedAt,
         appPreferences: tenantPref?.appPreferences ?? {},
       };
     }),
@@ -303,6 +321,18 @@ export const tenantRouter = {
             appId,
             appPreferences: updatedAppPrefs,
           });
+      }
+      if (input.setupCompleted !== undefined && ctx.tenantId) {
+        const { tenants } = await import("@money-matters/db");
+        await ctx.db
+          .update(tenants)
+          .set({
+            setupStatus: input.setupCompleted ? "COMPLETED" : "PENDING",
+            setupCompletedAt: input.setupCompleted ? new Date() : null,
+            updatedAt: new Date(),
+            updatedBy: ctx.userId,
+          })
+          .where(eq(tenants.id, ctx.tenantId));
       }
 
       return { success: true };

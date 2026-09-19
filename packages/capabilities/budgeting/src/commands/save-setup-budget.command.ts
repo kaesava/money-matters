@@ -6,6 +6,7 @@ import {
   incomeSources,
   transactionLedger,
   tenantUserPreferences,
+  tenants,
   getPoolBalancesMap,
 } from "@money-matters/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
@@ -426,9 +427,19 @@ export function saveSetupBudgetHandler(dbClient: DbOrTx) {
       }
 
       // =========================================================================
-      // 6. Mark Setup as Completed in User / Tenant Preferences
+      // 6. Update Tenant Setup Status and Setup Timestamp (Household Level)
       // =========================================================================
       if (typeof (tx as any).update === "function") {
+        await tx
+          .update(tenants)
+          .set({
+            setupCompletedAt: now,
+            setupStatus: "COMPLETED",
+            updatedAt: now,
+            updatedBy: userId,
+          })
+          .where(eq(tenants.id, tenantId));
+
         const prefQuery = tx
           .select()
           .from(tenantUserPreferences)

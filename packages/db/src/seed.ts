@@ -195,6 +195,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
       appId,
+      setupCompletedAt: now,
+      setupStatus: "COMPLETED",
       createdBy: userId,
       updatedBy: userId,
     })
@@ -215,6 +217,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
       appId,
+      setupCompletedAt: now,
+      setupStatus: "COMPLETED",
       createdBy: raehanUserId,
       updatedBy: raehanUserId,
     })
@@ -235,6 +239,8 @@ export async function seedDatabase(connectionString: string, envLabel: string) {
       trialEndsAt: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
       appId,
+      setupCompletedAt: now,
+      setupStatus: "COMPLETED",
       createdBy: testerUserId,
       updatedBy: testerUserId,
     })

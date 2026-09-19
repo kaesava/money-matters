@@ -242,8 +242,8 @@ The onboarding flow delivers an engaging interactive estimation experience compl
   - Atomically records balanced `TRANSFER_OUT` and `TRANSFER_IN` ledger entries before soft-archiving the pool, guaranteeing 100% historical ledger integrity.
 
 ### UX Guardrails & Flow Controls
-- **Discard Warning & Skip Guard**: Clicking "Cancel" on Web or "Skip for now" on Mobile prompts a confirmation modal. Confirming skip/discard updates `setupCompleted: true` in the database, allowing users to proceed to the Dashboard with default seeded categories and avoiding endless setup redirect loops.
-- **Database-Backed Setup Guard (`setupCompleted`)**: Logging in or navigating to the Dashboard (`/dashboard` on Web, `/(app)/home` on Mobile) when `setupCompleted` is `false` in `tenantUserPreferences` automatically redirects the user directly to the setup wizard. Both platforms synchronize this state through Neon DB.
+- **Discard Warning & Skip Guard**: Clicking "Cancel" on Web or "Skip for now" on Mobile prompts a confirmation modal. Confirming skip/discard updates `setupStatus: 'COMPLETED'` on the household tenant in the database, allowing users to proceed to the Dashboard with default seeded categories and avoiding endless setup redirect loops.
+- **Database-Backed Setup Guard (`setupCompleted`)**: Logging in or navigating to the Dashboard (`/dashboard` on Web, `/(app)/home` on Mobile) when `setupStatus` is not `'COMPLETED'` on the `tenants` record automatically redirects the user directly to the setup wizard. Because this state is tracked at the household (`tenants`) level, once established by any household member, secondary invited partners immediately enter the active household dashboard with zero duplicate onboarding friction. Both platforms synchronize this state through Neon DB.
 
 ---
 

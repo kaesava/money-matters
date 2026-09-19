@@ -41,7 +41,9 @@ Multi-tenant container (household / organization).
 - `subscriptionStatus` (`trialing` | `active` | `past_due` | `canceled` | `unpaid` | `incomplete` | `incomplete_expired` | `paused`, default `'trialing'`): Billing lifecycle status.
 - `currentPeriodEnd` (timestamp, nullable): Stripe billing period end date.
 - `cancelAtPeriodEnd` (boolean, default `false`): Subscription cancellation pending flag.
-- **Consumers**: `packages/capabilities/tenant`, `packages/capabilities/stripe-billing`, Settings & Subscription UI.
+- `setupCompletedAt` (timestamp with time zone, nullable): Household setup completion timestamp.
+- `setupStatus` (`PENDING` | `COMPLETED`, default `'PENDING'`): Household onboarding setup status.
+- **Consumers**: `packages/capabilities/tenant`, `packages/capabilities/budgeting`, `packages/capabilities/stripe-billing`, Settings & Subscription UI, Web/Mobile Setup Wizards.
 
 ### 3. `tenant_users` (`packages/db/src/schema/tenant_user.ts`)
 Join table linking users to tenants with role-based access.
