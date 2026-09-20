@@ -49,7 +49,7 @@ export default function SignInScreen() {
         );
         return;
       }
-      const sessionToken = result.data?.token;
+      const sessionToken = (result.data as { session?: { token?: string }; token?: string })?.session?.token || (result.data as { token?: string })?.token;
       if (sessionToken) {
         await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
@@ -85,7 +85,7 @@ export default function SignInScreen() {
       }
 
       // Successful sign-in — the session token is stored in secure storage.
-      // Navigate to main app; the index route will redirect based on household status.
+      // Navigate to main app; the index route or layout guard will redirect based on household setup status.
       router.replace("/(app)/home");
     } catch (err) {
       toast.error(t("auth.signInErrorGeneric"), t("auth.signInErrorTitle"));
@@ -100,15 +100,23 @@ export default function SignInScreen() {
       const webOrigin = API_URL.includes("localhost") || API_URL.includes("127.0.0.1") || API_URL.includes("10.0.2.2")
         ? API_URL.replace(":3001", ":3000")
         : API_URL;
-      const result = await authClient.signIn.social({
+      await authClient.signIn.social({
         provider: "google",
         callbackURL: `${webOrigin}/auth-callback`,
       });
 
-      const sessionToken = await SecureStore.getItemAsync("money-matters_session_token") || 
-                           await SecureStore.getItemAsync("money-matters-session-token");
+      let sessionToken = (await SecureStore.getItemAsync("money-matters_session_token")) || 
+                         (await SecureStore.getItemAsync("money-matters-session-token"));
+      if (!sessionToken) {
+        const sessionRes = await authClient.getSession();
+        const retrieved = (sessionRes.data as { session?: { token?: string }; token?: string })?.session?.token || (sessionRes.data as { token?: string })?.token;
+        if (retrieved) {
+          sessionToken = retrieved;
+          await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
+          await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
+        }
+      }
       if (sessionToken) {
-        await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
         setActiveSessionToken(sessionToken);
       }
       posthog.capture('user_signed_in', { method: 'google' });

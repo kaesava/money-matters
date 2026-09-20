@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { MobileScreenWrapper, MobileScreenWrapperProps } from '@money-matters/ui/mobile';
 import { authClient } from '../lib/auth';
-import { trpc } from '../lib/trpc';
+import { trpc, setActiveSessionToken } from '../lib/trpc';
+import * as SecureStore from 'expo-secure-store';
 import { MobileTenantSwitcherModal } from './settings/MobileTenantSwitcherModal';
 
 export interface AppScreenWrapperProps extends Omit<MobileScreenWrapperProps, 'children'> {
@@ -49,7 +50,10 @@ export function AppScreenWrapper({
       return;
     }
     await authClient.signOut();
-    router.replace('/(auth)/login' as never);
+    await SecureStore.deleteItemAsync('money-matters_session_token');
+    await SecureStore.deleteItemAsync('money-matters-session-token');
+    setActiveSessionToken(null);
+    router.replace('/(auth)/sign-in' as never);
   };
 
   return (

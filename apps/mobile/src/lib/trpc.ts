@@ -51,7 +51,7 @@ export async function switchActiveTenant(
 
 const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] ?? "https://api.moneymatters.kaesava.au";
 
-async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie: string | null }> {
+export async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie: string | null }> {
   let token: string | null = null;
   let cookie: string | null = null;
 
@@ -66,6 +66,22 @@ async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie
     // Ignore storage read failures for optional cached tokens
   }
 
+  // Fallback: Check Better Auth session cache saved by expoClient plugin
+  if (!token) {
+    try {
+      const sessionDataStr = await SecureStore.getItemAsync("money-matters_session_data");
+      if (sessionDataStr) {
+        const parsed = JSON.parse(sessionDataStr) as { session?: { token?: string }; token?: string };
+        const cachedToken = parsed?.session?.token || parsed?.token;
+        if (cachedToken) {
+          token = cachedToken;
+        }
+      }
+    } catch {
+      // Ignore cache parse failures
+    }
+  }
+
   try {
     const cookieStr = await SecureStore.getItemAsync("money-matters_cookie");
     if (cookieStr) {
@@ -75,7 +91,8 @@ async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie
         if (obj?.value) {
           cookieParts.push(`${key}=${obj.value}`);
           if (!token && key.includes("session_token")) {
-            token = obj.value;
+            // Strip any signature suffix and s: / s_ / s%3A prefix
+            token = obj.value.split(".")[0].replace(/^(?:s:|s_|s%3A)/, "");
           }
         }
       }
@@ -85,6 +102,33 @@ async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie
     }
   } catch {
     // Ignore storage read failures for optional cached cookies
+  }
+
+  // Fallback: Query authClient.getCookie() if cookie header is not assembled
+  if (!cookie) {
+    try {
+      const clientCookie = (authClient as unknown as { getCookie?: () => string }).getCookie?.();
+      if (clientCookie) {
+        cookie = clientCookie;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  // Asynchronous fallback: Query active session from Better Auth client
+  if (!token) {
+    try {
+      const sessionRes = await authClient.getSession();
+      const resolved = (sessionRes.data as { session?: { token?: string }; token?: string })?.session?.token || (sessionRes.data as { token?: string })?.token;
+      if (resolved) {
+        token = resolved;
+        await SecureStore.setItemAsync("money-matters_session_token", resolved).catch(() => {});
+        await SecureStore.setItemAsync("money-matters-session-token", resolved).catch(() => {});
+      }
+    } catch {
+      // Ignore network / offline failure
+    }
   }
 
   return { token, cookie };

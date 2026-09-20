@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -24,6 +25,7 @@ export function HouseholdReadOnlyView({
   isOwner,
   onEdit,
 }: HouseholdReadOnlyViewProps) {
+  const router = useRouter();
   const currencyConfig = SUPPORTED_CURRENCIES[currency];
   const countryConfig = SUPPORTED_COUNTRIES.find((c) => c.code === country);
 
@@ -76,6 +78,21 @@ export function HouseholdReadOnlyView({
           <Text style={styles.detailLabel}>Postal / ZIP Code</Text>
           <Text style={styles.detailValue}>{postcode || '—'}</Text>
         </View>
+      </View>
+
+      {/* Household Budget Re-calibration Section */}
+      <View style={styles.recalibrateCard}>
+        <View style={styles.recalibrateInfo}>
+          <Text style={styles.recalibrateTitle}>⚙️ {t('setup.recalibrateTitle')}</Text>
+          <Text style={styles.recalibrateSubtitle}>{t('setup.recalibrateSubtitle')}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.recalibrateBtn}
+          onPress={() => router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as never)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.recalibrateBtnText}>{t('setup.recalibrateTitle')}</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -158,5 +175,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: D.colors.primary,
     marginTop: 2,
+  },
+  recalibrateCard: {
+    backgroundColor: D.colors.background,
+    borderWidth: 1,
+    borderColor: D.colors.border,
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+    marginTop: 4,
+  },
+  recalibrateInfo: {
+    gap: 2,
+  },
+  recalibrateTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: D.colors.primary,
+  },
+  recalibrateSubtitle: {
+    fontSize: 11,
+    color: D.colors.textMuted,
+    lineHeight: 15,
+  },
+  recalibrateBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: D.colors.surface,
+    borderWidth: 1,
+    borderColor: D.colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  recalibrateBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: D.colors.primary,
   },
 });

@@ -77,7 +77,7 @@ export default function SignUpScreen() {
         );
         return;
       }
-      const sessionToken = signUpResult.data?.token;
+      const sessionToken = (signUpResult.data as { session?: { token?: string }; token?: string })?.session?.token || (signUpResult.data as { token?: string })?.token;
       if (sessionToken) {
         await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);

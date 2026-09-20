@@ -11,11 +11,22 @@ export default function SetupCompleteScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const posthog = usePostHog();
+  const utils = trpc.useUtils();
+  const updatePref = trpc.updateUserPreferences.useMutation();
   const [loading, setLoading] = useState(false);
 
   const handleFinish = async () => {
     setLoading(true);
     try {
+      try {
+        await updatePref.mutateAsync({ setupCompleted: true });
+        await Promise.all([
+          utils.getUserPreferences.invalidate(),
+          utils.getTenantStatus.invalidate(),
+        ]);
+      } catch {
+        // Non-blocking preference update
+      }
       posthog.capture('setup_completed');
       router.replace('/(app)/home');
     } catch (err) {

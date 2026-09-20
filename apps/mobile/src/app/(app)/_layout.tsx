@@ -57,6 +57,19 @@ export default function AppLayout() {
     }
   }, [subQuery.data?.isTrialExpired, currentScreen, segments, router]);
 
+  // Setup Guard: redirect to setup wizard if user has not completed setup (consistent with web app tenant setting)
+  React.useEffect(() => {
+    if (
+      session?.user &&
+      !userPrefQuery.isLoading &&
+      userPrefQuery.data &&
+      userPrefQuery.data.setupCompleted === false &&
+      !segments.includes('(setup)' as never)
+    ) {
+      router.replace('/(setup)/income' as never);
+    }
+  }, [session?.user, userPrefQuery.isLoading, userPrefQuery.data?.setupCompleted, segments, router]);
+
   // Automatically register device push token upon authenticated layout mount & handle foreground notifications
   usePushNotifications(
     React.useCallback((notification: { title?: string; body?: string }) => {
