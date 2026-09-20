@@ -17,7 +17,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: [
       "lucide-react",
-      "@money-matters/ui",
       "@trpc/react-query",
       "better-auth",
     ],
