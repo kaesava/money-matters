@@ -641,7 +641,7 @@ export const en = {
     authModalAlreadyHaveAccount: "Already have an account?",
     authModalNeedAccount: "Don't have an account?",
     authModalTermsNotice: "By signing up, you agree to our Terms of Service and Privacy Policy.",
-    createAccount: "Start 60-Day Free Trial",
+    createAccount: "Money Matters - 60-Day Free Trial",
     trySimulator: "See How It Works",
     simTitle: "Try your payday split",
     simDescription: "Drag the slider to see how your pay automatically flows through our self-healing 5-step waterfall — bills first, then savings goals, then everyday spending, sweeping leftover surplus.",
