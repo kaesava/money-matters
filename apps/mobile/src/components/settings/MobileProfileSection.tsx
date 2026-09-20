@@ -30,7 +30,7 @@ export function MobileProfileSection() {
   const [storedEmail, setStoredEmail] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('Australia/Sydney');
-  const [language, setLanguage] = useState<'en' | 'ja'>('en');
+  const [language, setLanguage] = useState<'en'>('en');
   const [locale, setLocale] = useState('auto');
   const [showIcons, setShowIcons] = useState(true);
 
@@ -50,7 +50,7 @@ export function MobileProfileSection() {
   const initialDataRef = useRef({
     name: '',
     timezone: 'Australia/Sydney',
-    language: 'en' as 'en' | 'ja',
+    language: 'en' as const,
     locale: 'auto',
     showIcons: true,
     avatarUri: null as string | null,
@@ -60,7 +60,7 @@ export function MobileProfileSection() {
     const uName = session?.user?.name || '';
     const uAvatar = session?.user?.image || null;
     const uTz = userPrefQuery.data?.timezone || 'Australia/Sydney';
-    const uLang = (userPrefQuery.data?.language as 'en' | 'ja') || 'en';
+    const uLang = 'en' as const;
     const uLoc = userPrefQuery.data?.locale || 'auto';
     const uIcons = userPrefQuery.data?.showIcons ?? true;
 

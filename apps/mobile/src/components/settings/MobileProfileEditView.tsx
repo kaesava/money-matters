@@ -22,8 +22,8 @@ interface MobileProfileEditViewProps {
   onPickAvatar: () => void;
   timezone: string;
   setTimezone: (val: string) => void;
-  language: 'en' | 'ja';
-  setLanguage: (val: 'en' | 'ja') => void;
+  language: 'en';
+  setLanguage: (val: 'en') => void;
   locale: string;
   setLocale: (val: string) => void;
   showIcons: boolean;
@@ -116,18 +116,10 @@ export function MobileProfileEditView({
         <View style={styles.chipRow}>
           <TouchableOpacity
             onPress={() => setLanguage('en')}
-            style={[styles.chip, language === 'en' && styles.chipSelected]}
+            style={[styles.chip, styles.chipSelected]}
           >
-            <Text style={[styles.chipText, language === 'en' && styles.chipTextSelected]}>
+            <Text style={[styles.chipText, styles.chipTextSelected]}>
               English (en)
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setLanguage('ja')}
-            style={[styles.chip, language === 'ja' && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, language === 'ja' && styles.chipTextSelected]}>
-              日本語 (ja)
             </Text>
           </TouchableOpacity>
         </View>

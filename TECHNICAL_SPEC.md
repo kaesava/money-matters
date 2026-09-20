@@ -296,7 +296,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   - Web: `@opennextjs/cloudflare` (`moneymatters.kaesava.au`)
   - API: Fastify on Cloudflare Workers (`api.moneymatters.kaesava.au`)
 - **Automated Workflows (`.github/workflows/`)**:
-  - `ci.yml`: Runs on PR and push to `main` (Security scan `pnpm audit --audit-level=high`, i18n parity check `pnpm check-i18n`, Typecheck, Lint, Vitest unit tests, Turbo build).
+  - `ci.yml`: Runs on PR and push to `main` (Security scan `pnpm audit --audit-level=high`, i18n validation `pnpm check-i18n`, Typecheck, Lint, Vitest unit tests, Turbo build).
   - `deploy.yml`: Runs on merge to `main` (Executes CI suite as a mandatory prerequisite via `needs: [ci]` before running Drizzle DB migrations and `wrangler deploy` for `apps/web` and `apps/api`).
 
 ---

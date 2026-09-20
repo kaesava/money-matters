@@ -18,7 +18,7 @@ export const UpdateTenantCommand = z.object({
 
 export const UpdateUserPreferencesCommand = z.object({
   timezone: z.string().optional(),
-  language: z.enum(["en", "ja"]).optional(),
+  language: z.enum(["en"]).optional(),
   locale: z.string().optional(),
   theme: z.string().optional(),
   showIcons: z.boolean().optional(),

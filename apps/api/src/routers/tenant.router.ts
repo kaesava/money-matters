@@ -194,7 +194,7 @@ export const tenantRouter = {
         tenantTimezone: currentTenant?.timezone || "Australia/Sydney",
         currency: currentTenant?.currency || "AUD",
         country: currentTenant?.country || "AU",
-        language: (globalPref?.language as "en" | "ja") || "en",
+        language: (globalPref?.language as "en") || "en",
         locale: globalPref?.locale || (currentTenant?.country ? `en-${currentTenant.country}` : "en-AU"),
         theme: globalPref?.theme ?? "system",
         showIcons: globalPref?.showIcons ?? true,
@@ -211,7 +211,7 @@ export const tenantRouter = {
     .input(
       z.object({
         timezone: z.string().optional(),
-        language: z.enum(["en", "ja"]).optional(),
+        language: z.enum(["en"]).optional(),
         locale: z.string().optional(),
         theme: z.string().optional(),
         showIcons: z.boolean().optional(),

@@ -58,10 +58,10 @@ graph TD
 
 ---
 
-## Phase 1: Shared UI Primitives & i18n Dictionary Parity
+## Phase 1: Shared UI Primitives & i18n Dictionary Completeness
 
 ### Objective
-Ensure all required UI primitives exist in `packages/ui/src/mobile` and that all new user-facing copy is 100% externalized with 1:1 structural parity across `en.ts` and `ja.ts`.
+Ensure all required UI primitives exist in `packages/ui/src/mobile` and that all new user-facing copy is 100% externalized in `en.ts` (with `ja.ts` archived for Release 2).
 
 ### 1.1 New & Enhanced Mobile UI Primitives (`packages/ui/src/mobile/`)
 - **BankProviderBadge.tsx** (`packages/ui/src/mobile/BankProviderBadge.tsx`):
@@ -73,8 +73,8 @@ Ensure all required UI primitives exist in `packages/ui/src/mobile` and that all
 - **MobileDatePicker.tsx** (`packages/ui/src/mobile/MobileDatePicker.tsx`):
   - Timezone-safe date input utilizing `Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' })` to prevent UTC off-by-one errors.
 
-### 1.2 i18n Dictionary Synchronization (`packages/i18n/src/dictionaries/`)
-- Update `en.ts` and `ja.ts` with exact structural parity for:
+### 1.2 i18n Dictionary Externalization (`packages/i18n/src/dictionaries/`)
+- Update `en.ts` with complete definitions for:
   - `matrix.*`: 12-month projection matrix labels, surplus/deficit per cycle, pay period summary.
   - `csvImport.*`: 3-step wizard steps, duplicate flags, batch rollback confirmation.
   - `categoryDetail.*`: Category stats, linked bills, transaction activity, notes.
@@ -316,6 +316,6 @@ This runs:
 1. `pnpm install`
 2. `pnpm typecheck` (strict TypeScript, zero `any`, zero `@ts-ignore`)
 3. `pnpm test:coverage` & `pnpm test` (all Vitest suites passing)
-4. `pnpm check-i18n` (100% parity across `en.ts` and `ja.ts`)
+4. `pnpm check-i18n` (100% key validation and externalization in `en.ts`)
 5. `pnpm lint`
 6. `pnpm build`

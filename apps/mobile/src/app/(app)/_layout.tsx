@@ -36,7 +36,7 @@ export default function AppLayout() {
   const prefs = userPrefQuery.data?.appPreferences?.[
     '01908bde-34bb-7b19-a178-574211bc93aa'
   ] as { locale?: 'en' | 'ja' } | undefined;
-  const userLocale = prefs?.locale || 'en';
+  const userLocale = (prefs?.locale || 'en') as 'en';
   const router = useRouter();
   const subQuery = trpc.getSubscriptionStatus.useQuery(undefined, {
     enabled: !!session?.user,

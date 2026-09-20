@@ -32,16 +32,10 @@ export function PreferencesSection() {
         <Text style={styles.rowLabel}>{t('settings.language')}</Text>
         <View style={styles.langToggleGroup}>
           <TouchableOpacity
-            style={[styles.langBtn, currentLang === 'en' && styles.langBtnActive]}
+            style={[styles.langBtn, styles.langBtnActive]}
             onPress={() => handleToggleLanguage('en')}
           >
-            <Text style={[styles.langBtnText, currentLang === 'en' && styles.langBtnTextActive]}>EN</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.langBtn, currentLang === 'ja' && styles.langBtnActive]}
-            onPress={() => handleToggleLanguage('ja')}
-          >
-            <Text style={[styles.langBtnText, currentLang === 'ja' && styles.langBtnTextActive]}>JA</Text>
+            <Text style={[styles.langBtnText, styles.langBtnTextActive]}>EN</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// 1. Read and parse en.ts and ja.ts
+// 1. Read and parse en.ts
 function parseDict(fileName, exportName) {
   const dictPath = path.join(__dirname, 'dictionaries', fileName);
   let content = fs.readFileSync(dictPath, 'utf8');
@@ -33,13 +33,8 @@ function getKeys(obj, prefix = '') {
 }
 
 const en = parseDict('en.ts', 'en');
-const ja = parseDict('ja.ts', 'ja');
-
 const enKeys = getKeys(en);
-const jaKeys = getKeys(ja);
-
 const enKeySet = new Set(enKeys);
-const jaKeySet = new Set(jaKeys);
 
 // 1.5 Strict Banned Terminology & Tone Audit
 const BANNED_PATTERNS = [
@@ -85,15 +80,7 @@ if (terminologyErrors.length > 0) {
   process.exit(1);
 }
 
-const missingInJa = enKeys.filter(k => !jaKeySet.has(k));
-const missingInEn = jaKeys.filter(k => !enKeySet.has(k));
-
-if (missingInJa.length > 0 || missingInEn.length > 0) {
-  console.log('\x1b[36m[i18n R2 Scope Note] Full EN-JA dictionary key alignment is deferred to Release 2 (V2_SCOPE.md).\x1b[0m');
-  if (missingInJa.length > 0) {
-    console.log(`  - \x1b[33m${missingInJa.length} keys in en.ts pending Japanese translation in R2\x1b[0m`);
-  }
-}
+// [i18n Scope Note] Japanese (ja.ts) dictionary is archived in ./dictionaries/archive/ja.ts; full multi-language parity is deferred to Release 2 (V2_SCOPE.md).
 
 // 2. Scan codebase for missing t('key') references
 const monorepoRoot = path.resolve(__dirname, '../../../');
@@ -218,5 +205,5 @@ if (jsxWarnings.length > 0) {
   process.exit(1);
 }
 
-console.log('\x1b[32m✔ All translation keys, EN-JA dictionary parity, and JSX text externalization validated successfully!\x1b[0m');
+console.log('\x1b[32m✔ All translation keys and JSX text externalization validated successfully!\x1b[0m');
 process.exit(0);

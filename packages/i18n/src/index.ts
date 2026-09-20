@@ -5,15 +5,13 @@
  * and string interpolation parameters for UI components on web and mobile platforms.
  */
 import { en } from "./dictionaries/en";
-import { ja } from "./dictionaries/ja";
-
 
 /**
  * Registry of supported localization dictionaries.
+ * Note: Japanese (ja.ts) has been archived in ./dictionaries/archive/ja.ts for Release 2 (V2_SCOPE.md).
  */
 export const translations = {
   en,
-  ja,
 } as const;
 
 export type SupportedLanguage = keyof typeof translations;

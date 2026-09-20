@@ -74,10 +74,10 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       if (typeof navigator !== "undefined" && navigator.language) {
         return navigator.language;
       }
-      return language === "ja" ? "ja-JP" : "en-AU";
+      return "en-AU";
     }
     return rawLocale;
-  }, [rawLocale, language]);
+  }, [rawLocale]);
 
   const currency = pref?.currency || "AUD";
   const country = pref?.country || "AU";

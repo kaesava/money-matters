@@ -13,7 +13,7 @@ interface ProfileReadOnlyViewProps {
   phoneCountryCode: string;
   phoneNumber: string;
   timezone: string;
-  language: "en" | "ja";
+  language: "en";
   locale: string;
   showIcons: boolean;
   avatarUrl: string;
@@ -118,7 +118,7 @@ export function ProfileReadOnlyView({
             {t("settings.language")}
           </span>
           <span className="text-xs font-semibold text-[#1B2B4B]">
-            {language === "ja" ? "日本語 (ja)" : "English (en)"}
+            {language === "en" ? "English (en)" : "English (en)"}
           </span>
         </div>
 

@@ -9,7 +9,47 @@
 
 ################
 
-#
+
+We are now going to work through screen by screen to ensure that the mobile app and web app are ready for production. For mobile, I've connected it by USB to my machine (running Linux mint) for development.
+
+We will start with Sign-In and Sign-Up pages.
+
+* Ensure that all the capability in the web app is also available and setup correctly on the mobile app. This includes but is not limited to:
+** OTP handling if email needs to be verified
+** Behaviour when password is incorrect (currently the mobile app does not seem to show error)
+** Sign-up/Sign-in through Email, Google and/or Apple, etc.
+** Handling of CORS/better auth authentication & headers - coming through correctly?
+** Mandatory fields are entered (currently, seems to allow sign-in even though they aren't)
+** Mandatory fields are marked up (not currently marked up)
+** Forgotten password functionality works perfectly
+* Applies to web & mobile: Ensure that there is only one set of keys in l18n relating to sign-up and sign-in fields, error messages, porrly formatted field error messages, backend error messages, etc. and consistent across web and mobile with no hardcoding (using web as guide if conflict.)
+* Applies to web & mobile: Sign-Up fields are exactly the fields needed to setup a new tenant and align with format, etc.
+* Password rules are consistently applied across mobile and web
+* Title and Sub-titles across mobile and web are consistent (for example, use app.tagline)
+* Identify and aggressively cull dead/un-used code relating to sign-up or sign-in across web and mobile apps, including l18n literals.
+* Consolidate l18n literals relating to sign-in and sign-up where they are similar and repeated. Cull un-used.
+
+IMPORTANT: Do your own comprehensive comparison of all the ways in which the user can sign-up and/or sign-in across mobile and web and ensure functionality parity (web is reference) - of course, UI needs to be web or mobile native.
+
+# Rules ########
+* Strict adherence to AGENTS.md
+* Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
+* Each of the requested changes may require a deep-dive into the code - optimise how you do this, but be prepared to go deep for 100% coverage.
+* Applies to web & mobile app
+
+
+
+# Sign in Page & Sign-Up
+
+## Mobile
+
+
+## Web
+* Consolidate http://localhost:3000/sign-in (or /sign-up) screen and Auth modal screen (launched from the ) - re-use l18n strings (removing redundant ones) and as much UI/code as possible across them - Ideally, have only one set of Sign-In and Sign-Up forms that are re-used across the web app.
+
+## Both
+Ensure all titles, subtitles, labels, errors, format errors, re-use l18n strings, and aggressively cull strings that are related to sign-in and sign-up that are not used across the two.
+
 
 # Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping SCHEMA DFINITION, FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
@@ -26,7 +66,24 @@ Testing via USB connected to Android Google Pixel 10 connected to this machine.
 
 ## Bottom Navigation links
 
-## General
+### General
+### Navigation
+### Common
+### Dashboard
+### Pools
+#### Pool Picker
+* Pool Picker doesn't seem to be working. Needs to be in parity with web application. Re-use as much code as possible.
+
+### Income & expenses
+#### Income Split
+##### Pool drawer
+##### Income Split Drawer
+#### Upcoming
+#### Setup
+### History
+#### History
+#### Split History
+##### Payday Allocation Details drawer
 
 
 /grill-me

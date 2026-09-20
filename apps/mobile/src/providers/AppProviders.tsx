@@ -28,7 +28,7 @@ function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
 
       let resolvedLocale = pref.locale || 'auto';
       if (resolvedLocale === 'auto') {
-        resolvedLocale = language === 'ja' ? 'ja-JP' : 'en-AU';
+        resolvedLocale = 'en-AU';
       }
       const timezone = pref.tenantTimezone || pref.timezone || 'Australia/Sydney';
       const userTimezone = pref.timezone || timezone;

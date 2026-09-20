@@ -7,8 +7,8 @@ import { SUPPORTED_LOCALES } from "@money-matters/types";
 import { COMMON_TIMEZONES } from "./timezones";
 
 interface ProfilePreferencesFieldsProps {
-  language: "en" | "ja";
-  setLanguageState: (val: "en" | "ja") => void;
+  language: "en";
+  setLanguageState: (val: "en") => void;
   locale: string;
   setLocale: (val: string) => void;
   timezone: string;
@@ -38,11 +38,10 @@ export function ProfilePreferencesFields({
           <select
             id="edit-language"
             value={language}
-            onChange={(e) => setLanguageState(e.target.value as "en" | "ja")}
+            onChange={(e) => setLanguageState(e.target.value as "en")}
             className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           >
             <option value="en">English (en)</option>
-            <option value="ja">日本語 (ja)</option>
           </select>
         </div>
 

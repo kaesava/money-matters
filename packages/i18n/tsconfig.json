@@ -10,5 +10,6 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/dictionaries/archive/**", "node_modules", "dist"]
 }

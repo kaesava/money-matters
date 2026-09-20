@@ -93,7 +93,7 @@ cd apps/api && pnpm cf-deploy
 
 ## 🛡️ Production Security & Architecture Guidelines
 - **Multi-Tenancy**: All data isolated by `tenantId` with PostgreSQL Row Level Security (RLS).
-- **Zero Hardcoded Text**: 100% of user-facing UI labels are localized via `@money-matters/i18n` with full English (`en.ts`) & Japanese (`ja.ts`) translation parity enforced by `check-i18n`.
+- **Zero Hardcoded Text**: 100% of user-facing UI labels are localized via `@money-matters/i18n` with English (`en.ts`) completeness and externalization enforced by `check-i18n` (Japanese `ja.ts` archived for Release 2).
 - **100% Test Coverage**: Comprehensive Vitest unit test suites covering all capabilities, infra modules, and UI components.
 - **Zero Hardcoded Styles**: UI components consume centralized Serene Finance design tokens (`#2563eb`, `#1B2B4B`, `#F7F8FA`, `#22c55e`, `#ba1a1a`) from `@money-matters/ui`.
 - **Zero PII Logging**: Sensitive fields (emails, passwords, tokens) are automatically redacted in `@money-matters/core` logger.

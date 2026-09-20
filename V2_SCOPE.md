@@ -22,9 +22,7 @@
 | **Savings reconciliation — AI auto-spread** | Premium tier | Reconciliation service abstracted behind interface |
 | **Stripe / subscription payments** | **DELIVERED** | Integrated with trial lockouts, webhooks, and read-only grace periods |
 | **Uptime Monitoring (Better Stack / UptimeRobot)** | Deferred to Release 2 | Automated ping checks on `/health` and Web frontend |
-| **Product Analytics (PostHog)** | **DELIVERED** | Integrated telemetry and telemetry context providers |
-| **Japanese Translation (ja.ts) Parity Check** | Deferred to Release 2 | `check-i18n.cjs` validates `en.ts` completeness and TSX string literal externalization in V1; full EN-JA dictionary key parity deferred to Release 2 |
-| **Category-Level Balance Management (Everyday & Bills)** | Deferred to Release 2 | Managed at pool level in V1; see detailed feature spec below |
+| **Japanese Localization (ja.ts) & Language Selection** | Deferred to Release 2 | Japanese dictionary safely archived in `packages/i18n/src/dictionaries/archive/ja.ts`; user preference language options restricted to English-only in R1; full multi-language parity and runtime switching deferred to Release 2 (see `FEAT-V2-008-JAPANESE-LOCALIZATION`) |
 | **Upcoming Queue Multi-Selection & Batch Actioning** | Deferred to Release 2 | Single-row actioning (*Mark Received / Paid*, *Delete*) delivered in V1; batch checkboxes and bulk mark action bar deferred to V2 |
 | **Full Outlook-Style Complex Recurrence Builder** | Deferred to Release 2 | V1 provides simple frequency enums (`WEEKLY`, `FORTNIGHTLY`, `MONTHLY`, `ANNUALLY`) + one-off target date picker via `useRecurrenceBuilder`. Full Outlook-style RRULE rule builder (e.g. 2nd Tuesday of every month, Nth weekday, custom intervals, complex until dates) deferred to V2. |
 | **Bank Statement CSV Import & Open Banking Sync** | Deferred to Release 2 | Backward-looking receipt categorization removed from V1 to protect forward-looking zero-friction payday allocation philosophy. V2 will evaluate Consumer Data Right (CDR) read-only bank feeds and a streamlined pool-centric onboarding catch-up assistant. |
@@ -487,4 +485,32 @@ Web utilizes Playwright for comprehensive screen-by-screen testing (`apps/web/e2
    - `02-dashboard-actions.yaml`: Quick expense entry, can-afford simulator, and move money.
    - `03-income-split-studio.yaml`: Full 5-step waterfall review, custom allocation adjustment, and split execution.
 2. **GitHub Actions Matrix**: Headless Android emulator runner building debug APK and running Maestro CLI flows on pull requests.
+
+---
+
+## V2 Feature: Japanese Localization & Multi-Language Switching
+
+### Feature ID
+
+`FEAT-V2-008-JAPANESE-LOCALIZATION`
+
+### Context & Strategic Rationale
+
+In Release 1, Money Matters strictly standardizes on Australian English (`en-AU` / `en.ts`) to maximize development velocity, maintain clean zero-friction copy consistency across web and mobile apps, and eliminate overhead on translation key maintenance. The Japanese localization dictionary has been preserved and archived at `packages/i18n/src/dictionaries/archive/ja.ts`.
+
+In Release 2, Japanese support will be officially reintroduced to support Japanese households and international users.
+
+### Technical Scope for V2
+
+1. **Dictionary Restoration & Sync**:
+   - Restore `packages/i18n/src/dictionaries/archive/ja.ts` back to `packages/i18n/src/dictionaries/ja.ts`.
+   - Re-enable `ja` in `packages/i18n/src/index.ts` `translations` registry and `SupportedLanguage` union type (`"en" | "ja"`).
+   - Backfill all missing translation keys in `ja.ts` to achieve 100% structural key parity with `en.ts`.
+2. **Automated CI Validation (`pnpm check-i18n`)**:
+   - Re-activate EN-JA dictionary key parity checks in `packages/i18n/src/check-i18n.cjs` to enforce 100% key synchronization between `en.ts` and `ja.ts`.
+3. **User Preferences UI & API**:
+   - **Web App**: Re-enable `<option value="ja">日本語 (ja)</option>` in `ProfilePreferencesFields.tsx` and dynamic language state in `ProfileReadOnlyView.tsx` / `useProfileForm.ts`.
+   - **Mobile App**: Re-enable the Japanese chip (`日本語 (ja)`) in `MobileProfileEditView.tsx` and the `JA` toggle in `PreferencesSection.tsx`.
+   - **API & Schemas**: Re-enable `z.enum(["en", "ja"])` in `UserPreferencesSchema` (`@money-matters/types`) and `tenantRouter.updateUserPreferences` (`apps/api`).
+
 

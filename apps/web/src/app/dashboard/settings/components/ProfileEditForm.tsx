@@ -19,8 +19,8 @@ interface ProfileEditFormProps {
   phoneError?: string;
   timezone: string;
   setTimezone: (val: string) => void;
-  language: "en" | "ja";
-  setLanguageState: (val: "en" | "ja") => void;
+  language: "en";
+  setLanguageState: (val: "en") => void;
   locale: string;
   setLocale: (val: string) => void;
   showIcons: boolean;

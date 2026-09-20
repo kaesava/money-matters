@@ -16,7 +16,7 @@ interface MobileProfileReadOnlyViewProps {
   email: string;
   avatarUri: string | null;
   timezone: string;
-  language: 'en' | 'ja';
+  language: 'en';
   locale: string;
   showIcons: boolean;
   biometricsAvailable: boolean;
@@ -87,7 +87,7 @@ export function MobileProfileReadOnlyView({
         <View style={styles.detailItem}>
           <Text style={styles.detailLabel}>{t('settings.language')}</Text>
           <Text style={styles.detailValue}>
-            {language === 'ja' ? '日本語 (ja)' : 'English (en)'}
+            {language === 'en' ? 'English (en)' : 'English (en)'}
           </Text>
         </View>
 

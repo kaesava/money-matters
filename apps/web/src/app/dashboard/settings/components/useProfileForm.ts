@@ -12,7 +12,7 @@ export interface ProfileFormData {
   phoneCountryCode: string;
   phoneNumber: string;
   timezone: string;
-  language: "en" | "ja";
+  language: "en";
   locale: string;
   showIcons: boolean;
 }
@@ -61,7 +61,7 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
         phoneCountryCode: userProfileQuery.data.phoneCountryCode || "+61",
         phoneNumber: userProfileQuery.data.phoneNumber || "",
         timezone: userProfileQuery.data.timezone || currentTimezone,
-        language: (userPrefQuery.data?.language as "en" | "ja") || "en",
+        language: "en",
         locale: userPrefQuery.data?.locale || "auto",
         showIcons: userProfileQuery.data.showIcons ?? true,
       };
@@ -171,7 +171,7 @@ export function useProfileForm({ user, currentTimezone }: UseProfileFormParams) 
     timezone: data.timezone,
     setTimezone: (val: string) => setData((prev) => ({ ...prev, timezone: val })),
     language: data.language,
-    setLanguageState: (val: "en" | "ja") => setData((prev) => ({ ...prev, language: val })),
+    setLanguageState: (val: "en") => setData((prev) => ({ ...prev, language: val })),
     locale: data.locale,
     setLocale: (val: string) => setData((prev) => ({ ...prev, locale: val })),
     showIcons: data.showIcons,
