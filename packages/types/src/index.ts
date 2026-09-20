@@ -28,6 +28,7 @@ export * from "./setup-presets";
 export * from "./app-preferences";
 export * from "./onboarding-quiz";
 export * from "./locale.types";
+export * from "./auth.types";
 
 /**
  * Subscription status lifecycle state machine.
@@ -399,7 +400,7 @@ export const ConfirmPlanCommand = z.object({
  */
 export const UserPreferencesSchema = z.object({
   timezone: z.string().default("UTC"),
-  language: z.enum(["en", "ja"]).default("en"),
+  language: z.enum(["en"]).default("en"),
   locale: z.string().default("auto"),
 }).strict();
 

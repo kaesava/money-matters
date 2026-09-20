@@ -7,13 +7,14 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePostHog } from 'posthog-react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { trpc } from '../../lib/trpc';
+import { trpc, setActiveSessionToken } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
+import * as SecureStore from 'expo-secure-store';
 import { formatAUD, formatIsoDate } from '../../lib/format';
 
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
@@ -31,8 +32,17 @@ import { triggerHaptic } from '../../lib/haptics';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { token } = useLocalSearchParams<{ token?: string }>();
   const posthog = usePostHog();
   const utils = trpc.useUtils();
+
+  React.useEffect(() => {
+    if (token) {
+      SecureStore.setItemAsync('money-matters_session_token', token);
+      SecureStore.setItemAsync('money-matters-session-token', token);
+      setActiveSessionToken(token);
+    }
+  }, [token]);
   const todayYear = new Date().getFullYear();
   const todayMonth = new Date().getMonth() + 1;
   const todayStr = formatIsoDate(new Date());

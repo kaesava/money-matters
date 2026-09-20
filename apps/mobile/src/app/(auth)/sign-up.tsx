@@ -2,68 +2,99 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePostHog } from "posthog-react-native";
+import * as WebBrowser from "expo-web-browser";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileLogo, useMobileToast } from "@money-matters/ui/mobile";
-import { SUPPORTED_COUNTRIES } from "@money-matters/types";
+import {
+  DESIGN_TOKENS,
+  MobileLogo,
+  MobileButton,
+  MobileInput,
+  FormLabel,
+  FormFieldError,
+  FormErrorBanner,
+  Checkbox,
+} from "@money-matters/ui/mobile";
+import { SUPPORTED_COUNTRIES, SignUpInputSchema } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
 import { registerPushNotificationsAsync } from "../../lib/push";
+import { MobilePasswordStrength } from "../../components/auth/MobilePasswordStrength";
+import { MobileOtpVerificationView } from "../../components/auth/MobileOtpVerificationView";
+import { MobileSocialAuthButtons } from "../../components/auth/MobileSocialAuthButtons";
 
 export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
-  const toast = useMobileToast();
   const router = useRouter();
   const posthog = usePostHog();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [country, setCountry] = useState("AU");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    agreeTerms?: string;
+  }>({});
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
 
   const createTenant = trpc.createTenant.useMutation();
   const registerToken = trpc.registerToken.useMutation();
 
+  const openTerms = () => {
+    WebBrowser.openBrowserAsync("https://moneymatters.kaesava.au/terms");
+  };
+
+  const openPrivacy = () => {
+    WebBrowser.openBrowserAsync("https://moneymatters.kaesava.au/privacy");
+  };
+
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword || !name) {
-      toast.error(
-        t("common.required"),
-        t("auth.signUpErrorTitle")
-      );
-      return;
-    }
+    setError(null);
+    setFieldErrors({});
 
-    if (password.length < 8) {
-      toast.error(
-        t("auth.passwordTooShort"),
-        t("auth.signUpErrorTitle")
-      );
-      return;
-    }
+    const validation = SignUpInputSchema.safeParse({
+      name,
+      email,
+      password,
+      confirmPassword,
+      country,
+      agreedToTerms: agreeTerms,
+    });
 
-    if (password !== confirmPassword) {
-      toast.error(
-        t("auth.passwordsMustMatch"),
-        t("auth.signUpErrorTitle")
-      );
+    if (!validation.success) {
+      const formatted = validation.error.format();
+      setFieldErrors({
+        name: formatted.name?._errors[0],
+        email: formatted.email?._errors[0],
+        password: formatted.password?._errors[0],
+        confirmPassword: formatted.confirmPassword?._errors[0],
+        agreeTerms: formatted.agreedToTerms?._errors[0],
+      });
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Create the Neon Auth account
       const signUpResult = await authClient.signUp.email({
         email: email.trim().toLowerCase(),
         password,
@@ -71,20 +102,35 @@ export default function SignUpScreen() {
       });
 
       if (signUpResult.error) {
-        toast.error(
-          signUpResult.error.message ?? t("auth.signUpErrorGeneric"),
-          t("auth.signUpErrorTitle")
-        );
+        setError(signUpResult.error.message || t("auth.signUpErrorGeneric"));
         return;
       }
-      const sessionToken = (signUpResult.data as { session?: { token?: string }; token?: string })?.session?.token || (signUpResult.data as { token?: string })?.token;
-      if (sessionToken) {
-        await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
-        await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
-        setActiveSessionToken(sessionToken);
+
+      // Check if email OTP verification is required
+      const sessionToken =
+        (signUpResult.data as { session?: { token?: string }; token?: string })?.session?.token ||
+        (signUpResult.data as { token?: string })?.token;
+
+      if (!sessionToken) {
+        // Neon Auth requires OTP verification
+        try {
+          await authClient.emailOtp.sendVerificationOtp({
+            email: email.trim().toLowerCase(),
+            type: "email-verification",
+          });
+        } catch (_e) {
+          // Ignore if already sent
+        }
+        setUnverifiedEmail(email.trim().toLowerCase());
+        setPasswordForOtp(password);
+        return;
       }
 
-      // Identify the new user and capture sign-up event
+      // Session established directly
+      await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
+      await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
+      setActiveSessionToken(sessionToken);
+
       const userId = signUpResult.data?.user?.id;
       if (userId) {
         posthog.identify(userId, {
@@ -92,20 +138,18 @@ export default function SignUpScreen() {
           $set_once: { signup_date: new Date().toISOString() },
         });
       }
-      posthog.capture('user_signed_up', { method: 'email' });
+      posthog.capture("user_signed_up", { method: "email" });
 
-      // 2. Create the tenant/household — the server derives userId from the JWT.
       await createTenant.mutateAsync({
         name: name.trim(),
         country,
       });
 
-      // Request and register push notifications token asynchronously
       try {
         const tokenData = await registerPushNotificationsAsync();
         if (tokenData) {
           registerToken.mutate({
-            platform: Platform.OS === 'ios' ? 'ios' : 'android',
+            platform: Platform.OS === "ios" ? "ios" : "android",
             token: tokenData,
           });
         }
@@ -113,17 +157,34 @@ export default function SignUpScreen() {
         console.warn("Could not register push token:", pushErr);
       }
 
-      // 3. Navigate to the setup wizard
       router.replace("/(setup)/income");
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : String(err),
-        t("auth.signUpErrorTitle")
-      );
+      setError(err instanceof Error ? err.message : t("auth.signUpErrorGeneric"));
     } finally {
       setLoading(false);
     }
   };
+
+  const handleOtpSuccess = async () => {
+    setUnverifiedEmail(null);
+    try {
+      await createTenant.mutateAsync({
+        name: name.trim(),
+        country,
+      });
+    } catch (_e) {
+      // Ignore if tenant creation handled elsewhere
+    }
+    router.replace("/(setup)/income");
+  };
+
+  const isFormValid =
+    name.trim().length >= 2 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    confirmPassword.length >= 8 &&
+    password === confirmPassword &&
+    agreeTerms;
 
   return (
     <KeyboardAvoidingView
@@ -146,99 +207,173 @@ export default function SignUpScreen() {
           </TouchableOpacity>
           <MobileLogo size={48} source={require("../../../assets/icon.png")} />
           <Text style={styles.title}>{t("auth.signUp")}</Text>
-          <Text style={styles.subtitle}>{t("app.description")}</Text>
-        </View>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>{t("auth.nameLabel")}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t("auth.namePlaceholder")}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            value={name}
-            onChangeText={setName}
-            textContentType="name"
-            autoComplete="name"
-          />
-
-          <Text style={[styles.label, styles.labelGap]}>{t("auth.countryLabel")}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>
-            {SUPPORTED_COUNTRIES.map((c) => {
-              const isSelected = country === c.code;
-              return (
-                <TouchableOpacity
-                  key={c.code}
-                  onPress={() => setCountry(c.code)}
-                  style={[styles.countryChip, isSelected && styles.countryChipSelected]}
-                >
-                  <Text style={styles.countryFlag}>{c.flag}</Text>
-                  <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
-                    {c.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <Text style={[styles.label, styles.labelGap]}>{t("auth.emailLabel")}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t("auth.emailPlaceholder")}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="emailAddress"
-          />
-
-          <Text style={[styles.label, styles.labelGap]}>{t("auth.passwordLabel")}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t("auth.passwordPlaceholder")}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-          />
-
-          <Text style={[styles.label, styles.labelGap]}>
-            {t("auth.confirmPasswordLabel")}
+          <Text style={styles.subtitle}>
+            {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("app.description")}
           </Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t("auth.confirmPasswordPlaceholder")}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
+        </View>
+
+        {unverifiedEmail ? (
+          <MobileOtpVerificationView
+            email={unverifiedEmail}
+            password={passwordForOtp}
+            onSuccess={handleOtpSuccess}
+            onCancel={() => setUnverifiedEmail(null)}
           />
+        ) : (
+          <View style={styles.form}>
+            <FormErrorBanner message={error} />
 
-          <TouchableOpacity
-            style={[styles.cta, loading && styles.ctaDisabled]}
-            onPress={handleSignUp}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={DESIGN_TOKENS.colors.onPrimary} />
-            ) : (
-              <Text style={styles.ctaText}>{t("auth.signUpCta")}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            {/* Social Auth Buttons */}
+            <MobileSocialAuthButtons
+              mode="signUp"
+              onError={(msg) => setError(msg)}
+            />
 
-        <View style={styles.footer}>
-          <Text style={styles.footerPrompt}>{t("auth.signInPrompt")} </Text>
-          <TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")}>
-            <Text style={styles.footerLink}>{t("auth.signInCta")}</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t("auth.or").toUpperCase()}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Name */}
+            <View style={styles.inputGroup}>
+              <FormLabel required={true}>{t("auth.nameLabel")}</FormLabel>
+              <MobileInput
+                value={name}
+                onChangeText={(val) => {
+                  setName(val);
+                  if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                placeholder={t("auth.namePlaceholder")}
+                autoComplete="name"
+                textContentType="name"
+                error={fieldErrors.name}
+              />
+            </View>
+
+            {/* Country selector */}
+            <View style={styles.inputGroup}>
+              <FormLabel required={true}>{t("auth.countryLabel")}</FormLabel>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.countryRow}>
+                {SUPPORTED_COUNTRIES.map((c) => {
+                  const isSelected = country === c.code;
+                  return (
+                    <TouchableOpacity
+                      key={c.code}
+                      onPress={() => setCountry(c.code)}
+                      style={[styles.countryChip, isSelected && styles.countryChipSelected]}
+                    >
+                      <Text style={styles.countryFlag}>{c.flag}</Text>
+                      <Text style={[styles.countryText, isSelected && styles.countryTextSelected]}>
+                        {c.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Email */}
+            <View style={styles.inputGroup}>
+              <FormLabel required={true}>{t("auth.emailLabel")}</FormLabel>
+              <MobileInput
+                value={email}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                placeholder={t("auth.emailPlaceholder")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                error={fieldErrors.email}
+              />
+            </View>
+
+            {/* Password */}
+            <View style={styles.inputGroup}>
+              <FormLabel required={true}>{t("auth.passwordLabel")}</FormLabel>
+              <MobileInput
+                value={password}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                placeholder={t("auth.passwordPlaceholder")}
+                secureTextEntry
+                autoComplete="new-password"
+                textContentType="newPassword"
+                error={fieldErrors.password}
+              />
+              {password.length > 0 && <MobilePasswordStrength password={password} />}
+            </View>
+
+            {/* Confirm Password */}
+            <View style={styles.inputGroup}>
+              <FormLabel required={true}>{t("auth.confirmPasswordLabel")}</FormLabel>
+              <MobileInput
+                value={confirmPassword}
+                onChangeText={(val) => {
+                  setConfirmPassword(val);
+                  if (fieldErrors.confirmPassword)
+                    setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                }}
+                placeholder={t("auth.confirmPasswordPlaceholder")}
+                secureTextEntry
+                autoComplete="new-password"
+                textContentType="newPassword"
+                error={fieldErrors.confirmPassword}
+              />
+            </View>
+
+            {/* Terms checkbox */}
+            <View style={styles.termsGroup}>
+              <View style={styles.termsRow}>
+                <Checkbox
+                  checked={agreeTerms}
+                  onChange={(checked) => {
+                    setAgreeTerms(checked);
+                    if (fieldErrors.agreeTerms)
+                      setFieldErrors((prev) => ({ ...prev, agreeTerms: undefined }));
+                  }}
+                />
+                <View style={styles.termsTextWrap}>
+                  <Text style={styles.termsText}>
+                    {t("auth.agreeTermsPrefix")}{" "}
+                    <Text style={styles.linkText} onPress={openTerms}>
+                      {t("auth.termsLink")}
+                    </Text>{" "}
+                    {t("auth.agreeTermsAnd")}{" "}
+                    <Text style={styles.linkText} onPress={openPrivacy}>
+                      {t("auth.privacyLink")}
+                    </Text>
+                  </Text>
+                </View>
+              </View>
+              <FormFieldError error={fieldErrors.agreeTerms} />
+            </View>
+
+            <MobileButton
+              onPress={handleSignUp}
+              loading={loading}
+              disabled={!isFormValid || loading}
+              variant="primary"
+            >
+              {t("auth.signUpCta")}
+            </MobileButton>
+          </View>
+        )}
+
+        {/* Footer nav */}
+        {!unverifiedEmail && (
+          <View style={styles.footer}>
+            <Text style={styles.footerPrompt}>{t("auth.signInPrompt")} </Text>
+            <TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")}>
+              <Text style={styles.footerLink}>{t("auth.signInCta")}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -251,21 +386,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: DESIGN_TOKENS.spacing.containerMargin,
     paddingVertical: 48,
   },
-  header: { marginBottom: 32 },
-  backBtn: { marginBottom: 24 },
-  backText: { fontSize: 14, color: DESIGN_TOKENS.colors.accent },
-  title: { fontSize: 26, fontWeight: "700", color: DESIGN_TOKENS.colors.primary, marginBottom: 6 },
+  header: { marginBottom: 24 },
+  backBtn: { marginBottom: 16 },
+  backText: { fontSize: 14, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
+  title: { fontSize: 26, fontWeight: "700", color: DESIGN_TOKENS.colors.primary, marginBottom: 4 },
   subtitle: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted, lineHeight: 18 },
-  form: { gap: 4 },
-  label: { fontSize: 13, fontWeight: "600", color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
-  labelGap: { marginTop: 14 },
-  countryRow: { flexDirection: "row", marginBottom: 6 },
+  form: { gap: 14 },
+  inputGroup: { gap: 4 },
+  countryRow: { flexDirection: "row", marginVertical: 4 },
   countryChip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: DESIGN_TOKENS.colors.surface,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#E2E8F0",
     borderRadius: DESIGN_TOKENS.radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -278,26 +412,28 @@ const styles = StyleSheet.create({
   countryFlag: { fontSize: 16, marginRight: 6 },
   countryText: { fontSize: 13, color: DESIGN_TOKENS.colors.textPrimary },
   countryTextSelected: { color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
-  input: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  cta: {
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    paddingVertical: 15,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    alignItems: "center",
-    marginTop: 24,
-  },
-  ctaDisabled: { opacity: 0.65 },
-  ctaText: { color: DESIGN_TOKENS.colors.onAccent, fontSize: 16, fontWeight: "700" },
+  termsGroup: { gap: 4, marginVertical: 4 },
+  termsRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  termsTextWrap: { flex: 1 },
+  termsText: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, lineHeight: 18 },
+  linkText: { color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerPrompt: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },
   footerLink: { fontSize: 13, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E2E8F0",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.textMuted,
+    fontWeight: "700",
+  },
 });

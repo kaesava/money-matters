@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
-import { Button } from "@money-matters/ui/web";
-import { SUPPORTED_COUNTRIES } from "@money-matters/types";
+import { Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
+import { SUPPORTED_COUNTRIES, SignUpInputSchema } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -31,28 +31,62 @@ export function SignUpForm({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    country?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    agreedToTerms?: string;
+  }>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const createTenant = trpc.createTenant.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
-      onError(t("auth.fillAllFields"));
-      return;
-    }
+    setFormError(null);
+    setFieldErrors({});
 
-    if (password.length < 8) {
-      onError(t("auth.passwordTooShort"));
-      return;
-    }
+    const validation = SignUpInputSchema.safeParse({
+      name: name.trim(),
+      country,
+      email: email.trim().toLowerCase(),
+      password,
+      confirmPassword,
+      agreedToTerms,
+    });
 
-    if (password !== confirmPassword) {
-      onError(t("auth.passwordsMustMatch"));
-      return;
-    }
+    if (!validation.success) {
+      const errMap: {
+        name?: string;
+        country?: string;
+        email?: string;
+        password?: string;
+        confirmPassword?: string;
+        agreedToTerms?: string;
+      } = {};
 
-    if (!agreedToTerms) {
-      onError(t("auth.mustAgreeToTerms"));
+      for (const issue of validation.error.issues) {
+        const field = issue.path[0] as string;
+        if (field === "name") errMap.name = t("auth.fillAllFields");
+        if (field === "country") errMap.country = t("auth.fillAllFields");
+        if (field === "email") {
+          errMap.email = issue.message === "invalidEmail" ? t("validation.invalidEmail") : t("auth.fillAllFields");
+        }
+        if (field === "password") errMap.password = t("auth.passwordTooShort");
+        if (field === "confirmPassword") {
+          errMap.confirmPassword =
+            issue.message === "passwordsMustMatch" ? t("auth.passwordsMustMatch") : t("auth.passwordTooShort");
+        }
+        if (field === "agreedToTerms") errMap.agreedToTerms = t("auth.mustAgreeToTerms");
+      }
+
+      setFieldErrors(errMap);
+      const topError =
+        errMap.agreedToTerms || errMap.confirmPassword || errMap.password || errMap.email || t("auth.fillAllFields");
+      setFormError(topError);
+      onError(topError);
       return;
     }
 
@@ -66,12 +100,15 @@ export function SignUpForm({
       });
 
       if (signUpResult.error) {
-        const msg = signUpResult.error.message || "Failed to create account.";
+        const msg = signUpResult.error.message || "";
+        let displayError = t("auth.signUpErrorTitle");
         if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("exist")) {
-          onError(t("auth.userAlreadyExists"));
-        } else {
-          onError(msg);
+          displayError = t("auth.userAlreadyExists");
+        } else if (msg) {
+          displayError = msg;
         }
+        setFormError(displayError);
+        onError(displayError);
         setLoading(false);
         return;
       }
@@ -89,43 +126,62 @@ export function SignUpForm({
         onNeedOtp(email.trim().toLowerCase(), password);
       }
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : "Failed to sign up.";
+      const errMsg = err instanceof Error ? err.message : "";
       if (errMsg.includes("Authentication required") || errMsg.includes("UNAUTHORIZED")) {
         onNeedOtp(email.trim().toLowerCase(), password);
       } else {
-        onError(errMsg);
+        const displayErr = errMsg || t("auth.unexpectedError");
+        setFormError(displayErr);
+        onError(displayErr);
       }
       setLoading(false);
     }
   };
 
+  const isFormValid =
+    name.trim().length > 0 &&
+    country.length === 2 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    confirmPassword === password &&
+    agreedToTerms;
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 w-full">
+      {formError && <FormErrorBanner message={formError} />}
+
       <div>
-        <label htmlFor="signup-name" className="block text-xs font-semibold text-slate-700 mb-1">
+        <FormLabel required={true} htmlFor="signup-name">
           {t("auth.nameLabel")}
-        </label>
+        </FormLabel>
         <input
           id="signup-name"
           type="text"
-          required
           autoFocus={autoFocus}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }));
+          }}
           placeholder={t("auth.namePlaceholder")}
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
+            fieldErrors.name ? "border-rose-400 focus:ring-rose-400" : "border-slate-200 focus:ring-[#2563eb]"
+          } focus:outline-none focus:ring-2`}
         />
+        <FormFieldError error={fieldErrors.name} />
       </div>
 
       <div>
-        <label htmlFor="signup-country" className="block text-xs font-semibold text-slate-700 mb-1">
+        <FormLabel required={true} htmlFor="signup-country">
           {t("auth.countryLabel")}
-        </label>
+        </FormLabel>
         <select
           id="signup-country"
-          required
           value={country}
-          onChange={(e) => setCountry(e.target.value)}
+          onChange={(e) => {
+            setCountry(e.target.value);
+            if (fieldErrors.country) setFieldErrors((prev) => ({ ...prev, country: undefined }));
+          }}
           className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] bg-white text-slate-900"
         >
           {SUPPORTED_COUNTRIES.map((c) => (
@@ -134,78 +190,100 @@ export function SignUpForm({
             </option>
           ))}
         </select>
+        <FormFieldError error={fieldErrors.country} />
       </div>
 
       <div>
-        <label htmlFor="signup-email" className="block text-xs font-semibold text-slate-700 mb-1">
+        <FormLabel required={true} htmlFor="signup-email">
           {t("auth.emailLabel")}
-        </label>
+        </FormLabel>
         <input
           id="signup-email"
           type="email"
-          required
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+          }}
           placeholder={t("auth.emailPlaceholder")}
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
+            fieldErrors.email ? "border-rose-400 focus:ring-rose-400" : "border-slate-200 focus:ring-[#2563eb]"
+          } focus:outline-none focus:ring-2`}
         />
+        <FormFieldError error={fieldErrors.email} />
       </div>
 
       <div>
-        <label htmlFor="signup-password" className="block text-xs font-semibold text-slate-700 mb-1">
+        <FormLabel required={true} htmlFor="signup-password">
           {t("auth.passwordLabel")}
-        </label>
+        </FormLabel>
         <input
           id="signup-password"
           type="password"
-          required
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+          }}
           placeholder={t("auth.passwordPlaceholder")}
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
+            fieldErrors.password ? "border-rose-400 focus:ring-rose-400" : "border-slate-200 focus:ring-[#2563eb]"
+          } focus:outline-none focus:ring-2`}
         />
+        <FormFieldError error={fieldErrors.password} />
         {password.length > 0 && <PasswordStrengthIndicator password={password} />}
       </div>
 
       <div>
-        <label htmlFor="signup-confirm-password" className="block text-xs font-semibold text-slate-700 mb-1">
+        <FormLabel required={true} htmlFor="signup-confirm-password">
           {t("auth.confirmPasswordLabel")}
-        </label>
+        </FormLabel>
         <input
           id="signup-confirm-password"
           type="password"
-          required
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e) => {
+            setConfirmPassword(e.target.value);
+            if (fieldErrors.confirmPassword) setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+          }}
           placeholder={t("auth.confirmPasswordPlaceholder")}
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
+            fieldErrors.confirmPassword ? "border-rose-400 focus:ring-rose-400" : "border-slate-200 focus:ring-[#2563eb]"
+          } focus:outline-none focus:ring-2`}
         />
+        <FormFieldError error={fieldErrors.confirmPassword} />
       </div>
 
-      <div className="flex items-start gap-2.5 pt-1">
-        <input
-          id="agree-terms-checkbox"
-          type="checkbox"
-          checked={agreedToTerms}
-          onChange={(e) => setAgreedToTerms(e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded text-[#2563eb] border-slate-300 focus:ring-[#2563eb]"
-        />
-        <label htmlFor="agree-terms-checkbox" className="text-[11px] text-slate-600 leading-snug">
-          I agree to the{" "}
-          <Link href="/terms" target="_blank" className="text-[#2563eb] hover:underline font-semibold">
-            {t("landing.footerTerms")}
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" target="_blank" className="text-[#2563eb] hover:underline font-semibold">
-            {t("landing.footerPrivacy")}
-          </Link>
-        </label>
+      <div className="flex flex-col gap-1 pt-1">
+        <div className="flex items-start gap-2.5">
+          <input
+            id="agree-terms-checkbox"
+            type="checkbox"
+            checked={agreedToTerms}
+            onChange={(e) => {
+              setAgreedToTerms(e.target.checked);
+              if (fieldErrors.agreedToTerms) setFieldErrors((prev) => ({ ...prev, agreedToTerms: undefined }));
+            }}
+            className="mt-0.5 w-4 h-4 rounded text-[#2563eb] border-slate-300 focus:ring-[#2563eb]"
+          />
+          <label htmlFor="agree-terms-checkbox" className="text-[11px] text-slate-600 leading-snug">
+            {t("auth.agreeTermsPrefix")}{" "}
+            <Link href="/terms" target="_blank" className="text-[#2563eb] hover:underline font-semibold">
+              {t("landing.footerTerms")}
+            </Link>{" "}
+            {t("auth.agreeTermsAnd")}{" "}
+            <Link href="/privacy" target="_blank" className="text-[#2563eb] hover:underline font-semibold">
+              {t("landing.footerPrivacy")}
+            </Link>
+          </label>
+        </div>
+        <FormFieldError error={fieldErrors.agreedToTerms} />
       </div>
 
       <Button
         type="submit"
         loading={loading}
-        disabled={!name.trim() || !email.trim() || !password || !confirmPassword || !agreedToTerms}
+        disabled={!isFormValid || loading}
         className="w-full mt-1 bg-[#2563eb] hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-xs transition-all cursor-pointer"
       >
         {t("landing.createAccount")}
@@ -213,3 +291,4 @@ export function SignUpForm({
     </form>
   );
 }
+

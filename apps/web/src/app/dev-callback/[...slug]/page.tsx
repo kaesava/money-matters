@@ -27,7 +27,8 @@ function DevCallbackContent() {
       const host = decodeURIComponent(slug.slice(1).join("/"));
       
       try {
-        const targetUrl = new URL(`${proto}://${host}/dashboard`);
+        const customTarget = searchParams.get("target") || "/dashboard";
+        const targetUrl = new URL(customTarget, `${proto}://${host}`);
         if (!isAllowedHost(targetUrl.hostname)) {
           logger.warn("[Dev Callback] Blocked unallowed redirect hostname", { hostname: targetUrl.hostname });
           window.location.href = "/dashboard";
@@ -35,10 +36,12 @@ function DevCallbackContent() {
         }
 
         searchParams.forEach((value, key) => {
-          targetUrl.searchParams.set(key, value);
+          if (key !== "target") {
+            targetUrl.searchParams.set(key, value);
+          }
         });
 
-        logger.info("[Dev Callback] Redirecting to target origin", { target: targetUrl.origin });
+        logger.info("[Dev Callback] Redirecting to target origin", { target: targetUrl.toString() });
         window.location.href = targetUrl.toString();
       } catch {
         window.location.href = "/dashboard";

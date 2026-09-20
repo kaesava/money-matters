@@ -4,7 +4,9 @@ import React, { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
-import { Spinner, Button } from "@money-matters/ui/web";
+import { Spinner, Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
+import { ResetPasswordInputSchema } from "@money-matters/types";
+import { PasswordStrengthIndicator } from "../../components/auth/PasswordStrengthIndicator";
 import { authClient } from "../../lib/auth";
 import { PublicHeader } from "../../components/public/PublicHeader";
 import { PublicFooter } from "../../components/public/PublicFooter";
@@ -16,6 +18,7 @@ function ResetPasswordForm() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,19 +26,25 @@ function ResetPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
 
     if (!token) {
-      setError(t("auth.tokenMissingError"));
+      setError(t("auth.linkExpiredError"));
       return;
     }
 
-    if (password.length < 8) {
-      setError(t("auth.passwordTooShort"));
-      return;
-    }
+    const validation = ResetPasswordInputSchema.safeParse({
+      token,
+      password,
+      confirmPassword,
+    });
 
-    if (password !== confirmPassword) {
-      setError(t("auth.passwordsMustMatch"));
+    if (!validation.success) {
+      const formatted = validation.error.format();
+      setFieldErrors({
+        password: formatted.password?._errors[0],
+        confirmPassword: formatted.confirmPassword?._errors[0],
+      });
       return;
     }
 
@@ -47,7 +56,7 @@ function ResetPasswordForm() {
       });
 
       if (res.error) {
-        throw new Error(res.error.message || t("auth.invalidToken"));
+        throw new Error(res.error.message || t("auth.linkExpiredError"));
       }
 
       setSuccess(true);
@@ -55,7 +64,7 @@ function ResetPasswordForm() {
         router.push("/sign-in");
       }, 3000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("auth.unexpectedError"));
+      setError(err instanceof Error ? err.message : t("auth.linkExpiredError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -81,50 +90,65 @@ function ResetPasswordForm() {
     );
   }
 
+  const isFormValid =
+    token &&
+    password.length >= 8 &&
+    confirmPassword.length >= 8 &&
+    password === confirmPassword;
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {error && (
-        <div className="p-3.5 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl font-semibold">
-          ⚠️ {error}
-        </div>
-      )}
+      <FormErrorBanner message={error} />
 
       <div>
-        <label htmlFor="new-password-input" className="block text-xs font-semibold text-[#1B2B4B] mb-1">
+        <FormLabel htmlFor="new-password-input" required={true}>
           {t("auth.newPasswordLabel")}
-        </label>
+        </FormLabel>
         <input
           id="new-password-input"
           type="password"
           required
           autoFocus
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+          }}
           placeholder="••••••••"
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
+            fieldErrors.password ? "border-rose-400 focus:ring-rose-500" : "border-slate-200 focus:ring-[#2563eb]"
+          } focus:outline-none focus:ring-2`}
         />
+        <FormFieldError error={fieldErrors.password} />
+        {password && <PasswordStrengthIndicator password={password} />}
       </div>
 
       <div>
-        <label htmlFor="confirm-password-input" className="block text-xs font-semibold text-[#1B2B4B] mb-1">
+        <FormLabel htmlFor="confirm-password-input" required={true}>
           {t("auth.confirmPasswordLabel")}
-        </label>
+        </FormLabel>
         <input
           id="confirm-password-input"
           type="password"
           required
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e) => {
+            setConfirmPassword(e.target.value);
+            if (fieldErrors.confirmPassword) setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+          }}
           placeholder="••••••••"
-          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
+          className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
+            fieldErrors.confirmPassword ? "border-rose-400 focus:ring-rose-500" : "border-slate-200 focus:ring-[#2563eb]"
+          } focus:outline-none focus:ring-2`}
         />
+        <FormFieldError error={fieldErrors.confirmPassword} />
       </div>
 
       <Button
         type="submit"
         className="w-full mt-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-xs cursor-pointer"
         loading={isSubmitting}
-        disabled={!password.trim() || !confirmPassword.trim() || password !== confirmPassword}
+        disabled={!isFormValid || isSubmitting}
       >
         {t("auth.resetPasswordButton")}
       </Button>

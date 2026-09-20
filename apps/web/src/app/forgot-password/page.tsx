@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
-import { Button } from "@money-matters/ui/web";
+import { Button, FormLabel, FormErrorBanner } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
 import { PublicHeader } from "../../components/public/PublicHeader";
 import { PublicFooter } from "../../components/public/PublicFooter";
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-base font-bold text-[#1B2B4B]">{t("auth.checkYourEmailTitle")}</h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                {t("auth.checkYourEmailSubtitle", { email })}
+                {t("auth.quietResetMessage")}
               </p>
               <Link
                 href="/sign-in"
@@ -68,16 +68,12 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {error && (
-                <div className="p-3.5 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl font-semibold">
-                  ⚠️ {error}
-                </div>
-              )}
+              <FormErrorBanner message={error} />
 
               <div>
-                <label htmlFor="email-input" className="block text-xs font-semibold text-[#1B2B4B] mb-1">
+                <FormLabel htmlFor="email-input" required={true}>
                   {t("auth.emailLabel")}
-                </label>
+                </FormLabel>
                 <input
                   id="email-input"
                   type="email"

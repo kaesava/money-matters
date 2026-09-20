@@ -128,6 +128,18 @@ async function handleProxy(req: NextRequest) {
             bodyText = JSON.stringify(bodyJson);
             logger.debug('[Auth Proxy] Rewrote callbackURL', { from: originalUrl, to: bodyJson.callbackURL });
           }
+          if (bodyJson.redirectTo) {
+            const originalRedirect = bodyJson.redirectTo;
+            const redirectUrlObj = new URL(originalRedirect, req.url);
+            // Rewrite redirectTo for local development if needed to match allowed Neon Auth callback URLs
+            const reqHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || redirectUrlObj.host;
+            const reqProto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
+            const proxyRedirectUrl = new URL(`http://localhost:3000/dev-callback/${reqProto}/${reqHost}`);
+            proxyRedirectUrl.searchParams.set("target", redirectUrlObj.pathname + redirectUrlObj.search);
+            bodyJson.redirectTo = proxyRedirectUrl.toString();
+            bodyText = JSON.stringify(bodyJson);
+            logger.debug('[Auth Proxy] Rewrote redirectTo', { from: originalRedirect, to: bodyJson.redirectTo });
+          }
         } catch (_e) {
           // Ignore JSON parse errors
         }

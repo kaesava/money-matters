@@ -8,84 +8,67 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Linking from "expo-linking";
 import { t } from "@money-matters/i18n";
 import {
   DESIGN_TOKENS,
   MobileButton,
   MobileInput,
   FormLabel,
+  FormFieldError,
   FormErrorBanner,
 } from "@money-matters/ui/mobile";
-import { ResetPasswordInputSchema } from "@money-matters/types";
+import { ForgotPasswordInputSchema } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
-import { MobilePasswordStrength } from "../../components/auth/MobilePasswordStrength";
 
-export default function ResetPasswordScreen() {
+const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://api.moneymatters.kaesava.au";
+
+export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { token, error: queryError } = useLocalSearchParams<{ token?: string; error?: string }>();
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({});
-  const [error, setError] = useState<string | null>(queryError || null);
-  const [success, setSuccess] = useState(false);
+  const [email, setEmail] = useState("");
+  const [fieldError, setFieldError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleResetPassword = async () => {
+  const handleSubmit = async () => {
     setError(null);
-    setFieldErrors({});
+    setFieldError(undefined);
 
-    if (!token) {
-      setError(t("auth.linkExpiredError"));
-      return;
-    }
-
-    const validation = ResetPasswordInputSchema.safeParse({
-      token,
-      password,
-      confirmPassword,
-    });
-
+    const validation = ForgotPasswordInputSchema.safeParse({ email });
     if (!validation.success) {
-      const formatted = validation.error.format();
-      setFieldErrors({
-        password: formatted.password?._errors[0],
-        confirmPassword: formatted.confirmPassword?._errors[0],
-      });
+      setFieldError(validation.error.format().email?._errors[0]);
       return;
     }
 
     setLoading(true);
     try {
-      const res = await authClient.resetPassword({
-        newPassword: password,
-        token,
+      const appRedirectUrl = Linking.createURL("reset-password");
+      const res = await authClient.requestPasswordReset({
+        email: email.trim().toLowerCase(),
+        redirectTo: `${API_URL}/reset-password?redirect_to=${encodeURIComponent(appRedirectUrl)}`,
       });
 
       if (res.error) {
-        setError(res.error.message || t("auth.linkExpiredError"));
+        // Quiet failure UX to prevent user enumeration
+        setSubmitted(true);
         return;
       }
 
-      setSuccess(true);
-      setTimeout(() => {
-        router.replace("/(auth)/sign-in");
-      }, 2500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("auth.linkExpiredError"));
+      setSubmitted(true);
+    } catch (_err) {
+      // Quiet failure UX to prevent user enumeration
+      setSubmitted(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const isFormValid =
-    Boolean(token) &&
-    password.length >= 8 &&
-    confirmPassword.length >= 8 &&
-    password === confirmPassword;
+  const isFormValid = email.trim().length > 0;
 
   return (
     <KeyboardAvoidingView
@@ -106,22 +89,22 @@ export default function ResetPasswordScreen() {
           <TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")} style={styles.backBtn}>
             <Text style={styles.backText}>← {t("auth.backToSignIn")}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{t("auth.setNewPasswordTitle")}</Text>
-          <Text style={styles.subtitle}>{t("auth.setNewPasswordSubtitle")}</Text>
+          <Text style={styles.title}>{t("auth.forgotPasswordTitle")}</Text>
+          <Text style={styles.subtitle}>{t("auth.forgotPasswordSubtitle")}</Text>
         </View>
 
-        {success ? (
+        {submitted ? (
           <View style={styles.successBlock}>
             <View style={styles.iconCircle}>
-              <Text style={styles.iconText}>✓</Text>
+              <Text style={styles.iconText}>✉</Text>
             </View>
-            <Text style={styles.successTitle}>{t("auth.passwordResetSuccessTitle")}</Text>
-            <Text style={styles.successSubtitle}>{t("auth.passwordResetSuccessDesc")}</Text>
+            <Text style={styles.successTitle}>{t("auth.checkYourEmailTitle")}</Text>
+            <Text style={styles.successSubtitle}>{t("auth.quietResetMessage")}</Text>
             <MobileButton
               onPress={() => router.replace("/(auth)/sign-in")}
               variant="primary"
             >
-              {t("auth.signIn")}
+              {t("auth.backToSignIn")}
             </MobileButton>
           </View>
         ) : (
@@ -129,46 +112,29 @@ export default function ResetPasswordScreen() {
             <FormErrorBanner message={error} />
 
             <View style={styles.inputGroup}>
-              <FormLabel required={true}>{t("auth.newPasswordLabel")}</FormLabel>
+              <FormLabel required={true}>{t("auth.emailLabel")}</FormLabel>
               <MobileInput
-                value={password}
+                value={email}
                 onChangeText={(val) => {
-                  setPassword(val);
-                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                  setEmail(val);
+                  if (fieldError) setFieldError(undefined);
                 }}
-                placeholder={t("auth.passwordPlaceholder")}
-                secureTextEntry
-                autoComplete="new-password"
-                textContentType="newPassword"
-                error={fieldErrors.password}
-              />
-              {password.length > 0 && <MobilePasswordStrength password={password} />}
-            </View>
-
-            <View style={styles.inputGroup}>
-              <FormLabel required={true}>{t("auth.confirmPasswordLabel")}</FormLabel>
-              <MobileInput
-                value={confirmPassword}
-                onChangeText={(val) => {
-                  setConfirmPassword(val);
-                  if (fieldErrors.confirmPassword)
-                    setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                }}
-                placeholder={t("auth.confirmPasswordPlaceholder")}
-                secureTextEntry
-                autoComplete="new-password"
-                textContentType="newPassword"
-                error={fieldErrors.confirmPassword}
+                placeholder={t("auth.emailPlaceholder")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                error={fieldError}
               />
             </View>
 
             <MobileButton
-              onPress={handleResetPassword}
+              onPress={handleSubmit}
               loading={loading}
               disabled={!isFormValid || loading}
               variant="primary"
             >
-              {t("auth.resetPasswordButton")}
+              {t("auth.sendResetLink")}
             </MobileButton>
 
             <TouchableOpacity
@@ -209,14 +175,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#EFF6FF",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
   },
   iconText: {
     fontSize: 24,
-    color: DESIGN_TOKENS.colors.success,
+    color: DESIGN_TOKENS.colors.accent,
   },
   successTitle: {
     fontSize: 18,

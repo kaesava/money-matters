@@ -2,39 +2,63 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Linking from "expo-linking";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
-import { DESIGN_TOKENS, MobileLogo, useMobileToast } from "@money-matters/ui/mobile";
+import {
+  DESIGN_TOKENS,
+  MobileLogo,
+  MobileButton,
+  MobileInput,
+  FormLabel,
+  FormErrorBanner,
+} from "@money-matters/ui/mobile";
+import { SignInInputSchema } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
 import { registerPushNotificationsAsync } from "../../lib/push";
-
-const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://api.moneymatters.kaesava.au";
+import { MobileSocialAuthButtons } from "../../components/auth/MobileSocialAuthButtons";
+import { MobileOtpVerificationView } from "../../components/auth/MobileOtpVerificationView";
 
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
-  const toast = useMobileToast();
   const router = useRouter();
   const posthog = usePostHog();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // State for unverified email / OTP requirement
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
+
   const registerToken = trpc.registerToken.useMutation();
 
   const handleSignIn = async () => {
-    if (!email || !password) return;
+    setError(null);
+    setFieldErrors({});
+
+    const validation = SignInInputSchema.safeParse({ email, password });
+    if (!validation.success) {
+      const formatted = validation.error.format();
+      setFieldErrors({
+        email: formatted.email?._errors[0],
+        password: formatted.password?._errors[0],
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await authClient.signIn.email({
@@ -43,13 +67,34 @@ export default function SignInScreen() {
       });
 
       if (result.error) {
-        toast.error(
-          result.error.message ?? t("auth.signInErrorGeneric"),
-          t("auth.signInErrorTitle")
-        );
+        const msg = result.error.message || "";
+        const lowerMsg = msg.toLowerCase();
+        // Check if error indicates email needs verification
+        if (
+          lowerMsg.includes("email_not_verified") ||
+          lowerMsg.includes("not verified") ||
+          lowerMsg.includes("verify your email")
+        ) {
+          try {
+            await authClient.emailOtp.sendVerificationOtp({
+              email: email.trim().toLowerCase(),
+              type: "email-verification",
+            });
+          } catch (_e) {
+            // Ignore failure if otp already sent
+          }
+          setUnverifiedEmail(email.trim().toLowerCase());
+          setPasswordForOtp(password);
+          return;
+        }
+
+        setError(t("auth.invalidCredentialsError"));
         return;
       }
-      const sessionToken = (result.data as { session?: { token?: string }; token?: string })?.session?.token || (result.data as { token?: string })?.token;
+
+      const sessionToken =
+        (result.data as { session?: { token?: string }; token?: string })?.session?.token ||
+        (result.data as { token?: string })?.token;
       if (sessionToken) {
         await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
@@ -62,21 +107,19 @@ export default function SignInScreen() {
         await SecureStore.setItemAsync("money-matters_user_name", result.data.user.name);
       }
 
-      // Identify the user and capture sign-in event
       const userId = result.data?.user?.id;
       if (userId) {
         posthog.identify(userId, {
           $set: { name: result.data?.user?.name },
         });
       }
-      posthog.capture('user_signed_in', { method: 'email' });
-      
-      // Request and register push notifications token asynchronously
+      posthog.capture("user_signed_in", { method: "email" });
+
       try {
         const tokenData = await registerPushNotificationsAsync();
         if (tokenData) {
           registerToken.mutate({
-            platform: Platform.OS === 'ios' ? 'ios' : 'android',
+            platform: Platform.OS === "ios" ? "ios" : "android",
             token: tokenData,
           });
         }
@@ -84,90 +127,20 @@ export default function SignInScreen() {
         console.warn("Could not register push token:", pushErr);
       }
 
-      // Successful sign-in — the session token is stored in secure storage.
-      // Navigate to main app; the index route or layout guard will redirect based on household setup status.
       router.replace("/(app)/home");
-    } catch (err) {
-      toast.error(t("auth.signInErrorGeneric"), t("auth.signInErrorTitle"));
+    } catch (_err) {
+      setError(t("auth.invalidCredentialsError"));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      const webOrigin = API_URL.includes("localhost") || API_URL.includes("127.0.0.1") || API_URL.includes("10.0.2.2")
-        ? API_URL.replace(":3001", ":3000")
-        : API_URL;
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: `${webOrigin}/auth-callback`,
-      });
-
-      let sessionToken = (await SecureStore.getItemAsync("money-matters_session_token")) || 
-                         (await SecureStore.getItemAsync("money-matters-session-token"));
-      if (!sessionToken) {
-        const sessionRes = await authClient.getSession();
-        const retrieved = (sessionRes.data as { session?: { token?: string }; token?: string })?.session?.token || (sessionRes.data as { token?: string })?.token;
-        if (retrieved) {
-          sessionToken = retrieved;
-          await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
-          await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
-        }
-      }
-      if (sessionToken) {
-        setActiveSessionToken(sessionToken);
-      }
-      posthog.capture('user_signed_in', { method: 'google' });
-      router.replace("/(app)/home");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("auth.signInErrorGeneric"),
-        t("auth.signInErrorTitle")
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleOtpSuccess = () => {
+    setUnverifiedEmail(null);
+    router.replace("/(app)/home");
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      toast.error(
-        t("auth.enterEmailPrompt"),
-        t("auth.forgotPassword")
-      );
-      return;
-    }
-    setLoading(true);
-    try {
-      const appRedirectUrl = Linking.createURL("reset-password");
-      const res = await authClient.requestPasswordReset({
-        email: email.trim().toLowerCase(),
-        redirectTo: `${API_URL}/reset-password?redirect_to=${encodeURIComponent(appRedirectUrl)}`,
-      });
-
-      if (res.error) {
-        toast.error(
-          res.error.message ?? t("auth.forgotPasswordError"),
-          t("auth.forgotPassword")
-        );
-        return;
-      }
-
-      toast.success(
-        t("auth.forgotPasswordSuccess"),
-        t("auth.forgotPassword")
-      );
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : String(err),
-        t("auth.forgotPassword")
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isFormValid = email.trim().length > 0 && password.length > 0;
 
   return (
     <KeyboardAvoidingView
@@ -184,83 +157,100 @@ export default function SignInScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo / Brand */}
+        {/* Brand Header */}
         <View style={styles.brandBlock}>
           <MobileLogo size={64} source={require("../../../assets/icon.png")} />
           <Text style={styles.title}>{t("app.title")}</Text>
-          <Text style={styles.subtitle}>{t("auth.hint")}</Text>
+          <Text style={styles.subtitle}>
+            {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("auth.hint")}
+          </Text>
         </View>
 
-        {/* Form */}
-        <View style={styles.form}>
-          <Text style={styles.label}>{t("auth.emailLabel")}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t("auth.emailPlaceholder")}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="emailAddress"
+        {unverifiedEmail ? (
+          <MobileOtpVerificationView
+            email={unverifiedEmail}
+            password={passwordForOtp}
+            onSuccess={handleOtpSuccess}
+            onCancel={() => setUnverifiedEmail(null)}
           />
+        ) : (
+          <View style={styles.form}>
+            <FormErrorBanner message={error} />
 
-          <Text style={[styles.label, styles.labelGap]}>{t("auth.passwordLabel")}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t("auth.passwordPlaceholder")}
-            placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password"
-            textContentType="password"
-          />
+            {/* Social Auth Buttons */}
+            <MobileSocialAuthButtons
+              mode="signIn"
+              onError={(msg) => setError(msg)}
+            />
 
-          <TouchableOpacity style={styles.forgotRow} onPress={handleForgotPassword}>
-            <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
-          </TouchableOpacity>
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t("auth.or").toUpperCase()}</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          <TouchableOpacity
-            style={[styles.cta, loading && styles.ctaDisabled]}
-            onPress={handleSignIn}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={DESIGN_TOKENS.colors.onPrimary} />
-            ) : (
-              <Text style={styles.ctaText}>{t("auth.signInCta")}</Text>
-            )}
-          </TouchableOpacity>
+            {/* Email Field */}
+            <View style={styles.inputGroup}>
+              <FormLabel required={true}>{t("auth.emailLabel")}</FormLabel>
+              <MobileInput
+                value={email}
+                onChangeText={(val) => {
+                  setEmail(val);
+                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                placeholder={t("auth.emailPlaceholder")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                error={fieldErrors.email}
+              />
+            </View>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{t("auth.or").toUpperCase()}</Text>
-            <View style={styles.dividerLine} />
+            {/* Password Field */}
+            <View style={styles.inputGroup}>
+              <FormLabel required={true}>{t("auth.passwordLabel")}</FormLabel>
+              <MobileInput
+                value={password}
+                onChangeText={(val) => {
+                  setPassword(val);
+                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                placeholder={t("auth.passwordPlaceholder")}
+                secureTextEntry
+                autoComplete="password"
+                textContentType="password"
+                error={fieldErrors.password}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.forgotRow}
+              onPress={() => router.push("/(auth)/forgot-password")}
+            >
+              <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
+            </TouchableOpacity>
+
+            <MobileButton
+              onPress={handleSignIn}
+              loading={loading}
+              disabled={!isFormValid || loading}
+              variant="primary"
+            >
+              {t("auth.signInCta")}
+            </MobileButton>
           </View>
-
-          <TouchableOpacity
-            style={[styles.googleCta, loading && styles.ctaDisabled]}
-            onPress={handleGoogleSignIn}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.googleIcon}>G</Text>
-            <Text style={styles.googleCtaText}>
-              {t("auth.signInWithGoogle")}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        )}
 
         {/* Footer nav */}
-        <View style={styles.footer}>
-          <Text style={styles.footerPrompt}>{t("auth.signUpPrompt")} </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
-            <Text style={styles.footerLink}>{t("auth.signUpCta")}</Text>
-          </TouchableOpacity>
-        </View>
+        {!unverifiedEmail && (
+          <View style={styles.footer}>
+            <Text style={styles.footerPrompt}>{t("auth.signUpPrompt")} </Text>
+            <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
+              <Text style={styles.footerLink}>{t("auth.signUpCta")}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -274,8 +264,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: DESIGN_TOKENS.spacing.containerMargin,
     paddingVertical: 48,
   },
-  brandBlock: { alignItems: "center", marginBottom: 40 },
-  logoMark: { fontSize: 48, color: DESIGN_TOKENS.colors.accent, marginBottom: 8 },
+  brandBlock: { alignItems: "center", marginBottom: 32 },
   title: {
     fontSize: 28,
     fontWeight: "700",
@@ -290,68 +279,27 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     maxWidth: 280,
   },
-  form: { gap: 4 },
-  label: { fontSize: 13, fontWeight: "600", color: DESIGN_TOKENS.colors.textPrimary, marginBottom: 6 },
-  labelGap: { marginTop: 14 },
-  input: {
-    backgroundColor: DESIGN_TOKENS.colors.surface,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: DESIGN_TOKENS.radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: DESIGN_TOKENS.colors.textPrimary,
-  },
-  forgotRow: { alignItems: "flex-end", marginTop: 8, marginBottom: 24 },
-  forgotText: { fontSize: 12, color: DESIGN_TOKENS.colors.accent },
-  cta: {
-    backgroundColor: DESIGN_TOKENS.colors.accent,
-    paddingVertical: 15,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    alignItems: "center",
-  },
-  ctaDisabled: { opacity: 0.65 },
-  ctaText: { color: DESIGN_TOKENS.colors.onAccent, fontSize: 16, fontWeight: "700" },
+  form: { gap: 14 },
+  inputGroup: { gap: 4 },
+  forgotRow: { alignItems: "flex-end", marginTop: 4, marginBottom: 10 },
+  forgotText: { fontSize: 12, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerPrompt: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted },
   footerLink: { fontSize: 13, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
-  googleCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingVertical: 14,
-    borderRadius: DESIGN_TOKENS.radius.md,
-    gap: 10,
-    marginTop: 8,
-  },
-  googleIcon: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#4285F4",
-  },
-  googleCtaText: {
-    color: DESIGN_TOKENS.colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "600",
-  },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 16,
+    marginVertical: 4,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#E2E8F0",
   },
   dividerText: {
     marginHorizontal: 12,
-    fontSize: 12,
+    fontSize: 11,
     color: DESIGN_TOKENS.colors.textMuted,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });
