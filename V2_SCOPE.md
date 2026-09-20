@@ -11,7 +11,7 @@
 |---|---|---|
 | **Partner invite / household member invite** | **DELIVERED** | Implemented via `invitePartner` and `acceptInvite` commands in `@money-matters/capability-tenant` with auto-redirect |
 | **Tenant Switcher** | **DELIVERED** | Sidebar component allowing users to switch between multiple household contexts seamlessly |
-| **Apple Sign-In** | **DELIVERED** | Enabled via Neon Auth social providers alongside Google and Email |
+| **Apple Sign-In** | Deferred to Release 2 | Social authentication via Apple ID deferred to Release 2; complete Web and Mobile components, SVGs, and styles archived in `FEAT-V2-009-APPLE-AUTHENTICATION` |
 | **5-step waterfall logic details** | **DELIVERED** | Fully implemented in cascading steps: Deficit Repair, Bills, Everyday, Goals, Surplus Sweep |
 | **Data export details** | **DELIVERED** | Complete CSV generation supporting transaction ledgers and allocation plans |
 | **AEST timezone rendering** | **DELIVERED** | UTC dates formatted timezone-aware via `Intl.DateTimeFormat` |
@@ -512,5 +512,116 @@ In Release 2, Japanese support will be officially reintroduced to support Japane
    - **Web App**: Re-enable `<option value="ja">日本語 (ja)</option>` in `ProfilePreferencesFields.tsx` and dynamic language state in `ProfileReadOnlyView.tsx` / `useProfileForm.ts`.
    - **Mobile App**: Re-enable the Japanese chip (`日本語 (ja)`) in `MobileProfileEditView.tsx` and the `JA` toggle in `PreferencesSection.tsx`.
    - **API & Schemas**: Re-enable `z.enum(["en", "ja"])` in `UserPreferencesSchema` (`@money-matters/types`) and `tenantRouter.updateUserPreferences` (`apps/api`).
+
+---
+
+## V2 Feature: Apple Sign-In & Social Authentication
+
+### Feature ID
+
+`FEAT-V2-009-APPLE-AUTHENTICATION`
+
+### Context & Strategic Rationale
+
+In Release 1, social authentication is focused on Google (`provider: "google"`) alongside standard email/password authentication with OTP verification. Apple Social Auth requires an active paid Apple Developer Program account with provisioned Services IDs, Sign in with Apple keys, and private certificates registered with Neon Auth.
+
+To eliminate development blockers and avoid non-functioning UI states during R1 launch, Apple Sign-In is deferred to Release 2. The complete Web and Mobile components, SVG assets, and styling have been archived below so they can be reinstated seamlessly once Apple Developer credentials are configured.
+
+### Archived Implementation Code
+
+#### 1. Web Implementation (`SocialAuthButtons.tsx`)
+
+```tsx
+// Archived Web Button Markup & SVG
+<button
+  type="button"
+  onClick={() => handleSocialSignIn("apple")}
+  disabled={loadingProvider !== null}
+  className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-slate-900 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-60"
+>
+  <svg className="w-4 h-4 fill-current" viewBox="0 0 170 170" aria-hidden="true">
+    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.7-7.78-12-14.23-6.52-9.78-11.66-20.87-15.42-33.27-3.76-12.4-5.64-24.03-5.64-34.89 0-14.57 3.59-26.69 10.77-36.37 7.18-9.68 16.3-14.62 27.36-14.83 5.43 0 11.22 1.41 17.38 4.23 6.16 2.82 10.21 4.34 12.16 4.56 1.84-.22 5.98-1.74 12.41-4.56 6.43-2.82 12.01-4.13 16.74-3.92 12.61.65 22.72 5.43 30.33 14.35-11.09 6.74-16.52 16.09-16.3 28.05.22 9.79 3.91 18.05 11.09 24.79 7.17 6.74 15.76 10.66 25.76 11.74-2.17 6.74-4.89 13.48-8.15 20.22zm-35.87-104.9c0-6.74 2.5-13.15 7.5-19.24 5-6.09 11.19-9.9 18.59-11.41.43 2.17.65 4.13.65 5.87 0 6.74-2.61 13.37-7.83 19.89-5.22 6.52-11.52 10.22-18.91 11.09z" />
+  </svg>
+  {loadingProvider === "apple" ? <Spinner size="xs" color="#ffffff" /> : <span>{appleText}</span>}
+</button>
+
+// Handler call via Better Auth:
+const handleSocialSignIn = async (provider: "google" | "apple") => {
+  setLoadingProvider(provider);
+  try {
+    const result = await authClient.signIn.social({
+      provider,
+      callbackURL: typeof window !== "undefined" ? window.location.origin + redirectUrl : redirectUrl,
+    });
+    if (result?.error) {
+      setLoadingProvider(null);
+      const errCode = (result.error as { code?: string })?.code;
+      if (errCode === "PROVIDER_NOT_SUPPORTED") {
+        onError(t("auth.providerNotConfigured"));
+      } else {
+        onError(result.error.message || t("auth.unexpectedError"));
+      }
+    }
+  } catch (err) {
+    setLoadingProvider(null);
+    onError(err instanceof Error ? err.message : t("auth.unexpectedError"));
+  }
+};
+```
+
+#### 2. Mobile Implementation (`MobileSocialAuthButtons.tsx`)
+
+```tsx
+// Archived Mobile TouchableOpacity & SVG
+<TouchableOpacity
+  style={styles.appleButton}
+  onPress={() => handleSocialSignIn("apple")}
+  disabled={loadingProvider !== null}
+  activeOpacity={0.8}
+>
+  <Svg width={18} height={18} viewBox="0 0 170 170">
+    <Path
+      fill="#FFFFFF"
+      d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.7-7.78-12-14.23-6.52-9.78-11.66-20.87-15.42-33.27-3.76-12.4-5.64-24.03-5.64-34.89 0-14.57 3.59-26.69 10.77-36.37 7.18-9.68 16.3-14.62 27.36-14.83 5.43 0 11.22 1.41 17.38 4.23 6.16 2.82 10.21 4.34 12.16 4.56 1.84-.22 5.98-1.74 12.41-4.56 6.43-2.82 12.01-4.13 16.74-3.92 12.61.65 22.72 5.43 30.33 14.35-11.09 6.74-16.52 16.09-16.3 28.05.22 9.79 3.91 18.05 11.09 24.79 7.17 6.74 15.76 10.66 25.76 11.74-2.17 6.74-4.89 13.48-8.15 20.22zm-35.87-104.9c0-6.74 2.5-13.15 7.5-19.24 5-6.09 11.19-9.9 18.59-11.41.43 2.17.65 4.13.65 5.87 0 6.74-2.61 13.37-7.83 19.89-5.22 6.52-11.52 10.22-18.91 11.09z"
+    />
+  </Svg>
+  {loadingProvider === "apple" ? (
+    <MobileSpinner size="small" />
+  ) : (
+    <Text style={styles.appleButtonText}>{appleText}</Text>
+  )}
+</TouchableOpacity>
+
+// Styles:
+const styles = StyleSheet.create({
+  appleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0F172A",
+    borderRadius: DESIGN_TOKENS.radius.md,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  appleButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+});
+```
+
+#### 3. Translation Literals (`packages/i18n`)
+
+```ts
+// en.ts (archived)
+signInWithApple: "Sign in with Apple",
+signUpWithApple: "Sign up with Apple",
+
+// ja.ts (archived in packages/i18n/src/dictionaries/archive/ja.ts)
+"signInWithApple": "Appleでログイン",
+"signUpWithApple": "Appleでサインアップ",
+```
+
 
 

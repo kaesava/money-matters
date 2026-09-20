@@ -20,7 +20,7 @@ We will start with Sign-In and Sign-Up pages.
 * Ensure that all the capability in the web app is also available and setup correctly on the mobile app. This includes but is not limited to:
 ** OTP handling if email needs to be verified
 ** Behaviour when password is incorrect (currently the mobile app does not seem to show error)
-** Sign-up/Sign-in through Email, Google and/or Apple, etc.
+** Sign-up/Sign-in through Email and Google (Apple deferred to Release 2)
 ** Handling of CORS/better auth authentication & headers - coming through correctly?
 ** Mandatory fields are entered (currently, seems to allow sign-in even though they aren't)
 ** Mandatory fields are marked up (not currently marked up)
@@ -48,7 +48,7 @@ IMPORTANT: Do your own comprehensive comparison of all the ways in which the use
 * "Failed to sign in. Please check your credentials." shows up twice - it should only show up once.
 * When I click on "Send Reset Link" in Forgot Password, I get error: "Invalid redirectURL"
 * Sign in with Google - simply redirecting to login - is this because this is dev environment?
-* Sign in with Apple - screen hanging - is this because this is dev environment?
+* Sign in with Apple - deferred to Release 2 (see V2_SCOPE.md FEAT-V2-009-APPLE-AUTHENTICATION)
 
 ## Mobile
 
@@ -316,8 +316,8 @@ _________
 ### Sign In - field validation
 ### Email Sign in
 ### Google Sign in 
-### Apple Sign in
-### Apple/Google sign-in after Email login 
+### Apple Sign in (Deferred to Release 2)
+### Google sign-in after Email login 
 
 ## Setup Flows
 ### Step 1

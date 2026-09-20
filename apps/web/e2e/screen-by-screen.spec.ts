@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  * 
  * Exhaustively tests EVERY capability, form input field, date picker, dropdown select,
  * button CTA, slider, modal dialog, search filter, sort order, CRUD action, tab view,
- * and newly added controls (Terms, 404, Password Strength, Apple Sign-In, TenantSwitcher,
+ * and newly added controls (Terms, 404, Password Strength, Google Sign-In, TenantSwitcher,
  * Transfers tab, Sorting, Shortcuts modal, Bug Report) across the Money Matters web application.
  */
 
@@ -118,7 +118,6 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       const passwordInput = page.locator('input[name="password"], input[type="password"]').first();
       const signInBtn = page.locator('button[type="submit"]').first();
       const googleBtn = page.locator('button:has-text("Google")').first();
-      const appleBtn = page.locator('button:has-text("Apple")').first();
       const forgotPasswordLink = page.locator('a[href*="forgot-password"]').first();
 
       if (await emailInput.isVisible()) {
@@ -134,9 +133,6 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
       if (await googleBtn.isVisible()) {
         await expect(googleBtn).toBeVisible();
-      }
-      if (await appleBtn.isVisible()) {
-        await expect(appleBtn).toBeVisible();
       }
       if (await forgotPasswordLink.isVisible()) {
         await expect(forgotPasswordLink).toBeVisible();

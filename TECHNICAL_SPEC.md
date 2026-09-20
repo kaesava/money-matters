@@ -479,7 +479,7 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
   - Comprehensive Australian legal standing covering ASIC/AFSL general advice exemption (Corporations Act 2001 s 911A), Australian Consumer Law statutory non-excludable guarantees (Competition and Consumer Act 2010), SaaS licensing, Stripe billing and 60-day trial rules, PostgreSQL tenant RLS data security, and exclusive jurisdiction of the Courts of New South Wales, Australia. 100% externalized via `@money-matters/i18n` with zero hardcoded literals.
 
 ### 10.2 Modular Authentication Architecture (`apps/web/src/components/auth`)
-- **`SocialAuthButtons.tsx`**: Modular Google and Apple SSO OAuth button group with SVG icons and Serene hover states.
+- **`SocialAuthButtons.tsx`**: Modular Google SSO OAuth button with SVG branding and Serene hover states (Apple Social Auth deferred to Release 2; see `V2_SCOPE.md` `FEAT-V2-009-APPLE-AUTHENTICATION`).
 - **`PasswordStrengthIndicator.tsx`**: 4-rule security checklist (≥8 chars, uppercase, lowercase, number/special character) with dynamic progress bar and color-coded strength score (Weak / Fair / Good / Strong).
 - **`OtpVerificationView.tsx`**: 6-digit email confirmation code entry view with auto-advance inputs and Resend integration.
 - **`SignInForm.tsx` & `SignUpForm.tsx`**: Isolated form components cleanly separated from page shells to ensure strict <250 lines compliance across `/sign-in` (98 lines) and `/sign-up` (108 lines).

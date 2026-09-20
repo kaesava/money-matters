@@ -1,6 +1,6 @@
 # Manual Shakeout Testing Guide: Authentication & Parity (Web & Mobile)
 
-This document is the authoritative manual testing checklist for **Sign-In**, **Sign-Up**, **Forgot Password**, **Reset Password**, **Email OTP Verification**, and **Social Authentication (Google & Apple)** across **Web** (`apps/web`) and **Mobile** (`apps/mobile`).
+This document is the authoritative manual testing checklist for **Sign-In**, **Sign-Up**, **Forgot Password**, **Reset Password**, **Email OTP Verification**, and **Social Authentication (Google)** across **Web** (`apps/web`) and **Mobile** (`apps/mobile`). (Note: Apple authentication is deferred to Release 2; see `V2_SCOPE.md`).
 
 Each test scenario must be executed on both platforms (or as noted) to guarantee 100% behavioral and visual parity with zero unexpected friction or crashes.
 
@@ -79,15 +79,16 @@ Each test scenario must be executed on both platforms (or as noted) to guarantee
 
 ---
 
-## 5. Social Authentication (Google & Apple) Shakeout Checklist
+## 5. Social Authentication (Google) Shakeout Checklist
+> [!NOTE]
+> **Apple Sign-In Deferred to Release 2**: Apple authentication has been moved to Release 2 (`V2_SCOPE.md` `FEAT-V2-009-APPLE-AUTHENTICATION`). In Release 1, social authentication exclusively provides Google OAuth.
 
 | Test ID | Scenario | Steps to Execute | Expected Result (Web) | Expected Result (Mobile) | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **AUTH-SO-01** | Google Sign-In (Existing User) | Click "Sign in with Google" button. | OAuth pop-up/redirect occurs; on return, user is logged in to `/dashboard`. | Browser opens Google OAuth; deep link `moneymatters://home?token=...` returns app to Home with token saved. | [ ] |
 | **AUTH-SO-02** | Google Sign-Up (New User) | Click "Sign up with Google" button. | OAuth completes; new user record created; redirects to setup wizard / dashboard. | OAuth completes; returns via deep link; creates tenant if missing; routes to `/(setup)/income`. | [ ] |
 | **AUTH-SO-03** | Unverified user social login | If user created account with email/pwd but didn't verify OTP, then logs in with Google using that email. | OAuth succeeds; Neon Auth links verified Google identity to email; user logged in immediately. | OAuth succeeds; Neon Auth links verified Google identity to email; user logged in immediately. | [ ] |
-| **AUTH-SO-04** | Apple Sign-In / Sign-Up | Click "Sign in with Apple" or "Sign up with Apple". | Apple authentication flow executes; redirects back with valid session. | Apple authentication flow executes; returns via deep link with token saved. | [ ] |
-| **AUTH-SO-05** | Cancelled social flow | Open OAuth window/browser and close it without completing. | Graceful cancellation; form returns to ready state without crash or freeze. | Browser dismisses; app remains on sign-in/sign-up screen without crash or hang. | [ ] |
+| **AUTH-SO-04** | Cancelled social flow | Open OAuth window/browser and close it without completing. | Graceful cancellation; form returns to ready state without crash or freeze. | Browser dismisses; app remains on sign-in/sign-up screen without crash or hang. | [ ] |
 
 ---
 
@@ -111,16 +112,11 @@ When conducting manual testing in the local development environment, note the fo
    - Passing `http://localhost:3000` or `http://localhost:4000` directly as `redirectTo` or `callbackURL` will be rejected by Neon Auth with an `Invalid redirectURL` 400 error or a `This ep-icy-resonance... page can't be found` 404 page.
    - The application automatically rewrites development redirect and callback URLs to route through `https://kesh-imac.tail09ef18.ts.net/dev-callback/[...slug]`, which acts as an authorized reverse relay back to the local development server or mobile deep link (`moneymatters://...`).
 
-2. **Apple Social Auth (Provider Not Configured)**:
-   - Apple Sign-In requires an active Apple Developer Program account with configured Services IDs and private keys.
-   - In the dev environment, Neon Auth returns `PROVIDER_NOT_SUPPORTED` for Apple OAuth.
-   - The client application gracefully catches this and presents a clear, user-friendly error banner (`Apple sign-in is not configured for this environment. Please sign in with email or Google.`), avoiding any hanging or infinite loading spinners.
-
-3. **Quiet Password Reset & User Anti-Enumeration**:
+2. **Quiet Password Reset & User Anti-Enumeration**:
    - To protect user privacy and prevent account enumeration attacks, submitting a password reset request displays the same "Check Your Email" confirmation screen regardless of whether the email is registered or unregistered.
    - If no email is received, verify that the email address is actively registered in the database, and check spam/junk folders.
 
-4. **Transactional Email Delivery in Dev**:
+3. **Transactional Email Delivery in Dev**:
    - Password reset and email OTP verification emails are dispatched via Resend.
    - In development environments without live transactional email credentials or using Resend test API keys, emails may be restricted to the verified account owner's email address or logged to the development server console instead of delivered to arbitrary external inboxes.
 
