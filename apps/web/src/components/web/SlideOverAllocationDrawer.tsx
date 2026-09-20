@@ -79,37 +79,37 @@ export function SlideOverAllocationDrawer({
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-start justify-between sticky top-0 bg-white dark:bg-zinc-900 z-10">
             <div className="flex-1 pr-4">
               <h2 className="text-xl font-black text-[#1B2B4B] dark:text-white tracking-tight">
-                {t("paydayDrawer.incomeSplitDetails", { defaultValue: "Income Split Details" })}
+                {t("paydayDrawer.incomeSplitDetails")}
               </h2>
               <div className="mt-4 p-3.5 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200/80 dark:border-zinc-700/80 space-y-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-zinc-500 dark:text-zinc-400">
-                    {t("paydayDrawer.incomeSource", { defaultValue: "Income Source" })}
+                    {t("paydayDrawer.incomeSource")}
                   </span>
-                  <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.incomeName || "Income Deposit"}</span>
+                  <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.incomeName || t("paydayDrawer.incomeDepositDefault")}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-zinc-500 dark:text-zinc-400">
-                    {t("paydayDrawer.bankAccount", { defaultValue: "Bank Account" })}
+                    {t("paydayDrawer.bankAccount")}
                   </span>
-                  <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.receivingAccountName || "Main Account"}</span>
+                  <span className="font-bold text-zinc-800 dark:text-zinc-100">{plan.receivingAccountName || t("paydayDrawer.mainAccountDefault")}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-zinc-500 dark:text-zinc-400">
-                    {t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
+                    {t("paydayDrawer.incomeDate")}
                   </span>
                   <span className="font-mono text-zinc-700 dark:text-zinc-300">{fmtDate(plan.expectedDate || plan.incomeDate || plan.createdAt)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-zinc-500 dark:text-zinc-400">
-                    {t("paydayDrawer.incomeSplitDate", { defaultValue: "Income Split Date" })}
+                    {t("paydayDrawer.incomeSplitDate")}
                   </span>
                   <span className="font-mono text-zinc-700 dark:text-zinc-300">{fmtDate(plan.createdAt)}</span>
                 </div>
                 {plan.note && (
                   <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex flex-col gap-0.5">
                     <span className="font-medium text-zinc-500 dark:text-zinc-400">
-                      {t("paydayDrawer.incomeNote", { defaultValue: "Income Note" })}
+                      {t("paydayDrawer.incomeNote")}
                     </span>
                     <span className="text-zinc-700 dark:text-zinc-300 italic">{plan.note}</span>
                   </div>
@@ -135,7 +135,7 @@ export function SlideOverAllocationDrawer({
           {/* Waterfall Lines List */}
           <div className="flex-1 overflow-y-auto p-6 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              Income Split Breakdown ({displayLines.length} pools)
+              {t("paydayDrawer.splitBreakdown", { count: displayLines.length })}
             </h3>
             {displayLines.map((line, idx) => (
               <div
@@ -148,12 +148,12 @@ export function SlideOverAllocationDrawer({
                       href={`/dashboard/pools?poolId=${line.poolId}`}
                       className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                     >
-                      <span>{line.poolName || line.categoryName || "Pool Allocation"}</span>
+                      <span>{line.poolName || line.categoryName || t("paydayDrawer.poolAllocationDefault")}</span>
                       <span className="text-[10px] text-blue-400">↗</span>
                     </Link>
                   ) : (
                     <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                      {line.poolName || line.categoryName || "Pool Allocation"}
+                      {line.poolName || line.categoryName || t("paydayDrawer.poolAllocationDefault")}
                     </h4>
                   )}
                   <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">

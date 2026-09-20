@@ -50,12 +50,12 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
 
   const handleSubmit = async () => {
     if (!fromPoolId || !toPoolId || !amount || parseFloat(amount) <= 0) {
-      toast.error('Please select source and destination pools and enter a valid amount.');
+      toast.error(t('modals.moveMoney.poolsRequired'));
       return;
     }
 
     if (fromPoolId === toPoolId) {
-      toast.error('Source and destination pools must be different.');
+      toast.error(t('modals.moveMoney.poolsDifferent'));
       return;
     }
 
@@ -78,7 +78,7 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
       onClose={onClose}
       isDirty={isDirty}
       title={t('modals.moveMoney.title')}
-      subtitle="Instantly transfer funds between category pools"
+      subtitle={t('modals.moveMoney.subtitle')}
       footer={
         <MobileButton
           variant="primary"
@@ -94,21 +94,21 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
         {/* 1-Tap Presets */}
         {everydayCat && maxSavingsCat && (
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Quick Presets</Text>
+            <Text style={styles.label}>{t('modals.moveMoney.quickPresets')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetRow}>
               <TouchableOpacity
                 onPress={() => applyPreset(maxSavingsCat.id, everydayCat.id, '50')}
                 style={styles.presetChip}
                 activeOpacity={0.7}
               >
-                <Text style={styles.presetText}>Top Up Everyday ($50)</Text>
+                <Text style={styles.presetText}>{t('modals.moveMoney.presetTopUp50')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => applyPreset(maxSavingsCat.id, everydayCat.id, '100')}
                 style={styles.presetChip}
                 activeOpacity={0.7}
               >
-                <Text style={styles.presetText}>Top Up Everyday ($100)</Text>
+                <Text style={styles.presetText}>{t('modals.moveMoney.presetTopUp100')}</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -159,9 +159,11 @@ export function MoveMoneyModal({ visible, onClose, onSuccess }: MoveMoneyModalPr
         {/* Payday Safety Guard */}
         {everydayCat && fromPoolId === everydayCat.id && parseFloat(amount || '0') > 0 && (
           <View style={styles.guardBanner}>
-            <Text style={styles.guardBannerTitle}>Payday Safety Guard</Text>
+            <Text style={styles.guardBannerTitle}>{t('modals.moveMoney.safetyGuardTitle')}</Text>
             <Text style={styles.guardBannerText}>
-              Moving {formatAUD(parseFloat(amount) || 0)} leaves {formatAUD(Math.max(0, (parseFloat(String(everydayCat.currentBalance || '0')) || 0) - (parseFloat(amount) || 0)))} in Everyday spending cash.
+              {t('modals.moveMoney.safetyGuardText')
+                .replace('{moved}', formatAUD(parseFloat(amount) || 0))
+                .replace('{remaining}', formatAUD(Math.max(0, (parseFloat(String(everydayCat.currentBalance || '0')) || 0) - (parseFloat(amount) || 0))))}
             </Text>
           </View>
         )}

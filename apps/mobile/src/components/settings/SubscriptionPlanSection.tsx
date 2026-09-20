@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Linking, StyleSheet } from 'react-native';
-import { useMobileToast } from '@money-matters/ui/mobile';
+import { useMobileToast, DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
 
@@ -100,23 +100,24 @@ export function SubscriptionPlanSection() {
   );
 }
 
+const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: D.colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: D.colors.border,
     gap: 10,
   },
   cardTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: D.colors.primary,
   },
   cardSubtitle: {
     fontSize: 11,
-    color: '#64748B',
+    color: D.colors.textMuted,
     lineHeight: 16,
   },
   btnRow: {
@@ -126,19 +127,19 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     flex: 1,
-    backgroundColor: '#2563eb',
+    backgroundColor: D.colors.sereneBlue,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
   },
   primaryBtnText: {
-    color: '#FFFFFF',
+    color: D.colors.onPrimary,
     fontSize: 12,
     fontWeight: '800',
   },
   secondaryBtn: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: D.colors.surfaceVariant,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
@@ -177,10 +178,10 @@ const styles = StyleSheet.create({
   planNameText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: D.colors.primary,
   },
   secondaryBtnText: {
-    color: '#475569',
+    color: D.colors.textPrimary,
     fontSize: 12,
     fontWeight: '800',
   },

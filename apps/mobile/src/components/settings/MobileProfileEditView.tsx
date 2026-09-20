@@ -53,7 +53,7 @@ export function MobileProfileEditView({
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>{t('settings.myDetailsTitle', { defaultValue: 'Edit Details' })}</Text>
+        <Text style={styles.cardTitle}>{t('settings.myDetailsTitle')}</Text>
         <View style={styles.actionRow}>
           <TouchableOpacity onPress={onCancel} style={styles.cancelBtn}>
             <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
@@ -91,7 +91,7 @@ export function MobileProfileEditView({
 
         <View style={{ flex: 1 }}>
           <TouchableOpacity onPress={onPickAvatar} style={styles.changePhotoBtn}>
-            <Text style={styles.changePhotoText}>{t('settings.avatarUploadLabel', { defaultValue: 'Change Avatar Photo' })}</Text>
+            <Text style={styles.changePhotoText}>{t('settings.avatarUploadLabel')}</Text>
           </TouchableOpacity>
         </View>
       </View>

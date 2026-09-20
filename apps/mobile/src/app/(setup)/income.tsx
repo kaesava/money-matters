@@ -8,7 +8,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
@@ -25,10 +26,11 @@ const FREQ_LABELS: Record<Frequency, string> = {
 };
 
 export default function SetupIncomeScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
 
-  const [name, setName] = useState(t('setup.income.defaultName', { defaultValue: 'My Salary' }));
+  const [name, setName] = useState(t('setup.income.defaultName'));
   const [amount, setAmount] = useState('');
   const [frequency, setFrequency] = useState<Frequency>('FORTNIGHTLY');
 
@@ -42,8 +44,8 @@ export default function SetupIncomeScreen() {
       onConfirm: async () => {
         try {
           await updatePref.mutateAsync({ setupCompleted: true });
-        } catch (_e) {
-          // Ignore
+        } catch {
+          // Non-blocking preference update
         }
         router.replace('/(app)/home');
       },
@@ -51,22 +53,33 @@ export default function SetupIncomeScreen() {
   };
 
   const handleNext = () => {
-    if (!name.trim() || !amount.trim() || isNaN(parseFloat(amount))) return;
+    const numericAmount = parseFloat(amount);
+    if (!name.trim() || isNaN(numericAmount) || numericAmount < 0) return;
+
     router.push({
       pathname: '/(setup)/accounts',
       params: {
         incomeName: name.trim(),
-        incomeAmount: amount,
+        incomeAmount: numericAmount.toFixed(2),
         incomeFrequency: frequency,
         mode: params.mode,
-      }
-    });
+      },
+    } as Href);
   };
 
   const isFormValid = name.trim() !== '' && amount.trim() !== '' && !isNaN(parseFloat(amount)) && parseFloat(amount) >= 0;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop: Math.max(insets.top + 16, 56),
+          paddingBottom: Math.max(insets.bottom + 20, 40),
+        },
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.topNavRow}>
         <View style={styles.progressRow}>
           <View style={[styles.progressDot, styles.progressDotActive]} />
@@ -75,19 +88,18 @@ export default function SetupIncomeScreen() {
         </View>
         <TouchableOpacity
           onPress={handleSkip}
-          style={styles.skipBtn}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.skipBtnText}>{t('setup.skipForNow')}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 1, total: 3, defaultValue: 'Step 1 of 3' })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 1, total: 3 })}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-        <Text style={styles.title}>{t('setup.income.titleSimple', { defaultValue: 'How much do you get paid?' })}</Text>
+        <Text style={styles.title}>{t('setup.income.titleSimple')}</Text>
         <InfoTooltip
-          title="Take-Home Pay"
-          content="Knowing your net income allows Money Matters to route earnings into your 5-Step Waterfall automatically."
+          title={t('setup.income.takeHomePayTooltipTitle')}
+          content={t('setup.income.takeHomePayTooltipContent')}
         />
       </View>
 
@@ -127,7 +139,7 @@ export default function SetupIncomeScreen() {
         </View>
       </View>
 
-      <Text style={styles.skipHint}>{t('setup.income.progressiveHint', { defaultValue: 'You can add more income sources and bank accounts later in Settings.' })}</Text>
+      <Text style={styles.skipHint}>{t('setup.income.progressiveHint')}</Text>
 
       <TouchableOpacity
         style={[styles.nextBtn, !isFormValid && styles.nextBtnDisabled]}

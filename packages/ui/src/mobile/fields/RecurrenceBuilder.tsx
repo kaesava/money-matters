@@ -26,19 +26,19 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
   return (
     <RNView style={styles.container}>
       <RNView style={styles.formGroup}>
-        <RNText style={styles.label}>{t("recurrence.scheduleType", { defaultValue: "Schedule Type" })}</RNText>
+        <RNText style={styles.label}>{t("forms.scheduleType")}</RNText>
         <RNView style={styles.row}>
           <RNTouchableOpacity
             onPress={() => setIsRecurring(true)}
             style={[styles.typeBtn, isRecurring && styles.typeBtnActive]}
           >
-            <RNText style={[styles.typeBtnText, isRecurring && styles.typeBtnTextActive]}>{t("recurrence.recurring", { defaultValue: "Recurring" })}</RNText>
+            <RNText style={[styles.typeBtnText, isRecurring && styles.typeBtnTextActive]}>{t("forms.recurring")}</RNText>
           </RNTouchableOpacity>
           <RNTouchableOpacity
             onPress={() => setIsRecurring(false)}
             style={[styles.typeBtn, !isRecurring && styles.typeBtnActive]}
           >
-            <RNText style={[styles.typeBtnText, !isRecurring && styles.typeBtnTextActive]}>{t("recurrence.oneOff", { defaultValue: "One-off" })}</RNText>
+            <RNText style={[styles.typeBtnText, !isRecurring && styles.typeBtnTextActive]}>{t("forms.oneOff")}</RNText>
           </RNTouchableOpacity>
         </RNView>
       </RNView>
@@ -46,7 +46,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
       {isRecurring && (
         <>
           <RNView style={styles.formGroup}>
-            <RNText style={styles.label}>{t("recurrence.frequency", { defaultValue: "Frequency" })}</RNText>
+            <RNText style={styles.label}>{t("forms.frequency")}</RNText>
             <RNView style={styles.freqRow}>
               {(['WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY'] as const).map((freq) => (
                 <RNTouchableOpacity
@@ -58,7 +58,13 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
                   style={[styles.typeBtn, frequency === freq && styles.typeBtnActive, { flex: 1, paddingVertical: 6 }]}
                 >
                   <RNText style={[styles.typeBtnText, { fontSize: 10 }, frequency === freq && styles.typeBtnTextActive]}>
-                    {freq === 'ANNUALLY' ? 'YEARLY' : freq}
+                    {freq === 'WEEKLY'
+                      ? t("forms.weekly")
+                      : freq === 'FORTNIGHTLY'
+                      ? t("forms.fortnightly")
+                      : freq === 'MONTHLY'
+                      ? t("forms.monthly")
+                      : t("forms.yearly")}
                   </RNText>
                 </RNTouchableOpacity>
               ))}
@@ -67,18 +73,18 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
 
           <RNView style={styles.formGroup}>
             <RNText style={styles.label}>
-              {frequency === "MONTHLY" || frequency === "WEEKLY" ? "Every" : "Interval"}
+              {frequency === "MONTHLY" || frequency === "WEEKLY" ? t("forms.every") : t("forms.interval")}
             </RNText>
             <RNView style={[styles.row, { alignItems: 'center' }]}>
               <RNTextInput
                 value={String(interval)}
-                onChangeText={(t) => setInterval(parseInt(t) || 1)}
+                onChangeText={(text) => setInterval(parseInt(text) || 1)}
                 keyboardType="numeric"
                 editable={frequency !== "FORTNIGHTLY" && frequency !== "ANNUALLY"}
                 style={[styles.input, { flex: 1, backgroundColor: (frequency === "FORTNIGHTLY" || frequency === "ANNUALLY") ? '#f4f4f5' : '#FFF' }]}
               />
               <RNText style={[styles.label, { width: 60, marginLeft: 10 }]}>
-                {frequency === "WEEKLY" ? "Weeks" : frequency === "MONTHLY" ? "Months" : ""}
+                {frequency === "WEEKLY" ? t("forms.weeks") : frequency === "MONTHLY" ? t("forms.months") : ""}
               </RNText>
             </RNView>
           </RNView>
@@ -86,7 +92,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
       )}
 
       <DatePickerField
-        label={isRecurring ? "First Payment / Due Date" : "Event Date"}
+        label={isRecurring ? t("forms.firstPaymentDueDate") : t("forms.eventDate")}
         value={startDate}
         onChange={setStartDate}
         required
@@ -94,7 +100,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
 
       {isRecurring && (
         <DatePickerField
-          label="End Date (Optional)"
+          label={t("forms.endDateOptional")}
           value={endDate || ""}
           onChange={(val) => setEndDate(val || null)}
         />

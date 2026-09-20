@@ -11,11 +11,13 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS, useMobileToast } from "@money-matters/ui/mobile";
 import { authClient } from "../../lib/auth";
 
 export default function ResetPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const toast = useMobileToast();
   const router = useRouter();
   const { token, error } = useLocalSearchParams<{ token?: string; error?: string }>();
@@ -36,46 +38,46 @@ export default function ResetPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (error) {
-      toast.error(error, t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" }));
+      toast.error(error, t("auth.resetPasswordErrorTitle"));
       return;
     }
 
     if (!token) {
       toast.error(
-        t("auth.invalidToken", { defaultValue: "Invalid or missing password reset token." }),
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
+        t("auth.invalidToken"),
+        t("auth.resetPasswordErrorTitle")
       );
       return;
     }
 
     if (!newPassword) {
       toast.error(
-        t("auth.passwordRequired", { defaultValue: "Password is required." }),
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
+        t("auth.passwordRequired"),
+        t("auth.resetPasswordErrorTitle")
       );
       return;
     }
 
     if (newPassword.length < 8) {
       toast.error(
-        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." }),
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
+        t("auth.passwordTooShort"),
+        t("auth.resetPasswordErrorTitle")
       );
       return;
     }
 
     if (!/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword)) {
       toast.error(
-        t("auth.passwordComplexityRequired", { defaultValue: "Password must contain at least one number or special character." }),
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
+        t("auth.passwordComplexityRequired"),
+        t("auth.resetPasswordErrorTitle")
       );
       return;
     }
 
     if (newPassword !== confirmPassword) {
       toast.error(
-        t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." }),
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
+        t("auth.passwordsMustMatch"),
+        t("auth.resetPasswordErrorTitle")
       );
       return;
     }
@@ -89,21 +91,21 @@ export default function ResetPasswordScreen() {
 
       if (res.error) {
         toast.error(
-          res.error.message ?? t("auth.resetPasswordGenericError", { defaultValue: "Failed to reset password." }),
-          t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
+          res.error.message ?? t("auth.resetPasswordGenericError"),
+          t("auth.resetPasswordErrorTitle")
         );
         return;
       }
 
       toast.success(
-        t("auth.resetPasswordSuccessMessage", { defaultValue: "Your password has been successfully reset. Please sign in with your new password." }),
-        t("auth.resetPasswordSuccessTitle", { defaultValue: "Success" })
+        t("auth.resetPasswordSuccessMessage"),
+        t("auth.resetPasswordSuccessTitle")
       );
       router.replace("/(auth)/sign-in");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : String(err),
-        t("auth.resetPasswordErrorTitle", { defaultValue: "Reset Error" })
+        t("auth.resetPasswordErrorTitle")
       );
     } finally {
       setLoading(false);
@@ -116,28 +118,34 @@ export default function ResetPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top + 24, 48),
+            paddingBottom: Math.max(insets.bottom + 24, 48),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")} style={styles.backBtn}>
-            <Text style={styles.backText}>← {t("auth.signInCta", { defaultValue: "Back to Sign In" })}</Text>
+            <Text style={styles.backText}>{t("auth.backToSignIn")}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>{t("auth.resetPassword", { defaultValue: "Reset Password" })}</Text>
+          <Text style={styles.title}>{t("auth.resetPassword")}</Text>
           <Text style={styles.subtitle}>
-            {t("auth.resetPasswordSubtitle", { defaultValue: "Enter a new secure password for your account." })}
+            {t("auth.resetPasswordSubtitle")}
           </Text>
         </View>
 
         {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>
-              {t("auth.invalidToken", { defaultValue: "Invalid or expired link. Please request a new password reset link." })}
+              {t("auth.invalidToken")}
             </Text>
           </View>
         ) : (
           <View style={styles.form}>
-            <Text style={styles.label}>{t("auth.newPasswordLabel", { defaultValue: "New Password" })}</Text>
+            <Text style={styles.label}>{t("auth.newPasswordLabel")}</Text>
             <TextInput
               style={styles.input}
               placeholder={t("auth.passwordPlaceholder")}
@@ -150,7 +158,7 @@ export default function ResetPasswordScreen() {
             />
 
             <Text style={[styles.label, styles.labelGap]}>
-              {t("auth.confirmPasswordLabel", { defaultValue: "Confirm New Password" })}
+              {t("auth.confirmPasswordLabel")}
             </Text>
             <TextInput
               style={styles.input}
@@ -172,7 +180,7 @@ export default function ResetPasswordScreen() {
               {loading ? (
                 <ActivityIndicator color={DESIGN_TOKENS.colors.onPrimary} />
               ) : (
-                <Text style={styles.ctaText}>{t("auth.resetPassword", { defaultValue: "Reset Password" })}</Text>
+                <Text style={styles.ctaText}>{t("auth.resetPassword")}</Text>
               )}
             </TouchableOpacity>
           </View>

@@ -179,7 +179,7 @@ export function GenericEditForm<T extends Record<string, unknown> = Record<strin
                 loading={isDeleting}
                 type="button"
               >
-                {t('common.delete', { defaultValue: 'Delete' })}
+                {t('common.delete')}
               </Button>
             )}
           </div>
@@ -191,7 +191,7 @@ export function GenericEditForm<T extends Record<string, unknown> = Record<strin
               disabled={isSubmitting || isDeleting}
               type="button"
             >
-              {t('common.cancel', { defaultValue: 'Cancel' })}
+              {t('common.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -200,7 +200,7 @@ export function GenericEditForm<T extends Record<string, unknown> = Record<strin
               disabled={isSubmitting || isDeleting || !isFormValid}
               loading={isSubmitting}
             >
-              {t('common.save', { defaultValue: 'Save' })}
+              {t('common.save')}
             </Button>
           </div>
         </div>
@@ -210,9 +210,9 @@ export function GenericEditForm<T extends Record<string, unknown> = Record<strin
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteConfirm}
-        title={t('common.confirmDelete', { defaultValue: 'Confirm Delete' })}
-        description={t('common.confirmDeleteDescription', { defaultValue: 'Are you sure you want to delete this item? This action cannot be undone.' })}
-        confirmLabel={t('common.delete', { defaultValue: 'Delete' })}
+        title={t('common.confirmDelete')}
+        description={t('common.confirmDeleteDescription')}
+        confirmLabel={t('common.delete')}
         variant="danger"
         isLoading={isDeleting}
       />

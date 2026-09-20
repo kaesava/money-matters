@@ -56,10 +56,10 @@ export default function SettingsScreen() {
 
   const handleSignOut = async () => {
     showMobileConfirm({
-      title: t('settings.signOut', { defaultValue: 'Sign Out' }),
-      message: t('settings.signOutConfirm', { defaultValue: 'Are you sure you want to sign out?' }),
-      confirmText: t('settings.signOut', { defaultValue: 'Sign Out' }),
-      cancelText: t('common.cancel', { defaultValue: 'Cancel' }),
+      title: t('settings.signOut'),
+      message: t('settings.signOutConfirm'),
+      confirmText: t('settings.signOut'),
+      cancelText: t('common.cancel'),
       isDestructive: true,
       onConfirm: async () => {
         setLoading(true);
@@ -80,10 +80,10 @@ export default function SettingsScreen() {
 
   const tabs: SegmentTabItem<SettingsTab>[] = useMemo(
     () => [
-      { key: 'profile', label: t('settings.tabs.profile', { defaultValue: 'My Details' }) },
-      { key: 'household', label: t('settings.tabs.household', { defaultValue: 'Household' }) },
-      { key: 'archived', label: t('settings.tabs.archived', { defaultValue: 'Archived Data' }) },
-      { key: 'account-data', label: t('settings.tabs.accountData', { defaultValue: 'Data & Subscription' }) },
+      { key: 'profile', label: t('settings.tabs.profile') },
+      { key: 'household', label: t('settings.tabs.household') },
+      { key: 'archived', label: t('settings.tabs.archived') },
+      { key: 'account-data', label: t('settings.tabs.accountData') },
     ],
     []
   );
@@ -91,12 +91,10 @@ export default function SettingsScreen() {
   return (
     <View style={{ flex: 1 }}>
       <AppScreenWrapper
-        title={t('settings.title', { defaultValue: 'Settings' })}
+        title={t('settings.title')}
         infoTooltip={{
-          title: t('tooltips.settings.title', { defaultValue: 'About Settings' }),
-          content: t('tooltips.settings.content', {
-            defaultValue: 'Manage your household profile, preferences, and account configuration.',
-          }),
+          title: t('tooltips.settings.title'),
+          content: t('tooltips.settings.content'),
         }}
       >
         <ScrollView
@@ -122,7 +120,7 @@ export default function SettingsScreen() {
               {/* Push Notifications Card */}
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>
-                  {t('notifications.settings.title', { defaultValue: 'Notifications' })}
+                  {t('notifications.settings.title')}
                 </Text>
                 <TouchableOpacity
                   style={styles.navLink}
@@ -132,7 +130,7 @@ export default function SettingsScreen() {
                   <View style={styles.navLinkLeft}>
                     <Feather name="bell" size={16} color="#2563eb" />
                     <Text style={styles.navLinkText}>
-                      {t('settings.notificationsLink', { defaultValue: 'Push Notifications & Reminders' })}
+                      {t('settings.notificationsLink')}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={16} color="#94A3B8" />
@@ -149,8 +147,8 @@ export default function SettingsScreen() {
                 <Feather name="log-out" size={16} color="#E11D48" />
                 <Text style={styles.signOutBtnText}>
                   {loading
-                    ? t('common.loading', { defaultValue: 'Signing out...' })
-                    : t('settings.signOut', { defaultValue: 'Sign Out' })}
+                    ? t('common.loading')
+                    : t('settings.signOut')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -163,7 +161,7 @@ export default function SettingsScreen() {
               <View style={styles.activeHouseholdCard}>
                 <View style={styles.activeHouseholdLeft}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.activeHouseholdLabel}>{t('tenantSwitcher.label', { defaultValue: 'Active Household' })}</Text>
+                    <Text style={styles.activeHouseholdLabel}>{t('tenantSwitcher.label')}</Text>
                     <Text style={styles.activeHouseholdName} numberOfLines={1}>
                       {currentTenant?.name || 'My Household'}
                     </Text>
@@ -179,7 +177,7 @@ export default function SettingsScreen() {
                   >
                     <Feather name="refresh-cw" size={14} color="#2563eb" />
                     <Text style={styles.switchButtonText}>
-                      {t('tenantSwitcher.switchAction', { defaultValue: 'Switch' })}
+                      {t('tenantSwitcher.switchAction')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -193,7 +191,7 @@ export default function SettingsScreen() {
 
               {/* Management & Logs Hub Card */}
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>{t('settings.managementTitle', { defaultValue: 'Management & Quick Hub' })}</Text>
+                <Text style={styles.cardTitle}>{t('settings.managementTitle')}</Text>
 
                 <TouchableOpacity
                   style={styles.navLink}
@@ -203,7 +201,7 @@ export default function SettingsScreen() {
                   <View style={styles.navLinkLeft}>
                     <Feather name="credit-card" size={16} color="#2563eb" />
                     <Text style={styles.navLinkText}>
-                      {t('settings.bankAccountsLink', { defaultValue: 'Linked Bank Accounts & Balances' })}
+                      {t('settings.bankAccountsLink')}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={16} color="#94A3B8" />
@@ -216,7 +214,7 @@ export default function SettingsScreen() {
                 >
                   <View style={styles.navLinkLeft}>
                     <Feather name="refresh-cw" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>{t('setup.recalibrateTitle', { defaultValue: 'Recalibrate Setup Wizard' })}</Text>
+                    <Text style={styles.navLinkText}>{t('setup.recalibrateTitle')}</Text>
                   </View>
                   <Feather name="chevron-right" size={16} color="#94A3B8" />
                 </TouchableOpacity>
@@ -229,7 +227,7 @@ export default function SettingsScreen() {
                   <View style={styles.navLinkLeft}>
                     <Feather name="clock" size={16} color="#2563eb" />
                     <Text style={styles.navLinkText}>
-                      {t('settings.allocationHistoryLink', { defaultValue: 'Payday Allocation History' })}
+                      {t('settings.allocationHistoryLink')}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={16} color="#94A3B8" />
@@ -263,7 +261,7 @@ export default function SettingsScreen() {
               >
                 <Feather name="message-square" size={16} color="#2563eb" />
                 <Text style={styles.feedbackBtnText}>
-                  {t('settings.reportBugLink', { defaultValue: 'Provide Feedback' })}
+                  {t('settings.reportBugLink')}
                 </Text>
               </TouchableOpacity>
 

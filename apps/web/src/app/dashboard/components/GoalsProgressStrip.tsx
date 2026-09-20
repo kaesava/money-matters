@@ -90,12 +90,12 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-extrabold text-[#1B2B4B] dark:text-zinc-100">
-              {t('dashboard.goals.title', { defaultValue: 'Goals' })}
+              {t('dashboard.goals.title')}
             </h3>
             <span className="text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-zinc-800 dark:text-zinc-400 px-2 py-0.5 rounded-full">
               {onTrackGoals === totalGoals
-                ? (t('dashboard.goals.allOnTrack', { total: totalGoals }) || `All ${totalGoals} goals on track`)
-                : (t('dashboard.goals.onTrack', { count: onTrackGoals, total: totalGoals }) || `${onTrackGoals} of ${totalGoals} on track`)}
+                ? t('dashboard.goals.allOnTrack', { total: totalGoals })
+                : t('dashboard.goals.onTrack', { count: onTrackGoals, total: totalGoals })}
             </span>
           </div>
 
@@ -103,7 +103,7 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
             href="/dashboard/pools?type=GOAL"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors self-start sm:self-auto"
           >
-            {t('dashboard.goals.viewAll', { defaultValue: 'View All Goals →' })}
+            {t('dashboard.goals.viewAll')} →
           </Link>
         </div>
 
@@ -147,7 +147,6 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
                       style={{ left: `${goal.timeElapsedPct}%` }}
                       title={t('dashboard.goals.pacingTarget', {
                         percent: goal.timeElapsedPct,
-                        defaultValue: `Pacing Target: ${goal.timeElapsedPct}%`,
                       })}
                     />
                   )}
@@ -158,17 +157,17 @@ export const GoalsProgressStrip: React.FC<GoalsProgressStripProps> = ({
                     {format(goal.balanceNum)} {goal.targetNum > 0 && `/ ${format(goal.targetNum)}`}
                   </span>
                   {goal.isOverdue ? (
-                    <span className="text-rose-600 font-bold font-sans">Overdue</span>
+                    <span className="text-rose-600 font-bold font-sans">{t('common.overdue')}</span>
                   ) : goal.timeElapsedPct !== null ? (
                     <span
                       className={`font-sans font-semibold ${
                         isOnTrack ? 'text-emerald-600' : isJustBehind ? 'text-amber-600' : 'text-rose-600'
                       }`}
                     >
-                      {isOnTrack ? 'On Track' : isJustBehind ? 'Just Behind' : 'Lagging'} ({goal.timeElapsedPct}% pace)
+                      {isOnTrack ? t('dashboard.goals.onTrackBadge') : isJustBehind ? t('dashboard.goals.justBehind') : t('dashboard.goals.lagging')} {t('dashboard.goals.pace', { percent: goal.timeElapsedPct })}
                     </span>
                   ) : (
-                    <span>{goal.fundedPct}% funded</span>
+                    <span>{t('dashboard.goals.funded', { percent: goal.fundedPct })}</span>
                   )}
                 </div>
               </div>

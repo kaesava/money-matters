@@ -226,7 +226,7 @@ export function MatrixPlanTab({
         totalIncomeAmount: col ? col.totalIncome.toFixed(2) : "0.00",
       });
       await utils.listAllAllocationPlans.invalidate();
-      toast.success(t("matrix.saveSplitSuccess", { defaultValue: "Income Split saved successfully." }));
+      toast.success(t("matrix.saveSplitSuccess"));
     } catch (err: unknown) {
       toast.error((err as Error).message || "Failed to save Income Split.");
     } finally {
@@ -240,8 +240,8 @@ export function MatrixPlanTab({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-white flex items-center gap-2">
-            <span>{t("matrix.incomeAllocationGridTitle", { defaultValue: "Income Split Planning" })}</span>
-            <InfoTooltip content={t("matrix.incomeAllocationGridTooltip", { defaultValue: "Plan upcoming Income Splits across Pools out to 12 months. Click Review to edit. Saving will lock-in the splits. You can easily revert to automatic calculations." })} />
+            <span>{t("matrix.incomeAllocationGridTitle")}</span>
+            <InfoTooltip content={t("matrix.incomeAllocationGridTooltip")} />
           </h2>
         </div>
 
@@ -257,7 +257,7 @@ export function MatrixPlanTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              {t("matrix.statusAll", { defaultValue: "All" })}
+              {t("matrix.statusAll")}
             </button>
             <button
               type="button"
@@ -268,7 +268,7 @@ export function MatrixPlanTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              {t("matrix.statusPending", { defaultValue: "Pending" })}
+              {t("matrix.statusPending")}
             </button>
             <button
               type="button"
@@ -279,7 +279,7 @@ export function MatrixPlanTab({
                   : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
               }`}
             >
-              {t("matrix.statusConfirmed", { defaultValue: "Confirmed" })}
+              {t("matrix.statusConfirmed")}
             </button>
           </div>
 
@@ -328,8 +328,8 @@ export function MatrixPlanTab({
             className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-[#1B2B4B] dark:text-white font-bold text-xs rounded-xl transition-colors shadow-xs cursor-pointer"
           >
             {showFullHorizon
-              ? t("matrix.showNext5", { defaultValue: "Show Next 5 Paydays" })
-              : t("matrix.showFull12Events", { defaultValue: "Show upto 12 months out" })}
+              ? t("matrix.showNext5")
+              : t("matrix.showFull12Events")}
           </button>
         </div>
       </div>
@@ -387,7 +387,7 @@ export function MatrixPlanTab({
                       {isConfirmed ? (
                         <div className="flex items-center justify-center gap-2 text-xs mt-1.5 font-medium">
                           <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                            {t("matrix.confirmedBadge", { defaultValue: "CONFIRMED" })}
+                            {t("matrix.confirmedBadge")}
                           </span>
                           <button
                             type="button"
@@ -395,14 +395,14 @@ export function MatrixPlanTab({
                             className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
                             title="Review Splits"
                           >
-                            {t("matrix.review", { defaultValue: "Review" })}
+                            {t("matrix.review")}
                           </button>
                         </div>
                       ) : (
                         <div className="flex items-center justify-center gap-1.5 text-xs mt-1.5 flex-wrap font-medium">
                           {isSaved && (
                             <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                              {t("matrix.savedBadge", { defaultValue: "SAVED" })}
+                              {t("matrix.savedBadge")}
                             </span>
                           )}
                           <button
@@ -411,7 +411,7 @@ export function MatrixPlanTab({
                             className="font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors"
                             title="Review and Edit Splits"
                           >
-                            {t("matrix.review", { defaultValue: "Review" })}
+                            {t("matrix.review")}
                           </button>
 
                           <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
@@ -425,7 +425,7 @@ export function MatrixPlanTab({
                                 className="font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:underline cursor-pointer transition-colors disabled:opacity-50"
                                 title="Lock in Splits to prevent automatic calculation."
                               >
-                                {savingColId === col.id ? "…" : t("matrix.save", { defaultValue: "Save" })}
+                                {savingColId === col.id ? "…" : t("matrix.save")}
                               </button>
                               <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
                             </>
@@ -437,7 +437,7 @@ export function MatrixPlanTab({
                             className="font-semibold text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer transition-colors"
                             title="Delete Income record"
                           >
-                            Delete
+                            {t("common.delete")}
                           </button>
                         </div>
                       )}
@@ -565,9 +565,9 @@ export function MatrixPlanTab({
             await handleSaveAutoSplit(targetId);
           }
         }}
-        title={t("matrix.saveDialogTitle", { defaultValue: "Save Income Split?" })}
-        description={t("matrix.saveDialogDescription", { defaultValue: "Saving will turn off automatic calculations for this income event and lock in your entered amounts. You can easily revert at any time." })}
-        confirmLabel={t("matrix.saveDialogConfirm", { defaultValue: "Save Income Split" })}
+        title={t("matrix.saveDialogTitle")}
+        description={t("matrix.saveDialogDescription")}
+        confirmLabel={t("matrix.saveDialogConfirm")}
         variant="primary"
       />
 
@@ -579,7 +579,7 @@ export function MatrixPlanTab({
           if (incomeToDelete) {
             try {
               await deleteIncomeMut.mutateAsync({ eventId: incomeToDelete });
-              toast.success("Income deleted.");
+              toast.success(t("toasts.deleted"));
               await utils.listIncomeEvents.invalidate();
               await utils.listAllAllocationPlans.invalidate();
             } catch (_err) {

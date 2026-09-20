@@ -114,7 +114,7 @@ export function CategoryFormModal({
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to archive pool.";
+      const message = err instanceof Error ? err.message : t("categories.failedToArchive");
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -132,17 +132,17 @@ export function CategoryFormModal({
     }
 
     if (!isEdit && !bankAccountId) {
-      setErrorMsg(t("categories.bankAccountRequired", { defaultValue: "Bank Account selection is mandatory." }));
+      setErrorMsg(t("categories.bankAccountRequired"));
       return;
     }
 
     if (type === "GOAL") {
       if (!targetAmount || parseFloat(targetAmount) <= 0) {
-        setErrorMsg(t("categories.goalAmountRequired", { defaultValue: "Goal amount is required for Goal pools and must be greater than $0." }));
+        setErrorMsg(t("categories.goalAmountRequired"));
         return;
       }
       if (!targetDate) {
-        setErrorMsg(t("categories.goalDateRequired", { defaultValue: "Completion date is required for Goal pools." }));
+        setErrorMsg(t("categories.goalDateRequired"));
         return;
       }
     }
@@ -191,7 +191,7 @@ export function CategoryFormModal({
     ...(!isEdit ? [{ value: "", label: t("categories.selectBankAccount") }] : []),
     ...bankAccounts.map((acc) => ({
       value: acc.id,
-      label: `${acc.name} ${acc.isPrivate ? "(Private)" : "(Household)"}`,
+      label: `${acc.name} ${acc.isPrivate ? t("categories.privateBadge") : t("categories.householdBadge")}`,
     })),
   ];
 
@@ -200,7 +200,7 @@ export function CategoryFormModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? `Edit Pool — ${categoryToEdit?.name}` : "Create Pool"}
+      title={isEdit ? t("categories.editPoolTitle", { name: categoryToEdit?.name || "" }) : t("categories.createPool")}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
@@ -211,7 +211,7 @@ export function CategoryFormModal({
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Utilities, House Deposit, Groceries"
+          placeholder={t("categories.placeholderPoolName")}
           autoFocus
         />
 
@@ -327,7 +327,7 @@ export function CategoryFormModal({
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
         title={t("categories.archivePool")}
-        description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"? All linked categories in this pool will also be archived.`}
+        description={t("categories.archivePoolConfirm", { name: categoryToEdit?.name || "" })}
         confirmLabel={t("categories.archivePool")}
         variant="danger"
         isLoading={submitting}

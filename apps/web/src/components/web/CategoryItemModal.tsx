@@ -101,15 +101,15 @@ export function CategoryItemModal({
     setErrorMsg(null);
 
     if (!name.trim()) {
-      setErrorMsg("Category name is required.");
+      setErrorMsg(t("categories.nameRequired"));
       return;
     }
     if (!selectedPoolId) {
-      setErrorMsg("Target pool is required.");
+      setErrorMsg(t("categories.targetPoolRequired"));
       return;
     }
     if (!enteredAmount || parseFloat(enteredAmount) <= 0) {
-      setErrorMsg("Target amount is required and must be greater than 0.");
+      setErrorMsg(t("categories.targetAmountRequired"));
       return;
     }
 
@@ -126,7 +126,7 @@ export function CategoryItemModal({
             isEssential,
           },
         });
-        toast.success("Category updated successfully.");
+        toast.success(t("categories.updatedSuccess"));
       } else {
         await createCategoryMut.mutateAsync({
           poolId: selectedPoolId,
@@ -136,14 +136,14 @@ export function CategoryItemModal({
           budgetFrequency: frequency,
           isEssential,
         });
-        toast.success("Category created successfully.");
+        toast.success(t("categories.createdSuccess"));
       }
       await utils.listCategories.invalidate();
       await utils.listPools.invalidate();
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      setErrorMsg((err as Error).message || "Failed to save category");
+      setErrorMsg((err as Error).message || t("categories.failedToSave"));
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +160,7 @@ export function CategoryItemModal({
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to archive category.";
+      const message = err instanceof Error ? err.message : t("categories.failedToArchive");
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -177,7 +177,7 @@ export function CategoryItemModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={isEdit ? `Edit Category — ${categoryToEdit?.name}` : t("categories.addCategory")}
+      title={isEdit ? `${t("actions.editCategory")} — ${categoryToEdit?.name}` : t("categories.createTitle")}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
@@ -207,9 +207,7 @@ export function CategoryItemModal({
 
         {isEdit && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] leading-relaxed font-semibold">
-            {t("categories.immutabilityWarningCategory", {
-              defaultValue: "Once set, the pool is locked to keep your transaction history clean. If you need to, please archive this category and create a new one.",
-            })}
+            {t("categories.immutabilityWarningCategory")}
           </div>
         )}
 
@@ -256,10 +254,7 @@ export function CategoryItemModal({
             <span>{t("categories.prioritiseCategory")}</span>
             <InfoTooltip
               title={t("categories.prioritiseCategory")}
-              content={t("categories.priorityCategoryInfo", {
-                defaultValue:
-                  "Checking this box will ensure that when Income is split across categories, this category is prioritised over others",
-              })}
+              content={t("categories.priorityCategoryInfo")}
             />
           </span>
         </label>
@@ -303,7 +298,7 @@ export function CategoryItemModal({
         onClose={() => setShowArchiveConfirm(false)}
         onConfirm={confirmArchive}
         title={t("categories.archiveCategory")}
-        description={`Are you sure you want to archive "${categoryToEdit?.name || ""}"?`}
+        description={t("categories.archiveCategoryConfirm", { name: categoryToEdit?.name || "" })}
         confirmLabel={t("categories.archiveCategory")}
         variant="danger"
         isLoading={submitting}

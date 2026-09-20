@@ -213,8 +213,8 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
               <Switch
                 value={consent}
                 onValueChange={setConsent}
-                trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-                thumbColor={consent ? '#2563eb' : '#F8FAFC'}
+                trackColor={{ false: DESIGN_TOKENS.colors.border, true: '#93C5FD' }}
+                thumbColor={consent ? DESIGN_TOKENS.colors.sereneBlue : DESIGN_TOKENS.colors.background}
               />
               <Text style={styles.consentText}>
                 Email me receipt & updates regarding this ticket
@@ -233,6 +233,7 @@ export function FeedbackFormModal({ visible, onClose }: FeedbackFormModalProps) 
   );
 }
 
+const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: D.colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
@@ -253,83 +254,85 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: D.colors.surfaceVariant,
   },
   modalTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: D.colors.primary,
   },
   modalSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: D.colors.textMuted,
     marginTop: 2,
   },
   closeBtn: {
     padding: 6,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: D.colors.surfaceVariant,
   },
-  modalBody: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+  formContent: {
+    padding: 20,
+    gap: 16,
+  },
+  fieldGroup: {
+    gap: 6,
   },
   inputGroup: {
     gap: 6,
   },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: D.colors.textPrimary,
   },
   requiredStar: {
-    color: '#DC2626',
+    color: D.colors.critical,
   },
-  textInput: {
-    backgroundColor: '#F8FAFC',
+  input: {
+    backgroundColor: D.colors.background,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 12,
+    borderColor: D.colors.border,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 13,
-    color: '#1E293B',
+    fontSize: 14,
+    color: D.colors.textPrimary,
   },
   textArea: {
-    minHeight: 90,
+    minHeight: 80,
   },
-  chipsWrap: {
+  chipRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
   chip: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: D.colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: D.colors.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   chipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
+    backgroundColor: D.colors.surfaceVariant,
+    borderColor: D.colors.sereneBlue,
   },
   chipUrgent: {
     backgroundColor: '#FEF2F2',
-    borderColor: '#EF4444',
+    borderColor: D.colors.critical,
   },
   chipText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: D.colors.textMuted,
   },
   chipTextSelected: {
-    color: '#2563eb',
+    color: D.colors.sereneBlue,
     fontWeight: '800',
   },
   chipTextUrgent: {
-    color: '#DC2626',
+    color: D.colors.critical,
     fontWeight: '800',
   },
   consentRow: {
@@ -340,13 +343,13 @@ const styles = StyleSheet.create({
   },
   consentText: {
     fontSize: 12,
-    color: '#475569',
+    color: D.colors.textMuted,
     flex: 1,
   },
   telemetryBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: D.colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: D.colors.border,
     borderRadius: 12,
     padding: 12,
     gap: 4,
@@ -354,15 +357,15 @@ const styles = StyleSheet.create({
   telemetryTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#334155',
+    color: D.colors.textPrimary,
   },
   telemetryItem: {
     fontSize: 11,
-    color: '#64748B',
+    color: D.colors.textMuted,
     fontFamily: 'monospace',
   },
   submitBtn: {
-    backgroundColor: '#2563eb',
+    backgroundColor: D.colors.sereneBlue,
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',
@@ -371,7 +374,7 @@ const styles = StyleSheet.create({
   submitBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: D.colors.onPrimary,
   },
 });
 

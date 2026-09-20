@@ -59,7 +59,7 @@ export function PoolPicker({
     (p) => p.id === "" || p.id === "ALL" || p.name.toLowerCase().includes("all pools")
   );
   const showAllOption = allowAllOption || Boolean(explicitAllOption);
-  const allLabel = explicitAllOption?.name || allOptionLabel || t("common.allPools", { defaultValue: "All Pools" });
+  const allLabel = explicitAllOption?.name || allOptionLabel || t("common.allPools");
   const isAllSelected = !selectedPoolId || selectedPoolId === "" || selectedPoolId === "ALL";
 
   const regularPools = useMemo(
@@ -70,7 +70,7 @@ export function PoolPicker({
   const currentPool = regularPools.find((p) => p.id === selectedPoolId);
   const currentCategory = currentPool?.categories?.find((c) => c.id === selectedCategoryId);
 
-  let displayLabel = placeholder || (showAllOption ? allLabel : t("common.selectPool", { defaultValue: "Select Pool" }));
+  let displayLabel = placeholder || (showAllOption ? allLabel : t("common.selectPool"));
   if (!isAllSelected && currentPool) {
     if (selectedCategoryId && currentCategory) {
       displayLabel = `${currentPool.name} › ${currentCategory.name}`;
@@ -147,8 +147,8 @@ export function PoolPicker({
             <span
               role="button"
               tabIndex={0}
-              title={t("common.clear", { defaultValue: "Clear" })}
-              aria-label={t("common.clear", { defaultValue: "Clear" })}
+              title={t("common.clear")}
+              aria-label={t("common.clear")}
               onClick={(e) => {
                 e.stopPropagation();
                 handleSelectAll();
@@ -174,7 +174,7 @@ export function PoolPicker({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search pool or category..."
+                placeholder={t("common.searchPoolOrCategory")}
                 className="w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#2563eb] focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 autoFocus
               />
@@ -199,7 +199,7 @@ export function PoolPicker({
 
             {groupedPools.length === 0 && !showAllOption ? (
               <div className="px-3 py-4 text-center text-xs text-slate-400 font-medium">
-                {searchQuery ? `No pools found matching "${searchQuery}"` : t("common.noPoolsAvailable", { defaultValue: "No pools available" })}
+                {searchQuery ? t("common.noPoolsFoundMatching", { query: searchQuery }) : t("common.noPoolsAvailable")}
               </div>
             ) : (
               groupedPools.map((group) => (

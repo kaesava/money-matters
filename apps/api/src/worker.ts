@@ -178,6 +178,13 @@ export default {
       "https://api.moneymatters.kaesava.au",
       "https://kaesava.au",
       "https://www.kaesava.au",
+      ...(process.env.NODE_ENV === "development"
+        ? [
+            "http://localhost:3000",
+            "http://localhost:8787",
+            "http://127.0.0.1:8787",
+          ]
+        : []),
     ];
     const requestOrigin = request.headers.get('Origin');
     const isAllowedOrigin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin);

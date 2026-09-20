@@ -57,13 +57,10 @@ export default function BankAccountsScreen() {
 
   const handleArchive = (acc: (typeof accounts)[0]) => {
     showMobileConfirm({
-      title: t('settings.bankAccounts.deleteConfirmTitle', { defaultValue: 'Archive Bank Account' }),
-      message: t('settings.bankAccounts.deleteConfirmBody', {
-        defaultValue: 'Are you sure you want to archive "{name}"? Linked pools must be re-mapped before archival.',
-        name: acc.name,
-      }),
-      confirmText: t('common.archive', { defaultValue: 'Archive' }),
-      cancelText: t('common.cancel', { defaultValue: 'Cancel' }),
+      title: t('settings.bankAccounts.deleteConfirmTitle'),
+      message: t('settings.bankAccounts.deleteConfirmBody').replace('{name}', acc.name),
+      confirmText: t('common.archive'),
+      cancelText: t('common.cancel'),
       isDestructive: true,
       onConfirm: () => archiveAccountMut.mutate({ accountId: acc.id }),
     });
@@ -71,16 +68,13 @@ export default function BankAccountsScreen() {
 
   return (
     <MobileScreenWrapper
-      title={t('settings.accounts', { defaultValue: 'Bank Accounts' })}
+      title={t('settings.accounts')}
       user={session?.user}
       showBack
       onBackPress={() => router.back()}
       infoTooltip={{
-        title: t('tooltips.bankAccounts.title', { defaultValue: 'About Bank Accounts' }),
-        content: t('tooltips.bankAccounts.content', {
-          defaultValue:
-            'Linking your pools (Everyday, Bills, Savings) to your actual bank accounts ensures your payday waterfall matches your real-world bank balances for effortless 1-tap reconciliation.',
-        }),
+        title: t('tooltips.bankAccounts.title'),
+        content: t('tooltips.bankAccounts.content'),
       }}
     >
       <ScrollView
@@ -98,10 +92,10 @@ export default function BankAccountsScreen() {
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionHeaderTitle}>
-              {t('settings.accounts', { defaultValue: 'Bank Accounts' })} ({accounts.length})
+              {t('settings.accounts')} ({accounts.length})
             </Text>
             <Text style={styles.sectionHeaderSubtitle}>
-              {t('tooltips.bankAccounts.content', { defaultValue: 'Manage physical bank accounts and balance alignment' })}
+              {t('tooltips.bankAccounts.content')}
             </Text>
           </View>
           <TouchableOpacity
@@ -113,7 +107,7 @@ export default function BankAccountsScreen() {
           >
             <Feather name="plus" size={14} color="#FFFFFF" />
             <Text style={styles.addAccountText}>
-              {t('settings.bankAccounts.addAccount', { defaultValue: 'Add Account' })}
+              {t('settings.bankAccounts.addAccount')}
             </Text>
           </TouchableOpacity>
         </View>

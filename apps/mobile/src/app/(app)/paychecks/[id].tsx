@@ -78,10 +78,10 @@ export default function IncomeSplitStudioScreen() {
 
   const handleRecalculate = () => {
     showMobileConfirm({
-      title: t('paydayDrawer.recalculateConfirmTitle', { defaultValue: 'Reset Plan?' }),
-      message: t('paydayDrawer.recalculateConfirmDescription', { defaultValue: 'Are you sure you want to recalculate suggested allocations from the 5-step waterfall? Any custom edits will be replaced.' }),
-      confirmText: t('common.confirm', { defaultValue: 'Reset' }),
-      cancelText: t('common.cancel', { defaultValue: 'Cancel' }),
+      title: t('paydayDrawer.recalculateConfirmTitle'),
+      message: t('paydayDrawer.recalculateConfirmDescription'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
       onConfirm: async () => {
         try {
           setSubmitting(true);
@@ -95,9 +95,9 @@ export default function IncomeSplitStudioScreen() {
             expectedDate: expectedDate,
           });
           await utils.previewPayday.invalidate({ incomeEventId: id! });
-          toast.success(t('paydayDrawer.recalculateSuccess', { defaultValue: 'Recalculated suggested allocation.' }));
+          toast.success(t('paydayDrawer.recalculateSuccess'));
         } catch (err: unknown) {
-          toast.error(err instanceof Error ? err.message : 'Failed to recalculate.');
+          toast.error(err instanceof Error ? err.message : t('common.error'));
         } finally {
           setSubmitting(false);
         }
@@ -174,11 +174,9 @@ export default function IncomeSplitStudioScreen() {
 
   const handleResetToEngine = () => {
     showMobileConfirm({
-      title: t('payday.resetConfirmTitle', { defaultValue: 'Reset Allocations?' }),
-      message: t('payday.resetConfirmMessage', {
-        defaultValue: 'Your custom split will be discarded and reset to the suggested allocation. Continue?',
-      }),
-      confirmText: t('common.reset', { defaultValue: 'Reset' }),
+      title: t('payday.resetConfirmTitle'),
+      message: t('payday.resetConfirmMessage'),
+      confirmText: t('common.reset'),
       onConfirm: async () => {
         try {
           if (previewQuery.data?.engineResult) {
@@ -191,8 +189,7 @@ export default function IncomeSplitStudioScreen() {
           }
         } catch (err) {
           toast.error(
-            err instanceof Error ? err.message : 'Failed to recalculate',
-            t('common.error')
+            err instanceof Error ? err.message : t('common.error')
           );
         }
       },

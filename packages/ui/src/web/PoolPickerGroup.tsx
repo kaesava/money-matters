@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Lock } from "lucide-react";
+import { t } from "@money-matters/i18n";
 import { PoolOption } from "./poolPickerUtils";
 
 export interface PoolPickerGroupProps {
@@ -75,7 +76,7 @@ export function PoolPickerGroup({
                         type="button"
                         onClick={(e) => onTogglePoolExpand(pool.id, e)}
                         className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded hover:bg-slate-200/60 transition-colors cursor-pointer shrink-0"
-                        title={isPoolExpanded ? "Collapse categories" : "Expand categories"}
+                        title={isPoolExpanded ? t('common.collapseCategories') : t('common.expandCategories')}
                       >
                         <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400">
                           {isPoolExpanded ? "▼" : "▶"}

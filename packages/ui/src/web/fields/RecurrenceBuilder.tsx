@@ -66,12 +66,12 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
               <option value="WEEKLY">{t("forms.weekly")}</option>
               <option value="FORTNIGHTLY">{t("forms.fortnightly")}</option>
               <option value="MONTHLY">{t("forms.monthly")}</option>
-              <option value="ANNUALLY">Annually (Yearly)</option>
+              <option value="ANNUALLY">{t("forms.annually")}</option>
             </select>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              {t("forms.every", { defaultValue: "Every" })}
+              {t("forms.every")}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -99,12 +99,12 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
               />
               <span className="text-xs font-bold text-zinc-500 w-20">
                 {frequency === "WEEKLY"
-                  ? "Weeks"
+                  ? t("forms.weeks")
                   : frequency === "FORTNIGHTLY"
-                  ? "Fortnights"
+                  ? t("forms.fortnights")
                   : frequency === "MONTHLY"
-                  ? "Months"
-                  : "Years"}
+                  ? t("forms.months")
+                  : t("forms.years")}
               </span>
             </div>
           </div>
@@ -117,7 +117,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
           </div>
           <div className="flex flex-col gap-1">
             <DatePickerField
-              label="End Date (Optional)"
+              label={t("forms.endDateOptional")}
               value={endDate || ""}
               onChange={(val) => setEndDate(val || null)}
             />
@@ -133,7 +133,7 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
             />
           </div>
           <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] font-semibold leading-relaxed">
-            ℹ️ {t("forms.oneOffNotice", { defaultValue: "One-off items do not create a recurring schedule and will appear directly in your Upcoming Timeline." })}
+            ℹ️ {t("forms.oneOffNotice")}
           </div>
         </div>
       )}

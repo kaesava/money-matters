@@ -65,7 +65,7 @@ export default function SettingsIncomeScreen() {
     if (!name.trim() || !amount.trim()) return;
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount < 0) {
-      toast.warning('Please enter a valid numeric amount.');
+      toast.warning(t('drawers.quickExpense.validAmountError'));
       return;
     }
     setAdding(true);
@@ -81,9 +81,9 @@ export default function SettingsIncomeScreen() {
       setName('');
       setAmount('');
       refetch();
-      toast.success('Income schedule added successfully.');
+      toast.success(t('settings.income.addSuccess'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add income schedule.');
+      toast.error(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setAdding(false);
     }
@@ -91,18 +91,18 @@ export default function SettingsIncomeScreen() {
 
   const handleArchive = (id: string, name: string) => {
     showMobileConfirm({
-      title: 'Archive Income Schedule',
-      message: `Are you sure you want to archive "${name}"?`,
-      confirmText: 'Archive',
-      cancelText: 'Cancel',
+      title: t('settings.income.archiveConfirmTitle'),
+      message: t('settings.income.archiveConfirmMessage').replace('{name}', name),
+      confirmText: t('common.archive'),
+      cancelText: t('common.cancel'),
       isDestructive: true,
       onConfirm: async () => {
         try {
           await archiveSource.mutateAsync({ id });
           refetch();
-          toast.success('Income schedule archived.');
+          toast.success(t('toasts.archived'));
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to archive.');
+          toast.error(err instanceof Error ? err.message : t('common.error'));
         }
       },
     });
@@ -114,19 +114,19 @@ export default function SettingsIncomeScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('settings.incomeSchedules', { defaultValue: 'Income Schedules' })}
+      title={t('settings.incomeSchedules')}
       showBack
       onBackPress={() => router.back()}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {/* Existing Income Sources */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Current Income Schedules</Text>
+          <Text style={styles.sectionTitle}>{t('settings.income.currentSchedules')}</Text>
           {isLoading ? (
             <SkeletonCard count={3} />
           ) : !incomeSources || incomeSources.length === 0 ? (
             <View style={styles.cardEmpty}>
-              <Text style={styles.emptyText}>No active income schedules registered.</Text>
+              <Text style={styles.emptyText}>{t('settings.income.noSchedules')}</Text>
             </View>
           ) : (
             <>
@@ -146,7 +146,7 @@ export default function SettingsIncomeScreen() {
                         style={styles.archiveBtn}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.archiveText}>Archive</Text>
+                        <Text style={styles.archiveText}>{t('common.archive')}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -170,18 +170,18 @@ export default function SettingsIncomeScreen() {
 
         {/* Add New Form */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Add Income Schedule</Text>
+          <Text style={styles.sectionTitle}>{t('settings.income.addSchedule')}</Text>
           <View style={styles.formCard}>
             <MobileInput
-              label="Schedule Name"
+              label={t('settings.income.scheduleName')}
               required
-              placeholder="e.g. Fortnightly Salary"
+              placeholder={t('settings.income.scheduleNamePlaceholder')}
               value={name}
               onChangeText={setName}
             />
 
             <AmountInput
-              label="Amount (Net)"
+              label={t('common.amount')}
               required
               placeholder="0.00"
               value={amount}
@@ -189,13 +189,13 @@ export default function SettingsIncomeScreen() {
             />
 
             <MobileDatePickerField
-              label="First Deposit Date"
+              label={t('setup.income.firstPayDate')}
               value={startDate}
               onChange={setStartDate}
               required
             />
 
-            <Text style={[styles.label, styles.gap]}>Frequency</Text>
+            <Text style={[styles.label, styles.gap]}>{t('common.frequency')}</Text>
             <View style={styles.optionRow}>
               {FREQUENCIES.map((freq) => (
                 <TouchableOpacity
@@ -211,17 +211,17 @@ export default function SettingsIncomeScreen() {
               ))}
             </View>
 
-            <Text style={[styles.label, styles.gap]}>Source Type</Text>
+            <Text style={[styles.label, styles.gap]}>{t('common.type')}</Text>
             <View style={styles.optionRow}>
-              {INCOME_TYPES.map((t) => (
+              {INCOME_TYPES.map((tVal) => (
                 <TouchableOpacity
-                  key={t}
-                  style={[styles.optionBtn, type === t && styles.optionBtnActive]}
-                  onPress={() => setType(t)}
+                  key={tVal}
+                  style={[styles.optionBtn, type === tVal && styles.optionBtnActive]}
+                  onPress={() => setType(tVal)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.optionText, type === t && styles.optionTextActive]}>
-                    {INCOME_TYPE_LABELS[t]}
+                  <Text style={[styles.optionText, type === tVal && styles.optionTextActive]}>
+                    {INCOME_TYPE_LABELS[tVal]}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -236,7 +236,7 @@ export default function SettingsIncomeScreen() {
               {adding ? (
                 <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} />
               ) : (
-                <Text style={styles.addBtnText}>Add Income Schedule</Text>
+                <Text style={styles.addBtnText}>{t('settings.income.addSchedule')}</Text>
               )}
             </TouchableOpacity>
           </View>

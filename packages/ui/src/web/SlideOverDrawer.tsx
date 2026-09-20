@@ -61,7 +61,7 @@ export function SlideOverDrawer({
               type="button"
               onClick={onBack}
               className="p-1 rounded-lg text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-colors cursor-pointer"
-              title={t('common.back', { defaultValue: 'Back' })}
+              title={t('common.back')}
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -80,7 +80,7 @@ export function SlideOverDrawer({
               type="button"
               onClick={handleRequestClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-colors cursor-pointer"
-              title={t('common.close', { defaultValue: 'Close' })}
+              title={t('common.close')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -100,12 +100,10 @@ export function SlideOverDrawer({
           setShowConfirm(false);
           onClose();
         }}
-        title={t('modals.unsavedChanges.title', { defaultValue: 'Unsaved Changes' })}
-        description={t('modals.unsavedChanges.description', {
-          defaultValue: 'You have unsaved changes in this drawer. Would you like to leave without saving?',
-        })}
-        confirmLabel={t('modals.unsavedChanges.discard', { defaultValue: 'Discard Changes' })}
-        cancelLabel={t('modals.unsavedChanges.keepEditing', { defaultValue: 'Keep Editing' })}
+        title={t('modals.unsavedChanges.title')}
+        description={t('modals.unsavedChanges.description')}
+        confirmLabel={t('modals.unsavedChanges.discard')}
+        cancelLabel={t('modals.unsavedChanges.keepEditing')}
         variant="danger"
       />
     </div>

@@ -6,7 +6,7 @@ import { allocationPlanLines } from "./allocation_plan_line.js";
 import { tenantAndTimestamps } from "./base.js";
 
 export const transactionFlowEnum = pgEnum("transaction_flow_enum", ["DEBIT", "CREDIT"]);
-export const transactionSourceEnum = pgEnum("transaction_source_enum", ["MANUAL", "AUTO", "IMPORT"]);
+export const transactionSourceEnum = pgEnum("transaction_source_enum", ["MANUAL", "AUTO", "IMPORT", "SPLIT"]);
 export const transactionTypeEnum = pgEnum("transaction_type_enum", [
   "EXPENSE",
   "INCOME_SPLIT",

@@ -33,7 +33,7 @@ export function QuickPickBadges({
       {recents.length > 0 && (
         <div className="flex flex-col gap-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-            {t("quickPick.recent", { defaultValue: "Recent" })}
+            {t("quickPick.recent")}
           </span>
           <div className="flex flex-wrap gap-1.5">
             {recents.map((p, idx) => (
@@ -58,7 +58,7 @@ export function QuickPickBadges({
       {frequents.length > 0 && (
         <div className="flex flex-col gap-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-            {t("quickPick.frequent", { defaultValue: "Frequent" })}
+            {t("quickPick.frequent")}
           </span>
           <div className="flex flex-wrap gap-1.5">
             {frequents.map((p, idx) => (

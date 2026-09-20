@@ -47,7 +47,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     key: "transactions",
-    label: () => t("nav.transactions", { defaultValue: "Transactions" }),
+    label: () => t("nav.transactions"),
     href: "/dashboard/history",
     icon: (active: boolean) => (
       <svg className="w-5 h-5 transition-transform group-hover:scale-105" fill={active ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>

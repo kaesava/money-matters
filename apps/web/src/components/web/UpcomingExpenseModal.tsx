@@ -193,19 +193,19 @@ export default function UpcomingExpenseModal({
     try {
       if (transfers && transfers.length > 0) {
         await Promise.all(
-          transfers.map((t) =>
+          transfers.map((transfer) =>
             moveMoneyMut.mutateAsync({
-              sourcePoolId: t.poolId,
+              sourcePoolId: transfer.poolId,
               destinationPoolId: destPoolId,
-              amount: t.amount,
-              note: "Shortfall Top Up",
+              amount: transfer.amount,
+              note: t("modals.upcomingExpense.shortfallTopUpNote"),
             })
           )
         );
       }
       await executeMarkPaid(finalAmount, finalDate);
     } catch (err: unknown) {
-      setErrorMsg((err as Error).message || "Failed to execute mark paid.");
+      setErrorMsg((err as Error).message || t("modals.upcomingExpense.failedMarkPaid"));
     }
   };
 
@@ -214,30 +214,30 @@ export default function UpcomingExpenseModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={eventToEdit?.id ? `Manage Bill — ${eventToEdit.name}` : "Schedule Upcoming Bill"}
+      title={eventToEdit?.id ? t("modals.upcomingExpense.manageTitle", { name: eventToEdit.name }) : t("modals.upcomingExpense.scheduleTitle")}
       maxWidth="max-w-md"
     >
       <div className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />
 
         <Input
-          label="Bill / Merchant Name"
+          label={t("modals.upcomingExpense.billMerchantName")}
           required
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Energy Australia, Netflix, Gym"
+          placeholder={t("modals.upcomingExpense.billPlaceholder")}
         />
 
         <AmountField
-          label="Amount ($)"
+          label={t("modals.upcomingExpense.amount")}
           required
           value={amount}
           onChange={setAmount}
         />
 
         <GenericSelectField
-          label={t("modals.incomeExpenseForm.assignPool", { defaultValue: "Assign to Pool" })}
+          label={t("modals.incomeExpenseForm.assignPool")}
           required
           value={poolId}
           onChange={setPoolId}
@@ -248,16 +248,16 @@ export default function UpcomingExpenseModal({
         />
 
         <DatePickerField
-          label={t("modals.upcomingExpense.dueDate", { defaultValue: "Due Date" })}
+          label={t("modals.upcomingExpense.dueDate")}
           value={expectedDate}
           onChange={setExpectedDate}
         />
 
         <Input
-          label="Note (Optional)"
+          label={t("modals.upcomingExpense.noteOptional")}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Reference or memo"
+          placeholder={t("modals.upcomingExpense.notePlaceholder")}
         />
 
         <div className="flex justify-end gap-2 pt-4 border-t border-zinc-200">
@@ -267,7 +267,7 @@ export default function UpcomingExpenseModal({
             size="sm"
             onClick={onClose}
           >
-            {t("common.cancel", { defaultValue: "Cancel" })}
+            {t("common.cancel")}
           </Button>
           <Button
             type="button"
@@ -277,7 +277,7 @@ export default function UpcomingExpenseModal({
             loading={submitting}
             disabled={!isDirty || !isValid || submitting}
           >
-            {t("modals.upcomingExpense.saveUpcoming", { defaultValue: "Save Upcoming" })}
+            {t("modals.upcomingExpense.saveUpcoming")}
           </Button>
           <Button
             type="button"
@@ -287,7 +287,7 @@ export default function UpcomingExpenseModal({
             loading={submitting}
             disabled={!isValid || submitting}
           >
-            {t("actions.markPaid", { defaultValue: "Mark Paid" })}
+            {t("modals.upcomingExpense.markPaid")}
           </Button>
         </div>
       </div>

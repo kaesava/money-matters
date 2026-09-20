@@ -40,10 +40,10 @@ export function PaydayTransferCard({
       <div className="flex items-center justify-between">
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#2563eb] bg-blue-50 px-2 py-0.5 rounded-full">
-            {t("cards.paydayTransfer.badge", { defaultValue: "1-Tap Payday Transfer Plan" })}
+            {t("cards.paydayTransfer.badge")}
           </span>
           <h3 className="text-sm font-extrabold text-[#1B2B4B] mt-1">
-            Allocate {fmt(paycheckAmount)} Received on {formatLocaleDate(paycheckDate)}
+            {t("cards.paydayTransfer.allocateReceived", { amount: fmt(paycheckAmount), date: formatLocaleDate(paycheckDate) })}
           </h3>
         </div>
         {onDismiss && (
@@ -57,7 +57,7 @@ export function PaydayTransferCard({
       </div>
 
       <p className="text-xs text-zinc-600">
-        Copy each transfer amount below into your bank app (Osko / PayID) to fund your separate accounts:
+        {t("cards.paydayTransfer.instructions")}
       </p>
 
       <div className="divide-y divide-zinc-100 border border-zinc-100 rounded-xl overflow-hidden">
@@ -71,7 +71,7 @@ export function PaydayTransferCard({
                 </span>
               </div>
               <p className="text-[11px] text-zinc-500 truncate mt-0.5">
-                {t("cards.paydayTransfer.target", { defaultValue: "Target:" })} <strong className="text-zinc-700">{line.targetAccountName}</strong>
+                {t("cards.paydayTransfer.target")} <strong className="text-zinc-700">{line.targetAccountName}</strong>
                 {line.payID && ` • PayID: ${line.payID}`}
               </p>
             </div>
@@ -81,9 +81,9 @@ export function PaydayTransferCard({
               <button
                 onClick={() => handleCopy(line.amount, idx)}
                 className="px-2.5 py-1 text-[11px] font-bold text-[#2563eb] bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg transition-colors flex items-center gap-1"
-                title="Copy amount to clipboard for bank app"
+                title={t("cards.paydayTransfer.copyTooltip")}
               >
-                {copiedIdx === idx ? "✓ Copied" : `Copy ${currencySymbol}`}
+                {copiedIdx === idx ? t("cards.paydayTransfer.copiedCheck") : t("cards.paydayTransfer.copyAmount", { symbol: currencySymbol })}
               </button>
             </div>
           </div>

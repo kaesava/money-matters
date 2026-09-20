@@ -175,7 +175,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
             </>
           ) : (
             <span className="text-slate-400 text-sm">
-              {placeholder || t('searchSelect.searchPlaceholder', { defaultValue: 'Select option...' })}
+              {placeholder || t('searchSelect.selectPlaceholder')}
             </span>
           )}
         </div>
@@ -204,7 +204,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
               ref={searchInputRef}
               type="text"
               className="w-full bg-transparent border-0 focus:ring-0 focus:outline-none p-1 text-sm text-slate-900 placeholder-slate-400"
-              placeholder={t('searchSelect.searchPlaceholder', { defaultValue: 'Search...' })}
+              placeholder={t('searchSelect.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -232,13 +232,13 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                 }}
                 className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 border-b border-slate-50 transition-colors"
               >
-                ✕ {t('searchSelect.clearSelection', { defaultValue: 'Clear Selection' })}
+                ✕ {t('searchSelect.clearSelection')}
               </button>
             )}
 
             {filteredOptions.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-slate-400">
-                {t('searchSelect.noResults', { defaultValue: 'No options found' })}
+                {t('searchSelect.noResults')}
               </div>
             ) : (
               filteredOptions.map((opt, index) => {

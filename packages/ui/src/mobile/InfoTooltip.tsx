@@ -39,7 +39,7 @@ export function InfoTooltip({ content, title }: InfoTooltipProps) {
               style={styles.closeButton}
               onPress={() => setVisible(false)}
             >
-              <Text style={styles.closeButtonText}>{t('common.gotIt', { defaultValue: 'Got it' })}</Text>
+              <Text style={styles.closeButtonText}>{t('common.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

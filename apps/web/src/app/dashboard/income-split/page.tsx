@@ -21,7 +21,7 @@ function IncomeSplitPageContent() {
   if (!id) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
-        <Spinner size="lg" label={t("common.loading", { defaultValue: "Redirecting..." })} direction="col" />
+        <Spinner size="lg" label={t("common.loading")} direction="col" />
       </div>
     );
   }
@@ -34,7 +34,7 @@ export default function IncomeSplitPage() {
     <Suspense
       fallback={
         <div className="min-h-[70vh] flex items-center justify-center">
-          <Spinner size="lg" label={t("common.loading", { defaultValue: "Loading..." })} direction="col" />
+          <Spinner size="lg" label={t("common.loading")} direction="col" />
         </div>
       }
     >

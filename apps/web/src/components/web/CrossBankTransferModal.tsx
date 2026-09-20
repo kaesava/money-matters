@@ -42,12 +42,10 @@ export function CrossBankTransferModal({
       title={
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-          <span>{t("modals.crossBankTransfer.title", { defaultValue: "Bank Transfer Required" })}</span>
+          <span>{t("modals.crossBankTransfer.title")}</span>
         </div>
       }
-      subtitle={t("modals.crossBankTransfer.description", {
-        defaultValue: "You transferred funds between pools linked to different bank accounts. Remember to move the physical money in your banking app:",
-      })}
+      subtitle={t("modals.crossBankTransfer.description")}
       maxWidthClass="max-w-md"
     >
       <div className="space-y-4">
@@ -55,14 +53,14 @@ export function CrossBankTransferModal({
         <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">
-              {t("modals.crossBankTransfer.fromAccount", { defaultValue: "From Bank Account:" })}
+              {t("modals.crossBankTransfer.fromAccount")}
             </span>
             <span className="font-bold text-[#1B2B4B]">{sourceAccountName}</span>
           </div>
 
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500 font-medium">
-              {t("modals.crossBankTransfer.toAccount", { defaultValue: "To Bank Account:" })}
+              {t("modals.crossBankTransfer.toAccount")}
             </span>
             <div className="text-right">
               <span className="font-bold text-[#1B2B4B]">{destAccountName}</span>
@@ -80,7 +78,7 @@ export function CrossBankTransferModal({
           <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {t("modals.crossBankTransfer.amount", { defaultValue: "Amount to Move" })}
+                {t("modals.crossBankTransfer.amount")}
               </span>
               <p className="font-mono font-black text-lg text-[#2563eb] tabular-nums">
                 {fmt(amount)}
@@ -92,14 +90,14 @@ export function CrossBankTransferModal({
               onClick={handleCopyAmount}
               className="px-3 py-1.5 text-xs font-bold text-[#2563eb] hover:text-white bg-blue-50 hover:bg-[#2563eb] border border-blue-200/80 hover:border-[#2563eb] rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
-              <span>{copied ? "✓ Copied" : `Copy ${currencySymbol}`}</span>
+              <span>{copied ? t("modals.crossBankTransfer.copiedCheck") : t("modals.crossBankTransfer.copyAmount", { symbol: currencySymbol })}</span>
             </button>
           </div>
         </div>
 
         <div className="pt-2 flex justify-end">
           <Button type="button" variant="primary" onClick={onClose} className="w-full">
-            {t("common.done", { defaultValue: "Done" })}
+            {t("common.done")}
           </Button>
         </div>
       </div>

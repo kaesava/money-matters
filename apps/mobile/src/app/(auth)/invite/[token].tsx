@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
 
 export default function AcceptInviteMobileScreen() {
+  const insets = useSafeAreaInsets();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -38,7 +40,15 @@ export default function AcceptInviteMobileScreen() {
   }, [token, acceptInviteMutation]);
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 20,
+        },
+      ]}
+    >
       <View style={styles.card}>
         {status === 'loading' && (
           <View style={styles.stateWrapper}>

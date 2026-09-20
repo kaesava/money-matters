@@ -17,7 +17,7 @@ function PricingRibbon() {
   if (!session?.user) {
     return (
       <div className="absolute top-0 right-0 bg-[#2563eb] text-white text-[10px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest">
-        {t("landing.pricingFullAccessBadge", { defaultValue: "FULL ACCESS" })}
+        {t("landing.pricingFullAccessBadge")}
       </div>
     );
   }

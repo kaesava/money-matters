@@ -59,9 +59,9 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.sheet}>
-          <Text style={styles.title}>{t('paychecks.createModal.title', { defaultValue: 'Add Income' })}</Text>
+          <Text style={styles.title}>{t('paychecks.createModal.title')}</Text>
 
-          <Text style={styles.label}>{t('paychecks.createModal.source', { defaultValue: 'Income Schedule' })}</Text>
+          <Text style={styles.label}>{t('paychecks.createModal.source')}</Text>
           <View style={styles.pickerContainer}>
             {incomeSources.map(s => (
               <TouchableOpacity
@@ -75,14 +75,14 @@ export function CreateIncomeEventModal({ visible, onClose }: CreateIncomeEventMo
           </View>
 
           <AmountInput
-            label={t('paychecks.createModal.amount', { defaultValue: 'Expected Amount' })}
+            label={t('paychecks.createModal.amount')}
             required
             value={amount}
             onChangeText={setAmount}
           />
 
           <MobileDatePickerField
-            label={t('paychecks.createModal.date', { defaultValue: 'Expected Date' })}
+            label={t('paychecks.createModal.date')}
             value={dateIso}
             onChange={setDateIso}
             required

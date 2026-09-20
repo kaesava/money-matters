@@ -19,7 +19,7 @@ export function CardActions({ onEdit, onChevronClick, editTitle }: CardActionsPr
             e.stopPropagation();
             onEdit(e);
           }}
-          title={editTitle || t('common.edit', { defaultValue: 'Edit' })}
+          title={editTitle || t('common.edit')}
           className="p-1 rounded-lg text-slate-400 hover:text-indigo-650 hover:bg-slate-100 transition-colors"
           type="button"
         >

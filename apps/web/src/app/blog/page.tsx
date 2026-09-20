@@ -47,14 +47,14 @@ export default function BlogIndexPage() {
               {t("app.title")}
             </span>
             <span className="text-xs font-bold font-mono text-[#2563eb] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-              BLOG
+              {t("landing.blogBadge")}
             </span>
           </div>
           <button
             onClick={() => router.push("/")}
             className="text-xs font-bold text-zinc-600 hover:text-[#1B2B4B] transition-colors"
           >
-            {t("landing.blogBackToBlog", { defaultValue: "← Back to Home" })}
+            {t("landing.blogBackToBlog")}
           </button>
         </div>
       </header>
@@ -62,13 +62,13 @@ export default function BlogIndexPage() {
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-12 text-center flex flex-col items-center gap-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-bold text-[#2563eb] tracking-wider uppercase">
-          {t("landing.blogSectionBadge", { defaultValue: "Insights & Guides" })}
+          {t("landing.blogSectionBadge")}
         </div>
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#1B2B4B]">
-          {t("landing.blogSectionHeading", { defaultValue: "Practical Systems for Household Cashflow" })}
+          {t("landing.blogSectionHeading")}
         </h1>
         <p className="text-base text-zinc-600 max-w-2xl leading-relaxed">
-          {t("landing.blogSectionSubheading", { defaultValue: "Actionable frameworks and engineering principles to automate your family's financial calm." })}
+          {t("landing.blogSectionSubheading")}
         </p>
       </section>
 
@@ -86,7 +86,7 @@ export default function BlogIndexPage() {
                   <span className="text-[#2563eb] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100 uppercase">
                     {post.category}
                   </span>
-                  <span className="text-zinc-400">{post.readTimeMinutes} min read</span>
+                  <span className="text-zinc-400">{t("landing.blogReadTime", { minutes: post.readTimeMinutes })}</span>
                 </div>
                 <h2 className="text-xl font-bold text-[#1B2B4B] group-hover:text-[#2563eb] transition-colors leading-snug">
                   {post.title}
@@ -99,7 +99,7 @@ export default function BlogIndexPage() {
               <div className="flex items-center justify-between pt-4 border-t border-zinc-100 text-xs">
                 <span className="font-semibold text-zinc-400">{post.publishedAt}</span>
                 <span className="font-bold text-[#2563eb] group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                  Read Article &rarr;
+                  {t("landing.blogReadMore")}
                 </span>
               </div>
             </article>
@@ -114,7 +114,7 @@ export default function BlogIndexPage() {
             {t("landing.copyright", { appName: t("app.title") })} • Contact: <a href="mailto:info@moneymatters.kaesava.au" className="text-[#2563eb] hover:underline">info@moneymatters.kaesava.au</a>
           </span>
           <div className="flex gap-4 font-semibold">
-            <Link href="/" className="hover:underline text-[#2563eb]">Home</Link>
+            <Link href="/" className="hover:underline text-[#2563eb]">{t("nav.home")}</Link>
             <a href="/privacy" className="hover:underline text-[#2563eb]">{t("landing.privacyPolicy")}</a>
           </div>
         </div>

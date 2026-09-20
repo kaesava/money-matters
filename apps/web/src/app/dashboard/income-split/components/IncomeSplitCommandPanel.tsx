@@ -88,7 +88,7 @@ export function IncomeSplitCommandPanel({
               {detailsCollapsed ? "▶" : "▼"}
             </span>
             <span className="text-xs font-black uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
-              {t("paydayDrawer.reviewIncome", { defaultValue: "Review Income" })} - {fmtDate(selectedDate)}
+              {t("paydayDrawer.reviewIncome")} - {fmtDate(selectedDate)}
             </span>
           </div>
           <span className="text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200">
@@ -100,7 +100,7 @@ export function IncomeSplitCommandPanel({
           <div className="px-5 pb-5 pt-1 space-y-3.5 border-t border-zinc-100 dark:border-zinc-800">
             <div>
               <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                {t("paydayDrawer.incomeSourceLabel", { defaultValue: "Income Source / Description" })} <span className="text-red-500">*</span>
+                {t("paydayDrawer.incomeSourceLabel")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -112,7 +112,7 @@ export function IncomeSplitCommandPanel({
             </div>
 
             <AmountField
-              label={t("paydayDrawer.incomeAmountLabel", { defaultValue: "Income Amount ($)" })}
+              label={t("paydayDrawer.incomeAmountLabel")}
               required
               value={actualAmount}
               onChange={onActualAmountChange}
@@ -120,7 +120,7 @@ export function IncomeSplitCommandPanel({
             />
 
             <DatePickerField
-              label={t("paydayDrawer.incomeDate", { defaultValue: "Income Date" })}
+              label={t("paydayDrawer.incomeDate")}
               value={selectedDate}
               onChange={onSelectedDateChange}
               disabled={isReadOnly}
@@ -129,7 +129,7 @@ export function IncomeSplitCommandPanel({
             {isAmountModified && onRecalculateWaterfall && !isReadOnly && (
               <div className="p-3 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 rounded-xl space-y-2 text-xs animate-in fade-in">
                 <p className="text-blue-900 dark:text-blue-200 font-medium">
-                  {t("paydayDrawer.amountChangedPrompt", { defaultValue: "Income amount changed." })}
+                  {t("paydayDrawer.amountChangedPrompt")}
                 </p>
                 <button
                   type="button"
@@ -137,7 +137,7 @@ export function IncomeSplitCommandPanel({
                   disabled={submitting}
                   className="w-full py-1.5 px-3 bg-[#2563eb] hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors shadow-2xs cursor-pointer"
                 >
-                  {t("paydayDrawer.reRunWaterfall", { defaultValue: "Re-run income splits" })}
+                  {t("paydayDrawer.reRunWaterfall")}
                 </button>
               </div>
             )}
@@ -156,7 +156,7 @@ export function IncomeSplitCommandPanel({
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-black uppercase tracking-wider text-zinc-500">
-              {t("paydayDrawer.safeToSpendRemaining", { defaultValue: "Safe-to-Spend / Surplus" })}
+              {t("paydayDrawer.safeToSpendRemaining")}
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
               {sweepPoolName}
@@ -173,8 +173,8 @@ export function IncomeSplitCommandPanel({
             </div>
             <p className="text-xs text-zinc-500 font-medium">
               {isDeficit
-                ? t("paydayDrawer.activeDeficitWarning", { defaultValue: "Allocations exceed total income" })
-                : `${fmt(everydayAllocated)} total safe-to-spend allocated`}
+                ? t("paydayDrawer.activeDeficitWarning")
+                : t("paydayDrawer.totalSafeToSpendAllocated", { amount: fmt(everydayAllocated) })}
             </p>
           </div>
 
@@ -184,7 +184,6 @@ export function IncomeSplitCommandPanel({
               <span>
                 ⚠️ {t("paydayDrawer.deficitAlert", {
                   amount: fmt(Math.abs(sweepPoolRemainder)),
-                  defaultValue: `Over-allocated by ${fmt(Math.abs(sweepPoolRemainder))}. Reduce other pools to balance.`,
                 })}
               </span>
             </div>
@@ -193,23 +192,23 @@ export function IncomeSplitCommandPanel({
           {/* Visual Allocation Proportion Bar */}
           <div className="space-y-1.5 pt-1">
             <div className="h-2.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden flex">
-              <div style={{ width: `${billsPercent}%` }} className="bg-blue-500 h-full transition-all" title={`Bills: ${billsPercent.toFixed(0)}%`} />
-              <div style={{ width: `${goalsPercent}%` }} className="bg-indigo-500 h-full transition-all" title={`Goals: ${goalsPercent.toFixed(0)}%`} />
-              <div style={{ width: `${surplusPercent}%` }} className="bg-emerald-500 h-full transition-all" title={`Surplus: ${surplusPercent.toFixed(0)}%`} />
+              <div style={{ width: `${billsPercent}%` }} className="bg-blue-500 h-full transition-all" title={`${t("paydayDrawer.bills")}: ${billsPercent.toFixed(0)}%`} />
+              <div style={{ width: `${goalsPercent}%` }} className="bg-indigo-500 h-full transition-all" title={`${t("paydayDrawer.goals")}: ${goalsPercent.toFixed(0)}%`} />
+              <div style={{ width: `${surplusPercent}%` }} className="bg-emerald-500 h-full transition-all" title={`${t("paydayDrawer.surplus")}: ${surplusPercent.toFixed(0)}%`} />
             </div>
 
             <div className="flex justify-between text-[10px] font-bold text-zinc-500 pt-1">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
-                Bills {fmt(billsAllocated)}
+                {t("paydayDrawer.bills")} {fmt(billsAllocated)}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                Goals {fmt(goalsAllocated)}
+                {t("paydayDrawer.goals")} {fmt(goalsAllocated)}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Surplus {fmt(Math.max(0, sweepPoolRemainder))}
+                {t("paydayDrawer.surplus")} {fmt(Math.max(0, sweepPoolRemainder))}
               </span>
             </div>
           </div>

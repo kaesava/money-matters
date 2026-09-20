@@ -52,7 +52,7 @@ export default function AffordCheckScreen() {
 
   return (
     <MobileScreenWrapper
-      title={t('canIAfford.title', { defaultValue: 'Can We Afford This?' })}
+      title={t('canIAfford.title')}
       showBack
       onBackPress={() => router.back()}
     >
@@ -62,9 +62,7 @@ export default function AffordCheckScreen() {
       >
         {/* Subtitle description */}
         <Text style={styles.subtitle}>
-          {t('canIAfford.horizonNote', {
-            defaultValue: 'Instant simulation against your available Everyday balance and ring-fenced bills.',
-          })}
+          {t('canIAfford.horizonNote')}
         </Text>
 
         {/* Mode Selector Pill */}
@@ -214,12 +212,12 @@ export default function AffordCheckScreen() {
               ]}
             >
               <Text style={styles.verdictTitle}>
-                {data.verdict === 'SAFE_YES' && t('canIAfford.verdictSafeYes', { defaultValue: 'Yes, Safe to Buy' })}
-                {data.verdict === 'PACING_TIGHT' && t('canIAfford.verdictPacingTight', { defaultValue: 'Yes, but Tight Pacing' })}
-                {data.verdict === 'BILLS_RISK' && t('canIAfford.verdictBillsRisk', { defaultValue: 'Risk: Bills Buffer Consumed' })}
-                {data.verdict === 'WAIT_FOR_PAYCYCLE' && t('canIAfford.verdictWaitForPaycycle', { defaultValue: 'Wait for Next Payday' })}
-                {data.verdict === 'GOAL_DELAYED' && t('canIAfford.verdictGoalDelayed', { defaultValue: 'Delays Savings Target' })}
-                {data.verdict === 'HARD_NO' && t('canIAfford.verdictHardNo', { defaultValue: 'No, Insufficient Funds' })}
+                {data.verdict === 'SAFE_YES' && t('canIAfford.verdictSafeYes')}
+                {data.verdict === 'PACING_TIGHT' && t('canIAfford.verdictPacingTight')}
+                {data.verdict === 'BILLS_RISK' && t('canIAfford.verdictBillsRisk')}
+                {data.verdict === 'WAIT_FOR_PAYCYCLE' && t('canIAfford.verdictWaitForPaycycle')}
+                {data.verdict === 'GOAL_DELAYED' && t('canIAfford.verdictGoalDelayed')}
+                {data.verdict === 'HARD_NO' && t('canIAfford.verdictHardNo')}
               </Text>
 
               {data.rationaleSteps && data.rationaleSteps.length > 0 && (

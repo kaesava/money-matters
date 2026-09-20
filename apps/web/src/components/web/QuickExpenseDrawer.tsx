@@ -57,16 +57,16 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
     : quickExpensePresets;
 
   const titleText = isTransfer
-    ? "Transfer Between Pools"
+    ? t("drawers.quickExpense.transferBetweenPools")
     : isIncome
-    ? t("drawers.quickExpense.oneOffIncome", { defaultValue: "One-off Income" })
-    : t("drawers.quickExpense.oneOffExpense", { defaultValue: "One-off Expense" });
+    ? t("drawers.quickExpense.oneOffIncome")
+    : t("drawers.quickExpense.oneOffExpense");
 
   const infoContent = isTransfer
-    ? "Reallocate money directly between virtual pools (e.g., moving surplus from Everyday to a Goal pool, or adjusting bill reserves)."
+    ? t("drawers.quickExpense.transferInfo")
     : isIncome
-    ? "Log unexpected income, cash deposits, or side hustle earnings. Funds are added to your Everyday pool or allocated via payday waterfall."
-    : "Log an out-of-pocket spend. Money Matters deducts this from your Everyday pool balance so your bill buffer and savings goals stay 100% protected.";
+    ? t("drawers.quickExpense.incomeInfo")
+    : t("drawers.quickExpense.expenseInfo");
 
   const isDirty = name.trim() !== "" || amount.trim() !== "" || categoryId !== "";
 
@@ -85,7 +85,6 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
       >
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
             {/* 3-Way Segmented Control */}
-            {/* 3-Way Segmented Control */}
               <div className="flex rounded-xl bg-zinc-100 p-1">
                 <button
                   type="button"
@@ -94,7 +93,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     type === "DEBIT" ? "bg-white text-[#2563eb] shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  <span>{t("drawers.quickExpense.tabExpense", { defaultValue: "Expense" })}</span>
+                  <span>{t("drawers.quickExpense.tabExpense")}</span>
                 </button>
                 <button
                   type="button"
@@ -103,7 +102,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     type === "CREDIT" ? "bg-white text-emerald-700 shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  <span>{t("drawers.quickExpense.tabIncome", { defaultValue: "Income" })}</span>
+                  <span>{t("drawers.quickExpense.tabIncome")}</span>
                 </button>
                 <button
                   type="button"
@@ -112,7 +111,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     type === "TRANSFER" ? "bg-white text-indigo-700 shadow-xs" : "text-zinc-500 hover:text-zinc-800"
                   }`}
                 >
-                  <span>{t("drawers.quickExpense.tabTransfer", { defaultValue: "Transfer" })}</span>
+                  <span>{t("drawers.quickExpense.tabTransfer")}</span>
                 </button>
               </div>
 
@@ -129,12 +128,12 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 <>
                   <div className="flex flex-col gap-1">
                     <FormLabel required>
-                      {t("drawers.quickExpense.transferName", { defaultValue: "Transfer Name" })}
+                      {t("drawers.quickExpense.transferName")}
                     </FormLabel>
                     <input
                       type="text"
                       required
-                      placeholder="e.g., Top up Everyday, Move to Savings"
+                      placeholder={t("drawers.quickExpense.transferNamePlaceholder")}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
@@ -142,7 +141,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <FormLabel required>From Pool (Source)</FormLabel>
+                    <FormLabel required>{t("drawers.quickExpense.fromPool")}</FormLabel>
                     <PoolPicker
                       pools={categories.map((p) => ({
                         id: p.id,
@@ -153,14 +152,14 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       }))}
                       selectedPoolId={sourceCategoryId || null}
                       allowCategorySelection={false}
-                      placeholder="Select Source Pool..."
+                      placeholder={t("drawers.quickExpense.selectSourcePoolPlaceholder")}
                       showBalance={true}
                       onChange={(sel) => setSourceCategoryId(sel.poolId)}
                     />
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <FormLabel required>To Pool (Destination)</FormLabel>
+                    <FormLabel required>{t("drawers.quickExpense.toPoolDestination")}</FormLabel>
                     <PoolPicker
                       pools={categories.map((p) => ({
                         id: p.id,
@@ -171,7 +170,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                       }))}
                       selectedPoolId={destinationCategoryId || null}
                       allowCategorySelection={false}
-                      placeholder="Select Destination Pool..."
+                      placeholder={t("drawers.quickExpense.selectDestinationPoolPlaceholder")}
                       showBalance={true}
                       onChange={(sel) => setDestinationCategoryId(sel.poolId)}
                     />
@@ -181,12 +180,12 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 <>
                   <div className="flex flex-col gap-1">
                     <FormLabel required>
-                      {isIncome ? "Income Source / Description" : "Expense Name / Merchant"}
+                      {isIncome ? t("drawers.quickExpense.incomeSourceDescription") : t("drawers.quickExpense.expenseNameMerchant")}
                     </FormLabel>
                     <input
                       type="text"
                       required
-                      placeholder={isIncome ? "e.g., Freelance Work, Tax Refund" : "e.g., Woolworths, Shell Fuel"}
+                      placeholder={isIncome ? t("drawers.quickExpense.freelancePlaceholder") : t("drawers.quickExpense.woolworthsPlaceholder")}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
@@ -196,7 +195,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   {!isIncome && (
                     <div className="flex flex-col gap-1">
                       <FormLabel required>
-                        {t("drawers.quickExpense.category", { defaultValue: "Pool" })}
+                        {t("drawers.quickExpense.category")}
                       </FormLabel>
                       <PoolPicker
                         pools={categories.map((p) => ({
@@ -210,7 +209,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                         selectedPoolId={categoryId || null}
                         selectedCategoryId={selectedSubCategoryId || null}
                         allowCategorySelection={true}
-                        placeholder="Select Pool or Category..."
+                        placeholder={t("drawers.quickExpense.selectPoolOrCategoryPlaceholder")}
                         showBalance={true}
                         onChange={(sel) => {
                           setCategoryId(sel.poolId);
@@ -222,13 +221,13 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
 
                   {isIncome && bankAccounts.length > 0 && (
                     <div className="flex flex-col gap-1">
-                      <FormLabel>Bank Account (Optional)</FormLabel>
+                      <FormLabel>{t("drawers.quickExpense.bankAccountOptional")}</FormLabel>
                       <select
                         value={receivingAccountId}
                         onChange={(e) => setReceivingAccountId(e.target.value)}
                         className="px-3.5 py-2.5 text-xs font-medium rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
                       >
-                        <option value="">{t("drawers.quickExpense.defaultEverydayAccount", { defaultValue: "Default Everyday Account" })}</option>
+                        <option value="">{t("drawers.quickExpense.defaultEverydayAccount")}</option>
                         {bankAccounts.map((a: { id: string; name: string }) => (
                           <option key={a.id} value={a.id}>
                             {a.name}
@@ -242,14 +241,14 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
 
               <div className="grid grid-cols-2 gap-3 items-end">
                 <AmountField
-                  label="Amount ($ AUD)"
+                  label={t("drawers.quickExpense.amountAud")}
                   required
                   value={amount}
                   onChange={setAmount}
                 />
 
                 <div className="flex flex-col gap-1">
-                  <FormLabel required>Date</FormLabel>
+                  <FormLabel required>{t("drawers.quickExpense.dateLabel")}</FormLabel>
                   <input
                     type="date"
                     required
@@ -267,7 +266,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                   variant="ghost"
                   onClick={onClose}
                 >
-                  {t("common.cancel", { defaultValue: "Cancel" })}
+                  {t("common.cancel")}
                 </Button>
                 {isIncome && (
                   <button
@@ -276,7 +275,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                     onClick={() => executeSubmit(false, true)}
                     className="px-4 py-2.5 text-xs font-bold text-[#2563eb] hover:text-blue-800 underline cursor-pointer disabled:opacity-50 transition-all"
                   >
-                    {t("common.saveOnly", { defaultValue: "Save Only" })}
+                    {t("common.saveOnly")}
                   </button>
                 )}
                 <Button
@@ -287,13 +286,13 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
                 >
                   {isTransfer
                     ? isFutureDate
-                      ? t("common.saveOnly", { defaultValue: "Save Only" })
-                      : t("common.transfer", { defaultValue: "Transfer" })
+                      ? t("common.saveOnly")
+                      : t("common.transfer")
                     : isIncome
-                    ? t("common.splitIncome", { defaultValue: "Split Income" })
+                    ? t("common.splitIncome")
                     : isFutureDate
-                    ? t("common.saveOnly", { defaultValue: "Save Only" })
-                    : t("common.markSpent", { defaultValue: "Mark Spent" })}
+                    ? t("common.saveOnly")
+                    : t("common.markSpent")}
                 </Button>
               </div>
         </form>
@@ -306,7 +305,7 @@ export function QuickActionDrawer({ onClose, initialTab = "DEBIT" }: QuickAction
             onConfirm={confirmState.onConfirm}
             title={confirmState.title}
             description={confirmState.description}
-            confirmLabel={t("common.proceed", { defaultValue: "Proceed" })}
+            confirmLabel={t("common.proceed")}
             variant="warning"
           />
         )}

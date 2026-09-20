@@ -4,7 +4,6 @@ import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import {
   authenticateWithBiometrics,
-  getBiometricTypeLabel,
   markSessionUnlocked,
 } from '../lib/biometrics';
 
@@ -14,11 +13,9 @@ interface BiometricLockOverlayProps {
 
 export const BiometricLockOverlay: React.FC<BiometricLockOverlayProps> = ({ onUnlocked }) => {
   const [authenticating, setAuthenticating] = useState(false);
-  const [biometricLabel, setBiometricLabel] = useState('Biometrics');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    getBiometricTypeLabel().then(setBiometricLabel).catch(() => {});
     triggerAuth();
   }, []);
 
@@ -27,20 +24,18 @@ export const BiometricLockOverlay: React.FC<BiometricLockOverlayProps> = ({ onUn
     setErrorMsg(null);
     try {
       const success = await authenticateWithBiometrics(
-        t('modals.biometric.prompt', { defaultValue: 'Unlock Money Matters' })
+        t('modals.biometric.prompt')
       );
       if (success) {
         markSessionUnlocked();
         onUnlocked();
       } else {
         setErrorMsg(
-          t('modals.biometric.failed', {
-            defaultValue: 'Authentication required to access your financial data.',
-          })
+          t('modals.biometric.failed')
         );
       }
     } catch {
-      setErrorMsg(t('modals.biometric.error', { defaultValue: 'Unable to authenticate.' }));
+      setErrorMsg(t('modals.biometric.error'));
     } finally {
       setAuthenticating(false);
     }
@@ -54,12 +49,10 @@ export const BiometricLockOverlay: React.FC<BiometricLockOverlayProps> = ({ onUn
         </View>
 
         <Text style={styles.title}>
-          {t('modals.biometric.title', { defaultValue: 'Money Matters Locked' })}
+          {t('modals.biometric.title')}
         </Text>
         <Text style={styles.subtitle}>
-          {t('modals.biometric.subtitle', {
-            defaultValue: 'Your financial information is protected. Authenticate to continue.',
-          })}
+          {t('modals.biometric.subtitle')}
         </Text>
 
         {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
@@ -76,9 +69,7 @@ export const BiometricLockOverlay: React.FC<BiometricLockOverlayProps> = ({ onUn
             <View style={styles.btnRow}>
               <Feather name="shield" size={18} color="#ffffff" />
               <Text style={styles.unlockBtnText}>
-                {t('modals.biometric.unlockButton', {
-                  defaultValue: `Unlock with ${biometricLabel}`,
-                })}
+                {t('modals.biometric.unlockButton')}
               </Text>
             </View>
           )}

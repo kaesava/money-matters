@@ -95,13 +95,13 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       {scrollable ? (
         <ScrollView
           style={styles.contentContainer}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
         >
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.contentContainer, { flex: 1 }]}>{children}</View>
+        <View style={[styles.contentContainer, { flex: 1, paddingBottom: insets.bottom }]}>{children}</View>
       )}
 
       <ScreenMenuModal

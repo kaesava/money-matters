@@ -49,7 +49,7 @@ export function BentoStats({
         <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">{t('dashboard.statusActiveLabel')} {entityLabel}</p>
         <h3 className="mt-4 text-4xl font-extrabold tracking-tight text-emerald-900">{activeCount}</h3>
         <p className="mt-2 text-xs text-emerald-600/90 font-medium">
-          {t('dashboard.activeForTenant', { defaultValue: 'Active for this workspace' })}
+          {t('dashboard.activeForTenant')}
         </p>
       </div>
 

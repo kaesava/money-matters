@@ -566,9 +566,9 @@ export function UpcomingTimelineTab({
                                 type="button"
                                 onClick={() => onAllocateIncome(evt.id)}
                                 className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-1.5 py-0.5"
-                                title="Review and Edit Splits"
+                                title={t("dashboard.nextPay.reviewSplits")}
                               >
-                                {t("common.runSplit", { defaultValue: "Run Split" })}
+                                {t("common.runSplit")}
                               </button>
                             </div>
                           ) : isTransfer ? (
@@ -577,7 +577,7 @@ export function UpcomingTimelineTab({
                               onClick={() => handleTransferClick(evt)}
                               className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
                             >
-                              Transfer
+                              {t("common.transfer")}
                             </button>
                           ) : (
                             <button
@@ -585,7 +585,7 @@ export function UpcomingTimelineTab({
                               onClick={() => handleExpenseMarkPaidClick(evt)}
                               className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
                             >
-                              {t("common.markSpent", { defaultValue: "Mark Spent" })}
+                              {t("common.markSpent")}
                             </button>
                           )}
 
@@ -598,9 +598,9 @@ export function UpcomingTimelineTab({
                               })
                             }
                             className="text-xs font-medium text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
-                            title={isIncome ? "Delete Income record" : "Delete this event"}
+                            title={isIncome ? t("common.deleteIncomeTitle") : t("common.deleteExpenseTitle")}
                           >
-                            Delete
+                            {t("common.delete")}
                           </button>
                         </div>
                       </td>

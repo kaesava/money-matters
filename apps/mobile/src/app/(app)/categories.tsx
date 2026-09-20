@@ -81,14 +81,11 @@ export default function PoolsScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('nav.myMoney', { defaultValue: 'Pools' })}
+      title={t('nav.myMoney')}
       scrollable={false}
       infoTooltip={{
-        title: t('tooltips.categories.title', { defaultValue: 'About Your Virtual Pools' }),
-        content: t('tooltips.categories.content', {
-          defaultValue:
-            'Manage your spending pools and savings goals. The 5-Step Waterfall automatically fills your Bills pool and savings upfront on payday.',
-        }),
+        title: t('tooltips.categories.title'),
+        content: t('tooltips.categories.content'),
       }}
     >
       <ScrollView
@@ -160,7 +157,7 @@ export default function PoolsScreen() {
                     selectedHorizon === m && styles.horizonTextActive,
                   ]}
                 >
-                  {m === 0 ? (t('common.today') || 'Today') : `+${m}M`}
+                  {m === 0 ? t('common.today') : `+${m}M`}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -174,7 +171,7 @@ export default function PoolsScreen() {
             {/* Everyday Pool Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>{t('categories.everydaySpending', { defaultValue: 'Everyday Spending' })}</Text>
+                <Text style={styles.groupTitle}>{t('categories.everydaySpending')}</Text>
                 <Text style={styles.groupCount}>{everydayPools.length}</Text>
               </View>
 
@@ -196,7 +193,7 @@ export default function PoolsScreen() {
                           <Text style={styles.poolName}>{pool.name}</Text>
                           {pool.isSurplusTarget && (
                             <View style={styles.surplusBadge}>
-                              <Text style={styles.surplusBadgeText}>Surplus</Text>
+                              <Text style={styles.surplusBadgeText}>{t('categories.surplusBadgeText')}</Text>
                             </View>
                           )}
                         </View>
@@ -214,7 +211,7 @@ export default function PoolsScreen() {
                       <View style={styles.balCol}>
                         <Text style={styles.balNum}>{formatAUD(bal)}</Text>
                         <Text style={styles.balSub}>
-                          {nestedCount > 0 ? `${nestedCount} categories` : 'Main pool'}
+                          {nestedCount > 0 ? t('categories.nestedCategories').replace('{count}', String(nestedCount)) : t('categories.mainPool')}
                         </Text>
                       </View>
                     </View>
@@ -226,7 +223,7 @@ export default function PoolsScreen() {
             {/* Regular Bills Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>{t('categories.regularBills', { defaultValue: 'Regular Bills & Commitments' })}</Text>
+                <Text style={styles.groupTitle}>{t('categories.regularBills')}</Text>
                 <Text style={styles.groupCount}>{billsPools.length}</Text>
               </View>
 
@@ -259,7 +256,7 @@ export default function PoolsScreen() {
                       <View style={styles.balCol}>
                         <Text style={styles.balNum}>{formatAUD(bal)}</Text>
                         <Text style={styles.balSub}>
-                          {nestedCount > 0 ? `${nestedCount} categories` : 'Main pool'}
+                          {nestedCount > 0 ? t('categories.nestedCategories').replace('{count}', String(nestedCount)) : t('categories.mainPool')}
                         </Text>
                       </View>
                     </View>
@@ -271,7 +268,7 @@ export default function PoolsScreen() {
             {/* Savings Goals Group */}
             <View style={styles.poolGroup}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>{t('categories.savingsGoals', { defaultValue: 'Savings Goals' })}</Text>
+                <Text style={styles.groupTitle}>{t('categories.savingsGoals')}</Text>
                 <Text style={styles.groupCount}>{goalPools.length}</Text>
               </View>
 
@@ -305,7 +302,7 @@ export default function PoolsScreen() {
                       <View style={styles.balCol}>
                         <Text style={styles.balNum}>{formatAUD(bal)}</Text>
                         <Text style={styles.balSub}>
-                          {target > 0 ? `${pct}% of ${formatAUD(target)}` : 'No target'}
+                          {target > 0 ? `${pct}% of ${formatAUD(target)}` : t('categories.noTarget')}
                         </Text>
                       </View>
                     </View>

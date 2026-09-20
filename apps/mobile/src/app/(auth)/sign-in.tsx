@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
@@ -23,6 +24,7 @@ import { registerPushNotificationsAsync } from "../../lib/push";
 const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://api.moneymatters.kaesava.au";
 
 export default function SignInScreen() {
+  const insets = useSafeAreaInsets();
   const toast = useMobileToast();
   const router = useRouter();
   const posthog = usePostHog();
@@ -113,8 +115,8 @@ export default function SignInScreen() {
       router.replace("/(app)/home");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("auth.signInErrorGeneric", { defaultValue: "Failed to sign in." }),
-        t("auth.signInErrorTitle", { defaultValue: "Sign In Error" })
+        err instanceof Error ? err.message : t("auth.signInErrorGeneric"),
+        t("auth.signInErrorTitle")
       );
     } finally {
       setLoading(false);
@@ -124,8 +126,8 @@ export default function SignInScreen() {
   const handleForgotPassword = async () => {
     if (!email) {
       toast.error(
-        t("auth.enterEmailPrompt", { defaultValue: "Please enter your email address first." }),
-        t("auth.forgotPassword", { defaultValue: "Forgot password?" })
+        t("auth.enterEmailPrompt"),
+        t("auth.forgotPassword")
       );
       return;
     }
@@ -139,20 +141,20 @@ export default function SignInScreen() {
 
       if (res.error) {
         toast.error(
-          res.error.message ?? t("auth.forgotPasswordError", { defaultValue: "Could not request password reset." }),
-          t("auth.forgotPassword", { defaultValue: "Forgot password?" })
+          res.error.message ?? t("auth.forgotPasswordError"),
+          t("auth.forgotPassword")
         );
         return;
       }
 
       toast.success(
-        t("auth.forgotPasswordSuccess", { defaultValue: "A password reset link has been sent to your email." }),
-        t("auth.forgotPassword", { defaultValue: "Forgot password?" })
+        t("auth.forgotPasswordSuccess"),
+        t("auth.forgotPassword")
       );
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : String(err),
-        t("auth.forgotPassword", { defaultValue: "Forgot password?" })
+        t("auth.forgotPassword")
       );
     } finally {
       setLoading(false);
@@ -165,7 +167,13 @@ export default function SignInScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top + 24, 48),
+            paddingBottom: Math.max(insets.bottom + 24, 48),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Logo / Brand */}
@@ -221,7 +229,7 @@ export default function SignInScreen() {
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{t("auth.or", { defaultValue: "OR" })}</Text>
+            <Text style={styles.dividerText}>{t("auth.or").toUpperCase()}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -233,7 +241,7 @@ export default function SignInScreen() {
           >
             <Text style={styles.googleIcon}>G</Text>
             <Text style={styles.googleCtaText}>
-              {t("auth.signInWithGoogle", { defaultValue: "Sign in with Google" })}
+              {t("auth.signInWithGoogle")}
             </Text>
           </TouchableOpacity>
         </View>

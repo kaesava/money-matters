@@ -42,6 +42,8 @@ export const ja: DeepStringRecord<typeof en> = {
   "common": {
     "amount": "金額 ($)",
     "date": "支払日",
+    "frequency": "Frequency",
+    "type": "Type",
     "today": "今日",
     "yesterday": "昨日",
     "tomorrow": "明日",
@@ -124,6 +126,10 @@ export const ja: DeepStringRecord<typeof en> = {
     "selectPool": "プールを選択...",
     "allPools": "すべてのプール",
     "noPoolsAvailable": "利用可能なプールがありません",
+    "searchPoolOrCategory": "プールまたはカテゴリを検索...",
+    "noPoolsFoundMatching": "「{query}」に一致するプールは見つかりませんでした",
+    "collapseCategories": "カテゴリを折りたたむ",
+    "expandCategories": "カテゴリを展開",
     "markReceived": "振り分け実行",
     "allocate": "振り分け実行",
     "runSplit": "振り分け実行",
@@ -274,6 +280,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "termsNotice": "アカウントを作成することにより、利用規約およびプライバシーポリシーに同意したものとみなされます。"
   },
   "searchSelect": {
+    "selectPlaceholder": "選択してください...",
     "searchPlaceholder": "検索...",
     "clearSelection": "選択解除",
     "noResults": "項目が見つかりません"
@@ -310,7 +317,14 @@ export const ja: DeepStringRecord<typeof en> = {
     "title": "ホーム",
     "missingSchedulesTitle": "収入予定が未設定です",
     "missingSchedulesDesc": "支出予定がありますが、それを賄う収入予定が設定されていません。",
-    "savingsGoals": "貯蓄目標"
+    "savingsGoals": "貯蓄目標",
+    "paycheckDepositFallback": "Paycheck Deposit",
+    "skipExpenseTitle": "Skip Expense",
+    "skipExpenseMessage": "Are you sure you want to skip \"{name}\"?",
+    "skipExpenseConfirm": "Skip",
+    "deleteTransferTitle": "Delete Scheduled Transfer",
+    "deleteTransferMessage": "Are you sure you want to delete this scheduled transfer?",
+    "deleteTransferConfirm": "Delete",
   },
   "transactions": {
     "tabs": {
@@ -383,7 +397,10 @@ export const ja: DeepStringRecord<typeof en> = {
       "recurringCheck": "定期的な支出",
       "successMessage": "記録しました！ 👍",
       "incomeSuccessMessage": "収入を記録しました 🙌"
-    }
+    },
+    "statusConfirmed": "Confirmed ✓",
+    "statusDraft": "Draft Saved 💾",
+    "csvExport": "CSV",
   },
   "categories": {
     "loading": "カテゴリーを読み込み中...",
@@ -472,6 +489,19 @@ export const ja: DeepStringRecord<typeof en> = {
     "privateToggleSharedWarning": "共有カテゴリーに変更すると、パートナーに名称・残高・履歴が開示されます。よろしいですか？",
     "privateTogglePrivateWarning": "非公開カテゴリーに変更すると、パートナーから非表示になります。よろしいですか？",
     "addPool": "プールを追加",
+    "createPool": "Create Pool",
+    "editPoolTitle": "Edit Pool — {name}",
+    "archivePoolConfirm": "Are you sure you want to archive \"{name}\"? All linked categories in this pool will also be archived.",
+    "failedToArchive": "Failed to archive pool.",
+    "archiveCategoryConfirm": "Are you sure you want to archive \"{name}\"?",
+    "targetPoolRequired": "Target pool is required.",
+    "targetAmountRequired": "Target amount is required and must be greater than 0.",
+    "updatedSuccess": "Category updated successfully.",
+    "createdSuccess": "Category created successfully.",
+    "failedToSave": "Failed to save category",
+    "placeholderPoolName": "e.g. Utilities, House Deposit, Groceries",
+    "privateBadge": "(Private)",
+    "householdBadge": "(Household)",
     "everydaySpending": "日常の支出",
     "regularBills": "定期的な請求と固定費",
     "savingsGoals": "貯金目標",
@@ -514,7 +544,11 @@ export const ja: DeepStringRecord<typeof en> = {
       "moveMoney": "プール間送金",
       "markReceived": "入金を完了",
       "markSpent": "支出を完了"
-    }
+    },
+    "surplusBadgeText": "Surplus",
+    "mainPool": "Main pool",
+    "nestedCategories": "{count} categories",
+    "noTarget": "No target"
   },
   "landing": {
     "earlyAccess": {
@@ -698,6 +732,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "heroCtaPrimary": "60日間無料トライアルを始める",
     "heroCtaSecondary": "仕組みを見る",
     "heroLeadIn": "メルボルン開発。オーストラリアの家庭向けに設計。",
+    "blogBadge": "BLOG",
     "blogSectionBadge": "インサイト & ガイド",
     "blogSectionHeading": "家庭のキャッシュフローのための実践的システム",
     "blogSectionSubheading": "ご家庭の財務の安心を自動化する実践的なフレームワークと設計原則。",
@@ -875,6 +910,7 @@ export const ja: DeepStringRecord<typeof en> = {
     "sweepConfirmButton": "残高を移動してプールを削除",
     "bankAccountsStep": {
       "title": "銀行口座とプールルーティング",
+      "tooltipTitle": "Bank Accounts & Routing",
       "tooltip": "実際の銀行口座を予算プール（日常支出、固定費、貯蓄目標）にリンクします。各世帯には少なくとも1つのアクティブな銀行口座が必要です。",
       "subtitle": "デフォルトの「メイン口座」を設定しました。追加の口座を登録するか、資金プールのルーティングを調整できます。",
       "addAccount": "銀行口座を追加",
@@ -936,10 +972,19 @@ export const ja: DeepStringRecord<typeof en> = {
       "scheduleMonthly": "毎月",
       "scheduleCustom": "カスタム (RRULE)",
       "startDateLabel": "最初の入金日",
+      "firstPayDate": "First Pay Date",
       "titleSimple": "給料はいくらですか？",
       "subtitleSimple": "手取り額と振込周期を入力してください。後から追加も可能です。",
       "defaultName": "給料",
-      "progressiveHint": "他の収入源や銀行口座は後から設定で追加できます。"
+      "progressiveHint": "他の収入源や銀行口座は後から設定で追加できます。",
+      "takeHomePayTooltipTitle": "Take-Home Pay",
+      "takeHomePayTooltipContent": "Knowing your net income allows Money Matters to route earnings into your 5-Step Waterfall automatically.",
+      "heroBadge": "⏱ Takes Under 2 Minutes • Zero Math Required",
+      "heroTitle": "Let's get your setup sorted in no time",
+      "heroSubtitle": "Tell us what you're saving for, answer a few simple lifestyle questions, and we'll estimate your bills & everyday spending. You'll be ready to go in under 2 minutes.",
+      "sectionTitle": "Take-Home Pay & Income",
+      "incomeItemNumber": "Income #{number}",
+      "continueToGoals": "Continue to Savings Goals →"
     },
     "categories": {
       "title": "マネープールとカテゴリー",
@@ -972,7 +1017,9 @@ export const ja: DeepStringRecord<typeof en> = {
       "customAddCta": "カスタム項目を追加",
       "excessLabel": "余ったお金の行き先",
       "completeCta": "設定を完了して進む",
-      "amountHint": "月額目安"
+      "amountHint": "月額目安",
+      "monthlyLabel": "Monthly ($)",
+      "targetLabel": "Target ($)"
     },
     "configure": {
       "title": "プールの調整",
@@ -1123,7 +1170,12 @@ export const ja: DeepStringRecord<typeof en> = {
       "allOnTrack": "全 {total} 個の目標が順調です",
       "almostThere": "{name} がもうすぐ達成です！",
       "viewAll": "すべての目標を表示",
-      "pacingTarget": "進捗目安: {percent}%"
+      "pacingTarget": "進捗目安: {percent}%",
+      "justBehind": "Just Behind",
+      "lagging": "Lagging",
+      "onTrackBadge": "On Track",
+      "pace": "({percent}% pace)",
+      "funded": "{percent}% funded"
     },
     "upcomingExpensesTransfers": {
       "title": "今後の支出・振替予定",
@@ -1138,7 +1190,14 @@ export const ja: DeepStringRecord<typeof en> = {
       "title": "次の給料日",
       "daysAway": "{name} · {amount} · あと {days} 日",
       "today": "今日が給料日です！ 🎉 {name} · {amount}",
-      "process": "給与を仕分ける"
+      "process": "給与を仕分ける",
+      "reviewSplits": "Review and edit splits",
+      "upcomingIncome": "Upcoming Income",
+      "upcomingIncomeWithCount": "Upcoming Income ({count})",
+      "noUpcoming": "No upcoming paydays scheduled.",
+      "showMore": "Show More",
+      "nextPaydayBadge": "Next Payday",
+      "savedBadge": "Saved"
     },
     "bankBalances": {
       "title": "銀行口座残高",
@@ -1146,7 +1205,11 @@ export const ja: DeepStringRecord<typeof en> = {
       "lastUpdated": "{time} 前に更新"
     },
     "missingSchedulesBanner": {
-      "incomeHint": "収入スケジュールを追加して、自動収入振り分けを有効にしてください"
+      "incomeAndBillsHint": "Set up your income pay schedule & recurring bills",
+      "incomeHint": "Add your income pay schedule to enable automatic Income Splits",
+      "billsHint": "Add your bill payment schedule to protect upcoming expenses",
+      "description": "Money Matters automatically allocates income into bills, savings, and everyday spending when pay dates are configured.",
+      "addSchedulesCta": "Add Schedules Now →"
     }
   },
   "settings": {
@@ -1197,6 +1260,8 @@ export const ja: DeepStringRecord<typeof en> = {
     "saveProfileCta": "プロフィールを保存",
     "profileSaved": "プロフィールを更新しました。",
     "editHouseholdTitle": "世帯情報の編集",
+    "saveHouseholdCta": "世帯情報を保存",
+    "householdTooltip": "世帯名、基本通貨、所在地を更新します。世帯メンバー間で共有されます。",
     "household": "世帯",
     "accounts": "銀行口座",
     "categories": "お金の管理",
@@ -1205,8 +1270,17 @@ export const ja: DeepStringRecord<typeof en> = {
     "signOutConfirm": "ログアウトしますか？",
     "profile": "プロフィール",
     "manage": "家計の設定",
-    "incomeStreams": "収入と給与",
     "incomeSchedules": "収入スケジュール",
+    "income": {
+      "currentSchedules": "Current Income Schedules",
+      "noSchedules": "No active income schedules registered.",
+      "addSchedule": "Add Income Schedule",
+      "scheduleName": "Schedule Name",
+      "scheduleNamePlaceholder": "e.g. Fortnightly Salary",
+      "archiveConfirmTitle": "Archive Income Schedule",
+      "archiveConfirmMessage": "Are you sure you want to archive \"{name}\"?",
+      "addSuccess": "Income schedule added successfully."
+    },
     "language": "言語 / Language",
     "languageHint": "アプリの表示言語を選択してください。",
     "dateFormat": "日付と数字の表示形式",
@@ -1454,8 +1528,17 @@ export const ja: DeepStringRecord<typeof en> = {
     "weekly": "毎週",
     "fortnightly": "隔週",
     "monthly": "毎月",
+    "annually": "年1回 (年次)",
+    "yearly": "年次",
+    "interval": "間隔",
+    "weeks": "週間",
+    "fortnights": "隔週",
+    "months": "ヶ月",
+    "years": "年",
     "firstDate": "初回日付",
+    "firstPaymentDueDate": "初回支払日 / 期日",
     "eventDate": "イベント日付",
+    "endDateOptional": "終了日 (任意)",
     "oneOffNotice": "単発項目は定期スケジュールを作成せず、今後の予定タイムラインに直接表示されます。"
   },
   "location": {
@@ -1756,10 +1839,12 @@ export const ja: DeepStringRecord<typeof en> = {
     },
     "reconciliation": {
       "title": "銀行口座残高の調整",
+      "subtitle": "Match {name} with your budget pools",
       "accountBalance": "プール目標残高",
       "actualBalance": "実際の銀行口座残高",
       "variance": "差額 / 乖離",
       "notes": "調整メモ",
+      "reasonPlaceholder": "e.g. Interest, Unbudgeted Fee, Cash Adjustment",
       "submit": "残高を合わせて確定"
     },
     "crossBankTransfer": {
@@ -1767,15 +1852,25 @@ export const ja: DeepStringRecord<typeof en> = {
       "description": "異なる銀行口座にリンクされたプール間でお金を移動しました。実際の銀行アプリで送金を行ってください：",
       "fromAccount": "送金元銀行口座：",
       "toAccount": "送金先銀行口座：",
-      "amount": "振替金額"
+      "amount": "振替金額",
+      "copyAmount": "Copy {symbol}",
+      "copiedCheck": "✓ Copied"
     },
     "moveMoney": {
       "title": "プール間でお金を移動",
+      "subtitle": "Instantly transfer funds between category pools",
       "sourceCategory": "移動元のプール",
       "destinationCategory": "移動先のプール",
       "amount": "金額 ($)",
       "notes": "理由 / メモ",
-      "submit": "資金移動を実行"
+      "submit": "資金移動を実行",
+      "quickPresets": "Quick Presets",
+      "presetTopUp50": "Top Up Everyday ($50)",
+      "presetTopUp100": "Top Up Everyday ($100)",
+      "safetyGuardTitle": "Payday Safety Guard",
+      "safetyGuardText": "Moving {moved} leaves {remaining} in Everyday spending cash.",
+      "poolsRequired": "Please select source and destination pools and enter a valid amount.",
+      "poolsDifferent": "Source and destination pools must be different."
     },
     "quickExpense": {
       "title": "クイック支出登録",
@@ -1797,7 +1892,17 @@ export const ja: DeepStringRecord<typeof en> = {
       "notes": "メモ / 詳細",
       "disclaimer": "プール残高は実際に支払済としてマークした時点で更新されます。保存すると次回支払時の準備が整います。",
       "saveWithoutPaid": "未払いで保存",
-      "markPaid": "支払済にする"
+      "markPaid": "支払済にする",
+      "dueDate": "Due Date",
+      "saveUpcoming": "Save Upcoming",
+      "manageTitle": "Manage Bill — {name}",
+      "scheduleTitle": "Schedule Upcoming Bill",
+      "billMerchantName": "Bill / Merchant Name",
+      "billPlaceholder": "e.g. Energy Australia, Netflix, Gym",
+      "noteOptional": "Note (Optional)",
+      "notePlaceholder": "Reference or memo",
+      "shortfallTopUpNote": "Shortfall Top Up",
+      "failedMarkPaid": "Failed to execute mark paid."
     },
     "transfer": {
       "title": "資金移動",
@@ -1810,7 +1915,9 @@ export const ja: DeepStringRecord<typeof en> = {
       "insufficientBalanceWarning": "{poolName} の残高が不足しています。利用可能額: {available}、指定金額: {amount}。",
       "deleteConfirmTitle": "振替予定を削除",
       "deletePrompt": "この振替予定を削除してもよろしいですか？この操作は取り消せません。",
-      "available": "{amount} 利用可能"
+      "available": "{amount} 利用可能",
+      "sourceDefault": "Source",
+      "destinationDefault": "Destination"
     },
     "paydayPreview": {
       "title": "給料日配分プレビュー",
@@ -1828,6 +1935,7 @@ export const ja: DeepStringRecord<typeof en> = {
     },
     "eventOverride": {
       "title": "予定の変更・オーバーライド",
+      "subtitle": "Edit upcoming event: {name}",
       "overrideAmount": "変更後の金額 ($)",
       "overrideDate": "変更後の日付 (YYYY-MM-DD)",
       "submit": "変更を適用",
@@ -1850,7 +1958,21 @@ export const ja: DeepStringRecord<typeof en> = {
       "receivingBankAccount": "受取銀行口座",
       "defaultMainAccount": "デフォルトメイン口座",
       "assignedPool": "プール",
-      "selectTargetPool": "ターゲットプールを選択..."
+      "selectTargetPool": "ターゲットプールを選択...",
+      "titleEditIncome": "Edit Income Schedule",
+      "titleEditExpense": "Edit Expense Schedule",
+      "titleAddIncome": "Add Income Schedule",
+      "titleAddExpense": "Add Expense Schedule",
+      "placeholderIncomeName": "e.g. Salary, Client Retainer",
+      "placeholderExpenseName": "e.g. Rent, Netflix, Energy",
+      "expectedAmount": "Expected Amount ({symbol})",
+      "archiving": "Archiving...",
+      "archiveSchedule": "Archive Schedule",
+      "archiveIncomeTitle": "Archive Income Schedule",
+      "archiveExpenseTitle": "Archive Bill Schedule",
+      "archiveIncomeConfirm": "Archiving this income schedule will cancel all future upcoming events. Continue?",
+      "archiveExpenseConfirm": "Archiving this bill schedule will cancel all future upcoming events. Continue?",
+      "failedToArchive": "Failed to archive."
     },
     "bankAccountForm": {
       "titleNew": "銀行口座の連携",
@@ -1928,7 +2050,21 @@ export const ja: DeepStringRecord<typeof en> = {
       "expectedTotal": "想定合計残高",
       "expectedTooltip": "この銀行口座に現在リンクされているすべてのプールで利用可能な合計残高です。",
       "reasonLabel": "理由（任意）",
-      "reasonPlaceholder": "例: 利息入金、口座手数料、残高調整"
+      "reasonPlaceholder": "例: 利息入金、口座手数料、残高調整",
+      "availableToBudget": "Available to Budget",
+      "difference": "Difference",
+      "surplusNotice": "Select the pools where this surplus ({amount}) will go:",
+      "shortfallNotice": "Select the pools where this shortfall ({amount}) will come from:",
+      "tablePool": "Pool",
+      "tableAvailable": "Available",
+      "tableAdjustment": "Adjustment ($)",
+      "noLinkedPools": "No valid linked pools available.",
+      "sweepGoalBadge": "Sweep Goal",
+      "zeroBalanceHiddenNotice": "Note: Pools with $0.00 balance are hidden as they cannot absorb a shortfall.",
+      "allocatedSplitTotal": "Allocated Split Total:",
+      "matches": "✓ Matches",
+      "remaining": "({amount} remaining)",
+      "transferBetweenPoolsLink": "Transfer funds between pools →"
     },
     "optimizerBannerTitle": "世帯の銀行口座最適化",
     "optimizerBannerDesc": "現在はオールインワンの仮想モードで運用中です。日常支出用カードと請求書用口座を分けることで、日々の予算管理の不安を解消できます。",
@@ -2055,7 +2191,9 @@ export const ja: DeepStringRecord<typeof en> = {
     "expenseFutureDateAdjustedNotice": "この支出は未来の日付（{date}）に予定されていました。即時支出のため本日の日付に変更されました。",
     "transferFundsHyperlink": "プール間での資金移動",
     "sufficientBalanceNotice": "プール {poolName} から引き落とすには「確認」をクリックしてください（現在の残高: {balance}）",
-    "progressAllocatedHeader": "合計割当額: {allocated} / {shortfall}"
+    "progressAllocatedHeader": "合計割当額: {allocated} / {shortfall}",
+    "shortfallCovered": "✓ 不足分カバー済み",
+    "shortfallRemaining": "残り: {amount}"
   },
   "expenseStatus": {
     "pendingLabel": "保留中",
@@ -2092,7 +2230,11 @@ export const ja: DeepStringRecord<typeof en> = {
       "coversPools": "{count}個のプールを対象: ",
       "singleAccountProTipTitle": "💡 ストレスフリーなタッチ決済を実現",
       "singleAccountProTipDesc": "現在の設定では、日常支出用のお金と請求書用のバッファが同じ口座に入っています。日常支出を別カードに分けることで、家賃や光熱費を誤って使う心配なく安心して使えます。",
-      "singleAccountLearnMore": "仕組みを見る →"
+      "singleAccountLearnMore": "仕組みを見る →",
+      "allocateReceived": "Allocate {amount} Received on {date}",
+      "instructions": "Copy each transfer amount below into your bank app (Osko / PayID) to fund your separate accounts:",
+      "copiedCheck": "✓ Copied",
+      "copyAmount": "Copy {symbol}"
     },
     "bankTransfer": {
       "badge": "銀行口座のアクションが必要です",
@@ -2123,7 +2265,35 @@ export const ja: DeepStringRecord<typeof en> = {
       "poolsRequired": "送金元プールと送金先プールの両方が必要です。",
       "poolsDifferent": "送金元と送金先のプールは異なる必要があります。",
       "pastDateError": "過去の日付で振替を行うことはできません。",
-      "poolSelectionRequired": "プールを選択してください。"
+      "poolSelectionRequired": "プールを選択してください。",
+      "expenseName": "Expense Name",
+      "incomePlaceholder": "e.g. Side Gig, Tax Refund",
+      "expensePlaceholder": "e.g. Coffee, Groceries",
+      "fromPool": "From Pool (Source)",
+      "receivingPool": "Receiving Pool",
+      "paidFromPool": "Paid From Pool",
+      "toPoolDestination": "To Pool (Destination)",
+      "noteLabel": "Note",
+      "notePlaceholder": "Add custom notes...",
+      "transferFunds": "Transfer Funds",
+      "failedRecordExpense": "Failed to record expense",
+      "failedRecordIncome": "Failed to record income",
+      "failedTransferFunds": "Failed to transfer funds",
+      "transferBetweenPools": "Transfer Between Pools",
+      "transferInfo": "Reallocate money directly between virtual pools (e.g., moving surplus from Everyday to a Goal pool, or adjusting bill reserves).",
+      "incomeInfo": "Log unexpected income, cash deposits, or side hustle earnings. Funds are added to your Everyday pool or allocated via payday waterfall.",
+      "expenseInfo": "Log an out-of-pocket spend. Money Matters deducts this from your Everyday pool balance so your bill buffer and savings goals stay 100% protected.",
+      "transferNamePlaceholder": "e.g., Top up Everyday, Move to Savings",
+      "selectSourcePoolPlaceholder": "Select Source Pool...",
+      "selectDestinationPoolPlaceholder": "Select Destination Pool...",
+      "incomeSourceDescription": "Income Source / Description",
+      "expenseNameMerchant": "Expense Name / Merchant",
+      "freelancePlaceholder": "e.g., Freelance Work, Tax Refund",
+      "woolworthsPlaceholder": "e.g., Woolworths, Shell Fuel",
+      "selectPoolOrCategoryPlaceholder": "Select Pool or Category...",
+      "bankAccountOptional": "Bank Account (Optional)",
+      "amountAud": "Amount ($ AUD)",
+      "dateLabel": "Date"
     }
   },
   "frequencies": {
@@ -2176,6 +2346,10 @@ export const ja: DeepStringRecord<typeof en> = {
     "incomeDate": "受取日",
     "incomeSplitDate": "分配実行日",
     "incomeNote": "メモ",
+    "incomeDepositDefault": "Income Deposit",
+    "mainAccountDefault": "Main Account",
+    "splitBreakdown": "Income Split Breakdown ({count} pools)",
+    "poolAllocationDefault": "Pool Allocation",
     "incomeSourceLabel": "収入源 / 説明",
     "incomeAmountLabel": "収入金額 ($)",
     "errorLoading": "給料日の振り分けプレビューの読み込みに失敗しました：",
@@ -2236,7 +2410,19 @@ export const ja: DeepStringRecord<typeof en> = {
     "recalculateSuccess": "推奨配分を再計算しました。",
     "reasoningLabel": "理由 / メモ:",
     "reasoningPlaceholder": "この配分の理由を入力...",
-    "showReasoning": "理由・メモを表示または編集"
+    "showReasoning": "理由・メモを表示または編集",
+    "totalSafeToSpendAllocated": "自由に使えるお金の配分合計: {amount}",
+    "surplus": "サープラス",
+    "setZeroPercent": "0%に設定",
+    "perMonth": "/月",
+    "everydayPools": "日常支出プール",
+    "billsPools": "請求書プール",
+    "goalsPools": "目標",
+    "incomeDeleted": "収入を削除しました。",
+    "recalculateFailed": "再計算に失敗しました。",
+    "deleteFailed": "削除に失敗しました。",
+    "saveSplitFailed": "振り分けの保存に失敗しました。",
+    "confirmSplitFailed": "振り分けの確定に失敗しました。"
   },
   "matrix": {
     "saved": "保存済み",
@@ -2275,6 +2461,25 @@ export const ja: DeepStringRecord<typeof en> = {
     "seeFullHistory": "すべての履歴を表示",
     "seeAllUpcomingExpenses": "すべての今後の支出を表示",
     "targetDate": "目標期日",
+    "currentBalance": "現在残高",
+    "targetAmount": "目標金額",
+    "poolType": "プール種別",
+    "viewInPools": "プール画面で表示",
+    "categoryName": "カテゴリー名",
+    "targetBudget": "目標 / 予算",
+    "frequency": "頻度",
+    "expenseName": "支出名",
+    "dueDate": "期日",
+    "amount": "金額",
+    "status": "ステータス",
+    "confirmed": "確定済み",
+    "pending": "保留中",
+    "markPaid": "支払済みにする",
+    "date": "日付",
+    "description": "説明",
+    "type": "種別",
+    "perMonth": "/ 月",
+    "transactionFallback": "取引",
     "tabs": {
       "categories": "カテゴリー",
       "upcomingExpenses": "予定支出",

@@ -6,21 +6,21 @@ import { t } from "@money-matters/i18n";
 export function HowItWorksSection() {
   const steps = [
     {
-      badge: t("landing.step1Badge", { defaultValue: "STEP 01" }),
+      badge: t("landing.step1Badge"),
       title: t("landing.howStep1Title"),
       body: t("landing.howStep1Body"),
       accent: "text-[#2563eb] bg-blue-50 border-blue-100",
       pill: "border-blue-200",
     },
     {
-      badge: t("landing.step2Badge", { defaultValue: "STEP 02" }),
+      badge: t("landing.step2Badge"),
       title: t("landing.howStep2Title"),
       body: t("landing.howStep2Body"),
       accent: "text-indigo-600 bg-indigo-50 border-indigo-100",
       pill: "border-indigo-200",
     },
     {
-      badge: t("landing.step3Badge", { defaultValue: "STEP 03" }),
+      badge: t("landing.step3Badge"),
       title: t("landing.howStep3Title"),
       body: t("landing.howStep3Body"),
       accent: "text-emerald-700 bg-emerald-50 border-emerald-100",

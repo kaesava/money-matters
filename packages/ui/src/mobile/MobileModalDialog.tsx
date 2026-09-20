@@ -38,12 +38,10 @@ export default function MobileModalDialog({
   const handleRequestClose = () => {
     if (isDirty) {
       showMobileConfirm({
-        title: t('modals.unsavedChanges.title', { defaultValue: 'Unsaved Changes' }),
-        message: t('modals.unsavedChanges.description', {
-          defaultValue: 'You have unsaved changes in this form. Are you sure you want to discard them?',
-        }),
-        confirmText: t('modals.unsavedChanges.discard', { defaultValue: 'Discard Changes' }),
-        cancelText: t('modals.unsavedChanges.keepEditing', { defaultValue: 'Keep Editing' }),
+        title: t('modals.unsavedChanges.title'),
+        message: t('modals.unsavedChanges.description'),
+        confirmText: t('modals.unsavedChanges.discard'),
+        cancelText: t('modals.unsavedChanges.keepEditing'),
         isDestructive: true,
         onConfirm: onClose,
       });

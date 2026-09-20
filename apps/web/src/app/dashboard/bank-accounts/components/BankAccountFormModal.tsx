@@ -285,12 +285,12 @@ export function BankAccountFormModal({
               onChange={handlePrivateCheckboxChange}
               className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
             />
-            <span>{t("bankAccounts.privatePersonalAccount", { defaultValue: "Private Personal Account (Hidden from other users)" })}</span>
+            <span>{t("bankAccounts.privatePersonalAccount")}</span>
           </label>
           {Boolean(editingAccount) ? (
             <InfoTooltip content="Privacy level is locked after account creation to protect data integrity and tenant isolation." />
           ) : isTrialExpired ? (
-            <InfoTooltip content={t("bankAccounts.upgradeToPrivate", { defaultValue: "Upgrade to Premium to mark accounts as private" })} />
+            <InfoTooltip content={t("bankAccounts.upgradeToPrivate")} />
           ) : null}
         </div>
 

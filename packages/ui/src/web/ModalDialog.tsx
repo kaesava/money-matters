@@ -113,9 +113,9 @@ export function ModalDialog({
           <button
             type="button"
             onClick={handleRequestClose}
-            aria-label="Close modal dialog"
+            aria-label={t('common.close')}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-colors cursor-pointer"
-            title="Close (Esc)"
+            title={t('common.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -138,12 +138,10 @@ export function ModalDialog({
             </div>
             <div>
               <h4 className="text-base font-extrabold text-[#1B2B4B]">
-                {t('modals.unsavedChanges.title', { defaultValue: 'Unsaved Changes' })}
+                {t('modals.unsavedChanges.title')}
               </h4>
               <p className="text-xs text-zinc-500 mt-1 font-medium">
-                {t('modals.unsavedChanges.description', {
-                  defaultValue: 'You have unsaved changes in this form. Would you like to save them before leaving?',
-                })}
+                {t('modals.unsavedChanges.description')}
               </p>
             </div>
             <div className="flex flex-col gap-2 mt-2">
@@ -155,7 +153,7 @@ export function ModalDialog({
                   loading={saving}
                   className="w-full"
                 >
-                  {t('common.save', { defaultValue: 'Save Changes' })}
+                  {t('common.saveChanges')}
                 </Button>
               )}
               <Button
@@ -164,7 +162,7 @@ export function ModalDialog({
                 onClick={handleConfirmDiscard}
                 className="w-full"
               >
-                {t('modals.unsavedChanges.discard', { defaultValue: 'Discard Changes' })}
+                {t('modals.unsavedChanges.discard')}
               </Button>
               <Button
                 type="button"
@@ -172,7 +170,7 @@ export function ModalDialog({
                 onClick={() => setShowConfirm(false)}
                 className="w-full"
               >
-                {t('modals.unsavedChanges.keepEditing', { defaultValue: 'Keep Editing' })}
+                {t('modals.unsavedChanges.keepEditing')}
               </Button>
             </div>
           </div>

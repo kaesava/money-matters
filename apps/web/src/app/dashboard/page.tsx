@@ -141,13 +141,13 @@ export default function DashboardPage() {
       date,
       note: `${item.name} (Paid on ${date})`,
     });
-    toast.success(t("toasts.expenseMarkedPaid", { defaultValue: "Expense marked as spent." }));
+    toast.success(t("toasts.expenseMarkedPaid"));
     posthog.capture("bill_paid");
   };
 
   const handleSkipExpense = async (item: WebAttentionItem) => {
     await deleteExpenseEventMutation.mutateAsync({ eventId: item.id });
-    toast.success(t("toasts.expenseDeleted", { defaultValue: "Expense deleted." }));
+    toast.success(t("toasts.expenseDeleted"));
   };
 
   const handleSaveTransferDraft = async (params: {
@@ -162,7 +162,7 @@ export default function DashboardPage() {
       amount: params.amount,
       expectedDate: params.expectedDate,
     });
-    toast.success(t("toasts.transferSaved", { defaultValue: "Transfer saved" }));
+    toast.success(t("toasts.transferSaved"));
   };
 
   const handleExecuteTransfer = async (params: {
@@ -179,12 +179,12 @@ export default function DashboardPage() {
       sourcePoolId: params.sourcePoolId,
       destinationPoolId: params.destinationPoolId,
     });
-    toast.success(t("toasts.transferCompleted", { defaultValue: "Transfer completed" }));
+    toast.success(t("toasts.transferCompleted"));
   };
 
   const handleDeleteTransfer = async (eventId: string) => {
     await deleteTransferEventMutation.mutateAsync({ eventId });
-    toast.success(t("toasts.transferDeleted", { defaultValue: "Transfer deleted" }));
+    toast.success(t("toasts.transferDeleted"));
   };
 
   const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
@@ -238,7 +238,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h1 className="font-heading text-3xl font-extrabold text-[#1B2B4B] tracking-tight">
-            {t("nav.dashboard") || "Dashboard"}
+            {t("nav.dashboard")}
           </h1>
           <InfoTooltip
             title={t("tooltips.dashboard.title")}
@@ -260,7 +260,7 @@ export default function DashboardPage() {
                 }}
                 className="px-3.5 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
-                <span>{t("dashboard.quickAction", { defaultValue: "+ Quick Action" })}</span>
+                <span>{t("dashboard.quickAction")}</span>
               </button>
               <button
                 type="button"
@@ -268,7 +268,7 @@ export default function DashboardPage() {
                 className="px-2 py-2 h-9 bg-[#2563eb] hover:bg-[#1d4ed8] border-l border-blue-400/40 text-white transition-colors flex items-center justify-center cursor-pointer"
                 aria-haspopup="true"
                 aria-expanded={isQuickActionMenuOpen}
-                aria-label={t("dashboard.quickAction", { defaultValue: "Quick Action options" })}
+                aria-label={t("dashboard.quickAction")}
               >
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isQuickActionMenuOpen ? "rotate-180" : ""}`} />
               </button>
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                   className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors flex items-center gap-2.5 cursor-pointer"
                 >
                   <ArrowUpRight className="w-4 h-4 text-rose-500" />
-                  <span>{t("dashboard.recordExpense", { defaultValue: "Record Expense" })}</span>
+                  <span>{t("dashboard.recordExpense")}</span>
                 </button>
                 <button
                   type="button"
@@ -298,7 +298,7 @@ export default function DashboardPage() {
                   className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-emerald-50 dark:hover:bg-zinc-800 hover:text-emerald-600 transition-colors flex items-center gap-2.5 cursor-pointer"
                 >
                   <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
-                  <span>{t("dashboard.recordIncome", { defaultValue: "Record Income" })}</span>
+                  <span>{t("dashboard.recordIncome")}</span>
                 </button>
                 <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
                 <button
@@ -310,7 +310,7 @@ export default function DashboardPage() {
                   className="w-full px-3.5 py-2 text-left text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-blue-50 dark:hover:bg-zinc-800 hover:text-blue-600 transition-colors flex items-center gap-2.5 cursor-pointer"
                 >
                   <ArrowLeftRight className="w-4 h-4 text-blue-500" />
-                  <span>{t("dashboard.transferBetweenPools", { defaultValue: "Transfer between Pools" })}</span>
+                  <span>{t("dashboard.transferBetweenPools")}</span>
                 </button>
               </div>
             )}
@@ -320,7 +320,7 @@ export default function DashboardPage() {
             href="/dashboard/afford-check"
             className="px-3.5 py-2 h-9 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border border-zinc-200/90 dark:border-zinc-800 text-[#1B2B4B] dark:text-zinc-100 font-bold text-xs rounded-xl transition-colors shadow-2xs flex items-center cursor-pointer"
           >
-            <span>{t("canIAfford.title", { defaultValue: "Can I Afford It?" })}</span>
+            <span>{t("canIAfford.title")}</span>
           </Link>
         </div>
       </div>
@@ -434,17 +434,16 @@ export default function DashboardPage() {
       {incomeToDelete && (
         <ConfirmDialog
           isOpen={!!incomeToDelete}
-          title={t("common.deleteIncomeTitle", { defaultValue: "Delete Income" })}
+          title={t("common.deleteIncomeTitle")}
           description={t("common.deleteExpensePrompt", {
             name: incomeToDelete.name,
-            defaultValue: `Are you sure you want to delete "${incomeToDelete.name}"?`,
           })}
-          confirmLabel={t("common.delete", { defaultValue: "Delete" })}
-          cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+          confirmLabel={t("common.delete")}
+          cancelLabel={t("common.cancel")}
           variant="danger"
           onConfirm={async () => {
             await deleteIncomeEventMutation.mutateAsync({ eventId: incomeToDelete.id });
-            toast.success(t("toasts.deleted", { defaultValue: "Deleted successfully" }));
+            toast.success(t("toasts.deleted"));
             setIncomeToDelete(null);
           }}
           onClose={() => setIncomeToDelete(null)}

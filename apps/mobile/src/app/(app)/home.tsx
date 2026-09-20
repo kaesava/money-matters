@@ -121,7 +121,7 @@ export default function HomeScreen() {
   const nextPaydayData = nextPaydayEvent
     ? {
         id: nextPaydayEvent.id,
-        name: nextPaydayEvent.sourceName || 'Paycheck Deposit',
+        name: nextPaydayEvent.sourceName || t('home.paycheckDepositFallback'),
         amount: parseFloat(nextPaydayEvent.expectedAmount),
         expectedDate: nextPaydayEvent.expectedDate,
       }
@@ -198,18 +198,18 @@ export default function HomeScreen() {
 
   const handleSkipExpense = (item: AttentionItem) => {
     showMobileConfirm({
-      title: 'Skip Expense',
-      message: `Are you sure you want to skip "${item.name}"?`,
-      confirmText: 'Skip',
+      title: t('home.skipExpenseTitle'),
+      message: t('home.skipExpenseMessage').replace('{name}', item.name),
+      confirmText: t('home.skipExpenseConfirm'),
       onConfirm: () => deleteExpenseMutation.mutate({ eventId: item.id }),
     });
   };
 
   const handleDeleteTransfer = (item: AttentionItem) => {
     showMobileConfirm({
-      title: 'Delete Scheduled Transfer',
-      message: `Are you sure you want to delete this scheduled transfer?`,
-      confirmText: 'Delete',
+      title: t('home.deleteTransferTitle'),
+      message: t('home.deleteTransferMessage'),
+      confirmText: t('home.deleteTransferConfirm'),
       onConfirm: () => deleteTransferMutation.mutate({ eventId: item.id }),
     });
   };
@@ -226,13 +226,10 @@ export default function HomeScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('nav.dashboard', { defaultValue: 'Home' })}
+      title={t('nav.dashboard')}
       infoTooltip={{
-        title: t('tooltips.dashboard.title', { defaultValue: 'About Your Dashboard' }),
-        content: t('tooltips.dashboard.content', {
-          defaultValue:
-            'Your command centre for financial peace. Money Matters ring-fences fixed bills and savings goals upfront so you can spend your Everyday balance with complete peace of mind.',
-        }),
+        title: t('tooltips.dashboard.title'),
+        content: t('tooltips.dashboard.content'),
       }}
     >
       {/* Customer Trial & Lifecycle Banner */}
@@ -278,11 +275,10 @@ export default function HomeScreen() {
           </View>
           <View style={styles.affordContent}>
             <Text style={styles.affordTitle}>
-              {t('canIAfford.title') || 'Can We Afford This?'}
+              {t('canIAfford.title')}
             </Text>
             <Text style={styles.affordSubtitle}>
-              {t('dashboard.affordSubtitle') ||
-                'Simulate a purchase against your safe-to-spend allowance'}
+              {t('dashboard.affordSubtitle')}
             </Text>
           </View>
           <Feather name="chevron-right" size={18} color="#2563eb" />
@@ -291,7 +287,7 @@ export default function HomeScreen() {
         {/* Bento Pools Summary Strip */}
         <View style={styles.bentoSection}>
           <Text style={styles.sectionHeading}>
-            {t('dashboard.bentoPoolsHealth') || 'Pools Health'}
+            {t('dashboard.bentoPoolsHealth')}
           </Text>
           <View style={styles.bentoGrid}>
             {/* Everyday Pool Card */}
@@ -304,11 +300,11 @@ export default function HomeScreen() {
               style={styles.bentoCard}
             >
               <View style={styles.bentoTop}>
-                <Text style={styles.bentoTag}>Everyday</Text>
+                <Text style={styles.bentoTag}>{t('poolTypes.everyday')}</Text>
               </View>
               <Text style={styles.bentoBalance}>{formatAUD(everydayBalance)}</Text>
               <Text style={styles.bentoSub}>
-                {t('dashboard.remainingAllowance', { defaultValue: 'Remaining allowance' })}
+                {t('dashboard.remainingAllowance')}
               </Text>
             </TouchableOpacity>
 
@@ -322,20 +318,17 @@ export default function HomeScreen() {
               style={styles.bentoCard}
             >
               <View style={styles.bentoTop}>
-                <Text style={styles.bentoTag}>Bills</Text>
+                <Text style={styles.bentoTag}>{t('poolTypes.bills')}</Text>
               </View>
               <Text style={styles.bentoBalance}>{formatAUD(billsPoolBalance)}</Text>
               <View style={styles.billsStatusRow}>
                 {billsShortfall > 0 ? (
                   <Text style={styles.billsShortText}>
-                    {t('dashboard.billsShortAmount', {
-                      amount: formatAUD(billsShortfall),
-                      defaultValue: `Short ${formatAUD(billsShortfall)}`,
-                    })}
+                    {t('dashboard.billsShortAmount').replace('{amount}', formatAUD(billsShortfall))}
                   </Text>
                 ) : (
                   <Text style={styles.billsCoveredText}>
-                    {t('dashboard.bills14DaysCovered', { defaultValue: '14 days covered' })}
+                    {t('dashboard.bills14DaysCovered')}
                   </Text>
                 )}
               </View>
@@ -371,7 +364,7 @@ export default function HomeScreen() {
         {/* Quick Actions Grid */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeading}>
-            {t('dashboard.quickActions.title') || 'Quick Actions'}
+            {t('dashboard.quickActions.title')}
           </Text>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
@@ -383,7 +376,7 @@ export default function HomeScreen() {
             >
               <Feather name="minus-circle" size={20} color="#ba1a1a" />
               <Text style={styles.actionCardText}>
-                {t('dashboard.quickActions.addExpense') || 'Expense'}
+                {t('dashboard.quickActions.addExpense')}
               </Text>
             </TouchableOpacity>
 
@@ -396,7 +389,7 @@ export default function HomeScreen() {
             >
               <Feather name="plus-circle" size={20} color="#22c55e" />
               <Text style={styles.actionCardText}>
-                {t('transactions.addIncome') || 'Income'}
+                {t('transactions.addIncome')}
               </Text>
             </TouchableOpacity>
 
@@ -406,7 +399,7 @@ export default function HomeScreen() {
             >
               <Feather name="repeat" size={20} color="#2563eb" />
               <Text style={styles.actionCardText}>
-                {t('dashboard.quickActions.moveMoney') || 'Transfer'}
+                {t('dashboard.quickActions.moveMoney')}
               </Text>
             </TouchableOpacity>
 
@@ -416,7 +409,7 @@ export default function HomeScreen() {
             >
               <Feather name="grid" size={20} color="#1B2B4B" />
               <Text style={styles.actionCardText}>
-                {t('nav.myMoney') || 'Pools'}
+                {t('nav.myMoney')}
               </Text>
             </TouchableOpacity>
           </View>

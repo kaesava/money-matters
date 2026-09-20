@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { SUPPORTED_CURRENCIES, SUPPORTED_COUNTRIES } from '@money-matters/types';
 
@@ -32,7 +33,7 @@ export function HouseholdReadOnlyView({
         <Text style={styles.cardTitle}>Household Profile & Location</Text>
         {isOwner ? (
           <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
-            <Feather name="edit-2" size={13} color="#2563eb" />
+            <Feather name="edit-2" size={13} color={DESIGN_TOKENS.colors.sereneBlue} />
             <Text style={styles.editBtnText}>{t('common.edit')}</Text>
           </TouchableOpacity>
         ) : (
@@ -80,12 +81,13 @@ export function HouseholdReadOnlyView({
   );
 }
 
+const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: D.colors.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: D.colors.border,
     padding: 16,
     gap: 14,
     shadowColor: '#000',
@@ -102,11 +104,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: D.colors.primary,
   },
   cardSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: D.colors.textMuted,
     lineHeight: 16,
   },
   editBtn: {
@@ -115,32 +117,32 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: D.colors.surfaceVariant,
     borderRadius: 8,
   },
   editBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2563eb',
+    color: D.colors.sereneBlue,
   },
   memberBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: D.colors.surfaceVariant,
     borderRadius: 6,
   },
   memberBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: D.colors.textMuted,
   },
   detailsGrid: {
     gap: 8,
   },
   detailItem: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: D.colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: D.colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -148,13 +150,13 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: D.colors.textMuted,
     textTransform: 'uppercase',
   },
   detailValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1B2B4B',
+    color: D.colors.primary,
     marginTop: 2,
   },
 });

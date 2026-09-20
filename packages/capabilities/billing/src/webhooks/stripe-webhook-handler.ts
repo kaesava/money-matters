@@ -3,6 +3,7 @@
  * Requires raw request body string for cryptographic signature verification.
  */
 import Stripe from "stripe";
+import { z } from "zod";
 import { validateEnv } from "@money-matters/config";
 import { type DbOrTx, processedWebhooks, billingInvoices, tenants } from "@money-matters/db";
 import { eq } from "drizzle-orm";
@@ -80,7 +81,8 @@ async function resolveTenantId(
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const rawTenantId = session.client_reference_id || (session.metadata && session.metadata.tenantId);
-      const planType = (session.metadata?.planType as any) || "annual";
+      const planTypeResult = z.enum(["monthly", "annual", "founding"]).safeParse(session.metadata?.planType);
+      const planType: "monthly" | "annual" | "founding" = planTypeResult.success ? planTypeResult.data : "annual";
 
       if (session.subscription && session.customer) {
         const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription.id;
@@ -169,7 +171,8 @@ async function resolveTenantId(
         const tenantId = await resolveTenantId(db, sub.metadata?.tenantId, customerId, subscriptionId);
         const priceId = sub.items.data[0]?.price.id || "";
         const currentPeriodEnd = new Date(sub.current_period_end * 1000);
-        const planType = (sub.metadata?.planType as any) || "annual";
+        const planTypeResult = z.enum(["monthly", "annual", "founding"]).safeParse(sub.metadata?.planType);
+        const planType: "monthly" | "annual" | "founding" = planTypeResult.success ? planTypeResult.data : "annual";
 
         if (tenantId) {
           await activateSubscriptionCommand(db, {
@@ -205,7 +208,11 @@ async function resolveTenantId(
           }
 
           // Dispatch confirmation receipt email if customer email exists
-          const customerEmail = invoice.customer_email || (typeof invoice.customer === "object" ? (invoice.customer as any)?.email : null);
+          const customerEmail =
+            invoice.customer_email ||
+            (invoice.customer !== null && typeof invoice.customer === "object" && !("deleted" in invoice.customer)
+              ? (invoice.customer as Stripe.Customer).email
+              : null);
           if (customerEmail) {
             const formattedAmount = `$${((invoice.amount_paid || 0) / 100).toFixed(2)} AUD`;
             await sendNotificationEmail(
@@ -254,7 +261,11 @@ async function resolveTenantId(
           await deactivateTenantCommand(db, tenantId, "GRACE_PERIOD");
 
           // Send payment failure alert email
-          const customerEmail = invoice.customer_email || (typeof invoice.customer === "object" ? (invoice.customer as any)?.email : null);
+          const customerEmail =
+            invoice.customer_email ||
+            (invoice.customer !== null && typeof invoice.customer === "object" && !("deleted" in invoice.customer)
+              ? (invoice.customer as Stripe.Customer).email
+              : null);
           if (customerEmail) {
             await sendNotificationEmail(
               customerEmail,

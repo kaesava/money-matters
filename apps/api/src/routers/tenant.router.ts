@@ -413,7 +413,7 @@ export const tenantRouter = {
             poolId: z.string().uuid(),
             categoryId: z.string().uuid().optional(),
             adjustment: z.string(),
-          })
+          }).strict()
         ),
       }).strict()
     )

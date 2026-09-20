@@ -81,16 +81,16 @@ export function IncomeSplitPoolTable({
             <thead>
               <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/60 text-[11px] font-semibold tracking-wide text-zinc-500">
                 <th scope="col" className="py-3 px-4 md:px-6 text-left">
-                  {t("paydayDrawer.tableColPool", { defaultValue: "Pool" })}
+                  {t("paydayDrawer.tableColPool")}
                 </th>
                 <th scope="col" className="py-3 px-3 text-center w-36">
-                  {t("paydayDrawer.tableColTarget", { defaultValue: "Target" })}
+                  {t("paydayDrawer.tableColTarget")}
                 </th>
                 <th scope="col" className="py-3 px-4 text-right w-36 tabular-nums font-mono">
-                  {t("paydayDrawer.tableColBalance", { defaultValue: "Balance" })}
+                  {t("paydayDrawer.tableColBalance")}
                 </th>
                 <th scope="col" className="py-3 px-4 md:px-6 text-right w-64 md:w-80 tabular-nums font-mono">
-                  {t("paydayDrawer.tableColAllocation", { defaultValue: "Allocation" })}
+                  {t("paydayDrawer.tableColAllocation")}
                 </th>
               </tr>
             </thead>
@@ -158,11 +158,11 @@ export function IncomeSplitPoolTable({
                                       {l.bucketName}
                                     </span>
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                      {t("paydayDrawer.autoSurplusBadge", { defaultValue: "Auto-Surplus" })}
+                                      {t("paydayDrawer.autoSurplusBadge")}
                                     </span>
                                   </div>
                                   <div className="text-[11px] text-zinc-400 mt-0.5">
-                                    {t("paydayDrawer.sweepExplanation", { defaultValue: "Absorbs residual income" })}
+                                    {t("paydayDrawer.sweepExplanation")}
                                   </div>
                                 </td>
                                 <td className="py-3 px-3 text-center text-zinc-400 font-mono text-[11px]">
@@ -186,7 +186,7 @@ export function IncomeSplitPoolTable({
                                           ? "bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                                           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                                       }`}
-                                      title={t("paydayDrawer.showReasoning", { defaultValue: "Show or edit note / reasoning" })}
+                                      title={t("paydayDrawer.showReasoning")}
                                     >
                                       <FileText className="w-3.5 h-3.5" />
                                     </button>
@@ -198,13 +198,13 @@ export function IncomeSplitPoolTable({
                                   <td colSpan={4} className="py-2.5 px-4 md:px-6">
                                     <div className="flex items-center gap-3">
                                       <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
-                                        {t("paydayDrawer.reasoningLabel", { defaultValue: "Reasoning / Note:" })}
+                                        {t("paydayDrawer.reasoningLabel")}
                                       </span>
                                       <input
                                         type="text"
                                         value={reasoningMap?.[l.bucketId] ?? l.reasoning ?? ""}
                                         disabled={isReadOnly}
-                                        placeholder={t("paydayDrawer.reasoningPlaceholder", { defaultValue: "Add reasoning for this allocation..." })}
+                                        placeholder={t("paydayDrawer.reasoningPlaceholder")}
                                         onChange={(e) => onLineReasoningChange?.(l.bucketId, e.target.value)}
                                         className="flex-1 px-3 py-1.5 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60"
                                       />
@@ -218,7 +218,7 @@ export function IncomeSplitPoolTable({
 
                         // Non-Sweep Rows (Bills, Goals, Discretionary Everyday)
                         const targetDisplay = group.type === "REGULAR"
-                          ? (targetNum > 0 ? `${fmt(targetNum)}/mo` : "—")
+                          ? (targetNum > 0 ? `${fmt(targetNum)}${t("paydayDrawer.perMonth")}` : "—")
                           : (targetNum > 0 ? (
                               <div>
                                 <div>{fmt(targetNum)}</div>
@@ -251,7 +251,7 @@ export function IncomeSplitPoolTable({
                                       type="button"
                                       onClick={() => onLineAmountChange(l.bucketId, "0.00")}
                                       className="px-2 py-1 text-[10px] font-bold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md transition-colors cursor-pointer"
-                                      title="Set to 0%"
+                                      title={t("paydayDrawer.setZeroPercent")}
                                     >
                                       0%
                                     </button>
@@ -272,7 +272,7 @@ export function IncomeSplitPoolTable({
                                         ? "bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                                         : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                                     }`}
-                                    title={t("paydayDrawer.showReasoning", { defaultValue: "Show or edit note / reasoning" })}
+                                    title={t("paydayDrawer.showReasoning")}
                                   >
                                     <FileText className="w-3.5 h-3.5" />
                                   </button>
@@ -284,13 +284,13 @@ export function IncomeSplitPoolTable({
                                 <td colSpan={4} className="py-2.5 px-4 md:px-6">
                                   <div className="flex items-center gap-3">
                                     <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
-                                      {t("paydayDrawer.reasoningLabel", { defaultValue: "Reasoning / Note:" })}
+                                      {t("paydayDrawer.reasoningLabel")}
                                     </span>
                                     <input
                                       type="text"
                                       value={reasoningMap?.[l.bucketId] ?? l.reasoning ?? ""}
                                       disabled={isReadOnly}
-                                      placeholder={t("paydayDrawer.reasoningPlaceholder", { defaultValue: "Add reasoning for this allocation..." })}
+                                      placeholder={t("paydayDrawer.reasoningPlaceholder")}
                                       onChange={(e) => onLineReasoningChange?.(l.bucketId, e.target.value)}
                                       className="flex-1 px-3 py-1.5 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60"
                                     />

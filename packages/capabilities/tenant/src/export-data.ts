@@ -142,8 +142,15 @@ export function exportMyDataHandler(db: DbOrTx) {
         ["id", "email", "displayName", "globalTimezone"]
       ),
       "Household_Profile.csv": arrayToCsv(
-        tenantRecord ? [{ ...tenantRecord, ...tenantPrefs }] : [],
-        ["id", "name", "country", "state", "postcode", "subscriptionStatus"]
+        tenantRecord ? [{
+          id: tenantRecord.id,
+          name: tenantRecord.name,
+          subscriptionStatus: tenantRecord.subscriptionStatus,
+          setupStatus: tenantRecord.setupStatus,
+          subscriptionEndsAt: tenantRecord.subscriptionEndsAt,
+          cancelAtPeriodEnd: tenantRecord.cancelAtPeriodEnd,
+        }] : [],
+        ["id", "name", "subscriptionStatus", "setupStatus", "subscriptionEndsAt", "cancelAtPeriodEnd"]
       ),
       "Bank_Accounts.csv": arrayToCsv(userBankAccounts, ["id", "name", "bankProvider", "lastKnownBalance", "isPrivate"]),
       "Pools.csv": arrayToCsv(userPools, ["id", "name", "poolType", "bankAccountId", "targetAmount", "everydayAllowanceAmount"]),

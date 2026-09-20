@@ -12,15 +12,13 @@ export default function MobileArchivedItemsScreen() {
 
   return (
     <MobileScreenWrapper
-      title={t('settings.tabs.archived', { defaultValue: 'Archived Data' })}
+      title={t('settings.tabs.archived')}
       user={session?.user}
       showBack
       onBackPress={() => router.back()}
       infoTooltip={{
-        title: t('tooltips.archived.title', { defaultValue: 'About Archived Items' }),
-        content: t('tooltips.archived.content', {
-          defaultValue: 'View and restore archived spending pools, recurring bill schedules, or bank accounts.',
-        }),
+        title: t('tooltips.archived.title'),
+        content: t('tooltips.archived.content'),
       }}
     >
       <ScrollView contentContainerStyle={styles.container}>

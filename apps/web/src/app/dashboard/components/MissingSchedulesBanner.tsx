@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
+import { useIconVisibility } from "@money-matters/ui";
 
 export interface MissingSchedulesBannerProps {
   incomeCount: number;
@@ -11,6 +12,7 @@ export interface MissingSchedulesBannerProps {
 
 export function MissingSchedulesBanner({ incomeCount, billsCount }: MissingSchedulesBannerProps) {
   const router = useRouter();
+  const { showIcons } = useIconVisibility();
 
   if (incomeCount > 0 && billsCount > 0) return null;
 
@@ -23,13 +25,13 @@ export function MissingSchedulesBanner({ incomeCount, billsCount }: MissingSched
         <div>
           <h4 className="text-xs font-extrabold text-amber-900">
             {incomeCount === 0 && billsCount === 0
-              ? "Set up your income pay schedule & recurring bills"
+              ? t("dashboard.missingSchedulesBanner.incomeAndBillsHint")
               : incomeCount === 0
-              ? t("dashboard.missingSchedulesBanner.incomeHint", { defaultValue: "Add your income pay schedule to enable automatic Income Splits" })
-              : "Add your bill payment schedule to protect upcoming expenses"}
+              ? t("dashboard.missingSchedulesBanner.incomeHint")
+              : t("dashboard.missingSchedulesBanner.billsHint")}
           </h4>
           <p className="text-[11px] text-amber-800 font-medium mt-0.5">
-            Money Matters automatically allocates income into bills, savings, and everyday spending when pay dates are configured.
+            {t("dashboard.missingSchedulesBanner.description")}
           </p>
         </div>
       </div>
@@ -39,7 +41,7 @@ export function MissingSchedulesBanner({ incomeCount, billsCount }: MissingSched
           onClick={() => router.push("/dashboard/income-and-bills")}
           className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-extrabold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-xs text-center cursor-pointer"
         >
-          ➕ Add Schedules Now →
+          {showIcons ? "➕ " : ""}{t("dashboard.missingSchedulesBanner.addSchedulesCta")}
         </button>
       </div>
     </div>

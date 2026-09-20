@@ -216,7 +216,6 @@ export function MarkPaidModal({
                 <Text style={styles.futureDateNoticeText}>
                   {t("incomeBillsTabs.expenseFutureDateAdjustedNotice", {
                     date: formatDate(event.expectedDate),
-                    defaultValue: `The expense was scheduled for a future date (${formatDate(event.expectedDate)}). Defaulted to today for immediate spending.`,
                   })}
                 </Text>
               </View>

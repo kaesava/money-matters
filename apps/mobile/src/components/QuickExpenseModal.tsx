@@ -148,25 +148,25 @@ export function QuickExpenseModal({
     let hasError = false;
 
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setAmountError(t("drawers.quickExpense.validAmountError", { defaultValue: "Please enter a valid amount." }));
+      setAmountError(t("drawers.quickExpense.validAmountError"));
       hasError = true;
     }
 
     if (!date.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date.trim()) || isNaN(new Date(date.trim()).getTime())) {
-      setDateError(t("drawers.quickExpense.invalidDate", { defaultValue: "Please enter a valid date (YYYY-MM-DD)." }));
+      setDateError(t("drawers.quickExpense.invalidDate"));
       hasError = true;
     } else if (type === "TRANSFER" && date.trim() < todayStr) {
-      setDateError(t("drawers.quickExpense.pastDateError", { defaultValue: "Transfers cannot be performed for past dates." }));
+      setDateError(t("drawers.quickExpense.pastDateError"));
       hasError = true;
     }
 
     if (type === "DEBIT") {
       if (!name.trim()) {
-        setNameError(t("drawers.quickExpense.nameRequired", { defaultValue: "Name is required." }));
+        setNameError(t("drawers.quickExpense.nameRequired"));
         hasError = true;
       }
       if (!selectedPoolId) {
-        setPoolError(t("drawers.quickExpense.poolSelectionRequired", { defaultValue: "Please select a pool." }));
+        setPoolError(t("drawers.quickExpense.poolSelectionRequired"));
         hasError = true;
       }
       if (hasError) return;
@@ -179,10 +179,7 @@ export function QuickExpenseModal({
           flowType: "DEBIT",
           date: date.trim(),
           note: note.trim() || name.trim(),
-          idempotencyKey:
-            typeof crypto !== "undefined" && crypto.randomUUID
-              ? crypto.randomUUID()
-              : Math.random().toString(36).substring(2) + Date.now().toString(36),
+          idempotencyKey: crypto.randomUUID(),
         });
 
         if (posthog) {
@@ -197,14 +194,14 @@ export function QuickExpenseModal({
         resetAndClose();
       } catch (err) {
         setGeneralError(
-          err instanceof Error ? err.message : "Failed to record expense"
+          err instanceof Error ? err.message : t("drawers.quickExpense.failedRecordExpense")
         );
       } finally {
         setIsSubmitting(false);
       }
     } else if (type === "CREDIT") {
       if (!name.trim()) {
-        setNameError(t("drawers.quickExpense.nameRequired", { defaultValue: "Please enter an income source name." }));
+        setNameError(t("drawers.quickExpense.nameRequired"));
         hasError = true;
       }
       if (hasError) return;
@@ -231,17 +228,17 @@ export function QuickExpenseModal({
         }
       } catch (err) {
         setGeneralError(
-          err instanceof Error ? err.message : "Failed to record income"
+          err instanceof Error ? err.message : t("drawers.quickExpense.failedRecordIncome")
         );
       } finally {
         setIsSubmitting(false);
       }
     } else if (type === "TRANSFER") {
       if (!selectedPoolId || !destPoolId) {
-        setPoolError(t("drawers.quickExpense.poolsRequired", { defaultValue: "Please select both source and destination pools." }));
+        setPoolError(t("drawers.quickExpense.poolsRequired"));
         hasError = true;
       } else if (selectedPoolId === destPoolId) {
-        setPoolError(t("drawers.quickExpense.poolsDifferent", { defaultValue: "Source and destination pools must be different." }));
+        setPoolError(t("drawers.quickExpense.poolsDifferent"));
         hasError = true;
       }
       if (hasError) return;
@@ -283,7 +280,7 @@ export function QuickExpenseModal({
         }
       } catch (err) {
         setGeneralError(
-          err instanceof Error ? err.message : "Failed to transfer funds"
+          err instanceof Error ? err.message : t("drawers.quickExpense.failedTransferFunds")
         );
       } finally {
         setIsSubmitting(false);
@@ -318,10 +315,10 @@ export function QuickExpenseModal({
             <View style={styles.header}>
               <Text style={styles.headerTitle}>
                 {type === "DEBIT"
-                  ? t('modals.quickExpense.expenseTitle', { defaultValue: 'Record Expense' })
+                  ? t('modals.quickExpense.expenseTitle')
                   : type === "CREDIT"
-                  ? t('modals.quickExpense.incomeTitle', { defaultValue: 'Record Income' })
-                  : t('modals.quickExpense.transferTitle', { defaultValue: 'Move Money Between Pools' })}
+                  ? t('modals.quickExpense.incomeTitle')
+                  : t('modals.quickExpense.transferTitle')}
               </Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <Feather name="x" size={20} color={D.colors.textMuted} />
@@ -331,9 +328,9 @@ export function QuickExpenseModal({
             {/* 3-Way Segmented Control */}
             <SegmentedTabs<QuickActionType>
               tabs={[
-                { key: "DEBIT", label: t('common.expense', { defaultValue: 'Expense' }) },
-                { key: "CREDIT", label: t('common.income', { defaultValue: 'Income' }) },
-                { key: "TRANSFER", label: t('common.transfer', { defaultValue: 'Transfer' }) },
+                { key: "DEBIT", label: t('common.expense') },
+                { key: "CREDIT", label: t('common.income') },
+                { key: "TRANSFER", label: t('common.transfer') },
               ]}
               activeKey={type}
               onChange={(val) => {
@@ -358,7 +355,7 @@ export function QuickExpenseModal({
                 {type === "DEBIT" && (
                   <View style={styles.quickPicksSection}>
                     <Text style={styles.quickPickLabel}>
-                      {t('quickPick.recent', { defaultValue: 'Quick Picks' })}
+                      {t('quickPick.recent')}
                     </Text>
                     <ScrollView
                       horizontal
@@ -383,7 +380,7 @@ export function QuickExpenseModal({
                 {/* Amount Input */}
                 <View style={styles.inputGroup}>
                   <AmountInput
-                    label="Amount ($ AUD)"
+                    label={t("common.amount")}
                     required
                     value={amount}
                     onChangeText={(val) => {
@@ -403,7 +400,7 @@ export function QuickExpenseModal({
 
                 {/* Beautiful Serene Date Picker */}
                 <MobileDatePickerField
-                  label={t("common.date", { defaultValue: "Date" })}
+                  label={t("common.date")}
                   value={date}
                   onChange={(newDate) => {
                     setDate(newDate);
@@ -416,7 +413,7 @@ export function QuickExpenseModal({
                 {/* Name Input */}
                 {type !== "TRANSFER" && (
                   <MobileInput
-                    label={type === "CREDIT" ? "Income Name / Source" : "Expense Name"}
+                    label={type === "CREDIT" ? t("common.incomeNameSource") : t("drawers.quickExpense.expenseName")}
                     required
                     value={name}
                     onChangeText={(val) => {
@@ -424,7 +421,7 @@ export function QuickExpenseModal({
                       if (nameError) setNameError("");
                     }}
                     placeholder={
-                      type === "CREDIT" ? "e.g. Side Gig, Tax Refund" : "e.g. Coffee, Groceries"
+                      type === "CREDIT" ? t("drawers.quickExpense.incomePlaceholder") : t("drawers.quickExpense.expensePlaceholder")
                     }
                     error={nameError}
                   />
@@ -434,10 +431,10 @@ export function QuickExpenseModal({
                 <View style={styles.inputGroup}>
                   <FormLabel required>
                     {type === "TRANSFER"
-                      ? "From Pool (Source)"
+                      ? t("drawers.quickExpense.fromPool")
                       : type === "CREDIT"
-                      ? "Receiving Pool"
-                      : "Paid From Pool"}
+                      ? t("drawers.quickExpense.receivingPool")
+                      : t("drawers.quickExpense.paidFromPool")}
                   </FormLabel>
                   <View style={styles.poolsGrid}>
                     {pools?.map((p) => {
@@ -480,7 +477,7 @@ export function QuickExpenseModal({
                 {/* Destination Pool for Transfer */}
                 {type === "TRANSFER" && (
                   <View style={styles.inputGroup}>
-                    <FormLabel required>To Pool (Destination)</FormLabel>
+                    <FormLabel required>{t("drawers.quickExpense.toPoolDestination")}</FormLabel>
                     <View style={styles.poolsGrid}>
                       {pools
                         ?.filter((p) => p.id !== selectedPoolId)
@@ -523,8 +520,8 @@ export function QuickExpenseModal({
 
                 {/* Optional Note */}
                 <MobileInput
-                  label="Note (Optional)"
-                  placeholder="Add custom notes..."
+                  label={`${t("drawers.quickExpense.noteLabel")} (${t("common.optional")})`}
+                  placeholder={t("drawers.quickExpense.notePlaceholder")}
                   value={note}
                   onChangeText={setNote}
                 />
@@ -537,10 +534,10 @@ export function QuickExpenseModal({
                   style={{ marginTop: 8 }}
                 >
                   {type === "DEBIT"
-                    ? "Record Expense"
+                    ? t("modals.quickExpense.expenseTitle")
                     : type === "CREDIT"
-                    ? "Record Income"
-                    : "Transfer Funds"}
+                    ? t("modals.quickExpense.incomeTitle")
+                    : t("drawers.quickExpense.transferFunds")}
                 </MobileButton>
               </ScrollView>
             )}
@@ -638,15 +635,15 @@ const styles = StyleSheet.create({
     color: "#64748B",
   },
   segmentTextActiveDebit: {
-    color: "#ba1a1a",
+    color: D.colors.burnRed,
     fontWeight: "800",
   },
   segmentTextActiveCredit: {
-    color: "#059669",
+    color: D.colors.success,
     fontWeight: "800",
   },
   segmentTextActiveTransfer: {
-    color: "#2563eb",
+    color: D.colors.sereneBlue,
     fontWeight: "800",
   },
   form: {
@@ -712,7 +709,7 @@ const styles = StyleSheet.create({
   },
   overdraftWarning: {
     fontSize: 11,
-    color: "#DC2626",
+    color: D.colors.critical,
     fontWeight: "600",
     marginTop: 2,
   },
@@ -741,7 +738,7 @@ const styles = StyleSheet.create({
   },
   poolChipSelected: {
     backgroundColor: "#EFF6FF",
-    borderColor: "#2563eb",
+    borderColor: D.colors.sereneBlue,
   },
   poolChipName: {
     fontSize: 12,
@@ -749,7 +746,7 @@ const styles = StyleSheet.create({
     color: "#334155",
   },
   poolChipNameSelected: {
-    color: "#2563eb",
+    color: D.colors.sereneBlue,
     fontWeight: "800",
   },
   poolChipBal: {
@@ -759,7 +756,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   poolChipBalSelected: {
-    color: "#2563eb",
+    color: D.colors.sereneBlue,
   },
   dateQuickRow: {
     flexDirection: "row",

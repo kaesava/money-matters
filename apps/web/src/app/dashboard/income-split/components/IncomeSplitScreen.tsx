@@ -206,9 +206,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         expectedDate: selectedDate,
       });
       await utils.previewPayday.invalidate({ incomeEventId });
-      toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Recalculated suggested allocation." }));
+      toast.success(t("paydayDrawer.recalculateSuccess"));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to recalculate.");
+      toast.error(err instanceof Error ? err.message : t("paydayDrawer.recalculateFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +224,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
       await handleRecalculateWaterfall();
     } else {
       setLinesMap({ ...initialLinesMap });
-      toast.success(t("paydayDrawer.recalculateSuccess", { defaultValue: "Recalculated suggested allocation." }));
+      toast.success(t("paydayDrawer.recalculateSuccess"));
     }
   };
 
@@ -232,11 +232,11 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
     try {
       setSubmitting(true);
       await deleteIncomeMut.mutateAsync({ eventId: incomeEventId });
-      toast.success("Income deleted.");
+      toast.success(t("paydayDrawer.incomeDeleted"));
       await utils.listIncomeEvents.invalidate();
       router.push(returnTo);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete.");
+      toast.error(err instanceof Error ? err.message : t("paydayDrawer.deleteFailed"));
     } finally {
       setSubmitting(false);
       setShowDeleteConfirm(false);
@@ -271,11 +271,11 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         lines: payload,
       });
 
-      toast.success(t("matrix.saveSplitSuccess", { defaultValue: "Income Split saved." }));
+      toast.success(t("matrix.saveSplitSuccess"));
       await utils.listIncomeEvents.invalidate();
       router.push(returnTo);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save split.");
+      toast.error(err instanceof Error ? err.message : t("paydayDrawer.saveSplitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -310,12 +310,12 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         lines: payload,
       });
 
-      toast.success(t("paydayDrawer.confirmSuccess", { defaultValue: "Income Split confirmed!" }));
+      toast.success(t("paydayDrawer.confirmSuccess"));
       await utils.listIncomeEvents.invalidate();
       await utils.listPools.invalidate();
       router.push(returnTo);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to confirm split.");
+      toast.error(err instanceof Error ? err.message : t("paydayDrawer.confirmSplitFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -335,9 +335,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
 
   const groupedLines = useMemo(() => {
     const groups: Array<{ type: "EVERYDAY" | "REGULAR" | "GOAL"; label: string; items: AllocationLineItem[] }> = [
-      { type: "EVERYDAY", label: "Everyday Pools", items: [] },
-      { type: "REGULAR", label: "Bills Pools", items: [] },
-      { type: "GOAL", label: "Goals", items: [] },
+      { type: "EVERYDAY", label: t("paydayDrawer.everydayPools"), items: [] },
+      { type: "REGULAR", label: t("paydayDrawer.billsPools"), items: [] },
+      { type: "GOAL", label: t("paydayDrawer.goalsPools"), items: [] },
     ];
     for (const l of lines) {
       const pType = pools.find((pool) => pool.id === l.bucketId)?.poolType || "REGULAR";
@@ -351,7 +351,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   if (previewQuery.isLoading || poolsQuery.isLoading || bankAccountsQuery.isLoading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
-        <Spinner size="lg" label={t("common.loading", { defaultValue: "Loading..." })} direction="col" />
+        <Spinner size="lg" label={t("common.loading")} direction="col" />
       </div>
     );
   }
@@ -386,7 +386,7 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             selectedDate={selectedDate}
             onSelectedDateChange={setSelectedDate}
             numericActual={numericActual}
-            sweepPoolName={sweepPool?.name || "Everyday"}
+            sweepPoolName={sweepPool?.name || t("poolTypes.everyday")}
             sweepPoolRemainder={sweepPoolRemainder}
             isDeficit={isDeficit}
             everydayAllocated={everydayAllocated}
@@ -427,9 +427,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
           setShowDiscardConfirm(false);
           router.push(returnTo);
         }}
-        title={t("common.discardChangesTitle", { defaultValue: "Discard changes?" })}
-        description={t("paydayDrawer.discardDescription", { defaultValue: "You have unsaved Income Split edits. Are you sure you want to discard them?" })}
-        confirmLabel={t("common.discard", { defaultValue: "Discard" })}
+        title={t("common.discardChangesTitle")}
+        description={t("paydayDrawer.discardDescription")}
+        confirmLabel={t("common.discard")}
         variant="danger"
       />
 
@@ -437,9 +437,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         isOpen={showConfirmWarning}
         onClose={() => setShowConfirmWarning(false)}
         onConfirm={executeConfirmSplit}
-        title={t("paydayDrawer.confirmWarningTitle", { defaultValue: "Run Income Split?" })}
-        description={t("paydayDrawer.confirmWarningDescription", { defaultValue: "Running this payday split will update your pool and bank balances immediately. Ready to proceed?" })}
-        confirmLabel={t("paydayDrawer.confirmWarningConfirm", { defaultValue: "Run Income Split" })}
+        title={t("paydayDrawer.confirmWarningTitle")}
+        description={t("paydayDrawer.confirmWarningDescription")}
+        confirmLabel={t("paydayDrawer.confirmWarningConfirm")}
         variant="danger"
       />
 
@@ -447,11 +447,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         isOpen={showRecalculateConfirm}
         onClose={() => setShowRecalculateConfirm(false)}
         onConfirm={handleRecalculateSavedConfirmed}
-        title={t("paydayDrawer.recalculateConfirmTitle", { defaultValue: "Reset Plan?" })}
-        description={t("paydayDrawer.recalculateConfirmDescription", {
-          defaultValue: "Recalculating will discard any custom amounts and reset to the suggested allocation. Continue?",
-        })}
-        confirmLabel={t("matrix.unsave", { defaultValue: "Reset" })}
+        title={t("paydayDrawer.recalculateConfirmTitle")}
+        description={t("paydayDrawer.recalculateConfirmDescription")}
+        confirmLabel={t("matrix.unsave")}
         variant="danger"
       />
 
@@ -459,9 +457,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDeleteIncome}
-        title={t("common.deleteIncomeTitle", { defaultValue: "Delete Income" })}
-        description={t("paydayDrawer.deleteDescription", { defaultValue: "Are you sure you want to delete this Income?" })}
-        confirmLabel={t("common.delete", { defaultValue: "Delete" })}
+        title={t("common.deleteIncomeTitle")}
+        description={t("paydayDrawer.deleteDescription")}
+        confirmLabel={t("common.delete")}
         variant="danger"
       />
     </div>

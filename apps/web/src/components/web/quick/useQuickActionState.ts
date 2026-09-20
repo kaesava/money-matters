@@ -263,7 +263,7 @@ export function useQuickActionState(
     utils.listTransferEvents.invalidate();
     utils.listBankAccountsWithExpected.invalidate();
     if (isTransfer && !isFutureDate) {
-      toast.success(t("toasts.transferCompleted", { defaultValue: "Transfer completed" }));
+      toast.success(t("toasts.transferCompleted"));
       const srcPool = categories.find((c) => c.id === sourceCategoryId);
       const dstPool = categories.find((c) => c.id === destinationCategoryId);
       if (srcPool?.bankAccountId && dstPool?.bankAccountId && srcPool.bankAccountId !== dstPool.bankAccountId) {
@@ -277,7 +277,7 @@ export function useQuickActionState(
         return;
       }
     } else {
-      toast.success(t("toasts.saved", { defaultValue: "Saved successfully" }));
+      toast.success(t("toasts.saved"));
     }
     onClose();
   }
@@ -321,22 +321,22 @@ export function useQuickActionState(
 
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      setError(t("drawers.quickExpense.validAmountError", { defaultValue: "Please enter a valid amount." }));
+      setError(t("drawers.quickExpense.validAmountError"));
       return;
     }
 
     if (!isTransfer && !name.trim()) {
-      setError(t("drawers.quickExpense.nameRequired", { defaultValue: "Name is required." }));
+      setError(t("drawers.quickExpense.nameRequired"));
       return;
     }
 
     if (isTransfer) {
       if (!sourceCategoryId || !destinationCategoryId) {
-        setError(t("drawers.quickExpense.poolsRequired", { defaultValue: "Both Source Pool and Destination Pool are required for transfers." }));
+        setError(t("drawers.quickExpense.poolsRequired"));
         return;
       }
       if (sourceCategoryId === destinationCategoryId) {
-        setError(t("drawers.quickExpense.poolsDifferent", { defaultValue: "Source Pool and Destination Pool must be different." }));
+        setError(t("drawers.quickExpense.poolsDifferent"));
         return;
       }
       if (date < todayStr) {
@@ -370,7 +370,7 @@ export function useQuickActionState(
 
     if (!isIncome) {
       if (!categoryId) {
-        setError(t("drawers.quickExpense.poolSelectionRequired", { defaultValue: "Pool selection is required." }));
+        setError(t("drawers.quickExpense.poolSelectionRequired"));
         return;
       }
       const targetCat = categories.find((c) => c.id === categoryId);

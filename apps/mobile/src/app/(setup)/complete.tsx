@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePostHog } from 'posthog-react-native';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 
 export default function SetupCompleteScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const posthog = usePostHog();
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,7 @@ export default function SetupCompleteScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
       <Text style={styles.icon}>🎉</Text>
       <Text style={styles.title}>{t('setup.complete.title')}</Text>
       <Text style={styles.subtitle}>{t('setup.complete.subtitle')}</Text>

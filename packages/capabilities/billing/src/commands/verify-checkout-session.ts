@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 import { tenants, billingInvoices, type DbOrTx } from "@money-matters/db";
 import { validateEnv } from "@money-matters/config";
+import { z } from "zod";
 import { activateSubscriptionCommand } from "./activate-subscription.js";
 
 export async function verifyCheckoutSessionCommand(
@@ -59,11 +60,15 @@ export async function verifyCheckoutSessionCommand(
 
   const subscriptionObj = typeof session.subscription === "object" ? session.subscription : null;
   const subscriptionId = typeof session.subscription === "string" ? session.subscription : subscriptionObj?.id || "";
-  const customerId = typeof session.customer === "string" ? session.customer : (session.customer as any)?.id || "";
+  const customerId =
+    typeof session.customer === "string"
+      ? session.customer
+      : (session.customer as Stripe.Customer | Stripe.DeletedCustomer | null)?.id ?? "";
 
   let currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   let priceId = "";
-  let planType: "monthly" | "annual" | "founding" = (session.metadata?.planType as any) || "annual";
+  const planTypeResult = z.enum(["monthly", "annual", "founding"]).safeParse(session.metadata?.planType);
+  let planType: "monthly" | "annual" | "founding" = planTypeResult.success ? planTypeResult.data : "annual";
 
   if (subscriptionObj) {
     priceId = subscriptionObj.items.data[0]?.price.id || "";

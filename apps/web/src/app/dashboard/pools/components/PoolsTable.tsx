@@ -322,13 +322,11 @@ export function PoolsTable({
 
                                   {pool.rawPool.isSurplusTarget && (
                                     <span className="inline-flex items-center gap-1">
-                                      <span title={t("categories.targetPoolShortfallSurplus", { defaultValue: "Target Pool for Shortfall/Surplus" })} className="text-sm cursor-help">
+                                      <span title={t("categories.targetPoolShortfallSurplus")} className="text-sm cursor-help">
                                         🎯
                                       </span>
                                       <InfoTooltip
-                                        content={t("categories.targetPoolShortfallSurplus", {
-                                          defaultValue: "Target Pool for Shortfall/Surplus",
-                                        })}
+                                        content={t("categories.targetPoolShortfallSurplus")}
                                       />
                                     </span>
                                   )}

@@ -88,10 +88,7 @@ export function MobileReconciliationModal({
 
     setSubmitting(true);
     try {
-      const idempotencyToken =
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const idempotencyToken = crypto.randomUUID();
 
       await reconcileMut.mutateAsync({
         accountId: account.id,
@@ -127,8 +124,8 @@ export function MobileReconciliationModal({
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={t('modals.reconciliation.title', { defaultValue: 'Align Bank Balance' })}
-      subtitle={`Reconcile ${account.name} with your budget pools`}
+      title={t('modals.reconciliation.title')}
+      subtitle={t('modals.reconciliation.subtitle', { name: account.name })}
       footer={
         <MobileButton
           variant="primary"
@@ -136,14 +133,14 @@ export function MobileReconciliationModal({
           disabled={submitting || (variance !== 0 && !selectedPoolId)}
           onPress={handleReconcile}
         >
-          {t('modals.reconciliation.submit', { defaultValue: 'Confirm Balance Alignment' })}
+          {t('modals.reconciliation.submit')}
         </MobileButton>
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
         {/* Actual Bank Statement Balance */}
         <AmountInput
-          label={t('modals.reconciliation.actualBalance', { defaultValue: 'Actual Bank Account Balance' })}
+          label={t('modals.reconciliation.actualBalance')}
           required
           value={actualBalanceStr}
           onChangeText={setActualBalanceStr}
@@ -153,12 +150,12 @@ export function MobileReconciliationModal({
         {/* Comparison & Discrepancy Card */}
         <View style={styles.discrepancyCard}>
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>{t('categories.calculatedTarget', { defaultValue: 'Expected (Sum of Pools)' })}</Text>
+            <Text style={styles.statLabel}>{t('categories.calculatedTarget')}</Text>
             <Text style={styles.statVal}>{formatAUD(poolsTotal)}</Text>
           </View>
 
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>{t('modals.reconciliation.actualBalance', { defaultValue: 'Actual Bank Balance' })}</Text>
+            <Text style={styles.statLabel}>{t('modals.reconciliation.actualBalance')}</Text>
             <Text style={styles.statVal}>{formatAUD(actualBalanceNum)}</Text>
           </View>
 
@@ -225,12 +222,12 @@ export function MobileReconciliationModal({
 
         {/* Optional Custom Reason Note */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('modals.reconciliation.notes', { defaultValue: 'Alignment Reason Note (Optional)' })}</Text>
+          <Text style={styles.label}>{t('modals.reconciliation.notes')}</Text>
           <TextInput
             style={styles.textInput}
             value={reasonNote}
             onChangeText={setReasonNote}
-            placeholder="e.g. Interest, Unbudgeted Fee, Cash Adjustment"
+            placeholder={t('modals.reconciliation.reasonPlaceholder')}
             placeholderTextColor="#94A3B8"
           />
         </View>

@@ -324,10 +324,10 @@ function IncomeAndBillsContent() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("tooltips.incomeBills.title", { defaultValue: "Income & Expenses" })}</h1>
+          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("tooltips.incomeBills.title")}</h1>
           <InfoTooltip
-            title={t("tooltips.incomeBills.title", { defaultValue: "Income & Expenses" })}
-            content={t("tooltips.incomeBills.content", { defaultValue: "Manage schedules and your upcoming income & expenses" })}
+            title={t("tooltips.incomeBills.title")}
+            content={t("tooltips.incomeBills.content")}
           />
         </div>
 
@@ -337,15 +337,15 @@ function IncomeAndBillsContent() {
           className="px-4 py-2.5 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
         >
           <span>🔄</span>
-          <span>Transfer between Pools</span>
+          <span>{t("dashboard.transferBetweenPools")}</span>
         </button>
       </div>
 
       <Tabs
         tabs={[
-          { id: "MATRIX", label: t("transactions.tabs.allocatePendingIncome", { defaultValue: "Income Split" }) },
-          { id: "EVENTS", label: t("transactions.tabs.pendingList", { defaultValue: "Pending List" }) },
-          { id: "STREAMS", label: t("transactions.tabs.setup", { defaultValue: "Setup" }) },
+          { id: "MATRIX", label: t("transactions.tabs.allocatePendingIncome") },
+          { id: "EVENTS", label: t("transactions.tabs.pendingList") },
+          { id: "STREAMS", label: t("transactions.tabs.setup") },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -796,7 +796,7 @@ function IncomeAndBillsContent() {
                   date: date || undefined,
                   note: evtName ? `${evtName} (Paid on ${date})` : (date ? `Paid on ${date}` : undefined),
                 });
-                toast.success(t("toasts.expenseMarkedPaid", { defaultValue: "Expense marked as spent." }));
+                toast.success(t("toasts.expenseMarkedPaid"));
                 await utils.listExpenseEvents.invalidate();
                 await utils.listPools.invalidate();
                 await utils.listTransactions.invalidate();
@@ -811,7 +811,7 @@ function IncomeAndBillsContent() {
             onSkipExpense={async (eventId) => {
               try {
                 await deleteExpenseMut.mutateAsync({ eventId });
-                toast.success(t("toasts.expenseDeleted", { defaultValue: "Expense deleted." }));
+                toast.success(t("toasts.expenseDeleted"));
                 utils.listExpenseEvents.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to delete.");
@@ -820,7 +820,7 @@ function IncomeAndBillsContent() {
             onSkipIncome={async (eventId) => {
               try {
                 await deleteIncomeMut.mutateAsync({ eventId });
-                toast.success(t("toasts.deleted", { defaultValue: "Income deleted." }));
+                toast.success(t("toasts.deleted"));
                 utils.listIncomeEvents.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to delete.");
@@ -829,7 +829,7 @@ function IncomeAndBillsContent() {
             onSkipTransfer={async (eventId) => {
               try {
                 await deleteTransferEventMut.mutateAsync({ eventId });
-                toast.success(t("toasts.transferDeleted", { defaultValue: "Transfer deleted." }));
+                toast.success(t("toasts.transferDeleted"));
                 utils.listTransferEvents.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to delete.");
@@ -843,7 +843,7 @@ function IncomeAndBillsContent() {
                   amount: params.amount,
                   expectedDate: params.expectedDate,
                 });
-                toast.success(t("toasts.transferSaved", { defaultValue: "Transfer saved" }));
+                toast.success(t("toasts.transferSaved"));
                 utils.listTransferEvents.invalidate();
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : "Failed to save transfer.");
@@ -858,7 +858,7 @@ function IncomeAndBillsContent() {
                   sourcePoolId,
                   destinationPoolId,
                 });
-                toast.success(t("toasts.transferCompleted", { defaultValue: "Transfer completed successfully!" }));
+                toast.success(t("toasts.transferCompleted"));
                 utils.listTransferEvents.invalidate();
                 utils.listPools.invalidate();
                 utils.listTransactions.invalidate();

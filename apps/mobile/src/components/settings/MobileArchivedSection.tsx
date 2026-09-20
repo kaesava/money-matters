@@ -37,7 +37,7 @@ export function MobileArchivedSection() {
   const restoreMutation = trpc.restoreItem.useMutation({
     onSuccess: () => {
       archivedQuery.refetch();
-      toast.success(t('settings.archived.restoreSuccess', { defaultValue: 'Item restored successfully.' }));
+      toast.success(t('settings.archived.restoreSuccess'));
     },
     onError: (err) => {
       toast.error(err.message);
@@ -57,13 +57,12 @@ export function MobileArchivedSection() {
 
   const handleRestore = (item: { id: string; name: string; itemType: string }) => {
     showMobileConfirm({
-      title: t('settings.archived.restoreTitle', { defaultValue: 'Restore Item' }),
+      title: t('settings.archived.restoreTitle'),
       message: t('settings.archived.restoreConfirm', {
-        defaultValue: 'Are you sure you want to restore "{name}"? It will be active again.',
         name: item.name,
       }),
-      confirmText: t('settings.archived.restoreAction', { defaultValue: 'Restore' }),
-      cancelText: t('common.cancel', { defaultValue: 'Cancel' }),
+      confirmText: t('settings.archived.restoreAction'),
+      cancelText: t('common.cancel'),
       onConfirm: async () => {
         await restoreMutation.mutateAsync({
           itemId: item.id,
@@ -74,12 +73,12 @@ export function MobileArchivedSection() {
   };
 
   const filterOptions: { type: FilterType; label: string }[] = [
-    { type: 'ALL', label: t('common.all', { defaultValue: 'All' }) },
-    { type: 'CATEGORY', label: t('settings.archived.categories', { defaultValue: 'Categories' }) },
-    { type: 'POOL', label: t('settings.archived.pools', { defaultValue: 'Pools' }) },
-    { type: 'INCOME_SOURCE', label: t('settings.archived.income', { defaultValue: 'Income' }) },
-    { type: 'EXPENSE_SOURCE', label: t('settings.archived.expenses', { defaultValue: 'Expenses' }) },
-    { type: 'BANK_ACCOUNT', label: t('settings.archived.accounts', { defaultValue: 'Accounts' }) },
+    { type: 'ALL', label: t('common.all') },
+    { type: 'CATEGORY', label: t('settings.archived.categories') },
+    { type: 'POOL', label: t('settings.archived.pools') },
+    { type: 'INCOME_SOURCE', label: t('settings.archived.income') },
+    { type: 'EXPENSE_SOURCE', label: t('settings.archived.expenses') },
+    { type: 'BANK_ACCOUNT', label: t('settings.archived.accounts') },
   ];
 
   return (
@@ -91,7 +90,7 @@ export function MobileArchivedSection() {
           setSearch(val);
           setPage(1);
         }}
-        placeholder={t('settings.archived.searchPlaceholder', { defaultValue: 'Search archived items...' })}
+        placeholder={t('settings.archived.searchPlaceholder')}
       />
 
       {/* Filter Pills */}
@@ -126,12 +125,10 @@ export function MobileArchivedSection() {
       ) : paginated.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>
-            {t('settings.archived.emptyTitle', { defaultValue: 'No archived items found' })}
+            {t('settings.archived.emptyTitle')}
           </Text>
           <Text style={styles.emptySubtitle}>
-            {t('settings.archived.emptySubtitle', {
-              defaultValue: 'Archived categories, pools, or bills will appear here.',
-            })}
+            {t('settings.archived.emptySubtitle')}
           </Text>
         </View>
       ) : (
@@ -156,7 +153,7 @@ export function MobileArchivedSection() {
                   <ActivityIndicator size="small" color="#2563eb" />
                 ) : (
                   <Text style={styles.restoreBtnText}>
-                    {t('settings.archived.restoreAction', { defaultValue: 'Restore' })}
+                    {t('settings.archived.restoreAction')}
                   </Text>
                 )}
               </TouchableOpacity>

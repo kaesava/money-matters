@@ -71,7 +71,7 @@ export function DatePickerField({
     () => [
       { label: t('common.today'), iso: todayIso },
       { label: t('common.yesterday'), iso: yesterdayIso },
-      { label: t('common.tomorrow', { defaultValue: 'Tomorrow' }), iso: tomorrowIso },
+      { label: t('common.tomorrow'), iso: tomorrowIso },
     ],
     [todayIso, yesterdayIso, tomorrowIso]
   );

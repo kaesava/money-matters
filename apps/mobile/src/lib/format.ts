@@ -140,9 +140,9 @@ export function formatRelativeDate(
   yesterday.setDate(today.getDate() - 1);
 
   if (d.toDateString() === today.toDateString()) {
-    return t('common.today', { defaultValue: 'Today' });
+    return t('common.today');
   } else if (d.toDateString() === yesterday.toDateString()) {
-    return t('common.yesterday', { defaultValue: 'Yesterday' });
+    return t('common.yesterday');
   } else {
     return new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', timeZone: tz }).format(d);
   }

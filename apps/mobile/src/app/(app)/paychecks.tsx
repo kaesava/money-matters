@@ -184,14 +184,11 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
 
   return (
     <AppScreenWrapper
-      title={t('nav.schedules', { defaultValue: 'Schedules' })}
+      title={t('nav.schedules')}
       scrollable={false}
       infoTooltip={{
-        title: t('tooltips.incomeBills.title', { defaultValue: 'Income & Expenses' }),
-        content: t('tooltips.incomeBills.content', {
-          defaultValue:
-            'Setup income and recurring expenses. On payday, upcoming expenses are protected by splitting your income into the right Pools so you never get caught out by surprise due dates.',
-        }),
+        title: t('tooltips.incomeBills.title'),
+        content: t('tooltips.incomeBills.content'),
       }}
     >
       <ScrollView
@@ -208,9 +205,9 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
         <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10 }}>
           <SegmentedTabs<PaycheckTabSegment>
             tabs={[
-              { key: 'MATRIX', label: t('incomeBillsTabs.matrixPlan', { defaultValue: '12M Matrix' }) },
-              { key: 'EVENTS', label: t('incomeBillsTabs.upcomingTimeline', { defaultValue: 'Upcoming' }) },
-              { key: 'SOURCES', label: t('incomeBillsTabs.setupSources', { defaultValue: 'Schedules' }) },
+              { key: 'MATRIX', label: t('incomeBillsTabs.matrixPlan') },
+              { key: 'EVENTS', label: t('incomeBillsTabs.upcomingTimeline') },
+              { key: 'SOURCES', label: t('incomeBillsTabs.setupSources') },
             ]}
             activeKey={activeSegment}
             onChange={setActiveSegment}

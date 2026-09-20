@@ -221,7 +221,7 @@ export function CategoryFormModal({ visible, categoryToEdit, onClose, onSuccess 
         {Boolean(categoryToEdit) && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
-              {t('categories.immutabilityWarning', { defaultValue: 'Pool type and linked account cannot be changed once created.' })}
+              {t('categories.immutabilityWarning')}
             </Text>
           </View>
         )}

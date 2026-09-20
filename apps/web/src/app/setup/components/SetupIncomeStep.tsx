@@ -28,24 +28,24 @@ export function SetupIncomeStep({
       <div className="p-5 bg-gradient-to-br from-[#1B2B4B] to-[#2563eb] text-white rounded-2xl shadow-md flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-extrabold uppercase tracking-wider text-teal-300 bg-white/10 px-3 py-1 rounded-full border border-teal-300/30">
-            ⏱ Takes Under 2 Minutes • Zero Math Required
+            {t("setup.income.heroBadge")}
           </span>
-          <span className="text-xs font-bold text-slate-300">Step 1 of 3</span>
+          <span className="text-xs font-bold text-slate-300">{t("setup.stepOf", { step: 1, total: 3 })}</span>
         </div>
         <h2 className="text-xl sm:text-2xl font-black text-white leading-snug">
-          Let&apos;s get your setup sorted in no time {showIcons ? "✨" : ""}
+          {t("setup.income.heroTitle")} {showIcons ? "✨" : ""}
         </h2>
         <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-          Tell us what you&apos;re saving for, answer a few simple lifestyle questions, and we&apos;ll estimate your bills &amp; everyday spending. You&apos;ll be ready to go in under 2 minutes.
+          {t("setup.income.heroSubtitle")}
         </p>
       </div>
 
       <div>
         <div className="flex items-center gap-1.5">
-          <h3 className="text-lg font-black text-[#1B2B4B]">{showIcons ? "💰 " : ""}Take-Home Pay &amp; Income</h3>
+          <h3 className="text-lg font-black text-[#1B2B4B]">{showIcons ? "💰 " : ""}{t("setup.income.sectionTitle")}</h3>
           <InfoTooltip
-            title="Why we collect take-home pay"
-            content="Knowing your net take-home earnings allows us to calculate how much surplus cash you generate each month, funding your savings goals and protecting you against bill shortfalls before you spend."
+            title={t("setup.income.takeHomePayTooltipTitle")}
+            content={t("setup.income.takeHomePayTooltipContent")}
           />
         </div>
       </div>
@@ -54,45 +54,45 @@ export function SetupIncomeStep({
         {incomes.map((inc, index) => (
           <div key={inc.id} className="p-4 bg-slate-50 rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#1B2B4B]">Income #{index + 1}</span>
+              <span className="text-xs font-bold text-[#1B2B4B]">{t("setup.income.incomeItemNumber", { number: index + 1 })}</span>
               {incomes.length > 1 && (
                 <button
                   type="button"
                   onClick={() => onRemoveIncome(inc.id)}
                   className="text-xs font-bold text-red-500 hover:text-red-700"
                 >
-                  Remove
+                  {t("common.remove")}
                 </button>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-zinc-500">Label / Name</label>
+                <label className="text-[11px] font-bold text-zinc-500">{t("setup.income.nameLabel")}</label>
                 <input
                   type="text"
                   value={inc.name}
                   onChange={(e) => onUpdateIncome(inc.id, "name", e.target.value)}
                   className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
-                  placeholder="e.g. Salary, Consulting"
+                  placeholder={t("setup.income.namePlaceholder")}
                 />
               </div>
               <AmountField
-                label="Take-Home Amount ($)"
+                label={t("setup.income.amountLabel")}
                 value={String(inc.amount ?? "")}
                 onChange={(val) => onUpdateIncome(inc.id, "amount", parseFloat(val) || 0)}
                 allowNegative={false}
               />
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-zinc-500">Frequency</label>
+                <label className="text-[11px] font-bold text-zinc-500">{t("categories.frequencyLabel")}</label>
                 <select
                   value={inc.frequency}
                   onChange={(e) => onUpdateIncome(inc.id, "frequency", e.target.value as IncomeItem["frequency"])}
                   className="px-3 py-2 text-xs font-bold rounded-xl border border-zinc-200 bg-white"
                 >
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="FORTNIGHTLY">Fortnightly</option>
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="ANNUALLY">Annually</option>
+                  <option value="WEEKLY">{t("categories.frequencyWeekly")}</option>
+                  <option value="FORTNIGHTLY">{t("categories.frequencyFortnightly")}</option>
+                  <option value="MONTHLY">{t("categories.frequencyMonthly")}</option>
+                  <option value="ANNUALLY">{t("categories.frequencyAnnually")}</option>
                 </select>
               </div>
             </div>
@@ -104,7 +104,7 @@ export function SetupIncomeStep({
           onClick={onAddIncome}
           className="py-2.5 px-4 bg-blue-50 border border-blue-200 text-[#2563eb] text-xs font-bold rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
         >
-          + {t("setup.income.addIncomeSchedule", { defaultValue: "Add Income Schedule" })}
+          + {t("setup.income.addIncomeSchedule")}
         </button>
       </div>
 
@@ -114,7 +114,7 @@ export function SetupIncomeStep({
           onClick={onNext}
           className="px-6 py-3 text-xs font-bold rounded-xl bg-[#2563eb] text-white hover:bg-blue-700 transition-all shadow-md"
         >
-          Continue to Savings Goals →
+          {t("setup.income.continueToGoals")}
         </button>
       </div>
     </div>

@@ -12,15 +12,13 @@ export default function MobileNotificationSettingsScreen() {
 
   return (
     <MobileScreenWrapper
-      title={t('notifications.settings.title', { defaultValue: 'Notification Preferences' })}
+      title={t('notifications.settings.title')}
       user={session?.user}
       showBack
       onBackPress={() => router.back()}
       infoTooltip={{
-        title: t('tooltips.notifications.title', { defaultValue: 'About Notifications' }),
-        content: t('tooltips.notifications.content', {
-          defaultValue: 'Configure email alerts and automated reminders for upcoming bills and payday allocations.',
-        }),
+        title: t('tooltips.notifications.title'),
+        content: t('tooltips.notifications.content'),
       }}
     >
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100, gap: 12 }}>
@@ -29,19 +27,16 @@ export default function MobileNotificationSettingsScreen() {
           <View style={{ flex: 1, gap: 4 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={styles.cardTitle}>
-                {t('notifications.settings.weeklyDigestTitle', { defaultValue: 'Weekly Balance Digest' })}
+                {t('notifications.settings.weeklyDigestTitle')}
               </Text>
               <View style={[styles.badge, { backgroundColor: '#2563EB15' }]}>
                 <Text style={[styles.badgeText, { color: '#2563eb' }]}>
-                  {t('notifications.settings.activeEmailBadge', { defaultValue: 'Release 1 Active (Email)' })}
+                  {t('notifications.settings.activeEmailBadge')}
                 </Text>
               </View>
             </View>
             <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.weeklyDigestDesc', {
-                defaultValue:
-                  "Receive a Sunday evening email digest of your total saved vs spent and upcoming week's forecast.",
-              })}
+              {t('notifications.settings.weeklyDigestDesc')}
             </Text>
           </View>
         </View>
@@ -51,18 +46,16 @@ export default function MobileNotificationSettingsScreen() {
           <View style={{ flex: 1, gap: 4 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={styles.cardTitle}>
-                {t('notifications.settings.paydayTitle', { defaultValue: 'Payday Split Alerts' })}
+                {t('notifications.settings.paydayTitle')}
               </Text>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
-                  {t('notifications.settings.release2MobileBadge', { defaultValue: 'Release 2 (Mobile Push)' })}
+                  {t('notifications.settings.release2MobileBadge')}
                 </Text>
               </View>
             </View>
             <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.paydayDesc', {
-                defaultValue: 'Receive 1-tap allocation alerts on the morning of scheduled paydays.',
-              })}
+              {t('notifications.settings.paydayDesc')}
             </Text>
           </View>
         </View>
@@ -72,18 +65,16 @@ export default function MobileNotificationSettingsScreen() {
           <View style={{ flex: 1, gap: 4 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={styles.cardTitle}>
-                {t('notifications.settings.shortfallTitle', { defaultValue: 'Shortfall & Overdraw Alerts' })}
+                {t('notifications.settings.shortfallTitle')}
               </Text>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
-                  {t('notifications.settings.release2MobileBadge', { defaultValue: 'Release 2 (Mobile Push)' })}
+                  {t('notifications.settings.release2MobileBadge')}
                 </Text>
               </View>
             </View>
             <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.shortfallDesc', {
-                defaultValue: 'Receive immediate warnings when a bill or transaction takes a category into negative.',
-              })}
+              {t('notifications.settings.shortfallDesc')}
             </Text>
           </View>
         </View>
@@ -93,18 +84,16 @@ export default function MobileNotificationSettingsScreen() {
           <View style={{ flex: 1, gap: 4 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={styles.cardTitle}>
-                {t('notifications.settings.billTitle', { defaultValue: 'Bill Proximity Reminders' })}
+                {t('notifications.settings.billTitle')}
               </Text>
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
-                  {t('notifications.settings.release2MobileBadge', { defaultValue: 'Release 2 (Mobile Push)' })}
+                  {t('notifications.settings.release2MobileBadge')}
                 </Text>
               </View>
             </View>
             <Text style={styles.cardSubtitle}>
-              {t('notifications.settings.billDesc', {
-                defaultValue: 'Receive reminders 3 days before upcoming fixed bills (rent, mortgage, utilities).',
-              })}
+              {t('notifications.settings.billDesc')}
             </Text>
           </View>
         </View>

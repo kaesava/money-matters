@@ -218,7 +218,7 @@ export function MarkPaidModal({
     <ModalDialog
       isOpen={isOpen}
       onClose={onClose}
-      title={t("incomeBillsTabs.markSpentModalTitle", { defaultValue: "Mark Expense Spent" })}
+      title={t("incomeBillsTabs.markSpentModalTitle")}
       maxWidth="max-w-xl"
     >
       <div className="flex flex-col gap-4">
@@ -245,7 +245,7 @@ export function MarkPaidModal({
         {/* Editable Amount & Date Inputs */}
         <div className="grid grid-cols-2 gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
           <AmountField
-            label={t("common.amount", { defaultValue: `Amount (${currencySymbol})` })}
+            label={t("common.amount")}
             required
             value={amountStr}
             onChange={setAmountStr}
@@ -256,7 +256,7 @@ export function MarkPaidModal({
             error={!isAmountValid && Boolean(amountStr) ? `Amount must be greater than ${currencySymbol}0` : undefined}
           />
           <DatePickerField
-            label={t("common.date", { defaultValue: "Date Paid" })}
+            label={t("common.date")}
             required
             max={todayStr}
             value={dateStr}
@@ -270,7 +270,6 @@ export function MarkPaidModal({
             <span>
               {t("incomeBillsTabs.expenseFutureDateAdjustedNotice", {
                 date: fmtDate(originalDate),
-                defaultValue: `The expense was scheduled for a future date (${fmtDate(originalDate)}). Defaulted to today for immediate spending.`,
               })}
             </span>
           </div>
@@ -286,17 +285,16 @@ export function MarkPaidModal({
                   poolType: formattedPoolType,
                   poolName: formattedPoolName,
                   amount: fmt(shortfallAmount),
-                  defaultValue: `The Expense ${billName || "Expense"} cannot be paid as the ${formattedPoolType} Pool "${formattedPoolName}" is short ${fmt(shortfallAmount)}. Select the Pools to transfer funds from to ensure sufficient balance.`,
                 })}
               </p>
             </div>
 
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-[#1B2B4B] dark:text-zinc-200 uppercase tracking-wider">
-                {t("incomeBillsTabs.fundingSourceSelectLabel", { defaultValue: "Select Funding Pools to cover shortfall:" })}
+                {t("incomeBillsTabs.fundingSourceSelectLabel")}
               </label>
               <span className="text-[11px] text-zinc-400 italic">
-                {t("incomeBillsTabs.hiddenZeroBalanceNote", { defaultValue: "Pools with a $0 balance are hidden." })}
+                {t("incomeBillsTabs.hiddenZeroBalanceNote")}
               </span>
             </div>
 
@@ -388,11 +386,10 @@ export function MarkPaidModal({
                 {t("incomeBillsTabs.progressAllocatedHeader", {
                   allocated: fmt(totalAllocated),
                   shortfall: fmt(shortfallAmount),
-                  defaultValue: `Total Allocated: ${fmt(totalAllocated)} / ${fmt(shortfallAmount)}`,
                 })}
               </span>
               <span className={isFulfilled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
-                {isFulfilled ? "✓ Shortfall Covered" : `Remaining: ${fmt(Math.max(0, shortfallAmount - totalAllocated))}`}
+                {isFulfilled ? t("incomeBillsTabs.shortfallCovered") : t("incomeBillsTabs.shortfallRemaining", { amount: fmt(Math.max(0, shortfallAmount - totalAllocated)) })}
               </span>
             </div>
 
@@ -403,7 +400,7 @@ export function MarkPaidModal({
                   onClick={onOpenTransferModal}
                   className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <span>{t("incomeBillsTabs.transferFundsHyperlink", { defaultValue: "Transfer funds between Pools" })} →</span>
+                  <span>{t("incomeBillsTabs.transferFundsHyperlink")} →</span>
                 </button>
               </div>
             )}
@@ -414,7 +411,6 @@ export function MarkPaidModal({
               {t("incomeBillsTabs.sufficientBalanceNotice", {
                 poolName: formattedPoolName,
                 balance: fmt(targetBalance),
-                defaultValue: `Click confirm to draw down from the Pool ${formattedPoolName} (Current balance: ${fmt(targetBalance)})`,
               })}
             </p>
           </div>
@@ -426,7 +422,7 @@ export function MarkPaidModal({
             onClick={onClose}
             className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-xl font-bold text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
           >
-            {t("common.cancel", { defaultValue: "Cancel" })}
+            {t("common.cancel")}
           </button>
           <Button
             type="button"
@@ -435,8 +431,8 @@ export function MarkPaidModal({
             onClick={handleConfirm}
           >
             {hasShortfall
-              ? t("incomeBillsTabs.confirmTransferAndSpend", { defaultValue: "Confirm Transfer & Mark Spent" })
-              : t("common.markSpent", { defaultValue: "Mark Spent" })}
+              ? t("incomeBillsTabs.confirmTransferAndSpend")
+              : t("common.markSpent")}
           </Button>
         </div>
       </div>

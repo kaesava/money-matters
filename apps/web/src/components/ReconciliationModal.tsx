@@ -166,7 +166,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
         <div className="flex justify-between items-center border-b border-slate-100 pb-4">
           <div>
             <h3 className="font-extrabold text-lg text-[#1B2B4B]">
-              {t("modals.reconciliation.title", { defaultValue: "Bank Account Alignment" })}
+              {t("modals.reconciliation.title")}
             </h3>
             <p className="text-xs text-slate-500 font-medium">{accountName}</p>
           </div>
@@ -185,26 +185,28 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
           <div className="flex flex-col">
             <div className="flex items-center gap-1">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {t("bankAccounts.reconcile.expectedTotal", { defaultValue: "Expected Total" })}
+                {t("bankAccounts.reconcile.expectedTotal")}
               </span>
               <InfoTooltip
                 align="left"
                 position="bottom"
-                content={t("bankAccounts.reconcile.expectedTooltip", {
-                  defaultValue: "Calculated as the total available balance across all pools currently linked to this bank account.",
-                })}
+                content={t("bankAccounts.reconcile.expectedTooltip")}
               />
             </div>
             <span className="font-mono font-bold text-slate-800 text-xs mt-0.5">{fmtMoney(expectedBalance)}</span>
           </div>
 
           <div className="flex flex-col border-x border-slate-200 px-2">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Available to Budget</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              {t("bankAccounts.reconcile.availableToBudget")}
+            </span>
             <span className="font-mono font-bold text-slate-900 text-xs mt-0.5">{fmtMoney(newAvailableToBudget)}</span>
           </div>
 
           <div className="flex flex-col text-right">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Difference</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              {t("bankAccounts.reconcile.difference")}
+            </span>
             <span className={`font-mono font-bold text-xs mt-0.5 ${isSurplus ? "text-emerald-600" : "text-amber-600"}`}>
               {isSurplus ? `+${fmtMoney(variance)}` : `-${fmtMoney(absVariance)}`}
             </span>
@@ -215,29 +217,23 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
         <div className={`p-3.5 rounded-xl border text-xs leading-relaxed font-medium ${
           isSurplus ? "bg-emerald-50/80 border-emerald-200 text-emerald-900" : "bg-amber-50/80 border-amber-200 text-amber-900"
         }`}>
-          {isSurplus ? (
-            <p>
-              Select the pools where this <strong className="font-bold">surplus ({fmtMoney(absVariance)})</strong> will go:
-            </p>
-          ) : (
-            <p>
-              Select the pools where this <strong className="font-bold">shortfall ({fmtMoney(absVariance)})</strong> will come from:
-            </p>
-          )}
+          <p>
+            {isSurplus
+              ? t("bankAccounts.reconcile.surplusNotice", { amount: fmtMoney(absVariance) })
+              : t("bankAccounts.reconcile.shortfallNotice", { amount: fmtMoney(absVariance) })}
+          </p>
         </div>
 
         {/* Optional Reason / Note Input */}
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-            {t("bankAccounts.reconcile.reasonLabel", { defaultValue: "Reason (Optional)" })}
+            {t("bankAccounts.reconcile.reasonLabel")}
           </label>
           <input
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder={t("bankAccounts.reconcile.reasonPlaceholder", {
-              defaultValue: "e.g., Interest credited, Bank fee, Balance correction",
-            })}
+            placeholder={t("bankAccounts.reconcile.reasonPlaceholder")}
             className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb] text-slate-800"
           />
         </div>
@@ -247,15 +243,15 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
-                <th className="py-2 text-left">Pool</th>
-                <th className="py-2 text-right">Available</th>
-                <th className="py-2 text-right w-28">Adjustment ($)</th>
+                <th className="py-2 text-left">{t("bankAccounts.reconcile.tablePool")}</th>
+                <th className="py-2 text-right">{t("bankAccounts.reconcile.tableAvailable")}</th>
+                <th className="py-2 text-right w-28">{t("bankAccounts.reconcile.tableAdjustment")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
               {visiblePools.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="py-4 text-center text-slate-400 italic">No valid linked pools available.</td>
+                  <td colSpan={3} className="py-4 text-center text-slate-400 italic">{t("bankAccounts.reconcile.noLinkedPools")}</td>
                 </tr>
               ) : (
                 visiblePools.map((pool) => {
@@ -270,12 +266,12 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                             <span className="font-bold text-[#1B2B4B]">{pool.name}</span>
                             {pool.isSurplusTarget && (
                               <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 bg-blue-100 text-blue-700 rounded-md">
-                                Sweep Goal
+                                {t("bankAccounts.reconcile.sweepGoalBadge")}
                               </span>
                             )}
                           </div>
                           <span className={`text-[9px] font-bold inline-block w-max mt-0.5 rounded px-1.5 py-0.2 ${badgeStyle}`}>
-                            {pool.poolType === "EVERYDAY" ? "Everyday" : pool.poolType === "REGULAR" ? "Bills" : "Goal"}
+                            {pool.poolType === "EVERYDAY" ? t("poolTypes.everyday") : pool.poolType === "REGULAR" ? t("poolTypes.bills") : t("poolTypes.goals")}
                           </span>
                         </div>
                       </td>
@@ -308,23 +304,23 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
 
           {hasHiddenZeroPools && (
             <p className="text-[10px] text-slate-400 italic pt-1">
-              Note: Pools with $0.00 balance are hidden as they cannot absorb a shortfall.
+              {t("bankAccounts.reconcile.zeroBalanceHiddenNotice")}
             </p>
           )}
         </div>
 
         {/* Live Sum Validation Status */}
         <div className="flex items-center justify-between text-xs font-semibold pt-1 border-t border-slate-100">
-          <span className="text-slate-500">Allocated Split Total:</span>
+          <span className="text-slate-500">{t("bankAccounts.reconcile.allocatedSplitTotal")}</span>
           <div className="flex items-center gap-2">
             <span className={`font-mono font-bold ${isSumValid ? "text-emerald-600" : "text-amber-600"}`}>
               {fmtMoney(sumAdjustments)} / {fmtMoney(absVariance)}
             </span>
             {isSumValid ? (
-              <span className="text-emerald-600 font-bold">✓ Matches</span>
+              <span className="text-emerald-600 font-bold">{t("bankAccounts.reconcile.matches")}</span>
             ) : (
               <span className="text-amber-600 font-bold text-[10px]">
-                ({fmtMoney(Math.abs(absVariance - sumAdjustments))} remaining)
+                {t("bankAccounts.reconcile.remaining", { amount: fmtMoney(Math.abs(absVariance - sumAdjustments)) })}
               </span>
             )}
           </div>
@@ -338,7 +334,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
               onClick={onOpenTransferModal}
               className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer inline-flex items-center gap-1"
             >
-              <span>Transfer funds between pools →</span>
+              <span>{t("bankAccounts.reconcile.transferBetweenPoolsLink")}</span>
             </button>
           </div>
         )}
@@ -351,7 +347,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             disabled={isSubmitting}
             className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
           >
-            {t("common.cancel", { defaultValue: "Cancel" })}
+            {t("common.cancel")}
           </button>
 
           <Button
@@ -361,7 +357,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
             disabled={!isSumValid}
             className="flex-1"
           >
-            {t("common.confirm", { defaultValue: "Confirm" })}
+            {t("common.confirm")}
           </Button>
         </div>
 

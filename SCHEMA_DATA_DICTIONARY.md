@@ -39,7 +39,7 @@ Multi-tenant container (household / organization).
 - `stripeCustomerId` (text, nullable): Stripe customer reference.
 - `stripeSubscriptionId` (text, nullable): Active Stripe subscription ID.
 - `subscriptionStatus` (`trialing` | `active` | `past_due` | `canceled` | `unpaid` | `incomplete` | `incomplete_expired` | `paused`, default `'trialing'`): Billing lifecycle status.
-- `currentPeriodEnd` (timestamp, nullable): Stripe billing period end date.
+- `subscriptionEndsAt` (timestamp with time zone, nullable): Stripe billing period end date.
 - `cancelAtPeriodEnd` (boolean, default `false`): Subscription cancellation pending flag.
 - `setupCompletedAt` (timestamp with time zone, nullable): Household setup completion timestamp.
 - `setupStatus` (`PENDING` | `COMPLETED`, default `'PENDING'`): Household onboarding setup status.

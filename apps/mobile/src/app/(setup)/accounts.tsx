@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
@@ -16,6 +17,7 @@ import { trpc } from '../../lib/trpc';
 import { InfoTooltip } from '../../components/InfoTooltip';
 
 export default function SetupBankAccountsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{
     incomeName?: string;
@@ -126,7 +128,16 @@ export default function SetupBankAccountsScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop: Math.max(insets.top + 16, 20),
+          paddingBottom: Math.max(insets.bottom + 20, 20),
+        },
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Top Nav Row */}
       <View style={styles.topNavRow}>
         <View style={styles.progressRow}>
@@ -143,11 +154,11 @@ export default function SetupBankAccountsScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 2, total: 3, defaultValue: 'Step 2 of 3' })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 2, total: 3 })}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
         <Text style={styles.title}>{t('setup.bankAccountsStep.title')}</Text>
         <InfoTooltip
-          title="Bank Accounts & Routing"
+          title={t('setup.bankAccountsStep.tooltipTitle')}
           content={t('setup.bankAccountsStep.tooltip')}
         />
       </View>

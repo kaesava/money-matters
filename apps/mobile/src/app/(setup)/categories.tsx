@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet, ActivityIndicator
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@money-matters/i18n';
 import { DESIGN_TOKENS, showMobileConfirm, useMobileToast } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
@@ -10,6 +11,7 @@ import { formatIsoDate } from '../../lib/format';
 import { AUSTRALIAN_FAMILY_PRESETS, SetupPreset } from '@money-matters/types';
 
 export default function SetupCategoriesScreen() {
+  const insets = useSafeAreaInsets();
   const toast = useMobileToast();
   const router = useRouter();
   const params = useLocalSearchParams<{ incomeName: string; incomeAmount: string; incomeFrequency: string; mode?: string }>();
@@ -121,7 +123,7 @@ export default function SetupCategoriesScreen() {
       const numericAmount = parseFloat(params.incomeAmount || '0') || 2000;
       const incomesPayload = [
         {
-          name: params.incomeName || t('setup.income.defaultName', { defaultValue: 'My Salary' }),
+          name: params.incomeName || t('setup.income.defaultName'),
           amount: numericAmount.toFixed(2),
           frequency: (params.incomeFrequency as 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY') || 'FORTNIGHTLY',
           type: 'SALARY' as const,
@@ -170,7 +172,16 @@ export default function SetupCategoriesScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop: Math.max(insets.top + 16, 56),
+          paddingBottom: Math.max(insets.bottom + 20, 40),
+        },
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.topNavRow}>
         <View style={styles.progressRow}>
           <View style={[styles.progressDot, styles.progressDotActive]} />
@@ -186,12 +197,12 @@ export default function SetupCategoriesScreen() {
         </TouchableOpacity>
       </View>
       
-      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 3, total: 3, defaultValue: 'Step 3 of 3' })}</Text>
-      <Text style={styles.title}>{t('setup.bills.title', { defaultValue: 'Which bills do you have?' })}</Text>
-      <Text style={styles.subtitle}>{t('setup.bills.subtitle', { defaultValue: "Tick the ones that apply and adjust the monthly amounts." })}</Text>
+      <Text style={styles.stepLabel}>{t('setup.stepOf', { step: 3, total: 3 })}</Text>
+      <Text style={styles.title}>{t('setup.bills.title')}</Text>
+      <Text style={styles.subtitle}>{t('setup.bills.subtitle')}</Text>
 
       {/* REGULAR BILLS */}
-      <Text style={styles.sectionTitle}>{t('setup.bills.regularSection', { defaultValue: 'Regular Bills & Obligations' })}</Text>
+      <Text style={styles.sectionTitle}>{t('setup.bills.regularSection')}</Text>
       {allPresets.filter(p => p.type === 'REGULAR').map((p) => {
         const on = selected.has(p.id);
         return (
@@ -207,7 +218,7 @@ export default function SetupCategoriesScreen() {
 
             {on && (
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Monthly ($)</Text>
+                <Text style={styles.inputLabel}>{t('setup.bills.monthlyLabel')}</Text>
                 <TextInput
                   style={styles.inlineInput}
                   keyboardType="numeric"
@@ -227,7 +238,7 @@ export default function SetupCategoriesScreen() {
       })}
 
       {/* SAVINGS GOALS */}
-      <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t('setup.bills.savingsSection', { defaultValue: 'Savings Goals' })}</Text>
+      <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t('setup.bills.savingsSection')}</Text>
       {allPresets.filter(p => p.type === 'GOAL').map((p) => {
         const on = selected.has(p.id);
         return (
@@ -243,7 +254,7 @@ export default function SetupCategoriesScreen() {
 
             {on && (
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Target ($)</Text>
+                <Text style={styles.inputLabel}>{t('setup.bills.targetLabel')}</Text>
                 <TextInput
                   style={styles.inlineInput}
                   keyboardType="numeric"
@@ -265,7 +276,7 @@ export default function SetupCategoriesScreen() {
       <View style={styles.customRow}>
         <TextInput
           style={styles.customInput}
-          placeholder={t('setup.bills.customAddCta', { defaultValue: 'Add custom bill or goal...' })}
+          placeholder={t('setup.bills.customAddCta')}
           placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
           value={customName}
           onChangeText={setCustomName}
@@ -281,7 +292,7 @@ export default function SetupCategoriesScreen() {
 
       {selected.size > 0 && (
         <View style={styles.excessContainer}>
-          <Text style={styles.excessLabel}>{t('setup.bills.excessLabel', { defaultValue: 'Where should leftover money go?' })}</Text>
+          <Text style={styles.excessLabel}>{t('setup.bills.excessLabel')}</Text>
           <View style={styles.pickerRow}>
             {allPresets.filter(p => selected.has(p.id)).map(p => (
               <TouchableOpacity
@@ -305,7 +316,7 @@ export default function SetupCategoriesScreen() {
         {isSubmitting ? (
           <ActivityIndicator color={DESIGN_TOKENS.colors.onAccent} />
         ) : (
-          <Text style={styles.nextText}>{t('setup.bills.completeCta', { defaultValue: 'Complete Setup 🎉' })}</Text>
+          <Text style={styles.nextText}>{t('setup.bills.completeCta')}</Text>
         )}
       </TouchableOpacity>
     </ScrollView>

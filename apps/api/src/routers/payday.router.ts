@@ -244,7 +244,7 @@ export const paydayRouter = {
           categoryId: z.string().uuid().optional(),
           proposedAmount: z.string(),
           reasoning: z.string().optional(),
-        })),
+        }).strict()),
       }).strict()
     )
     .mutation(async ({ input, ctx }) => {

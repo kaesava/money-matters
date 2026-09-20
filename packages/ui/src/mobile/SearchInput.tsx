@@ -33,7 +33,7 @@ export function SearchInput({
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
-        placeholder={placeholder || t('common.searchPlaceholder', { defaultValue: 'Search...' })}
+        placeholder={placeholder || t('common.searchPlaceholder')}
         placeholderTextColor="#94A3B8"
         returnKeyType="search"
         clearButtonMode="never"

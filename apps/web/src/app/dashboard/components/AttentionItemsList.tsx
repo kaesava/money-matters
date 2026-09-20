@@ -86,26 +86,22 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-              {t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })}
+              {t("dashboard.upcomingExpensesTransfers.title")}
             </h2>
             <InfoTooltip
-              title={t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })}
-              content={t("dashboard.upcomingExpensesTransfers.tooltip", {
-                defaultValue: "Upcoming bill commitments and scheduled pool transfers.",
-              })}
+              title={t("dashboard.upcomingExpensesTransfers.title")}
+              content={t("dashboard.upcomingExpensesTransfers.tooltip")}
             />
           </div>
           <Link
             href="/dashboard/income-and-bills?tab=EVENTS"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
-            {t("common.showMore", { defaultValue: "Show More →" })}
+            {t("common.showMore")}
           </Link>
         </div>
         <p className="text-xs text-gray-400 py-4 text-center">
-          {t("dashboard.upcomingExpensesTransfers.empty", {
-            defaultValue: "No upcoming expenses or transfers scheduled.",
-          })}
+          {t("dashboard.upcomingExpensesTransfers.empty")}
         </p>
       </div>
     );
@@ -127,21 +123,19 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-            {t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })} (
+            {t("dashboard.upcomingExpensesTransfers.title")} (
             {items.length})
           </h2>
           <InfoTooltip
-            title={t("dashboard.upcomingExpensesTransfers.title", { defaultValue: "Upcoming Expenses & Transfers" })}
-            content={t("dashboard.upcomingExpensesTransfers.tooltip", {
-              defaultValue: "Upcoming bill commitments and scheduled pool transfers.",
-            })}
+            title={t("dashboard.upcomingExpensesTransfers.title")}
+            content={t("dashboard.upcomingExpensesTransfers.tooltip")}
           />
         </div>
         <Link
           href="/dashboard/income-and-bills?tab=EVENTS"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
-          {t("common.showMore", { defaultValue: "Show More →" })}
+          {t("common.showMore")}
         </Link>
       </div>
 
@@ -150,7 +144,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
           const isOverdue = item.isOverdue || item.expectedDate < todayStr;
           const isTransfer = item.type === "TRANSFER";
 
-          let daysAwayNode: React.ReactNode = "";
+            let daysAwayNode: React.ReactNode = "";
           if (item.expectedDate) {
             const itemDate = new Date(item.expectedDate);
             itemDate.setHours(0, 0, 0, 0);
@@ -158,19 +152,20 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
             todayZero.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((itemDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDays === 0) {
-              daysAwayNode = t("dashboard.upcomingExpensesTransfers.dueToday", { defaultValue: "Due today!" });
+              daysAwayNode = t("dashboard.upcomingExpensesTransfers.dueToday");
             } else if (diffDays > 0) {
               daysAwayNode = t("dashboard.upcomingExpensesTransfers.daysAway", {
                 count: diffDays,
                 plural: diffDays === 1 ? "" : "s",
-                defaultValue: `${diffDays} day${diffDays === 1 ? "" : "s"} away`,
               });
             } else {
               const count = Math.abs(diffDays);
               daysAwayNode = (
-                <span>
-                  {count} {count === 1 ? "day" : "days"}{" "}
-                  <strong className="font-extrabold text-rose-600 dark:text-rose-400">overdue</strong>
+                <span className="font-extrabold text-rose-600 dark:text-rose-400">
+                  {t("dashboard.upcomingExpensesTransfers.daysOverdue", {
+                    count,
+                    plural: count === 1 ? "" : "s",
+                  })}
                 </span>
               );
             }
@@ -192,12 +187,12 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                   <span className="text-xs font-bold text-[#1B2B4B] block truncate">{item.name}</span>
                   {!isOverdue && isTransfer && (
                     <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-indigo-200">
-                      {t("common.transfer", { defaultValue: "Transfer" })}
+                      {t("common.transfer")}
                     </span>
                   )}
                   {!isOverdue && !isTransfer && (
                     <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-amber-200">
-                      {t("common.dueSoon", { defaultValue: "Due Soon" })}
+                      {t("common.dueSoon")}
                     </span>
                   )}
                 </div>
@@ -215,7 +210,6 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       {typeof item.categoryBalance === "number" &&
                         ` ${t("dashboard.upcomingExpensesTransfers.availableSuffix", {
                           amount: format(item.categoryBalance),
-                          defaultValue: `· ${format(item.categoryBalance)} available`,
                         })}`}
                     </span>
                   )}
@@ -230,7 +224,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       onClick={() => setSelectedMarkPaidItem(item)}
                       className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
                     >
-                      {t("common.markSpent", { defaultValue: "Mark Spent" })}
+                      {t("common.markSpent")}
                     </button>
                     {onSkipExpense && (
                       <button
@@ -238,7 +232,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                         onClick={() => setSelectedDeleteItem(item)}
                         className="text-xs font-semibold text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:underline cursor-pointer transition-colors px-1.5 py-1"
                       >
-                        {t("common.delete", { defaultValue: "Delete" })}
+                        {t("common.delete")}
                       </button>
                     )}
                   </>
@@ -249,7 +243,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                       onClick={() => setSelectedTransferItem(item)}
                       className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
                     >
-                      {t("common.transfer", { defaultValue: "Transfer" })}
+                      {t("common.transfer")}
                     </button>
                     {onDeleteTransfer && (
                       <button
@@ -257,7 +251,7 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
                         onClick={() => setSelectedDeleteItem(item)}
                         className="text-xs font-semibold text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:underline cursor-pointer transition-colors px-1.5 py-1"
                       >
-                        {t("common.delete", { defaultValue: "Delete" })}
+                        {t("common.delete")}
                       </button>
                     )}
                   </>
@@ -354,21 +348,18 @@ export const AttentionItemsList: React.FC<WebAttentionItemsListProps> = ({
           }}
           title={
             selectedDeleteItem.type === "EXPENSE"
-              ? t("common.deleteExpenseTitle", { defaultValue: "Delete Expense" })
-              : t("modals.transfer.deleteConfirmTitle", { defaultValue: "Delete Transfer" })
+              ? t("common.deleteExpenseTitle")
+              : t("modals.transfer.deleteConfirmTitle")
           }
           description={
             selectedDeleteItem.type === "EXPENSE"
               ? t("common.deleteExpensePrompt", {
                   name: selectedDeleteItem.name,
-                  defaultValue: `Are you sure you want to delete "${selectedDeleteItem.name}"?`,
                 })
-              : t("modals.transfer.deletePrompt", {
-                  defaultValue: "Are you sure you want to delete this scheduled transfer? This action cannot be undone.",
-                })
+              : t("modals.transfer.deletePrompt")
           }
-          confirmLabel={t("common.delete", { defaultValue: "Delete" })}
-          cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+          confirmLabel={t("common.delete")}
+          cancelLabel={t("common.cancel")}
           variant="danger"
         />
       )}

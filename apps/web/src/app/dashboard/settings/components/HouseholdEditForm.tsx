@@ -51,15 +51,15 @@ export function HouseholdEditForm({
       <div className="flex items-center justify-between border-b border-slate-100 pb-5">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-[#1B2B4B]">
-            {t("settings.editHouseholdTitle", { defaultValue: "Edit Household Details" })}
+            {t("settings.editHouseholdTitle")}
           </h2>
-          <InfoTooltip content="Update your household name, base currency, and location details. Shared across household members." />
+          <InfoTooltip content={t("settings.householdTooltip")} />
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="edit-household-name" className="text-xs font-bold text-[#1B2B4B]">
-          Household Name <span className="text-red-500">*</span>
+          {t("auth.householdNameLabel")} <span className="text-red-500">*</span>
         </label>
         <input
           id="edit-household-name"
@@ -68,7 +68,7 @@ export function HouseholdEditForm({
           autoFocus
           value={householdName}
           onChange={(e) => setHouseholdName(e.target.value)}
-          placeholder="e.g. Smith Household"
+          placeholder={t("auth.householdNamePlaceholder")}
           className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
         />
       </div>
@@ -144,7 +144,7 @@ export function HouseholdEditForm({
           loading={isSubmitting}
           disabled={isSubmitting || !isDirty}
         >
-          Save Household Details
+          {t("settings.saveHouseholdCta")}
         </Button>
       </div>
     </form>

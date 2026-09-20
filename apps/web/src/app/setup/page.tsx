@@ -103,14 +103,14 @@ function SetupWizardContent() {
             <span className="text-sm font-black text-[#1B2B4B] tracking-tight">Money Matters</span>
             <span className="text-xs font-bold text-slate-300">|</span>
             <span className="text-xs font-bold text-slate-500">
-              {isRerun ? t("setup.recalibrateTitle") : t("setup.wizardTitle", { defaultValue: "Setup Wizard" })} (Step {step} of {totalSteps})
+              {isRerun ? t("setup.recalibrateTitle") : t("setup.wizardTitle")} ({t("setup.stepOf", { step, total: totalSteps })})
             </span>
           </div>
           <button
             type="button"
             onClick={() => setShowDiscardModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-extrabold text-slate-600 hover:text-red-700 bg-slate-100 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
-            title="Cancel Setup (Esc)"
+            title={`${t("setup.cancelSetup")} (Esc)`}
           >
             <span className="text-sm font-black leading-none">✕</span>
             <span>{t("setup.cancelSetup")}</span>

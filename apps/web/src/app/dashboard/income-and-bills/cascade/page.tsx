@@ -94,11 +94,11 @@ function CascadeContent() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("incomeCascade.title", { defaultValue: "Income Split" })}</h1>
-          <p className="text-sm font-medium text-zinc-500 mt-1">{t("incomeCascade.description", { defaultValue: "Review and fine-tune pool allocations for this payday." })}</p>
+          <h1 className="text-2xl font-black text-[#1B2B4B]">{t("incomeCascade.title")}</h1>
+          <p className="text-sm font-medium text-zinc-500 mt-1">{t("incomeCascade.description")}</p>
         </div>
         <div className="text-right">
-          <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">{t("incomeCascade.paycheckAmountLabel", { defaultValue: "Paycheck Amount" })}</span>
+          <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest block">{t("incomeCascade.paycheckAmountLabel")}</span>
           <span className="text-xl font-black font-mono text-emerald-600">{fmt(amount)}</span>
         </div>
       </div>
@@ -135,9 +135,9 @@ function CascadeContent() {
           <thead>
             <tr className="bg-zinc-50 border-b border-zinc-200 font-bold text-zinc-600">
               <th className="px-6 py-3">Pool Name</th>
-              <th className="px-6 py-3">{t("incomeCascade.reasoningHeader", { defaultValue: "Allocation Reasoning" })}</th>
-              <th className="px-6 py-3 text-right">{t("incomeCascade.engineProposedHeader", { defaultValue: "Engine Proposed" })}</th>
-              <th className="px-6 py-3 text-right rounded-r-lg">{t("incomeCascade.confirmedSplitHeader", { defaultValue: "Confirmed Split" })}</th>
+              <th className="px-6 py-3">{t("incomeCascade.reasoningHeader")}</th>
+              <th className="px-6 py-3 text-right">{t("incomeCascade.engineProposedHeader")}</th>
+              <th className="px-6 py-3 text-right rounded-r-lg">{t("incomeCascade.confirmedSplitHeader")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -175,7 +175,7 @@ function CascadeContent() {
           onClick={() => router.push("/dashboard/income-and-bills")}
           className="px-5 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 font-bold text-sm hover:bg-zinc-50 transition-colors"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
         <button
           type="button"
@@ -184,8 +184,8 @@ function CascadeContent() {
           className="px-6 py-2.5 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm shadow-md transition-colors disabled:opacity-50"
         >
           {confirmMutation.isPending
-            ? t("incomeCascade.confirmingButton", { defaultValue: "Confirming..." })
-            : t("incomeCascade.confirmButton", { defaultValue: "Confirm Income Split" })}
+            ? t("incomeCascade.confirmingButton")
+            : t("incomeCascade.confirmButton")}
         </button>
       </div>
     </div>

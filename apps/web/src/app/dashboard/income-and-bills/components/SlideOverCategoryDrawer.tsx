@@ -142,7 +142,7 @@ export function SlideOverCategoryDrawer({
                     href={`/dashboard/pools?poolId=${targetPool?.id || ""}`}
                     onClick={onClose}
                     className="text-xl font-black text-[#2563eb] hover:underline transition-colors flex items-center gap-1.5"
-                    title="View in Pools screen"
+                    title={t("categoryDrawer.viewInPools")}
                   >
                     <span>{categoryName}</span>
                     <span className="text-xs font-normal text-zinc-400">↗</span>
@@ -167,7 +167,7 @@ export function SlideOverCategoryDrawer({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700/60">
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  Current Balance
+                  {t("categoryDrawer.currentBalance")}
                 </span>
                 <span className="text-sm font-black font-mono text-[#1B2B4B] dark:text-white">
                   ${currentBal.toFixed(2)}
@@ -175,15 +175,15 @@ export function SlideOverCategoryDrawer({
               </div>
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  Target Amount
+                  {t("categoryDrawer.targetAmount")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
-                  {targetAmt ? `$${targetAmt.toFixed(2)}${targetPool?.poolType !== "GOAL" ? " / mo" : ""}` : "—"}
+                  {targetAmt ? `$${targetAmt.toFixed(2)}${targetPool?.poolType !== "GOAL" ? ` ${t("categoryDrawer.perMonth")}` : ""}` : "—"}
                 </span>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                  {isGoalPool ? t("categoryDrawer.targetDate", { defaultValue: "Target Date" }) : "Pool Type"}
+                  {isGoalPool ? t("categoryDrawer.targetDate") : t("categoryDrawer.poolType")}
                 </span>
                 <span className="text-sm font-black font-mono text-zinc-700 dark:text-zinc-300">
                   {isGoalPool
@@ -198,9 +198,9 @@ export function SlideOverCategoryDrawer({
             {/* Navigation Tabs */}
             <Tabs
               tabs={[
-                { id: "categories", label: `${t("categoryDrawer.tabs.categories", { defaultValue: "Categories" })} (${relatedCategories.length})` },
-                { id: "expenses", label: `${t("categoryDrawer.tabs.upcomingExpenses", { defaultValue: "Upcoming Expenses" })} (${events.length})` },
-                { id: "activity", label: `${t("categoryDrawer.tabs.history", { defaultValue: "History" })} (${relatedTransactions.length})` },
+                { id: "categories", label: `${t("categoryDrawer.tabs.categories")} (${relatedCategories.length})` },
+                { id: "expenses", label: `${t("categoryDrawer.tabs.upcomingExpenses")} (${events.length})` },
+                { id: "activity", label: `${t("categoryDrawer.tabs.history")} (${relatedTransactions.length})` },
               ]}
               activeTab={activeTab}
               onChange={(id) => setActiveTab(id as "categories" | "expenses" | "activity")}
@@ -214,16 +214,16 @@ export function SlideOverCategoryDrawer({
               <div className="space-y-4">
                 {relatedCategories.length === 0 ? (
                   <div className="text-center py-12 text-zinc-400 text-xs font-medium">
-                    {t("categoryDrawer.noCategories", { defaultValue: "No sub-categories found for this pool." })}
+                    {t("categoryDrawer.noCategories")}
                   </div>
                 ) : (
                   <div className="w-full overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 shadow-2xs">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
                         <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                          <th className="p-3">Category Name</th>
-                          <th className="p-3 text-right">Target / Budget</th>
-                          <th className="p-3 text-center">Frequency</th>
+                          <th className="p-3">{t("categoryDrawer.categoryName")}</th>
+                          <th className="p-3 text-right">{t("categoryDrawer.targetBudget")}</th>
+                          <th className="p-3 text-center">{t("categoryDrawer.frequency")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -241,7 +241,7 @@ export function SlideOverCategoryDrawer({
                                   href={`/dashboard/pools?categoryId=${cat.id}`}
                                   onClick={onClose}
                                   className="text-[#2563eb] hover:underline font-bold transition-colors inline-flex items-center gap-1"
-                                  title="View in Pools screen"
+                                  title={t("categoryDrawer.viewInPools")}
                                 >
                                   <span>{cat.name}</span>
                                   <span className="text-[10px] font-normal text-zinc-400">↗</span>
@@ -251,7 +251,7 @@ export function SlideOverCategoryDrawer({
                                 {budgetAmt !== null ? `$${budgetAmt.toFixed(2)}` : "—"}
                               </td>
                               <td className="p-3 text-center font-medium text-zinc-500">
-                                {cat.budgetFrequency || "Monthly"}
+                                {cat.budgetFrequency || t("categories.frequencyMonthly")}
                               </td>
                             </tr>
                           );
@@ -272,24 +272,24 @@ export function SlideOverCategoryDrawer({
                     onClick={onClose}
                     className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
                   >
-                    <span>{t("categoryDrawer.seeAllUpcomingExpenses", { defaultValue: "See All Upcoming Expenses" })}</span>
+                    <span>{t("categoryDrawer.seeAllUpcomingExpenses")}</span>
                     <span>→</span>
                   </Link>
                 </div>
 
                 {upcomingExpensesList.length === 0 ? (
                   <div className="text-center py-12 text-zinc-400 text-xs font-medium">
-                    {t("categoryDrawer.noExpenses", { defaultValue: "No scheduled expense events found for this pool." })}
+                    {t("categoryDrawer.noExpenses")}
                   </div>
                 ) : (
                   <div className="w-full overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 shadow-2xs">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
                         <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                          <th className="p-3">Expense Name</th>
-                          <th className="p-3 text-center">Due Date</th>
-                          <th className="p-3 text-right">Amount</th>
-                          <th className="p-3 text-center">Status</th>
+                          <th className="p-3">{t("categoryDrawer.expenseName")}</th>
+                          <th className="p-3 text-center">{t("categoryDrawer.dueDate")}</th>
+                          <th className="p-3 text-right">{t("categoryDrawer.amount")}</th>
+                          <th className="p-3 text-center">{t("categoryDrawer.status")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -307,7 +307,7 @@ export function SlideOverCategoryDrawer({
                             <td className="p-3 text-center">
                               {evt.isPaid ? (
                                 <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md inline-block">
-                                  CONFIRMED
+                                  {t("categoryDrawer.confirmed")}
                                 </span>
                               ) : onMarkPaid ? (
                                 <button
@@ -315,11 +315,11 @@ export function SlideOverCategoryDrawer({
                                   onClick={() => onMarkPaid(evt.id, evt.amount, evt.dueDate)}
                                   className="px-2.5 py-1 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 text-[#2563eb] text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
                                 >
-                                  Mark Paid
+                                  {t("categoryDrawer.markPaid")}
                                 </button>
                               ) : (
                                 <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-md inline-block">
-                                  PENDING
+                                  {t("categoryDrawer.pending")}
                                 </span>
                               )}
                             </td>
@@ -341,29 +341,29 @@ export function SlideOverCategoryDrawer({
                     onClick={onClose}
                     className="text-xs font-bold text-[#2563eb] hover:underline transition-colors inline-flex items-center gap-1"
                   >
-                    <span>{t("categoryDrawer.seeFullHistory", { defaultValue: "See Full History" })}</span>
+                    <span>{t("categoryDrawer.seeFullHistory")}</span>
                     <span>→</span>
                   </Link>
                 </div>
 
                 {historyTransactionsList.length === 0 ? (
                   <div className="text-center py-12 text-zinc-400 text-xs font-medium">
-                    {t("categoryDrawer.noTransactions", { defaultValue: "No recent activity found for this pool." })}
+                    {t("categoryDrawer.noTransactions")}
                   </div>
                 ) : (
                   <div className="w-full overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900 shadow-2xs">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
                         <tr className="bg-zinc-50 dark:bg-zinc-800/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold">
-                          <th className="p-3 text-center">Date</th>
-                          <th className="p-3">Description</th>
-                          <th className="p-3 text-center">Type</th>
-                          <th className="p-3 text-right">Amount</th>
+                          <th className="p-3 text-center">{t("categoryDrawer.date")}</th>
+                          <th className="p-3">{t("categoryDrawer.description")}</th>
+                          <th className="p-3 text-center">{t("categoryDrawer.type")}</th>
+                          <th className="p-3 text-right">{t("categoryDrawer.amount")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                         {historyTransactionsList.map((tx) => {
-                          const noteText = tx.note || tx.categoryName || tx.poolName || "Transaction";
+                          const noteText = tx.note || tx.categoryName || tx.poolName || t("categoryDrawer.transactionFallback");
                           const isDebit = tx.flowType === "DEBIT";
 
                           return (

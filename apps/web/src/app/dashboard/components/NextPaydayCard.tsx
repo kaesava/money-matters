@@ -52,16 +52,16 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
       <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-2xs">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-extrabold text-[#1B2B4B]">Upcoming Income</h2>
+            <h2 className="text-sm font-extrabold text-[#1B2B4B]">{t('dashboard.nextPay.upcomingIncome')}</h2>
           </div>
           <Link
             href="/dashboard/income-and-bills?tab=MATRIX"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
-            Show More →
+            {t('dashboard.nextPay.showMore')} →
           </Link>
         </div>
-        <p className="text-xs text-gray-400 py-4 text-center">No upcoming paydays scheduled.</p>
+        <p className="text-xs text-gray-400 py-4 text-center">{t('dashboard.nextPay.noUpcoming')}</p>
       </div>
     );
   }
@@ -73,14 +73,14 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold text-[#1B2B4B]">
-            Upcoming Income ({upcomingIncomes.length})
+            {t('dashboard.nextPay.upcomingIncomeWithCount', { count: upcomingIncomes.length })}
           </h2>
         </div>
         <Link
           href="/dashboard/income-and-bills?tab=MATRIX"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
-          Show More →
+          {t('dashboard.nextPay.showMore')} →
         </Link>
       </div>
 
@@ -94,7 +94,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             const todayZero = new Date();
             todayZero.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((payDate.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
-            if (diffDays === 0) daysAwayText = t('dashboard.hero.dueToday') || 'Due today!';
+            if (diffDays === 0) daysAwayText = t('dashboard.hero.dueToday');
             else if (diffDays > 0) daysAwayText = `${diffDays} day${diffDays === 1 ? '' : 's'} away`;
             else {
               isOverdue = true;
@@ -117,18 +117,18 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   </span>
                   {isEarliest && (
                     <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold text-[9px] rounded uppercase tracking-wider">
-                      Next Payday
+                      {t('dashboard.nextPay.nextPaydayBadge')}
                     </span>
                   )}
                   {isSaved && (
                     <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 font-extrabold text-[9px] rounded uppercase tracking-wider border border-blue-200">
-                      Saved
+                      {t('dashboard.nextPay.savedBadge')}
                     </span>
                   )}
                 </div>
                 <p className="text-[11px] text-gray-500 font-mono">
                   <span className="font-semibold text-gray-900">{format(income.amount)}</span> · {daysAwayText}{' '}
-                  {isOverdue && <strong className="font-extrabold text-rose-600 dark:text-rose-400">overdue </strong>}
+                  {isOverdue && <strong className="font-extrabold text-rose-600 dark:text-rose-400">{t('common.overdue').toLowerCase()}{' '}</strong>}
                   ({formatLocaleDate(income.expectedDate)})
                 </p>
                 {income.bankAccountName && (
@@ -138,7 +138,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                       <>
                         {' '}·{' '}
                         <span className="font-mono font-medium text-gray-700 dark:text-gray-300">{format(income.availableToBudget)}</span>{' '}
-                        {t('dashboard.availableToBudget', { defaultValue: 'available to budget' })}
+                        {t('dashboard.availableToBudget')}
                       </>
                     )}
                   </p>
@@ -150,18 +150,18 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
                   type="button"
                   onClick={() => handleSplitClick(income.id)}
                   className="text-xs font-bold text-[#2563eb] hover:underline cursor-pointer transition-colors px-2 py-1"
-                  title="Review and Edit Splits"
+                  title={t('dashboard.nextPay.reviewSplits')}
                 >
-                  {t("common.runSplit", { defaultValue: "Run Split" })}
+                  {t("common.runSplit")}
                 </button>
                 {onDeleteIncome && (
                   <button
                     type="button"
                     onClick={() => onDeleteIncome(income.id)}
                     className="text-xs text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 cursor-pointer transition-colors px-1.5 py-1"
-                    title={t("common.delete", { defaultValue: "Delete" })}
+                    title={t("common.delete")}
                   >
-                    {t("common.delete", { defaultValue: "Delete" })}
+                    {t("common.delete")}
                   </button>
                 )}
               </div>

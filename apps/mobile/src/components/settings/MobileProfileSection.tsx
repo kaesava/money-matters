@@ -139,10 +139,10 @@ export function MobileProfileSection() {
   const handleCancel = () => {
     if (isDirty) {
       showMobileConfirm({
-        title: t('modals.discardChanges.title', { defaultValue: 'Discard changes?' }),
-        message: t('modals.discardChanges.description', { defaultValue: 'Are you sure you want to discard your unsaved changes?' }),
-        confirmText: t('modals.discardChanges.discard', { defaultValue: 'Discard Changes' }),
-        cancelText: t('modals.discardChanges.cancel', { defaultValue: 'Keep Editing' }),
+        title: t('modals.discardChanges.title'),
+        message: t('modals.discardChanges.description'),
+        confirmText: t('modals.discardChanges.discard'),
+        cancelText: t('modals.discardChanges.cancel'),
         isDestructive: true,
         onConfirm: () => {
           const init = initialDataRef.current;

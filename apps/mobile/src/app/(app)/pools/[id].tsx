@@ -183,7 +183,7 @@ export default function PoolDetailScreen() {
 
             <View style={styles.balanceCol}>
               <Text style={styles.balanceLabel}>
-                {t('categories.currentBalance', { defaultValue: 'Current Balance' })}
+                {t('categories.currentBalance')}
               </Text>
               <Text style={styles.balanceAmount}>
                 {formatAUD(pool.currentBalance)}
@@ -199,7 +199,7 @@ export default function PoolDetailScreen() {
             >
               <Feather name="repeat" size={14} color="#2563eb" />
               <Text style={styles.actionBtnText}>
-                {t('dashboard.moveMoney', { defaultValue: 'Move Money' })}
+                {t('dashboard.moveMoney')}
               </Text>
             </TouchableOpacity>
 
@@ -209,7 +209,7 @@ export default function PoolDetailScreen() {
             >
               <Feather name="edit-2" size={14} color="#64748B" />
               <Text style={[styles.actionBtnText, { color: '#64748B' }]}>
-                {t('categories.editPool', { defaultValue: 'Edit Pool' })}
+                {t('categories.editPool')}
               </Text>
             </TouchableOpacity>
 
@@ -219,7 +219,7 @@ export default function PoolDetailScreen() {
             >
               <Feather name="archive" size={14} color="#94A3B8" />
               <Text style={[styles.actionBtnText, { color: '#94A3B8' }]}>
-                {t('common.archive', { defaultValue: 'Archive' })}
+                {t('common.archive')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -228,7 +228,7 @@ export default function PoolDetailScreen() {
         {/* Nested Categories Section Header */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
-            {t('categories.budgetCategories', { defaultValue: 'Budget Categories' })} ({filteredCategories.length})
+            {t('categories.budgetCategories')} ({filteredCategories.length})
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -239,7 +239,7 @@ export default function PoolDetailScreen() {
           >
             <Feather name="plus" size={14} color="#2563eb" />
             <Text style={styles.addCategoryText}>
-              {t('categories.addCategory', { defaultValue: 'Add Category' })}
+              {t('categories.addCategory')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -248,7 +248,7 @@ export default function PoolDetailScreen() {
         {poolCategories.length > 0 && (
           <View style={styles.catFilterBar}>
             <SearchInput
-              placeholder={t('categories.searchCategories', { defaultValue: 'Search categories...' })}
+              placeholder={t('categories.searchCategories')}
               value={catSearchQuery}
               onChangeText={setCatSearchQuery}
             />

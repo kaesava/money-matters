@@ -309,22 +309,19 @@ export default function TransactionsScreen() {
 
   return (
     <AppScreenWrapper
-      title={t('transactions.title', { defaultValue: 'History' })}
+      title={t('transactions.title')}
       scrollable={false}
       infoTooltip={{
-        title: t('tooltips.transactions.title', { defaultValue: 'About Transactions History' }),
-        content: t('tooltips.transactions.content', {
-          defaultValue:
-            'A complete record of all your earnings, bill payments, and everyday spending. Use filters or search to quickly find any past transaction.',
-        }),
+        title: t('tooltips.transactions.title'),
+        content: t('tooltips.transactions.content'),
       }}
     >
       <View style={styles.container}>
         {/* 2-Tab Segment Bar */}
         <SegmentedTabs<HistoryTab>
           tabs={[
-            { key: 'LEDGER', label: t('history.transactionsTab', { defaultValue: 'Transactions' }) },
-            { key: 'PAYDAYS', label: t('history.allocationsTab', { defaultValue: 'Payday Allocations' }) },
+            { key: 'LEDGER', label: t('history.transactionsTab') },
+            { key: 'PAYDAYS', label: t('history.allocationsTab') },
           ]}
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -349,7 +346,7 @@ export default function TransactionsScreen() {
                 <View style={styles.searchRow}>
                   <View style={{ flex: 1 }}>
                     <SearchInput
-                      placeholder={t('transactions.searchPlaceholder') || 'Search transactions...'}
+                      placeholder={t('transactions.searchPlaceholder')}
                       value={searchQuery}
                       onChangeText={(val) => {
                         setSearchQuery(val);
@@ -363,7 +360,7 @@ export default function TransactionsScreen() {
                     style={styles.csvBtn}
                   >
                     <Feather name="download" size={14} color="#2563eb" />
-                    <Text style={styles.csvBtnText}>CSV</Text>
+                    <Text style={styles.csvBtnText}>{t('transactions.csvExport')}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -393,12 +390,12 @@ export default function TransactionsScreen() {
                           ]}
                         >
                           {f === 'ALL'
-                            ? t('transactions.filterAll') || 'All Flows'
+                            ? t('transactions.filterAll')
                             : f === 'DEBIT'
-                            ? `💸 ${t('transactions.filterDebit') || 'Expenses'}`
+                            ? `💸 ${t('transactions.filterDebit')}`
                             : f === 'CREDIT'
-                            ? `💰 ${t('transactions.filterCredit') || 'Income'}`
-                            : `⚡ ${t('transactions.filterTransfer') || 'Transfers'}`}
+                            ? `💰 ${t('transactions.filterCredit')}`
+                            : `⚡ ${t('transactions.filterTransfer')}`}
                         </Text>
                       </TouchableOpacity>
                     )
@@ -428,7 +425,7 @@ export default function TransactionsScreen() {
                           selectedPoolId === 'ALL' && styles.filterChipSecondaryTextActive,
                         ]}
                       >
-                        {t('transactions.allPools') || 'All Pools'}
+                        {t('transactions.allPools')}
                       </Text>
                     </TouchableOpacity>
 
@@ -480,7 +477,7 @@ export default function TransactionsScreen() {
                           selectedBankAccountId === 'ALL' && styles.filterChipSecondaryTextActive,
                         ]}
                       >
-                        {t('transactions.allBanks') || 'All Bank Accounts'}
+                        {t('transactions.allBanks')}
                       </Text>
                     </TouchableOpacity>
 
@@ -512,14 +509,14 @@ export default function TransactionsScreen() {
                 {/* Sort Bar */}
                 <View style={styles.sortBar}>
                   <Text style={styles.sortLabel}>
-                    {t('transactions.sortLabel') || 'Sort:'}
+                    {t('transactions.sortLabel')}
                   </Text>
                   <TouchableOpacity
                     onPress={() => toggleSort('recordedAt')}
                     style={[styles.sortBtn, sortField === 'recordedAt' && styles.sortBtnActive]}
                   >
                     <Text style={[styles.sortBtnText, sortField === 'recordedAt' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByDate') || 'Date'} {sortField === 'recordedAt' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                      {t('transactions.sortByDate')} {sortField === 'recordedAt' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                     </Text>
                   </TouchableOpacity>
 
@@ -528,7 +525,7 @@ export default function TransactionsScreen() {
                     style={[styles.sortBtn, sortField === 'amount' && styles.sortBtnActive]}
                   >
                     <Text style={[styles.sortBtnText, sortField === 'amount' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByAmount') || 'Amount'} {sortField === 'amount' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                      {t('transactions.sortByAmount')} {sortField === 'amount' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                     </Text>
                   </TouchableOpacity>
 
@@ -537,7 +534,7 @@ export default function TransactionsScreen() {
                     style={[styles.sortBtn, sortField === 'categoryName' && styles.sortBtnActive]}
                   >
                     <Text style={[styles.sortBtnText, sortField === 'categoryName' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByCategory') || 'Pool'} {sortField === 'categoryName' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                      {t('transactions.sortByCategory')} {sortField === 'categoryName' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -564,10 +561,10 @@ export default function TransactionsScreen() {
                 <View style={styles.emptyContainer}>
                   <Feather name="clock" size={32} color="#94A3B8" />
                   <Text style={styles.emptyTitle}>
-                    {t('transactions.noTransactionsFound') || 'No Transactions Found'}
+                    {t('transactions.noTransactionsFound')}
                   </Text>
                   <Text style={styles.emptySubtitle}>
-                    {t('transactions.emptySubtitle') || 'Recorded expenses, deposits, and transfers will appear here.'}
+                    {t('transactions.emptySubtitle')}
                   </Text>
                 </View>
               )
@@ -608,7 +605,7 @@ export default function TransactionsScreen() {
                 <View style={styles.searchRow}>
                   <View style={{ flex: 1 }}>
                     <SearchInput
-                      placeholder={t('transactions.searchPaydaysPlaceholder') || 'Search income or bank account...'}
+                      placeholder={t('transactions.searchPaydaysPlaceholder')}
                       value={planSearchQuery}
                       onChangeText={(val) => {
                         setPlanSearchQuery(val);
@@ -622,7 +619,7 @@ export default function TransactionsScreen() {
                     style={styles.csvBtn}
                   >
                     <Feather name="download" size={14} color="#2563eb" />
-                    <Text style={styles.csvBtnText}>CSV</Text>
+                    <Text style={styles.csvBtnText}>{t('transactions.csvExport')}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -649,7 +646,7 @@ export default function TransactionsScreen() {
                           selectedPlanBankId === 'ALL' && styles.filterChipSecondaryTextActive,
                         ]}
                       >
-                        {t('transactions.allBanks') || 'All Bank Accounts'}
+                        {t('transactions.allBanks')}
                       </Text>
                     </TouchableOpacity>
 
@@ -681,14 +678,14 @@ export default function TransactionsScreen() {
                 {/* Sort Bar */}
                 <View style={styles.sortBar}>
                   <Text style={styles.sortLabel}>
-                    {t('transactions.sortLabel') || 'Sort:'}
+                    {t('transactions.sortLabel')}
                   </Text>
                   <TouchableOpacity
                     onPress={() => togglePlanSort('expectedDate')}
                     style={[styles.sortBtn, planSortField === 'expectedDate' && styles.sortBtnActive]}
                   >
                     <Text style={[styles.sortBtnText, planSortField === 'expectedDate' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByDate') || 'Date'} {planSortField === 'expectedDate' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
+                      {t('transactions.sortByDate')} {planSortField === 'expectedDate' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
                     </Text>
                   </TouchableOpacity>
 
@@ -697,7 +694,7 @@ export default function TransactionsScreen() {
                     style={[styles.sortBtn, planSortField === 'amount' && styles.sortBtnActive]}
                   >
                     <Text style={[styles.sortBtnText, planSortField === 'amount' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByAmount') || 'Amount'} {planSortField === 'amount' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
+                      {t('transactions.sortByAmount')} {planSortField === 'amount' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
                     </Text>
                   </TouchableOpacity>
 
@@ -706,7 +703,7 @@ export default function TransactionsScreen() {
                     style={[styles.sortBtn, planSortField === 'incomeName' && styles.sortBtnActive]}
                   >
                     <Text style={[styles.sortBtnText, planSortField === 'incomeName' && styles.sortBtnTextActive]}>
-                      {t('payday.depositSourceName') || 'Income'} {planSortField === 'incomeName' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
+                      {t('payday.depositSourceName')} {planSortField === 'incomeName' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -741,7 +738,7 @@ export default function TransactionsScreen() {
                                 : styles.statusPillTextSaved,
                             ]}
                           >
-                            {isConfirmed ? 'Confirmed ✓' : 'Draft Saved 💾'}
+                            {isConfirmed ? t('transactions.statusConfirmed') : t('transactions.statusDraft')}
                           </Text>
                         </View>
                       </View>
@@ -757,8 +754,7 @@ export default function TransactionsScreen() {
                     <View style={styles.paydayAmountCol}>
                       <Text style={styles.paydayAmount}>{formatAUD(totalAmt)}</Text>
                       <Text style={styles.paydayLinesCount}>
-                        {t('transactions.bucketSplits', { count: item.lines?.length || 0 }) ||
-                          `${item.lines?.length || 0} bucket splits`}
+                        {t('transactions.bucketSplits').replace('{count}', String(item.lines?.length || 0))}
                       </Text>
                     </View>
                   </View>
@@ -774,11 +770,10 @@ export default function TransactionsScreen() {
                 <View style={styles.emptyContainer}>
                   <Feather name="calendar" size={32} color="#94A3B8" />
                   <Text style={styles.emptyTitle}>
-                    {t('transactions.noPaydaysFound') || 'No Payday Plans Yet'}
+                    {t('transactions.noPaydaysFound')}
                   </Text>
                   <Text style={styles.emptySubtitle}>
-                    {t('transactions.noPaydaysSubtitle') ||
-                      'Run your first income split on upcoming paychecks to see allocation logs.'}
+                    {t('transactions.noPaydaysSubtitle')}
                   </Text>
                 </View>
               )

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS, MobileLogo, useMobileToast } from "@money-matters/ui/mobile";
@@ -21,6 +22,7 @@ import * as SecureStore from "expo-secure-store";
 import { registerPushNotificationsAsync } from "../../lib/push";
 
 export default function SignUpScreen() {
+  const insets = useSafeAreaInsets();
   const toast = useMobileToast();
   const router = useRouter();
   const posthog = usePostHog();
@@ -37,7 +39,7 @@ export default function SignUpScreen() {
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword || !name) {
       toast.error(
-        t("common.required", { defaultValue: "This field is required." }),
+        t("common.required"),
         t("auth.signUpErrorTitle")
       );
       return;
@@ -45,7 +47,7 @@ export default function SignUpScreen() {
 
     if (password.length < 8) {
       toast.error(
-        t("auth.passwordTooShort", { defaultValue: "Password must be at least 8 characters long." }),
+        t("auth.passwordTooShort"),
         t("auth.signUpErrorTitle")
       );
       return;
@@ -53,7 +55,7 @@ export default function SignUpScreen() {
 
     if (password !== confirmPassword) {
       toast.error(
-        t("auth.passwordsMustMatch", { defaultValue: "Passwords do not match." }),
+        t("auth.passwordsMustMatch"),
         t("auth.signUpErrorTitle")
       );
       return;
@@ -129,7 +131,13 @@ export default function SignUpScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top + 24, 48),
+            paddingBottom: Math.max(insets.bottom + 24, 48),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
@@ -198,11 +206,11 @@ export default function SignUpScreen() {
           />
 
           <Text style={[styles.label, styles.labelGap]}>
-            {t("auth.confirmPasswordLabel", { defaultValue: "Confirm Password" })}
+            {t("auth.confirmPasswordLabel")}
           </Text>
           <TextInput
             style={styles.input}
-            placeholder={t("auth.confirmPasswordPlaceholder", { defaultValue: "Confirm Password" })}
+            placeholder={t("auth.confirmPasswordPlaceholder")}
             placeholderTextColor={DESIGN_TOKENS.colors.textMuted}
             value={confirmPassword}
             onChangeText={setConfirmPassword}

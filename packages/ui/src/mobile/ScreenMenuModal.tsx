@@ -101,7 +101,7 @@ export function ScreenMenuModal({
               onPress={() => handleMenuAction(onNavigateBankAccounts)}
             >
               <Feather name="credit-card" size={16} color={D.colors.textPrimary} />
-              <Text style={styles.menuItemText}>{t("nav.bankAccounts", { defaultValue: "Bank Accounts" })}</Text>
+              <Text style={styles.menuItemText}>{t("nav.bankAccounts")}</Text>
             </TouchableOpacity>
           )}
 
@@ -112,7 +112,7 @@ export function ScreenMenuModal({
               onPress={() => handleMenuAction(onNavigateHistory)}
             >
               <Feather name="clock" size={16} color={D.colors.textPrimary} />
-              <Text style={styles.menuItemText}>{t("nav.history", { defaultValue: "History" })}</Text>
+              <Text style={styles.menuItemText}>{t("nav.history")}</Text>
             </TouchableOpacity>
           )}
 

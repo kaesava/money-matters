@@ -166,115 +166,114 @@ export async function runAllocationCommand(
     ? new Map(customLines.map((l) => [l.bucketId, { amount: parseFloat(l.amount), reasoning: l.reasoning }]))
     : null;
 
-  // 5. Execute DB write transaction
-  const plan = await dbClient.transaction(async (tx) => {
-    const [existingPlan] = await tx
-      .select({ id: allocationPlans.id, status: allocationPlans.status })
-      .from(allocationPlans)
-      .where(and(eq(allocationPlans.incomeEventId, incomeEventId), eq(allocationPlans.tenantId, tenantId)))
-      .limit(1);
+  // 5. Execute DB writes using caller-supplied DbOrTx (already inside procedure transaction)
+  const tx = dbClient;
+  const [existingPlan] = await tx
+    .select({ id: allocationPlans.id, status: allocationPlans.status })
+    .from(allocationPlans)
+    .where(and(eq(allocationPlans.incomeEventId, incomeEventId), eq(allocationPlans.tenantId, tenantId)))
+    .limit(1);
 
-    if (existingPlan) {
-      if (existingPlan.status === "CONFIRMED") {
-        throw new Error("Cannot re-run allocation over an already-confirmed payday. Revert the payday first.");
-      }
-      await tx.delete(allocationPlans).where(eq(allocationPlans.id, existingPlan.id));
+  if (existingPlan) {
+    if (existingPlan.status === "CONFIRMED") {
+      throw new Error("Cannot re-run allocation over an already-confirmed payday. Revert the payday first.");
     }
+    await tx.delete(allocationPlans).where(eq(allocationPlans.id, existingPlan.id));
+  }
 
-    const [insertedPlan] = await tx
-      .insert(allocationPlans)
-      .values({
-        tenantId,
-        appId,
-        incomeEventId,
-        status: isFuturePlanned ? "PENDING" : "CONFIRMED",
-        totalIncomeAmount: incomeAmount.toFixed(2),
-        confirmedAt: new Date(),
-        createdBy: userId,
-        updatedBy: userId,
-      })
-      .returning();
+  const [insertedPlan] = await tx
+    .insert(allocationPlans)
+    .values({
+      tenantId,
+      appId,
+      incomeEventId,
+      status: isFuturePlanned ? "PENDING" : "CONFIRMED",
+      totalIncomeAmount: incomeAmount.toFixed(2),
+      confirmedAt: new Date(),
+      createdBy: userId,
+      updatedBy: userId,
+    })
+    .returning();
 
-    const linesToInsert = engineOutput.lines.map((line) => {
-      const customItem = customLinesMap?.get(line.bucketId);
-      const confirmedVal = customItem !== undefined ? customItem.amount : line.proposedAmount;
-      const lineReasoning = customItem?.reasoning !== undefined ? customItem.reasoning : line.reasoning;
+  const linesToInsert = engineOutput.lines.map((line) => {
+    const customItem = customLinesMap?.get(line.bucketId);
+    const confirmedVal = customItem !== undefined ? customItem.amount : line.proposedAmount;
+    const lineReasoning = customItem?.reasoning !== undefined ? customItem.reasoning : line.reasoning;
 
-      return {
-        tenantId,
-        appId,
-        planId: insertedPlan.id,
-        poolId: line.bucketId,
-        proposedAmount: line.proposedAmount.toFixed(2),
-        confirmedAmount: confirmedVal.toFixed(2),
-        reasoning: lineReasoning,
-        createdBy: userId,
-        updatedBy: userId,
-      };
-    });
-
-    // Prune $0 lines upon confirmation; keep all lines in draft/pending so user can adjust them
-    const finalLinesToInsert = isFuturePlanned
-      ? linesToInsert
-      : linesToInsert.filter((l) => parseFloat(l.confirmedAmount) > 0);
-
-    const insertedLines = finalLinesToInsert.length > 0
-      ? await tx.insert(allocationPlanLines).values(finalLinesToInsert).returning()
-      : [];
-
-    const ledgerEntriesToInsert = [];
-    for (let i = 0; i < finalLinesToInsert.length; i++) {
-      const line = finalLinesToInsert[i];
-      const insertedLine = insertedLines[i];
-      const confirmedVal = parseFloat(line.confirmedAmount);
-
-      if (!isFuturePlanned && confirmedVal > 0 && insertedLine) {
-        const pool = dbPools.find((p) => p.id === line.poolId);
-        ledgerEntriesToInsert.push({
-          tenantId,
-          appId,
-          poolId: line.poolId,
-          bankAccountId: pool?.bankAccountId || null,
-          planLineId: insertedLine.id,
-          flowType: "CREDIT" as const,
-          transactionType: "INCOME_SPLIT" as const,
-          amount: confirmedVal.toFixed(2),
-          idempotencyKey: `paydayalloc-${insertedLine.id}`,
-          note: line.reasoning?.trim() || "Income Topup",
-          source: "MANUAL" as const,
-          createdBy: userId,
-          updatedBy: userId,
-        });
-      }
-    }
-
-    if (ledgerEntriesToInsert.length > 0) {
-      await tx.insert(transactionLedger).values(ledgerEntriesToInsert);
-    }
-
-    if (!isFuturePlanned) {
-      // Update income event status to CONFIRMED with actualDate; NEVER mutate expectedDate!
-      const updateData: {
-        status: "CONFIRMED";
-        actualAmount: string;
-        actualDate: string;
-        updatedBy: string;
-        updatedAt: Date;
-      } = {
-        status: "CONFIRMED",
-        actualAmount: incomeAmount.toFixed(2),
-        actualDate: markAsReceivedToday ? getAestDateString() : (eventWithSource?.expectedDate || getAestDateString()),
-        updatedBy: userId,
-        updatedAt: new Date(),
-      };
-      await tx
-        .update(incomeEvents)
-        .set(updateData)
-        .where(eq(incomeEvents.id, incomeEventId));
-    }
-
-    return { ...insertedPlan, isFuturePlanned };
+    return {
+      tenantId,
+      appId,
+      planId: insertedPlan.id,
+      poolId: line.bucketId,
+      proposedAmount: line.proposedAmount.toFixed(2),
+      confirmedAmount: confirmedVal.toFixed(2),
+      reasoning: lineReasoning,
+      createdBy: userId,
+      updatedBy: userId,
+    };
   });
+
+  // Prune $0 lines upon confirmation; keep all lines in draft/pending so user can adjust them
+  const finalLinesToInsert = isFuturePlanned
+    ? linesToInsert
+    : linesToInsert.filter((l) => parseFloat(l.confirmedAmount) > 0);
+
+  const insertedLines = finalLinesToInsert.length > 0
+    ? await tx.insert(allocationPlanLines).values(finalLinesToInsert).returning()
+    : [];
+
+  const ledgerEntriesToInsert = [];
+  for (let i = 0; i < finalLinesToInsert.length; i++) {
+    const line = finalLinesToInsert[i];
+    const insertedLine = insertedLines[i];
+    const confirmedVal = parseFloat(line.confirmedAmount);
+
+    if (!isFuturePlanned && confirmedVal > 0 && insertedLine) {
+      const pool = dbPools.find((p) => p.id === line.poolId);
+      ledgerEntriesToInsert.push({
+        tenantId,
+        appId,
+        poolId: line.poolId,
+        bankAccountId: pool?.bankAccountId || null,
+        planLineId: insertedLine.id,
+        flowType: "CREDIT" as const,
+        transactionType: "INCOME_SPLIT" as const,
+        amount: confirmedVal.toFixed(2),
+        idempotencyKey: `paydayalloc-${insertedLine.id}`,
+        note: line.reasoning?.trim() || "Income Topup",
+        source: "MANUAL" as const,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+    }
+  }
+
+  if (ledgerEntriesToInsert.length > 0) {
+    await tx.insert(transactionLedger).values(ledgerEntriesToInsert);
+  }
+
+  if (!isFuturePlanned) {
+    // Update income event status to CONFIRMED with actualDate; NEVER mutate expectedDate!
+    const updateData: {
+      status: "CONFIRMED";
+      actualAmount: string;
+      actualDate: string;
+      updatedBy: string;
+      updatedAt: Date;
+    } = {
+      status: "CONFIRMED",
+      actualAmount: incomeAmount.toFixed(2),
+      actualDate: markAsReceivedToday ? getAestDateString() : (eventWithSource?.expectedDate || getAestDateString()),
+      updatedBy: userId,
+      updatedAt: new Date(),
+    };
+    await tx
+      .update(incomeEvents)
+      .set(updateData)
+      .where(eq(incomeEvents.id, incomeEventId));
+  }
+
+  const plan = { ...insertedPlan, isFuturePlanned };
 
   return plan;
 }

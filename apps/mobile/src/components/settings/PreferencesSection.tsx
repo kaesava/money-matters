@@ -25,11 +25,11 @@ export function PreferencesSection() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>{t('settings.preferences', { defaultValue: 'Preferences' })}</Text>
+      <Text style={styles.cardTitle}>{t('settings.preferences')}</Text>
 
       {/* Language switcher */}
       <View style={styles.row}>
-        <Text style={styles.rowLabel}>{t('settings.language', { defaultValue: 'Language' })}</Text>
+        <Text style={styles.rowLabel}>{t('settings.language')}</Text>
         <View style={styles.langToggleGroup}>
           <TouchableOpacity
             style={[styles.langBtn, currentLang === 'en' && styles.langBtnActive]}
@@ -48,7 +48,7 @@ export function PreferencesSection() {
 
       {/* Show icons switcher */}
       <View style={styles.row}>
-        <Text style={styles.rowLabel}>Show UI Icons</Text>
+        <Text style={styles.rowLabel}>{t('settings.items.showIcons')}</Text>
         <Switch
           value={showIcons}
           onValueChange={handleToggleShowIcons}

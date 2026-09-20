@@ -55,7 +55,7 @@ export default function TransferInstructionsScreen() {
 
   return (
     <MobileScreenWrapper
-      title={t('paychecks.review.transferInstructions', { defaultValue: 'Transfer Instructions' })}
+      title={t('paychecks.review.transferInstructions')}
       user={session?.user}
       showBack={true}
       onBackPress={() => router.back()}
@@ -63,10 +63,10 @@ export default function TransferInstructionsScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.headerCard}>
           <Text style={styles.celebrationText}>🎉</Text>
-          <Text style={styles.successHeading}>{t('paychecks.transfer.allDone', { defaultValue: 'Your paycheck is allocated ✓' })}</Text>
+          <Text style={styles.successHeading}>{t('paychecks.transfer.allDone')}</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>{t('paychecks.review.transferInstructions', { defaultValue: 'Transfer Instructions' })}</Text>
+        <Text style={styles.sectionTitle}>{t('paychecks.review.transferInstructions')}</Text>
 
         {primaryAccounts.map(account => (
           <View key={account.id} style={styles.instructionCard}>
@@ -76,7 +76,7 @@ export default function TransferInstructionsScreen() {
         ))}
 
         <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace('/(app)/home')}>
-          <Text style={styles.doneBtnText}>{t('common.done', { defaultValue: 'Done' })}</Text>
+          <Text style={styles.doneBtnText}>{t('common.done')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </MobileScreenWrapper>

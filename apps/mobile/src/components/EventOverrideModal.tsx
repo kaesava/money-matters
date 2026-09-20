@@ -43,7 +43,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
 
   const overrideEventMut = trpc.overrideEvent.useMutation({
     onSuccess: () => {
-      toast.success(t('common.saveSuccess', { defaultValue: 'Override saved successfully.' }));
+      toast.success(t('common.saveSuccess'));
       onSuccess?.();
       onClose();
     },
@@ -54,7 +54,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
 
   const handleSubmit = async () => {
     if (!eventToEdit || !expectedDate || !expectedAmount || parseFloat(expectedAmount) <= 0) {
-      setErrorMsg(t('drawers.quickExpense.invalidAmount', { defaultValue: 'Please enter a valid date and positive amount.' }));
+      setErrorMsg(t('drawers.quickExpense.invalidAmount'));
       return;
     }
 
@@ -73,13 +73,13 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
     <MobileModalDialog
       visible={visible && !!eventToEdit}
       onClose={onClose}
-      title={t('modals.eventOverride.title', { defaultValue: 'Override Event' })}
-      subtitle={eventToEdit ? `Edit upcoming event: ${eventToEdit.name}` : ''}
+      title={t('modals.eventOverride.title')}
+      subtitle={eventToEdit ? t('modals.eventOverride.subtitle', { name: eventToEdit.name }) : ''}
     >
       <FormErrorBanner message={errorMsg} />
 
       <MobileDatePickerField
-        label={t('common.date', { defaultValue: 'Expected Date' })}
+        label={t('common.date')}
         value={expectedDate}
         onChange={(val) => {
           setExpectedDate(val);
@@ -89,7 +89,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
       />
 
       <AmountInput
-        label={t('common.amount', { defaultValue: 'Expected Amount' })}
+        label={t('common.amount')}
         required
         value={expectedAmount}
         onChangeText={(val) => {
@@ -107,7 +107,7 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
         {isPending ? (
           <ActivityIndicator color="#FFF" />
         ) : (
-          <Text style={styles.submitBtnText}>{t('common.save', { defaultValue: 'Save Event Override' })}</Text>
+          <Text style={styles.submitBtnText}>{t('common.save')}</Text>
         )}
       </TouchableOpacity>
     </MobileModalDialog>

@@ -29,13 +29,13 @@ export function NetworkErrorBanner({
         </div>
         <div className="min-w-0">
           <div className="font-bold text-xs sm:text-sm text-white flex items-center gap-2">
-            <span>{t("networkError.title", { defaultValue: "Connection Interrupted" })}</span>
+            <span>{t("networkError.title")}</span>
             <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase tracking-wider hidden sm:inline-block">
-              {t("networkError.badge", { defaultValue: "Server / Database Unreachable" })}
+              {t("networkError.badge")}
             </span>
           </div>
           <p className="text-[11px] sm:text-xs text-slate-300 truncate">
-            {message || t("networkError.defaultMessage", { defaultValue: "We're having trouble reaching Money Matters servers. Your data is safe. Please check your internet connection." })}
+            {message || t("networkError.defaultMessage")}
           </p>
         </div>
       </div>
@@ -48,15 +48,15 @@ export function NetworkErrorBanner({
             className="px-3 py-1.5 rounded-lg bg-[#2563eb] hover:bg-blue-600 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs flex items-center gap-1"
           >
             <span>🔄</span>
-            <span className="hidden sm:inline">{t("networkError.retryBtn", { defaultValue: "Retry Connection" })}</span>
-            <span className="sm:hidden">{t("networkError.retryBtnShort", { defaultValue: "Retry" })}</span>
+            <span className="hidden sm:inline">{t("networkError.retryBtn")}</span>
+            <span className="sm:hidden">{t("networkError.retryBtnShort")}</span>
           </button>
         )}
         {onDismiss && (
           <button
             type="button"
             onClick={onDismiss}
-            aria-label={t("networkError.dismissBtn", { defaultValue: "Dismiss banner" })}
+            aria-label={t("networkError.dismissBtn")}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
           >
             ✕
