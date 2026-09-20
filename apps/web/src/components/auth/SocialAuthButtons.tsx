@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import { Spinner } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
@@ -14,16 +14,45 @@ interface SocialAuthButtonsProps {
 export function SocialAuthButtons({ mode, redirectUrl, onError }: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<"google" | "apple" | null>(null);
 
+  // Automatically reset social button loading state when returning to the tab/window
+  useEffect(() => {
+    const handleReset = () => {
+      setLoadingProvider(null);
+    };
+    window.addEventListener("pageshow", handleReset);
+    window.addEventListener("focus", handleReset);
+    return () => {
+      window.removeEventListener("pageshow", handleReset);
+      window.removeEventListener("focus", handleReset);
+    };
+  }, []);
+
   const handleSocialSignIn = async (provider: "google" | "apple") => {
     setLoadingProvider(provider);
     try {
-      await authClient.signIn.social({
+      const result = await authClient.signIn.social({
         provider,
         callbackURL: typeof window !== "undefined" ? window.location.origin + redirectUrl : redirectUrl,
       });
+
+      if (result?.error) {
+        setLoadingProvider(null);
+        const errCode = (result.error as { code?: string })?.code;
+        if (errCode === "PROVIDER_NOT_SUPPORTED") {
+          onError(t("auth.providerNotConfigured"));
+        } else {
+          onError(result.error.message || t("auth.unexpectedError"));
+        }
+        return;
+      }
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Failed to connect with provider.");
       setLoadingProvider(null);
+      const errMsg = err instanceof Error ? err.message : "";
+      if (errMsg.includes("PROVIDER_NOT_SUPPORTED")) {
+        onError(t("auth.providerNotConfigured"));
+      } else {
+        onError(errMsg || t("auth.unexpectedError"));
+      }
     }
   };
 

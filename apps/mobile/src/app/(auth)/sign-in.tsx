@@ -20,7 +20,7 @@ import {
   FormLabel,
   FormErrorBanner,
 } from "@money-matters/ui/mobile";
-import { SignInInputSchema } from "@money-matters/types";
+import { SignInInputSchema, isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -49,12 +49,12 @@ export default function SignInScreen() {
     setError(null);
     setFieldErrors({});
 
-    const validation = SignInInputSchema.safeParse({ email, password });
+    const validation = SignInInputSchema.safeParse({ email: email.trim().toLowerCase(), password });
     if (!validation.success) {
       const formatted = validation.error.format();
       setFieldErrors({
-        email: formatted.email?._errors[0],
-        password: formatted.password?._errors[0],
+        email: formatted.email?._errors[0] === "invalidEmail" ? t("validation.invalidEmail") : t("auth.fillAllFields"),
+        password: formatted.password?._errors[0] ? t("auth.fillAllFields") : undefined,
       });
       return;
     }
@@ -88,7 +88,7 @@ export default function SignInScreen() {
           return;
         }
 
-        setError(t("auth.invalidCredentialsError"));
+        setError(t("auth.signInFailed"));
         return;
       }
 
@@ -129,7 +129,7 @@ export default function SignInScreen() {
 
       router.replace("/(app)/home");
     } catch (_err) {
-      setError(t("auth.invalidCredentialsError"));
+      setError(t("auth.signInFailed"));
     } finally {
       setLoading(false);
     }
@@ -140,7 +140,7 @@ export default function SignInScreen() {
     router.replace("/(app)/home");
   };
 
-  const isFormValid = email.trim().length > 0 && password.length > 0;
+  const isFormValid = isValidEmail(email) && password.length > 0;
 
   return (
     <KeyboardAvoidingView
@@ -160,9 +160,11 @@ export default function SignInScreen() {
         {/* Brand Header */}
         <View style={styles.brandBlock}>
           <MobileLogo size={64} source={require("../../../assets/icon.png")} />
-          <Text style={styles.title}>{t("app.title")}</Text>
+          <Text style={styles.title}>
+            {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("auth.signIn")}
+          </Text>
           <Text style={styles.subtitle}>
-            {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("auth.hint")}
+            {unverifiedEmail ? t("auth.otpLabel") : t("app.tagline")}
           </Text>
         </View>
 
@@ -247,7 +249,7 @@ export default function SignInScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerPrompt}>{t("auth.signUpPrompt")} </Text>
             <TouchableOpacity onPress={() => router.push("/(auth)/sign-up")}>
-              <Text style={styles.footerLink}>{t("auth.signUpCta")}</Text>
+              <Text style={styles.footerLink}>{t("landing.createAccount")}</Text>
             </TouchableOpacity>
           </View>
         )}

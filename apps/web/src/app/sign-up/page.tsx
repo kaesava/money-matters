@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { Logo, Spinner } from "@money-matters/ui/web";
+import { Logo, Spinner, FormErrorBanner } from "@money-matters/ui/web";
 import { PublicHeader } from "../../components/public/PublicHeader";
 import { PublicFooter } from "../../components/public/PublicFooter";
 import { SignUpForm } from "../../components/auth/SignUpForm";
@@ -17,7 +17,7 @@ function SignUpContent() {
   const redirectUrl =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/dashboard";
 
-  const [error, setError] = useState<string | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
 
@@ -30,21 +30,22 @@ function SignUpContent() {
           <div className="text-center flex flex-col items-center gap-2">
             <Logo size="lg" />
             <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-[#2563eb] text-[11px] font-extrabold border border-blue-100 uppercase tracking-wider">
-              ✨ {t("landing.pricingTrialBadge")}
+              {t("landing.pricingTrialBadge")}
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight text-[#1B2B4B]">
-              {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("auth.signUp")}
+              {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("landing.createAccount")}
             </h1>
             <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
               {unverifiedEmail ? t("auth.otpLabel") : t("app.tagline")}
             </p>
+            {!unverifiedEmail && (
+              <p className="text-[11px] font-medium text-slate-400">
+                {t("landing.authModalSubtitleSignUp")}
+              </p>
+            )}
           </div>
 
-          {error && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl text-center">
-              ⚠️ {error}
-            </div>
-          )}
+          {socialError && <FormErrorBanner message={socialError} />}
 
           {unverifiedEmail ? (
             <OtpVerificationView
@@ -60,7 +61,7 @@ function SignUpContent() {
               <SocialAuthButtons
                 mode="signUp"
                 redirectUrl={redirectUrl}
-                onError={(msg) => setError(msg)}
+                onError={(msg) => setSocialError(msg)}
               />
 
               <div className="relative flex items-center justify-center my-1">
@@ -77,7 +78,6 @@ function SignUpContent() {
                   setUnverifiedEmail(em);
                   setPasswordForOtp(pwd);
                 }}
-                onError={(msg) => setError(msg)}
               />
 
               <div className="pt-2 text-center text-xs text-slate-500 font-medium">

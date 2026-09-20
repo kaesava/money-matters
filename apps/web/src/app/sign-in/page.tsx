@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { t } from "@money-matters/i18n";
-import { Logo, Spinner } from "@money-matters/ui/web";
+import { Logo, Spinner, FormErrorBanner } from "@money-matters/ui/web";
 import { PublicHeader } from "../../components/public/PublicHeader";
 import { PublicFooter } from "../../components/public/PublicFooter";
 import { SignInForm } from "../../components/auth/SignInForm";
@@ -17,7 +17,7 @@ function SignInContent() {
   const redirectUrl =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/dashboard";
 
-  const [error, setError] = useState<string | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   return (
@@ -36,11 +36,7 @@ function SignInContent() {
             </p>
           </div>
 
-          {error && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl text-center">
-              ⚠️ {error}
-            </div>
-          )}
+          {socialError && <FormErrorBanner message={socialError} />}
 
           {unverifiedEmail ? (
             <OtpVerificationView
@@ -55,7 +51,7 @@ function SignInContent() {
               <SocialAuthButtons
                 mode="signIn"
                 redirectUrl={redirectUrl}
-                onError={(msg) => setError(msg)}
+                onError={(msg) => setSocialError(msg)}
               />
 
               <div className="relative flex items-center justify-center my-1">
@@ -69,7 +65,6 @@ function SignInContent() {
                 redirectUrl={redirectUrl}
                 onSuccess={() => {}}
                 onNeedOtp={(em) => setUnverifiedEmail(em)}
-                onError={(msg) => setError(msg)}
               />
 
               <div className="pt-2 text-center text-xs text-slate-500 font-medium">

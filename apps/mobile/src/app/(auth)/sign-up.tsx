@@ -23,7 +23,7 @@ import {
   FormErrorBanner,
   Checkbox,
 } from "@money-matters/ui/mobile";
-import { SUPPORTED_COUNTRIES, SignUpInputSchema } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -73,8 +73,8 @@ export default function SignUpScreen() {
     setFieldErrors({});
 
     const validation = SignUpInputSchema.safeParse({
-      name,
-      email,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
       password,
       confirmPassword,
       country,
@@ -84,11 +84,13 @@ export default function SignUpScreen() {
     if (!validation.success) {
       const formatted = validation.error.format();
       setFieldErrors({
-        name: formatted.name?._errors[0],
-        email: formatted.email?._errors[0],
-        password: formatted.password?._errors[0],
-        confirmPassword: formatted.confirmPassword?._errors[0],
-        agreeTerms: formatted.agreedToTerms?._errors[0],
+        name: formatted.name?._errors[0] ? t("auth.fillAllFields") : undefined,
+        email: formatted.email?._errors[0] === "invalidEmail" ? t("validation.invalidEmail") : t("auth.fillAllFields"),
+        password: formatted.password?._errors[0] ? t("auth.passwordTooShort") : undefined,
+        confirmPassword: formatted.confirmPassword?._errors[0]
+          ? (formatted.confirmPassword._errors[0] === "passwordsMustMatch" ? t("auth.passwordsMustMatch") : t("auth.passwordTooShort"))
+          : undefined,
+        agreeTerms: formatted.agreedToTerms?._errors[0] ? t("auth.mustAgreeToTerms") : undefined,
       });
       return;
     }
@@ -102,7 +104,7 @@ export default function SignUpScreen() {
       });
 
       if (signUpResult.error) {
-        setError(signUpResult.error.message || t("auth.signUpErrorGeneric"));
+        setError(signUpResult.error.message || t("auth.signUpErrorTitle"));
         return;
       }
 
@@ -159,7 +161,7 @@ export default function SignUpScreen() {
 
       router.replace("/(setup)/income");
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("auth.signUpErrorGeneric"));
+      setError(err instanceof Error ? err.message : t("auth.signUpErrorTitle"));
     } finally {
       setLoading(false);
     }
@@ -178,9 +180,12 @@ export default function SignUpScreen() {
     router.replace("/(setup)/income");
   };
 
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   const isFormValid =
     name.trim().length >= 2 &&
-    email.trim().length > 0 &&
+    country.length === 2 &&
+    isValidEmail(email) &&
     password.length >= 8 &&
     confirmPassword.length >= 8 &&
     password === confirmPassword &&
@@ -205,11 +210,23 @@ export default function SignUpScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← {t("common.back")}</Text>
           </TouchableOpacity>
-          <MobileLogo size={48} source={require("../../../assets/icon.png")} />
-          <Text style={styles.title}>{t("auth.signUp")}</Text>
-          <Text style={styles.subtitle}>
-            {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("app.description")}
-          </Text>
+          <View style={styles.brandBlock}>
+            <MobileLogo size={64} source={require("../../../assets/icon.png")} />
+            <View style={styles.trialBadge}>
+              <Text style={styles.trialBadgeText}>{t("landing.pricingTrialBadge")}</Text>
+            </View>
+            <Text style={styles.title}>
+              {unverifiedEmail ? t("auth.checkYourEmailTitle") : t("landing.createAccount")}
+            </Text>
+            <Text style={styles.subtitle}>
+              {unverifiedEmail ? t("auth.otpLabel") : t("app.tagline")}
+            </Text>
+            {!unverifiedEmail && (
+              <Text style={styles.noCardNote}>
+                {t("landing.authModalSubtitleSignUp")}
+              </Text>
+            )}
+          </View>
         </View>
 
         {unverifiedEmail ? (
@@ -323,7 +340,7 @@ export default function SignUpScreen() {
                 secureTextEntry
                 autoComplete="new-password"
                 textContentType="newPassword"
-                error={fieldErrors.confirmPassword}
+                error={fieldErrors.confirmPassword || (passwordMismatch ? t("auth.passwordsMustMatch") : undefined)}
               />
             </View>
 
@@ -360,7 +377,7 @@ export default function SignUpScreen() {
               disabled={!isFormValid || loading}
               variant="primary"
             >
-              {t("auth.signUpCta")}
+              {t("landing.createAccount")}
             </MobileButton>
           </View>
         )}
@@ -389,8 +406,31 @@ const styles = StyleSheet.create({
   header: { marginBottom: 24 },
   backBtn: { marginBottom: 16 },
   backText: { fontSize: 14, color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
+  brandBlock: { alignItems: "center", gap: 6, marginBottom: 8 },
+  trialBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+    marginTop: 4,
+  },
+  trialBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: DESIGN_TOKENS.colors.accent,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  noCardNote: {
+    fontSize: 11,
+    color: DESIGN_TOKENS.colors.textMuted,
+    textAlign: "center",
+    marginTop: 2,
+  },
   title: { fontSize: 26, fontWeight: "700", color: DESIGN_TOKENS.colors.primary, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted, lineHeight: 18 },
+  subtitle: { fontSize: 13, color: DESIGN_TOKENS.colors.textMuted, lineHeight: 18, textAlign: "center" },
   form: { gap: 14 },
   inputGroup: { gap: 4 },
   countryRow: { flexDirection: "row", marginVertical: 4 },

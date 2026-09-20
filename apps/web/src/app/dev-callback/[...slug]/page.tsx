@@ -7,7 +7,8 @@ function isAllowedHost(hostname: string): boolean {
   return (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
-    hostname.endsWith(".kaesava.au")
+    hostname.endsWith(".kaesava.au") ||
+    hostname.endsWith(".ts.net")
   );
 }
 

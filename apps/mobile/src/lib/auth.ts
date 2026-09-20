@@ -5,11 +5,11 @@ import * as SecureStore from "expo-secure-store";
 
 const NEON_AUTH_URL = process.env["EXPO_PUBLIC_NEON_AUTH_URL"];
 
-const DEFAULT_AUTH_ORIGIN = __DEV__
+export const DEFAULT_AUTH_ORIGIN = __DEV__
   ? "https://kesh-imac.tail09ef18.ts.net"
   : "https://moneymatters.kaesava.au";
 
-const AUTH_ORIGIN =
+export const AUTH_ORIGIN =
   process.env["EXPO_PUBLIC_AUTH_ORIGIN"] || DEFAULT_AUTH_ORIGIN;
 
 if (!NEON_AUTH_URL) {

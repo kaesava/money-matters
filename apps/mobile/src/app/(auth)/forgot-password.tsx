@@ -20,7 +20,7 @@ import {
   FormFieldError,
   FormErrorBanner,
 } from "@money-matters/ui/mobile";
-import { ForgotPasswordInputSchema } from "@money-matters/types";
+import { ForgotPasswordInputSchema, isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 
 const API_URL = process.env["EXPO_PUBLIC_API_URL"] || "https://api.moneymatters.kaesava.au";
@@ -39,18 +39,24 @@ export default function ForgotPasswordScreen() {
     setError(null);
     setFieldError(undefined);
 
-    const validation = ForgotPasswordInputSchema.safeParse({ email });
+    const validation = ForgotPasswordInputSchema.safeParse({ email: email.trim().toLowerCase() });
     if (!validation.success) {
-      setFieldError(validation.error.format().email?._errors[0]);
+      setFieldError(
+        validation.error.format().email?._errors[0] === "invalidEmail"
+          ? t("validation.invalidEmail")
+          : t("auth.fillAllFields")
+      );
       return;
     }
 
     setLoading(true);
     try {
       const appRedirectUrl = Linking.createURL("reset-password");
+      const devOrigin = "https://kesh-imac.tail09ef18.ts.net";
+      const redirectBase = __DEV__ ? `${devOrigin}/dev-callback/moneymatters` : API_URL;
       const res = await authClient.requestPasswordReset({
         email: email.trim().toLowerCase(),
-        redirectTo: `${API_URL}/reset-password?redirect_to=${encodeURIComponent(appRedirectUrl)}`,
+        redirectTo: `${redirectBase}/reset-password?redirect_to=${encodeURIComponent(appRedirectUrl)}`,
       });
 
       if (res.error) {
@@ -68,7 +74,7 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const isFormValid = email.trim().length > 0;
+  const isFormValid = isValidEmail(email);
 
   return (
     <KeyboardAvoidingView

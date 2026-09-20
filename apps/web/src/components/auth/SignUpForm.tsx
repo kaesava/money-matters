@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
-import { SUPPORTED_COUNTRIES, SignUpInputSchema } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -13,7 +13,7 @@ interface SignUpFormProps {
   redirectUrl: string;
   onSuccess: () => void;
   onNeedOtp: (email: string, password?: string) => void;
-  onError: (msg: string) => void;
+  onError?: (msg: string) => void;
   autoFocus?: boolean;
 }
 
@@ -86,7 +86,7 @@ export function SignUpForm({
       const topError =
         errMap.agreedToTerms || errMap.confirmPassword || errMap.password || errMap.email || t("auth.fillAllFields");
       setFormError(topError);
-      onError(topError);
+      onError?.(topError);
       return;
     }
 
@@ -108,7 +108,7 @@ export function SignUpForm({
           displayError = msg;
         }
         setFormError(displayError);
-        onError(displayError);
+        onError?.(displayError);
         setLoading(false);
         return;
       }
@@ -132,16 +132,18 @@ export function SignUpForm({
       } else {
         const displayErr = errMsg || t("auth.unexpectedError");
         setFormError(displayErr);
-        onError(displayErr);
+        onError?.(displayErr);
       }
       setLoading(false);
     }
   };
 
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
   const isFormValid =
-    name.trim().length > 0 &&
+    name.trim().length >= 2 &&
     country.length === 2 &&
-    email.trim().length > 0 &&
+    isValidEmail(email) &&
     password.length >= 8 &&
     confirmPassword === password &&
     agreedToTerms;
@@ -248,10 +250,17 @@ export function SignUpForm({
           }}
           placeholder={t("auth.confirmPasswordPlaceholder")}
           className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
-            fieldErrors.confirmPassword ? "border-rose-400 focus:ring-rose-400" : "border-slate-200 focus:ring-[#2563eb]"
+            fieldErrors.confirmPassword || passwordMismatch
+              ? "border-rose-400 focus:ring-rose-400"
+              : "border-slate-200 focus:ring-[#2563eb]"
           } focus:outline-none focus:ring-2`}
         />
-        <FormFieldError error={fieldErrors.confirmPassword} />
+        <FormFieldError
+          error={
+            fieldErrors.confirmPassword ||
+            (passwordMismatch ? t("auth.passwordsMustMatch") : undefined)
+          }
+        />
       </div>
 
       <div className="flex flex-col gap-1 pt-1">

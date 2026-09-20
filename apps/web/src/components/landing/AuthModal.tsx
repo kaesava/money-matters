@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
-import { Logo } from "@money-matters/ui/web";
+import { Logo, FormErrorBanner } from "@money-matters/ui/web";
 import { SignInForm } from "../auth/SignInForm";
 import { SignUpForm } from "../auth/SignUpForm";
 import { SocialAuthButtons } from "../auth/SocialAuthButtons";
@@ -89,11 +89,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
           </div>
         </div>
 
-        {error && (
-          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
-            ⚠️ {error}
-          </div>
-        )}
+        {error && <FormErrorBanner message={error} />}
 
         {unverifiedEmail ? (
           <OtpVerificationView
@@ -153,14 +149,12 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
                 redirectUrl="/dashboard"
                 onSuccess={handleAuthSuccess}
                 onNeedOtp={handleNeedOtp}
-                onError={(msg) => setError(msg)}
               />
             ) : (
               <SignUpForm
                 redirectUrl="/dashboard"
                 onSuccess={handleAuthSuccess}
                 onNeedOtp={handleNeedOtp}
-                onError={(msg) => setError(msg)}
               />
             )}
           </>

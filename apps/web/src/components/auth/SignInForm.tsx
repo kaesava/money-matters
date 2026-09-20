@@ -4,14 +4,14 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
-import { SignInInputSchema } from "@money-matters/types";
+import { SignInInputSchema, isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 
 interface SignInFormProps {
   redirectUrl: string;
   onSuccess: () => void;
   onNeedOtp: (email: string) => void;
-  onError: (msg: string) => void;
+  onError?: (msg: string) => void;
   autoFocus?: boolean;
 }
 
@@ -49,7 +49,7 @@ export function SignInForm({
       }
       setFieldErrors(errMap);
       setFormError(t("auth.fillAllFields"));
-      onError(t("auth.fillAllFields"));
+      onError?.(t("auth.fillAllFields"));
       return;
     }
 
@@ -69,7 +69,7 @@ export function SignInForm({
         } else {
           const displayErr = t("auth.signInFailed");
           setFormError(displayErr);
-          onError(displayErr);
+          onError?.(displayErr);
         }
         setLoading(false);
         return;
@@ -80,12 +80,12 @@ export function SignInForm({
     } catch (_err) {
       const displayErr = t("auth.unexpectedError");
       setFormError(displayErr);
-      onError(displayErr);
+      onError?.(displayErr);
       setLoading(false);
     }
   };
 
-  const isFormValid = email.trim().length > 0 && password.length > 0;
+  const isFormValid = isValidEmail(email) && password.length > 0;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">

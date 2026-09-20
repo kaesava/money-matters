@@ -6,6 +6,7 @@ import {
   ResetPasswordInputSchema,
   OtpVerificationInputSchema,
   evaluatePasswordStrength,
+  isValidEmail,
 } from "./auth.types.js";
 
 describe("auth.types DTOs & Validation", () => {
@@ -148,6 +149,23 @@ describe("auth.types DTOs & Validation", () => {
       expect(strong.hasLower).toBe(true);
       expect(strong.hasUpper).toBe(true);
       expect(strong.hasNumberOrSpecial).toBe(true);
+    });
+  });
+
+  describe("isValidEmail", () => {
+    it("returns true for valid email formats", () => {
+      expect(isValidEmail("user@example.com")).toBe(true);
+      expect(isValidEmail("test.user+tag@moneymatters.kaesava.au")).toBe(true);
+      expect(isValidEmail("  valid@domain.co  ")).toBe(true);
+    });
+
+    it("returns false for invalid email formats or empty strings", () => {
+      expect(isValidEmail("")).toBe(false);
+      expect(isValidEmail("   ")).toBe(false);
+      expect(isValidEmail("notanemail")).toBe(false);
+      expect(isValidEmail("user@")).toBe(false);
+      expect(isValidEmail("@domain.com")).toBe(false);
+      expect(isValidEmail("user@domain")).toBe(false);
     });
   });
 });

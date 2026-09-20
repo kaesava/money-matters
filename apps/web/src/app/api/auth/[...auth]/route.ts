@@ -121,8 +121,11 @@ async function handleProxy(req: NextRequest) {
             const reqHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || urlObj.host;
             const reqProto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
             
+            // Neon Auth dev instance enforces origin whitelisting (https://kesh-imac.tail09ef18.ts.net)
+            const devAllowedOrigin = process.env.DEV_NEON_AUTH_ORIGIN || "https://kesh-imac.tail09ef18.ts.net";
+
             // Rewrite callbackURL to go through the dev-callback redirection route
-            const callbackUrlObj = new URL(`http://localhost:3000/dev-callback/${reqProto}/${reqHost}`);
+            const callbackUrlObj = new URL(`${devAllowedOrigin}/dev-callback/${reqProto}/${reqHost}`);
             
             bodyJson.callbackURL = callbackUrlObj.toString();
             bodyText = JSON.stringify(bodyJson);
@@ -134,7 +137,8 @@ async function handleProxy(req: NextRequest) {
             // Rewrite redirectTo for local development if needed to match allowed Neon Auth callback URLs
             const reqHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || redirectUrlObj.host;
             const reqProto = req.headers.get("x-forwarded-proto") || (req.url.startsWith("https") ? "https" : "http");
-            const proxyRedirectUrl = new URL(`http://localhost:3000/dev-callback/${reqProto}/${reqHost}`);
+            const devAllowedOrigin = process.env.DEV_NEON_AUTH_ORIGIN || "https://kesh-imac.tail09ef18.ts.net";
+            const proxyRedirectUrl = new URL(`${devAllowedOrigin}/dev-callback/${reqProto}/${reqHost}`);
             proxyRedirectUrl.searchParams.set("target", redirectUrlObj.pathname + redirectUrlObj.search);
             bodyJson.redirectTo = proxyRedirectUrl.toString();
             bodyText = JSON.stringify(bodyJson);

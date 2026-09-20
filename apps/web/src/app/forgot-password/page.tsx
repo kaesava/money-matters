@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button, FormLabel, FormErrorBanner } from "@money-matters/ui/web";
+import { isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { PublicHeader } from "../../components/public/PublicHeader";
 import { PublicFooter } from "../../components/public/PublicFooter";
@@ -90,7 +91,7 @@ export default function ForgotPasswordPage() {
                 type="submit"
                 className="w-full mt-2 bg-[#2563eb] hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-xs cursor-pointer"
                 loading={isSubmitting}
-                disabled={!email.trim()}
+                disabled={!isValidEmail(email) || isSubmitting}
               >
                 {t("auth.sendResetLink")}
               </Button>

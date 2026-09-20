@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, AppState } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS, MobileSpinner } from "@money-matters/ui/mobile";
-import { authClient } from "../../lib/auth";
+import { authClient, DEFAULT_AUTH_ORIGIN } from "../../lib/auth";
 
 interface MobileSocialAuthButtonsProps {
   mode: "signIn" | "signUp";
@@ -19,21 +19,47 @@ export function MobileSocialAuthButtons({
 }: MobileSocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<"google" | "apple" | null>(null);
 
+  // Automatically clear loading state when returning to the app
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        setLoadingProvider(null);
+      }
+    });
+    return () => {
+      sub.remove();
+    };
+  }, []);
+
   const handleSocialSignIn = async (provider: "google" | "apple") => {
     setLoadingProvider(provider);
     try {
-      const webOrigin =
-        API_URL.includes("localhost") || API_URL.includes("127.0.0.1") || API_URL.includes("10.0.2.2")
-          ? API_URL.replace(":3001", ":3000")
-          : API_URL;
+      const devOrigin = DEFAULT_AUTH_ORIGIN;
+      const callbackBase = __DEV__ ? `${devOrigin}/dev-callback/moneymatters` : API_URL;
 
-      await authClient.signIn.social({
+      const result = await authClient.signIn.social({
         provider,
-        callbackURL: `${webOrigin}/auth-callback`,
+        callbackURL: `${callbackBase}/auth-callback`,
       });
+
+      if (result?.error) {
+        setLoadingProvider(null);
+        const errCode = (result.error as { code?: string })?.code;
+        if (errCode === "PROVIDER_NOT_SUPPORTED") {
+          onError(t("auth.providerNotConfigured"));
+        } else {
+          onError(result.error.message || t("auth.unexpectedError"));
+        }
+        return;
+      }
     } catch (err) {
-      onError(err instanceof Error ? err.message : t("auth.unexpectedError"));
       setLoadingProvider(null);
+      const errMsg = err instanceof Error ? err.message : "";
+      if (errMsg.includes("PROVIDER_NOT_SUPPORTED")) {
+        onError(t("auth.providerNotConfigured"));
+      } else {
+        onError(errMsg || t("auth.unexpectedError"));
+      }
     }
   };
 

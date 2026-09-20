@@ -565,7 +565,7 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
 - **Dedicated Pre-Login Routes (<250 lines rule compliant)**:
   - `/sign-in` & `/sign-up`: Modular auth flows powered by `<SocialAuthButtons />`, `<PasswordStrengthIndicator />`, and `<OtpVerificationView />`.
   - `/forgot-password` & `/reset-password`: Self-service password recovery with 100% externalized i18n copy.
-  - `/terms` & `/privacy`: Public legal documentation and GDPR/CDR compliant account privacy information.
+  - `/terms` & `/privacy`: Public legal documentation with Australian legal standing (ASIC/AFSL general advice exemption under Corporations Act 2001, Australian Consumer Law statutory guarantees, consumer data privacy, SaaS subscription terms, NSW jurisdiction) and CDR compliant account privacy information.
   - `/subscription/upgrade`: Transparent pricing and founding member subscription checkout with extracted `<ActiveSubscriptionCard />`.
   - `/invite/[token]`: Household partner invitation acceptance landing page.
 

@@ -10,6 +10,9 @@
 ################
 
 
+
+
+
 We are now going to work through screen by screen to ensure that the mobile app and web app are ready for production. For mobile, I've connected it by USB to my machine (running Linux mint) for development.
 
 We will start with Sign-In and Sign-Up pages.
@@ -41,11 +44,16 @@ IMPORTANT: Do your own comprehensive comparison of all the ways in which the use
 
 # Sign in Page & Sign-Up
 
+## Web > Sign-In
+* "Failed to sign in. Please check your credentials." shows up twice - it should only show up once.
+* When I click on "Send Reset Link" in Forgot Password, I get error: "Invalid redirectURL"
+* Sign in with Google - simply redirecting to login - is this because this is dev environment?
+* Sign in with Apple - screen hanging - is this because this is dev environment?
+
 ## Mobile
 
-
-## Web
-* Consolidate http://localhost:3000/sign-in (or /sign-up) screen and Auth modal screen (launched from the ) - re-use l18n strings (removing redundant ones) and as much UI/code as possible across them - Ideally, have only one set of Sign-In and Sign-Up forms that are re-used across the web app.
+## Both
+* When I enter invalid password, error messages between web and mobile are different (mobile "Invalid email or password. Please try again." vs. Web "⚠️ Failed to sign in. Please check your credentials."). Ensure consistency. Re-use en.ts literals.
 
 ## Both
 Ensure all titles, subtitles, labels, errors, format errors, re-use l18n strings, and aggressively cull strings that are related to sign-in and sign-up that are not used across the two.

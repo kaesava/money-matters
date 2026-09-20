@@ -101,4 +101,28 @@ Each test scenario must be executed on both platforms (or as noted) to guarantee
 | **AUTH-SEC-04** | Android keyboard dismiss | On Android device, focus input, type, and dismiss keyboard. | Form fields and submit button smoothly re-center; buttons remain accessible and not covered. | `KeyboardAvoidingView` adjusts smoothly; buttons and errors stay visible. | [ ] |
 
 ---
+
+## 7. Dev Environment Quirks & Operational Notes
+
+When conducting manual testing in the local development environment, note the following known infrastructural behaviors:
+
+1. **Neon Auth Whitelisted Origins & Dev Callback Bridge**:
+   - The Neon DB Auth dev instance (`ep-icy-resonance-a7s94hg4`) strictly whitelists `https://kesh-imac.tail09ef18.ts.net` as its authorized redirect origin.
+   - Passing `http://localhost:3000` or `http://localhost:4000` directly as `redirectTo` or `callbackURL` will be rejected by Neon Auth with an `Invalid redirectURL` 400 error or a `This ep-icy-resonance... page can't be found` 404 page.
+   - The application automatically rewrites development redirect and callback URLs to route through `https://kesh-imac.tail09ef18.ts.net/dev-callback/[...slug]`, which acts as an authorized reverse relay back to the local development server or mobile deep link (`moneymatters://...`).
+
+2. **Apple Social Auth (Provider Not Configured)**:
+   - Apple Sign-In requires an active Apple Developer Program account with configured Services IDs and private keys.
+   - In the dev environment, Neon Auth returns `PROVIDER_NOT_SUPPORTED` for Apple OAuth.
+   - The client application gracefully catches this and presents a clear, user-friendly error banner (`Apple sign-in is not configured for this environment. Please sign in with email or Google.`), avoiding any hanging or infinite loading spinners.
+
+3. **Quiet Password Reset & User Anti-Enumeration**:
+   - To protect user privacy and prevent account enumeration attacks, submitting a password reset request displays the same "Check Your Email" confirmation screen regardless of whether the email is registered or unregistered.
+   - If no email is received, verify that the email address is actively registered in the database, and check spam/junk folders.
+
+4. **Transactional Email Delivery in Dev**:
+   - Password reset and email OTP verification emails are dispatched via Resend.
+   - In development environments without live transactional email credentials or using Resend test API keys, emails may be restricted to the verified account owner's email address or logged to the development server console instead of delivered to arbitrary external inboxes.
+
+---
 *Created as part of the monorepo screen-by-screen production readiness review. All subsequent screen reviews will expand this testing suite.*
