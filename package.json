@@ -49,10 +49,14 @@
     "overrides": {
       "react": "19.1.0",
       "react-dom": "19.1.0",
-      "@types/react": "^19.0.0",
+      "@types/react": "~19.1.10",
       "@types/react-dom": "^19.0.0",
       "vite": "^6.0.0",
-      "react-native-screens": "4.16.0"
+      "react-native-screens": "4.16.0",
+      "react-native-svg": "15.12.1",
+      "@expo/vector-icons": "15.1.1",
+      "@react-native-community/datetimepicker": "8.4.4",
+      "expo-constants": "~18.0.14"
     }
   },
   "type": "module",
