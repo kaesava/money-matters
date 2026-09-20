@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { t } from "@money-matters/i18n";
 import { Button, FormLabel, FormFieldError, FormErrorBanner } from "@money-matters/ui/web";
-import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail, getCountryDefaults } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
@@ -116,7 +116,13 @@ export function SignUpForm({
       const sessionData = await authClient.getSession();
       if (sessionData.data?.session) {
         try {
-          await createTenant.mutateAsync({ name: name.trim(), country });
+          const defaults = getCountryDefaults(country);
+          await createTenant.mutateAsync({
+            name: name.trim(),
+            country,
+            currency: defaults.currency,
+            timezone: defaults.timezone,
+          });
         } catch (_tErr) {
           // Non-blocking on initial tenant creation
         }

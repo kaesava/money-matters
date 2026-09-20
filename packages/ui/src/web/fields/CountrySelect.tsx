@@ -19,8 +19,7 @@ export const ALL_COUNTRIES = [
   { code: "NZ", name: "New Zealand 🇳🇿" },
   { code: "SG", name: "Singapore 🇸🇬" },
   { code: "ZA", name: "South Africa 🇿🇦" },
-  { code: "AE", name: "United Arab Emirates 🇦🇪" },
-  { code: "UK", name: "United Kingdom 🇬🇧" },
+  { code: "GB", name: "United Kingdom 🇬🇧" },
   { code: "US", name: "United States 🇺🇸" },
 ];
 

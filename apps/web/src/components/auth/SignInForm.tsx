@@ -12,6 +12,7 @@ interface SignInFormProps {
   onSuccess: () => void;
   onNeedOtp: (email: string) => void;
   onError?: (msg: string) => void;
+  onInteract?: () => void;
   autoFocus?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function SignInForm({
   onSuccess,
   onNeedOtp,
   onError,
+  onInteract,
   autoFocus = true,
 }: SignInFormProps) {
   const [email, setEmail] = useState("");
@@ -30,6 +32,7 @@ export function SignInForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    onInteract?.();
     setFormError(null);
     setFieldErrors({});
 
@@ -102,7 +105,9 @@ export function SignInForm({
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
+            if (formError) setFormError(null);
             if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+            onInteract?.();
           }}
           placeholder={t("auth.emailPlaceholder")}
           className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${
@@ -130,7 +135,9 @@ export function SignInForm({
           value={password}
           onChange={(e) => {
             setPassword(e.target.value);
+            if (formError) setFormError(null);
             if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+            onInteract?.();
           }}
           placeholder={t("auth.passwordPlaceholder")}
           className={`w-full px-3.5 py-2.5 text-sm rounded-xl border ${

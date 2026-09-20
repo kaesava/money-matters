@@ -89,6 +89,8 @@ Each test scenario must be executed on both platforms (or as noted) to guarantee
 | **AUTH-SO-02** | Google Sign-Up (New User) | Click "Sign up with Google" button. | OAuth completes; new user record created; redirects to setup wizard / dashboard. | OAuth completes; returns via deep link; creates tenant if missing; routes to `/(setup)/income`. | [ ] |
 | **AUTH-SO-03** | Unverified user social login | If user created account with email/pwd but didn't verify OTP, then logs in with Google using that email. | OAuth succeeds; Neon Auth links verified Google identity to email; user logged in immediately. | OAuth succeeds; Neon Auth links verified Google identity to email; user logged in immediately. | [ ] |
 | **AUTH-SO-04** | Cancelled social flow | Open OAuth window/browser and close it without completing. | Graceful cancellation; form returns to ready state without crash or freeze. | Browser dismisses; app remains on sign-in/sign-up screen without crash or hang. | [ ] |
+| **AUTH-LINK-01** | Google Sign-Up followed by Password Set | User signs up with Google OAuth, then executes Forgot Password to set a password. | Reset password email received; user sets password; can now sign in using EITHER Google OAuth OR Email/Password. | Reset password email received; user sets password; can now sign in using EITHER Google OAuth OR Email/Password. | [ ] |
+| **AUTH-LINK-02** | Email Sign-Up followed by Google Login | User signs up with Email/Password and verifies OTP, then clicks "Sign In with Google" using that same email. | Google identity safely linked to existing user profile; enters dashboard with existing data intact. | Google identity safely linked to existing user profile; enters Home with existing data intact. | [ ] |
 
 ---
 

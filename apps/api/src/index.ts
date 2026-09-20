@@ -68,6 +68,61 @@ server.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 
+// Dev Callback Relay for Neon Auth redirects (bridges Tailscale Funnel on 3001 to Next.js on 3000 or mobile deep links)
+server.get('/dev-callback/*', async (req, reply) => {
+  const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost:3001'}`);
+  const wildcard = (req.params as { '*': string })['*'] || '';
+  
+  server.log.info({ wildcard, search: fullUrl.search }, '[Dev Callback Relay] Processing callback');
+
+  // Case 1: Mobile scheme callback, e.g. /dev-callback/moneymatters/reset-password or /dev-callback/moneymatters/auth-callback
+  if (wildcard.startsWith('moneymatters/') || wildcard.startsWith('exp/')) {
+    const scheme = wildcard.startsWith('exp/') ? 'exp://' : 'moneymatters://';
+    const subPath = wildcard.replace(/^(moneymatters|exp)\//, '');
+    
+    // Check if redirect_to was passed in query
+    const requestedRedirect = fullUrl.searchParams.get('redirect_to');
+    let targetBase = requestedRedirect || `${scheme}${subPath}`;
+
+    const targetUrl = new URL(targetBase);
+    fullUrl.searchParams.forEach((val, key) => {
+      if (key !== 'redirect_to') {
+        targetUrl.searchParams.set(key, val);
+      }
+    });
+
+    server.log.info({ target: targetUrl.toString() }, '[Dev Callback Relay] Redirecting to mobile scheme');
+    return reply.redirect(targetUrl.toString(), 302);
+  }
+
+  // Case 2: Web proxy callback, e.g. /dev-callback/http/localhost:3000 or /dev-callback/https/moneymatters.kaesava.au
+  const segments = wildcard.split('/');
+  if (segments.length >= 2) {
+    const proto = decodeURIComponent(segments[0]);
+    const hostAndPath = decodeURIComponent(segments.slice(1).join('/'));
+    const customTarget = fullUrl.searchParams.get('target') || '/auth-callback';
+    
+    try {
+      const targetBase = `${proto}://${hostAndPath}`;
+      const targetUrl = new URL(customTarget, targetBase);
+
+      fullUrl.searchParams.forEach((val, key) => {
+        if (key !== 'target') {
+          targetUrl.searchParams.set(key, val);
+        }
+      });
+
+      server.log.info({ target: targetUrl.toString() }, '[Dev Callback Relay] Redirecting to web target');
+      return reply.redirect(targetUrl.toString(), 302);
+    } catch (e) {
+      server.log.error({ err: e }, '[Dev Callback Relay] Failed to build redirect URL');
+    }
+  }
+
+  // Fallback default
+  return reply.redirect('http://localhost:3000/dashboard', 302);
+});
+
 server.register(fastifyTRPCPlugin, {
   prefix: '/trpc',
   trpcOptions: { router: appRouter, createContext },

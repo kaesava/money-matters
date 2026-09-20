@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "dev": "dotenv -e .env.development -- expo start --clear",
-    "start": "dotenv -e .env.development -- expo start --clear",
-    "android": "dotenv -e .env.development -- expo start --android",
+    "dev": "(adb reverse tcp:3001 tcp:3001 2>/dev/null || true) && dotenv -e .env.development -- expo start --clear",
+    "start": "(adb reverse tcp:3001 tcp:3001 2>/dev/null || true) && dotenv -e .env.development -- expo start --clear",
+    "android": "(adb reverse tcp:3001 tcp:3001 2>/dev/null || true) && dotenv -e .env.development -- expo start --android",
     "ios": "dotenv -e .env.development -- expo start --ios",
     "web": "dotenv -e .env.development -- expo start --web",
     "typecheck": "tsc --noEmit",

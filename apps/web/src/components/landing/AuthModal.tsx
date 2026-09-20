@@ -149,6 +149,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
                 redirectUrl="/dashboard"
                 onSuccess={handleAuthSuccess}
                 onNeedOtp={handleNeedOtp}
+                onInteract={() => setError(null)}
               />
             ) : (
               <SignUpForm

@@ -27,6 +27,11 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
     }
   }
 
+  // Strip Better Auth signed cookie prefixes (s: / s_ / s%3A)
+  if (token) {
+    token = token.replace(/^(?:s:|s_|s%3A)/, "");
+  }
+
   let claims = token ? await verifyJwt(token) : null;
 
   // Fallback for opaque Neon DB / Better Auth database session tokens

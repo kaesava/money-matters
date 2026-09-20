@@ -113,6 +113,7 @@ export function HouseholdEditForm({
             <option value="Australia/Brisbane">Brisbane (AEST)</option>
             <option value="Australia/Adelaide">Adelaide (ACST/ACDT)</option>
             <option value="Australia/Perth">Perth (AWST)</option>
+            <option value="Asia/Kolkata">India / Kolkata (IST)</option>
             <option value="Pacific/Auckland">Auckland / Wellington (NZST/NZDT)</option>
             <option value="Europe/London">London (GMT/BST)</option>
             <option value="America/New_York">New York (EST/EDT)</option>

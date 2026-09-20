@@ -16,8 +16,11 @@ function SignInContent() {
   const rawRedirect = searchParams.get("redirect") || "/dashboard";
   const redirectUrl =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/dashboard";
+  const urlError = searchParams.get("error");
 
-  const [socialError, setSocialError] = useState<string | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(
+    urlError ? t("auth.signInFailed") : null
+  );
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
 
   return (
@@ -65,6 +68,7 @@ function SignInContent() {
                 redirectUrl={redirectUrl}
                 onSuccess={() => {}}
                 onNeedOtp={(em) => setUnverifiedEmail(em)}
+                onInteract={() => setSocialError(null)}
               />
 
               <div className="pt-2 text-center text-xs text-slate-500 font-medium">

@@ -23,7 +23,7 @@ import {
   FormErrorBanner,
   Checkbox,
 } from "@money-matters/ui/mobile";
-import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail } from "@money-matters/types";
+import { SUPPORTED_COUNTRIES, SignUpInputSchema, isValidEmail, getCountryDefaults } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
 import { trpc, setActiveSessionToken } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
@@ -142,9 +142,12 @@ export default function SignUpScreen() {
       }
       posthog.capture("user_signed_up", { method: "email" });
 
+      const defaults = getCountryDefaults(country);
       await createTenant.mutateAsync({
         name: name.trim(),
         country,
+        currency: defaults.currency,
+        timezone: defaults.timezone,
       });
 
       try {
