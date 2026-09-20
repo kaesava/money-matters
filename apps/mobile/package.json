@@ -11,8 +11,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --cache",
     "test": "vitest run --passWithNoTests",
-    "deploy": "eas build --platform android --profile production",
-    "test:coverage": "vitest run --passWithNoTests --coverage"
+    "test:coverage": "vitest run --passWithNoTests --coverage",
+    "build:preview": "eas build --platform android --profile preview",
+    "build:prod": "eas build --platform android --profile production",
+    "build:submit": "eas build --platform android --profile production --auto-submit",
+    "deploy": "eas build --platform android --profile production"
   },
   "dependencies": {
     "@better-auth/expo": "^1.6.23",

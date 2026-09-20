@@ -22,7 +22,10 @@
     "validate": "pnpm check-i18n && pnpm audit:schema && turbo run typecheck lint test:coverage test && turbo run build",
     "version:bump": "node scripts/version-bump.mjs",
     "seed": "pnpm --filter @money-matters/db seed",
-    "seed:prod": "pnpm --filter @money-matters/db seed:prod"
+    "seed:prod": "pnpm --filter @money-matters/db seed:prod",
+    "mobile:build:preview": "pnpm --filter @money-matters/mobile build:preview",
+    "mobile:build:prod": "pnpm --filter @money-matters/mobile build:prod",
+    "mobile:build:submit": "pnpm --filter @money-matters/mobile build:submit"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
