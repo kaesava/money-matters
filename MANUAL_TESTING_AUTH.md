@@ -52,30 +52,32 @@ Each test scenario must be executed on both platforms (or as noted) to guarantee
 
 ---
 
-## 3. Forgot Password Shakeout Checklist
+## 3. Forgot Password & OTP Reset Shakeout Checklist
 
 | Test ID | Scenario | Steps to Execute | Expected Result (Web) | Expected Result (Mobile) | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **AUTH-FP-01** | Navigation from Sign-In | Click "Forgot password?" from the sign-in form. | Navigates to `/forgot-password`. Back button links to `/sign-in`. | Navigates to `/(auth)/forgot-password`. Back button returns to Sign-In. | [ ] |
 | **AUTH-FP-02** | Blank email submission | Leave email input blank. | Submit button is disabled. | Submit button is disabled. | [ ] |
-| **AUTH-FP-03** | Invalid email format | Enter `invalid-email-string` and click submit. | Inline error: *"Invalid email address format"*. | Inline error: *"Invalid email address format"*. | [ ] |
-| **AUTH-FP-04** | Registered email request | Enter existing registered email address and submit. | Confirmation screen displays: *"Check Your Email"* with message: *"If this email exists in our system, check your email for the reset link."* | Confirmation block displays with envelope icon and quiet reset message. | [ ] |
-| **AUTH-FP-05** | Unregistered email request (Anti-enumeration) | Enter random unregistered email `nonexistent@test.com` and submit. | Displays the EXACT SAME quiet confirmation message to prevent user enumeration. | Displays the EXACT SAME quiet confirmation message to prevent user enumeration. | [ ] |
-| **AUTH-FP-06** | Reset email delivery | Check inbox of the registered email address. | Password reset email received with secure, non-guessable tokenized link. | Password reset email received with secure, non-guessable tokenized link. | [ ] |
+| **AUTH-FP-03** | Invalid email format | Enter `invalid-email-string` and click submit. | Inline error or submit button disabled. | Inline error or submit button disabled. | [ ] |
+| **AUTH-FP-04** | Registered email request | Enter existing registered email address and click "Send Reset Code". | Smoothly transitions to Stage 2 (Reset form). Email locked with "Change Email" link. | Smoothly transitions to Stage 2 (Reset form). Email displayed with "Change Email" link. | [ ] |
+| **AUTH-FP-05** | Unregistered email request (Anti-enumeration) | Enter random unregistered email `nonexistent@test.com` and submit. | Transitions to Stage 2 identically to prevent user enumeration. | Transitions to Stage 2 identically to prevent user enumeration. | [ ] |
+| **AUTH-FP-06** | Reset code email delivery | Check inbox of the registered email address. | Password reset email received containing 6-digit numeric OTP. | Password reset email received containing 6-digit numeric OTP. | [ ] |
 
 ---
 
-## 4. Reset Password Shakeout Checklist
+## 4. Reset Password & Verification Outcomes (Stage 2)
 
 | Test ID | Scenario | Steps to Execute | Expected Result (Web) | Expected Result (Mobile) | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **AUTH-RP-01** | Missing / empty token | Navigate directly to `/reset-password` without `?token=...` parameter. | Error banner: *"This password reset link has expired or has already been used. Please request a new link."* Submit disabled. | Error banner: *"This password reset link has expired or has already been used. Please request a new link."* Submit disabled. | [ ] |
-| **AUTH-RP-02** | Expired / invalid token | Open reset link with manipulated token `?token=invalid_or_expired_123`. | Submitting new password returns error banner: *"This password reset link has expired or has already been used. Please request a new link."* | Submitting new password returns error banner: *"This password reset link has expired or has already been used. Please request a new link."* | [ ] |
-| **AUTH-RP-03** | Password complexity (<8 chars) | Enter `pass` into new password field. | Strength indicator shows red; inline error: *"Password must be at least 8 characters long."* | Strength indicator shows red; inline error: *"Password must be at least 8 characters long."* | [ ] |
-| **AUTH-RP-04** | Password mismatch | Enter `NewPass123!` and `NewPass456!` in confirm password. | Inline error: *"Passwords do not match."* Reset button remains disabled. | Inline error: *"Passwords do not match."* Reset button remains disabled. | [ ] |
-| **AUTH-RP-05** | Successful password reset | Enter valid matching password with token and submit. | Success screen: *"Password Reset Complete"*; auto-redirects to `/sign-in` after 3 seconds. | Success block: *"Password Reset Complete"*; auto-redirects to `/(auth)/sign-in` after 2.5 seconds. | [ ] |
-| **AUTH-RP-06** | Post-reset login | Sign in using the new password. | Successfully authenticates and enters `/dashboard`. | Successfully authenticates and enters `/(app)/home`. | [ ] |
-| **AUTH-RP-07** | Replay attack test | Click the same reset link a second time after password was changed. | Error displayed immediately: link is expired / already used. Cannot reuse token. | Error displayed immediately: link is expired / already used. Cannot reuse token. | [ ] |
+| **AUTH-RP-01** | Non-digit / short OTP | Enter letters or fewer than 6 digits in OTP input. | Letters stripped automatically; submit button disabled until exactly 6 digits entered. | Non-digits stripped; submit disabled until 6 digits entered. | [ ] |
+| **AUTH-RP-02** | Invalid / expired OTP | Enter incorrect 6-digit code `000000` with valid passwords and submit. | Error banner: *"Invalid or expired 6-digit code. Please try again."* Form state preserved. | Error banner: *"Invalid or expired 6-digit code. Please try again."* Form state preserved. | [ ] |
+| **AUTH-RP-03** | Resend reset code | Click "Resend Code" link. | Spinner displayed; success banner: *"Verification email sent! Please check your inbox and spam folder."* | Resend indicator; success banner: *"Verification email sent!..."* | [ ] |
+| **AUTH-RP-04** | Password complexity (<8 chars) | Enter `pass` into new password field. | Strength indicator shows red; inline error: *"Password must be at least 8 characters long."* | Strength indicator shows red; inline error: *"Password must be at least 8 characters long."* | [ ] |
+| **AUTH-RP-05** | Password mismatch | Enter `NewPass123!` and `NewPass456!` in confirm password. | Inline error: *"Passwords do not match."* Reset button remains disabled. | Inline error: *"Passwords do not match."* Reset button remains disabled. | [ ] |
+| **AUTH-RP-06** | Successful password reset | Enter valid 6-digit OTP and matching 8+ char password, click Reset Password. | Success screen: *"Password Reset Complete"*; auto-redirects to `/sign-in` after 3 seconds. | Success block: *"Password Reset Complete"*; auto-redirects to `/(auth)/sign-in` after 2.5 seconds. | [ ] |
+| **AUTH-RP-07** | Post-reset login | Sign in using the newly set password. | Successfully authenticates and enters `/dashboard`. | Successfully authenticates and enters `/(app)/home`. | [ ] |
+| **AUTH-RP-08** | Change email action | On Stage 2, click "Change Email". | Returns to Stage 1 with email input focused and OTP cleared. | Returns to Stage 1 with email input editable and OTP cleared. | [ ] |
+
 
 ---
 

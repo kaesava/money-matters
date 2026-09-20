@@ -52,7 +52,7 @@ describe('Capability Tenant Handlers', () => {
 
     expect(result.success).toBe(true);
     expect(typeof result.tenantId).toBe('string');
-    expect(insertMock).toHaveBeenCalledTimes(7);
+    expect(insertMock).toHaveBeenCalledTimes(8);
   });
 
   it('createTenantHandler rejects if user already owns an active household', async () => {

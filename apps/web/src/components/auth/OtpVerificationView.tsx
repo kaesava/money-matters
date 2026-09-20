@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { t } from "@money-matters/i18n";
-import { Button, Spinner } from "@money-matters/ui/web";
+import { Button, Spinner, OtpInput } from "@money-matters/ui/web";
 import { authClient } from "../../lib/auth";
 
 interface OtpVerificationViewProps {
@@ -98,21 +98,15 @@ export function OtpVerificationView({
         </div>
       )}
 
-      <div>
-        <label htmlFor="otp-input" className="block text-xs font-semibold text-slate-700 mb-1">
-          {t("auth.otpLabel")}
-        </label>
-        <input
-          id="otp-input"
-          type="text"
-          maxLength={6}
-          autoFocus
-          value={otpCode}
-          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-          placeholder={t("auth.otpPlaceholder")}
-          className="w-full text-center tracking-widest text-lg font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
-        />
-      </div>
+      <OtpInput
+        id="otp-input"
+        label={t("auth.otpLabel")}
+        required={true}
+        autoFocus={true}
+        value={otpCode}
+        onChange={setOtpCode}
+        placeholder={t("auth.otpPlaceholder")}
+      />
 
       <Button type="submit" loading={loading} disabled={otpCode.length < 6} className="w-full">
         {t("auth.verifyCodeCta")}

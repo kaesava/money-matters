@@ -4,11 +4,12 @@ import { t } from "@money-matters/i18n";
 import {
   DESIGN_TOKENS,
   MobileButton,
-  MobileInput,
-  FormLabel,
+  MobileOtpInput,
   FormErrorBanner,
 } from "@money-matters/ui/mobile";
 import { authClient } from "../../lib/auth";
+import * as SecureStore from "expo-secure-store";
+import { setActiveSessionToken } from "../../lib/trpc";
 
 interface MobileOtpVerificationViewProps {
   email: string;
@@ -51,10 +52,24 @@ export function MobileOtpVerificationView({
       }
 
       if (password) {
-        await authClient.signIn.email({
+        const signInRes = await authClient.signIn.email({
           email: email.trim().toLowerCase(),
           password,
         });
+        const token =
+          (signInRes.data as { session?: { token?: string }; token?: string })?.session?.token ||
+          (signInRes.data as { token?: string })?.token;
+        if (token) {
+          await SecureStore.setItemAsync("money-matters_session_token", token);
+          await SecureStore.setItemAsync("money-matters-session-token", token);
+          setActiveSessionToken(token);
+        }
+        if (signInRes.data?.user?.email) {
+          await SecureStore.setItemAsync("money-matters_user_email", signInRes.data.user.email);
+        }
+        if (signInRes.data?.user?.name) {
+          await SecureStore.setItemAsync("money-matters_user_name", signInRes.data.user.name);
+        }
       }
 
       onSuccess();
@@ -99,17 +114,13 @@ export function MobileOtpVerificationView({
         </View>
       )}
 
-      <View style={styles.inputGroup}>
-        <FormLabel required={true}>{t("auth.otpLabel")}</FormLabel>
-        <MobileInput
-          value={otpCode}
-          onChangeText={(val) => setOtpCode(val.replace(/\D/g, ""))}
-          placeholder={t("auth.otpPlaceholder")}
-          keyboardType="number-pad"
-          maxLength={6}
-          style={styles.otpInput}
-        />
-      </View>
+      <MobileOtpInput
+        label={t("auth.otpLabel")}
+        required={true}
+        value={otpCode}
+        onChangeText={setOtpCode}
+        placeholder={t("auth.otpPlaceholder")}
+      />
 
       <MobileButton
         onPress={handleVerify}
@@ -178,15 +189,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#065F46",
     textAlign: "center",
-  },
-  inputGroup: {
-    gap: 6,
-  },
-  otpInput: {
-    textAlign: "center",
-    letterSpacing: 8,
-    fontSize: 20,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   footerRow: {
     flexDirection: "row",

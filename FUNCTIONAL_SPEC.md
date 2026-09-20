@@ -272,7 +272,7 @@ The onboarding flow delivers an engaging interactive estimation experience compl
 - **Welcome & Onboarding Email Workflow**: Upon new user registration/auto-provisioning (`auth/user.signup`), Inngest asynchronously triggers a welcome email via Resend introducing trial status and dashboard onboarding features.
 - **Background Notifications & Scheduled Crons Strategy**: For Release 1 (Web), background cron execution via Inngest is focused on the **Weekly Email Digest** (`notifyWeeklyDigest` running Sundays at 7:00 PM AEST). Payday reminders, bill due dates, and goal milestones are delivered directly via real-time Web UI dashboard banners and instant toast feedback. Mobile push crons (`notifyPaydayIncoming`, `notifyBillDueSoon`, `notifyBillOverdue`, `notifySpendingVelocity`) are retained in the codebase and staged for Release 2 (Mobile App target).
 - **Shared Access**: Partner enjoys complete read/write access to categories, transactions, upcoming events, and allocation rules.
-- **Password Reset & Security Standard**: Password reset flow (`/reset-password`) validates redirect targets against allowed app schemes (`moneymatters://*`) and domain whitelists (`https://*.kaesava.au`), enforcing strong password complexity (min 8 chars with number/symbol) on mobile and web clients.
+- **Password Reset & Security Standard**: Password reset flow (`/forgot-password`) uses a seamless 6-digit email OTP verification model, eliminating redirect and deep linking failure points while enforcing strong password complexity (min 8 chars with number/symbol) on mobile and web clients.
 - **Async Account Deletion & Confirmation**: Account deletion requests (`deleteMyAccount`) trigger background worker execution (`user/account.delete-requested`) for deep database wipes, storage cleanup, and email confirmation dispatch.
 
 ---
@@ -564,7 +564,7 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
   - `<PublicFooter />`: Unified footer with dynamic copyright, official tagline, Serene Finance badge, and legal links (`/terms`, `/privacy`).
 - **Dedicated Pre-Login Routes (<250 lines rule compliant)**:
   - `/sign-in` & `/sign-up`: Modular auth flows powered by `<SocialAuthButtons />`, `<PasswordStrengthIndicator />`, and `<OtpVerificationView />`.
-  - `/forgot-password` & `/reset-password`: Self-service password recovery with 100% externalized i18n copy.
+  - `/forgot-password`: Self-service 6-digit OTP password recovery with 100% externalized i18n copy.
   - `/terms` & `/privacy`: Public legal documentation with Australian legal standing (ASIC/AFSL general advice exemption under Corporations Act 2001, Australian Consumer Law statutory guarantees, consumer data privacy, SaaS subscription terms, NSW jurisdiction) and CDR compliant account privacy information.
   - `/subscription/upgrade`: Transparent pricing and founding member subscription checkout with extracted `<ActiveSubscriptionCard />`.
   - `/invite/[token]`: Household partner invitation acceptance landing page.

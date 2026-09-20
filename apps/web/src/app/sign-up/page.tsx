@@ -7,9 +7,10 @@ import { t } from "@money-matters/i18n";
 import { Logo, Spinner, FormErrorBanner } from "@money-matters/ui/web";
 import { PublicHeader } from "../../components/public/PublicHeader";
 import { PublicFooter } from "../../components/public/PublicFooter";
-import { SignUpForm } from "../../components/auth/SignUpForm";
+import { SignUpForm, PendingTenantData } from "../../components/auth/SignUpForm";
 import { SocialAuthButtons } from "../../components/auth/SocialAuthButtons";
 import { OtpVerificationView } from "../../components/auth/OtpVerificationView";
+import { trpc } from "../../lib/trpc";
 
 function SignUpContent() {
   const searchParams = useSearchParams();
@@ -20,6 +21,9 @@ function SignUpContent() {
   const [socialError, setSocialError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
+  const [pendingTenant, setPendingTenant] = useState<PendingTenantData | null>(null);
+
+  const createTenant = trpc.createTenant.useMutation();
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col font-sans">
@@ -51,7 +55,14 @@ function SignUpContent() {
             <OtpVerificationView
               email={unverifiedEmail}
               password={passwordForOtp}
-              onSuccess={() => {
+              onSuccess={async () => {
+                if (pendingTenant) {
+                  try {
+                    await createTenant.mutateAsync(pendingTenant);
+                  } catch (_e) {
+                    // Non-blocking if tenant creation handled elsewhere
+                  }
+                }
                 window.location.href = redirectUrl === "/dashboard" ? "/setup" : redirectUrl;
               }}
               onCancel={() => setUnverifiedEmail(null)}
@@ -74,9 +85,10 @@ function SignUpContent() {
               <SignUpForm
                 redirectUrl={redirectUrl}
                 onSuccess={() => {}}
-                onNeedOtp={(em, pwd) => {
+                onNeedOtp={(em, pwd, pending) => {
                   setUnverifiedEmail(em);
                   setPasswordForOtp(pwd);
+                  if (pending) setPendingTenant(pending);
                 }}
               />
 

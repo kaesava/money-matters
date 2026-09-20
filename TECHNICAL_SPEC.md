@@ -75,7 +75,7 @@ money-matters/
   - Zero PII logging automatically enforced in `@money-matters/core` logger.
   - Credential security: All secrets managed via environment variables (Cloudflare Secrets & GitHub Secrets); `.env` ignored.
 - **Partner Invitation Security**: Owner creates invite token with 48-hour lifetime (`expiresAt`) -> partner accepts at `/invite/[token]` -> system verifies recipient email identity matching `inviteEmail` -> linked to `tenantId` with full read/write permissions. Expired or mismatched invites are rejected and require re-invitation.
-- **Redirect Domain Whitelisting**: Password reset `/reset-password` endpoint strictly enforces URL validation against allowed app schemes (`moneymatters://*`) and domain whitelist (`https://*.kaesava.au`), blocking open redirect attacks.
+- **6-Digit Email OTP Password Reset**: Password resets use direct 6-digit numeric OTPs (`/email-otp/request-password-reset` and `/email-otp/reset-password`), eliminating fragile redirect origins, deep link interception, and open redirect vulnerabilities across web and mobile.
 - **Async Inngest Workflows & Resend Email Integration**:
   - `sendWelcomeEmail`: Listens to `auth/user.signup`, sending a welcome transactional email via Resend (`sendEmail` abstraction).
   - `sendPartnerInviteEmail`: Listens to `partner/invited`, delivering partner invitation links (`https://moneymatters.kaesava.au/invite/[token]`) via Resend with 3 automatic retries.

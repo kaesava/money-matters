@@ -16,18 +16,11 @@
 # Rules ########
 * Strict adherence to AGENTS.md
 * Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
-* Some asks below need further discussion. /grill-me
 * Applies to web & mobile app
 
 ## Sign-In
-* Reset Password screen after entering my email: "Back to Sign in" has two left arrows next to it
-* I received the email to reset password. When I click on link, I'm taken to a page that says: '"{"message":"Route GET:/dev-callback/moneymatters/reset-password?redirect_to=exp%3A%2F%2F127.0.0.1%3A8081%2F--%2Freset-password&token=8VlP4Fg6ty69GHdE5E7QKIk4 not found","error":"Not Found","statusCode":404}". Fix, ensuring careful to fix across mobile, web (and across dev and prod)
-* Sign in with Google - taken to a screen where it says "{"message":"Route GET:/dev-callback/http/localhost:3000?neon_auth_session_verifier=cGoin4jUAXOm0ayl not found","error":"Not Found","statusCode":404}" from web and "This ep-cy-... page can't be found" from mobile. Fix across mobile, web (and across dev and prod)
-* Mobile: When I sign-in successfully, it takes me to dashboard but no data is getting loaded. This is the third time I've asked you to fix this.
 
 ## Sign-Up
-* Mobile & Web: Does tenant creation when user starts a trial set these fields correctly: Name, Country, Timezone, currency and can the latter two be derived from Country? Any other mandatory fields need to be set? If so, does the UI cater to it? Is the country drop-down sufficient? What about Other (for example, if they are in India? Is this catered for in the country, currency, timezeone, date format, etc.? Discuss.
-* Mobile & Web: Does user (owner) creation set these fields correct: Display Name, Avatar? Any other mandatory fields need to be set? If so, does the UI cater to it? Discuss.
 
 # Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping SCHEMA DFINITION, FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.

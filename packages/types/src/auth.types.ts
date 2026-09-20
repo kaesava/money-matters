@@ -32,7 +32,8 @@ export const ForgotPasswordInputSchema = z
 
 export const ResetPasswordInputSchema = z
   .object({
-    token: z.string().min(1, "invalidToken"),
+    email: z.string().trim().min(1, "fillAllFields").email("invalidEmail"),
+    otp: z.string().trim().regex(/^\d{6}$/, "invalidOtp"),
     password: z.string().min(8, "passwordTooShort"),
     confirmPassword: z.string().min(8, "passwordTooShort"),
   })

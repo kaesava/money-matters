@@ -7,6 +7,7 @@ import type { createEdgeContext } from "./edge-context.js";
 import { posthog } from '../lib/posthog.js';
 import { inngest } from '../inngest/client.js';
 import { MONEY_MATTERS_APP_ID } from './edge-context.js';
+import { COUNTRY_DEFAULTS } from '@money-matters/types';
 
 export { MONEY_MATTERS_APP_ID } from './edge-context.js';
 
@@ -150,7 +151,9 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
     try {
       const handler = createTenantHandler(db);
       const householdName = claims.displayName ? `${claims.displayName}'s Household` : "My Household";
-      const result = await handler({ name: householdName, country: "AU" }, appId, claims.userId);
+      const cfCountry = ((req.headers["cf-ipcountry"] || req.headers["x-user-country"]) as string)?.toUpperCase();
+      const detectedCountry = (cfCountry && (COUNTRY_DEFAULTS as Record<string, any>)[cfCountry]) ? cfCountry : "AU";
+      const result = await handler({ name: householdName, country: detectedCountry }, appId, claims.userId);
       tenantId = result.tenantId;
       role = "OWNER";
 

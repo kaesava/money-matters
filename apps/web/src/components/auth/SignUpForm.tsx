@@ -9,10 +9,17 @@ import { authClient } from "../../lib/auth";
 import { trpc } from "../../lib/trpc";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 
+export interface PendingTenantData {
+  name: string;
+  country: string;
+  currency: string;
+  timezone: string;
+}
+
 interface SignUpFormProps {
   redirectUrl: string;
   onSuccess: () => void;
-  onNeedOtp: (email: string, password?: string) => void;
+  onNeedOtp: (email: string, password?: string, pendingTenant?: PendingTenantData) => void;
   onError?: (msg: string) => void;
   autoFocus?: boolean;
 }
@@ -113,28 +120,36 @@ export function SignUpForm({
         return;
       }
 
+      const defaults = getCountryDefaults(country);
+      const pendingTenant: PendingTenantData = {
+        name: name.trim(),
+        country,
+        currency: defaults.currency,
+        timezone: defaults.timezone,
+      };
+
       const sessionData = await authClient.getSession();
       if (sessionData.data?.session) {
         try {
-          const defaults = getCountryDefaults(country);
-          await createTenant.mutateAsync({
-            name: name.trim(),
-            country,
-            currency: defaults.currency,
-            timezone: defaults.timezone,
-          });
+          await createTenant.mutateAsync(pendingTenant);
         } catch (_tErr) {
           // Non-blocking on initial tenant creation
         }
         onSuccess();
         window.location.href = redirectUrl === "/dashboard" ? "/setup" : redirectUrl;
       } else {
-        onNeedOtp(email.trim().toLowerCase(), password);
+        onNeedOtp(email.trim().toLowerCase(), password, pendingTenant);
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "";
       if (errMsg.includes("Authentication required") || errMsg.includes("UNAUTHORIZED")) {
-        onNeedOtp(email.trim().toLowerCase(), password);
+        const defaults = getCountryDefaults(country);
+        onNeedOtp(email.trim().toLowerCase(), password, {
+          name: name.trim(),
+          country,
+          currency: defaults.currency,
+          timezone: defaults.timezone,
+        });
       } else {
         const displayErr = errMsg || t("auth.unexpectedError");
         setFormError(displayErr);

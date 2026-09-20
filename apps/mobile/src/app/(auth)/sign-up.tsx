@@ -114,15 +114,7 @@ export default function SignUpScreen() {
         (signUpResult.data as { token?: string })?.token;
 
       if (!sessionToken) {
-        // Neon Auth requires OTP verification
-        try {
-          await authClient.emailOtp.sendVerificationOtp({
-            email: email.trim().toLowerCase(),
-            type: "email-verification",
-          });
-        } catch (_e) {
-          // Ignore if already sent
-        }
+        // Neon Auth automatically sends the email OTP verification
         setUnverifiedEmail(email.trim().toLowerCase());
         setPasswordForOtp(password);
         return;
@@ -173,9 +165,12 @@ export default function SignUpScreen() {
   const handleOtpSuccess = async () => {
     setUnverifiedEmail(null);
     try {
+      const defaults = getCountryDefaults(country);
       await createTenant.mutateAsync({
         name: name.trim(),
         country,
+        currency: defaults.currency,
+        timezone: defaults.timezone,
       });
     } catch (_e) {
       // Ignore if tenant creation handled elsewhere

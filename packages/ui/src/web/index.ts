@@ -60,6 +60,7 @@ export * from './FormErrorBanner';
 export * from './SortHeader';
 export * from './ModalDialog';
 export * from './TextLink';
+export * from './OtpInput';
 
 
 export * from './fields/RecurrenceBuilder';

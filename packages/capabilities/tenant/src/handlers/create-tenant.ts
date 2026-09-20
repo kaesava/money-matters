@@ -117,7 +117,43 @@ export function createTenantHandler(db: DbOrTx) {
         updatedBy: userId,
       });
 
-    // 3. Create default 'Primary Account'
+    // 5. Initialize or synchronize userPreferences with country defaults
+    const locale = countryDefaults.locale || "en-AU";
+    const phoneCountryCode = countryDefaults.phoneCountryCode || "+61";
+
+    const [existingPref] = typeof (db as any).select === "function"
+      ? await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1)
+      : [null];
+
+    if (existingPref) {
+      if (typeof (db as any).update === "function") {
+        await db
+          .update(userPreferences)
+          .set({
+            locale,
+            timezone,
+            phoneCountryCode: existingPref.phoneCountryCode || phoneCountryCode,
+            updatedAt: now,
+            updatedBy: userId,
+          })
+          .where(eq(userPreferences.id, existingPref.id));
+      }
+    } else {
+      await db
+        .insert(userPreferences)
+        .values({
+          userId,
+          locale,
+          timezone,
+          phoneCountryCode,
+          createdBy: userId,
+          updatedBy: userId,
+          updatedAt: now,
+        })
+        .onConflictDoNothing();
+    }
+
+    // 6. Create default 'Primary Account'
     const [primaryAccount] = await db
       .insert(bankAccounts)
       .values({

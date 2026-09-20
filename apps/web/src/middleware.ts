@@ -4,9 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 const PUBLIC_PREFIXES = [
   "/sign-in",
   "/sign-up",
+  "/forgot-password",
   "/auth-callback",
   ...(process.env.NODE_ENV !== "production" ? ["/dev-callback/"] : []),
-  "/reset-password",
   "/invite/",
   "/api/",
   "/blog",

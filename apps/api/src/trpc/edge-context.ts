@@ -4,6 +4,7 @@ import { db, tenantUsers, tenants } from '@money-matters/db';
 import { createTenantHandler } from '@money-matters/capability-tenant';
 import { eq, and, isNull, sql, desc, asc } from 'drizzle-orm';
 import { inngest } from '../inngest/client.js';
+import { COUNTRY_DEFAULTS } from '@money-matters/types';
 
 export const MONEY_MATTERS_APP_ID = '01908bde-34bb-7b19-a178-574211bc93aa';
 
@@ -169,7 +170,8 @@ export async function resolveTenantMembership(
   requestDb: ReturnType<typeof createDbClient> | typeof db,
   claims: ResolvedClaims,
   requestedTenantId: string | null,
-  correlationId: string
+  correlationId: string,
+  defaultCountry: string = 'AU'
 ): Promise<{ tenantId: string | null; role: string | null; appId: string }> {
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName, requestDb);
 
@@ -207,7 +209,7 @@ export async function resolveTenantMembership(
   try {
     const handler = createTenantHandler(requestDb);
     const householdName = claims.displayName ? `${claims.displayName}'s Household` : 'My Household';
-    const result = await handler({ name: householdName, country: 'AU' }, MONEY_MATTERS_APP_ID, claims.userId);
+    const result = await handler({ name: householdName, country: defaultCountry }, MONEY_MATTERS_APP_ID, claims.userId);
 
     inngest.send({
       name: 'auth/user.signup',
@@ -272,11 +274,15 @@ export async function createEdgeContext(
   const rawTenantHeader = req.headers.get('x-tenant-id') ?? req.headers.get('x-active-tenant');
   const requestedTenantId = rawTenantHeader || null;
 
+  const cfCountry = (req.headers.get('cf-ipcountry') || req.headers.get('x-user-country'))?.toUpperCase();
+  const detectedCountry = (cfCountry && (COUNTRY_DEFAULTS as Record<string, any>)[cfCountry]) ? cfCountry : 'AU';
+
   const { tenantId, role, appId } = await resolveTenantMembership(
     requestDb,
     claims,
     requestedTenantId,
-    correlationId
+    correlationId,
+    detectedCountry
   );
 
   return {

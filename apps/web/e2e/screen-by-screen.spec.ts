@@ -110,7 +110,7 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   // ---------------------------------------------------------------------------
   // 2. AUTHENTICATION, SOCIAL SIGN-IN & PASSWORD SECURITY SCREENS
   // ---------------------------------------------------------------------------
-  test.describe('2. Authentication & Security Screens (`/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`)', () => {
+  test.describe('2. Authentication & Security Screens (`/sign-in`, `/sign-up`, `/forgot-password`)', () => {
     test('2.1 Sign-In Screen Field-by-Field & Social OAuth Audit (`/sign-in`)', async ({ page }) => {
       await page.goto('/sign-in');
 
@@ -173,16 +173,19 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
       if (await submitBtn.isVisible()) {
         await expect(submitBtn).toBeVisible();
+        await submitBtn.click();
       }
-    });
 
-    test('2.4 Reset Password Screen Field-by-Field Audit (`/reset-password?token=XYZ`)', async ({ page }) => {
-      await page.goto('/reset-password?token=test-reset-token-xyz');
-
-      const newPasswordInput = page.locator('input[id*="password"], input[type="password"]').first();
+      // Stage 2: OTP input, new password, confirm password
+      const otpInput = page.locator('input[id*="otp"], input[autocomplete="one-time-code"]');
+      const newPasswordInput = page.locator('input[id*="new-password"], input[type="password"]').first();
       const confirmPasswordInput = page.locator('input[id*="confirm"], input[type="password"]').nth(1);
       const resetBtn = page.locator('button[type="submit"]');
 
+      if (await otpInput.isVisible()) {
+        await expect(otpInput).toBeVisible();
+        await otpInput.fill('123456');
+      }
       if (await newPasswordInput.isVisible()) {
         await expect(newPasswordInput).toBeVisible();
         await newPasswordInput.fill('NewSecurePass123!');

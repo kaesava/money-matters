@@ -103,18 +103,40 @@ describe("auth.types DTOs & Validation", () => {
   });
 
   describe("ResetPasswordInputSchema", () => {
-    it("accepts valid token and matching 8+ char passwords", () => {
+    it("accepts valid email, 6-digit otp, and matching 8+ char passwords", () => {
       const parsed = ResetPasswordInputSchema.safeParse({
-        token: "valid-reset-token-123",
+        email: "user@example.com",
+        otp: "123456",
         password: "NewPassword123!",
         confirmPassword: "NewPassword123!",
       });
       expect(parsed.success).toBe(true);
     });
 
+    it("rejects invalid email or non-6-digit otp", () => {
+      expect(
+        ResetPasswordInputSchema.safeParse({
+          email: "invalid-email",
+          otp: "123456",
+          password: "NewPassword123!",
+          confirmPassword: "NewPassword123!",
+        }).success
+      ).toBe(false);
+
+      expect(
+        ResetPasswordInputSchema.safeParse({
+          email: "user@example.com",
+          otp: "123",
+          password: "NewPassword123!",
+          confirmPassword: "NewPassword123!",
+        }).success
+      ).toBe(false);
+    });
+
     it("rejects when confirmPassword differs", () => {
       const parsed = ResetPasswordInputSchema.safeParse({
-        token: "valid-reset-token-123",
+        email: "user@example.com",
+        otp: "123456",
         password: "NewPassword123!",
         confirmPassword: "MismatchPassword123!",
       });

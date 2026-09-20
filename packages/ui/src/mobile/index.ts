@@ -71,3 +71,6 @@ export type { SkeletonCardProps as MobileSkeletonCardProps } from './SkeletonCar
 export { default as InfoTooltip, InfoTooltip as MobileInfoTooltip } from './InfoTooltip';
 export type { InfoTooltipProps, InfoTooltipProps as MobileInfoTooltipProps } from './InfoTooltip';
 
+export { default as MobileOtpInput, MobileOtpInput as OtpInput } from './MobileOtpInput';
+export type { MobileOtpInputProps } from './MobileOtpInput';
+

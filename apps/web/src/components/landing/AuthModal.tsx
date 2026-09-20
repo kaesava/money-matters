@@ -4,9 +4,10 @@ import React, { useState, useEffect } from "react";
 import { t } from "@money-matters/i18n";
 import { Logo, FormErrorBanner } from "@money-matters/ui/web";
 import { SignInForm } from "../auth/SignInForm";
-import { SignUpForm } from "../auth/SignUpForm";
+import { SignUpForm, PendingTenantData } from "../auth/SignUpForm";
 import { SocialAuthButtons } from "../auth/SocialAuthButtons";
 import { OtpVerificationView } from "../auth/OtpVerificationView";
+import { trpc } from "../../lib/trpc";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,11 +20,15 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
   const [error, setError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
+  const [pendingTenant, setPendingTenant] = useState<PendingTenantData | null>(null);
+
+  const createTenant = trpc.createTenant.useMutation();
 
   useEffect(() => {
     setTab(initialTab);
     setError(null);
     setUnverifiedEmail(null);
+    setPendingTenant(null);
   }, [initialTab, isOpen]);
 
   useEffect(() => {
@@ -38,12 +43,23 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
 
   if (!isOpen) return null;
 
-  const handleNeedOtp = (email: string, password?: string) => {
+  const handleNeedOtp = (email: string, password?: string, pending?: PendingTenantData) => {
     setUnverifiedEmail(email);
     setPasswordForOtp(password);
+    if (pending) setPendingTenant(pending);
   };
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
+    if (pendingTenant) {
+      try {
+        await createTenant.mutateAsync(pendingTenant);
+      } catch (_e) {
+        // Non-blocking if tenant creation handled elsewhere
+      }
+      onClose();
+      window.location.href = "/setup";
+      return;
+    }
     onClose();
   };
 

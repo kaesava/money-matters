@@ -28,6 +28,7 @@ import {
   CreateTenantCommand,
   CreateBankAccountCommand,
   UpdateBankAccountCommand,
+  COUNTRY_DEFAULTS,
 } from "@money-matters/types";
 import { z } from 'zod';
 import { posthog } from '../lib/posthog.js';
@@ -195,11 +196,15 @@ export const tenantRouter = {
         currency: currentTenant?.currency || "AUD",
         country: currentTenant?.country || "AU",
         language: (globalPref?.language as "en") || "en",
-        locale: globalPref?.locale || (currentTenant?.country ? `en-${currentTenant.country}` : "en-AU"),
+        locale: globalPref?.locale && globalPref.locale !== "auto"
+          ? globalPref.locale
+          : (currentTenant?.country ? ((COUNTRY_DEFAULTS as Record<string, any>)[currentTenant.country]?.locale || `en-${currentTenant.country}`) : "en-AU"),
         theme: globalPref?.theme ?? "system",
         showIcons: globalPref?.showIcons ?? true,
         notificationEmail: globalPref?.notificationEmail ?? null,
-        phoneCountryCode: globalPref?.phoneCountryCode ?? "+61",
+        phoneCountryCode: globalPref?.phoneCountryCode && globalPref.phoneCountryCode !== "+61"
+          ? globalPref.phoneCountryCode
+          : ((COUNTRY_DEFAULTS as Record<string, any>)[currentTenant?.country || "AU"]?.phoneCountryCode || globalPref?.phoneCountryCode || "+61"),
         phoneNumber: globalPref?.phoneNumber ?? null,
         setupCompleted,
         setupCompletedAt,
@@ -688,6 +693,7 @@ export const tenantRouter = {
     const [u] = await ctx.db.select().from(users).where(eq(users.id, ctx.userId!));
     const [pref] = await ctx.db.select().from(userPreferences).where(eq(userPreferences.userId, ctx.userId!));
     const [tenantObj] = ctx.tenantId ? await ctx.db.select().from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1) : [null];
+    const tenantCountryDefaults = tenantObj?.country ? (COUNTRY_DEFAULTS as Record<string, any>)[tenantObj.country] : null;
 
     return {
       id: ctx.userId!,
@@ -695,9 +701,11 @@ export const tenantRouter = {
       displayName: u?.displayName || "",
       avatarUrl: u?.avatarUrl || null,
       notificationEmail: pref?.notificationEmail || u?.email || "",
-      phoneCountryCode: pref?.phoneCountryCode || "+61",
+      phoneCountryCode: pref?.phoneCountryCode && pref.phoneCountryCode !== "+61"
+        ? pref.phoneCountryCode
+        : (tenantCountryDefaults?.phoneCountryCode || pref?.phoneCountryCode || "+61"),
       phoneNumber: pref?.phoneNumber || "",
-      timezone: pref?.timezone || tenantObj?.timezone || "Australia/Sydney",
+      timezone: pref?.timezone || tenantObj?.timezone || tenantCountryDefaults?.timezone || "Australia/Sydney",
       showIcons: pref?.showIcons ?? true,
     };
   }),
