@@ -1,10 +1,7 @@
 import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
 import { verifyJwt, upsertUserFromJwt, logger, createDbClient } from '@money-matters/core';
 import { db, tenantUsers, tenants } from '@money-matters/db';
-import { createTenantHandler } from '@money-matters/capability-tenant';
 import { eq, and, isNull, sql, desc, asc } from 'drizzle-orm';
-import { inngest } from '../inngest/client.js';
-import { COUNTRY_DEFAULTS } from '@money-matters/types';
 
 export const MONEY_MATTERS_APP_ID = '01908bde-34bb-7b19-a178-574211bc93aa';
 
@@ -164,14 +161,15 @@ export async function resolveClaimsFromNeonAuth(
 }
 
 /**
- * Resolves or auto-provisions tenant membership for authenticated claims.
+ * Resolves tenant membership for authenticated claims.
+ * Returns null tenantId for new users who haven't yet completed the
+ * explicit createTenant mutation with their chosen country/currency/timezone.
  */
 export async function resolveTenantMembership(
   requestDb: ReturnType<typeof createDbClient> | typeof db,
   claims: ResolvedClaims,
   requestedTenantId: string | null,
-  correlationId: string,
-  defaultCountry: string = 'AU'
+  correlationId: string
 ): Promise<{ tenantId: string | null; role: string | null; appId: string }> {
   await upsertUserFromJwt(claims.userId, claims.email, claims.displayName, requestDb);
 
@@ -206,33 +204,15 @@ export async function resolveTenantMembership(
     };
   }
 
-  try {
-    const handler = createTenantHandler(requestDb);
-    const householdName = claims.displayName ? `${claims.displayName}'s Household` : 'My Household';
-    const result = await handler({ name: householdName, country: defaultCountry }, MONEY_MATTERS_APP_ID, claims.userId);
-
-    inngest.send({
-      name: 'auth/user.signup',
-      data: {
-        userId: claims.userId,
-        email: claims.email,
-        displayName: claims.displayName ?? undefined,
-      },
-    }).catch(() => {});
-
-    return {
-      tenantId: result.tenantId,
-      role: 'OWNER',
-      appId: MONEY_MATTERS_APP_ID,
-    };
-  } catch (err: unknown) {
-    logger.error('Auto-provisioning tenant in edge context failed', { correlationId, err });
-    return {
-      tenantId: null,
-      role: null,
-      appId: MONEY_MATTERS_APP_ID,
-    };
-  }
+  // Do NOT auto-provision a tenant here. Implicit creation races against the explicit
+  // createTenant mutation called from the sign-up OTP success flow, silently overriding
+  // the user's selected country/currency/timezone with GeoIP or AU defaults.
+  // New users have tenantId=null until createTenant is explicitly called.
+  return {
+    tenantId: null,
+    role: null,
+    appId: MONEY_MATTERS_APP_ID,
+  };
 }
 
 /**
@@ -274,15 +254,11 @@ export async function createEdgeContext(
   const rawTenantHeader = req.headers.get('x-tenant-id') ?? req.headers.get('x-active-tenant');
   const requestedTenantId = rawTenantHeader || null;
 
-  const cfCountry = (req.headers.get('cf-ipcountry') || req.headers.get('x-user-country'))?.toUpperCase();
-  const detectedCountry = (cfCountry && (COUNTRY_DEFAULTS as Record<string, any>)[cfCountry]) ? cfCountry : 'AU';
-
   const { tenantId, role, appId } = await resolveTenantMembership(
     requestDb,
     claims,
     requestedTenantId,
-    correlationId,
-    detectedCountry
+    correlationId
   );
 
   return {

@@ -106,6 +106,18 @@ export const tenantRouter = {
       const appId = ctx.appId || ctx.session?.appId || MONEY_MATTERS_APP_ID;
       const handler = createTenantHandler(ctx.db || db);
       const result = await handler(input, appId, ctx.userId);
+
+      // Dispatch signup workflow (welcome email, onboarding notifications) — fires exactly
+      // once here via explicit createTenant rather than in context auto-provisioning.
+      inngest.send({
+        name: 'auth/user.signup',
+        data: {
+          userId: ctx.userId,
+          email: ctx.email ?? '',
+          displayName: undefined,
+        },
+      }).catch(() => {});
+
       if (posthog && ctx.userId) {
         posthog.identify({
           distinctId: ctx.userId,

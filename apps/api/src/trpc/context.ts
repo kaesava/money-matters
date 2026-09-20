@@ -1,13 +1,10 @@
 import { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { verifyJwt, upsertUserFromJwt, logger } from "@money-matters/core";
 import { db, tenantUsers, tenants } from "@money-matters/db";
-import { createTenantHandler } from "@money-matters/capability-tenant";
 import { eq, and, isNull, sql, desc, asc } from "drizzle-orm";
 import type { createEdgeContext } from "./edge-context.js";
 import { posthog } from '../lib/posthog.js';
-import { inngest } from '../inngest/client.js';
 import { MONEY_MATTERS_APP_ID } from './edge-context.js';
-import { COUNTRY_DEFAULTS } from '@money-matters/types';
 
 export { MONEY_MATTERS_APP_ID } from './edge-context.js';
 
@@ -143,33 +140,14 @@ export async function createContext({ req, res }: CreateFastifyContextOptions) {
 
   const membership = matchedMembership ?? userMemberships[0];
 
-  let tenantId = membership?.tenantId ?? null;
-  let role = membership?.role ?? null;
+  // Do NOT auto-provision a tenant here. Implicit creation in context races against the
+  // explicit createTenant mutation and ignores user-selected country/currency/timezone,
+  // always falling back to AU/AUD defaults. New users will have tenantId=null until
+  // they complete the explicit createTenant call from the sign-up OTP flow.
+  const tenantId = membership?.tenantId ?? null;
+  const role = membership?.role ?? null;
   const appId = membership?.appId ?? MONEY_MATTERS_APP_ID;
 
-  if (!tenantId) {
-    try {
-      const handler = createTenantHandler(db);
-      const householdName = claims.displayName ? `${claims.displayName}'s Household` : "My Household";
-      const cfCountry = ((req.headers["cf-ipcountry"] || req.headers["x-user-country"]) as string)?.toUpperCase();
-      const detectedCountry = (cfCountry && (COUNTRY_DEFAULTS as Record<string, any>)[cfCountry]) ? cfCountry : "AU";
-      const result = await handler({ name: householdName, country: detectedCountry }, appId, claims.userId);
-      tenantId = result.tenantId;
-      role = "OWNER";
-
-      // Dispatch non-blocking signup & welcome email event to Inngest
-      inngest.send({
-        name: "auth/user.signup",
-        data: {
-          userId: claims.userId,
-          email: claims.email,
-          displayName: claims.displayName ?? undefined,
-        },
-      }).catch(() => {});
-    } catch (err) {
-      logger.error("Auto-provisioning tenant failed", { correlationId, err });
-    }
-  }
 
   return {
     req,
