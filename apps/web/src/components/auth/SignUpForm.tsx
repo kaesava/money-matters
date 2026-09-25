@@ -20,6 +20,7 @@ interface SignUpFormProps {
   redirectUrl: string;
   onSuccess: () => void;
   onNeedOtp: (email: string, password?: string, pendingTenant?: PendingTenantData) => void;
+  onExistingUser?: (email: string) => void;
   onError?: (msg: string) => void;
   autoFocus?: boolean;
 }
@@ -28,6 +29,7 @@ export function SignUpForm({
   redirectUrl,
   onSuccess,
   onNeedOtp,
+  onExistingUser,
   onError,
   autoFocus = true,
 }: SignUpFormProps) {
@@ -108,12 +110,24 @@ export function SignUpForm({
 
       if (signUpResult.error) {
         const msg = signUpResult.error.message || "";
-        let displayError = t("auth.signUpErrorTitle");
-        if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("exist")) {
-          displayError = t("auth.userAlreadyExists");
-        } else if (msg) {
-          displayError = msg;
+        const errCode = (signUpResult.error as { code?: string }).code || "";
+        const isExistingUser =
+          errCode === "USER_ALREADY_EXISTS" ||
+          msg.toLowerCase().includes("already") ||
+          msg.toLowerCase().includes("exist");
+
+        if (isExistingUser) {
+          const displayError = t("auth.userAlreadyExists");
+          setFormError(displayError);
+          onError?.(displayError);
+          setLoading(false);
+          if (onExistingUser) {
+            onExistingUser(email.trim().toLowerCase());
+          }
+          return;
         }
+
+        const displayError = msg || t("auth.signUpErrorTitle");
         setFormError(displayError);
         onError?.(displayError);
         setLoading(false);

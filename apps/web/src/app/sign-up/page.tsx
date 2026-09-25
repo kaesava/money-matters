@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { t } from "@money-matters/i18n";
 import { Logo, Spinner, FormErrorBanner } from "@money-matters/ui/web";
 import { PublicHeader } from "../../components/public/PublicHeader";
@@ -13,6 +13,7 @@ import { OtpVerificationView } from "../../components/auth/OtpVerificationView";
 import { trpc } from "../../lib/trpc";
 
 function SignUpContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get("redirect") || "/dashboard";
   const redirectUrl =
@@ -89,6 +90,13 @@ function SignUpContent() {
                   setUnverifiedEmail(em);
                   setPasswordForOtp(pwd);
                   if (pending) setPendingTenant(pending);
+                }}
+                onExistingUser={(em) => {
+                  router.push(
+                    `/sign-in?email=${encodeURIComponent(em)}&reason=existing${
+                      redirectUrl !== "/dashboard" ? `&redirect=${encodeURIComponent(redirectUrl)}` : ""
+                    }`
+                  );
                 }}
               />
 

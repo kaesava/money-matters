@@ -18,6 +18,7 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalProps) {
   const [tab, setTab] = useState<"signIn" | "signUp">(initialTab);
   const [error, setError] = useState<string | null>(null);
+  const [prefillEmail, setPrefillEmail] = useState<string>("");
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
   const [pendingTenant, setPendingTenant] = useState<PendingTenantData | null>(null);
@@ -27,6 +28,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
   useEffect(() => {
     setTab(initialTab);
     setError(null);
+    setPrefillEmail("");
     setUnverifiedEmail(null);
     setPendingTenant(null);
   }, [initialTab, isOpen]);
@@ -163,6 +165,7 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
             {tab === "signIn" ? (
               <SignInForm
                 redirectUrl="/dashboard"
+                initialEmail={prefillEmail}
                 onSuccess={handleAuthSuccess}
                 onNeedOtp={handleNeedOtp}
                 onInteract={() => setError(null)}
@@ -172,6 +175,11 @@ export function AuthModal({ isOpen, onClose, initialTab = "signIn" }: AuthModalP
                 redirectUrl="/dashboard"
                 onSuccess={handleAuthSuccess}
                 onNeedOtp={handleNeedOtp}
+                onExistingUser={(em) => {
+                  setPrefillEmail(em);
+                  setTab("signIn");
+                  setError(t("auth.userAlreadyExists"));
+                }}
               />
             )}
           </>

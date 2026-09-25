@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 export interface MobileCheckboxProps {
@@ -7,6 +7,7 @@ export interface MobileCheckboxProps {
   onChange: (checked: boolean) => void;
   label?: string;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function MobileCheckbox({
@@ -14,12 +15,13 @@ export function MobileCheckbox({
   onChange,
   label,
   disabled = false,
+  style,
 }: MobileCheckboxProps) {
   return (
     <TouchableOpacity
       onPress={() => !disabled && onChange(!checked)}
       disabled={disabled}
-      style={styles.container}
+      style={[styles.container, style]}
       activeOpacity={0.7}
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >

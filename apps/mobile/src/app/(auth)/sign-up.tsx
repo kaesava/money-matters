@@ -104,6 +104,25 @@ export default function SignUpScreen() {
       });
 
       if (signUpResult.error) {
+        const msg = signUpResult.error.message || "";
+        const errCode = (signUpResult.error as { code?: string }).code || "";
+        const isExistingUser =
+          errCode === "USER_ALREADY_EXISTS" ||
+          msg.toLowerCase().includes("already") ||
+          msg.toLowerCase().includes("exist");
+
+        if (isExistingUser) {
+          setError(t("auth.userAlreadyExists"));
+          router.push({
+            pathname: "/(auth)/sign-in",
+            params: {
+              email: email.trim().toLowerCase(),
+              reason: "existing",
+            },
+          });
+          return;
+        }
+
         setError(signUpResult.error.message || t("auth.signUpErrorTitle"));
         return;
       }
@@ -347,6 +366,7 @@ export default function SignUpScreen() {
               <View style={styles.termsRow}>
                 <Checkbox
                   checked={agreeTerms}
+                  style={styles.checkboxAlign}
                   onChange={(checked) => {
                     setAgreeTerms(checked);
                     if (fieldErrors.agreeTerms)
@@ -452,6 +472,7 @@ const styles = StyleSheet.create({
   countryTextSelected: { color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },
   termsGroup: { gap: 4, marginVertical: 4 },
   termsRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  checkboxAlign: { minHeight: 22, marginTop: 1 },
   termsTextWrap: { flex: 1 },
   termsText: { fontSize: 12, color: DESIGN_TOKENS.colors.textMuted, lineHeight: 18 },
   linkText: { color: DESIGN_TOKENS.colors.accent, fontWeight: "600" },

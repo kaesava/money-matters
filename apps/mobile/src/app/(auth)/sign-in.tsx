@@ -8,7 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePostHog } from "posthog-react-native";
 import { t } from "@money-matters/i18n";
@@ -22,7 +22,7 @@ import {
 } from "@money-matters/ui/mobile";
 import { SignInInputSchema, isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
-import { trpc, setActiveSessionToken } from "../../lib/trpc";
+import { trpc, setActiveSessionToken, setActiveTenantId } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
 import { registerPushNotificationsAsync } from "../../lib/push";
 import { MobileSocialAuthButtons } from "../../components/auth/MobileSocialAuthButtons";
@@ -32,11 +32,15 @@ export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const posthog = usePostHog();
+  const searchParams = useLocalSearchParams<{ email?: string; reason?: string }>();
+  const utils = trpc.useUtils();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(searchParams.email ? String(searchParams.email).trim().toLowerCase() : "");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    searchParams.reason === "existing" ? t("auth.userAlreadyExists") : null
+  );
   const [loading, setLoading] = useState(false);
 
   // State for unverified email / OTP requirement
@@ -116,6 +120,17 @@ export default function SignInScreen() {
       posthog.capture("user_signed_in", { method: "email" });
 
       try {
+        const tenantStatus = await utils.client.getTenantStatus.query();
+        if (tenantStatus?.tenantId) {
+          setActiveTenantId(tenantStatus.tenantId);
+          await SecureStore.setItemAsync("money_matters_active_tenant_id", tenantStatus.tenantId);
+        }
+        await utils.invalidate();
+      } catch (tenantErr) {
+        console.warn("Could not resolve tenant status on sign-in:", tenantErr);
+      }
+
+      try {
         const tokenData = await registerPushNotificationsAsync();
         if (tokenData) {
           registerToken.mutate({
@@ -135,8 +150,18 @@ export default function SignInScreen() {
     }
   };
 
-  const handleOtpSuccess = () => {
+  const handleOtpSuccess = async () => {
     setUnverifiedEmail(null);
+    try {
+      const tenantStatus = await utils.client.getTenantStatus.query();
+      if (tenantStatus?.tenantId) {
+        setActiveTenantId(tenantStatus.tenantId);
+        await SecureStore.setItemAsync("money_matters_active_tenant_id", tenantStatus.tenantId);
+      }
+      await utils.invalidate();
+    } catch (tenantErr) {
+      console.warn("Could not resolve tenant status on OTP success:", tenantErr);
+    }
     router.replace("/(app)/home");
   };
 

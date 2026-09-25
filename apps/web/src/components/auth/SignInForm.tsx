@@ -10,10 +10,11 @@ import { authClient } from "../../lib/auth";
 interface SignInFormProps {
   redirectUrl: string;
   onSuccess: () => void;
-  onNeedOtp: (email: string) => void;
+  onNeedOtp: (email: string, password?: string) => void;
   onError?: (msg: string) => void;
   onInteract?: () => void;
   autoFocus?: boolean;
+  initialEmail?: string;
 }
 
 export function SignInForm({
@@ -23,12 +24,19 @@ export function SignInForm({
   onError,
   onInteract,
   autoFocus = true,
+  initialEmail = "",
 }: SignInFormProps) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (initialEmail) {
+      setEmail((prev) => (prev ? prev : initialEmail));
+    }
+  }, [initialEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +75,20 @@ export function SignInForm({
       if (result.error) {
         const errMsg = result.error.message || "";
         const errCode = (result.error as { code?: string }).code || "";
-        if (errCode === "EMAIL_NOT_VERIFIED" || errMsg.toLowerCase().includes("not verified")) {
-          onNeedOtp(email.trim().toLowerCase());
+        if (
+          errCode === "EMAIL_NOT_VERIFIED" ||
+          errMsg.toLowerCase().includes("not verified") ||
+          errMsg.toLowerCase().includes("verify your email")
+        ) {
+          try {
+            await authClient.emailOtp.sendVerificationOtp({
+              email: email.trim().toLowerCase(),
+              type: "email-verification",
+            });
+          } catch (_e) {
+            // Ignore redundant OTP dispatch failures
+          }
+          onNeedOtp(email.trim().toLowerCase(), password);
         } else {
           const displayErr = t("auth.signInFailed");
           setFormError(displayErr);

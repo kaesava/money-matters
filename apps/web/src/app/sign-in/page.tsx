@@ -17,11 +17,18 @@ function SignInContent() {
   const redirectUrl =
     rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/dashboard";
   const urlError = searchParams.get("error");
+  const urlEmail = searchParams.get("email") || "";
+  const reason = searchParams.get("reason");
 
   const [socialError, setSocialError] = useState<string | null>(
-    urlError ? t("auth.signInFailed") : null
+    reason === "existing"
+      ? t("auth.userAlreadyExists")
+      : urlError
+        ? t("auth.signInFailed")
+        : null
   );
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [passwordForOtp, setPasswordForOtp] = useState<string | undefined>(undefined);
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col font-sans">
@@ -44,10 +51,14 @@ function SignInContent() {
           {unverifiedEmail ? (
             <OtpVerificationView
               email={unverifiedEmail}
+              password={passwordForOtp}
               onSuccess={() => {
                 window.location.href = redirectUrl;
               }}
-              onCancel={() => setUnverifiedEmail(null)}
+              onCancel={() => {
+                setUnverifiedEmail(null);
+                setPasswordForOtp(undefined);
+              }}
             />
           ) : (
             <>
@@ -66,8 +77,12 @@ function SignInContent() {
 
               <SignInForm
                 redirectUrl={redirectUrl}
+                initialEmail={urlEmail}
                 onSuccess={() => {}}
-                onNeedOtp={(em) => setUnverifiedEmail(em)}
+                onNeedOtp={(em, pwd) => {
+                  setUnverifiedEmail(em);
+                  setPasswordForOtp(pwd);
+                }}
                 onInteract={() => setSocialError(null)}
               />
 
