@@ -37,7 +37,12 @@ const ALLOWED_ORIGINS = [
   "https://kaesava.au",
   "https://www.kaesava.au",
   ...(process.env["NODE_ENV"] !== "production"
-    ? ["http://localhost:3000", "http://localhost:3001", "http://localhost:8081"]
+    ? [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:8081",
+        "https://kesh-imac.tail09ef18.ts.net",
+      ]
     : []),
 ];
 
@@ -53,7 +58,10 @@ server.register(cors, {
   origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
     const isLocalDevOrigin = !isDev
       ? false
-      : typeof origin === "string" && /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.0\.2\.2)(:\d+)?$/.test(origin);
+      : typeof origin === "string" && (
+          /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.0\.2\.2)(:\d+)?$/.test(origin) ||
+          /^https:\/\/[a-z0-9-]+\.tail09ef18\.ts\.net$/.test(origin)
+        );
 
     if (!origin || ALLOWED_ORIGINS.includes(origin) || isLocalDevOrigin) {
       callback(null, true);

@@ -49,7 +49,12 @@ export async function switchActiveTenant(
   }
 }
 
-const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] ?? "https://api.moneymatters.kaesava.au";
+const isDev = typeof __DEV__ !== "undefined" ? __DEV__ : process.env["NODE_ENV"] !== "production";
+const DEFAULT_API_URL = isDev
+  ? "https://kesh-imac.tail09ef18.ts.net"
+  : "https://api.moneymatters.kaesava.au";
+
+const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] || DEFAULT_API_URL;
 
 export async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie: string | null }> {
   let token: string | null = null;

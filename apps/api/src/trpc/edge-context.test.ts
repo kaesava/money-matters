@@ -51,4 +51,76 @@ describe('Edge Context Unit Tests', () => {
       expect(token).toBe('');
     });
   });
+
+  describe('resolveTenantMembership', () => {
+    it('selects the first membership (OWNER prioritized) when no tenant header is requested', async () => {
+      const { resolveTenantMembership } = await import('./edge-context.js');
+      const memberships = [
+        { tenantId: 'tenant-owner-1', role: 'OWNER', appId: '01908bde-34bb-7b19-a178-574211bc93aa' },
+        { tenantId: 'tenant-member-2', role: 'MEMBER', appId: '01908bde-34bb-7b19-a178-574211bc93aa' },
+      ];
+
+      const mockDb = {
+        insert: () => ({
+          values: () => ({
+            onConflictDoUpdate: () => Promise.resolve(),
+          }),
+        }),
+        select: () => ({
+          from: () => ({
+            innerJoin: () => ({
+              where: () => ({
+                orderBy: () => Promise.resolve(memberships),
+              }),
+            }),
+          }),
+        }),
+      } as unknown as Parameters<typeof resolveTenantMembership>[0];
+
+      const result = await resolveTenantMembership(
+        mockDb,
+        { userId: 'user-1', email: 'test@example.com' },
+        null,
+        'test-corr-id'
+      );
+
+      expect(result.tenantId).toBe('tenant-owner-1');
+      expect(result.role).toBe('OWNER');
+    });
+
+    it('selects requested tenant when requestedTenantId matches a valid membership', async () => {
+      const { resolveTenantMembership } = await import('./edge-context.js');
+      const memberships = [
+        { tenantId: 'tenant-owner-1', role: 'OWNER', appId: '01908bde-34bb-7b19-a178-574211bc93aa' },
+        { tenantId: 'tenant-member-2', role: 'MEMBER', appId: '01908bde-34bb-7b19-a178-574211bc93aa' },
+      ];
+
+      const mockDb = {
+        insert: () => ({
+          values: () => ({
+            onConflictDoUpdate: () => Promise.resolve(),
+          }),
+        }),
+        select: () => ({
+          from: () => ({
+            innerJoin: () => ({
+              where: () => ({
+                orderBy: () => Promise.resolve(memberships),
+              }),
+            }),
+          }),
+        }),
+      } as unknown as Parameters<typeof resolveTenantMembership>[0];
+
+      const result = await resolveTenantMembership(
+        mockDb,
+        { userId: 'user-1', email: 'test@example.com' },
+        'tenant-member-2',
+        'test-corr-id'
+      );
+
+      expect(result.tenantId).toBe('tenant-member-2');
+      expect(result.role).toBe('MEMBER');
+    });
+  });
 });

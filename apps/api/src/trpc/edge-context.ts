@@ -189,7 +189,10 @@ export async function resolveTenantMembership(
         isNull(tenantUsers.archivedAt)
       )
     )
-    .orderBy(desc(tenantUsers.role), asc(tenantUsers.createdAt));
+    .orderBy(
+      sql`CASE WHEN ${tenantUsers.role} = 'OWNER' THEN 0 ELSE 1 END`,
+      asc(tenantUsers.createdAt)
+    );
 
   const matchedMembership = requestedTenantId
     ? userMemberships.find((m) => m.tenantId === requestedTenantId)

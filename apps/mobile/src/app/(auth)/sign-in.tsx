@@ -120,6 +120,9 @@ export default function SignInScreen() {
       posthog.capture("user_signed_in", { method: "email" });
 
       try {
+        setActiveTenantId(null);
+        await SecureStore.deleteItemAsync("money_matters_active_tenant_id");
+
         const tenantStatus = await utils.client.getTenantStatus.query();
         if (tenantStatus?.tenantId) {
           setActiveTenantId(tenantStatus.tenantId);
@@ -153,6 +156,9 @@ export default function SignInScreen() {
   const handleOtpSuccess = async () => {
     setUnverifiedEmail(null);
     try {
+      setActiveTenantId(null);
+      await SecureStore.deleteItemAsync("money_matters_active_tenant_id");
+
       const tenantStatus = await utils.client.getTenantStatus.query();
       if (tenantStatus?.tenantId) {
         setActiveTenantId(tenantStatus.tenantId);

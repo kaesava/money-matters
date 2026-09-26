@@ -1,7 +1,7 @@
 import { tenantProcedure, authenticatedProcedure, ownerProcedure, publicProcedure, privateTenantProcedure, requiresWriteAccess } from '../trpc/trpc.js';
 import { MONEY_MATTERS_APP_ID } from '../trpc/context.js';
 import { db, userPreferences, tenantUserPreferences, bankAccounts, pools, categories, transactionLedger, AppPreferencesBlob } from "@money-matters/db";
-import { and, eq, sql, or, inArray } from "drizzle-orm";
+import { and, eq, sql, or, inArray, asc, isNull } from "drizzle-orm";
 
 import { inngest } from '../inngest/client.js';
 import { logAuditEvent, sendNotificationEmail } from '@money-matters/core';
@@ -792,7 +792,18 @@ export const tenantRouter = {
         })
         .from(tenantUsers)
         .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
-        .where(eq(tenantUsers.userId, ctx.userId!));
+        .where(
+          and(
+            eq(tenantUsers.userId, ctx.userId!),
+            eq(tenants.appId, ctx.appId || MONEY_MATTERS_APP_ID),
+            eq(tenantUsers.inviteStatus, "ACCEPTED"),
+            isNull(tenantUsers.archivedAt)
+          )
+        )
+        .orderBy(
+          sql`CASE WHEN ${tenantUsers.role} = 'OWNER' THEN 0 ELSE 1 END`,
+          asc(tenantUsers.createdAt)
+        );
 
       return records.map((r) => ({
         ...r,

@@ -67,9 +67,10 @@ money-matters/
   - **Google OAuth 2.0 Integration**:
     - Registered Authorized Redirect URI: `https://ep-spring-snow-a70f61xz.neonauth.ap-southeast-2.aws.neon.tech/neondb/auth/callback/google`
     - Registered Authorized Origins: `https://moneymatters.kaesava.au` and Neon Auth base URL.
-  - **Tenant Auto-Provisioning**:
-    - When authenticated users (e.g. Google OAuth sign-in) lack a `tenant_users` record, `createContext()` / `createEdgeContext()` automatically provisions a default `"My Household"` tenant and seeds default categories.
-  - Strict CORS limited to `*.kaesava.au` and `localhost` (dev).
+  - **Tenant Auto-Provisioning & Active Tenant Resolution**:
+    - When authenticated users lack a `tenant_users` record, `createContext()` / `createEdgeContext()` automatically provisions a default `"My Household"` tenant and seeds default categories.
+    - Default active tenant resolution strictly prioritizes owned households over member households (`sql'CASE WHEN ${tenantUsers.role} = 'OWNER' THEN 0 ELSE 1 END', asc(tenantUsers.createdAt)`), ensuring users with multiple memberships land on their primary household data by default.
+  - Strict CORS limited to `*.kaesava.au` and `localhost` (dev), with development regex support for Tailscale Funnel / tunnel testing (`*.tail09ef18.ts.net`).
   - HTTP Security Headers enforced across API worker and web app (`Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`).
   - Upstash Redis sliding-window rate limiting on endpoints.
   - Zero PII logging automatically enforced in `@money-matters/core` logger.
