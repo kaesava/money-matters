@@ -365,10 +365,10 @@ export const en = {
       allocatePendingIncome: "Income Split",
       pendingList: "Upcoming",
       setup: "Setup",
-      paydayAllocations: "Payday Allocations",
+      paydayAllocations: "Income Splits",
     },
     ledgerTab: "Transactions",
-    paydayTab: "Payday Allocations",
+    paydayTab: "Income Splits",
     bucketSplits: "{count} bucket splits",
     allPools: "All Pools",
     allBanks: "All Bank Accounts",
@@ -2183,8 +2183,8 @@ export const en = {
       content: "Simulate how income flows across your spending pools and bill allocations step by step.",
     },
     transactions: {
-      title: "About Transactions History",
-      content: "A complete record of all your earnings, bill payments, and everyday spending. Use filters or search to quickly find any past transaction.",
+      title: "About History & Payday Splits",
+      content: "A complete record of all your household income, expenses and pool transfers as well as your income splits.",
     },
     bankAccounts: {
       title: "About Bank Accounts",

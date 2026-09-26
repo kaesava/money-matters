@@ -8,13 +8,14 @@ import {
   RefreshControl,
   Modal,
 } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import {
   DESIGN_TOKENS,
   BankProviderBadge,
   SkeletonCard,
   SearchInput,
+  RecordFilterBadge,
 } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -30,8 +31,17 @@ type PrivacyFilter = 'ALL' | 'SHARED' | 'PRIVATE';
 
 export default function PoolsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ poolId?: string; categoryId?: string }>();
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
+
+  const [activePoolIdFilter, setActivePoolIdFilter] = useState<string | null>(params.poolId || null);
+  const [activeCategoryIdFilter, setActiveCategoryIdFilter] = useState<string | null>(params.categoryId || null);
+
+  React.useEffect(() => {
+    if (params.poolId) setActivePoolIdFilter(params.poolId);
+    if (params.categoryId) setActiveCategoryIdFilter(params.categoryId);
+  }, [params.poolId, params.categoryId]);
 
   const [selectedHorizon, setSelectedHorizon] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -93,6 +103,9 @@ export default function PoolsScreen() {
   // Filtered pools
   const filteredPools = useMemo(() => {
     return pools.filter((p) => {
+      if (activePoolIdFilter && p.id !== activePoolIdFilter) return false;
+      if (activeCategoryIdFilter && !categories.some((c) => c.poolId === p.id && c.id === activeCategoryIdFilter)) return false;
+
       if (typeFilter !== 'ALL' && p.poolType !== typeFilter) return false;
       if (privacyFilter === 'SHARED' && p.isPrivate) return false;
       if (privacyFilter === 'PRIVATE' && !p.isPrivate) return false;
@@ -106,7 +119,10 @@ export default function PoolsScreen() {
 
       return matchesPool || matchesBank || matchesCat;
     });
-  }, [pools, typeFilter, privacyFilter, searchQuery, bankAccounts, categories]);
+  }, [pools, activePoolIdFilter, activeCategoryIdFilter, typeFilter, privacyFilter, searchQuery, bankAccounts, categories]);
+
+  const matchedActivePool = pools.find((p) => p.id === activePoolIdFilter);
+  const matchedActiveCat = categories.find((c) => c.id === activeCategoryIdFilter);
 
   const everydayPools = filteredPools.filter((p) => p.poolType === 'EVERYDAY');
   const billsPools = filteredPools.filter((p) => p.poolType === 'REGULAR');
@@ -158,6 +174,26 @@ export default function PoolsScreen() {
             <Feather name="more-horizontal" size={18} color="#64748B" />
           </TouchableOpacity>
         </View>
+
+        {/* Active Pre-filter Badge if navigated from History */}
+        {(activePoolIdFilter || activeCategoryIdFilter) && (
+          <View style={{ marginBottom: 10 }}>
+            <RecordFilterBadge
+              label={
+                matchedActivePool
+                  ? `Filtered to Pool: ${matchedActivePool.name}`
+                  : matchedActiveCat
+                  ? `Filtered to Category: ${matchedActiveCat.name}`
+                  : 'Filtered: Item unavailable'
+              }
+              onClear={() => {
+                setActivePoolIdFilter(null);
+                setActiveCategoryIdFilter(null);
+                router.setParams({ poolId: undefined, categoryId: undefined } as never);
+              }}
+            />
+          </View>
+        )}
 
         {/* Search Bar */}
         <SearchInput
@@ -410,7 +446,7 @@ export default function PoolsScreen() {
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyCardText}>
                   {poolsQuery.isError
-                    ? t('errors.generic') || 'Unable to load pools. Pull down to retry.'
+                    ? t('common.error')
                     : pools.length === 0
                     ? t('categories.poolNotFound')
                     : t('categories.noCategoriesMatched')}

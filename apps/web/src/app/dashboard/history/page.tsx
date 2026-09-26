@@ -192,7 +192,7 @@ function TransactionsPageContent() {
 
   const tabsList = [
     { id: "transactions", label: t("transactions.tabs.transactions") || "History" },
-    { id: "payday-allocations", label: "Income Splits" },
+    { id: "payday-allocations", label: t("transactions.tabs.paydayAllocations") || "Income Splits" },
   ];
 
   // Payday Allocations / Income Splits Table State
@@ -276,8 +276,8 @@ function TransactionsPageContent() {
             {t("transactions.title") || "History"}
           </h1>
           <InfoTooltip
-            title="About History & Payday Splits"
-            content="A complete record of all your household income, expenses and pool transfers as well as your income splits."
+            title={t("tooltips.transactions.title")}
+            content={t("tooltips.transactions.content")}
           />
         </div>
       </div>
@@ -331,7 +331,13 @@ function TransactionsPageContent() {
                         : "text-zinc-500 hover:text-zinc-800"
                     }`}
                   >
-                    {tType === "ALL" ? "All" : tType === "DEBIT" ? "Spent" : tType === "CREDIT" ? "Received" : "Transfers"}
+                    {tType === "ALL"
+                      ? t("transactions.filterAll")
+                      : tType === "DEBIT"
+                      ? t("transactions.filterDebit")
+                      : tType === "CREDIT"
+                      ? t("transactions.filterCredit")
+                      : t("transactions.filterTransfer")}
                   </button>
                 ))}
               </div>
@@ -343,7 +349,7 @@ function TransactionsPageContent() {
               disabled={sortedTransactions.length === 0}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
             >
-              <span>Export CSV</span>
+              <span>{t("transactions.csvExport")}</span>
             </button>
           </div>
 
@@ -545,7 +551,7 @@ function TransactionsPageContent() {
               <SearchInput
                 value={planSearchQuery}
                 onChange={setPlanSearchQuery}
-                placeholder="Search income, bank account, or amount..."
+                placeholder={t("transactions.searchPaydaysPlaceholder") || "Search income, bank account, or amount..."}
               />
 
               <div className="h-6 w-px bg-zinc-200 hidden sm:block" />

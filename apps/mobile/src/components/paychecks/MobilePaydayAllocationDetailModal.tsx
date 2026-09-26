@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS, MobileModalDialog } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { formatAUD, formatDate } from '../../lib/format';
 
 export interface MobilePaydayAllocationRecord {
@@ -55,18 +56,18 @@ export function MobilePaydayAllocationDetailModal({
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title="Payday Allocation Details"
+      title={t('paydayDrawer.incomeSplitDetails') || 'Income Split Details'}
       subtitle={`${allocation.incomeName} • ${formatDate(allocation.expectedDate)}`}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
         {/* Status and Total */}
         <View style={styles.topCard}>
           <View style={styles.topCardRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.sourceTitle}>{allocation.incomeName}</Text>
               {allocation.receivingAccountName && (
                 <Text style={styles.accountMeta}>
-                  Deposited into {allocation.receivingAccountName}
+                  {t('paydayDrawer.bankAccount')}: {allocation.receivingAccountName}
                 </Text>
               )}
             </View>
@@ -84,21 +85,37 @@ export function MobilePaydayAllocationDetailModal({
                     isConfirmed ? styles.confirmedText : styles.savedText,
                   ]}
                 >
-                  {isConfirmed ? 'Confirmed ✓' : 'Custom Saved 💾'}
+                  {isConfirmed ? t('transactions.statusConfirmed') : t('transactions.statusDraft')}
                 </Text>
               </View>
               <Text style={styles.totalIncomeText}>{formatAUD(totalIncome)}</Text>
             </View>
           </View>
 
+          {/* Income Dates Section */}
+          <View style={styles.dateMetaBox}>
+            <View style={styles.dateMetaRow}>
+              <Text style={styles.dateMetaLabel}>{t('paydayDrawer.incomeDate')}:</Text>
+              <Text style={styles.dateMetaValue}>{formatDate(allocation.expectedDate)}</Text>
+            </View>
+            <View style={styles.dateMetaRow}>
+              <Text style={styles.dateMetaLabel}>{t('paydayDrawer.incomeSplitDate')}:</Text>
+              <Text style={styles.dateMetaValue}>{formatDate(allocation.createdAt)}</Text>
+            </View>
+          </View>
+
           {allocation.note ? (
-            <Text style={styles.noteText}>Note: {allocation.note}</Text>
+            <Text style={styles.noteText}>
+              {t('paydayDrawer.incomeNote') || 'Note'}: {allocation.note}
+            </Text>
           ) : null}
         </View>
 
         {/* Lines Breakdown */}
         <View style={styles.linesSection}>
-          <Text style={styles.sectionHeader}>Allocated Bucket Splits</Text>
+          <Text style={styles.sectionHeader}>
+            {t('paydayDrawer.splitBreakdown', { count: allocation.lines.length }) || 'Income Split Breakdown'}
+          </Text>
           {allocation.lines.map((line, idx) => {
             const amt = parseFloat(line.confirmedAmount || line.proposedAmount || '0');
             return (
@@ -127,7 +144,7 @@ export function MobilePaydayAllocationDetailModal({
             style={styles.openStudioBtn}
           >
             <Feather name="sliders" size={15} color="#FFFFFF" />
-            <Text style={styles.openStudioBtnText}>Edit in Split Studio</Text>
+            <Text style={styles.openStudioBtnText}>{t('paydayDrawer.reviewIncome') || 'Edit in Split Studio'}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -198,6 +215,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#475569',
     fontStyle: 'italic',
+  },
+  dateMetaBox: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 10,
+    gap: 6,
+  },
+  dateMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateMetaLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  dateMetaValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
   },
   linesSection: {
     gap: 8,

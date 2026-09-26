@@ -4,27 +4,30 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  ActivityIndicator,
   TouchableOpacity,
-  Share,
-  TextInput,
-  ScrollView,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import {
   DESIGN_TOKENS,
   MobilePaginationBar,
   SegmentedTabs,
   SearchInput,
   SkeletonCard,
+  MobilePoolPicker,
+  MobileBankPicker,
+  RecordFilterBadge,
+  FilterPill,
 } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
-import { formatAUD, formatRelativeDate, formatIsoDate, formatDate } from '../../lib/format';
+import { formatAUD, formatIsoDate, formatDate } from '../../lib/format';
 import { TransactionRow } from '../../components/TransactionRow';
 import {
   MobilePaydayAllocationDetailModal,
@@ -34,14 +37,12 @@ import {
 type HistoryTab = 'LEDGER' | 'PAYDAYS';
 type SortField = 'recordedAt' | 'amount' | 'categoryName' | 'description';
 type SortDir = 'asc' | 'desc';
-
 type PlanSortField = 'createdAt' | 'expectedDate' | 'incomeName' | 'receivingAccount' | 'amount';
 
 export default function TransactionsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string; search?: string; poolId?: string; bankAccountId?: string }>();
   const { data: session } = authClient.useSession();
-  const utils = trpc.useUtils();
 
   const [activeTab, setActiveTab] = useState<HistoryTab>(
     params.tab === 'payday-allocations' ? 'PAYDAYS' : 'LEDGER'
@@ -58,7 +59,7 @@ export default function TransactionsScreen() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  // Payday Allocations Filter & Sort State
+  // Payday Allocations / Income Splits Filter & Sort State
   const [planSearchQuery, setPlanSearchQuery] = useState('');
   const [selectedPlanBankId, setSelectedPlanBankId] = useState<string>('ALL');
   const [planSortField, setPlanSortField] = useState<PlanSortField>('expectedDate');
@@ -101,7 +102,7 @@ export default function TransactionsScreen() {
 
   const poolMap = useMemo(() => new Map(pools.map((p) => [p.id, p.name])), [pools]);
 
-  // Build a lookup map for transfer pairs by transferGroupId
+  // Lookup map for transfer pairs
   const transferGroupMap = useMemo(() => {
     const map = new Map<string, typeof transactions>();
     for (const tx of transactions) {
@@ -213,7 +214,7 @@ export default function TransactionsScreen() {
   const filteredPlans = useMemo(() => {
     return allocationPlans.filter((plan) => {
       if (selectedPlanBankId !== 'ALL') {
-        const matchedBank = bankAccounts.find((b) => b.id === selectedPlanBankId);
+        const matchedBank = bankAccounts.find((b) => b.id === selectedPlanBankId || b.name === selectedPlanBankId);
         if (matchedBank && plan.receivingAccountName !== matchedBank.name) {
           return false;
         }
@@ -254,45 +255,109 @@ export default function TransactionsScreen() {
     return sortedPlans.slice((planPage - 1) * planPageSize, planPage * planPageSize);
   }, [sortedPlans, planPage, planPageSize]);
 
+  // Export CSV (Tab 1: Ledger)
   const handleExportCsv = async () => {
     if (sortedTxs.length === 0) return;
-    const headers = ['Date', 'Pool / Transfer', 'Flow', 'Amount', 'Note'];
+    const headers = ['Date', 'Type', 'Description', 'Category / Pool', 'Source', 'Amount (AUD)'];
     const rows = sortedTxs.map((tx) => [
-      `"${formatIsoDate(tx.recordedAt)}"`,
-      `"${tx.sourcePoolName && tx.destPoolName ? `${tx.sourcePoolName} ➔ ${tx.destPoolName}` : tx.poolName || 'Everyday'}"`,
-      `"${tx.effectiveType}"`,
-      `"${tx.amount}"`,
+      `"${formatDate(tx.recordedAt)}"`,
+      `"${tx.transactionType || tx.effectiveType}"`,
       `"${(tx.note || '').replace(/"/g, '""')}"`,
+      `"${(tx.sourcePoolName && tx.destPoolName ? `${tx.sourcePoolName} ➔ ${tx.destPoolName}` : tx.poolName || 'Everyday').replace(/"/g, '""')}"`,
+      `"${tx.source || 'MANUAL'}"`,
+      `"${tx.amount}"`,
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     try {
-      await Share.share({
-        message: csvContent,
-        title: 'Transactions Export.csv',
+      const todayStr = formatIsoDate(new Date());
+      const fileName = `transactions_export_${todayStr}.csv`;
+      const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      const fileUri = `${baseDir}${fileName}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+        encoding: FileSystem.EncodingType.UTF8,
       });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export Transactions CSV',
+          UTI: 'public.comma-separated-values-text',
+        });
+      }
     } catch {
       // Ignored
     }
   };
 
+  // Export CSV (Tab 2: Income Splits)
   const handleExportPlansCsv = async () => {
     if (sortedPlans.length === 0) return;
-    const headers = ['Expected Date', 'Income Source', 'Receiving Account', 'Total Amount', 'Status'];
-    const rows = sortedPlans.map((p) => [
-      `"${p.expectedDate || ''}"`,
-      `"${(p.incomeName || '').replace(/"/g, '""')}"`,
-      `"${(p.receivingAccountName || '').replace(/"/g, '""')}"`,
-      `"${p.totalIncomeAmount || '0'}"`,
-      `"${p.status || 'CONFIRMED'}"`,
-    ]);
+    const headers = [
+      'Income Split Date',
+      'Income Date',
+      'Income Source',
+      'Receiving Bank Account',
+      'Total Income Amount',
+      'Pool/Category',
+      'Allocated Amount',
+      'Reasoning',
+    ];
+    const rows: string[][] = [];
+
+    for (const plan of sortedPlans) {
+      const splitDateStr = formatDate(plan.createdAt);
+      const incDateStr = formatDate(plan.expectedDate || plan.createdAt);
+      const incName = plan.incomeName || 'Income Deposit';
+      const bankName = plan.receivingAccountName || 'Main Account';
+      const totalAmt = plan.totalIncomeAmount;
+
+      if (plan.lines && plan.lines.length > 0) {
+        for (const line of plan.lines) {
+          rows.push([
+            `"${splitDateStr}"`,
+            `"${incDateStr}"`,
+            `"${incName.replace(/"/g, '""')}"`,
+            `"${bankName.replace(/"/g, '""')}"`,
+            `"${totalAmt}"`,
+            `"${(line.poolName || 'Unknown').replace(/"/g, '""')}"`,
+            `"${line.confirmedAmount || line.proposedAmount || '0'}"`,
+            `"${(line.reasoning || '').replace(/"/g, '""')}"`,
+          ]);
+        }
+      } else {
+        rows.push([
+          `"${splitDateStr}"`,
+          `"${incDateStr}"`,
+          `"${incName.replace(/"/g, '""')}"`,
+          `"${bankName.replace(/"/g, '""')}"`,
+          `"${totalAmt}"`,
+          '""',
+          '""',
+          '""',
+        ]);
+      }
+    }
 
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     try {
-      await Share.share({
-        message: csvContent,
-        title: 'Payday Allocations Export.csv',
+      const todayStr = formatIsoDate(new Date());
+      const fileName = `money_matters_income_splits_${todayStr}.csv`;
+      const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      const fileUri = `${baseDir}${fileName}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+        encoding: FileSystem.EncodingType.UTF8,
       });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export Income Splits CSV',
+          UTI: 'public.comma-separated-values-text',
+        });
+      }
     } catch {
       // Ignored
     }
@@ -316,6 +381,9 @@ export default function TransactionsScreen() {
     }
   };
 
+  const matchedFilterPool = pools.find((p) => p.id === selectedPoolId);
+  const matchedFilterBank = bankAccounts.find((b) => b.id === selectedBankAccountId);
+
   return (
     <AppScreenWrapper
       title={t('transactions.title')}
@@ -329,8 +397,8 @@ export default function TransactionsScreen() {
         {/* 2-Tab Segment Bar */}
         <SegmentedTabs<HistoryTab>
           tabs={[
-            { key: 'LEDGER', label: t('history.transactionsTab') },
-            { key: 'PAYDAYS', label: t('history.allocationsTab') },
+            { key: 'LEDGER', label: t('transactions.tabs.transactions') },
+            { key: 'PAYDAYS', label: t('transactions.tabs.paydayAllocations') },
           ]}
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -338,474 +406,400 @@ export default function TransactionsScreen() {
 
         {/* Tab 1: Transactions Ledger */}
         {activeTab === 'LEDGER' && (
-          <FlatList
-            contentContainerStyle={styles.listContent}
-            data={paginatedTxs}
-            keyExtractor={(item) => item.id}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#2563eb"
-              />
-            }
-            ListHeaderComponent={
-              <View style={styles.filterSection}>
-                {/* Search & CSV row */}
-                <View style={styles.searchRow}>
-                  <View style={{ flex: 1 }}>
-                    <SearchInput
-                      placeholder={t('transactions.searchPlaceholder')}
-                      value={searchQuery}
-                      onChangeText={(val) => {
-                        setSearchQuery(val);
-                        setPage(1);
-                      }}
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={handleExportCsv}
-                    style={styles.csvBtn}
-                  >
-                    <Feather name="download" size={14} color="#2563eb" />
-                    <Text style={styles.csvBtnText}>{t('transactions.csvExport')}</Text>
-                  </TouchableOpacity>
+          <View style={styles.tabContentWrap}>
+            {/* LOCKED TOP HEADER: Search, Filters & Sort Bar */}
+            <View style={styles.lockedHeader}>
+              {/* Row 1: Search & Download CSV button */}
+              <View style={styles.searchRow}>
+                <View style={{ flex: 1 }}>
+                  <SearchInput
+                    placeholder={t('transactions.searchPlaceholder')}
+                    value={searchQuery}
+                    onChangeText={(val) => {
+                      setSearchQuery(val);
+                      setPage(1);
+                    }}
+                  />
                 </View>
 
-                {/* Flow Filter Chips */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.chipsRow}
+                <TouchableOpacity
+                  onPress={handleExportCsv}
+                  style={styles.csvBtn}
+                  disabled={sortedTxs.length === 0}
+                  accessibilityLabel="Export CSV"
+                  accessibilityRole="button"
                 >
-                  {(['ALL', 'DEBIT', 'CREDIT', 'TRANSFER'] as const).map(
-                    (f) => (
-                      <TouchableOpacity
-                        key={f}
-                        onPress={() => {
-                          setFlowFilter(f);
-                          setPage(1);
-                        }}
-                        style={[
-                          styles.filterChip,
-                          flowFilter === f && styles.filterChipActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipText,
-                            flowFilter === f && styles.filterChipTextActive,
-                          ]}
-                        >
-                          {f === 'ALL'
-                            ? t('transactions.filterAll')
-                            : f === 'DEBIT'
-                            ? `💸 ${t('transactions.filterDebit')}`
-                            : f === 'CREDIT'
-                            ? `💰 ${t('transactions.filterCredit')}`
-                            : `⚡ ${t('transactions.filterTransfer')}`}
-                        </Text>
-                      </TouchableOpacity>
-                    )
-                  )}
-                </ScrollView>
+                  <Feather name="download" size={14} color="#2563eb" />
+                  <Text style={styles.csvBtnText}>{t('transactions.csvExport')}</Text>
+                </TouchableOpacity>
+              </View>
 
-                {/* Specific Pool Filter Chips */}
-                {pools.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipsRow}
-                  >
-                    <TouchableOpacity
-                      onPress={() => {
+              {/* Active Route Filter Badges */}
+              {(selectedPoolId !== 'ALL' || selectedBankAccountId !== 'ALL') && (
+                <View style={styles.filterBadgeRow}>
+                  {selectedPoolId !== 'ALL' && (
+                    <RecordFilterBadge
+                      label={matchedFilterPool ? `Pool: ${matchedFilterPool.name}` : `Pool: ${selectedPoolId}`}
+                      onClear={() => {
                         setSelectedPoolId('ALL');
                         setPage(1);
-                      }}
-                      style={[
-                        styles.filterChipSecondary,
-                        selectedPoolId === 'ALL' && styles.filterChipSecondaryActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipSecondaryText,
-                          selectedPoolId === 'ALL' && styles.filterChipSecondaryTextActive,
-                        ]}
-                      >
-                        {t('transactions.allPools')}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {pools.map((p) => (
-                      <TouchableOpacity
-                        key={p.id}
-                        onPress={() => {
-                          setSelectedPoolId(p.id);
-                          setPage(1);
-                        }}
-                        style={[
-                          styles.filterChipSecondary,
-                          selectedPoolId === p.id && styles.filterChipSecondaryActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipSecondaryText,
-                            selectedPoolId === p.id && styles.filterChipSecondaryTextActive,
-                          ]}
-                        >
-                          {p.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-
-                {/* Bank Account Filter Chips */}
-                {bankAccounts.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipsRow}
-                  >
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedBankAccountId('ALL');
-                        setPage(1);
-                      }}
-                      style={[
-                        styles.filterChipSecondary,
-                        selectedBankAccountId === 'ALL' && styles.filterChipSecondaryActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipSecondaryText,
-                          selectedBankAccountId === 'ALL' && styles.filterChipSecondaryTextActive,
-                        ]}
-                      >
-                        {t('transactions.allBanks')}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {bankAccounts.map((b) => (
-                      <TouchableOpacity
-                        key={b.id}
-                        onPress={() => {
-                          setSelectedBankAccountId(b.id);
-                          setPage(1);
-                        }}
-                        style={[
-                          styles.filterChipSecondary,
-                          selectedBankAccountId === b.id && styles.filterChipSecondaryActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipSecondaryText,
-                            selectedBankAccountId === b.id && styles.filterChipSecondaryTextActive,
-                          ]}
-                        >
-                          🏦 {b.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-
-                {/* Sort Bar */}
-                <View style={styles.sortBar}>
-                  <Text style={styles.sortLabel}>
-                    {t('transactions.sortLabel')}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => toggleSort('recordedAt')}
-                    style={[styles.sortBtn, sortField === 'recordedAt' && styles.sortBtnActive]}
-                  >
-                    <Text style={[styles.sortBtnText, sortField === 'recordedAt' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByDate')} {sortField === 'recordedAt' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => toggleSort('amount')}
-                    style={[styles.sortBtn, sortField === 'amount' && styles.sortBtnActive]}
-                  >
-                    <Text style={[styles.sortBtnText, sortField === 'amount' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByAmount')} {sortField === 'amount' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => toggleSort('categoryName')}
-                    style={[styles.sortBtn, sortField === 'categoryName' && styles.sortBtnActive]}
-                  >
-                    <Text style={[styles.sortBtnText, sortField === 'categoryName' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByCategory')} {sortField === 'categoryName' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            }
-            renderItem={({ item }) => (
-              <TransactionRow
-                amount={item.amount}
-                flowType={item.effectiveType}
-                poolName={item.poolName}
-                categoryName={item.categoryName}
-                sourcePoolName={item.sourcePoolName}
-                destPoolName={item.destPoolName}
-                note={item.note}
-                recordedAt={item.recordedAt}
-              />
-            )}
-            ListEmptyComponent={
-              transactionsQuery.isLoading ? (
-                <View style={{ paddingVertical: 12 }}>
-                  <SkeletonCard count={4} />
-                </View>
-              ) : (
-                <View style={styles.emptyContainer}>
-                  <Feather name="clock" size={32} color="#94A3B8" />
-                  <Text style={styles.emptyTitle}>
-                    {t('transactions.noTransactionsFound')}
-                  </Text>
-                  <Text style={styles.emptySubtitle}>
-                    {t('transactions.emptySubtitle')}
-                  </Text>
-                </View>
-              )
-            }
-            ListFooterComponent={
-              totalPages > 1 ? (
-                <View style={styles.paginationWrap}>
-                  <MobilePaginationBar
-                    page={page}
-                    totalPages={totalPages}
-                    pageSize={pageSize}
-                    totalItems={filteredTxs.length}
-                    onPageChange={setPage}
-                    onPageSizeChange={setPageSize}
-                  />
-                </View>
-              ) : null
-            }
-          />
-        )}
-
-        {/* Tab 2: Payday Allocations Log */}
-        {activeTab === 'PAYDAYS' && (
-          <FlatList
-            contentContainerStyle={styles.listContent}
-            data={paginatedPlans}
-            keyExtractor={(item) => item.id}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#2563eb"
-              />
-            }
-            ListHeaderComponent={
-              <View style={styles.filterSection}>
-                {/* Search & Export Row */}
-                <View style={styles.searchRow}>
-                  <View style={{ flex: 1 }}>
-                    <SearchInput
-                      placeholder={t('transactions.searchPaydaysPlaceholder')}
-                      value={planSearchQuery}
-                      onChangeText={(val) => {
-                        setPlanSearchQuery(val);
-                        setPlanPage(1);
+                        router.setParams({ poolId: undefined } as never);
                       }}
                     />
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={handleExportPlansCsv}
-                    style={styles.csvBtn}
-                  >
-                    <Feather name="download" size={14} color="#2563eb" />
-                    <Text style={styles.csvBtnText}>{t('transactions.csvExport')}</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Bank Account Filter Chips */}
-                {bankAccounts.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.chipsRow}
-                  >
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedPlanBankId('ALL');
-                        setPlanPage(1);
+                  )}
+                  {selectedBankAccountId !== 'ALL' && (
+                    <RecordFilterBadge
+                      label={matchedFilterBank ? `Bank: ${matchedFilterBank.name}` : `Bank: ${selectedBankAccountId}`}
+                      onClear={() => {
+                        setSelectedBankAccountId('ALL');
+                        setPage(1);
+                        router.setParams({ bankAccountId: undefined } as never);
                       }}
+                    />
+                  )}
+                </View>
+              )}
+
+              {/* Row 2: Flow Type filter (Clean, no icons) & Interactive Filter Pills */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterPillsRow}
+              >
+                {(['ALL', 'DEBIT', 'CREDIT', 'TRANSFER'] as const).map((f) => (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => {
+                      setFlowFilter(f);
+                      setPage(1);
+                    }}
+                    style={[
+                      styles.flowChip,
+                      flowFilter === f && styles.flowChipActive,
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.filterChipSecondary,
-                        selectedPlanBankId === 'ALL' && styles.filterChipSecondaryActive,
+                        styles.flowChipText,
+                        flowFilter === f && styles.flowChipTextActive,
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.filterChipSecondaryText,
-                          selectedPlanBankId === 'ALL' && styles.filterChipSecondaryTextActive,
-                        ]}
-                      >
-                        {t('transactions.allBanks')}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {bankAccounts.map((b) => (
-                      <TouchableOpacity
-                        key={b.id}
-                        onPress={() => {
-                          setSelectedPlanBankId(b.id);
-                          setPlanPage(1);
-                        }}
-                        style={[
-                          styles.filterChipSecondary,
-                          selectedPlanBankId === b.id && styles.filterChipSecondaryActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.filterChipSecondaryText,
-                            selectedPlanBankId === b.id && styles.filterChipSecondaryTextActive,
-                          ]}
-                        >
-                          🏦 {b.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-
-                {/* Sort Bar */}
-                <View style={styles.sortBar}>
-                  <Text style={styles.sortLabel}>
-                    {t('transactions.sortLabel')}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => togglePlanSort('expectedDate')}
-                    style={[styles.sortBtn, planSortField === 'expectedDate' && styles.sortBtnActive]}
-                  >
-                    <Text style={[styles.sortBtnText, planSortField === 'expectedDate' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByDate')} {planSortField === 'expectedDate' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
+                      {f === 'ALL'
+                        ? t('transactions.filterAll')
+                        : f === 'DEBIT'
+                        ? t('transactions.filterDebit')
+                        : f === 'CREDIT'
+                        ? t('transactions.filterCredit')
+                        : t('transactions.filterTransfer')}
                     </Text>
                   </TouchableOpacity>
+                ))}
 
-                  <TouchableOpacity
-                    onPress={() => togglePlanSort('amount')}
-                    style={[styles.sortBtn, planSortField === 'amount' && styles.sortBtnActive]}
-                  >
-                    <Text style={[styles.sortBtnText, planSortField === 'amount' && styles.sortBtnTextActive]}>
-                      {t('transactions.sortByAmount')} {planSortField === 'amount' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
-                    </Text>
-                  </TouchableOpacity>
+                <View style={styles.filterDivider} />
 
-                  <TouchableOpacity
-                    onPress={() => togglePlanSort('incomeName')}
-                    style={[styles.sortBtn, planSortField === 'incomeName' && styles.sortBtnActive]}
-                  >
-                    <Text style={[styles.sortBtnText, planSortField === 'incomeName' && styles.sortBtnTextActive]}>
-                      {t('payday.depositSourceName')} {planSortField === 'incomeName' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            }
-            renderItem={({ item }) => {
-              const isConfirmed = item.status === 'CONFIRMED';
-              const totalAmt = parseFloat(item.totalIncomeAmount) || 0;
+                {/* Reusable Pool Picker */}
+                <MobilePoolPicker
+                  pools={pools.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    poolType: p.poolType,
+                  }))}
+                  selectedPoolId={selectedPoolId}
+                  onSelectPool={(id) => {
+                    setSelectedPoolId(id);
+                    setPage(1);
+                  }}
+                  allowAllOption={true}
+                  allOptionLabel={t('transactions.allPools')}
+                />
 
-              return (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedAllocation(item)}
-                  style={styles.paydayCard}
-                >
-                  <View style={styles.paydayCardTop}>
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.badgeRow}>
-                        <View
-                          style={[
-                            styles.statusPill,
-                            isConfirmed
-                              ? styles.statusPillConfirmed
-                              : styles.statusPillSaved,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.statusPillText,
-                              isConfirmed
-                                ? styles.statusPillTextConfirmed
-                                : styles.statusPillTextSaved,
-                            ]}
-                          >
-                            {isConfirmed ? t('transactions.statusConfirmed') : t('transactions.statusDraft')}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.paydayName}>{item.incomeName}</Text>
-                      <Text style={styles.paydayDate}>{formatDate(item.expectedDate)}</Text>
-                      {item.receivingAccountName && (
-                        <Text style={styles.receivingAccountText}>
-                          🏦 {item.receivingAccountName}
-                        </Text>
-                      )}
-                    </View>
+                {/* Reusable Bank Account Picker */}
+                <MobileBankPicker
+                  banks={bankAccounts.map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                    institution: b.bankProvider,
+                  }))}
+                  selectedBankId={selectedBankAccountId}
+                  onSelectBank={(id) => {
+                    setSelectedBankAccountId(id);
+                    setPage(1);
+                  }}
+                  allowAllOption={true}
+                  allOptionLabel={t('transactions.allBanks')}
+                />
 
-                    <View style={styles.paydayAmountCol}>
-                      <Text style={styles.paydayAmount}>{formatAUD(totalAmt)}</Text>
-                      <Text style={styles.paydayLinesCount}>
-                        {t('transactions.bucketSplits').replace('{count}', String(item.lines?.length || 0))}
-                      </Text>
-                    </View>
+                <View style={styles.filterDivider} />
+
+                {/* Sort Toggle Pill */}
+                <FilterPill
+                  label={`${t('transactions.sortByDate')} ${sortField === 'recordedAt' ? (sortDir === 'asc' ? '▲' : '▼') : ''}`}
+                  isActive={sortField === 'recordedAt'}
+                  hasChevron={false}
+                  onPress={() => toggleSort('recordedAt')}
+                />
+
+                <FilterPill
+                  label={`${t('transactions.sortByAmount')} ${sortField === 'amount' ? (sortDir === 'asc' ? '▲' : '▼') : ''}`}
+                  isActive={sortField === 'amount'}
+                  hasChevron={false}
+                  onPress={() => toggleSort('amount')}
+                />
+              </ScrollView>
+            </View>
+
+            {/* Scrollable Transactions List */}
+            <FlatList
+              contentContainerStyle={styles.listContent}
+              data={paginatedTxs}
+              keyExtractor={(item) => item.id}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#2563eb"
+                />
+              }
+              renderItem={({ item }) => (
+                <TransactionRow
+                  amount={item.amount}
+                  flowType={item.effectiveType}
+                  poolName={item.poolName}
+                  categoryName={item.categoryName}
+                  sourcePoolName={item.sourcePoolName}
+                  destPoolName={item.destPoolName}
+                  note={item.note}
+                  recordedAt={item.recordedAt}
+                  onPress={
+                    item.poolId
+                      ? () => router.push(`/(app)/categories?poolId=${item.poolId}` as never)
+                      : undefined
+                  }
+                />
+              )}
+              ListEmptyComponent={
+                transactionsQuery.isLoading ? (
+                  <View style={{ paddingVertical: 12 }}>
+                    <SkeletonCard count={4} />
                   </View>
-                </TouchableOpacity>
-              );
-            }}
-            ListEmptyComponent={
-              allPlansQuery.isLoading ? (
-                <View style={{ paddingVertical: 12 }}>
-                  <SkeletonCard count={4} />
-                </View>
-              ) : (
-                <View style={styles.emptyContainer}>
-                  <Feather name="calendar" size={32} color="#94A3B8" />
-                  <Text style={styles.emptyTitle}>
-                    {t('transactions.noPaydaysFound')}
-                  </Text>
-                  <Text style={styles.emptySubtitle}>
-                    {t('transactions.noPaydaysSubtitle')}
-                  </Text>
-                </View>
-              )
-            }
-            ListFooterComponent={
-              planTotalPages > 1 ? (
-                <View style={styles.paginationWrap}>
-                  <MobilePaginationBar
-                    page={planPage}
-                    totalPages={planTotalPages}
-                    pageSize={planPageSize}
-                    totalItems={filteredPlans.length}
-                    onPageChange={setPlanPage}
-                    onPageSizeChange={setPlanPageSize}
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <Feather name="clock" size={32} color="#94A3B8" />
+                    <Text style={styles.emptyTitle}>
+                      {t('transactions.noTransactionsFound')}
+                    </Text>
+                    <Text style={styles.emptySubtitle}>
+                      {t('transactions.emptySubtitle')}
+                    </Text>
+                  </View>
+                )
+              }
+              ListFooterComponent={
+                filteredTxs.length >= 5 ? (
+                  <View style={styles.paginationWrap}>
+                    <MobilePaginationBar
+                      page={page}
+                      totalPages={totalPages}
+                      pageSize={pageSize}
+                      totalItems={filteredTxs.length}
+                      onPageChange={setPage}
+                      onPageSizeChange={setPageSize}
+                    />
+                  </View>
+                ) : null
+              }
+            />
+          </View>
+        )}
+
+        {/* Tab 2: Income Splits Log */}
+        {activeTab === 'PAYDAYS' && (
+          <View style={styles.tabContentWrap}>
+            {/* LOCKED TOP HEADER: Search, Bank Picker & CSV Export */}
+            <View style={styles.lockedHeader}>
+              <View style={styles.searchRow}>
+                <View style={{ flex: 1 }}>
+                  <SearchInput
+                    placeholder={t('transactions.searchPaydaysPlaceholder')}
+                    value={planSearchQuery}
+                    onChangeText={(val) => {
+                      setPlanSearchQuery(val);
+                      setPlanPage(1);
+                    }}
                   />
                 </View>
-              ) : null
-            }
-          />
+
+                <TouchableOpacity
+                  onPress={handleExportPlansCsv}
+                  style={styles.csvBtn}
+                  disabled={sortedPlans.length === 0}
+                  accessibilityLabel="Export CSV"
+                  accessibilityRole="button"
+                >
+                  <Feather name="download" size={14} color="#2563eb" />
+                  <Text style={styles.csvBtnText}>{t('transactions.csvExport')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Interactive Filter & Sort Pills for Income Splits */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterPillsRow}
+              >
+                <MobileBankPicker
+                  banks={bankAccounts.map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                    institution: b.bankProvider,
+                  }))}
+                  selectedBankId={selectedPlanBankId}
+                  onSelectBank={(id) => {
+                    setSelectedPlanBankId(id);
+                    setPlanPage(1);
+                  }}
+                  allowAllOption={true}
+                  allOptionLabel={t('transactions.allBanks')}
+                />
+
+                <View style={styles.filterDivider} />
+
+                <FilterPill
+                  label={`${t('transactions.sortByDate')} ${planSortField === 'expectedDate' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}`}
+                  isActive={planSortField === 'expectedDate'}
+                  hasChevron={false}
+                  onPress={() => togglePlanSort('expectedDate')}
+                />
+
+                <FilterPill
+                  label={`${t('transactions.sortByAmount')} ${planSortField === 'amount' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}`}
+                  isActive={planSortField === 'amount'}
+                  hasChevron={false}
+                  onPress={() => togglePlanSort('amount')}
+                />
+
+                <FilterPill
+                  label={`${t('payday.depositSourceName')} ${planSortField === 'incomeName' ? (planSortDir === 'asc' ? '▲' : '▼') : ''}`}
+                  isActive={planSortField === 'incomeName'}
+                  hasChevron={false}
+                  onPress={() => togglePlanSort('incomeName')}
+                />
+              </ScrollView>
+            </View>
+
+            {/* Scrollable Income Splits List */}
+            <FlatList
+              contentContainerStyle={styles.listContent}
+              data={paginatedPlans}
+              keyExtractor={(item) => item.id}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#2563eb"
+                />
+              }
+              renderItem={({ item }) => {
+                const isConfirmed = item.status === 'CONFIRMED';
+                const totalAmt = parseFloat(item.totalIncomeAmount) || 0;
+
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedAllocation(item)}
+                    style={styles.paydayCard}
+                  >
+                    <View style={styles.paydayCardTop}>
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.badgeRow}>
+                          <View
+                            style={[
+                              styles.statusPill,
+                              isConfirmed
+                                ? styles.statusPillConfirmed
+                                : styles.statusPillSaved,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.statusPillText,
+                                isConfirmed
+                                  ? styles.statusPillTextConfirmed
+                                  : styles.statusPillTextSaved,
+                              ]}
+                            >
+                              {isConfirmed ? t('transactions.statusConfirmed') : t('transactions.statusDraft')}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.paydayName}>{item.incomeName}</Text>
+
+                        {/* Distinct Income Date vs Split Date Tags */}
+                        <View style={styles.dateTagsRow}>
+                          <View style={styles.dateTag}>
+                            <Text style={styles.dateTagLabel}>Payday:</Text>
+                            <Text style={styles.dateTagValue}>{formatDate(item.expectedDate)}</Text>
+                          </View>
+                          <View style={styles.dateTag}>
+                            <Text style={styles.dateTagLabel}>Split:</Text>
+                            <Text style={styles.dateTagValue}>{formatDate(item.createdAt)}</Text>
+                          </View>
+                        </View>
+
+                        {item.receivingAccountName && (
+                          <Text style={styles.receivingAccountText}>
+                            🏦 {item.receivingAccountName}
+                          </Text>
+                        )}
+                      </View>
+
+                      <View style={styles.paydayAmountCol}>
+                        <Text style={styles.paydayAmount}>{formatAUD(totalAmt)}</Text>
+                        <Text style={styles.paydayLinesCount}>
+                          {t('transactions.bucketSplits').replace('{count}', String(item.lines?.length || 0))}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                allPlansQuery.isLoading ? (
+                  <View style={{ paddingVertical: 12 }}>
+                    <SkeletonCard count={4} />
+                  </View>
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <Feather name="calendar" size={32} color="#94A3B8" />
+                    <Text style={styles.emptyTitle}>
+                      {t('transactions.noPaydaysFound')}
+                    </Text>
+                    <Text style={styles.emptySubtitle}>
+                      {t('transactions.noPaydaysSubtitle')}
+                    </Text>
+                  </View>
+                )
+              }
+              ListFooterComponent={
+                filteredPlans.length >= 5 ? (
+                  <View style={styles.paginationWrap}>
+                    <MobilePaginationBar
+                      page={planPage}
+                      totalPages={planTotalPages}
+                      pageSize={planPageSize}
+                      totalItems={filteredPlans.length}
+                      onPageChange={setPlanPage}
+                      onPageSizeChange={setPlanPageSize}
+                    />
+                  </View>
+                ) : null
+              }
+            />
+          </View>
         )}
       </View>
 
-      {/* Payday Allocation Detail Modal */}
+      {/* Payday Allocation / Income Split Detail Modal */}
       <MobilePaydayAllocationDetailModal
         visible={!!selectedAllocation}
         allocation={selectedAllocation}
@@ -822,71 +816,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabSegmentBar: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 14,
-    padding: 4,
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 8,
-    gap: 4,
-  },
-  tabSegmentBtn: {
+  tabContentWrap: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
   },
-  tabSegmentBtnActive: {
+  lockedHeader: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabSegmentText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  tabSegmentTextActive: {
-    color: '#1B2B4B',
-    fontWeight: '800',
-  },
-  listContent: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
     paddingHorizontal: 20,
-    paddingBottom: 90,
-  },
-  filterSection: {
+    paddingTop: 8,
+    paddingBottom: 10,
     gap: 8,
-    marginBottom: 10,
   },
   searchRow: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
-  },
-  searchWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: '#1B2B4B',
   },
   csvBtn: {
     flexDirection: 'row',
@@ -904,11 +849,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2563eb',
   },
-  chipsRow: {
+  filterBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingTop: 2,
+  },
+  filterPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     paddingVertical: 2,
   },
-  filterChip: {
+  filterDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 2,
+  },
+  flowChip: {
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
@@ -916,71 +875,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  filterChipActive: {
+  flowChipActive: {
     backgroundColor: '#EFF6FF',
     borderColor: '#2563eb',
   },
-  filterChipText: {
+  flowChipText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
   },
-  filterChipTextActive: {
+  flowChipTextActive: {
     color: '#2563eb',
     fontWeight: '800',
   },
-  filterChipSecondary: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  filterChipSecondaryActive: {
-    backgroundColor: '#1B2B4B',
-    borderColor: '#1B2B4B',
-  },
-  filterChipSecondaryText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  filterChipSecondaryTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  sortBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 4,
-  },
-  sortLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  sortBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  sortBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#93C5FD',
-  },
-  sortBtnText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  sortBtnTextActive: {
-    color: '#1D4ED8',
-    fontWeight: '800',
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 90,
   },
   emptyContainer: {
     backgroundColor: '#FFFFFF',
@@ -1054,15 +965,38 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1B2B4B',
   },
-  paydayDate: {
-    fontSize: 11,
+  dateTagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  dateTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  dateTagLabel: {
+    fontSize: 10,
+    fontWeight: '600',
     color: '#64748B',
-    marginTop: 2,
+  },
+  dateTagValue: {
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
   },
   receivingAccountText: {
     fontSize: 10,
     color: '#64748B',
-    marginTop: 2,
+    marginTop: 4,
   },
   paydayAmountCol: {
     alignItems: 'flex-end',

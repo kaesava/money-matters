@@ -5,7 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { trpc, buildTrpcClient } from '../lib/trpc';
 import { authClient } from '../lib/auth';
 import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
-import { IconVisibilityProvider, MobileToastProvider, MobileToastContainer } from '@money-matters/ui/mobile';
+import { IconVisibilityProvider, MobileToastProvider, MobileToastContainer, DateLocaleProvider } from '@money-matters/ui/mobile';
 import { setLanguage, SupportedLanguage } from '@money-matters/i18n';
 import { setMobileLocaleConfig } from '../lib/format';
 import { posthog } from '../config/posthog';
@@ -24,17 +24,18 @@ function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
   const pref = userPrefQuery.data;
   const showIcons = pref?.showIcons ?? true;
 
+  const resolvedLocale = React.useMemo(() => {
+    let loc = pref?.locale || 'auto';
+    return loc === 'auto' ? 'en-AU' : loc;
+  }, [pref?.locale]);
+
+  const userTimezone = pref?.timezone || pref?.tenantTimezone || 'Australia/Sydney';
+
   React.useEffect(() => {
     if (pref) {
       const language = (pref.language as SupportedLanguage) || 'en';
       setLanguage(language);
 
-      let resolvedLocale = pref.locale || 'auto';
-      if (resolvedLocale === 'auto') {
-        resolvedLocale = 'en-AU';
-      }
-      const timezone = pref.tenantTimezone || pref.timezone || 'Australia/Sydney';
-      const userTimezone = pref.timezone || timezone;
       const currency = pref.currency || 'AUD';
 
       setMobileLocaleConfig({
@@ -43,12 +44,14 @@ function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
         currency,
       });
     }
-  }, [pref]);
+  }, [pref, resolvedLocale, userTimezone]);
 
   return (
-    <IconVisibilityProvider initialShowIcons={showIcons}>
-      {children}
-    </IconVisibilityProvider>
+    <DateLocaleProvider locale={resolvedLocale} timeZone={userTimezone}>
+      <IconVisibilityProvider initialShowIcons={showIcons}>
+        {children}
+      </IconVisibilityProvider>
+    </DateLocaleProvider>
   );
 }
 

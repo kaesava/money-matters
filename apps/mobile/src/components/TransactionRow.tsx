@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
-import { formatAUD, formatRelativeDate } from '../lib/format';
+import { formatAUD, formatDate } from '../lib/format';
 
 export interface TransactionRowProps {
   id?: string;
@@ -14,6 +14,7 @@ export interface TransactionRowProps {
   recordedAt: string | Date;
   sourcePoolName?: string | null;
   destPoolName?: string | null;
+  onPress?: () => void;
 }
 
 export function TransactionRow({
@@ -25,6 +26,7 @@ export function TransactionRow({
   recordedAt,
   sourcePoolName,
   destPoolName,
+  onPress,
 }: TransactionRowProps) {
   const isDebit = flowType === 'DEBIT';
   const isCredit = flowType === 'CREDIT';
@@ -38,7 +40,11 @@ export function TransactionRow({
       : poolName || categoryName || 'Everyday Pool';
 
   return (
-    <View style={styles.row}>
+    <TouchableOpacity
+      activeOpacity={onPress ? 0.7 : 1}
+      onPress={onPress}
+      style={styles.row}
+    >
       <View style={styles.iconWrap}>
         {isTransfer ? (
           <Feather name="repeat" size={16} color="#2563eb" />
@@ -50,9 +56,14 @@ export function TransactionRow({
       </View>
 
       <View style={styles.left}>
-        <Text style={styles.category} numberOfLines={1}>
-          {displayName}
-        </Text>
+        <View style={styles.categoryRow}>
+          <Text style={styles.category} numberOfLines={1}>
+            {displayName}
+          </Text>
+          {onPress && (
+            <Feather name="arrow-up-right" size={12} color="#2563eb" style={styles.linkIcon} />
+          )}
+        </View>
         {note && note !== displayName && (
           <Text style={styles.note} numberOfLines={1}>
             {note}
@@ -74,13 +85,21 @@ export function TransactionRow({
           {isDebit ? '-' : isCredit ? '+' : ''}
           {formatAUD(amount)}
         </Text>
-        <Text style={styles.date}>{formatRelativeDate(recordedAt)}</Text>
+        <Text style={styles.date}>{formatDate(recordedAt)}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  linkIcon: {
+    marginTop: 1,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
