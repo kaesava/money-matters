@@ -1,3 +1,27 @@
+We are now going to do something similar with other screens in the web app to ensure that the corresponding mobile app screen is equivalent in functionality and re-uses user-facing literals.
+
+# Rules
+* Strict adherence to AGENTS.md
+* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
+* Ensure that if there are schema changes, push both to dev and prod db, and if seed updates needed, push seed to both dev and prod (both environments currently only have dummy data - safe to overwrite)
+* If you see issues with the web application, ask me before making changes. I want to focus on getting the mobile app ready for now.
+* Each of the requested changes may require a deep-dive into the code - optimise how you do this, but be prepared to go deep for 100% coverage.
+* If there are capabilities that you detect in the web app that have not been built in the mobile app as you review the screen, notify me and ask if I want that built, but of course, you will always use native mobile UI/UX
+* Mobile app must re-use as much UX as possible, defining UI elements centrally and re-using.
+* If you need clarity, /grill-me.
+* I don't need walkthrough at the end'
+* Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
+* Important: Do not create new en.ts keys unless absolutely necessary. Re-use keys. Ensure consistent user facing literal keys used across mobile and web apps.
+
+
+/dashboard/history
+
+
+
+
+
+
+
 # Rules
 * Strict adherence to AGENTS.md including no hardcoding of user facing literals, keeping SCHEMA DFINITION, FUNCTIONAL & Technical Specs md current, NO hardcoding user facing literals, vertical slice architecture, O dead/redundant tables/table fields/API code/UI code/capability code/other package code/etc, ensure UI elements, look-and-feel, colour, UI styling, etc is defined once and re-used, MECE principle for re-use of logic/screens/modals/etc., test cases coverage, etc.
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
@@ -9,15 +33,17 @@
 # MOBILE
 Testing on Android Google Pixel 10.
 
-## Pools
+## Mobile Login Data Fetching & Tenant Hydration: COMPLETED
+* Fixed `TypeError: contextMap[utilName] is not a function` proxy crash in `switchActiveTenant`.
+* Guarded all mobile queries with `enabled: !!session?.user` to prevent unauthenticated 401 cache locking.
+* Resolved immediate tenant hydration on login without premature local storage wipes.
 
-### New/Edit Pool
-* [x] New/Edit Pool screen re-uses the exact user-facing literals from the web app New/Edit Pool modal. Culled unused literals from en.ts. Reordered fields: Name -> Type -> Linked Bank Account -> Target Amount/Date -> Surplus Target Checkbox. Added immutability warning on edit, calculated target notice for Everyday/Bills, mandatory date for Goals, and subtle bottom-left archive button with confirmation.
-* [x] Pool Detail screen & Category inspector aligned with web functionality and exact i18n keys. Move Money re-uses QuickExpenseModal in TRANSFER mode.
-* [x] Pools Screen list aligned: Added SearchInput, pool type & privacy filter chips, top action row with Add Pool, Move Money (QuickExpenseModal TRANSFER), and 3-dot overflow menu for "Recalibrate Household Budget" and "View Archived Pools".
-* [x] Mobile login data fetch resolved for wireless Android devices via Tailscale Funnel fallback.
-
-
+## Pools: COMPLETED
+* Fully aligned with `/dashboard/pools` web functionality.
+* Move Money consolidated to QuickActionModal transfer tab.
+* Overflow menu with Recalibrate Household Budget & View Archived Pools.
+* Chip filtering and SearchInput.
+* CategoryFormModal field ordering, calculated target notices, and surplus targets aligned.
 
 
 ## Header

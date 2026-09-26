@@ -3,6 +3,7 @@ import { QueryCache, MutationCache, QueryClient, QueryClientProvider } from '@ta
 import { PostHogProvider } from 'posthog-react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { trpc, buildTrpcClient } from '../lib/trpc';
+import { authClient } from '../lib/auth';
 import { NotificationServiceProvider } from '@money-matters/capability-notifications/mobile';
 import { IconVisibilityProvider, MobileToastProvider, MobileToastContainer } from '@money-matters/ui/mobile';
 import { setLanguage, SupportedLanguage } from '@money-matters/i18n';
@@ -14,7 +15,9 @@ interface AppProvidersProps {
 }
 
 function MobilePreferencesSync({ children }: { children: React.ReactNode }) {
+  const { data: session } = authClient.useSession();
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
+    enabled: !!session?.user,
     retry: false,
     staleTime: 60_000,
   });

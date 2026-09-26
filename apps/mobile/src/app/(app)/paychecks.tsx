@@ -76,11 +76,21 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
   const [scheduleSearchQuery, setScheduleSearchQuery] = useState('');
 
-  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
-  const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
-  const incomeSourcesQuery = trpc.listIncomeSources.useQuery();
-  const expenseSourcesQuery = trpc.listExpenseSources.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const expenseSourcesQuery = trpc.listExpenseSources.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const poolsQuery = trpc.listPools.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
 
   const incomeSources = incomeSourcesQuery.data ?? [];
   const expenseSources = expenseSourcesQuery.data ?? [];

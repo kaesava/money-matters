@@ -32,19 +32,19 @@ export async function switchActiveTenant(
   tenantId: string,
   queryClientOrUtils?: {
     invalidateQueries?: () => Promise<unknown> | void;
-    resetQueries?: () => Promise<unknown> | void;
     invalidate?: () => Promise<unknown> | void;
   }
 ) {
   setActiveTenantId(tenantId);
   if (queryClientOrUtils) {
-    if (typeof queryClientOrUtils.resetQueries === 'function') {
-      await queryClientOrUtils.resetQueries();
-    }
-    if (typeof queryClientOrUtils.invalidate === 'function') {
-      await queryClientOrUtils.invalidate();
-    } else if (typeof queryClientOrUtils.invalidateQueries === 'function') {
-      await queryClientOrUtils.invalidateQueries();
+    try {
+      if (typeof queryClientOrUtils.invalidate === 'function') {
+        await queryClientOrUtils.invalidate();
+      } else if (typeof queryClientOrUtils.invalidateQueries === 'function') {
+        await queryClientOrUtils.invalidateQueries();
+      }
+    } catch (err) {
+      console.warn('[switchActiveTenant] Invalidation failed:', err);
     }
   }
 }
@@ -167,9 +167,11 @@ export function buildTrpcClient() {
 
             // 401 Unauthorized Interceptor: Attempt token refresh & single retry
             if (res.status === 401) {
+              // Clear possibly stale in-memory session token to force fresh resolution
+              activeSessionToken = null;
               const { token: freshToken, cookie: freshCookie } = await getStoredTokenAndCookie();
 
-              if (freshToken && freshToken !== activeSessionToken) {
+              if (freshToken) {
                 activeSessionToken = freshToken;
                 const newHeaders: Record<string, string> = {
                   ...((options?.headers as Record<string, string>) || {}),
@@ -223,6 +225,10 @@ export function buildTrpcClient() {
           }
           if (tenantId) {
             headersObj["x-tenant-id"] = tenantId;
+          }
+
+          if (isDev) {
+            console.log(`[tRPC headers] Token: ${token ? token.slice(0, 8) + '...' : 'none'}, Tenant: ${tenantId || 'none'}`);
           }
 
           return headersObj;

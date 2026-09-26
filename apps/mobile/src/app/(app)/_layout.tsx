@@ -40,7 +40,9 @@ export default function AppLayout() {
     if (tenantStatusQuery.data?.tenantId) {
       const currentActive = getActiveTenantId();
       if (currentActive !== tenantStatusQuery.data.tenantId) {
-        switchActiveTenant(tenantStatusQuery.data.tenantId, utils);
+        switchActiveTenant(tenantStatusQuery.data.tenantId, utils).catch((err) => {
+          console.warn('[AppLayout] switchActiveTenant failed:', err);
+        });
       }
     }
   }, [tenantStatusQuery.data?.tenantId, utils]);

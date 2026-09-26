@@ -69,10 +69,19 @@ export default function TransactionsScreen() {
   // Payday allocation inspector modal
   const [selectedAllocation, setSelectedAllocation] = useState<MobilePaydayAllocationRecord | null>(null);
 
-  const transactionsQuery = trpc.listTransactions.useQuery({ limit: 500 });
-  const poolsQuery = trpc.listPools.useQuery();
-  const bankAccountsQuery = trpc.listBankAccounts.useQuery();
-  const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
+  const transactionsQuery = trpc.listTransactions.useQuery(
+    { limit: 500 },
+    { enabled: !!session?.user }
+  );
+  const poolsQuery = trpc.listPools.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const allPlansQuery = trpc.listAllAllocationPlans.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
 
   const transactions = transactionsQuery.data ?? [];
   const pools = poolsQuery.data ?? [];

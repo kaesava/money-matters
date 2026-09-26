@@ -52,16 +52,33 @@ export default function HomeScreen() {
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
 
-  const summaryQuery = trpc.getMonthlySummary.useQuery({
-    year: todayYear,
-    month: todayMonth,
+  const summaryQuery = trpc.getMonthlySummary.useQuery(
+    {
+      year: todayYear,
+      month: todayMonth,
+    },
+    {
+      enabled: !!session?.user,
+    }
+  );
+  const poolsQuery = trpc.listPools.useQuery(undefined, {
+    enabled: !!session?.user,
   });
-  const poolsQuery = trpc.listPools.useQuery();
-  const bankAccountsQuery = trpc.listBankAccounts.useQuery();
-  const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
-  const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
-  const transferEventsQuery = trpc.listTransferEvents.useQuery();
-  const billCoverageQuery = trpc.listBillCoverage.useQuery();
+  const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const incomeEventsQuery = trpc.listIncomeEvents.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const transferEventsQuery = trpc.listTransferEvents.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const billCoverageQuery = trpc.listBillCoverage.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
 
   const pools = poolsQuery.data ?? [];
   const bankAccounts = bankAccountsQuery.data ?? [];

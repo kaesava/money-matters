@@ -44,11 +44,17 @@ export default function PoolsScreen() {
   const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>('ALL');
   const [privacyFilter, setPrivacyFilter] = useState<PrivacyFilter>('ALL');
 
-  const poolsQuery = trpc.listPools.useQuery();
-  const bankAccountsQuery = trpc.listBankAccounts.useQuery();
-  const categoriesQuery = trpc.listCategories.useQuery();
+  const poolsQuery = trpc.listPools.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+  const categoriesQuery = trpc.listCategories.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const projectedBalancesQuery = trpc.getProjectedPoolBalances.useQuery(undefined, {
-    enabled: selectedHorizon > 0,
+    enabled: !!session?.user && selectedHorizon > 0,
   });
 
   const pools = poolsQuery.data ?? [];
@@ -403,7 +409,9 @@ export default function PoolsScreen() {
             {filteredPools.length === 0 && (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyCardText}>
-                  {pools.length === 0
+                  {poolsQuery.isError
+                    ? t('errors.generic') || 'Unable to load pools. Pull down to retry.'
+                    : pools.length === 0
                     ? t('categories.poolNotFound')
                     : t('categories.noCategoriesMatched')}
                 </Text>

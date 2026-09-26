@@ -11,7 +11,7 @@ import {
   useMobileToast,
 } from '@money-matters/ui/mobile';
 import { authClient } from '../../lib/auth';
-import { setActiveSessionToken, trpc } from '../../lib/trpc';
+import { setActiveSessionToken, setActiveTenantId, trpc } from '../../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
 
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
@@ -54,6 +54,8 @@ export default function SettingsScreen() {
     );
   };
 
+  const utils = trpc.useUtils();
+
   const handleSignOut = async () => {
     showMobileConfirm({
       title: t('settings.signOut'),
@@ -67,7 +69,10 @@ export default function SettingsScreen() {
           await authClient.signOut();
           await SecureStore.deleteItemAsync('money-matters_session_token');
           await SecureStore.deleteItemAsync('money-matters-session-token');
+          await SecureStore.deleteItemAsync('money_matters_active_tenant_id').catch(() => {});
           setActiveSessionToken(null);
+          setActiveTenantId(null);
+          await utils.invalidate().catch(() => {});
           router.replace('/(auth)/sign-in' as never);
         } catch (err) {
           toast.error(err instanceof Error ? err.message : String(err));

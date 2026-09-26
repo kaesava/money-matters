@@ -22,7 +22,7 @@ import {
 } from "@money-matters/ui/mobile";
 import { SignInInputSchema, isValidEmail } from "@money-matters/types";
 import { authClient } from "../../lib/auth";
-import { trpc, setActiveSessionToken, setActiveTenantId } from "../../lib/trpc";
+import { trpc, setActiveSessionToken, setActiveTenantId, switchActiveTenant } from "../../lib/trpc";
 import * as SecureStore from "expo-secure-store";
 import { registerPushNotificationsAsync } from "../../lib/push";
 import { MobileSocialAuthButtons } from "../../components/auth/MobileSocialAuthButtons";
@@ -120,15 +120,10 @@ export default function SignInScreen() {
       posthog.capture("user_signed_in", { method: "email" });
 
       try {
-        setActiveTenantId(null);
-        await SecureStore.deleteItemAsync("money_matters_active_tenant_id");
-
         const tenantStatus = await utils.client.getTenantStatus.query();
         if (tenantStatus?.tenantId) {
-          setActiveTenantId(tenantStatus.tenantId);
-          await SecureStore.setItemAsync("money_matters_active_tenant_id", tenantStatus.tenantId);
+          await switchActiveTenant(tenantStatus.tenantId, utils);
         }
-        await utils.invalidate();
       } catch (tenantErr) {
         console.warn("Could not resolve tenant status on sign-in:", tenantErr);
       }
@@ -156,15 +151,10 @@ export default function SignInScreen() {
   const handleOtpSuccess = async () => {
     setUnverifiedEmail(null);
     try {
-      setActiveTenantId(null);
-      await SecureStore.deleteItemAsync("money_matters_active_tenant_id");
-
       const tenantStatus = await utils.client.getTenantStatus.query();
       if (tenantStatus?.tenantId) {
-        setActiveTenantId(tenantStatus.tenantId);
-        await SecureStore.setItemAsync("money_matters_active_tenant_id", tenantStatus.tenantId);
+        await switchActiveTenant(tenantStatus.tenantId, utils);
       }
-      await utils.invalidate();
     } catch (tenantErr) {
       console.warn("Could not resolve tenant status on OTP success:", tenantErr);
     }
