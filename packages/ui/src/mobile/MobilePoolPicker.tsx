@@ -19,63 +19,123 @@ export interface MobilePoolOption {
   poolType?: string;
   isPrivate?: boolean | null;
   currentBalance?: string | number;
+  categories?: Array<{ id: string; name: string }>;
 }
 
 export interface MobilePoolPickerProps {
   pools: MobilePoolOption[];
   selectedPoolId: string;
-  onSelectPool: (poolId: string) => void;
+  onSelectPool?: (poolId: string) => void;
+  onSelectCategory?: (poolId: string, categoryId: string | null) => void;
+  selectedCategoryId?: string | null;
+  allowCategorySelection?: boolean;
   allowAllOption?: boolean;
   allOptionLabel?: string;
   placeholder?: string;
   compact?: boolean;
+  displayStyle?: 'pill' | 'field';
+  label?: string;
+  required?: boolean;
+  error?: string;
 }
 
 export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
   pools,
   selectedPoolId,
   onSelectPool,
+  onSelectCategory,
+  selectedCategoryId,
+  allowCategorySelection = false,
   allowAllOption = true,
   allOptionLabel,
   placeholder,
   compact = true,
+  displayStyle = 'pill',
+  label,
+  required = false,
+  error,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const resolvedAllLabel = allOptionLabel || t('transactions.allPools') || 'All Pools';
   const selectedPool = pools.find((p) => p.id === selectedPoolId);
+  const selectedCat = selectedPool?.categories?.find((c) => c.id === selectedCategoryId);
 
   const displayLabel = useMemo(() => {
     if (!selectedPoolId || selectedPoolId === 'ALL') {
       return compact ? resolvedAllLabel : (placeholder || resolvedAllLabel);
     }
-    return selectedPool ? selectedPool.name : resolvedAllLabel;
-  }, [selectedPoolId, selectedPool, compact, resolvedAllLabel, placeholder]);
+    if (selectedPool) {
+      if (selectedCategoryId && selectedCat) {
+        return `${selectedPool.name} › ${selectedCat.name}`;
+      }
+      return selectedPool.name;
+    }
+    return resolvedAllLabel;
+  }, [selectedPoolId, selectedPool, selectedCategoryId, selectedCat, compact, resolvedAllLabel, placeholder]);
 
   const isAllActive = !selectedPoolId || selectedPoolId === 'ALL';
 
   const filteredPools = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return pools;
-    return pools.filter((p) =>
-      p.name.toLowerCase().includes(q) || (p.poolType && p.poolType.toLowerCase().includes(q))
-    );
+    return pools.filter((p) => {
+      const matchPool = p.name.toLowerCase().includes(q) || (p.poolType && p.poolType.toLowerCase().includes(q));
+      const matchCat = p.categories?.some((c) => c.name.toLowerCase().includes(q));
+      return matchPool || matchCat;
+    });
   }, [pools, searchQuery]);
 
-  const handleSelect = (id: string) => {
-    onSelectPool(id);
+  const handleSelect = (poolId: string, categoryId: string | null = null) => {
+    if (onSelectCategory) {
+      onSelectCategory(poolId, categoryId);
+    }
+    if (onSelectPool) {
+      onSelectPool(poolId);
+    }
     setModalVisible(false);
     setSearchQuery('');
   };
 
   return (
     <>
-      <FilterPill
-        label={displayLabel}
-        isActive={!isAllActive}
-        onPress={() => setModalVisible(true)}
-      />
+      {displayStyle === 'pill' ? (
+        <FilterPill
+          label={displayLabel}
+          isActive={!isAllActive}
+          onPress={() => setModalVisible(true)}
+        />
+      ) : (
+        <View style={{ marginBottom: 12 }}>
+          {label ? (
+            <View style={{ flexDirection: 'row', marginBottom: 6 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E293B' }}>{label}</Text>
+              {required ? <Text style={{ color: '#EF4444', marginLeft: 2 }}>*</Text> : null}
+            </View>
+          ) : null}
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={[styles.fieldCard, error ? styles.fieldCardError : null]}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconBox}>
+              <Feather name="folder" size={18} color="#2563eb" />
+            </View>
+            <Text
+              style={[
+                styles.fieldCardText,
+                !selectedPoolId ? styles.fieldCardPlaceholder : null,
+              ]}
+              numberOfLines={1}
+            >
+              {displayLabel}
+            </Text>
+            <Feather name="chevron-down" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+          {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+        </View>
+      )}
 
       <Modal
         visible={modalVisible}
@@ -101,7 +161,9 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
             <View style={styles.header}>
               <View>
                 <Text style={styles.title}>{t('categories.typeLabel') || 'Pool'}</Text>
-                <Text style={styles.subtitle}>{t('transactions.filterByPool')}</Text>
+                <Text style={styles.subtitle}>
+                  {allowCategorySelection ? 'Select a Pool or Sub-Category' : t('transactions.filterByPool')}
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
@@ -120,7 +182,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
               <Feather name="search" size={14} color="#94A3B8" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search pools..."
+                placeholder="Search pools or categories..."
                 placeholderTextColor="#94A3B8"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -143,7 +205,7 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
                 allowAllOption && !searchQuery.trim() ? (
                   <TouchableOpacity
                     style={[styles.itemRow, isAllActive && styles.itemRowSelected]}
-                    onPress={() => handleSelect('ALL')}
+                    onPress={() => handleSelect('ALL', null)}
                   >
                     <View style={styles.itemInfo}>
                       <Text style={[styles.itemText, isAllActive && styles.itemTextSelected]}>
@@ -155,24 +217,50 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
                 ) : null
               }
               renderItem={({ item }) => {
-                const isSelected = item.id === selectedPoolId;
+                const isPoolSelected = item.id === selectedPoolId && (!allowCategorySelection || !selectedCategoryId);
                 return (
-                  <TouchableOpacity
-                    style={[styles.itemRow, isSelected && styles.itemRowSelected]}
-                    onPress={() => handleSelect(item.id)}
-                  >
-                    <View style={styles.itemInfo}>
-                      <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>
-                        {item.name}
-                      </Text>
-                      {item.poolType && (
-                        <Text style={styles.itemBadge}>
-                          {item.poolType}
+                  <View style={{ marginBottom: 4 }}>
+                    <TouchableOpacity
+                      style={[styles.itemRow, isPoolSelected && styles.itemRowSelected]}
+                      onPress={() => handleSelect(item.id, null)}
+                    >
+                      <View style={styles.itemInfo}>
+                        <Feather name="folder" size={14} color={isPoolSelected ? '#2563eb' : '#64748B'} />
+                        <Text style={[styles.itemText, isPoolSelected && styles.itemTextSelected]}>
+                          {item.name}
                         </Text>
-                      )}
-                    </View>
-                    {isSelected && <Feather name="check" size={16} color="#2563eb" />}
-                  </TouchableOpacity>
+                        {item.poolType && (
+                          <Text style={styles.itemBadge}>
+                            {item.poolType}
+                          </Text>
+                        )}
+                      </View>
+                      {isPoolSelected && <Feather name="check" size={16} color="#2563eb" />}
+                    </TouchableOpacity>
+
+                    {allowCategorySelection && item.categories && item.categories.length > 0 && (
+                      <View style={{ marginLeft: 20, borderLeftWidth: 1.5, borderLeftColor: '#E2E8F0', paddingLeft: 8 }}>
+                        {item.categories.map((cat) => {
+                          const isCatSelected = item.id === selectedPoolId && selectedCategoryId === cat.id;
+                          return (
+                            <TouchableOpacity
+                              key={cat.id}
+                              style={[styles.catRow, isCatSelected && styles.catRowSelected]}
+                              onPress={() => handleSelect(item.id, cat.id)}
+                            >
+                              <View style={styles.itemInfo}>
+                                <Feather name="tag" size={12} color={isCatSelected ? '#2563eb' : '#94A3B8'} />
+                                <Text style={[styles.catText, isCatSelected && styles.catTextSelected]}>
+                                  {cat.name}
+                                </Text>
+                              </View>
+                              {isCatSelected && <Feather name="check" size={14} color="#2563eb" />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
                 );
               }}
               ListEmptyComponent={
@@ -292,5 +380,64 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 12,
     color: '#94A3B8',
+  },
+  catRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginVertical: 1,
+  },
+  catRowSelected: {
+    backgroundColor: '#EFF6FF',
+  },
+  catText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#475569',
+  },
+  catTextSelected: {
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  fieldCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+  },
+  fieldCardError: {
+    borderColor: '#EF4444',
+  },
+  iconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  fieldCardText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  fieldCardPlaceholder: {
+    color: '#94A3B8',
+    fontWeight: '400',
+  },
+  fieldError: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    fontWeight: '500',
   },
 });

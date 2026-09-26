@@ -219,7 +219,15 @@ export function UpcomingExpenseModal({
     });
   };
 
-  const isDirty = Boolean(name.trim() || amount.trim());
+  const isDirty = eventToEdit?.id
+    ? (
+        name.trim() !== (eventToEdit.name || '').trim() ||
+        categoryId !== (eventToEdit.categoryId || eventToEdit.poolId || (categories[0]?.id ?? '')) ||
+        (parseFloat(amount) || 0) !== (parseFloat(eventToEdit.expectedAmount || '0') || 0) ||
+        expectedDate !== (eventToEdit.expectedDate || todayStr) ||
+        note.trim() !== (eventToEdit.note || '').trim()
+      )
+    : Boolean(name.trim() || amount.trim() || note.trim());
 
   return (
     <MobileModalDialog

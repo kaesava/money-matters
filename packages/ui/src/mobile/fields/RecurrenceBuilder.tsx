@@ -72,19 +72,36 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
           </RNView>
 
           <RNView style={styles.formGroup}>
-            <RNText style={styles.label}>
-              {frequency === "MONTHLY" || frequency === "WEEKLY" ? t("forms.every") : t("forms.interval")}
-            </RNText>
+            <RNText style={styles.label}>{t("forms.every")}</RNText>
             <RNView style={[styles.row, { alignItems: 'center' }]}>
               <RNTextInput
-                value={String(interval)}
-                onChangeText={(text) => setInterval(parseInt(text) || 1)}
+                value={interval === 0 ? '' : String(interval)}
+                onChangeText={(text) => {
+                  if (text === '') {
+                    setInterval(0);
+                  } else {
+                    const parsed = parseInt(text, 10);
+                    if (!isNaN(parsed) && parsed >= 1) {
+                      setInterval(Math.min(365, parsed));
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  if (interval === 0 || isNaN(interval)) {
+                    setInterval(1);
+                  }
+                }}
                 keyboardType="numeric"
-                editable={frequency !== "FORTNIGHTLY" && frequency !== "ANNUALLY"}
-                style={[styles.input, { flex: 1, backgroundColor: (frequency === "FORTNIGHTLY" || frequency === "ANNUALLY") ? '#f4f4f5' : '#FFF' }]}
+                style={[styles.input, { flex: 1 }]}
               />
-              <RNText style={[styles.label, { width: 60, marginLeft: 10 }]}>
-                {frequency === "WEEKLY" ? t("forms.weeks") : frequency === "MONTHLY" ? t("forms.months") : ""}
+              <RNText style={[styles.label, { width: 80, marginLeft: 10 }]}>
+                {frequency === "WEEKLY"
+                  ? t("forms.weeks")
+                  : frequency === "FORTNIGHTLY"
+                  ? t("forms.fortnights")
+                  : frequency === "MONTHLY"
+                  ? t("forms.months")
+                  : t("forms.years")}
               </RNText>
             </RNView>
           </RNView>
@@ -104,6 +121,14 @@ export function RecurrenceBuilder({ builder }: RecurrenceBuilderProps) {
           value={endDate || ""}
           onChange={(val) => setEndDate(val || null)}
         />
+      )}
+
+      {!isRecurring && (
+        <RNView style={styles.oneOffNoticeBox}>
+          <RNText style={styles.oneOffNoticeText}>
+            ℹ️ {t("forms.oneOffNotice")}
+          </RNText>
+        </RNView>
       )}
     </RNView>
   );
@@ -146,5 +171,20 @@ const styles = RNStyleSheet.create({
     fontSize: 14,
     color: DESIGN_TOKENS.colors.textPrimary,
     fontWeight: '600',
+    backgroundColor: '#FFFFFF',
+  },
+  oneOffNoticeBox: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: DESIGN_TOKENS.radius.md,
+    padding: 12,
+    marginTop: 6,
+  },
+  oneOffNoticeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E40AF',
+    lineHeight: 16,
   },
 });

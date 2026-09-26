@@ -552,8 +552,8 @@ function IncomeAndBillsContent() {
                                 inc.accountName
                               )}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-zinc-900 dark:text-white tabular-nums">
-                              ${parseFloat(inc.amount).toFixed(2)}
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                              +${parseFloat(inc.amount).toFixed(2)}
                             </td>
                           </tr>
                         ))}
@@ -708,8 +708,8 @@ function IncomeAndBillsContent() {
                                 exp.poolName
                               )}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-zinc-900 dark:text-white tabular-nums">
-                              ${parseFloat(exp.amount).toFixed(2)}
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 dark:text-rose-400 tabular-nums">
+                              −${parseFloat(exp.amount).toFixed(2)}
                             </td>
                           </tr>
                         ))}

@@ -149,7 +149,15 @@ export function BankAccountFormModal({
     }
   };
 
-  const isDirty = Boolean(name.trim() || balance !== '0.00' || buffer !== '0.00');
+  const isDirty = isEdit && accountToEdit
+    ? (
+        name.trim() !== (accountToEdit.name || '').trim() ||
+        provider !== ((accountToEdit.bankProvider as SupportedBankProvider) || 'CBA') ||
+        (parseFloat(balance) || 0) !== (parseFloat(accountToEdit.lastKnownBalance || '0') || 0) ||
+        (parseFloat(buffer) || 0) !== (parseFloat(accountToEdit.unbudgetedBuffer || '0') || 0) ||
+        isPrivate !== Boolean(accountToEdit.isPrivate)
+      )
+    : Boolean(name.trim() || (parseFloat(balance) || 0) > 0 || (parseFloat(buffer) || 0) > 0 || isPrivate);
 
   return (
     <MobileModalDialog

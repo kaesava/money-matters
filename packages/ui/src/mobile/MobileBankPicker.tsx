@@ -29,6 +29,10 @@ export interface MobileBankPickerProps {
   allOptionLabel?: string;
   placeholder?: string;
   compact?: boolean;
+  displayStyle?: 'pill' | 'field';
+  label?: string;
+  required?: boolean;
+  error?: string;
 }
 
 export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
@@ -39,6 +43,10 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
   allOptionLabel,
   placeholder,
   compact = true,
+  displayStyle = 'pill',
+  label,
+  required = false,
+  error,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,11 +79,42 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
 
   return (
     <>
-      <FilterPill
-        label={displayLabel}
-        isActive={!isAllActive}
-        onPress={() => setModalVisible(true)}
-      />
+      {displayStyle === 'pill' ? (
+        <FilterPill
+          label={displayLabel}
+          isActive={!isAllActive}
+          onPress={() => setModalVisible(true)}
+        />
+      ) : (
+        <View style={{ marginBottom: 12 }}>
+          {label ? (
+            <View style={{ flexDirection: 'row', marginBottom: 6 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E293B' }}>{label}</Text>
+              {required ? <Text style={{ color: '#EF4444', marginLeft: 2 }}>*</Text> : null}
+            </View>
+          ) : null}
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={[styles.fieldCard, error ? styles.fieldCardError : null]}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconBox}>
+              <Feather name="credit-card" size={18} color="#2563eb" />
+            </View>
+            <Text
+              style={[
+                styles.fieldCardText,
+                !selectedBankId ? styles.fieldCardPlaceholder : null,
+              ]}
+              numberOfLines={1}
+            >
+              {displayLabel}
+            </Text>
+            <Feather name="chevron-down" size={18} color="#94A3B8" />
+          </TouchableOpacity>
+          {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+        </View>
+      )}
 
       <Modal
         visible={modalVisible}
@@ -293,5 +332,43 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 12,
     color: '#94A3B8',
+  },
+  fieldCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+  },
+  fieldCardError: {
+    borderColor: '#EF4444',
+  },
+  iconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  fieldCardText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  fieldCardPlaceholder: {
+    color: '#94A3B8',
+    fontWeight: '400',
+  },
+  fieldError: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    fontWeight: '500',
   },
 });

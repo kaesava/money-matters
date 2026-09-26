@@ -2213,6 +2213,8 @@ export const en = {
     upcomingTimeline: "Upcoming",
     matrixPlan: "Payday Split",
     setupSources: "Setup",
+    incomeSchedules: "Income Schedules",
+    expenseSchedules: "Expense Schedules",
     showFullHorizon: "Show Full 12 Months",
     showNext10Paydays: "Show Next 10 Paydays",
     projectedBalanceAt: "Projected Balance at {date}",

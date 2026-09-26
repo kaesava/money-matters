@@ -1,8 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
 export interface IncomeSourceItem {
@@ -11,50 +9,51 @@ export interface IncomeSourceItem {
   amount: string;
   rrule?: string | null;
   startDate?: string | null;
+  endDate?: string | null;
+  receivingAccountId?: string | null;
+  accountName?: string | null;
 }
 
 interface IncomeSourceCardProps {
   inc: IncomeSourceItem;
   onEdit: (inc: IncomeSourceItem) => void;
-  onArchive: (inc: IncomeSourceItem) => void;
-  onViewBurst: (inc: IncomeSourceItem) => void;
 }
 
 export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
   inc,
   onEdit,
-  onArchive,
-  onViewBurst,
 }) => {
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onEdit(inc)}
+      activeOpacity={0.7}
+    >
       <View style={styles.header}>
-        <View style={styles.badgeGroup}>
-          <View style={[styles.badge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-            <Feather name="arrow-down-left" size={12} color="#059669" />
-            <Text style={[styles.badgeText, { color: '#059669' }]}>{t('badges.income')}</Text>
-          </View>
-          <Text style={styles.title}>{inc.name}</Text>
+        <View style={styles.titleGroup}>
+          <Text style={styles.title} numberOfLines={1}>
+            {inc.name}
+          </Text>
+          {inc.accountName ? (
+            <View style={styles.accountTag}>
+              <Feather name="credit-card" size={11} color="#64748B" />
+              <Text style={styles.accountText} numberOfLines={1}>
+                {inc.accountName}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
-        <View style={styles.actionButtons}>
-          <TouchableOpacity onPress={() => onViewBurst(inc)} style={styles.iconBtn}>
-            <Feather name="eye" size={16} color={DESIGN_TOKENS.colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onEdit(inc)} style={styles.iconBtn}>
-            <Feather name="edit-2" size={16} color={DESIGN_TOKENS.colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onArchive(inc)} style={styles.iconBtn}>
-            <Feather name="trash-2" size={16} color={DESIGN_TOKENS.colors.critical} />
-          </TouchableOpacity>
-        </View>
+        <Feather name="chevron-right" size={18} color="#94A3B8" />
       </View>
 
       <View style={styles.detailRow}>
-        <Text style={styles.amount}>{formatAUD(inc.amount)}</Text>
-        <Text style={styles.freqText}>{formatScheduleDetail(inc.rrule, inc.startDate).detailText}</Text>
+        <Text style={styles.amount}>+{formatAUD(inc.amount)}</Text>
+        <Text style={styles.freqText}>
+          {formatScheduleDetail(inc.rrule, inc.startDate).detailText}
+        </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -65,47 +64,43 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: 8,
+    gap: 10,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  badgeGroup: {
+  titleGroup: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flex: 1,
+    marginRight: 8,
   },
-  badge: {
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    flexShrink: 1,
+  },
+  accountTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-    flex: 1,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  iconBtn: {
-    padding: 6,
-    borderRadius: 8,
     backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    flexShrink: 1,
+  },
+  accountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    flexShrink: 1,
   },
   detailRow: {
     flexDirection: 'row',
@@ -115,10 +110,12 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#16a34a',
+    fontFamily: 'monospace',
   },
   freqText: {
     fontSize: 12,
     color: '#64748B',
+    fontWeight: '500',
   },
 });

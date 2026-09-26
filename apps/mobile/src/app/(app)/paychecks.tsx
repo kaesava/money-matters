@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,10 @@ import {
   SearchInput,
   SkeletonCard,
   showMobileConfirm,
+  MobileBankPicker,
+  MobilePoolPicker,
+  MobilePaginationBar,
+  MobileButton,
 } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -24,7 +28,6 @@ import { authClient } from '../../lib/auth';
 
 import { MobileMatrixPlanTab } from '../../components/paychecks/MobileMatrixPlanTab';
 import { IncomeExpenseFormModal, SourceToEdit } from '../../components/IncomeExpenseFormModal';
-import { SourceBurstDetailModal } from '../../components/SourceBurstDetailModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
 import { EventOverrideModal } from '../../components/EventOverrideModal';
 import { PaycheckEventSection, PaycheckIncomeEvent, PaycheckExpenseEvent } from '../../components/paychecks/PaycheckEventSection';
@@ -58,12 +61,12 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
   const [formMode, setFormMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [sourceToEdit, setSourceToEdit] = useState<SourceToEdit | null>(null);
 
-  const [burstModalVisible, setBurstModalVisible] = useState(false);
-  const [burstMode, setBurstMode] = useState<'INCOME' | 'EXPENSE'>('INCOME');
-  const [burstSourceId, setBurstSourceId] = useState<string | null>(null);
-  const [burstSourceName, setBurstSourceName] = useState('');
-  const [burstSourceAmount, setBurstSourceAmount] = useState('');
-  const [burstCategoryName, setBurstCategoryName] = useState('');
+  const [setupSubSegment, setSetupSubSegment] = useState<'INCOME' | 'EXPENSE'>('INCOME');
+  const [selectedIncomeBankId, setSelectedIncomeBankId] = useState<string>('ALL');
+  const [selectedExpensePoolId, setSelectedExpensePoolId] = useState<string>('ALL');
+  const [incomePage, setIncomePage] = useState(1);
+  const [expensePage, setExpensePage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const [overrideModalVisible, setOverrideModalVisible] = useState(false);
   const [eventToOverride, setEventToOverride] = useState<{
@@ -91,24 +94,14 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
   const poolsQuery = trpc.listPools.useQuery(undefined, {
     enabled: !!session?.user,
   });
+  const bankAccountsQuery = trpc.listBankAccounts.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
 
   const incomeSources = incomeSourcesQuery.data ?? [];
   const expenseSources = expenseSourcesQuery.data ?? [];
   const pools = poolsQuery.data ?? [];
-
-  const archiveIncomeMut = trpc.archiveIncomeSource.useMutation({
-    onSuccess: () => {
-      incomeSourcesQuery.refetch();
-      incomeEventsQuery.refetch();
-    },
-  });
-
-  const archiveExpenseMut = trpc.deleteUpcomingEvent.useMutation({
-    onSuccess: () => {
-      expenseSourcesQuery.refetch();
-      expenseEventsQuery.refetch();
-    },
-  });
+  const bankAccounts = bankAccountsQuery.data ?? [];
 
   const deleteIncomeEventMut = trpc.deleteIncomeEvent.useMutation({
     onSuccess: () => {
@@ -130,27 +123,9 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
       incomeSourcesQuery.refetch(),
       expenseSourcesQuery.refetch(),
       poolsQuery.refetch(),
+      bankAccountsQuery.refetch(),
     ]);
     setRefreshing(false);
-  };
-
-  const handleArchiveIncome = (inc: IncomeSourceItem) => {
-    showMobileConfirm({
-      title: 'Archive Income Schedule',
-      message: `Are you sure you want to archive "${inc.name}"?`,
-      confirmText: 'Archive',
-      onConfirm: () => archiveIncomeMut.mutate({ id: inc.id }),
-    });
-  };
-
-  const handleArchiveExpense = (exp: ExpenseSourceItem) => {
-    showMobileConfirm({
-      title: 'Archive Expense Bill',
-      message: `Are you sure you want to archive "${exp.name}"?`,
-      confirmText: 'Archive',
-      onConfirm: () =>
-        archiveExpenseMut.mutate({ eventId: exp.id, eventType: 'EXPENSE' }),
-    });
   };
 
   const handleDeleteIncomeEvent = (item: { id: string; name?: string | null }) => {
@@ -178,19 +153,66 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
     (e) => e.status === 'PENDING'
   );
 
-  const filteredIncomeSources = incomeSources.filter((s) => {
-    if (!scheduleSearchQuery.trim()) return true;
-    return s.name.toLowerCase().includes(scheduleSearchQuery.toLowerCase().trim());
-  });
+  const enrichedIncomeSources: IncomeSourceItem[] = useMemo(() => {
+    return incomeSources.map((s) => {
+      const acct = bankAccounts.find((b) => b.id === s.receivingAccountId);
+      return {
+        ...s,
+        accountName: acct?.name || null,
+      };
+    });
+  }, [incomeSources, bankAccounts]);
 
-  const filteredExpenseSources = expenseSources.filter((s) => {
-    if (!scheduleSearchQuery.trim()) return true;
-    return (
-      s.name.toLowerCase().includes(scheduleSearchQuery.toLowerCase().trim()) ||
-      (s.poolName && s.poolName.toLowerCase().includes(scheduleSearchQuery.toLowerCase().trim())) ||
-      (s.categoryName && s.categoryName.toLowerCase().includes(scheduleSearchQuery.toLowerCase().trim()))
-    );
-  });
+  const filteredIncomeSources = useMemo(() => {
+    return enrichedIncomeSources.filter((s) => {
+      if (selectedIncomeBankId !== 'ALL' && s.receivingAccountId !== selectedIncomeBankId) {
+        return false;
+      }
+      if (!scheduleSearchQuery.trim()) return true;
+      const q = scheduleSearchQuery.toLowerCase().trim();
+      return (
+        s.name.toLowerCase().includes(q) ||
+        (s.accountName && s.accountName.toLowerCase().includes(q)) ||
+        String(s.amount).includes(q)
+      );
+    });
+  }, [enrichedIncomeSources, selectedIncomeBankId, scheduleSearchQuery]);
+
+  const enrichedExpenseSources: ExpenseSourceItem[] = useMemo(() => {
+    return expenseSources.map((s) => {
+      const pool = pools.find((p) => p.id === (s.poolId || s.categoryId));
+      return {
+        ...s,
+        poolName: s.poolName || pool?.name || null,
+      };
+    });
+  }, [expenseSources, pools]);
+
+  const filteredExpenseSources = useMemo(() => {
+    return enrichedExpenseSources.filter((s) => {
+      if (selectedExpensePoolId !== 'ALL' && (s.poolId || s.categoryId) !== selectedExpensePoolId) {
+        return false;
+      }
+      if (!scheduleSearchQuery.trim()) return true;
+      const q = scheduleSearchQuery.toLowerCase().trim();
+      return (
+        s.name.toLowerCase().includes(q) ||
+        (s.poolName && s.poolName.toLowerCase().includes(q)) ||
+        (s.categoryName && s.categoryName.toLowerCase().includes(q)) ||
+        String(s.amount).includes(q)
+      );
+    });
+  }, [enrichedExpenseSources, selectedExpensePoolId, scheduleSearchQuery]);
+
+  const paginatedIncomeSources = useMemo(() => {
+    const start = (incomePage - 1) * PAGE_SIZE;
+    return filteredIncomeSources.slice(start, start + PAGE_SIZE);
+  }, [filteredIncomeSources, incomePage]);
+
+  const paginatedExpenseSources = useMemo(() => {
+    const start = (expensePage - 1) * PAGE_SIZE;
+    return filteredExpenseSources.slice(start, start + PAGE_SIZE);
+  }, [filteredExpenseSources, expensePage]);
 
   return (
     <AppScreenWrapper
@@ -289,114 +311,183 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           </View>
         )}
 
-        {/* View 3: Recurring Schedules */}
+        {/* View 3: Recurring Schedules (Setup Sources) */}
         {activeSegment === 'SOURCES' && (
           <View style={styles.sourcesView}>
-            {/* Search row for schedules */}
-            <View style={{ marginBottom: 16 }}>
-              <SearchInput
-                placeholder={t('payday.searchSchedules') || 'Search schedules...'}
-                value={scheduleSearchQuery}
-                onChangeText={setScheduleSearchQuery}
+            {/* Sub-tabs for Income Schedules vs Expense Bills */}
+            <View style={{ marginBottom: 14 }}>
+              <SegmentedTabs<'INCOME' | 'EXPENSE'>
+                tabs={[
+                  {
+                    key: 'INCOME',
+                    label: `${t('incomeBillsTabs.incomeSchedules')} (${filteredIncomeSources.length})`,
+                  },
+                  {
+                    key: 'EXPENSE',
+                    label: `${t('incomeBillsTabs.expenseSchedules')} (${filteredExpenseSources.length})`,
+                  },
+                ]}
+                activeKey={setupSubSegment}
+                onChange={(key) => {
+                  setSetupSubSegment(key);
+                  setScheduleSearchQuery('');
+                }}
               />
             </View>
 
-            {/* Income Schedules section */}
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeaderTitle}>Income Schedules</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setSourceToEdit(null);
-                  setFormMode('INCOME');
-                  setFormModalVisible(true);
+            {/* Search row */}
+            <View style={{ marginBottom: 12 }}>
+              <SearchInput
+                placeholder={t('payday.searchSchedules')}
+                value={scheduleSearchQuery}
+                onChangeText={(text) => {
+                  setScheduleSearchQuery(text);
+                  setIncomePage(1);
+                  setExpensePage(1);
                 }}
-                style={styles.addScheduleBtn}
-              >
-                <Feather name="plus" size={14} color="#2563eb" />
-                <Text style={styles.addScheduleText}>Add Income Schedule</Text>
-              </TouchableOpacity>
+              />
             </View>
 
-            <View style={styles.cardsStack}>
-              {incomeSourcesQuery.isLoading ? (
-                <SkeletonCard count={2} />
-              ) : filteredIncomeSources.length === 0 ? (
-                <Text style={styles.emptySchedulesText}>
-                  {t('payday.noIncomeSchedules') || 'No income schedules found.'}
-                </Text>
-              ) : (
-                filteredIncomeSources.map((inc) => (
-                  <IncomeSourceCard
-                    key={inc.id}
-                    inc={inc}
-                    onEdit={(s: IncomeSourceItem) => {
-                      setSourceToEdit(s);
-                      setFormMode('INCOME');
-                      setFormModalVisible(true);
+            {/* Filter and Add Button Row */}
+            {setupSubSegment === 'INCOME' ? (
+              <View style={styles.controlsRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <MobileBankPicker
+                    banks={bankAccounts.map((b) => ({
+                      id: b.id,
+                      name: b.name,
+                      institution: b.bankProvider,
+                    }))}
+                    selectedBankId={selectedIncomeBankId}
+                    onSelectBank={(bId) => {
+                      setSelectedIncomeBankId(bId);
+                      setIncomePage(1);
                     }}
-                    onArchive={handleArchiveIncome}
-                    onViewBurst={(s: IncomeSourceItem) => {
-                      setBurstSourceId(s.id);
-                      setBurstSourceName(s.name);
-                      setBurstSourceAmount(s.amount);
-                      setBurstCategoryName('Everyday Pool');
-                      setBurstMode('INCOME');
-                      setBurstModalVisible(true);
-                    }}
+                    allowAllOption={true}
+                    compact={true}
                   />
-                ))
-              )}
-            </View>
+                </View>
 
-            {/* Expense Bills section */}
-            <View style={[styles.sectionHeaderRow, { marginTop: 16 }]}>
-              <Text style={styles.sectionHeaderTitle}>Expense Bills</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setSourceToEdit(null);
-                  setFormMode('EXPENSE');
-                  setFormModalVisible(true);
-                }}
-                style={styles.addScheduleBtn}
-              >
-                <Feather name="plus" size={14} color="#ba1a1a" />
-                <Text style={[styles.addScheduleText, { color: '#ba1a1a' }]}>
-                  Add Expense Bill
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.cardsStack}>
-              {expenseSourcesQuery.isLoading ? (
-                <SkeletonCard count={2} />
-              ) : filteredExpenseSources.length === 0 ? (
-                <Text style={styles.emptySchedulesText}>
-                  {t('payday.noExpenseBills') || 'No expense bills found.'}
-                </Text>
-              ) : (
-                filteredExpenseSources.map((exp) => (
-                  <ExpenseBillCard
-                    key={exp.id}
-                    exp={exp}
-                    categoryName={exp.poolName || exp.categoryName || 'Pool'}
-                    onEdit={(s: ExpenseSourceItem) => {
-                      setSourceToEdit(s);
-                      setFormMode('EXPENSE');
-                      setFormModalVisible(true);
+                <MobileButton
+                  variant="primary"
+                  size="sm"
+                  onPress={() => {
+                    setSourceToEdit(null);
+                    setFormMode('INCOME');
+                    setFormModalVisible(true);
+                  }}
+                >
+                  {t('modals.incomeExpenseForm.titleAddIncome')}
+                </MobileButton>
+              </View>
+            ) : (
+              <View style={styles.controlsRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <MobilePoolPicker
+                    pools={pools.map((p) => ({
+                      id: p.id,
+                      name: p.name,
+                      poolType: p.poolType,
+                      currentBalance: p.currentBalance,
+                      isPrivate: p.isPrivate,
+                    }))}
+                    selectedPoolId={selectedExpensePoolId}
+                    onSelectPool={(pId) => {
+                      setSelectedExpensePoolId(pId);
+                      setExpensePage(1);
                     }}
-                    onArchive={handleArchiveExpense}
-                    onViewBurst={(s: ExpenseSourceItem) => {
-                      setBurstSourceId(s.id);
-                      setBurstSourceName(s.name);
-                      setBurstSourceAmount(s.amount);
-                      setBurstCategoryName(s.name || 'Pool');
-                      setBurstMode('EXPENSE');
-                      setBurstModalVisible(true);
-                    }}
+                    allowAllOption={true}
+                    compact={true}
                   />
-                ))
-              )}
-            </View>
+                </View>
+
+                <MobileButton
+                  variant="primary"
+                  size="sm"
+                  onPress={() => {
+                    setSourceToEdit(null);
+                    setFormMode('EXPENSE');
+                    setFormModalVisible(true);
+                  }}
+                >
+                  {t('modals.incomeExpenseForm.titleAddExpense')}
+                </MobileButton>
+              </View>
+            )}
+
+            {/* Cards Stack */}
+            {setupSubSegment === 'INCOME' && (
+              <View style={styles.cardsStack}>
+                {incomeSourcesQuery.isLoading ? (
+                  <SkeletonCard count={2} />
+                ) : filteredIncomeSources.length === 0 ? (
+                  <Text style={styles.emptySchedulesText}>
+                    {t('payday.noIncomeSchedules')}
+                  </Text>
+                ) : (
+                  <>
+                    {paginatedIncomeSources.map((inc: IncomeSourceItem) => (
+                      <IncomeSourceCard
+                        key={inc.id}
+                        inc={inc}
+                        onEdit={(s) => {
+                          setSourceToEdit(s);
+                          setFormMode('INCOME');
+                          setFormModalVisible(true);
+                        }}
+                      />
+                    ))}
+                    {filteredIncomeSources.length >= 5 && (
+                      <MobilePaginationBar
+                        page={incomePage}
+                        totalPages={Math.ceil(filteredIncomeSources.length / PAGE_SIZE)}
+                        pageSize={PAGE_SIZE}
+                        totalItems={filteredIncomeSources.length}
+                        onPageChange={setIncomePage}
+                        onPageSizeChange={() => {}}
+                      />
+                    )}
+                  </>
+                )}
+              </View>
+            )}
+
+            {setupSubSegment === 'EXPENSE' && (
+              <View style={styles.cardsStack}>
+                {expenseSourcesQuery.isLoading ? (
+                  <SkeletonCard count={2} />
+                ) : filteredExpenseSources.length === 0 ? (
+                  <Text style={styles.emptySchedulesText}>
+                    {t('payday.noExpenseBills')}
+                  </Text>
+                ) : (
+                  <>
+                    {paginatedExpenseSources.map((exp: ExpenseSourceItem) => (
+                      <ExpenseBillCard
+                        key={exp.id}
+                        exp={exp}
+                        categoryName={exp.poolName || exp.categoryName || 'Pool'}
+                        onEdit={(s) => {
+                          setSourceToEdit(s);
+                          setFormMode('EXPENSE');
+                          setFormModalVisible(true);
+                        }}
+                      />
+                    ))}
+                    {filteredExpenseSources.length >= 5 && (
+                      <MobilePaginationBar
+                        page={expensePage}
+                        totalPages={Math.ceil(filteredExpenseSources.length / PAGE_SIZE)}
+                        pageSize={PAGE_SIZE}
+                        totalItems={filteredExpenseSources.length}
+                        onPageChange={setExpensePage}
+                        onPageSizeChange={() => {}}
+                      />
+                    )}
+                  </>
+                )}
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -413,17 +504,6 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           incomeEventsQuery.refetch();
           expenseEventsQuery.refetch();
         }}
-      />
-
-      {/* Burst Future Occurrences Modal */}
-      <SourceBurstDetailModal
-        visible={burstModalVisible}
-        sourceId={burstSourceId}
-        sourceName={burstSourceName}
-        sourceAmount={burstSourceAmount}
-        categoryName={burstCategoryName}
-        mode={burstMode}
-        onClose={() => setBurstModalVisible(false)}
       />
 
       {/* Mark Paid Modal */}
@@ -551,5 +631,11 @@ const styles = StyleSheet.create({
   },
   cardsStack: {
     gap: 10,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
 });

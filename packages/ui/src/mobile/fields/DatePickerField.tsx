@@ -13,7 +13,6 @@ export interface DatePickerFieldProps {
   required?: boolean;
   error?: string;
   disabled?: boolean;
-  showShortcuts?: boolean;
 }
 
 function padZero(num: number): string {
@@ -51,30 +50,8 @@ export function DatePickerField({
   required = false,
   error,
   disabled = false,
-  showShortcuts = true,
 }: DatePickerFieldProps) {
   const [modalVisible, setModalVisible] = useState(false);
-
-  const todayIso = useMemo(() => toIso(new Date()), []);
-  const yesterdayIso = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return toIso(d);
-  }, []);
-  const tomorrowIso = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return toIso(d);
-  }, []);
-
-  const shortcuts = useMemo(
-    () => [
-      { label: t('common.today'), iso: todayIso },
-      { label: t('common.yesterday'), iso: yesterdayIso },
-      { label: t('common.tomorrow'), iso: tomorrowIso },
-    ],
-    [todayIso, yesterdayIso, tomorrowIso]
-  );
 
   return (
     <View style={styles.container}>
@@ -106,31 +83,6 @@ export function DatePickerField({
 
         <Feather name="chevron-down" size={18} color="#94A3B8" />
       </TouchableOpacity>
-
-      {showShortcuts && !disabled && (
-        <View style={styles.shortcutsRow}>
-          {shortcuts.map((sc) => {
-            const isActive = value === sc.iso;
-            return (
-              <TouchableOpacity
-                key={sc.iso}
-                onPress={() => onChange(sc.iso)}
-                style={[styles.shortcutChip, isActive && styles.shortcutChipActive]}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.shortcutChipText,
-                    isActive && styles.shortcutChipTextActive,
-                  ]}
-                >
-                  {sc.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
 
       <FormFieldError error={error} />
 
@@ -187,32 +139,6 @@ const styles = StyleSheet.create({
   },
   textDisabled: {
     color: '#94A3B8',
-  },
-  shortcutsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 6,
-  },
-  shortcutChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  shortcutChipActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#93C5FD',
-  },
-  shortcutChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  shortcutChipTextActive: {
-    color: '#2563eb',
-    fontWeight: '700',
   },
 });
 
