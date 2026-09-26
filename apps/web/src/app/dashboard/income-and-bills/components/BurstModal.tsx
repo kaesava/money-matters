@@ -145,7 +145,7 @@ export function BurstModal({
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {isEditing ? (
-                          <div className="w-28">
+                          <div className="w-44">
                             <AmountField
                               value={editAmount}
                               onChange={setEditAmount}

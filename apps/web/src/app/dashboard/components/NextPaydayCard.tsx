@@ -55,7 +55,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
             <h2 className="text-sm font-extrabold text-[#1B2B4B]">{t('dashboard.nextPay.upcomingIncome')}</h2>
           </div>
           <Link
-            href="/dashboard/income-and-bills?tab=MATRIX"
+            href="/dashboard/income-split"
             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
           >
             {t('dashboard.nextPay.showMore')} →
@@ -77,7 +77,7 @@ export const NextPaydayCard: React.FC<NextPaydayCardProps> = ({
           </h2>
         </div>
         <Link
-          href="/dashboard/income-and-bills?tab=MATRIX"
+          href="/dashboard/income-split"
           className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
           {t('dashboard.nextPay.showMore')} →

@@ -740,7 +740,7 @@ function TransactionsPageContent() {
                         </td>
                         <td className="py-3 px-4 text-left font-semibold">
                           <Link
-                            href={plan.receivingAccountId ? `/dashboard/bank-accounts?id=${plan.receivingAccountId}` : "/dashboard/bank-accounts"}
+                            href={plan.receivingAccountId ? `/dashboard/settings?tab=bank-accounts&id=${plan.receivingAccountId}` : "/dashboard/settings?tab=bank-accounts"}
                             className="text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                           >
                             <span>{plan.receivingAccountName || "Main Account"}</span>

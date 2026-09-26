@@ -382,7 +382,7 @@ export default function IncomeExpenseFormModal({
             ? t("modals.incomeExpenseForm.titleAddIncome")
             : t("modals.incomeExpenseForm.titleAddExpense")
         }
-        maxWidth="max-w-md"
+        maxWidth="max-w-lg"
       >
         <div className="space-y-4 pt-2 text-xs font-medium text-zinc-700">
           <FormErrorBanner message={errorMsg} />

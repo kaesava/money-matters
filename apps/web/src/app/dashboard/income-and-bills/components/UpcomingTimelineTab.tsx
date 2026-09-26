@@ -511,7 +511,7 @@ export function UpcomingTimelineTab({
                         ) : isIncome ? (
                           evt.accountId ? (
                             <Link
-                              href={`/dashboard/bank-accounts?id=${evt.accountId}`}
+                              href={`/dashboard/settings?tab=bank-accounts&id=${evt.accountId}`}
                               className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                             >
                               <span>{evt.accountName || "Bank Account"}</span>

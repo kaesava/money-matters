@@ -151,7 +151,7 @@ function CascadeContent() {
                     {fmt(line.proposedAmount)}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="w-28 ml-auto">
+                    <div className="w-44 ml-auto">
                       <AmountField
                         value={currentVal}
                         onChange={(val) => handleAmountChange(line.poolId, val)}

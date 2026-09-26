@@ -7,7 +7,7 @@ export default function LegacyBankAccountsRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/dashboard/bank-accounts");
+    router.replace("/dashboard/settings?tab=bank-accounts");
   }, [router]);
 
   return null;

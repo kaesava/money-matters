@@ -78,15 +78,35 @@ export function MobileReconciliationModal({
   const isSurplus = variance > 0;
   const absVariance = Math.abs(variance);
 
+  const hasSurplusTargetInList = useMemo(
+    () => parsedPools.some((p) => p.isSurplusTarget),
+    [parsedPools]
+  );
+
+  const isPoolSweepTarget = (p: ReconcilePoolItem) =>
+    Boolean(p.isSurplusTarget || (!hasSurplusTargetInList && p.poolType === 'EVERYDAY'));
+
   const visiblePools = useMemo(() => {
+    let list: ReconcilePoolItem[];
     if (!isSurplus) {
-      return parsedPools.filter((p) => p.poolType === 'EVERYDAY' || p.currentBalance > 0);
+      list = parsedPools.filter(
+        (p) => isPoolSweepTarget(p) || p.poolType === 'EVERYDAY' || p.currentBalance > 0
+      );
+    } else {
+      list = [...parsedPools];
     }
-    return parsedPools;
-  }, [parsedPools, isSurplus]);
+
+    return list.sort((a, b) => {
+      const aSweep = isPoolSweepTarget(a);
+      const bSweep = isPoolSweepTarget(b);
+      if (aSweep && !bSweep) return -1;
+      if (!aSweep && bSweep) return 1;
+      return 0;
+    });
+  }, [parsedPools, isSurplus, hasSurplusTargetInList]);
 
   const hasHiddenZeroPools = !isSurplus && parsedPools.some(
-    (p) => p.poolType !== 'EVERYDAY' && p.currentBalance <= 0
+    (p) => !isPoolSweepTarget(p) && p.poolType !== 'EVERYDAY' && p.currentBalance <= 0
   );
 
   useEffect(() => {
@@ -96,15 +116,14 @@ export function MobileReconciliationModal({
         initAdj[p.id] = '0.00';
       });
 
-      const sweep = visiblePools.find((p) => p.isSurplusTarget) ||
-        visiblePools.find((p) => p.poolType === 'EVERYDAY') ||
-        visiblePools[0];
+      const sweep = visiblePools.find(isPoolSweepTarget) || visiblePools[0];
 
       if (sweep) {
-        if (!isSurplus && sweep.poolType !== 'EVERYDAY' && sweep.currentBalance < absVariance) {
-          initAdj[sweep.id] = Math.min(sweep.currentBalance, absVariance).toFixed(2);
-        } else {
+        if (isSurplus) {
           initAdj[sweep.id] = absVariance.toFixed(2);
+        } else {
+          const maxDrawdown = Math.min(Math.max(0, sweep.currentBalance), absVariance);
+          initAdj[sweep.id] = maxDrawdown.toFixed(2);
         }
       }
       setAdjustments(initAdj);

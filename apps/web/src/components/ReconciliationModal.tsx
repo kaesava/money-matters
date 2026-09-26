@@ -44,15 +44,34 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
   const isSurplus = variance > 0;
   const absVariance = Math.abs(variance);
 
-  // Filter visible pools: keep everyday pools visible even if $0, as they absorb spending
-  const visiblePools = useMemo(() => {
-    if (!isSurplus) {
-      return pools.filter((p) => p.poolType === "EVERYDAY" || p.currentBalance > 0);
-    }
-    return pools;
-  }, [pools, isSurplus]);
+  // Check if any pool is an explicit surplus target
+  const hasSurplusTargetInList = useMemo(() => pools.some((p) => p.isSurplusTarget), [pools]);
 
-  const hasHiddenZeroPools = !isSurplus && pools.some((p) => p.poolType !== "EVERYDAY" && p.currentBalance <= 0);
+  // Sweep target pool: explicit isSurplusTarget, or fallback to EVERYDAY pool, or first pool
+  const isPoolSweepTarget = React.useCallback(
+    (p: PoolItem) => Boolean(p.isSurplusTarget || (!hasSurplusTargetInList && p.poolType === "EVERYDAY")),
+    [hasSurplusTargetInList]
+  );
+
+  // Filter and sort visible pools: sweep target is always visible even if $0, and sorted first
+  const visiblePools = useMemo(() => {
+    let list: PoolItem[];
+    if (!isSurplus) {
+      list = pools.filter((p) => isPoolSweepTarget(p) || p.poolType === "EVERYDAY" || p.currentBalance > 0);
+    } else {
+      list = [...pools];
+    }
+
+    return list.sort((a, b) => {
+      const aSweep = isPoolSweepTarget(a);
+      const bSweep = isPoolSweepTarget(b);
+      if (aSweep && !bSweep) return -1;
+      if (!aSweep && bSweep) return 1;
+      return 0;
+    });
+  }, [pools, isSurplus, isPoolSweepTarget]);
+
+  const hasHiddenZeroPools = !isSurplus && pools.some((p) => !isPoolSweepTarget(p) && p.poolType !== "EVERYDAY" && p.currentBalance <= 0);
 
   // State for entered adjustment amounts per poolId
   const [adjustments, setAdjustments] = useState<Record<string, string>>({});
@@ -67,7 +86,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
     isBlocked: isSubmitting,
   });
 
-  // Pre-fill everyday or sweep goal pool with 100% of variance on open
+  // Pre-fill sweep target pool on open
   useEffect(() => {
     if (!isOpen) return;
 
@@ -76,19 +95,19 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
       initialAdjustments[p.id] = "0.00";
     });
 
-    const everydayPool = visiblePools.find((p) => p.poolType === "EVERYDAY");
-    const sweepPool = everydayPool || visiblePools.find((p) => p.isSurplusTarget) || visiblePools[0];
+    const sweepPool = visiblePools.find(isPoolSweepTarget) || visiblePools[0];
     if (sweepPool) {
-      if (!isSurplus && sweepPool.poolType !== "EVERYDAY" && sweepPool.currentBalance < absVariance) {
-        // Sweep goal doesn't have full funds, pre-fill max available or clear
-        initialAdjustments[sweepPool.id] = Math.min(sweepPool.currentBalance, absVariance).toFixed(2);
-      } else {
+      if (isSurplus) {
         initialAdjustments[sweepPool.id] = absVariance.toFixed(2);
+      } else {
+        // For shortfalls, draw down sweep target up to its available funds; remainder left for user to allocate
+        const maxDrawdown = Math.min(Math.max(0, sweepPool.currentBalance), absVariance);
+        initialAdjustments[sweepPool.id] = maxDrawdown.toFixed(2);
       }
     }
 
     setAdjustments(initialAdjustments);
-  }, [isOpen, absVariance, isSurplus, visiblePools]);
+  }, [isOpen, absVariance, isSurplus, visiblePools, isPoolSweepTarget]);
 
   if (!isOpen) return null;
 
@@ -160,7 +179,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white max-w-xl w-full rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-100 pb-4">
@@ -245,7 +264,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
               <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px] tracking-wider">
                 <th className="py-2 text-left">{t("bankAccounts.reconcile.tablePool")}</th>
                 <th className="py-2 text-right">{t("bankAccounts.reconcile.tableAvailable")}</th>
-                <th className="py-2 text-right w-28">{t("bankAccounts.reconcile.tableAdjustment")}</th>
+                <th className="py-2 text-right w-48">{t("bankAccounts.reconcile.tableAdjustment")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
@@ -281,7 +300,7 @@ export const ReconciliationModal: React.FC<ReconciliationModalProps> = ({
                       </td>
 
                       <td className="py-2.5 text-right">
-                        <div className="w-24 ml-auto">
+                        <div className="w-48 ml-auto">
                           <AmountField
                             value={val}
                             onChange={(newVal) => handleAdjustmentChange(pool.id, newVal, pool.currentBalance)}

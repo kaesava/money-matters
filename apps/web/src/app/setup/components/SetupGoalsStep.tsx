@@ -195,7 +195,7 @@ export function SetupGoalsStep({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto">
-                    <div className="w-28">
+                    <div className="w-40">
                       <AmountField
                         value={g.targetAmount ? String(g.targetAmount) : ""}
                         onChange={(val) => {

@@ -133,7 +133,12 @@ export function BankAccountTable({
                           )}
                         </div>
                         {(() => {
-                          const poolsTotal = (acc.linkedPools || []).reduce((sum, p) => sum + (p.currentBalance || 0), 0);
+                          const linkedList = acc.linkedPools || [];
+                          if (linkedList.length === 0) {
+                            return null;
+                          }
+
+                          const poolsTotal = linkedList.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
                           const expectedStr = `Expected ${fmtMoney(poolsTotal)}.`;
 
                           if (!acc.hasDifference) {
@@ -146,7 +151,8 @@ export function BankAccountTable({
                           }
 
                           const diff = acc.differenceAmount || 0;
-                          const labelStr = diff > 0
+                          const isSurplus = diff > 0;
+                          const labelStr = isSurplus
                             ? `Align Surplus of ${fmtMoney(diff)}`
                             : `Align Shortfall of ${fmtMoney(Math.abs(diff))}`;
 
@@ -161,9 +167,17 @@ export function BankAccountTable({
                                   e.stopPropagation();
                                   openAlignmentModal?.(acc);
                                 }}
-                                className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer"
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition-all cursor-pointer border ${
+                                  isSurplus
+                                    ? "text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                                    : "text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
+                                }`}
                               >
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    isSurplus ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+                                  }`}
+                                ></span>
                                 <span>{labelStr}</span>
                               </button>
                             </div>

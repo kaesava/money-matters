@@ -75,33 +75,35 @@ export function BankAccountCard({
           </View>
 
           {/* Alignment Status Row */}
-          {!hasDiff ? (
-            <View style={styles.balancedRow}>
-              <View style={styles.greenDot} />
-              <Text style={styles.balancedText}>
-                Expected {formatAUD(poolsTotal)}. Balanced ✓
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.diffRow}>
-              <Text style={styles.expectedText}>
-                Expected {formatAUD(poolsTotal)}.
-              </Text>
-              <TouchableOpacity
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onPressAlign();
-                }}
-                style={styles.alignBtn}
-              >
-                <View style={styles.pulseDot} />
-                <Text style={styles.alignBtnText}>
-                  {diff > 0
-                    ? `Align Surplus (${formatAUD(diff)})`
-                    : `Align Shortfall (${formatAUD(Math.abs(diff))})`}
+          {linkedPools.length > 0 && (
+            !hasDiff ? (
+              <View style={styles.balancedRow}>
+                <View style={styles.greenDot} />
+                <Text style={styles.balancedText}>
+                  Expected {formatAUD(poolsTotal)}. Balanced ✓
                 </Text>
-              </TouchableOpacity>
-            </View>
+              </View>
+            ) : (
+              <View style={styles.diffRow}>
+                <Text style={styles.expectedText}>
+                  Expected {formatAUD(poolsTotal)}.
+                </Text>
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onPressAlign();
+                  }}
+                  style={diff > 0 ? styles.alignBtnSurplus : styles.alignBtnShortfall}
+                >
+                  <View style={diff > 0 ? styles.dotSurplus : styles.dotShortfall} />
+                  <Text style={diff > 0 ? styles.alignBtnTextSurplus : styles.alignBtnTextShortfall}>
+                    {diff > 0
+                      ? `Align Surplus (${formatAUD(diff)})`
+                      : `Align Shortfall (${formatAUD(Math.abs(diff))})`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )
           )}
         </View>
 
@@ -234,7 +236,18 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '500',
   },
-  alignBtn: {
+  alignBtnSurplus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  alignBtnShortfall: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -245,13 +258,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  pulseDot: {
+  dotSurplus: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  dotShortfall: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#D97706',
   },
-  alignBtnText: {
+  alignBtnTextSurplus: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#047857',
+  },
+  alignBtnTextShortfall: {
     fontSize: 11,
     fontWeight: '800',
     color: '#B45309',

@@ -196,7 +196,7 @@ export function TransferModal({
         onClose={onClose}
         title={t("modals.transfer.title")}
         isDirty={isDirty}
-        maxWidth="max-w-md"
+        maxWidth="max-w-lg"
       >
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           {/* Source & Destination Pool Display */}

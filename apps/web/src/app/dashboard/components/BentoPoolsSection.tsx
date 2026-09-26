@@ -106,7 +106,7 @@ export const BentoPoolsSection: React.FC<BentoPoolsSectionProps> = ({
                 </button>
               ) : (
                 <a
-                  href="/dashboard/bank-accounts"
+                  href="/dashboard/settings?tab=bank-accounts"
                   className="text-[#2563eb] hover:text-blue-700 font-extrabold cursor-pointer normal-case"
                 >
                   {t('dashboard.hero.reconcileQuickAction') || 'Update Balance'} →

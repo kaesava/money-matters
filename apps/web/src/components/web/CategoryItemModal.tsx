@@ -178,7 +178,7 @@ export function CategoryItemModal({
       onClose={onClose}
       isDirty={isDirty}
       title={isEdit ? `${t("actions.editCategory")} — ${categoryToEdit?.name}` : t("categories.createTitle")}
-      maxWidth="max-w-md"
+      maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />

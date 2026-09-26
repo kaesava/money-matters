@@ -153,7 +153,7 @@ export function SetupCategoriesStep({
                     <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-24">
+                    <div className="w-40">
                       <AmountField
                         value={String(displayVal ?? "")}
                         onChange={(val) => {
@@ -216,7 +216,7 @@ export function SetupCategoriesStep({
                     <span className="text-xs font-bold text-[#1B2B4B]">{cat.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-24">
+                    <div className="w-40">
                       <AmountField
                         value={String(displayVal ?? "")}
                         onChange={(val) => {

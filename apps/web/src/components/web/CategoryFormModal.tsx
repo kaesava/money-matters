@@ -201,7 +201,7 @@ export function CategoryFormModal({
       onClose={onClose}
       isDirty={isDirty}
       title={isEdit ? t("categories.editPoolTitle", { name: categoryToEdit?.name || "" }) : t("categories.createPool")}
-      maxWidth="max-w-md"
+      maxWidth="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />

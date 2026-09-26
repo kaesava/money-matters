@@ -343,11 +343,11 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
   });
 
   // ---------------------------------------------------------------------------
-  // 5. BANK ACCOUNTS & PRIVACY TOGGLE (`/dashboard/bank-accounts`)
+  // 5. BANK ACCOUNTS & PRIVACY TOGGLE (`/dashboard/settings?tab=bank-accounts`)
   // ---------------------------------------------------------------------------
-  test.describe('5. Bank Accounts Screen (`/dashboard/bank-accounts`)', () => {
+  test.describe('5. Bank Accounts Screen (`/dashboard/settings?tab=bank-accounts`)', () => {
     test('5.1 Account List Table & BankAccountFormModal Field-by-Field Audit', async ({ page }) => {
-      await page.goto('/dashboard/bank-accounts');
+      await page.goto('/dashboard/settings?tab=bank-accounts');
 
       const addAccountBtn = page.locator('button:has-text("Add Bank Account"), button:has-text("Add Account")').first();
       if (await addAccountBtn.isVisible()) {
@@ -488,11 +488,12 @@ test.describe('100% Comprehensive Field-by-Field Screen-by-Screen E2E Master Sui
       }
     });
 
-    test('8.2 Bank Accounts Table & Alignment Audit (`/dashboard/bank-accounts`)', async ({ page }) => {
+    test('8.2 Bank Accounts Table & Alignment Audit (`/dashboard/settings?tab=bank-accounts`)', async ({ page }) => {
       await page.goto('/dashboard/bank-accounts');
+      await page.waitForURL('**/dashboard/settings?tab=bank-accounts*');
 
       // Verify page title and Add Bank Account CTA
-      const pageHeading = page.locator('h1:has-text("Bank Accounts")').first();
+      const pageHeading = page.locator('h2:has-text("Bank Accounts")').first();
       await expect(pageHeading).toBeVisible();
       const addAccountBtn = page.locator('button:has-text("Add Bank Account")').first();
       await expect(addAccountBtn).toBeVisible();

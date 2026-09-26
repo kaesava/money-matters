@@ -262,7 +262,7 @@ export function IncomeSplitPoolTable({
                                     disabled={isReadOnly}
                                     value={currentValStr}
                                     onChange={(e) => onLineAmountChange(l.bucketId, e.target.value)}
-                                    className="w-28 px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-xl text-right font-mono font-bold text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white tabular-nums disabled:opacity-60"
+                                    className="w-44 px-3 py-1.5 border border-zinc-300 dark:border-zinc-700 rounded-xl text-right font-mono font-bold text-xs focus:ring-2 focus:ring-[#2563eb] bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white tabular-nums disabled:opacity-60"
                                   />
                                   <button
                                     type="button"

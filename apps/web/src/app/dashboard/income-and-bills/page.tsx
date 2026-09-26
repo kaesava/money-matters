@@ -17,7 +17,6 @@ import {
 } from "@money-matters/ui/web";
 import IncomeExpenseFormModal from "../../../components/web/IncomeExpenseFormModal";
 import { QuickExpenseDrawer } from "../../../components/web/QuickExpenseDrawer";
-import { MatrixPlanTab } from "./components/MatrixPlanTab";
 import { UpcomingTimelineTab } from "./components/UpcomingTimelineTab";
 import { useLocale } from "../../../providers/LocaleProvider";
 
@@ -67,7 +66,8 @@ function IncomeAndBillsContent() {
   const searchParams = useSearchParams();
   const poolIdParam = searchParams.get("poolId") || searchParams.get("id") || "";
   const categoryIdParam = searchParams.get("categoryId") || "";
-  const tabParam = searchParams.get("tab") || (poolIdParam || categoryIdParam ? "EVENTS" : "MATRIX");
+  const rawTab = searchParams.get("tab");
+  const tabParam = rawTab === "MATRIX" ? "EVENTS" : (rawTab || "EVENTS");
   const typeParam = (searchParams.get("type") || "ALL").toUpperCase();
   const searchParam = searchParams.get("search") || "";
 
@@ -76,10 +76,14 @@ function IncomeAndBillsContent() {
   const [isTransferDrawerOpen, setIsTransferDrawerOpen] = useState(false);
 
   React.useEffect(() => {
+    if (rawTab === "MATRIX") {
+      router.replace("/dashboard/income-split");
+      return;
+    }
     if (tabParam) {
       setActiveTab(tabParam);
     }
-  }, [tabParam]);
+  }, [rawTab, tabParam, router]);
   const toast = useToast();
   const utils = trpc.useUtils();
 
@@ -91,7 +95,6 @@ function IncomeAndBillsContent() {
   const incomeEventsQuery = trpc.listIncomeEvents.useQuery();
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery();
   const transferEventsQuery = trpc.listTransferEvents.useQuery();
-  const userProfileQuery = trpc.getUserProfile.useQuery();
   const allPlansQuery = trpc.listAllAllocationPlans.useQuery();
 
   const isLoading =
@@ -133,75 +136,6 @@ function IncomeAndBillsContent() {
     }
     return set;
   }, [allPlansQuery.data]);
-
-  const matrixIncomeEvents = useMemo(() => {
-    return incomeEvents
-      .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
-      .map((e) => {
-        const receivingAccountId = (e as unknown as { receivingAccountId?: string }).receivingAccountId;
-        const acct = bankAccounts.find((b) => b.id === receivingAccountId);
-        return {
-          id: e.id,
-          expectedDate: e.expectedDate,
-          expectedAmount: parseFloat(e.expectedAmount || "0"),
-          actualAmount: e.actualAmount ? parseFloat(e.actualAmount) : null,
-          status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
-          sourceName: (e as unknown as { name?: string; sourceName?: string }).name || e.sourceName || "Paycheck",
-          isPrivate: acct?.isPrivate || false,
-        };
-      });
-  }, [incomeEvents, bankAccounts]);
-
-  const matrixExpenseEvents = useMemo(() => {
-    return expenseEvents
-      .filter((e) => e && Boolean(e.expectedDate) && String(e.expectedDate).length >= 10)
-      .map((e) => ({
-        categoryId: e.poolId || e.categoryId || "",
-        amount: parseFloat(e.expectedAmount || "0"),
-        dueDate: e.expectedDate,
-        status: (e.status as "PENDING" | "CONFIRMED") || "PENDING",
-      }));
-  }, [expenseEvents]);
-
-  const matrixCategories = useMemo(() => {
-    const catTargetMap = new Map<string, number>();
-    if (categoriesQuery.data) {
-      for (const cat of categoriesQuery.data) {
-        if (cat.monthlyAmount) {
-          const val = parseFloat(cat.monthlyAmount);
-          catTargetMap.set(cat.poolId, (catTargetMap.get(cat.poolId) || 0) + val);
-        }
-      }
-    }
-
-    return pools.map((p) => {
-      const catTargetSum = catTargetMap.get(p.id) || 0;
-      const monthlyAmt =
-        p.poolType === "REGULAR"
-          ? catTargetSum > 0
-            ? catTargetSum
-            : p.targetAmount
-            ? parseFloat(p.targetAmount)
-            : null
-          : p.targetAmount
-          ? parseFloat(p.targetAmount)
-          : null;
-
-      return {
-        id: p.id,
-        name: p.name,
-        type: p.poolType as "REGULAR" | "GOAL" | "EVERYDAY",
-        currentBalance: parseFloat(String(p.currentBalance || "0")),
-        monthlyAmount: monthlyAmt,
-        targetAmount: p.targetAmount ? parseFloat(p.targetAmount) : null,
-        everydayAllowanceAmount: p.everydayAllowanceAmount ? parseFloat(p.everydayAllowanceAmount) : null,
-        isCommitted: p.isCommitted ?? undefined,
-        isSurplusTarget: p.isSurplusTarget ?? undefined,
-        isPrivate: p.isPrivate ?? undefined,
-        targetDate: p.targetDate || null,
-      };
-    });
-  }, [pools, categoriesQuery.data]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -309,8 +243,6 @@ function IncomeAndBillsContent() {
     });
   }, [expenseSources, pools, setupScopeFilter, selectedExpensePoolId, setupSearchQuery, expSortField, expSortOrder]);
 
-  const currentUserId = userProfileQuery.data?.id || pools[0]?.id || "default-user";
-
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -343,22 +275,12 @@ function IncomeAndBillsContent() {
 
       <Tabs
         tabs={[
-          { id: "MATRIX", label: t("transactions.tabs.allocatePendingIncome") },
           { id: "EVENTS", label: t("transactions.tabs.pendingList") },
           { id: "STREAMS", label: t("transactions.tabs.setup") },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
       />
-
-      {activeTab === "MATRIX" && (
-        <MatrixPlanTab
-          currentUserId={currentUserId}
-          categories={matrixCategories}
-          incomeEvents={matrixIncomeEvents}
-          expenseEvents={matrixExpenseEvents}
-        />
-      )}
 
       {activeTab === "STREAMS" && (
         <div className="space-y-6">
@@ -542,7 +464,7 @@ function IncomeAndBillsContent() {
                             <td className="py-2.5 px-3 text-left text-zinc-600 dark:text-zinc-300 font-semibold text-[11px]">
                               {inc.receivingAccountId ? (
                                 <Link
-                                  href={`/dashboard/bank-accounts?id=${inc.receivingAccountId}`}
+                                  href={`/dashboard/settings?tab=bank-accounts&id=${inc.receivingAccountId}`}
                                   className="font-bold text-[#2563eb] hover:underline inline-flex items-center gap-0.5"
                                 >
                                   <span>{inc.accountName}</span>

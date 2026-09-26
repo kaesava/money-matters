@@ -185,11 +185,11 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
           </FormLabel>
         )}
 
-        <div className="flex items-center gap-1.5">
-          <div className="relative flex-1">
+        <div className="flex items-center gap-1.5 min-w-[185px]">
+          <div className="relative flex-1 min-w-[140px]">
             {/* Leading currency symbol with generous clearance */}
             <span
-              className={`absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none font-medium ${
+              className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none select-none font-medium ${
                 isNegative ? 'text-rose-600 font-bold' : 'text-slate-400'
               }`}
             >
@@ -211,7 +211,7 @@ export const AmountField = React.forwardRef<HTMLInputElement, AmountFieldProps>(
               onBlur={handleBlur}
               onFocus={handleFocus}
               className={[
-                'ui-input w-full !pl-12 !pr-4 font-mono tabular-nums',
+                'ui-input w-full min-w-[140px] !pl-11 !pr-4 font-mono tabular-nums',
                 isNegative ? 'text-rose-600 font-bold' : '',
                 '[appearance:textfield]',
                 '[&::-webkit-outer-spin-button]:appearance-none',

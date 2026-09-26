@@ -360,7 +360,7 @@ export function PoolsTable({
                               <td className="py-2.5 px-4 text-left">
                                 {pool.bankAccountName ? (
                                   <Link
-                                    href={pool.bankAccountId ? `/dashboard/bank-accounts?id=${pool.bankAccountId}` : `/dashboard/bank-accounts`}
+                                    href={pool.bankAccountId ? `/dashboard/settings?tab=bank-accounts&id=${pool.bankAccountId}` : `/dashboard/settings?tab=bank-accounts`}
                                     className="font-semibold text-zinc-600 hover:text-[#2563eb] hover:underline"
                                   >
                                     {pool.bankAccountName}

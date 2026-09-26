@@ -355,7 +355,7 @@ export function MarkPaidModal({
                                     {fmt(bal)}
                                   </td>
                                   <td className="py-2.5 px-4 text-right">
-                                    <div className="w-24 ml-auto">
+                                    <div className="w-44 ml-auto">
                                       <AmountField
                                         value={currentVal}
                                         onChange={(val) => handleAmountChange(pool.id, bal, val)}

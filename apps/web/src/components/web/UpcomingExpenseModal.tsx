@@ -215,7 +215,7 @@ export default function UpcomingExpenseModal({
       onClose={onClose}
       isDirty={isDirty}
       title={eventToEdit?.id ? t("modals.upcomingExpense.manageTitle", { name: eventToEdit.name }) : t("modals.upcomingExpense.scheduleTitle")}
-      maxWidth="max-w-md"
+      maxWidth="max-w-lg"
     >
       <div className="space-y-4 text-xs font-medium text-zinc-700">
         <FormErrorBanner message={errorMsg} />
