@@ -138,4 +138,13 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '500',
   },
+  rightDetailGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  occurrencesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
 });
