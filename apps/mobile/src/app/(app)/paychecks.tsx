@@ -20,6 +20,8 @@ import {
   MobilePoolPicker,
   MobilePaginationBar,
   MobileButton,
+  MobileFilterSheet,
+  FilterSection,
 } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -30,7 +32,13 @@ import { MobileMatrixPlanTab } from '../../components/paychecks/MobileMatrixPlan
 import { IncomeExpenseFormModal, SourceToEdit } from '../../components/IncomeExpenseFormModal';
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
 import { EventOverrideModal } from '../../components/EventOverrideModal';
-import { PaycheckEventSection, PaycheckIncomeEvent, PaycheckExpenseEvent } from '../../components/paychecks/PaycheckEventSection';
+import {
+  PaycheckEventSection,
+  PaycheckIncomeEvent,
+  PaycheckExpenseEvent,
+  PaycheckTransferEvent,
+  TimelineEventItem,
+} from '../../components/paychecks/PaycheckEventSection';
 import { IncomeSourceCard, IncomeSourceItem } from '../../components/paychecks/IncomeSourceCard';
 import { ExpenseBillCard, ExpenseSourceItem } from '../../components/paychecks/ExpenseBillCard';
 
@@ -85,6 +93,9 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
   const expenseEventsQuery = trpc.listExpenseEvents.useQuery(undefined, {
     enabled: !!session?.user,
   });
+  const transferEventsQuery = trpc.listTransferEvents.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const incomeSourcesQuery = trpc.listIncomeSources.useQuery(undefined, {
     enabled: !!session?.user,
   });
@@ -115,11 +126,26 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
     },
   });
 
+  const deleteTransferEventMut = trpc.deleteTransferEvent.useMutation({
+    onSuccess: () => {
+      transferEventsQuery.refetch();
+    },
+  });
+
+  const executeTransferMutation = trpc.executeTransferEvent.useMutation({
+    onSuccess: () => {
+      transferEventsQuery.refetch();
+      poolsQuery.refetch();
+      utils.listTransactions.invalidate();
+    },
+  });
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([
       incomeEventsQuery.refetch(),
       expenseEventsQuery.refetch(),
+      transferEventsQuery.refetch(),
       incomeSourcesQuery.refetch(),
       expenseSourcesQuery.refetch(),
       poolsQuery.refetch(),
@@ -146,12 +172,178 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
     });
   };
 
-  const incomeEventsList = (incomeEventsQuery.data ?? []).filter(
-    (e) => e.status === 'PENDING'
-  );
-  const expenseEventsList = (expenseEventsQuery.data ?? []).filter(
-    (e) => e.status === 'PENDING'
-  );
+  const handleDeleteTransferEvent = (item: { id: string; name?: string | null }) => {
+    showMobileConfirm({
+      title: 'Delete Transfer',
+      message: 'Are you sure you want to delete this upcoming transfer?',
+      confirmText: t('common.delete') || 'Delete',
+      onConfirm: () => deleteTransferEventMut.mutate({ eventId: item.id }),
+    });
+  };
+
+  const handleExecuteTransfer = (item: PaycheckTransferEvent) => {
+    executeTransferMutation.mutate({
+      eventId: item.id,
+      name: item.name || 'Transfer',
+      amount: parseFloat(item.expectedAmount).toFixed(2),
+      sourcePoolId: item.sourcePoolId || undefined,
+      destinationPoolId: item.destinationPoolId || undefined,
+    });
+  };
+
+  // Filter & Sort State for Upcoming Timeline
+  const [upcomingSearchQuery, setUpcomingSearchQuery] = useState('');
+  const [upcomingScopeFilter, setUpcomingScopeFilter] = useState<'ALL' | 'SHARED' | 'PRIVATE'>('ALL');
+  const [upcomingKindFilter, setUpcomingKindFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER'>('ALL');
+  const [upcomingSortField, setUpcomingSortField] = useState<'date' | 'name' | 'amount'>('date');
+  const [upcomingSortOrder, setUpcomingSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const UPCOMING_PAGE_SIZE = 10;
+
+  // Active filter count for badge
+  const activeUpcomingFilterCount = (upcomingScopeFilter !== 'ALL' ? 1 : 0) + (upcomingKindFilter !== 'ALL' ? 1 : 0);
+
+  const rawIncomeEvents = (incomeEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
+  const rawExpenseEvents = (expenseEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
+  const rawTransferEvents = (transferEventsQuery.data ?? []).filter((e) => e.status === 'PENDING');
+
+  const unifiedTimelineEvents: TimelineEventItem[] = useMemo(() => {
+    const list: TimelineEventItem[] = [];
+
+    rawIncomeEvents.forEach((e) => {
+      const acct = bankAccounts.find((b) => b.id === (e as any).receivingAccountId);
+      list.push({
+        id: e.id,
+        kind: 'INCOME',
+        name: e.name || t('badges.income') || 'Income',
+        expectedAmount: e.expectedAmount,
+        expectedDate: e.expectedDate,
+        accountId: acct?.id || (e as any).receivingAccountId,
+        accountName: acct?.name || null,
+        isPrivate: acct?.isPrivate || false,
+        rawIncome: {
+          id: e.id,
+          name: e.name,
+          expectedAmount: e.expectedAmount,
+          expectedDate: e.expectedDate,
+          accountId: acct?.id,
+          accountName: acct?.name,
+          isPrivate: acct?.isPrivate,
+        },
+      });
+    });
+
+    rawExpenseEvents.forEach((e) => {
+      const pool = pools.find((p) => p.id === (e.poolId || e.categoryId));
+      list.push({
+        id: e.id,
+        kind: 'EXPENSE',
+        name: e.name || t('badges.bill') || 'Expense',
+        expectedAmount: e.expectedAmount,
+        expectedDate: e.expectedDate,
+        poolId: pool?.id || e.poolId || e.categoryId,
+        categoryName: pool?.name || null,
+        isPrivate: pool?.isPrivate || false,
+        rawExpense: {
+          id: e.id,
+          name: e.name,
+          expectedAmount: e.expectedAmount,
+          expectedDate: e.expectedDate,
+          poolId: pool?.id,
+          categoryId: e.categoryId,
+          categoryName: pool?.name,
+          isPrivate: pool?.isPrivate ?? undefined,
+        },
+      });
+    });
+
+    rawTransferEvents.forEach((e) => {
+      const srcPool = pools.find((p) => p.id === e.sourcePoolId);
+      const dstPool = pools.find((p) => p.id === e.destinationPoolId);
+      const isPriv = Boolean(srcPool?.isPrivate || dstPool?.isPrivate);
+      list.push({
+        id: e.id,
+        kind: 'TRANSFER',
+        name: e.name || t('common.transfer') || 'Transfer',
+        expectedAmount: e.expectedAmount,
+        expectedDate: e.expectedDate,
+        sourcePoolId: e.sourcePoolId,
+        sourcePoolName: srcPool?.name || e.sourcePoolName || 'Source',
+        destinationPoolId: e.destinationPoolId,
+        destinationPoolName: dstPool?.name || e.destinationPoolName || 'Destination',
+        isPrivate: isPriv,
+        rawTransfer: {
+          id: e.id,
+          name: e.name,
+          expectedAmount: e.expectedAmount,
+          expectedDate: e.expectedDate,
+          sourcePoolId: e.sourcePoolId,
+          sourcePoolName: srcPool?.name || e.sourcePoolName,
+          destinationPoolId: e.destinationPoolId,
+          destinationPoolName: dstPool?.name || e.destinationPoolName,
+        },
+      });
+    });
+
+    return list;
+  }, [rawIncomeEvents, rawExpenseEvents, rawTransferEvents, bankAccounts, pools]);
+
+  const filteredUpcomingEvents = useMemo(() => {
+    let result = unifiedTimelineEvents;
+
+    // Kind Filter
+    if (upcomingKindFilter !== 'ALL') {
+      result = result.filter((e) => e.kind === upcomingKindFilter);
+    }
+
+    // Scope Filter
+    if (upcomingScopeFilter === 'PRIVATE') {
+      result = result.filter((e) => e.isPrivate);
+    } else if (upcomingScopeFilter === 'SHARED') {
+      result = result.filter((e) => !e.isPrivate);
+    }
+
+    // Search Query
+    if (upcomingSearchQuery.trim()) {
+      const q = upcomingSearchQuery.toLowerCase().trim();
+      result = result.filter((e) => {
+        return (
+          e.name.toLowerCase().includes(q) ||
+          (e.accountName && e.accountName.toLowerCase().includes(q)) ||
+          (e.categoryName && e.categoryName.toLowerCase().includes(q)) ||
+          (e.sourcePoolName && e.sourcePoolName.toLowerCase().includes(q)) ||
+          (e.destinationPoolName && e.destinationPoolName.toLowerCase().includes(q)) ||
+          String(e.expectedAmount).includes(q)
+        );
+      });
+    }
+
+    // Sort
+    return result.sort((a, b) => {
+      let comp = 0;
+      if (upcomingSortField === 'date') {
+        comp = new Date(a.expectedDate).getTime() - new Date(b.expectedDate).getTime();
+      } else if (upcomingSortField === 'name') {
+        comp = a.name.localeCompare(b.name);
+      } else if (upcomingSortField === 'amount') {
+        comp = parseFloat(a.expectedAmount) - parseFloat(b.expectedAmount);
+      }
+      return upcomingSortOrder === 'asc' ? comp : -comp;
+    });
+  }, [
+    unifiedTimelineEvents,
+    upcomingKindFilter,
+    upcomingScopeFilter,
+    upcomingSearchQuery,
+    upcomingSortField,
+    upcomingSortOrder,
+  ]);
+
+  const paginatedUpcomingEvents = useMemo(() => {
+    const start = (upcomingPage - 1) * UPCOMING_PAGE_SIZE;
+    return filteredUpcomingEvents.slice(start, start + UPCOMING_PAGE_SIZE);
+  }, [filteredUpcomingEvents, upcomingPage]);
 
   const enrichedIncomeSources: IncomeSourceItem[] = useMemo(() => {
     return incomeSources.map((s) => {
@@ -252,20 +444,44 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
         {/* View 2: Upcoming Timeline */}
         {activeSegment === 'EVENTS' && (
           <View style={styles.eventsView}>
+            {/* Search + Filter Row */}
+            <View style={styles.timelineControlRow}>
+              <View style={{ flex: 1 }}>
+                <SearchInput
+                  placeholder={t('common.search') || 'Search upcoming events...'}
+                  value={upcomingSearchQuery}
+                  onChangeText={(text) => {
+                    setUpcomingSearchQuery(text);
+                    setUpcomingPage(1);
+                  }}
+                />
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.filterBtn,
+                  activeUpcomingFilterCount > 0 && styles.filterBtnActive,
+                ]}
+                onPress={() => setFilterSheetVisible(true)}
+              >
+                <Feather
+                  name="sliders"
+                  size={15}
+                  color={activeUpcomingFilterCount > 0 ? '#2563eb' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    styles.filterBtnText,
+                    activeUpcomingFilterCount > 0 && styles.filterBtnTextActive,
+                  ]}
+                >
+                  {t('transactions.filter') || 'Filter'}
+                  {activeUpcomingFilterCount > 0 ? ` (${activeUpcomingFilterCount})` : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <PaycheckEventSection
-              incomeEvents={incomeEventsList.map((e) => ({
-                id: e.id,
-                name: e.name,
-                expectedAmount: e.expectedAmount,
-                expectedDate: e.expectedDate,
-              }))}
-              expenseEvents={expenseEventsList.map((e) => ({
-                id: e.id,
-                name: e.name,
-                expectedAmount: e.expectedAmount,
-                expectedDate: e.expectedDate,
-                categoryId: e.categoryId,
-              }))}
+              events={paginatedUpcomingEvents}
               onOpenPaydayWizard={(incomeEventId) =>
                 router.push(`/(app)/paychecks/${incomeEventId}` as never)
               }
@@ -281,7 +497,7 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
               }}
               onDeleteUpcomingIncome={handleDeleteIncomeEvent}
               onMarkExpensePaid={(eventId, amount) => {
-                const expense = expenseEventsList.find((e) => e.id === eventId);
+                const expense = rawExpenseEvents.find((e) => e.id === eventId);
                 if (expense) {
                   setMarkPaidEvent({
                     id: expense.id,
@@ -294,7 +510,7 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
                 }
               }}
               onEditUpcomingExpense={(expense) => {
-                const fullExpense = expenseEventsList.find((e) => e.id === expense.id);
+                const fullExpense = rawExpenseEvents.find((e) => e.id === expense.id);
                 if (fullExpense) {
                   setEventToOverride({
                     id: fullExpense.id,
@@ -307,7 +523,22 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
                 }
               }}
               onDeleteUpcomingExpense={handleDeleteExpenseEvent}
+              onExecuteTransfer={handleExecuteTransfer}
+              onDeleteUpcomingTransfer={handleDeleteTransferEvent}
             />
+
+            {filteredUpcomingEvents.length >= 5 && (
+              <View style={{ marginTop: 8 }}>
+                <MobilePaginationBar
+                  page={upcomingPage}
+                  totalPages={Math.ceil(filteredUpcomingEvents.length / UPCOMING_PAGE_SIZE)}
+                  pageSize={UPCOMING_PAGE_SIZE}
+                  totalItems={filteredUpcomingEvents.length}
+                  onPageChange={setUpcomingPage}
+                  onPageSizeChange={() => {}}
+                />
+              </View>
+            )}
           </View>
         )}
 
@@ -537,6 +768,67 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
           incomeEventsQuery.refetch();
         }}
       />
+
+      {/* Filter & Sort Bottom Sheet for Upcoming Timeline */}
+      <MobileFilterSheet
+        visible={filterSheetVisible}
+        onClose={() => setFilterSheetVisible(false)}
+        title={t('transactions.filter') || 'Filter & Sort'}
+        activeCount={activeUpcomingFilterCount}
+        sortField={upcomingSortField}
+        sortOrder={upcomingSortOrder}
+        onSortFieldChange={(field: 'date' | 'name' | 'amount') => {
+          setUpcomingSortField(field);
+          setUpcomingPage(1);
+        }}
+        onSortOrderChange={(order) => {
+          setUpcomingSortOrder(order);
+          setUpcomingPage(1);
+        }}
+        sortOptions={[
+          { id: 'date', label: t('common.date') || 'Date' },
+          { id: 'name', label: t('common.name') || 'Name' },
+          { id: 'amount', label: t('common.amount') || 'Amount' },
+        ]}
+        sections={[
+          {
+            id: 'scope',
+            title: t('categories.householdScope') || 'Scope',
+            options: [
+              { id: 'ALL', label: t('transactions.filterAll') || 'All' },
+              { id: 'SHARED', label: t('categories.householdBadge').replace(/[()]/g, '') || 'Shared' },
+              { id: 'PRIVATE', label: t('categories.privateBadge').replace(/[()]/g, '') || 'Private' },
+            ],
+            selectedValue: upcomingScopeFilter,
+            onSelect: (val: 'ALL' | 'SHARED' | 'PRIVATE') => {
+              setUpcomingScopeFilter(val);
+              setUpcomingPage(1);
+            },
+          },
+          {
+            id: 'kind',
+            title: t('transactions.type') || 'Kind',
+            options: [
+              { id: 'ALL', label: t('transactions.filterAll') || 'All' },
+              { id: 'INCOME', label: t('badges.income') || 'Income' },
+              { id: 'EXPENSE', label: t('badges.bill') || 'Expense' },
+              { id: 'TRANSFER', label: t('common.transfer') || 'Transfer' },
+            ],
+            selectedValue: upcomingKindFilter,
+            onSelect: (val: 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER') => {
+              setUpcomingKindFilter(val);
+              setUpcomingPage(1);
+            },
+          },
+        ]}
+        onReset={() => {
+          setUpcomingScopeFilter('ALL');
+          setUpcomingKindFilter('ALL');
+          setUpcomingSortField('date');
+          setUpcomingSortOrder('asc');
+          setUpcomingPage(1);
+        }}
+      />
     </AppScreenWrapper>
   );
 }
@@ -580,6 +872,35 @@ const styles = StyleSheet.create({
   },
   eventsView: {
     paddingHorizontal: 20,
+  },
+  timelineControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  filterBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  filterBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  filterBtnTextActive: {
+    color: '#2563eb',
   },
   sourcesView: {
     paddingHorizontal: 20,

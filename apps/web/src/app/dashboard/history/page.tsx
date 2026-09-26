@@ -747,8 +747,8 @@ function TransactionsPageContent() {
                             <span className="text-[10px] text-blue-400">↗</span>
                           </Link>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-[#2563eb] tabular-nums">
-                          {fmt(plan.totalIncomeAmount)}
+                        <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                          +{fmt(plan.totalIncomeAmount)}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <button
