@@ -6,7 +6,7 @@ import { DESIGN_TOKENS, useMobileToast } from '@money-matters/ui/mobile';
 import { t, setLanguage } from '@money-matters/i18n';
 import { usePushNotifications } from '@money-matters/capability-notifications/mobile';
 import { Feather } from '@expo/vector-icons';
-import { trpc, setActiveTenantId, getActiveTenantId } from '../../lib/trpc';
+import { trpc, setActiveTenantId, getActiveTenantId, switchActiveTenant } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { QuickActionFab } from '../../components/QuickActionFab';
 
@@ -35,14 +35,15 @@ export default function AppLayout() {
     enabled: !!session?.user,
   });
 
+  const utils = trpc.useUtils();
   React.useEffect(() => {
     if (tenantStatusQuery.data?.tenantId) {
       const currentActive = getActiveTenantId();
       if (currentActive !== tenantStatusQuery.data.tenantId) {
-        setActiveTenantId(tenantStatusQuery.data.tenantId);
+        switchActiveTenant(tenantStatusQuery.data.tenantId, utils);
       }
     }
-  }, [tenantStatusQuery.data?.tenantId]);
+  }, [tenantStatusQuery.data?.tenantId, utils]);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
     enabled: !!session?.user,

@@ -5,6 +5,7 @@ import {
   ScrollView,
   Switch,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import {
   MobileModalDialog,
@@ -14,6 +15,7 @@ import {
   MobileButton,
   FormLabel,
   useMobileToast,
+  showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../lib/trpc';
@@ -158,6 +160,34 @@ export function CategoryItemModal({
     { key: 'ANNUALLY', label: t('categories.frequencyAnnually') },
   ];
 
+  const archiveMut = trpc.archiveCategory.useMutation({
+    onSuccess: () => {
+      utils.listCategories.invalidate();
+      utils.listPools.invalidate();
+      toast.success(t('toasts.archived'));
+      onSuccess?.();
+      onClose();
+    },
+    onError: (err) => {
+      toast.error(err.message || t('categories.failedToArchive'));
+    },
+  });
+
+  const handleArchive = () => {
+    if (!categoryToEdit?.id) return;
+    showMobileConfirm({
+      title: t('categories.archiveCategory'),
+      message: t('categories.archiveCategoryConfirm', { name: categoryToEdit.name || '' }),
+      confirmText: t('categories.archiveCategory'),
+      isDestructive: true,
+      onConfirm: () => {
+        archiveMut.mutate({ categoryId: categoryToEdit.id! });
+      },
+    });
+  };
+
+  const isPending = submitting || archiveMut.isPending;
+
   return (
     <MobileModalDialog
       visible={visible}
@@ -170,14 +200,30 @@ export function CategoryItemModal({
           : t('categories.createSubtitle')
       }
       footer={
-        <MobileButton
-          variant="primary"
-          loading={submitting}
-          disabled={!name.trim() || !enteredAmount.trim() || submitting}
-          onPress={handleSubmit}
-        >
-          {isEdit ? t('categories.saveCategory') : t('categories.createButton')}
-        </MobileButton>
+        <View style={styles.footerContainer}>
+          {isEdit ? (
+            <TouchableOpacity
+              onPress={handleArchive}
+              disabled={isPending}
+              style={styles.archiveBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.archiveBtnText}>{t('categories.archiveCategory')}</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
+
+          <MobileButton
+            variant="primary"
+            loading={isPending}
+            disabled={!name.trim() || !enteredAmount.trim() || isPending}
+            onPress={handleSubmit}
+            style={styles.submitBtn}
+          >
+            {isEdit ? t('categories.saveCategory') : t('categories.createButton')}
+          </MobileButton>
+        </View>
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.form}>
@@ -283,6 +329,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
+  },
+  footerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  archiveBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  archiveBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  submitBtn: {
+    flex: 1,
+    maxWidth: 200,
   },
 });
 

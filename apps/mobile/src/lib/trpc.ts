@@ -49,12 +49,24 @@ export async function switchActiveTenant(
   }
 }
 
-const isDev = typeof __DEV__ !== "undefined" ? __DEV__ : process.env["NODE_ENV"] !== "production";
-const DEFAULT_API_URL = isDev
-  ? "https://kesh-imac.tail09ef18.ts.net"
-  : "https://api.moneymatters.kaesava.au";
+import { Platform } from "react-native";
 
-const API_BASE_URL = process.env["EXPO_PUBLIC_API_URL"] || DEFAULT_API_URL;
+const isDev = typeof __DEV__ !== "undefined" ? __DEV__ : process.env["NODE_ENV"] !== "production";
+const FUNNEL_API_URL = "https://kesh-imac.tail09ef18.ts.net";
+const PROD_API_URL = "https://api.moneymatters.kaesava.au";
+
+function resolveApiBaseUrl(): string {
+  const envUrl = process.env["EXPO_PUBLIC_API_URL"];
+  if (Platform.OS !== "web") {
+    // Physical mobile devices cannot reach localhost or 127.0.0.1 over wireless/tunnel.
+    if (!envUrl || envUrl.includes("localhost") || envUrl.includes("127.0.0.1")) {
+      return isDev ? FUNNEL_API_URL : PROD_API_URL;
+    }
+  }
+  return envUrl || (isDev ? FUNNEL_API_URL : PROD_API_URL);
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export async function getStoredTokenAndCookie(): Promise<{ token: string | null; cookie: string | null }> {
   let token: string | null = null;

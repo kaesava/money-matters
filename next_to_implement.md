@@ -7,10 +7,15 @@
 * Ensure that the mobile app and web app functionality are kept aligned functionally, but always using native UI/UX
 
 # MOBILE
-Testing via USB connected to Android Google Pixel 10 connected to this machine.
+Testing on Android Google Pixel 10.
 
-## General
-* 
+## Pools
+
+### New/Edit Pool
+* [x] New/Edit Pool screen re-uses the exact user-facing literals from the web app New/Edit Pool modal. Culled unused literals from en.ts. Reordered fields: Name -> Type -> Linked Bank Account -> Target Amount/Date -> Surplus Target Checkbox. Added immutability warning on edit, calculated target notice for Everyday/Bills, mandatory date for Goals, and subtle bottom-left archive button with confirmation.
+* [x] Pool Detail screen & Category inspector aligned with web functionality and exact i18n keys. Move Money re-uses QuickExpenseModal in TRANSFER mode.
+* [x] Pools Screen list aligned: Added SearchInput, pool type & privacy filter chips, top action row with Add Pool, Move Money (QuickExpenseModal TRANSFER), and 3-dot overflow menu for "Recalibrate Household Budget" and "View Archived Pools".
+* [x] Mobile login data fetch resolved for wireless Android devices via Tailscale Funnel fallback.
 
 
 
@@ -23,8 +28,6 @@ Testing via USB connected to Android Google Pixel 10 connected to this machine.
 ### Navigation
 ### Common
 ### Dashboard
-### Pools
-#### Pool Picker
 * Pool Picker doesn't seem to be working. Needs to be in parity with web application. Re-use as much code as possible.
 
 ### Income & expenses

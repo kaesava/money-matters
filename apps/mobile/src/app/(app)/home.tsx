@@ -25,7 +25,6 @@ import { BankBalancesStrip } from '../../components/dashboard/BankBalancesStrip'
 import { TrialBanner } from '../../components/dashboard/TrialBanner';
 import { MarkPaidModal, MarkPaidEvent } from '../../components/MarkPaidModal';
 import { QuickExpenseModal, QuickActionType } from '../../components/QuickExpenseModal';
-import { MoveMoneyModal } from '../../components/MoveMoneyModal';
 import { showMobileConfirm } from '@money-matters/ui/mobile';
 
 import { triggerHaptic } from '../../lib/haptics';
@@ -51,7 +50,6 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [quickModalVisible, setQuickModalVisible] = useState(false);
   const [quickModalType, setQuickModalType] = useState<QuickActionType>('DEBIT');
-  const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
   const [markPaidEvent, setMarkPaidEvent] = useState<MarkPaidEvent | null>(null);
 
   const summaryQuery = trpc.getMonthlySummary.useQuery({
@@ -368,7 +366,10 @@ export default function HomeScreen() {
           onSkipExpense={handleSkipExpense}
           onExecuteTransfer={handleExecuteTransfer}
           onDeleteTransfer={handleDeleteTransfer}
-          onTopUpShortfall={() => setMoveMoneyVisible(true)}
+          onTopUpShortfall={() => {
+            setQuickModalType('TRANSFER');
+            setQuickModalVisible(true);
+          }}
         />
 
         {/* Quick Actions Grid */}
@@ -405,7 +406,10 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => setMoveMoneyVisible(true)}
+              onPress={() => {
+                setQuickModalType('TRANSFER');
+                setQuickModalVisible(true);
+              }}
             >
               <Feather name="repeat" size={20} color="#2563eb" />
               <Text style={styles.actionCardText}>
@@ -430,13 +434,8 @@ export default function HomeScreen() {
       <QuickExpenseModal
         visible={quickModalVisible}
         initialType={quickModalType}
-        onClose={() => setQuickModalVisible(false)}
-      />
-
-      <MoveMoneyModal
-        visible={moveMoneyVisible}
-        onClose={() => setMoveMoneyVisible(false)}
-        onSuccess={() => {
+        onClose={() => {
+          setQuickModalVisible(false);
           summaryQuery.refetch();
           poolsQuery.refetch();
         }}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import {
   DESIGN_TOKENS,
   BankProviderBadge,
   SkeletonCard,
+  SearchInput,
 } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -21,9 +22,11 @@ import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { formatAUD } from '../../lib/format';
 import { CategoryFormModal } from '../../components/CategoryFormModal';
-import { MoveMoneyModal } from '../../components/MoveMoneyModal';
+import { QuickExpenseModal } from '../../components/QuickExpenseModal';
 
 const HORIZON_MONTHS = [0, 1, 2, 3, 6, 12];
+type PoolTypeFilter = 'ALL' | 'EVERYDAY' | 'REGULAR' | 'GOAL';
+type PrivacyFilter = 'ALL' | 'SHARED' | 'PRIVATE';
 
 export default function PoolsScreen() {
   const router = useRouter();
@@ -34,6 +37,12 @@ export default function PoolsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [poolModalVisible, setPoolModalVisible] = useState(false);
   const [moveMoneyVisible, setMoveMoneyVisible] = useState(false);
+  const [overflowMenuVisible, setOverflowMenuVisible] = useState(false);
+
+  // Search & Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<PoolTypeFilter>('ALL');
+  const [privacyFilter, setPrivacyFilter] = useState<PrivacyFilter>('ALL');
 
   const poolsQuery = trpc.listPools.useQuery();
   const bankAccountsQuery = trpc.listBankAccounts.useQuery();
@@ -75,13 +84,31 @@ export default function PoolsScreen() {
     return currentBalance;
   };
 
-  const everydayPools = pools.filter((p) => p.poolType === 'EVERYDAY');
-  const billsPools = pools.filter((p) => p.poolType === 'REGULAR');
-  const goalPools = pools.filter((p) => p.poolType === 'GOAL');
+  // Filtered pools
+  const filteredPools = useMemo(() => {
+    return pools.filter((p) => {
+      if (typeFilter !== 'ALL' && p.poolType !== typeFilter) return false;
+      if (privacyFilter === 'SHARED' && p.isPrivate) return false;
+      if (privacyFilter === 'PRIVATE' && !p.isPrivate) return false;
+
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+      const matchesPool = p.name.toLowerCase().includes(q);
+      const bank = getBankForPool(p.bankAccountId);
+      const matchesBank = bank?.name.toLowerCase().includes(q);
+      const matchesCat = categories.some((c) => c.poolId === p.id && c.name.toLowerCase().includes(q));
+
+      return matchesPool || matchesBank || matchesCat;
+    });
+  }, [pools, typeFilter, privacyFilter, searchQuery, bankAccounts, categories]);
+
+  const everydayPools = filteredPools.filter((p) => p.poolType === 'EVERYDAY');
+  const billsPools = filteredPools.filter((p) => p.poolType === 'REGULAR');
+  const goalPools = filteredPools.filter((p) => p.poolType === 'GOAL');
 
   return (
     <AppScreenWrapper
-      title={t('nav.myMoney')}
+      title={t('categories.title')}
       scrollable={false}
       infoTooltip={{
         title: t('tooltips.categories.title'),
@@ -99,14 +126,14 @@ export default function PoolsScreen() {
           />
         }
       >
-        {/* Top Header Row with Add Pool & Move Money */}
+        {/* Top Header Row with Add Pool, Move Money & Overflow Menu (3-dots) */}
         <View style={styles.topActionsRow}>
           <TouchableOpacity
-            onPress={() => router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href)}
-            style={styles.recalibrateBtn}
+            onPress={() => setPoolModalVisible(true)}
+            style={styles.addPoolBtn}
           >
-            <Feather name="settings" size={14} color="#64748B" />
-            <Text style={styles.recalibrateText}>{t('setup.recalibrateTitle')}</Text>
+            <Feather name="plus" size={15} color="#FFFFFF" />
+            <Text style={styles.addPoolText}>{t('categories.addPool')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -114,16 +141,64 @@ export default function PoolsScreen() {
             style={styles.moveMoneyBtn}
           >
             <Feather name="repeat" size={14} color="#2563eb" />
-            <Text style={styles.moveMoneyText}>{t('dashboard.moveMoney') || 'Move Money'}</Text>
+            <Text style={styles.moveMoneyText}>{t('dashboard.moveMoney')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setPoolModalVisible(true)}
-            style={styles.addPoolBtn}
+            onPress={() => setOverflowMenuVisible(true)}
+            style={styles.overflowBtn}
+            accessibilityLabel={t('categories.moreOptions')}
           >
-            <Feather name="plus" size={14} color="#FFFFFF" />
-            <Text style={styles.addPoolText}>{t('categories.addPool') || 'Add Pool'}</Text>
+            <Feather name="more-horizontal" size={18} color="#64748B" />
           </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <SearchInput
+          placeholder={t('categories.searchPlaceholder')}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {/* Filter Chips: Pool Types & Privacy */}
+        <View style={styles.filterSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {(['ALL', 'EVERYDAY', 'REGULAR', 'GOAL'] as const).map((ft) => (
+              <TouchableOpacity
+                key={ft}
+                onPress={() => setTypeFilter(ft)}
+                style={[styles.filterChip, typeFilter === ft && styles.filterChipActive]}
+              >
+                <Text style={[styles.filterChipText, typeFilter === ft && styles.filterChipTextActive]}>
+                  {ft === 'ALL'
+                    ? t('transactions.filterAll')
+                    : ft === 'EVERYDAY'
+                    ? t('categories.typeEveryday')
+                    : ft === 'REGULAR'
+                    ? t('categories.typeRegular')
+                    : t('categories.typeGoal')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            <View style={styles.filterDivider} />
+
+            {(['ALL', 'SHARED', 'PRIVATE'] as const).map((pt) => (
+              <TouchableOpacity
+                key={pt}
+                onPress={() => setPrivacyFilter(pt)}
+                style={[styles.filterChip, privacyFilter === pt && styles.filterChipNavyActive]}
+              >
+                <Text style={[styles.filterChipText, privacyFilter === pt && styles.filterChipTextActive]}>
+                  {pt === 'ALL'
+                    ? t('transactions.filterAll')
+                    : pt === 'SHARED'
+                    ? t('categories.householdBadge').replace(/[()]/g, '')
+                    : t('categories.privateBadge').replace(/[()]/g, '')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* 12-Month Timeline Scrubber */}
@@ -132,8 +207,8 @@ export default function PoolsScreen() {
             <Feather name="clock" size={14} color="#2563eb" />
             <Text style={styles.timelineTitle}>
               {selectedHorizon === 0
-                ? (t('categories.currentRealTimeBalances') || 'Current Real-Time Balances')
-                : (t('categories.projectedBalances', { months: selectedHorizon }) || `Projected Balances (+${selectedHorizon} Months)`)}
+                ? t('categories.currentRealTimeBalances')
+                : t('categories.projectedBalances', { months: selectedHorizon })}
             </Text>
           </View>
 
@@ -169,158 +244,214 @@ export default function PoolsScreen() {
         ) : (
           <View style={styles.sectionsContainer}>
             {/* Everyday Pool Group */}
-            <View style={styles.poolGroup}>
-              <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>{t('categories.everydaySpending')}</Text>
-                <Text style={styles.groupCount}>{everydayPools.length}</Text>
-              </View>
+            {everydayPools.length > 0 && (
+              <View style={styles.poolGroup}>
+                <View style={styles.groupHeader}>
+                  <Text style={styles.groupTitle}>{t('categories.everydaySpending')}</Text>
+                  <Text style={styles.groupCount}>{everydayPools.length}</Text>
+                </View>
 
-              {everydayPools.map((pool) => {
-                const bank = getBankForPool(pool.bankAccountId);
-                const bal = getPoolBalance(pool.id, pool.currentBalance);
-                const nestedCount = categories.filter((c) => c.poolId === pool.id).length;
+                {everydayPools.map((pool) => {
+                  const bank = getBankForPool(pool.bankAccountId);
+                  const bal = getPoolBalance(pool.id, pool.currentBalance);
+                  const nestedCount = categories.filter((c) => c.poolId === pool.id).length;
 
-                return (
-                  <TouchableOpacity
-                    key={pool.id}
-                    activeOpacity={0.8}
-                    onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
-                    style={styles.poolCard}
-                  >
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.titleRow}>
-                          <Text style={styles.poolName}>{pool.name}</Text>
-                          {pool.isSurplusTarget && (
-                            <View style={styles.surplusBadge}>
-                              <Text style={styles.surplusBadgeText}>{t('categories.surplusBadgeText')}</Text>
+                  return (
+                    <TouchableOpacity
+                      key={pool.id}
+                      activeOpacity={0.8}
+                      onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
+                      style={styles.poolCard}
+                    >
+                      <View style={styles.cardHeader}>
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.titleRow}>
+                            <Text style={styles.poolName}>{pool.name}</Text>
+                            {pool.isSurplusTarget && (
+                              <View style={styles.surplusBadge}>
+                                <Text style={styles.surplusBadgeText}>{t('categories.surplusBadgeText')}</Text>
+                              </View>
+                            )}
+                          </View>
+                          {bank && (
+                            <View style={styles.bankBadgeWrap}>
+                              <BankProviderBadge
+                                provider={bank.bankProvider}
+                                size="sm"
+                              />
+                              <Text style={styles.bankNameText}>{bank.name}</Text>
                             </View>
                           )}
                         </View>
-                        {bank && (
-                          <View style={styles.bankBadgeWrap}>
-                            <BankProviderBadge
-                              provider={bank.bankProvider}
-                              size="sm"
-                            />
-                            <Text style={styles.bankNameText}>{bank.name}</Text>
-                          </View>
-                        )}
-                      </View>
 
-                      <View style={styles.balCol}>
-                        <Text style={styles.balNum}>{formatAUD(bal)}</Text>
-                        <Text style={styles.balSub}>
-                          {nestedCount > 0 ? t('categories.nestedCategories').replace('{count}', String(nestedCount)) : t('categories.mainPool')}
-                        </Text>
+                        <View style={styles.balCol}>
+                          <Text style={styles.balNum}>{formatAUD(bal)}</Text>
+                          <Text style={styles.balSub}>
+                            {nestedCount > 0 ? t('categories.nestedCategories', { count: nestedCount }) : t('categories.mainPool')}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             {/* Regular Bills Group */}
-            <View style={styles.poolGroup}>
-              <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>{t('categories.regularBills')}</Text>
-                <Text style={styles.groupCount}>{billsPools.length}</Text>
+            {billsPools.length > 0 && (
+              <View style={styles.poolGroup}>
+                <View style={styles.groupHeader}>
+                  <Text style={styles.groupTitle}>{t('categories.regularBills')}</Text>
+                  <Text style={styles.groupCount}>{billsPools.length}</Text>
+                </View>
+
+                {billsPools.map((pool) => {
+                  const bank = getBankForPool(pool.bankAccountId);
+                  const bal = getPoolBalance(pool.id, pool.currentBalance);
+                  const nestedCount = categories.filter((c) => c.poolId === pool.id).length;
+
+                  return (
+                    <TouchableOpacity
+                      key={pool.id}
+                      activeOpacity={0.8}
+                      onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
+                      style={styles.poolCard}
+                    >
+                      <View style={styles.cardHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.poolName}>{pool.name}</Text>
+                          {bank && (
+                            <View style={styles.bankBadgeWrap}>
+                              <BankProviderBadge
+                                provider={bank.bankProvider}
+                                size="sm"
+                              />
+                              <Text style={styles.bankNameText}>{bank.name}</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.balCol}>
+                          <Text style={styles.balNum}>{formatAUD(bal)}</Text>
+                          <Text style={styles.balSub}>
+                            {nestedCount > 0 ? t('categories.nestedCategories', { count: nestedCount }) : t('categories.mainPool')}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-
-              {billsPools.map((pool) => {
-                const bank = getBankForPool(pool.bankAccountId);
-                const bal = getPoolBalance(pool.id, pool.currentBalance);
-                const nestedCount = categories.filter((c) => c.poolId === pool.id).length;
-
-                return (
-                  <TouchableOpacity
-                    key={pool.id}
-                    activeOpacity={0.8}
-                    onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
-                    style={styles.poolCard}
-                  >
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.poolName}>{pool.name}</Text>
-                        {bank && (
-                          <View style={styles.bankBadgeWrap}>
-                            <BankProviderBadge
-                              provider={bank.bankProvider}
-                              size="sm"
-                            />
-                            <Text style={styles.bankNameText}>{bank.name}</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={styles.balCol}>
-                        <Text style={styles.balNum}>{formatAUD(bal)}</Text>
-                        <Text style={styles.balSub}>
-                          {nestedCount > 0 ? t('categories.nestedCategories').replace('{count}', String(nestedCount)) : t('categories.mainPool')}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            )}
 
             {/* Savings Goals Group */}
-            <View style={styles.poolGroup}>
-              <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>{t('categories.savingsGoals')}</Text>
-                <Text style={styles.groupCount}>{goalPools.length}</Text>
+            {goalPools.length > 0 && (
+              <View style={styles.poolGroup}>
+                <View style={styles.groupHeader}>
+                  <Text style={styles.groupTitle}>{t('categories.savingsGoals')}</Text>
+                  <Text style={styles.groupCount}>{goalPools.length}</Text>
+                </View>
+
+                {goalPools.map((pool) => {
+                  const bank = getBankForPool(pool.bankAccountId);
+                  const bal = getPoolBalance(pool.id, pool.currentBalance);
+                  const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
+                  const pct = target > 0 ? Math.min(100, Math.round((bal / target) * 100)) : 0;
+
+                  return (
+                    <TouchableOpacity
+                      key={pool.id}
+                      activeOpacity={0.8}
+                      onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
+                      style={styles.poolCard}
+                    >
+                      <View style={styles.cardHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.poolName}>{pool.name}</Text>
+                          {bank && (
+                            <View style={styles.bankBadgeWrap}>
+                              <BankProviderBadge
+                                provider={bank.bankProvider}
+                                size="sm"
+                              />
+                              <Text style={styles.bankNameText}>{bank.name}</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.balCol}>
+                          <Text style={styles.balNum}>{formatAUD(bal)}</Text>
+                          <Text style={styles.balSub}>
+                            {target > 0 ? `${pct}% of ${formatAUD(target)}` : t('categories.noTarget')}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {target > 0 && (
+                        <View style={styles.progressTrack}>
+                          <View
+                            style={[styles.progressFill, { width: `${pct}%` }]}
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
+            )}
 
-              {goalPools.map((pool) => {
-                const bank = getBankForPool(pool.bankAccountId);
-                const bal = getPoolBalance(pool.id, pool.currentBalance);
-                const target = pool.targetAmount ? parseFloat(pool.targetAmount) : 0;
-                const pct = target > 0 ? Math.min(100, Math.round((bal / target) * 100)) : 0;
-
-                return (
-                  <TouchableOpacity
-                    key={pool.id}
-                    activeOpacity={0.8}
-                    onPress={() => router.push(`/(app)/pools/${pool.id}` as never)}
-                    style={styles.poolCard}
-                  >
-                    <View style={styles.cardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.poolName}>{pool.name}</Text>
-                        {bank && (
-                          <View style={styles.bankBadgeWrap}>
-                            <BankProviderBadge
-                              provider={bank.bankProvider}
-                              size="sm"
-                            />
-                            <Text style={styles.bankNameText}>{bank.name}</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={styles.balCol}>
-                        <Text style={styles.balNum}>{formatAUD(bal)}</Text>
-                        <Text style={styles.balSub}>
-                          {target > 0 ? `${pct}% of ${formatAUD(target)}` : t('categories.noTarget')}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {target > 0 && (
-                      <View style={styles.progressTrack}>
-                        <View
-                          style={[styles.progressFill, { width: `${pct}%` }]}
-                        />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {filteredPools.length === 0 && (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyCardText}>
+                  {pools.length === 0
+                    ? t('categories.poolNotFound')
+                    : t('categories.noCategoriesMatched')}
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
+
+      {/* Overflow Menu Sheet (Recalibrate & View Archived Pools) */}
+      <Modal
+        visible={overflowMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOverflowMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOverflowMenuVisible(false)}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setOverflowMenuVisible(false);
+                router.push({ pathname: '/(setup)/income', params: { mode: 'rerun' } } as Href);
+              }}
+            >
+              <Feather name="settings" size={16} color="#475569" />
+              <Text style={styles.menuItemText}>{t('categories.recalibrateBudget')}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.menuItemDivider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setOverflowMenuVisible(false);
+                router.push('/(app)/archived' as never);
+              }}
+            >
+              <Feather name="archive" size={16} color="#475569" />
+              <Text style={styles.menuItemText}>{t('categories.viewArchivedPools')}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Add Pool Modal */}
       <CategoryFormModal
@@ -329,9 +460,10 @@ export default function PoolsScreen() {
         onSuccess={() => poolsQuery.refetch()}
       />
 
-      {/* Move Money Modal */}
-      <MoveMoneyModal
+      {/* Move Money Modal (Re-using QuickExpenseModal with TRANSFER mode) */}
+      <QuickExpenseModal
         visible={moveMoneyVisible}
+        initialType="TRANSFER"
         onClose={() => setMoveMoneyVisible(false)}
         onSuccess={() => poolsQuery.refetch()}
       />
@@ -342,31 +474,29 @@ export default function PoolsScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
-    gap: 16,
+    gap: 14,
     paddingBottom: 90,
   },
   topActionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    alignItems: 'center',
+    gap: 10,
   },
-  recalibrateBtn: {
+  addPoolBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+    gap: 6,
+    backgroundColor: '#2563eb',
     borderRadius: 12,
     paddingVertical: 10,
-    paddingHorizontal: 6,
+    paddingHorizontal: 12,
   },
-  recalibrateText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
+  addPoolText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   moveMoneyBtn: {
     flex: 1,
@@ -379,26 +509,60 @@ const styles = StyleSheet.create({
     borderColor: '#BFDBFE',
     borderRadius: 12,
     paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   moveMoneyText: {
     fontSize: 13,
     fontWeight: '700',
     color: '#2563eb',
   },
-  addPoolBtn: {
-    flex: 1,
-    flexDirection: 'row',
+  overflowBtn: {
+    width: 42,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
     borderRadius: 12,
-    paddingVertical: 10,
   },
-  addPoolText: {
-    fontSize: 13,
-    fontWeight: '800',
+  filterSection: {
+    paddingVertical: 2,
+  },
+  filterScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  filterChipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterChipNavyActive: {
+    backgroundColor: '#1B2B4B',
+    borderColor: '#1B2B4B',
+  },
+  filterChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  filterChipTextActive: {
     color: '#FFFFFF',
+  },
+  filterDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: '#CBD5E1',
+    marginHorizontal: 4,
   },
   timelineCard: {
     backgroundColor: '#FFFFFF',
@@ -539,5 +703,56 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#22c55e',
     borderRadius: 2.5,
+  },
+  emptyCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCardText: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 110,
+    paddingRight: 20,
+  },
+  menuContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 6,
+    minWidth: 220,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuItemText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  menuItemDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
   },
 });

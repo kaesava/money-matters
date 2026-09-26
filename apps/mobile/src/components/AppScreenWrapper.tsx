@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { MobileScreenWrapper, MobileScreenWrapperProps } from '@money-matters/ui/mobile';
 import { authClient } from '../lib/auth';
-import { trpc, setActiveSessionToken } from '../lib/trpc';
+import { trpc, setActiveSessionToken, setActiveTenantId } from '../lib/trpc';
 import * as SecureStore from 'expo-secure-store';
 import { MobileTenantSwitcherModal } from './settings/MobileTenantSwitcherModal';
 
@@ -52,7 +52,9 @@ export function AppScreenWrapper({
     await authClient.signOut();
     await SecureStore.deleteItemAsync('money-matters_session_token');
     await SecureStore.deleteItemAsync('money-matters-session-token');
+    await SecureStore.deleteItemAsync('money_matters_active_tenant_id');
     setActiveSessionToken(null);
+    setActiveTenantId(null);
     router.replace('/(auth)/sign-in' as never);
   };
 

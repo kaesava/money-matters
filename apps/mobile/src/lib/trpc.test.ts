@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as SecureStore from 'expo-secure-store';
 
+vi.mock('react-native', () => ({
+  Platform: {
+    OS: 'android',
+  },
+}));
+
 vi.mock('expo-secure-store', () => ({
   getItemAsync: vi.fn(),
   setItemAsync: vi.fn().mockResolvedValue(undefined),

@@ -35,7 +35,9 @@ export type QuickActionType = "DEBIT" | "CREDIT" | "TRANSFER";
 interface QuickExpenseModalProps {
   visible: boolean;
   initialType?: QuickActionType;
+  initialSourcePoolId?: string;
   onClose: () => void;
+  onSuccess?: () => void;
   onIncomeSuccess?: (incomeEventId: string) => void;
 }
 
@@ -49,7 +51,9 @@ const QUICK_PICKS = [
 export function QuickExpenseModal({
   visible,
   initialType = "DEBIT",
+  initialSourcePoolId,
   onClose,
+  onSuccess,
   onIncomeSuccess,
 }: QuickExpenseModalProps) {
   const todayStr = formatIsoDate(new Date());
@@ -108,13 +112,17 @@ export function QuickExpenseModal({
       setType(initialType);
       setDate(todayStr);
       clearErrors();
-      // Auto-select Everyday pool as default for DEBIT
-      const everyday = pools?.find((p) => p.poolType === "EVERYDAY");
-      if (everyday) {
-        setSelectedPoolId(everyday.id);
+      if (initialSourcePoolId) {
+        setSelectedPoolId(initialSourcePoolId);
+      } else {
+        // Auto-select Everyday pool as default for DEBIT
+        const everyday = pools?.find((p) => p.poolType === "EVERYDAY");
+        if (everyday) {
+          setSelectedPoolId(everyday.id);
+        }
       }
     }
-  }, [visible, initialType, pools, todayStr]);
+  }, [visible, initialType, initialSourcePoolId, pools, todayStr]);
 
   const D = DESIGN_TOKENS;
   const everydayPool = pools?.find((p) => p.poolType === "EVERYDAY");
@@ -295,6 +303,7 @@ export function QuickExpenseModal({
     setNote("");
     setDestPoolId("");
     clearErrors();
+    onSuccess?.();
     onClose();
   };
 

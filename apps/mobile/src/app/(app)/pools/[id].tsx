@@ -17,6 +17,7 @@ import {
   BankProviderBadge,
   showMobileConfirm,
   SearchInput,
+  useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../../lib/trpc';
@@ -25,7 +26,7 @@ import { formatAUD } from '../../../lib/format';
 import { TransactionRow } from '../../../components/TransactionRow';
 import { CategoryItemModal, CategoryItemToEdit } from '../../../components/CategoryItemModal';
 import { CategoryFormModal } from '../../../components/CategoryFormModal';
-import { MoveMoneyModal } from '../../../components/MoveMoneyModal';
+import { QuickExpenseModal } from '../../../components/QuickExpenseModal';
 
 export default function PoolDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -107,21 +108,25 @@ export default function PoolDetailScreen() {
     }
   };
 
+  const toast = useMobileToast();
+
   const handleArchivePool = () => {
     if (!pool) return;
     showMobileConfirm({
-      title: 'Archive Pool',
-      message: `Are you sure you want to archive "${pool.name}"? Funds must be moved to another pool before archival.`,
-      confirmText: 'Archive',
+      title: t('categories.archivePool'),
+      message: t('categories.archivePoolConfirm', { name: pool.name }),
+      confirmText: t('categories.archivePool'),
+      isDestructive: true,
       onConfirm: () => archivePoolMut.mutate({ poolId: pool.id }),
     });
   };
 
   const handleArchiveCategory = (catId: string, catName: string) => {
     showMobileConfirm({
-      title: 'Archive Category',
-      message: `Are you sure you want to archive "${catName}"?`,
-      confirmText: 'Archive',
+      title: t('categories.archiveCategory'),
+      message: t('categories.archiveCategoryConfirm', { name: catName }),
+      confirmText: t('categories.archiveCategory'),
+      isDestructive: true,
       onConfirm: () => archiveCatMut.mutate({ categoryId: catId }),
     });
   };
@@ -136,9 +141,9 @@ export default function PoolDetailScreen() {
 
   if (!pool) {
     return (
-      <MobileScreenWrapper title="Pool Not Found" showBack onBackPress={() => router.back()}>
+      <MobileScreenWrapper title={t('categories.poolNotFound')} showBack onBackPress={() => router.back()}>
         <View style={styles.notFoundContainer}>
-          <Text style={styles.notFoundText}>Pool not found or archived.</Text>
+          <Text style={styles.notFoundText}>{t('categories.poolNotFound')}</Text>
         </View>
       </MobileScreenWrapper>
     );
@@ -163,7 +168,7 @@ export default function PoolDetailScreen() {
                 <Text style={styles.poolTypeTag}>{pool.poolType}</Text>
                 {pool.isSurplusTarget && (
                   <View style={styles.surplusPill}>
-                    <Text style={styles.surplusPillText}>Surplus Target</Text>
+                    <Text style={styles.surplusPillText}>{t('categories.surplusBadgeText')}</Text>
                   </View>
                 )}
                 {bankAccount && (
@@ -176,7 +181,7 @@ export default function PoolDetailScreen() {
               <Text style={styles.poolNameTitle}>{pool.name}</Text>
               {bankAccount && (
                 <Text style={styles.bankNameMeta}>
-                  Linked to {bankAccount.name}
+                  {t('categories.linkedAccount', { name: bankAccount.name })}
                 </Text>
               )}
             </View>
@@ -289,12 +294,12 @@ export default function PoolDetailScreen() {
                     <Text style={styles.catName}>{cat.name}</Text>
                     {cat.isEssential && (
                       <View style={styles.essentialBadge}>
-                        <Text style={styles.essentialText}>Essential</Text>
+                        <Text style={styles.essentialText}>{t('categories.essentialBadge')}</Text>
                       </View>
                     )}
                   </View>
                   <Text style={styles.catFreq}>
-                    {cat.budgetFrequency || 'Monthly'}
+                    {cat.budgetFrequency || t('categories.frequencyMonthly')}
                   </Text>
                 </View>
 
@@ -311,8 +316,8 @@ export default function PoolDetailScreen() {
           <View style={styles.emptyCategoriesBox}>
             <Text style={styles.emptyCategoriesText}>
               {poolCategories.length === 0
-                ? "No nested categories inside this pool yet. Tap '+ Add Category' to break down your budget."
-                : 'No categories matched your search.'}
+                ? t('categories.noCategoriesDefined')
+                : t('categories.noCategoriesMatched')}
             </Text>
           </View>
         )}
@@ -320,14 +325,14 @@ export default function PoolDetailScreen() {
         {/* Recent Activity Section */}
         <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
           <Text style={styles.sectionTitle}>
-            {t('categories.recentActivity') || 'Recent Activity'}
+            {t('categories.recentActivity')}
           </Text>
           <TouchableOpacity
             onPress={() => router.push(`/(app)/transactions?poolId=${pool.id}` as never)}
             style={styles.viewHistoryBtn}
           >
             <Text style={styles.viewHistoryText}>
-              {t('categories.viewAllHistory') || 'View All History'}
+              {t('categories.viewAllHistory')}
             </Text>
             <Feather name="chevron-right" size={13} color="#2563eb" />
           </TouchableOpacity>
@@ -350,7 +355,7 @@ export default function PoolDetailScreen() {
         ) : (
           <View style={styles.emptyCategoriesBox}>
             <Text style={styles.emptyCategoriesText}>
-              {t('categories.noRecentActivity') || 'No recent transactions for this pool.'}
+              {t('categories.noRecentActivity')}
             </Text>
           </View>
         )}
@@ -369,7 +374,7 @@ export default function PoolDetailScreen() {
               <View style={styles.sheetHeader}>
                 <View>
                   <Text style={styles.sheetTitle}>{inspectCat.name}</Text>
-                  <Text style={styles.sheetSubtitle}>Category Breakdown</Text>
+                  <Text style={styles.sheetSubtitle}>{t('categories.categoryBreakdown')}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => setInspectCat(null)}
@@ -381,23 +386,23 @@ export default function PoolDetailScreen() {
 
               <View style={styles.sheetBody}>
                 <View style={styles.sheetDetailRow}>
-                  <Text style={styles.sheetLabel}>Budget Amount</Text>
+                  <Text style={styles.sheetLabel}>{t('categories.budgetAmount')}</Text>
                   <Text style={styles.sheetValue}>
                     {formatAUD(inspectCat.enteredAmount || inspectCat.monthlyAmount || 0)}
                   </Text>
                 </View>
 
                 <View style={styles.sheetDetailRow}>
-                  <Text style={styles.sheetLabel}>Frequency</Text>
+                  <Text style={styles.sheetLabel}>{t('categories.frequencyLabel')}</Text>
                   <Text style={styles.sheetValue}>
-                    {inspectCat.budgetFrequency || 'Monthly'}
+                    {inspectCat.budgetFrequency || t('categories.frequencyMonthly')}
                   </Text>
                 </View>
 
                 <View style={styles.sheetDetailRow}>
-                  <Text style={styles.sheetLabel}>Essential Priority</Text>
+                  <Text style={styles.sheetLabel}>{t('categories.priorityLabel')}</Text>
                   <Text style={styles.sheetValue}>
-                    {inspectCat.isEssential ? 'Yes (Priority 1)' : 'Standard'}
+                    {inspectCat.isEssential ? t('categories.priority1') : t('categories.standardPriority')}
                   </Text>
                 </View>
               </View>
@@ -414,7 +419,7 @@ export default function PoolDetailScreen() {
                 >
                   <Feather name="clock" size={13} color="#2563eb" />
                   <Text style={styles.sheetLinkText}>
-                    {t('transactions.tabs.transactions') || 'History'}
+                    {t('transactions.title')}
                   </Text>
                 </TouchableOpacity>
 
@@ -427,7 +432,7 @@ export default function PoolDetailScreen() {
                 >
                   <Feather name="calendar" size={13} color="#2563eb" />
                   <Text style={styles.sheetLinkText}>
-                    {t('categories.viewExpenses') || 'Expenses'}
+                    {t('categories.viewExpenses')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -450,7 +455,7 @@ export default function PoolDetailScreen() {
                   style={styles.sheetEditBtn}
                 >
                   <Feather name="edit-2" size={14} color="#2563eb" />
-                  <Text style={styles.sheetEditText}>Edit Category</Text>
+                  <Text style={styles.sheetEditText}>{t('categories.editTitle', { name: inspectCat.name })}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -458,7 +463,7 @@ export default function PoolDetailScreen() {
                   style={styles.sheetArchiveBtn}
                 >
                   <Feather name="archive" size={14} color="#ba1a1a" />
-                  <Text style={styles.sheetArchiveText}>Archive</Text>
+                  <Text style={styles.sheetArchiveText}>{t('categories.archiveCategory')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -489,14 +494,17 @@ export default function PoolDetailScreen() {
           targetDate: pool.targetDate,
           bankAccountId: pool.bankAccountId,
           everydayAllowanceAmount: pool.everydayAllowanceAmount,
+          isSurplusTarget: pool.isSurplusTarget,
         }}
         onClose={() => setPoolModalVisible(false)}
         onSuccess={() => poolsQuery.refetch()}
       />
 
-      {/* Move Money Modal */}
-      <MoveMoneyModal
+      {/* Move Money Modal (Re-using QuickExpenseModal in TRANSFER mode) */}
+      <QuickExpenseModal
         visible={moveMoneyVisible}
+        initialType="TRANSFER"
+        initialSourcePoolId={pool.id}
         onClose={() => setMoveMoneyVisible(false)}
         onSuccess={() => poolsQuery.refetch()}
       />
