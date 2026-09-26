@@ -96,9 +96,21 @@ export default function SignInScreen() {
         return;
       }
 
-      const sessionToken =
+      let sessionToken =
         (result.data as { session?: { token?: string }; token?: string })?.session?.token ||
         (result.data as { token?: string })?.token;
+
+      if (!sessionToken) {
+        try {
+          const sessionRes = await authClient.getSession();
+          sessionToken =
+            (sessionRes?.data as { session?: { token?: string }; token?: string })?.session?.token ||
+            (sessionRes?.data as { token?: string })?.token;
+        } catch {
+          // Ignore
+        }
+      }
+
       if (sessionToken) {
         await SecureStore.setItemAsync("money-matters_session_token", sessionToken);
         await SecureStore.setItemAsync("money-matters-session-token", sessionToken);
@@ -120,6 +132,10 @@ export default function SignInScreen() {
       posthog.capture("user_signed_in", { method: "email" });
 
       try {
+        // Clear active tenant ID so that getTenantStatus automatically resolves the user's primary OWNER tenant
+        setActiveTenantId(null);
+        await SecureStore.deleteItemAsync("money_matters_active_tenant_id").catch(() => {});
+
         const tenantStatus = await utils.client.getTenantStatus.query();
         if (tenantStatus?.tenantId) {
           await switchActiveTenant(tenantStatus.tenantId, utils);

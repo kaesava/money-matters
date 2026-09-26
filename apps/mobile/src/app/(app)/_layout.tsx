@@ -35,9 +35,26 @@ export default function AppLayout() {
     enabled: !!session?.user,
   });
 
+  const userTenantsQuery = trpc.listUserTenants.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
+
   const utils = trpc.useUtils();
   React.useEffect(() => {
-    if (tenantStatusQuery.data?.tenantId) {
+    if (userTenantsQuery.data && userTenantsQuery.data.length > 0) {
+      const currentActive = getActiveTenantId();
+      const currentTenant = userTenantsQuery.data.find((t) => t.id === currentActive);
+      const ownerTenant = userTenantsQuery.data.find((t) => t.role === 'OWNER') || userTenantsQuery.data[0];
+
+      // Auto-heal: If active tenant is missing or invalid, default to owner tenant:
+      if (!currentActive || !currentTenant) {
+        if (ownerTenant && ownerTenant.id !== currentActive) {
+          switchActiveTenant(ownerTenant.id, utils).catch((err) => {
+            console.warn('[AppLayout] Auto-switch to owner tenant failed:', err);
+          });
+        }
+      }
+    } else if (tenantStatusQuery.data?.tenantId) {
       const currentActive = getActiveTenantId();
       if (currentActive !== tenantStatusQuery.data.tenantId) {
         switchActiveTenant(tenantStatusQuery.data.tenantId, utils).catch((err) => {
@@ -45,7 +62,7 @@ export default function AppLayout() {
         });
       }
     }
-  }, [tenantStatusQuery.data?.tenantId, utils]);
+  }, [userTenantsQuery.data, tenantStatusQuery.data?.tenantId, utils]);
 
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
     enabled: !!session?.user,
