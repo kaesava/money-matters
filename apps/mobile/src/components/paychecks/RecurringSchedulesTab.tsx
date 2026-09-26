@@ -11,16 +11,19 @@ import { t } from '@money-matters/i18n';
 import { SourceToEdit } from '../IncomeExpenseFormModal';
 import { useRecurringSchedules } from './useRecurringSchedules';
 import { RecurringSchedulesCards } from './RecurringSchedulesCards';
+import { IncomeSourceItem } from './IncomeSourceCard';
+import { ExpenseSourceItem } from './ExpenseBillCard';
 
 interface RecurringSchedulesTabProps {
-  incomeSources: any[];
-  expenseSources: any[];
-  bankAccounts: any[];
-  pools: any[];
+  incomeSources: IncomeSourceItem[];
+  expenseSources: ExpenseSourceItem[];
+  bankAccounts: { id: string; name: string; bankProvider?: string; balance?: string | number }[];
+  pools: { id: string; name: string; poolType?: string; currentBalance?: string | number; isPrivate?: boolean | null }[];
   isLoadingIncome: boolean;
   isLoadingExpense: boolean;
   onAddSchedule: (mode: 'INCOME' | 'EXPENSE') => void;
   onEditSchedule: (source: SourceToEdit, mode: 'INCOME' | 'EXPENSE') => void;
+  onBurstModal?: (source: IncomeSourceItem | ExpenseSourceItem, mode: 'INCOME' | 'EXPENSE') => void;
 }
 
 export function RecurringSchedulesTab({
@@ -32,6 +35,7 @@ export function RecurringSchedulesTab({
   isLoadingExpense,
   onAddSchedule,
   onEditSchedule,
+  onBurstModal,
 }: RecurringSchedulesTabProps) {
   const [setupSubSegment, setSetupSubSegment] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [selectedIncomeBankId, setSelectedIncomeBankId] = useState<string>('ALL');
@@ -164,6 +168,7 @@ export function RecurringSchedulesTab({
         onIncomePageChange={setIncomePage}
         onExpensePageChange={setExpensePage}
         onEditSchedule={onEditSchedule}
+        onOccurrences={onBurstModal}
       />
     </View>
   );

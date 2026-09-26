@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,54 +10,134 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { DESIGN_TOKENS, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { formatAUD, formatDate } from '../../lib/format';
+import { MatrixPaydayCard } from './MatrixPaydayCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 40;
 
-export function MobileMatrixPlanTab() {
+interface MobileMatrixPlanTabProps {
+  onOpenCategoryModal?: (params: {
+    poolId: string;
+    poolName: string;
+    poolType?: string;
+    currentBalance?: number;
+    targetAmount?: number;
+    events: { id: string; name: string; amount: string | number; dueDate: string; status?: string }[];
+  }) => void;
+}
+
+export function MobileMatrixPlanTab({ onOpenCategoryModal }: MobileMatrixPlanTabProps) {
   const router = useRouter();
   const D = DESIGN_TOKENS;
   const [expandedColId, setExpandedColId] = useState<string | null>(null);
+  const [showFull12, setShowFull12] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'CONFIRMED'>('ALL');
 
-  const { data, isLoading, refetch } = trpc.getMatrixProjectionData.useQuery({
-    monthsAhead: 12,
-  });
+  const { data, isLoading } = trpc.getMatrixProjectionData.useQuery({ monthsAhead: 12 });
+  const { data: plansData } = trpc.listAllAllocationPlans.useQuery();
+
+  const saveAllocationMut = trpc.saveAutoAllocation.useMutation();
+  const deleteIncomeEventMut = trpc.deleteIncomeEvent.useMutation();
+
+  // Build a map: incomeEventId → plan status (PENDING/CONFIRMED)
+  const planStateMap = useMemo<Record<string, 'PENDING' | 'CONFIRMED'>>(() => {
+    if (!plansData) return {};
+    const map: Record<string, 'PENDING' | 'CONFIRMED'> = {};
+    for (const plan of plansData) {
+      if (plan.incomeEventId) {
+        map[plan.incomeEventId] = plan.status as 'PENDING' | 'CONFIRMED';
+      }
+    }
+    return map;
+  }, [plansData]);
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Loading 12-month projection...</Text>
       </View>
     );
   }
 
-  const columns = data?.projection?.columns ?? [];
+  const allColumns = data?.projection?.columns ?? [];
   const groups = data?.projection?.groups ?? [];
 
-  if (columns.length === 0) {
+  if (allColumns.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Feather name="calendar" size={40} color="#94A3B8" />
-        <Text style={styles.emptyTitle}>No Upcoming Paydays</Text>
-        <Text style={styles.emptySubtitle}>
-          Add an income schedule to see your 12-month rolling cash-flow matrix.
-        </Text>
+        <Text style={styles.emptyTitle}>{t('transactions.noPaydaysFound')}</Text>
+        <Text style={styles.emptySubtitle}>{t('transactions.noPaydaysSubtitle')}</Text>
       </View>
     );
+  }
+
+  // Horizon: next 5 or full 12
+  const horizonColumns = showFull12 ? allColumns : allColumns.slice(0, 5);
+
+  // Status filter using plan state map
+  const filteredColumns = statusFilter === 'ALL'
+    ? horizonColumns
+    : statusFilter === 'CONFIRMED'
+    ? horizonColumns.filter((col) => planStateMap[col.id] === 'CONFIRMED')
+    : horizonColumns.filter((col) => !planStateMap[col.id]);
+
+  async function handleSave(incomeEventId: string, totalIncome: number) {
+    showMobileConfirm({
+      title: t('matrix.saveDialogTitle'),
+      message: t('matrix.saveDialogDescription'),
+      confirmText: t('matrix.saveDialogConfirm'),
+      onConfirm: async () => {
+        await saveAllocationMut.mutateAsync({
+          incomeEventId,
+          totalIncomeAmount: totalIncome.toFixed(2),
+        });
+      },
+    });
+  }
+
+  function handleDelete(incomeEventId: string) {
+    showMobileConfirm({
+      title: t('common.delete'),
+      message: t('payday.deleteIncomeEventConfirm'),
+      confirmText: t('common.delete'),
+      onConfirm: () => {
+        deleteIncomeEventMut.mutate({ eventId: incomeEventId });
+      },
+    });
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerInfo}>
-        <Text style={styles.horizonLabel}>12-Month Rolling Projection</Text>
-        <Text style={styles.horizonSubtitle}>
-          Swipe across upcoming paydays to inspect ring-fenced allocations.
-        </Text>
+      {/* Horizon + Status filter controls */}
+      <View style={styles.controlsRow}>
+        <TouchableOpacity
+          style={styles.horizonToggle}
+          onPress={() => setShowFull12((v) => !v)}
+        >
+          <Feather name={showFull12 ? 'minimize-2' : 'maximize-2'} size={13} color="#2563eb" />
+          <Text style={styles.horizonToggleText}>
+            {showFull12 ? t('matrix.showNext5') : t('matrix.showFull12Events')}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.statusPills}>
+          {(['ALL', 'PENDING', 'CONFIRMED'] as const).map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={[styles.pill, statusFilter === s && styles.pillActive]}
+              onPress={() => setStatusFilter(s)}
+            >
+              <Text style={[styles.pillText, statusFilter === s && styles.pillTextActive]}>
+                {t(`matrix.status${s}` as 'matrix.statusAll' | 'matrix.statusPending' | 'matrix.statusConfirmed')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <FlatList
@@ -67,157 +147,35 @@ export function MobileMatrixPlanTab() {
         snapToInterval={CARD_WIDTH + 16}
         decelerationRate="fast"
         contentContainerStyle={styles.carouselContainer}
-        data={columns}
+        data={filteredColumns}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => {
-          const isExpanded = expandedColId === item.id;
-
-          // Calculate totals for this column from groups
-          let billsTotal = 0;
-          let goalsTotal = 0;
-          let everydayTotal = 0;
-          let surplusAmount = 0;
-
-          const billsGroup = groups.find((g) => g.id === 'bills');
-          const goalsGroup = groups.find((g) => g.id === 'goals');
-          const everydayGroup = groups.find((g) => g.id === 'everyday');
-          const surplusGroup = groups.find((g) => g.id === 'surplus');
-
-          if (billsGroup) {
-            for (const r of billsGroup.rows) {
-              billsTotal += r.cells[item.id]?.allocated || 0;
-            }
-          }
-          if (goalsGroup) {
-            for (const r of goalsGroup.rows) {
-              goalsTotal += r.cells[item.id]?.allocated || 0;
-            }
-          }
-          if (everydayGroup) {
-            for (const r of everydayGroup.rows) {
-              everydayTotal += r.cells[item.id]?.allocated || 0;
-            }
-          }
-          if (surplusGroup && surplusGroup.rows[0]) {
-            surplusAmount = surplusGroup.rows[0].cells[item.id]?.allocated || 0;
-          }
-
-          const isDeficit = surplusAmount < 0;
-
-          return (
-            <View style={[styles.card, { width: CARD_WIDTH }]}>
-              {/* Card Header */}
-              <View style={styles.cardHeader}>
-                <View>
-                  <View style={styles.badgeRow}>
-                    <Text style={styles.cycleBadge}>Payday #{index + 1}</Text>
-                    {isDeficit ? (
-                      <View style={styles.deficitBadge}>
-                        <Text style={styles.deficitText}>
-                          ⚠️ Deficit {formatAUD(Math.abs(surplusAmount))}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.surplusBadge}>
-                        <Text style={styles.surplusText}>
-                          Surplus {formatAUD(surplusAmount)}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.payDate}>{item.date ? formatDate(item.date) : item.dateLabel}</Text>
-                  <Text style={styles.sourceName}>{item.sourceName}</Text>
-                </View>
-
-                <View style={styles.incomeCol}>
-                  <Text style={styles.incomeLabel}>Net Pay</Text>
-                  <Text style={styles.incomeAmount}>
-                    {formatAUD(item.totalIncome)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Summary Allocations Breakdown */}
-              <View style={styles.breakdownGrid}>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownItemLabel}>📅 Bills</Text>
-                  <Text style={styles.breakdownItemVal}>{formatAUD(billsTotal)}</Text>
-                </View>
-
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownItemLabel}>🎯 Goals</Text>
-                  <Text style={styles.breakdownItemVal}>{formatAUD(goalsTotal)}</Text>
-                </View>
-
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownItemLabel}>☕ Everyday</Text>
-                  <Text style={styles.breakdownItemVal}>
-                    {formatAUD(everydayTotal)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Expandable Bills Accordion */}
-              <TouchableOpacity
-                onPress={() => setExpandedColId(isExpanded ? null : item.id)}
-                style={styles.accordionToggle}
-              >
-                <Text style={styles.accordionToggleText}>
-                  {isExpanded ? 'Hide Scheduled Bills' : 'Show Scheduled Bills'}
-                </Text>
-                <Feather
-                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={16}
-                  color="#2563eb"
-                />
-              </TouchableOpacity>
-
-              {isExpanded && billsGroup && (
-                <View style={styles.billsList}>
-                  {billsGroup.rows
-                    .filter((r) => (r.cells[item.id]?.allocated || 0) > 0)
-                    .map((r) => (
-                      <View key={r.categoryId} style={styles.billRow}>
-                        <Text style={styles.billName} numberOfLines={1}>
-                          {r.categoryName}
-                        </Text>
-                        <Text style={styles.billAmount}>
-                          {formatAUD(r.cells[item.id]?.allocated || 0)}
-                        </Text>
-                      </View>
-                    ))}
-                </View>
-              )}
-
-              {/* Open Split Studio Action */}
-              <TouchableOpacity
-                onPress={() => router.push(`/(app)/paychecks/${item.id}` as never)}
-                style={styles.splitStudioBtn}
-              >
-                <Feather name="sliders" size={15} color="#FFFFFF" />
-                <Text style={styles.splitStudioBtnText}>Open Split Studio</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        }}
+        renderItem={({ item, index }) => (
+          <MatrixPaydayCard
+            key={item.id}
+            item={item}
+            index={index}
+            groups={groups}
+            cardWidth={CARD_WIDTH}
+            isExpanded={expandedColId === item.id}
+            planStatus={planStateMap[item.id]}
+            onToggleExpand={() => setExpandedColId(expandedColId === item.id ? null : item.id)}
+            onReview={() => router.push(`/(app)/paychecks/${item.id}` as never)}
+            onSave={() => handleSave(item.id, item.totalIncome)}
+            onDelete={() => handleDelete(item.id)}
+            onOpenCategoryModal={onOpenCategoryModal}
+          />
+        )}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 12,
-  },
+  container: { gap: 12 },
   loadingContainer: {
     paddingVertical: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#64748B',
   },
   emptyContainer: {
     backgroundColor: '#FFFFFF',
@@ -240,180 +198,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
-  headerInfo: {
+  controlsRow: {
     paddingHorizontal: 20,
+    gap: 10,
   },
-  horizonLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1B2B4B',
+  horizonToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  horizonSubtitle: {
+  horizonToggleText: {
     fontSize: 12,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  statusPills: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pillActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  pillText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#64748B',
-    marginTop: 2,
+  },
+  pillTextActive: {
+    color: '#FFFFFF',
   },
   carouselContainer: {
     paddingHorizontal: 20,
     gap: 16,
     paddingVertical: 4,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 3,
-    gap: 14,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  cycleBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    textTransform: 'uppercase',
-  },
-  surplusBadge: {
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  surplusText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#047857',
-  },
-  deficitBadge: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECDD3',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  deficitText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#BA1A1A',
-  },
-  payDate: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#1B2B4B',
-  },
-  sourceName: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  incomeCol: {
-    alignItems: 'flex-end',
-  },
-  incomeLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#94A3B8',
-    textTransform: 'uppercase',
-  },
-  incomeAmount: {
-    fontSize: 20,
-    fontWeight: '900',
-    fontFamily: 'monospace',
-    color: '#2563eb',
-  },
-  breakdownGrid: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 12,
-    gap: 8,
-  },
-  breakdownItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  breakdownItemLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  breakdownItemVal: {
-    fontSize: 14,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-    marginTop: 2,
-  },
-  accordionToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 4,
-  },
-  accordionToggleText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2563eb',
-  },
-  billsList: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 10,
-    gap: 6,
-  },
-  billRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  billName: {
-    fontSize: 12,
-    color: '#334155',
-    flex: 1,
-    marginRight: 8,
-  },
-  billAmount: {
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-  },
-  splitStudioBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 14,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  splitStudioBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
   },
 });
 

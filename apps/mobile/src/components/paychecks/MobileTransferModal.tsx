@@ -32,7 +32,7 @@ export interface PoolOption {
   name: string;
   poolType?: string;
   currentBalance?: string | number | null;
-  isPrivate?: boolean;
+  isPrivate?: boolean | null;
 }
 
 export interface MobileTransferModalProps {

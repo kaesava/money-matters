@@ -20,12 +20,14 @@ interface ExpenseBillCardProps {
   exp: ExpenseSourceItem;
   categoryName: string;
   onEdit: (exp: ExpenseSourceItem) => void;
+  onOccurrences?: (exp: ExpenseSourceItem) => void;
 }
 
 export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
   exp,
   categoryName,
   onEdit,
+  onOccurrences,
 }) => {
   const displayBucket = categoryName || exp.poolName || exp.categoryName;
 
@@ -55,9 +57,27 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
 
       <View style={styles.detailRow}>
         <Text style={styles.amount}>−{formatAUD(exp.amount)}</Text>
-        <Text style={styles.freqText}>
-          {formatScheduleDetail(exp.rrule, exp.startDate).detailText}
-        </Text>
+        <View style={styles.rightDetailGroup}>
+          {onOccurrences ? (
+            <TouchableOpacity
+              style={styles.occurrencesBtn}
+              onPress={(e) => {
+                e.stopPropagation();
+                onOccurrences(exp);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="calendar" size={11} color="#2563eb" />
+              <Text style={styles.freqText}>
+                {formatScheduleDetail(exp.rrule, exp.startDate).detailText}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.freqText}>
+              {formatScheduleDetail(exp.rrule, exp.startDate).detailText}
+            </Text>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -123,5 +143,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
+  },
+  rightDetailGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  occurrencesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
 });

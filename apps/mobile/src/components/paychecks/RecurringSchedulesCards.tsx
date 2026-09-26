@@ -20,6 +20,7 @@ interface RecurringSchedulesCardsProps {
   onIncomePageChange: (page: number) => void;
   onExpensePageChange: (page: number) => void;
   onEditSchedule: (source: SourceToEdit, mode: 'INCOME' | 'EXPENSE') => void;
+  onOccurrences?: (source: IncomeSourceItem | ExpenseSourceItem, mode: 'INCOME' | 'EXPENSE') => void;
 }
 
 export function RecurringSchedulesCards({
@@ -36,6 +37,7 @@ export function RecurringSchedulesCards({
   onIncomePageChange,
   onExpensePageChange,
   onEditSchedule,
+  onOccurrences,
 }: RecurringSchedulesCardsProps) {
   if (setupSubSegment === 'INCOME') {
     return (
@@ -51,6 +53,7 @@ export function RecurringSchedulesCards({
                 key={inc.id}
                 inc={inc}
                 onEdit={(s) => onEditSchedule(s, 'INCOME')}
+                onOccurrences={onOccurrences ? (s) => onOccurrences(s, 'INCOME') : undefined}
               />
             ))}
             {filteredIncomeSources.length >= 5 && (
@@ -83,6 +86,7 @@ export function RecurringSchedulesCards({
               exp={exp}
               categoryName={exp.poolName || exp.categoryName || 'Pool'}
               onEdit={(s) => onEditSchedule(s, 'EXPENSE')}
+              onOccurrences={onOccurrences ? (s) => onOccurrences(s, 'EXPENSE') : undefined}
             />
           ))}
           {filteredExpenseSources.length >= 5 && (

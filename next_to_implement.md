@@ -1,37 +1,79 @@
-We are now going to look screen by screen to ensure that each mobile app screen is equivalent (parity) in functionality with the web screen and re-uses user-facing literals.
+#####################################
 
 # Rules
 * Strict adherence to AGENTS.md
-* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
 * If you need clarity, /grill-me.
-* I don't need walkthrough at the end
-* Output: Detail implementation plan
-* Important: Do not create new en.ts keys unless absolutely necessary. Re-use keys across mobile and web app and even within them. Ensure consistent user facing literal keys used across mobile and web apps (i.e., same key for same functionality like button or label name)
+* I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
+
+
+# Web Application only
+
+## General
+* In some modals, the currency amount field it not wide enough so I cannot see the number entered - example - Bank Account Balance. Ensure minimum width so up to 99,999.99 can be shown along with the currency symbol and increment/decrement buttons without any cut-off. Make modals wider if needed.
+
+## Navigation
+* Move Bank Accounts from the Navigation Bar to a tab in the Settings navigation (between "Household" and "Archived Data"). If paths & hyperlink changes across the app are required, ensure they are done accordingly.
+* Move "http://localhost:3000/dashboard/income-and-bills" > "Income Split" tab out of the "Schedules" screen and into it's own Navigation entry "Split Income" between "Schedules" and "History" in the Navigation. If paths & hyperlink changes across the app are required, ensure they are done accordingly.
+* Rename "Schedules" to "Income & Expenses" in Navigation
+* Move "Pools" down in the Navigation so it is just above "History"
+
+## Bank Accounts
+* When No Pools linked, instead of saying "Expected $0.00. Balanced", hide. Applies to mobile app too.
+* Align Shortfall and Surplus - show in different colours - make mobile app consistent
+* Bank Account Balance Alignment - show the "Sweep target" first in the list (even if it has $0) and by default draw down/top-up it first. If draw-down is not sufficient, user can specify other pools. Ensure parity in mobile app behaviour.
+
+
+
+#####################################
+
+
+You are now going to do a Mobile app screen by screen check to ensure that each mobile app screen is equivalent (parity) in functionality with the web screen and re-uses user-facing literals.
+
+
+# Rules
+* Strict adherence to AGENTS.md
+* If you need clarity, /grill-me.
+* I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
+* Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.
+* Actively look for opportunities to rationalise en.ts keys within and across the mobile & web apps. There is a lot of repetition that makes it hard to change terminology in one place. Iteratively identify rationalisation opportunities and apply them across web and mobile apps.
+* In the mobile app, all user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent with the corresponding web app UI and importantly, re-uses en.ts keys for like-for-like functionality across web and mobile app. Do not add keys unless certain that they are specific for mobile or web and cannot be re-used.
+* Agressively cull unused/redundant keys from en.ts. No hardcoding of literals.
+* Mobile app must re-use as much UX as possible, defining UI elements (like fields, calendars, sort/search filter settings, etc.) centrally and re-using - MECE. The UI (theme, colours, general look-and-feel) must be consistent.
     
 
 # Mobile App
 Testing on Android Google Pixel 10.
 
-## General
-
-## Applies to each section below
-* Align the functionality to the web app, driving best practice native UX (and ensuring re-use or extraction of reusable UX/UI so other screens have consistent look and feel)
-* In the mobile app, all user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) needs to be consistent with the correspondinf web app UI and importantly, must re-use en.ts keys as much as possible. No hardcoding. No redundant/un-used keys. No mobile specific keys unless absolutely necessary.
-* If there are capabilities that you detect in the web app that have not been built in the mobile app as you review the screen, notify me and ask if I want that built, but of course, you will always use native mobile UI/UX
-* Mobile app must re-use as much UX as possible, defining UI elements centrally and re-using.
-
-## Payday Split
-* Review web app capability in "/dashboard/income-and-bills" and "/dashboard/income-split?id=xxx&returnTo=/dashboard/income-and-bills" screens - every single capability/functionality/message/error/button/hyperlink/table/etc.
-* See "## Applies to each section below" section above - ensure alignment with mobile app
-* This might be quite a significant build - grill me - lots of design decisions to be made.
-* Ensure all redundant/un-used code is removed.
-* This is the most important screen in the mobile app and needs to be beautiful, useful and at a glance, ideally should be able to show splits, status, etc. but this will be a challenge given limited real-estate.
-
-
-
-
+Scope: All Screens, including but not limited to:
+* Setup, Setup (Recalibrate Budget) including All steps, flow-on implications
+* General (Navigation, Sign out, Settings, Switch Tenant, Spill Navigation, User profile icon, Info Tooltips - parity with web app, Infor tool tip visibility based on settings, currency format based on locale, dates based on locale)
+* Home (Hero card - Bills Health/pacing, Everyday Health/pacing, Top Goals health/pacing & View All, Upcoming 5 Income/Expenses and "More", Can I afford it, Quick Actions - Expense, Income, Transfer)
+* Pools (Simulator mode - on/off), New Pool, Edit Pool (including Pool/Bank Account lock on create), Pool - Mark as Shortfaull - implications, Category - Mark as priority - implications, New Category, Edit Category (including Target amount, Freq & Equivalent monthly, Pool lock on crete), Pool Types & associated special fields (like Sweep, target amount for goals, Search filter - All|Everyday
+Bills|Goals & All|Shared|Private, pagination, History link, Progress)
+* Bank Accounts(List with Linked Pools, Search, Sort, Filter - Pools, Markup Private, Available & Actual Balance, New, Edit (no linking Pools), Private Account (and lock on creation), Archive, pagination)
+* Bank Account Align/Reconcile balance(surpus vs deficit and transaction creation, default pool, hide $0 pool for draw-down, etc.)
+* History (Search, Sort, Filter - Pool, All|Expense|Income|Transfer, CSV export, pagination)
+* History > Income Splits (Search, Sort, Filter - Bank Account, All|Expense|Income|Transfer, CSV export, Bank Account hyperlink, pagination, Details - Header with Income Source, Bank Account, Income Date & Income Split Date + Pool splits read-only)
+* Schedules (Income SPlit, Upcoming, Setup, pagination)
+* Schedule > Income Split (Filter - All, Confirmed, pagination)
+* Schedule > Setup (Filter - All|Shared|Private, Search, Sort, Bank Account or Pool filter, New/Edit Expense Schedule, New/Edit Income Schedule, One-off Income/Expense, Recurring Income/Setup, Burst, Re-Burst, Burst rules on Edit, Archive, Pool/Bank hyperlink etc., pagination)
+* Schedule > Upcoming (Filter - All|Shared|Private & All|Income|Expense|Transfer, Cancel filter, Search, Sort, Run Split, Mark Spent, Delete, Overdue label, default sort, etc. Pool/Bank hyperlink, pagination)
+* Income Split (Actual Split logic of waterfall, Edit Date - future vs today/past, Edit Amount & other fields, Edit splits, overshoot, undershoot, Physical Bank transfer card, Save, Unsave, Run Split, Delete, Reset calculation, Cancel)
+* Mark Paid (Edit Date - future vs today/past, Edit Amount & other fields, Insufficient handling & sweep, trigger transfer, Save, Confirm, Cancel)
+* Settings > My Details (View, Edit, validations, timezone functionality, date format functionality, currency functionality across app, number & email validation, avatar select, avatar zoom/pan)
+* Settings > Household (View, Edit, validations, country, timezone implications, Remove Household member, Send invitation - owner only, Leave Household - warnings, challenge, Delete Household & data - warnings, challenge, owner only)
+* Settings > Archived Data (Filters, Search, Restore, Archive cascades, Unarchive cascades, date-sensitive unarchival to prevent unarchiving of individual archives prior to high level archive)
+* Settings > Data & Subscription (Current plan, Upgrade plan, Download full zipped data, Signout, Interaction with Stripe, Stripe confirmation/cancel/failure, Payment options)
+* Trial: Days remaining on Trial badge, trial prevention if already existing for user, etc. Lockdown on Trial expiry (except for Data download or upgrade)
+* Landing page (Logged in, Not logged in), Main (How it works, Why us, Simulator, Advantages, Pricing, FAQ, etc.), environment variable switch to prevent login, privacy policy, Terms of use, Sign-Up, Sign-In)
+* Sign-In, Sign-Up (validations, Google, email/password, combinations of these for sign-up and/or sign-in & handling, etc)
 
 -----------------------------------------------
+
+
+
+* As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
+
 
 ## Header
 
