@@ -1,18 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS, MobileModalDialog, MobileButton, AmountInput, useMobileToast } from '@money-matters/ui/mobile';
+import {
+  DESIGN_TOKENS,
+  MobileModalDialog,
+  MobileButton,
+  MobileInput,
+  useMobileToast,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { formatAUD } from '../../lib/format';
+import {
+  ReconciliationPoolRow,
+  ReconcilePoolItem,
+} from './ReconciliationPoolRow';
 
 export interface MobileReconciliationModalProps {
   visible: boolean;
@@ -21,17 +29,18 @@ export interface MobileReconciliationModalProps {
     name: string;
     lastKnownBalance?: string | null;
     unbudgetedBuffer?: string | null;
-    expectedBalance?: number;
-    differenceAmount?: number;
+    expectedBalance?: number | string | null;
     linkedPools?: Array<{
       id: string;
       name: string;
       poolType: string;
       currentBalance: string | number;
+      isSurplusTarget?: boolean | null;
     }>;
   } | null;
   onClose: () => void;
   onSuccess?: () => void;
+  onOpenTransfer?: () => void;
 }
 
 export function MobileReconciliationModal({
@@ -39,86 +48,117 @@ export function MobileReconciliationModal({
   account,
   onClose,
   onSuccess,
+  onOpenTransfer,
 }: MobileReconciliationModalProps) {
-  const D = DESIGN_TOKENS;
   const toast = useMobileToast();
   const utils = trpc.useUtils();
 
-  const [actualBalanceStr, setActualBalanceStr] = useState('');
-  const [selectedPoolId, setSelectedPoolId] = useState('');
-  const [reasonNote, setReasonNote] = useState('');
+  const [adjustments, setAdjustments] = useState<Record<string, string>>({});
+  const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const actualBal = parseFloat(account?.lastKnownBalance || '0');
+  const buffer = parseFloat(account?.unbudgetedBuffer || '0');
+  const availableToBudget = Math.max(0, actualBal - buffer);
+
+  const parsedPools: ReconcilePoolItem[] = useMemo(() => {
+    return (account?.linkedPools ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      poolType: p.poolType,
+      currentBalance: typeof p.currentBalance === 'number'
+        ? p.currentBalance
+        : parseFloat(String(p.currentBalance || '0')),
+      isSurplusTarget: p.isSurplusTarget,
+    }));
+  }, [account?.linkedPools]);
+
+  const expectedTotal = parsedPools.reduce((sum, p) => sum + p.currentBalance, 0);
+  const variance = Number((availableToBudget - expectedTotal).toFixed(2));
+  const isSurplus = variance > 0;
+  const absVariance = Math.abs(variance);
+
+  const visiblePools = useMemo(() => {
+    if (!isSurplus) {
+      return parsedPools.filter((p) => p.poolType === 'EVERYDAY' || p.currentBalance > 0);
+    }
+    return parsedPools;
+  }, [parsedPools, isSurplus]);
+
+  const hasHiddenZeroPools = !isSurplus && parsedPools.some(
+    (p) => p.poolType !== 'EVERYDAY' && p.currentBalance <= 0
+  );
 
   useEffect(() => {
     if (visible && account) {
-      setActualBalanceStr(
-        account.lastKnownBalance ? String(account.lastKnownBalance) : '0.00'
-      );
-      // Pre-select the first linked pool if available
-      if (account.linkedPools && account.linkedPools.length > 0) {
-        setSelectedPoolId(account.linkedPools[0].id);
-      } else {
-        setSelectedPoolId('');
+      const initAdj: Record<string, string> = {};
+      visiblePools.forEach((p) => {
+        initAdj[p.id] = '0.00';
+      });
+
+      const sweep = visiblePools.find((p) => p.isSurplusTarget) ||
+        visiblePools.find((p) => p.poolType === 'EVERYDAY') ||
+        visiblePools[0];
+
+      if (sweep) {
+        if (!isSurplus && sweep.poolType !== 'EVERYDAY' && sweep.currentBalance < absVariance) {
+          initAdj[sweep.id] = Math.min(sweep.currentBalance, absVariance).toFixed(2);
+        } else {
+          initAdj[sweep.id] = absVariance.toFixed(2);
+        }
       }
-      setReasonNote('');
+      setAdjustments(initAdj);
+      setReason('');
     }
-  }, [visible, account]);
+  }, [visible, account, absVariance, isSurplus, visiblePools]);
+
+  const sumAdjustments = Number(
+    Object.values(adjustments)
+      .reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
+      .toFixed(2)
+  );
+
+  const isSumValid = Math.abs(sumAdjustments - absVariance) < 0.009;
 
   const reconcileMut = trpc.reconcileBankBalance.useMutation();
 
-  if (!account) return null;
+  const handleConfirmSubmit = async () => {
+    if (!account || !isSumValid) return;
 
-  const actualBalanceNum = parseFloat(actualBalanceStr) || 0;
-  const poolsTotal = (account.linkedPools ?? []).reduce(
-    (sum, p) => sum + (parseFloat(String(p.currentBalance)) || 0),
-    0
-  );
-  const variance = Math.round((actualBalanceNum - poolsTotal) * 100) / 100;
-  const isSurplus = variance > 0;
-  const isShortfall = variance < 0;
-
-  const handleReconcile = async () => {
-    if (!selectedPoolId) {
-      toast.error(
-        'Please select a pool to absorb the balance adjustment.',
-        t('common.error')
-      );
-      return;
-    }
+    const splits = Object.entries(adjustments)
+      .filter(([_, val]) => (parseFloat(val) || 0) > 0)
+      .map(([poolId, val]) => {
+        const amt = parseFloat(val) || 0;
+        return {
+          poolId,
+          adjustment: (isSurplus ? amt : -amt).toFixed(2),
+        };
+      });
 
     setSubmitting(true);
     try {
-      const idempotencyToken = crypto.randomUUID();
-
       await reconcileMut.mutateAsync({
         accountId: account.id,
-        actualBalance: actualBalanceNum.toFixed(2),
-        clientIdempotencyToken: idempotencyToken,
-        note: reasonNote.trim() || undefined,
-        splits: [
-          {
-            poolId: selectedPoolId,
-            adjustment: variance.toFixed(2),
-          },
-        ],
+        actualBalance: actualBal.toFixed(2),
+        clientIdempotencyToken: crypto.randomUUID(),
+        note: reason.trim() || undefined,
+        splits,
       });
 
-      toast.success('Account reconciled successfully.');
-      utils.listBankAccounts.invalidate();
+      toast.success(t('toasts.saved'));
       utils.listBankAccountsWithExpected.invalidate();
       utils.listPools.invalidate();
       utils.listTransactions.invalidate();
       onSuccess?.();
       onClose();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to reconcile balance',
-        t('common.error')
-      );
+      toast.error(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (!account) return null;
 
   return (
     <MobileModalDialog
@@ -127,110 +167,112 @@ export function MobileReconciliationModal({
       title={t('modals.reconciliation.title')}
       subtitle={t('modals.reconciliation.subtitle', { name: account.name })}
       footer={
-        <MobileButton
-          variant="primary"
-          loading={submitting}
-          disabled={submitting || (variance !== 0 && !selectedPoolId)}
-          onPress={handleReconcile}
-        >
-          {t('modals.reconciliation.submit')}
-        </MobileButton>
+        <View style={styles.footerRow}>
+          <MobileButton variant="ghost" onPress={onClose} style={styles.flexBtn}>
+            {t('common.cancel')}
+          </MobileButton>
+          <MobileButton
+            variant="primary"
+            loading={submitting}
+            disabled={!isSumValid || submitting}
+            onPress={handleConfirmSubmit}
+            style={styles.flexBtn}
+          >
+            {t('common.confirm')}
+          </MobileButton>
+        </View>
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-        {/* Actual Bank Statement Balance */}
-        <AmountInput
-          label={t('modals.reconciliation.actualBalance')}
-          required
-          value={actualBalanceStr}
-          onChangeText={setActualBalanceStr}
-          placeholder="0.00"
+        {/* Metric Cards Row */}
+        <View style={styles.metricsGrid}>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.expectedTotal')}</Text>
+            <Text style={styles.metricVal}>{formatAUD(expectedTotal)}</Text>
+          </View>
+
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.availableToBudget')}</Text>
+            <Text style={styles.metricVal}>{formatAUD(availableToBudget)}</Text>
+          </View>
+
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.difference')}</Text>
+            <Text style={[styles.metricVal, isSurplus ? styles.textSurplus : styles.textShortfall]}>
+              {isSurplus ? `+${formatAUD(variance)}` : `-${formatAUD(absVariance)}`}
+            </Text>
+          </View>
+        </View>
+
+        {/* Contextual Notice */}
+        <View style={[styles.noticeCard, isSurplus ? styles.noticeSurplus : styles.noticeShortfall]}>
+          <Text style={[styles.noticeText, isSurplus ? styles.noticeTextSurplus : styles.noticeTextShortfall]}>
+            {isSurplus
+              ? t('bankAccounts.reconcile.surplusNotice', { amount: formatAUD(absVariance) })
+              : t('bankAccounts.reconcile.shortfallNotice', { amount: formatAUD(absVariance) })}
+          </Text>
+        </View>
+
+        {/* Optional Reason / Note */}
+        <MobileInput
+          label={t('bankAccounts.reconcile.reasonLabel')}
+          value={reason}
+          onChangeText={setReason}
+          placeholder={t('bankAccounts.reconcile.reasonPlaceholder')}
         />
 
-        {/* Comparison & Discrepancy Card */}
-        <View style={styles.discrepancyCard}>
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>{t('categories.calculatedTarget')}</Text>
-            <Text style={styles.statVal}>{formatAUD(poolsTotal)}</Text>
-          </View>
+        {/* Multi-Pool Allocation List */}
+        <View style={styles.poolsSection}>
+          {visiblePools.length === 0 ? (
+            <Text style={styles.noPoolsText}>{t('bankAccounts.reconcile.noLinkedPools')}</Text>
+          ) : (
+            visiblePools.map((pool, idx) => (
+              <ReconciliationPoolRow
+                key={pool.id}
+                pool={pool}
+                value={adjustments[pool.id] ?? '0.00'}
+                isSurplus={isSurplus}
+                autoFocus={idx === 0}
+                onChange={(newVal) =>
+                  setAdjustments((prev) => ({ ...prev, [pool.id]: newVal }))
+                }
+              />
+            ))
+          )}
 
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>{t('modals.reconciliation.actualBalance')}</Text>
-            <Text style={styles.statVal}>{formatAUD(actualBalanceNum)}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.statRow}>
-            <Text style={styles.statLabelBold}>
-              {isSurplus ? 'Surplus (+Δ)' : isShortfall ? 'Shortfall (-Δ)' : 'Status'}
+          {hasHiddenZeroPools && (
+            <Text style={styles.hiddenNoticeText}>
+              {t('bankAccounts.reconcile.zeroBalanceHiddenNotice')}
             </Text>
-            <Text
-              style={[
-                styles.statValBold,
-                isSurplus && styles.surplusVal,
-                isShortfall && styles.shortfallVal,
-              ]}
-            >
-              {variance === 0
-                ? 'Balanced'
-                : `${isSurplus ? '+' : ''}${formatAUD(variance)}`}
+          )}
+        </View>
+
+        {/* Live Validation Counter */}
+        <View style={styles.validationRow}>
+          <Text style={styles.validationLabel}>
+            {t('bankAccounts.reconcile.allocatedSplitTotal')}
+          </Text>
+          <View style={styles.validationRight}>
+            <Text style={[styles.validationAmount, isSumValid ? styles.textSurplus : styles.textShortfall]}>
+              {formatAUD(sumAdjustments)} / {formatAUD(absVariance)}
+            </Text>
+            <Text style={[styles.validationBadge, isSumValid ? styles.textSurplus : styles.textShortfall]}>
+              {isSumValid
+                ? t('bankAccounts.reconcile.matches')
+                : t('bankAccounts.reconcile.remaining', { amount: formatAUD(Math.abs(absVariance - sumAdjustments)) })}
             </Text>
           </View>
         </View>
 
-        {/* Target Pool Selector */}
-        {variance !== 0 && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>
-              {isSurplus ? 'Deposit Surplus Into Pool' : 'Deduct Shortfall From Pool'}
+        {/* Transfer Between Pools Shortcut */}
+        {onOpenTransfer && (
+          <TouchableOpacity onPress={onOpenTransfer} style={styles.transferLinkBtn}>
+            <Text style={styles.transferLinkText}>
+              {t('bankAccounts.reconcile.transferBetweenPoolsLink')}
             </Text>
-            <View style={styles.poolsGrid}>
-              {account.linkedPools?.map((p) => {
-                const isSelected = p.id === selectedPoolId;
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    onPress={() => setSelectedPoolId(p.id)}
-                    style={[
-                      styles.poolChip,
-                      isSelected && styles.poolChipSelected,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.poolChipName,
-                        isSelected && styles.poolChipNameSelected,
-                      ]}
-                    >
-                      {p.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.poolChipBal,
-                        isSelected && styles.poolChipBalSelected,
-                      ]}
-                    >
-                      {formatAUD(p.currentBalance)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+            <Feather name="arrow-right" size={14} color="#2563eb" />
+          </TouchableOpacity>
         )}
-
-        {/* Optional Custom Reason Note */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('modals.reconciliation.notes')}</Text>
-          <TextInput
-            style={styles.textInput}
-            value={reasonNote}
-            onChangeText={setReasonNote}
-            placeholder={t('modals.reconciliation.reasonPlaceholder')}
-            placeholderTextColor="#94A3B8"
-          />
-        </View>
       </ScrollView>
     </MobileModalDialog>
   );
@@ -239,141 +281,122 @@ export function MobileReconciliationModal({
 const styles = StyleSheet.create({
   body: {
     gap: 14,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
-  inputGroup: {
-    gap: 6,
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  label: {
+  metricCard: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 10,
+    gap: 4,
+  },
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+  },
+  metricVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+  },
+  textSurplus: {
+    color: '#059669',
+  },
+  textShortfall: {
+    color: '#D97706',
+  },
+  noticeCard: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  noticeSurplus: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  noticeShortfall: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  noticeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  noticeTextSurplus: {
+    color: '#065F46',
+  },
+  noticeTextShortfall: {
+    color: '#92400E',
+  },
+  poolsSection: {
+    gap: 10,
+  },
+  noPoolsText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  hiddenNoticeText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  validationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 10,
+  },
+  validationLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#475569',
   },
-  amountWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    backgroundColor: '#F8FAFC',
+  validationRight: {
+    alignItems: 'flex-end',
   },
-  currencySymbol: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#64748B',
-    marginRight: 12,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '900',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-    paddingVertical: 8,
-  },
-  textInput: {
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1B2B4B',
-    backgroundColor: '#F8FAFC',
-  },
-  discrepancyCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 14,
-    gap: 8,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  statVal: {
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: 'monospace',
-    color: '#1B2B4B',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 2,
-  },
-  statLabelBold: {
+  validationAmount: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  statValBold: {
-    fontSize: 15,
-    fontWeight: '900',
     fontFamily: 'monospace',
-    color: '#22c55e',
   },
-  surplusVal: {
-    color: '#047857',
-  },
-  shortfallVal: {
-    color: '#ba1a1a',
-  },
-  poolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  poolChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  poolChipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563eb',
-  },
-  poolChipName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  poolChipNameSelected: {
-    color: '#2563eb',
-    fontWeight: '800',
-  },
-  poolChipBal: {
+  validationBadge: {
     fontSize: 10,
-    fontFamily: 'monospace',
-    color: '#94A3B8',
+    fontWeight: '700',
     marginTop: 2,
   },
-  poolChipBalSelected: {
+  transferLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    paddingVertical: 4,
+  },
+  transferLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#2563eb',
   },
-  submitBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
+  footerRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  submitBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  flexBtn: {
+    flex: 1,
   },
 });
-
-export default MobileReconciliationModal;

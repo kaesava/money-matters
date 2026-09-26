@@ -1,36 +1,33 @@
-import React, { useState } from "react";
+import React from 'react';
 import {
   View,
   Text,
   Modal,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { usePostHog } from "posthog-react-native";
+} from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import {
   DESIGN_TOKENS,
-  AmountInput,
-  MobileInput,
-  MobileButton,
-  FormLabel,
-  FormFieldError,
-  FormErrorBanner,
-  MobileDatePickerField,
   SegmentedTabs,
-} from "@money-matters/ui/mobile";
-import { t } from "@money-matters/i18n";
-import { trpc } from "../lib/trpc";
-import { formatAUD, formatIsoDate } from "../lib/format";
-import { CrossBankTransferModal } from "./CrossBankTransferModal";
-import { triggerHaptic } from "../lib/haptics";
-
-export type QuickActionType = "DEBIT" | "CREDIT" | "TRANSFER";
+  FormErrorBanner,
+  showMobileConfirm,
+} from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
+import { formatAUD } from '../lib/format';
+import { CrossBankTransferModal } from './CrossBankTransferModal';
+import {
+  useMobileQuickAction,
+  QuickActionType,
+} from './quick/useMobileQuickAction';
+export type { QuickActionType };
+import { QuickExpenseTab } from './quick/QuickExpenseTab';
+import { QuickIncomeTab } from './quick/QuickIncomeTab';
+import { QuickTransferTab } from './quick/QuickTransferTab';
 
 interface QuickExpenseModalProps {
   visible: boolean;
@@ -41,542 +38,301 @@ interface QuickExpenseModalProps {
   onIncomeSuccess?: (incomeEventId: string) => void;
 }
 
-const QUICK_PICKS = [
-  { name: "Coffee", amount: "5.50" },
-  { name: "Lunch", amount: "18.00" },
-  { name: "Groceries", amount: "80.00" },
-  { name: "Fuel", amount: "70.00" },
-];
-
 export function QuickExpenseModal({
   visible,
-  initialType = "DEBIT",
+  initialType = 'DEBIT',
   initialSourcePoolId,
   onClose,
   onSuccess,
   onIncomeSuccess,
 }: QuickExpenseModalProps) {
-  const todayStr = formatIsoDate(new Date());
-  const yesterdayObj = new Date();
-  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
-  const yesterdayStr = formatIsoDate(yesterdayObj);
-
-  const [type, setType] = useState<QuickActionType>(initialType);
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(todayStr);
-  const [selectedPoolId, setSelectedPoolId] = useState("");
-  const [destPoolId, setDestPoolId] = useState("");
-  const [note, setNote] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [nameError, setNameError] = useState("");
-  const [amountError, setAmountError] = useState("");
-  const [dateError, setDateError] = useState("");
-  const [poolError, setPoolError] = useState("");
-  const [generalError, setGeneralError] = useState("");
-
-  const clearErrors = () => {
-    setNameError("");
-    setAmountError("");
-    setDateError("");
-    setPoolError("");
-    setGeneralError("");
-  };
-
-  // Cross-bank transfer state
-  const [crossBankData, setCrossBankData] = useState<{
-    visible: boolean;
-    sourceAccountName: string;
-    destAccountName: string;
-    amount: number;
-  } | null>(null);
-
-  const posthog = usePostHog();
-  const utils = trpc.useUtils();
-
-  const { data: pools, isLoading: poolsLoading } = trpc.listPools.useQuery(
-    undefined,
-    { enabled: visible }
-  );
-  const { data: bankAccounts } = trpc.listBankAccounts.useQuery(
-    undefined,
-    { enabled: visible }
-  );
-
-  const recordExpenseMutation = trpc.recordExpense.useMutation();
-  const createUpcomingIncomeMutation = trpc.createUpcomingIncome.useMutation();
-  const moveMoneyMutation = trpc.moveMoney.useMutation();
-
-  React.useEffect(() => {
-    if (visible) {
-      setType(initialType);
-      setDate(todayStr);
-      clearErrors();
-      if (initialSourcePoolId) {
-        setSelectedPoolId(initialSourcePoolId);
-      } else {
-        // Auto-select Everyday pool as default for DEBIT
-        const everyday = pools?.find((p) => p.poolType === "EVERYDAY");
-        if (everyday) {
-          setSelectedPoolId(everyday.id);
-        }
-      }
-    }
-  }, [visible, initialType, initialSourcePoolId, pools, todayStr]);
-
-  const D = DESIGN_TOKENS;
-  const everydayPool = pools?.find((p) => p.poolType === "EVERYDAY");
-  const selectedPool = pools?.find((p) => p.id === selectedPoolId);
-  const destPool = pools?.find((p) => p.id === destPoolId);
-
-  const getPoolBalance = (p?: { currentBalance?: number | string }) =>
-    typeof p?.currentBalance === "number"
-      ? p.currentBalance
-      : parseFloat((p?.currentBalance as string) || "0");
-
-  const isOverdraft =
-    type === "DEBIT" &&
-    selectedPool &&
-    parseFloat(amount || "0") > getPoolBalance(selectedPool);
-
-  const handleQuickPick = (pick: (typeof QUICK_PICKS)[0]) => {
-    triggerHaptic("selection");
-    setName(pick.name);
-    setAmount(pick.amount);
-    setDate(todayStr);
-    if (everydayPool) {
-      setSelectedPoolId(everydayPool.id);
-    }
-    clearErrors();
-  };
-
-  const handleRecord = async () => {
-    clearErrors();
-    const numAmount = parseFloat(amount);
-    let hasError = false;
-
-    if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setAmountError(t("drawers.quickExpense.validAmountError"));
-      hasError = true;
-    }
-
-    if (!date.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date.trim()) || isNaN(new Date(date.trim()).getTime())) {
-      setDateError(t("drawers.quickExpense.invalidDate"));
-      hasError = true;
-    } else if (type === "TRANSFER" && date.trim() < todayStr) {
-      setDateError(t("drawers.quickExpense.pastDateError"));
-      hasError = true;
-    }
-
-    if (type === "DEBIT") {
-      if (!name.trim()) {
-        setNameError(t("drawers.quickExpense.nameRequired"));
-        hasError = true;
-      }
-      if (!selectedPoolId) {
-        setPoolError(t("drawers.quickExpense.poolSelectionRequired"));
-        hasError = true;
-      }
-      if (hasError) return;
-
-      setIsSubmitting(true);
-      try {
-        await recordExpenseMutation.mutateAsync({
-          poolId: selectedPoolId,
-          amount: numAmount.toFixed(2),
-          flowType: "DEBIT",
-          date: date.trim(),
-          note: note.trim() || name.trim(),
-          idempotencyKey: crypto.randomUUID(),
-        });
-
-        if (posthog) {
-          posthog.capture("expense_recorded", {
-            amount: numAmount,
-            pool_id: selectedPoolId,
-          });
-        }
-
-        utils.listPools.invalidate();
-        utils.listTransactions.invalidate();
-        resetAndClose();
-      } catch (err) {
-        setGeneralError(
-          err instanceof Error ? err.message : t("drawers.quickExpense.failedRecordExpense")
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else if (type === "CREDIT") {
-      if (!name.trim()) {
-        setNameError(t("drawers.quickExpense.nameRequired"));
-        hasError = true;
-      }
-      if (hasError) return;
-
-      setIsSubmitting(true);
-      try {
-        const created = await createUpcomingIncomeMutation.mutateAsync({
-          name: name.trim(),
-          amount: numAmount.toFixed(2),
-          expectedDate: date.trim(),
-          note: note.trim() || name.trim(),
-        });
-
-        if (posthog) {
-          posthog.capture("income_recorded", { amount: numAmount });
-        }
-
-        utils.listPools.invalidate();
-        utils.listIncomeEvents.invalidate();
-        resetAndClose();
-
-        if (onIncomeSuccess) {
-          onIncomeSuccess(created.id);
-        }
-      } catch (err) {
-        setGeneralError(
-          err instanceof Error ? err.message : t("drawers.quickExpense.failedRecordIncome")
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else if (type === "TRANSFER") {
-      if (!selectedPoolId || !destPoolId) {
-        setPoolError(t("drawers.quickExpense.poolsRequired"));
-        hasError = true;
-      } else if (selectedPoolId === destPoolId) {
-        setPoolError(t("drawers.quickExpense.poolsDifferent"));
-        hasError = true;
-      }
-      if (hasError) return;
-
-      setIsSubmitting(true);
-      try {
-        await moveMoneyMutation.mutateAsync({
-          sourcePoolId: selectedPoolId,
-          destinationPoolId: destPoolId,
-          amount: numAmount.toFixed(2),
-          targetDate: date.trim() === todayStr ? undefined : date.trim(),
-          note: note.trim() || undefined,
-        });
-
-        utils.listPools.invalidate();
-        utils.listTransactions.invalidate();
-
-        // Check if cross-bank transfer
-        const srcAccount = bankAccounts?.find(
-          (b) => b.id === selectedPool?.bankAccountId
-        );
-        const dstAccount = bankAccounts?.find(
-          (b) => b.id === destPool?.bankAccountId
-        );
-
-        if (
-          srcAccount &&
-          dstAccount &&
-          selectedPool?.bankAccountId !== destPool?.bankAccountId
-        ) {
-          setCrossBankData({
-            visible: true,
-            sourceAccountName: srcAccount.name,
-            destAccountName: dstAccount.name,
-            amount: numAmount,
-          });
-        } else {
-          resetAndClose();
-        }
-      } catch (err) {
-        setGeneralError(
-          err instanceof Error ? err.message : t("drawers.quickExpense.failedTransferFunds")
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    }
-  };
+  const router = useRouter();
+  const state = useMobileQuickAction(visible, initialType, initialSourcePoolId);
 
   const resetAndClose = () => {
-    setName("");
-    setAmount("");
-    setDate(todayStr);
-    setNote("");
-    setDestPoolId("");
-    clearErrors();
+    state.setName('');
+    state.setAmount('');
+    state.setDate(state.todayStr);
+    state.setNote('');
+    state.setDestPoolId('');
+    state.setReceivingAccountId('');
+    state.setGeneralError('');
     onSuccess?.();
     onClose();
   };
 
+  const handleExpenseSubmit = async (skipBalanceCheck = false) => {
+    state.setGeneralError('');
+    const numAmount = parseFloat(state.amount);
+    const selectedPool = state.pools.find((p) => p.id === state.selectedPoolId);
+    const poolBal = typeof selectedPool?.currentBalance === 'number'
+      ? selectedPool.currentBalance
+      : parseFloat(String(selectedPool?.currentBalance || '0'));
+
+    if (!skipBalanceCheck && state.date <= state.todayStr && numAmount > poolBal && selectedPool) {
+      showMobileConfirm({
+        title: 'Insufficient Pool Balance',
+        message: `Expense of ${formatAUD(numAmount)} exceeds available "${selectedPool.name}" pool balance (${formatAUD(poolBal)}). Proceed?`,
+        confirmText: t('common.proceed'),
+        isDestructive: false,
+        onConfirm: () => handleExpenseSubmit(true),
+      });
+      return;
+    }
+
+    state.setIsSubmitting(true);
+    try {
+      if (state.date > state.todayStr) {
+        await state.createExpenseSourceMut.mutateAsync({
+          name: state.name.trim(),
+          amount: numAmount.toFixed(2),
+          poolId: state.selectedPoolId,
+          categoryId: state.selectedSubCategoryId || undefined,
+          isRecurring: false,
+          startDate: state.date.trim(),
+        });
+      } else {
+        await state.recordExpenseMutation.mutateAsync({
+          poolId: state.selectedPoolId,
+          categoryId: state.selectedSubCategoryId || undefined,
+          amount: numAmount.toFixed(2),
+          flowType: 'DEBIT',
+          date: state.date.trim(),
+          note: state.name.trim(),
+          idempotencyKey: crypto.randomUUID(),
+        });
+      }
+      state.posthog?.capture('expense_recorded', {
+        amount: numAmount,
+        pool_id: state.selectedPoolId,
+      });
+      state.utils.listPools.invalidate();
+      state.utils.listTransactions.invalidate();
+      state.utils.listExpenseSources.invalidate();
+      resetAndClose();
+    } catch (err) {
+      state.setGeneralError(
+        err instanceof Error ? err.message : t('drawers.quickExpense.failedRecordExpense')
+      );
+    } finally {
+      state.setIsSubmitting(false);
+    }
+  };
+
+  const handleIncomeSubmit = async (splitImmediately: boolean) => {
+    state.setGeneralError('');
+    const numAmount = parseFloat(state.amount);
+    state.setIsSubmitting(true);
+    try {
+      const created = await state.createIncomeSourceMut.mutateAsync({
+        name: state.name.trim(),
+        amount: numAmount.toFixed(2),
+        isRecurring: false,
+        startDate: state.date.trim(),
+        receivingAccountId: state.receivingAccountId || undefined,
+      });
+
+      state.posthog?.capture('income_recorded', { amount: numAmount });
+      state.utils.listPools.invalidate();
+      state.utils.listIncomeEvents.invalidate();
+      state.utils.listIncomeSources.invalidate();
+      resetAndClose();
+
+      if (splitImmediately && created?.firstEventId) {
+        if (onIncomeSuccess) {
+          onIncomeSuccess(created.firstEventId);
+        } else {
+          router.push(`/(app)/paychecks/${created.firstEventId}` as never);
+        }
+      }
+    } catch (err) {
+      state.setGeneralError(
+        err instanceof Error ? err.message : t('drawers.quickExpense.failedRecordIncome')
+      );
+    } finally {
+      state.setIsSubmitting(false);
+    }
+  };
+
+  const handleTransferSubmit = async () => {
+    state.setGeneralError('');
+    const numAmount = parseFloat(state.amount);
+    state.setIsSubmitting(true);
+    try {
+      if (state.date > state.todayStr) {
+        await state.createTransferSourceMut.mutateAsync({
+          name: state.name.trim() || undefined,
+          sourcePoolId: state.selectedPoolId,
+          destinationPoolId: state.destPoolId,
+          amount: numAmount.toFixed(2),
+          startDate: state.date.trim(),
+        });
+      } else {
+        await state.moveMoneyMutation.mutateAsync({
+          sourcePoolId: state.selectedPoolId,
+          destinationPoolId: state.destPoolId,
+          amount: numAmount.toFixed(2),
+          targetDate: undefined,
+          note: state.name.trim() || undefined,
+        });
+      }
+
+      state.utils.listPools.invalidate();
+      state.utils.listTransactions.invalidate();
+
+      const srcAccount = state.bankAccounts?.find(
+        (b) => b.id === state.pools.find((p) => p.id === state.selectedPoolId)?.bankAccountId
+      );
+      const dstAccount = state.bankAccounts?.find(
+        (b) => b.id === state.pools.find((p) => p.id === state.destPoolId)?.bankAccountId
+      );
+
+      if (srcAccount && dstAccount && srcAccount.id !== dstAccount.id) {
+        state.setCrossBankData({
+          visible: true,
+          sourceAccountName: srcAccount.name,
+          destAccountName: dstAccount.name,
+          amount: numAmount,
+        });
+      } else {
+        resetAndClose();
+      }
+    } catch (err) {
+      state.setGeneralError(
+        err instanceof Error ? err.message : t('drawers.quickExpense.failedTransferFunds')
+      );
+    } finally {
+      state.setIsSubmitting(false);
+    }
+  };
+
+  const titleText =
+    state.type === 'TRANSFER'
+      ? t('drawers.quickExpense.transferBetweenPools')
+      : state.type === 'CREDIT'
+      ? t('drawers.quickExpense.oneOffIncome')
+      : t('drawers.quickExpense.oneOffExpense');
+
   return (
     <>
-      <Modal
-        visible={visible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={onClose}
-      >
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
           <View style={styles.modalContent}>
-            {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>
-                {type === "DEBIT"
-                  ? t('modals.quickExpense.expenseTitle')
-                  : type === "CREDIT"
-                  ? t('modals.quickExpense.incomeTitle')
-                  : t('modals.quickExpense.transferTitle')}
-              </Text>
+              <Text style={styles.headerTitle}>{titleText}</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Feather name="x" size={20} color={D.colors.textMuted} />
+                <Feather name="x" size={20} color={DESIGN_TOKENS.colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            {/* 3-Way Segmented Control */}
             <SegmentedTabs<QuickActionType>
               tabs={[
-                { key: "DEBIT", label: t('common.expense') },
-                { key: "CREDIT", label: t('common.income') },
-                { key: "TRANSFER", label: t('common.transfer') },
+                { key: 'DEBIT', label: t('drawers.quickExpense.tabExpense') },
+                { key: 'CREDIT', label: t('drawers.quickExpense.tabIncome') },
+                { key: 'TRANSFER', label: t('drawers.quickExpense.tabTransfer') },
               ]}
-              activeKey={type}
-              onChange={(val) => {
-                setType(val);
-                clearErrors();
-              }}
+              activeKey={state.type}
+              onChange={state.setType}
             />
 
-            {poolsLoading ? (
-              <ActivityIndicator
-                color={D.colors.accent}
-                style={{ marginVertical: 40 }}
-              />
-            ) : (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.form}
-              >
-                <FormErrorBanner message={generalError} />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
+              <FormErrorBanner message={state.generalError} />
 
-                {/* Quick Picks for Expense */}
-                {type === "DEBIT" && (
-                  <View style={styles.quickPicksSection}>
-                    <Text style={styles.quickPickLabel}>
-                      {t('quickPick.recent')}
-                    </Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.quickPicksRow}
-                    >
-                      {QUICK_PICKS.map((qp) => (
-                        <TouchableOpacity
-                          key={qp.name}
-                          onPress={() => handleQuickPick(qp)}
-                          style={styles.quickPickChip}
-                        >
-                          <Text style={styles.quickPickChipText}>
-                            {qp.name} ${qp.amount}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                {/* Amount Input */}
-                <View style={styles.inputGroup}>
-                  <AmountInput
-                    label={t("common.amount")}
-                    required
-                    value={amount}
-                    onChangeText={(val) => {
-                      setAmount(val);
-                      if (amountError) setAmountError("");
-                    }}
-                    error={amountError}
-                    placeholder="0.00"
-                    autoFocus={type === "DEBIT"}
-                  />
-                  {isOverdraft && (
-                    <Text style={styles.overdraftWarning}>
-                      ⚠️ Exceeds pool balance ({formatAUD(getPoolBalance(selectedPool))})
-                    </Text>
-                  )}
-                </View>
-
-                {/* Beautiful Serene Date Picker */}
-                <MobileDatePickerField
-                  label={t("common.date")}
-                  value={date}
-                  onChange={(newDate) => {
-                    setDate(newDate);
-                    if (dateError) setDateError("");
-                  }}
-                  required
-                  error={dateError}
+              {state.type === 'DEBIT' && (
+                <QuickExpenseTab
+                  name={state.name}
+                  setName={state.setName}
+                  amount={state.amount}
+                  setAmount={state.setAmount}
+                  date={state.date}
+                  setDate={state.setDate}
+                  todayStr={state.todayStr}
+                  selectedPoolId={state.selectedPoolId}
+                  setSelectedPoolId={state.setSelectedPoolId}
+                  selectedSubCategoryId={state.selectedSubCategoryId}
+                  setSelectedSubCategoryId={state.setSelectedSubCategoryId}
+                  pools={state.pools}
+                  categories={state.rawCategories}
+                  presets={state.expensePresets}
+                  onSelectPreset={state.handleSelectPreset}
+                  isSubmitting={state.isSubmitting}
+                  onSubmit={handleExpenseSubmit}
+                  onCancel={onClose}
                 />
+              )}
 
-                {/* Name Input */}
-                {type !== "TRANSFER" && (
-                  <MobileInput
-                    label={type === "CREDIT" ? t("common.incomeNameSource") : t("drawers.quickExpense.expenseName")}
-                    required
-                    value={name}
-                    onChangeText={(val) => {
-                      setName(val);
-                      if (nameError) setNameError("");
-                    }}
-                    placeholder={
-                      type === "CREDIT" ? t("drawers.quickExpense.incomePlaceholder") : t("drawers.quickExpense.expensePlaceholder")
-                    }
-                    error={nameError}
-                  />
-                )}
-
-                {/* Source Pool Selection */}
-                <View style={styles.inputGroup}>
-                  <FormLabel required>
-                    {type === "TRANSFER"
-                      ? t("drawers.quickExpense.fromPool")
-                      : type === "CREDIT"
-                      ? t("drawers.quickExpense.receivingPool")
-                      : t("drawers.quickExpense.paidFromPool")}
-                  </FormLabel>
-                  <View style={styles.poolsGrid}>
-                    {pools?.map((p) => {
-                      const isSelected = p.id === selectedPoolId;
-                      return (
-                        <TouchableOpacity
-                          key={p.id}
-                          onPress={() => {
-                            setSelectedPoolId(p.id);
-                            if (poolError) setPoolError("");
-                          }}
-                          style={[
-                            styles.poolChip,
-                            isSelected && styles.poolChipSelected,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.poolChipName,
-                              isSelected && styles.poolChipNameSelected,
-                            ]}
-                          >
-                            {p.name}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.poolChipBal,
-                              isSelected && styles.poolChipBalSelected,
-                            ]}
-                          >
-                            {formatAUD(p.currentBalance)}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                  <FormFieldError error={poolError} />
-                </View>
-
-                {/* Destination Pool for Transfer */}
-                {type === "TRANSFER" && (
-                  <View style={styles.inputGroup}>
-                    <FormLabel required>{t("drawers.quickExpense.toPoolDestination")}</FormLabel>
-                    <View style={styles.poolsGrid}>
-                      {pools
-                        ?.filter((p) => p.id !== selectedPoolId)
-                        .map((p) => {
-                          const isSelected = p.id === destPoolId;
-                          return (
-                            <TouchableOpacity
-                              key={p.id}
-                              onPress={() => {
-                                setDestPoolId(p.id);
-                                if (poolError) setPoolError("");
-                              }}
-                              style={[
-                                styles.poolChip,
-                                isSelected && styles.poolChipSelected,
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.poolChipName,
-                                  isSelected && styles.poolChipNameSelected,
-                                ]}
-                              >
-                                {p.name}
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.poolChipBal,
-                                  isSelected && styles.poolChipBalSelected,
-                                ]}
-                              >
-                                {formatAUD(p.currentBalance)}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                    </View>
-                  </View>
-                )}
-
-                {/* Optional Note */}
-                <MobileInput
-                  label={`${t("drawers.quickExpense.noteLabel")} (${t("common.optional")})`}
-                  placeholder={t("drawers.quickExpense.notePlaceholder")}
-                  value={note}
-                  onChangeText={setNote}
+              {state.type === 'CREDIT' && (
+                <QuickIncomeTab
+                  name={state.name}
+                  setName={state.setName}
+                  amount={state.amount}
+                  setAmount={state.setAmount}
+                  date={state.date}
+                  setDate={state.setDate}
+                  receivingAccountId={state.receivingAccountId}
+                  setReceivingAccountId={state.setReceivingAccountId}
+                  bankAccounts={state.bankAccounts}
+                  presets={state.incomePresets}
+                  onSelectPreset={state.handleSelectPreset}
+                  isSubmitting={state.isSubmitting}
+                  onSubmit={handleIncomeSubmit}
+                  onCancel={onClose}
                 />
+              )}
 
-                {/* Action Button */}
-                <MobileButton
-                  variant="primary"
-                  onPress={handleRecord}
-                  loading={isSubmitting}
-                  style={{ marginTop: 8 }}
-                >
-                  {type === "DEBIT"
-                    ? t("modals.quickExpense.expenseTitle")
-                    : type === "CREDIT"
-                    ? t("modals.quickExpense.incomeTitle")
-                    : t("drawers.quickExpense.transferFunds")}
-                </MobileButton>
-              </ScrollView>
-            )}
+              {state.type === 'TRANSFER' && (
+                <QuickTransferTab
+                  name={state.name}
+                  setName={state.setName}
+                  amount={state.amount}
+                  setAmount={state.setAmount}
+                  date={state.date}
+                  setDate={state.setDate}
+                  todayStr={state.todayStr}
+                  sourcePoolId={state.selectedPoolId}
+                  setSourcePoolId={state.setSelectedPoolId}
+                  destPoolId={state.destPoolId}
+                  setDestPoolId={state.setDestPoolId}
+                  pools={state.pools}
+                  presets={state.transferPresets}
+                  onSelectPreset={state.handleSelectPreset}
+                  isSubmitting={state.isSubmitting}
+                  onSubmit={handleTransferSubmit}
+                  onCancel={onClose}
+                />
+              )}
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Cross-Bank Transfer Prompt */}
-      {crossBankData && (
+      {state.crossBankData && (
         <CrossBankTransferModal
-          visible={crossBankData.visible}
+          visible={state.crossBankData.visible}
           onClose={() => {
-            setCrossBankData(null);
+            state.setCrossBankData(null);
             resetAndClose();
           }}
-          sourceAccountName={crossBankData.sourceAccountName}
-          destAccountName={crossBankData.destAccountName}
-          amount={crossBankData.amount}
+          sourceAccountName={state.crossBankData.sourceAccountName}
+          destAccountName={state.crossBankData.destAccountName}
+          amount={state.crossBankData.amount}
         />
       )}
     </>
   );
 }
 
+export default QuickExpenseModal;
+
 const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: D.colors.surface,
@@ -584,235 +340,24 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: Platform.OS === "ios" ? 40 : 24,
-    maxHeight: "88%",
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '90%',
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: '800',
     color: D.colors.primary,
   },
   closeBtn: {
     padding: 6,
   },
-  segmentContainer: {
-    flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 12,
-    padding: 3,
-    marginBottom: 16,
-  },
-  segmentBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  segmentBtnActiveDebit: {
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentBtnActiveCredit: {
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentBtnActiveTransfer: {
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  segmentText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748B",
-  },
-  segmentTextActiveDebit: {
-    color: D.colors.burnRed,
-    fontWeight: "800",
-  },
-  segmentTextActiveCredit: {
-    color: D.colors.success,
-    fontWeight: "800",
-  },
-  segmentTextActiveTransfer: {
-    color: D.colors.sereneBlue,
-    fontWeight: "800",
-  },
-  form: {
-    gap: 14,
-    paddingBottom: 20,
-  },
-  quickPicksSection: {
-    gap: 6,
-  },
-  quickPickLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#64748B",
-    textTransform: "uppercase",
-  },
-  quickPicksRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  quickPickChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 10,
-  },
-  quickPickChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#334155",
-  },
-  inputGroup: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#475569",
-  },
-  amountInputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    backgroundColor: "#F8FAFC",
-  },
-  currencySymbol: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#64748B",
-    marginRight: 12,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 22,
-    fontWeight: "900",
-    fontFamily: "monospace",
-    color: D.colors.primary,
-    paddingVertical: 10,
-  },
-  overdraftWarning: {
-    fontSize: 11,
-    color: D.colors.critical,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  textInput: {
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: D.colors.primary,
-    backgroundColor: "#F8FAFC",
-  },
-  poolsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  poolChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  poolChipSelected: {
-    backgroundColor: "#EFF6FF",
-    borderColor: D.colors.sereneBlue,
-  },
-  poolChipName: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#334155",
-  },
-  poolChipNameSelected: {
-    color: D.colors.sereneBlue,
-    fontWeight: "800",
-  },
-  poolChipBal: {
-    fontSize: 10,
-    fontFamily: "monospace",
-    color: "#94A3B8",
-    marginTop: 2,
-  },
-  poolChipBalSelected: {
-    color: D.colors.sereneBlue,
-  },
-  dateQuickRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 4,
-  },
-  dateQuickBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#F1F5F9",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  dateQuickBtnActive: {
-    backgroundColor: "#EFF6FF",
-    borderColor: "#2563eb",
-  },
-  dateQuickBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748B",
-  },
-  dateQuickBtnTextActive: {
-    color: "#2563eb",
-    fontWeight: "800",
-  },
-  submitBtn: {
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 6,
-  },
-  submitBtnDebit: {
-    backgroundColor: "#2563eb",
-  },
-  submitBtnCredit: {
-    backgroundColor: "#059669",
-  },
-  submitBtnTransfer: {
-    backgroundColor: "#2563eb",
-  },
-  submitBtnText: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#FFFFFF",
+  body: {
+    paddingTop: 12,
   },
 });
-
-export default QuickExpenseModal;

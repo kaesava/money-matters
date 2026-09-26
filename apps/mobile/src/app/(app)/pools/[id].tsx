@@ -264,7 +264,7 @@ export default function PoolDetailScreen() {
                 style={[styles.catSortBtn, catSortField === 'name' && styles.catSortBtnActive]}
               >
                 <Text style={[styles.catSortBtnText, catSortField === 'name' && styles.catSortBtnTextActive]}>
-                  Name {catSortField === 'name' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
+                  {t('common.name')} {catSortField === 'name' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
                 </Text>
               </TouchableOpacity>
 
@@ -273,7 +273,7 @@ export default function PoolDetailScreen() {
                 style={[styles.catSortBtn, catSortField === 'amount' && styles.catSortBtnActive]}
               >
                 <Text style={[styles.catSortBtnText, catSortField === 'amount' && styles.catSortBtnTextActive]}>
-                  Amount {catSortField === 'amount' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
+                  {t('common.amount')} {catSortField === 'amount' ? (catSortDir === 'asc' ? '▲' : '▼') : ''}
                 </Text>
               </TouchableOpacity>
             </View>
