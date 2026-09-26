@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -55,18 +55,17 @@ export function MobileBankTransferRollupCard({
   bankAccounts,
 }: MobileBankTransferRollupCardProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const D = DESIGN_TOKENS;
 
-  const sourceAccount = React.useMemo(() => {
+  const sourceAccount = useMemo(() => {
     if (receivingAccountId) {
       return bankAccounts.find((a) => a.id === receivingAccountId) || null;
     }
     return bankAccounts[0] || null;
   }, [receivingAccountId, bankAccounts]);
 
-  const sourceAccountName = sourceAccount?.name || 'Receiving Account';
+  const sourceAccountName = sourceAccount?.name || t('cards.paydayTransfer.sourceAccountDefault');
 
-  const { retainedItems, retainedTotal, externalTransfers } = React.useMemo(() => {
+  const { retainedItems, retainedTotal, externalTransfers } = useMemo(() => {
     const retained: Array<{ id: string; name: string; amount: number }> = [];
     const transferMap = new Map<string, DestinationTransferGroup>();
 
@@ -87,7 +86,7 @@ export function MobileBankTransferRollupCard({
       } else {
         const destId = pool.bankAccountId || 'unknown-dest';
         const destAcc = bankAccounts.find((a) => a.id === destId);
-        const destName = pool.bankAccountName || destAcc?.name || 'External Account';
+        const destName = pool.bankAccountName || destAcc?.name || t('cards.paydayTransfer.destAccountDefault');
 
         const existing = transferMap.get(destId);
         if (existing) {
@@ -116,10 +115,14 @@ export function MobileBankTransferRollupCard({
 
   const handleCopyAmount = async (key: string, amount: number) => {
     try {
-      await Share.share({
-        message: amount.toFixed(2),
-        title: 'Transfer Amount',
-      });
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(amount.toFixed(2));
+      } else {
+        await Share.share({
+          message: amount.toFixed(2),
+          title: t('cards.paydayTransfer.transfersRequired'),
+        });
+      }
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2000);
     } catch {
@@ -127,84 +130,121 @@ export function MobileBankTransferRollupCard({
     }
   };
 
+  const totalItems = (retainedItems.length > 0 ? 1 : 0) + externalTransfers.length;
+  if (totalItems === 0) return null;
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Feather name="send" size={16} color="#2563eb" />
-        <Text style={styles.title}>Physical Bank Transfers Rollup</Text>
+        <View style={styles.badgeWrap}>
+          <Text style={styles.badgeText}>
+            {t('cards.paydayTransfer.badge')}
+          </Text>
+        </View>
       </View>
       <Text style={styles.subtitle}>
-        Move funds across physical accounts in your banking app after confirmation:
+        {externalTransfers.length > 0
+          ? t('cards.paydayTransfer.rollupDescription')
+          : t('cards.paydayTransfer.allRetainedDescription')}
       </Text>
 
-      {/* External transfers list */}
-      {externalTransfers.length > 0 ? (
-        <View style={styles.transfersList}>
-          {externalTransfers.map((tx) => (
-            <View key={tx.destAccountId} style={styles.transferItem}>
-              <View style={styles.transferTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.destName}>{tx.destAccountName}</Text>
-                  <Text style={styles.sourceDesc}>From {tx.sourceAccountName}</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => handleCopyAmount(tx.destAccountId, tx.totalAmount)}
-                  style={styles.copyPill}
-                >
-                  <Text style={styles.amountNum}>{formatAUD(tx.totalAmount)}</Text>
-                  <Text style={styles.copyText}>
-                    {copiedKey === tx.destAccountId ? '✓' : 'Copy'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.poolChipsRow}>
-                {tx.pools.map((p) => (
-                  <View key={p.id} style={styles.poolChip}>
-                    <Text style={styles.poolChipText}>
-                      {p.name}: {formatAUD(p.amount)}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+      {/* Retained funds in source account */}
+      {retainedItems.length > 0 && (
+        <View style={styles.retainedCard}>
+          <View style={styles.retainedHeader}>
+            <View style={styles.retainedTitleRow}>
+              <Text style={styles.checkmarkIcon}>✓</Text>
+              <Text style={styles.retainedTitle}>
+                {t('cards.paydayTransfer.retainedTitle')} {sourceAccountName}
+              </Text>
             </View>
-          ))}
-        </View>
-      ) : (
-        <View style={styles.noTransfersBox}>
-          <Text style={styles.noTransfersText}>
-            ✅ All allocations stay within {sourceAccountName}. No physical external bank transfer required!
+            <Text style={styles.retainedAmountText}>
+              {formatAUD(retainedTotal)}
+            </Text>
+          </View>
+
+          <Text style={styles.retainedDesc}>
+            {t('cards.paydayTransfer.noTransferNeeded')}{' '}
+            <Text style={styles.retainedBoldList}>
+              {retainedItems.map((r) => `${r.name} (${formatAUD(r.amount)})`).join(', ')}
+            </Text>
           </Text>
-          <View style={styles.singleAccountTip}>
-            <Text style={styles.singleAccountTipTitle}>
-              {t('cards.paydayTransfer.singleAccountProTipTitle')}
-            </Text>
-            <Text style={styles.singleAccountTipDesc}>
-              {t('cards.paydayTransfer.singleAccountProTipDesc')}
-            </Text>
+        </View>
+      )}
+
+      {/* External transfers list */}
+      {externalTransfers.length > 0 && (
+        <View style={styles.transfersSection}>
+          <Text style={styles.sectionHeader}>
+            {t('cards.paydayTransfer.transfersRequired')} ({externalTransfers.length})
+          </Text>
+
+          <View style={styles.transfersList}>
+            {externalTransfers.map((tx) => {
+              const isCopied = copiedKey === tx.destAccountId;
+
+              return (
+                <View key={tx.destAccountId} style={styles.transferItem}>
+                  <View style={styles.transferTop}>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.transferDirectionRow}>
+                        <Text style={styles.sourceName}>{tx.sourceAccountName}</Text>
+                        <Text style={styles.arrowIcon}>→</Text>
+                        <Text style={styles.destName}>{tx.destAccountName}</Text>
+                      </View>
+
+                      {tx.payId && (
+                        <Text style={styles.payIdText}>PayID: {tx.payId}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.amountActionCol}>
+                      <Text style={styles.amountNum}>{formatAUD(tx.totalAmount)}</Text>
+                      <TouchableOpacity
+                        onPress={() => handleCopyAmount(tx.destAccountId, tx.totalAmount)}
+                        style={[styles.copyPill, isCopied && styles.copiedPill]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.copyText, isCopied && styles.copiedText]}>
+                          {isCopied
+                            ? t('cards.paydayTransfer.copiedCheck')
+                            : t('cards.paydayTransfer.copyAmount', { symbol: '$' })}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <Text style={styles.coversPoolsText}>
+                    <Text style={styles.coversPoolsBold}>
+                      {t('cards.paydayTransfer.coversPools', { count: tx.pools.length })}
+                    </Text>
+                    {tx.pools.map((p) => `${p.name} (${formatAUD(p.amount)})`).join(', ')}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         </View>
       )}
 
-      {/* Retained funds in source account */}
-      {retainedItems.length > 0 && (
-        <View style={styles.retainedSection}>
-          <Text style={styles.retainedLabel}>
-            Retained in {sourceAccountName}: {formatAUD(retainedTotal)}
-          </Text>
-          <View style={styles.retainedChips}>
-            {retainedItems.map((r) => (
-              <Text key={r.id} style={styles.retainedChip}>
-                {r.name} ({formatAUD(r.amount)})
-              </Text>
-            ))}
+      {/* Single account pro-tip when no external transfers are needed */}
+      {externalTransfers.length === 0 && (
+        <View style={styles.singleAccountTip}>
+          <View style={styles.tipHeader}>
+            <Text style={styles.singleAccountTipTitle}>
+              {t('cards.paydayTransfer.singleAccountProTipTitle')}
+            </Text>
           </View>
+          <Text style={styles.singleAccountTipDesc}>
+            {t('cards.paydayTransfer.singleAccountProTipDesc')}
+          </Text>
         </View>
       )}
     </View>
   );
 }
 
+const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
@@ -217,17 +257,79 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  title: {
-    fontSize: 14,
+  badgeWrap: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    borderRadius: 9999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  badgeText: {
+    fontSize: 10,
     fontWeight: '800',
-    color: '#1B2B4B',
+    color: '#2563eb',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 12,
     color: '#64748B',
+    lineHeight: 18,
+  },
+  retainedCard: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 14,
+    padding: 12,
+    gap: 6,
+  },
+  retainedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  retainedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  checkmarkIcon: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  retainedTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  retainedAmountText: {
+    fontSize: 13,
+    fontWeight: '900',
+    fontFamily: 'monospace',
+    color: '#047857',
+  },
+  retainedDesc: {
+    fontSize: 11,
+    color: '#047857',
     lineHeight: 16,
+  },
+  retainedBoldList: {
+    fontWeight: '700',
+  },
+  transfersSection: {
+    gap: 8,
+  },
+  sectionHeader: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   transfersList: {
     gap: 10,
@@ -243,79 +345,86 @@ const styles = StyleSheet.create({
   transferTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 8,
   },
-  destName: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#1B2B4B',
-  },
-  sourceDesc: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  copyPill: {
+  transferDirectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    flexWrap: 'wrap',
+  },
+  sourceName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1B2B4B',
+  },
+  arrowIcon: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  destName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2563eb',
+  },
+  payIdText: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  amountActionCol: {
+    alignItems: 'flex-end',
+    gap: 4,
   },
   amountNum: {
     fontSize: 14,
     fontWeight: '900',
     fontFamily: 'monospace',
-    color: '#2563eb',
+    color: '#1B2B4B',
+  },
+  copyPill: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  copiedPill: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
   },
   copyText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#2563eb',
   },
-  poolChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+  copiedText: {
+    color: '#059669',
   },
-  poolChip: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  poolChipText: {
-    fontSize: 10,
-    color: '#475569',
-  },
-  noTransfersBox: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    borderRadius: 12,
-    padding: 12,
-    gap: 8,
-  },
-  noTransfersText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#15803D',
+  coversPoolsText: {
+    fontSize: 11,
+    color: '#64748B',
     lineHeight: 16,
+  },
+  coversPoolsBold: {
+    fontWeight: '700',
+    color: '#475569',
   },
   singleAccountTip: {
     backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 10,
-    padding: 10,
+    borderColor: '#DBEAFE',
+    borderRadius: 14,
+    padding: 12,
     gap: 4,
-    marginTop: 4,
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   singleAccountTipTitle: {
     fontSize: 12,
@@ -324,29 +433,7 @@ const styles = StyleSheet.create({
   },
   singleAccountTipDesc: {
     fontSize: 11,
-    color: '#3B82F6',
-    lineHeight: 15,
-  },
-  retainedSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 10,
-    gap: 4,
-  },
-  retainedLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  retainedChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  retainedChip: {
-    fontSize: 10,
-    color: '#94A3B8',
+    color: '#1E3A8A',
+    lineHeight: 16,
   },
 });
-
-export default MobileBankTransferRollupCard;

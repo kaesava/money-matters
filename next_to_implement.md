@@ -3,11 +3,9 @@ We are now going to look screen by screen to ensure that each mobile app screen 
 # Rules
 * Strict adherence to AGENTS.md
 * As you build code, you decide whether you want to run pnpm typecheck/lint/test/test coverage/i8ln-check/install/ for the modules you want. However, at the end, ensure pnpm validate runs successfully. Because pnpm validate is made up of multiple commands, just run the commands that failed sequentially until all of them pass, then try pnpm validate again. If it fails, repeat by running just the failed commands and then by running pnpm validate again. Once successful, commit code, but ask me before pushing the code.
-* If there are capabilities that you detect in the web app that have not been built in the mobile app as you review the screen, notify me and ask if I want that built, but of course, you will always use native mobile UI/UX
-* Mobile app must re-use as much UX as possible, defining UI elements centrally and re-using.
 * If you need clarity, /grill-me.
 * I don't need walkthrough at the end
-* Output: Detail implementation plan - including db push for dev & prod and if any seed adjustment, then seed push to dev and prod.
+* Output: Detail implementation plan
 * Important: Do not create new en.ts keys unless absolutely necessary. Re-use keys across mobile and web app and even within them. Ensure consistent user facing literal keys used across mobile and web apps (i.e., same key for same functionality like button or label name)
     
 
@@ -15,14 +13,19 @@ We are now going to look screen by screen to ensure that each mobile app screen 
 Testing on Android Google Pixel 10.
 
 ## General
-* Where a screen has Search bar and filter buttons/options, keep them locked so user even if the user scrolls the table below, it stays accessible.
 
-## History
-* Remove icons from Debiut, Credit and Transfer filter buttons
+## Applies to each section below
+* Align the functionality to the web app, driving best practice native UX (and ensuring re-use or extraction of reusable UX/UI so other screens have consistent look and feel)
+* In the mobile app, all user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) needs to be consistent with the correspondinf web app UI and importantly, must re-use en.ts keys as much as possible. No hardcoding. No redundant/un-used keys. No mobile specific keys unless absolutely necessary.
+* If there are capabilities that you detect in the web app that have not been built in the mobile app as you review the screen, notify me and ask if I want that built, but of course, you will always use native mobile UI/UX
+* Mobile app must re-use as much UX as possible, defining UI elements centrally and re-using.
 
-* Use the Pool picker (No Categories) for
-
-/dashboard/history
+## Payday Split
+* Review web app capability in "/dashboard/income-and-bills" and "/dashboard/income-split?id=xxx&returnTo=/dashboard/income-and-bills" screens - every single capability/functionality/message/error/button/hyperlink/table/etc.
+* See "## Applies to each section below" section above - ensure alignment with mobile app
+* This might be quite a significant build - grill me - lots of design decisions to be made.
+* Ensure all redundant/un-used code is removed.
+* This is the most important screen in the mobile app and needs to be beautiful, useful and at a glance, ideally should be able to show splits, status, etc. but this will be a challenge given limited real-estate.
 
 
 

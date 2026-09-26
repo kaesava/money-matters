@@ -17,11 +17,13 @@ export interface IncomeSourceItem {
 interface IncomeSourceCardProps {
   inc: IncomeSourceItem;
   onEdit: (inc: IncomeSourceItem) => void;
+  onOccurrences?: (inc: IncomeSourceItem) => void;
 }
 
 export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
   inc,
   onEdit,
+  onOccurrences,
 }) => {
   return (
     <TouchableOpacity
@@ -49,9 +51,27 @@ export const IncomeSourceCard: React.FC<IncomeSourceCardProps> = ({
 
       <View style={styles.detailRow}>
         <Text style={styles.amount}>+{formatAUD(inc.amount)}</Text>
-        <Text style={styles.freqText}>
-          {formatScheduleDetail(inc.rrule, inc.startDate).detailText}
-        </Text>
+        <View style={styles.rightDetailGroup}>
+          {onOccurrences ? (
+            <TouchableOpacity
+              style={styles.occurrencesBtn}
+              onPress={(e) => {
+                e.stopPropagation();
+                onOccurrences(inc);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="calendar" size={11} color="#2563eb" />
+              <Text style={styles.freqText}>
+                {formatScheduleDetail(inc.rrule, inc.startDate).detailText}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={styles.freqText}>
+              {formatScheduleDetail(inc.rrule, inc.startDate).detailText}
+            </Text>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );

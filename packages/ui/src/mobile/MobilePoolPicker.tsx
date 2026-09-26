@@ -218,6 +218,12 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
               }
               renderItem={({ item }) => {
                 const isPoolSelected = item.id === selectedPoolId && (!allowCategorySelection || !selectedCategoryId);
+                const rawBal = item.currentBalance;
+                const balNum = typeof rawBal === 'number' ? rawBal : rawBal ? parseFloat(String(rawBal)) : null;
+                const balText = balNum !== null && !isNaN(balNum)
+                  ? `$${balNum.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : null;
+
                 return (
                   <View style={{ marginBottom: 4 }}>
                     <TouchableOpacity
@@ -235,7 +241,14 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
                           </Text>
                         )}
                       </View>
-                      {isPoolSelected && <Feather name="check" size={16} color="#2563eb" />}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        {balText && (
+                          <Text style={[styles.itemBalance, isPoolSelected && styles.itemBalanceSelected]}>
+                            {balText}
+                          </Text>
+                        )}
+                        {isPoolSelected && <Feather name="check" size={16} color="#2563eb" />}
+                      </View>
                     </TouchableOpacity>
 
                     {allowCategorySelection && item.categories && item.categories.length > 0 && (
@@ -361,6 +374,15 @@ const styles = StyleSheet.create({
   },
   itemTextSelected: {
     fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  itemBalance: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+  },
+  itemBalanceSelected: {
     color: '#1D4ED8',
   },
   itemBadge: {

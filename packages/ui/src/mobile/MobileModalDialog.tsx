@@ -4,6 +4,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -56,6 +57,12 @@ export default function MobileModalDialog({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
       >
+        <Pressable
+          style={styles.backdrop}
+          onPress={handleRequestClose}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.close')}
+        />
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
@@ -91,6 +98,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   content: {
     maxHeight: '85%',

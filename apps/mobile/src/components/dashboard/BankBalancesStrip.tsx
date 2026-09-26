@@ -27,7 +27,6 @@ export interface BankBalancesStripProps {
 
 export function BankBalancesStrip({ accounts }: BankBalancesStripProps) {
   const router = useRouter();
-  const D = DESIGN_TOKENS;
 
   if (!accounts || accounts.length === 0) return null;
 
@@ -35,19 +34,16 @@ export function BankBalancesStrip({ accounts }: BankBalancesStripProps) {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <View style={styles.titleRow}>
-          <Feather name="credit-card" size={16} color={D.colors.accent} />
-          <Text style={styles.sectionTitle}>
-            {t('nav.bankAccounts') || 'Linked Bank Accounts'}
-          </Text>
+          <Feather name="credit-card" size={16} color="#2563eb" />
+          <Text style={styles.sectionTitle}>{t('nav.bankAccounts')}</Text>
         </View>
         <TouchableOpacity
           onPress={() => router.push('/(app)/settings/bank-accounts' as never)}
           style={styles.manageBtn}
+          activeOpacity={0.7}
         >
-          <Text style={styles.manageText}>
-            {t('common.manage') || 'Manage'}
-          </Text>
-          <Feather name="chevron-right" size={14} color={D.colors.accent} />
+          <Text style={styles.manageText}>{t('common.manage')}</Text>
+          <Feather name="chevron-right" size={14} color="#2563eb" />
         </TouchableOpacity>
       </View>
 
@@ -85,7 +81,9 @@ export function BankBalancesStrip({ accounts }: BankBalancesStripProps) {
 
               <Text style={styles.accountBalance}>{formatAUD(availBal)}</Text>
               <Text style={styles.balanceSubtext}>
-                {buffer > 0 ? `Actual: ${formatAUD(actualBal)}` : 'Available'}
+                {buffer > 0
+                  ? `Actual: ${formatAUD(actualBal)}`
+                  : t('dashboard.availableToBudget')}
               </Text>
             </TouchableOpacity>
           );
@@ -97,14 +95,14 @@ export function BankBalancesStrip({ accounts }: BankBalancesStripProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: 6,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   titleRow: {
     flexDirection: 'row',
@@ -112,7 +110,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#1B2B4B',
   },
@@ -128,20 +126,20 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 10,
   },
   accountCard: {
-    width: 160,
+    width: 155,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 14,
+    padding: 13,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 1,
   },
   cardTop: {
     flexDirection: 'row',

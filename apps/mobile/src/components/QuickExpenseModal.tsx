@@ -158,10 +158,14 @@ export function QuickExpenseModal({
     state.setGeneralError('');
     const numAmount = parseFloat(state.amount);
     state.setIsSubmitting(true);
+    const srcPool = state.pools.find((p) => p.id === state.selectedPoolId);
+    const dstPool = state.pools.find((p) => p.id === state.destPoolId);
+    const resolvedName = state.name.trim() || (srcPool && dstPool ? `${srcPool.name} ➔ ${dstPool.name}` : 'Transfer');
+
     try {
       if (state.date > state.todayStr) {
         await state.createTransferSourceMut.mutateAsync({
-          name: state.name.trim() || undefined,
+          name: resolvedName,
           sourcePoolId: state.selectedPoolId,
           destinationPoolId: state.destPoolId,
           amount: numAmount.toFixed(2),
@@ -173,7 +177,7 @@ export function QuickExpenseModal({
           destinationPoolId: state.destPoolId,
           amount: numAmount.toFixed(2),
           targetDate: undefined,
-          note: state.name.trim() || undefined,
+          note: resolvedName,
         });
       }
 
@@ -187,7 +191,7 @@ export function QuickExpenseModal({
         (b) => b.id === state.pools.find((p) => p.id === state.destPoolId)?.bankAccountId
       );
 
-      if (srcAccount && dstAccount && srcAccount.id !== dstAccount.id) {
+      if (!(state.date > state.todayStr) && srcAccount && dstAccount && srcAccount.id !== dstAccount.id) {
         state.setCrossBankData({
           visible: true,
           sourceAccountName: srcAccount.name,

@@ -87,37 +87,37 @@ export function MobileFilterSheet({
             {sortOptions && sortOptions.length > 0 && onSortFieldChange && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{t('transactions.sort') || 'Sort By'}</Text>
-                  {onSortOrderChange && sortOrder && (
-                    <TouchableOpacity
-                      onPress={() => onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')}
-                      style={styles.orderToggle}
-                      activeOpacity={0.7}
-                    >
-                      <Feather
-                        name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
-                        size={12}
-                        color="#2563eb"
-                      />
-                      <Text style={styles.orderToggleText}>
-                        {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  <Text style={styles.sectionTitle}>{t('transactions.sortLabel')}</Text>
                 </View>
                 <View style={styles.chipsWrap}>
                   {sortOptions.map((opt) => {
                     const isSelected = sortField === opt.id;
+                    const handlePress = () => {
+                      if (isSelected && onSortOrderChange && sortOrder) {
+                        onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc');
+                      } else {
+                        onSortFieldChange(opt.id);
+                      }
+                    };
                     return (
                       <TouchableOpacity
                         key={String(opt.id)}
-                        onPress={() => onSortFieldChange(opt.id)}
+                        onPress={handlePress}
                         style={[styles.chip, isSelected && styles.chipActive]}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                          {opt.label}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                            {opt.label}
+                          </Text>
+                          {isSelected && sortOrder && (
+                            <Feather
+                              name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
+                              size={12}
+                              color="#2563eb"
+                            />
+                          )}
+                        </View>
                       </TouchableOpacity>
                     );
                   })}

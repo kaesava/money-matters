@@ -189,6 +189,8 @@ export const en = {
     splitIncome: "Split Income",
     proceed: "Proceed",
     dueSoon: "Due Soon",
+    name: "Name",
+    account: "Account",
   },
 
   toasts: {
@@ -384,8 +386,8 @@ export const en = {
     subtitle: "Subtitle",
     historyTooltip: "A complete record of all your household spending and payday money moves.",
     filterAll: "All",
-    filterDebit: "Debit",
-    filterCredit: "Credit",
+    filterDebit: "Expense",
+    filterCredit: "Income",
     filterTransfer: "Transfer",
     searchPlaceholder: "Search...",
     allCategories: "All Categories",
@@ -1972,6 +1974,7 @@ export const en = {
       archiveIncomeConfirm: "Archiving this income schedule will cancel all future upcoming events. Continue?",
       archiveExpenseConfirm: "Archiving this bill schedule will cancel all future upcoming events. Continue?",
       failedToArchive: "Failed to archive.",
+      endDateBeforeStartDate: "End date cannot be prior to start date.",
     },
     bankAccountForm: {
       titleNew: "Link Bank Account",

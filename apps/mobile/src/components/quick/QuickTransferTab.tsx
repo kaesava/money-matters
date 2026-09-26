@@ -65,6 +65,7 @@ export function QuickTransferTab({
   const [amountError, setAmountError] = useState('');
   const [sourceError, setSourceError] = useState('');
   const [destError, setDestError] = useState('');
+  const [dateError, setDateError] = useState('');
 
   const isFutureDate = date > todayStr;
   const sourcePool = pools.find((p) => p.id === sourcePoolId);
@@ -105,6 +106,13 @@ export function QuickTransferTab({
       setDestError('');
     }
 
+    if (date < todayStr) {
+      setDateError('Transfers cannot be backdated into the past.');
+      hasError = true;
+    } else {
+      setDateError('');
+    }
+
     if (!hasError) {
       onSubmit();
     }
@@ -121,7 +129,6 @@ export function QuickTransferTab({
       {/* Transfer Name */}
       <MobileInput
         label={t('drawers.quickExpense.transferName')}
-        required
         value={name}
         onChangeText={setName}
         placeholder={t('drawers.quickExpense.transferNamePlaceholder')}
@@ -184,8 +191,12 @@ export function QuickTransferTab({
       <MobileDatePickerField
         label={t('drawers.quickExpense.dateLabel')}
         value={date}
-        onChange={setDate}
+        onChange={(val) => {
+          setDate(val);
+          if (dateError) setDateError('');
+        }}
         required
+        error={dateError}
       />
 
       <MobilePoolCategoryPickerSheet

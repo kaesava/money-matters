@@ -19,6 +19,8 @@ export interface MobileBankOption {
   institution?: string | null;
   accountType?: string | null;
   isPrivate?: boolean | null;
+  currentBalance?: string | number | null;
+  availableBalance?: string | number | null;
 }
 
 export interface MobileBankPickerProps {
@@ -197,6 +199,12 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
               }
               renderItem={({ item }) => {
                 const isSelected = item.id === selectedBankId || item.name === selectedBankId;
+                const rawBal = item.availableBalance ?? item.currentBalance;
+                const balNum = typeof rawBal === 'number' ? rawBal : rawBal ? parseFloat(String(rawBal)) : null;
+                const balText = balNum !== null && !isNaN(balNum)
+                  ? `$${balNum.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : null;
+
                 return (
                   <TouchableOpacity
                     style={[styles.itemRow, isSelected && styles.itemRowSelected]}
@@ -212,7 +220,14 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
                         </Text>
                       )}
                     </View>
-                    {isSelected && <Feather name="check" size={16} color="#2563eb" />}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {balText && (
+                        <Text style={[styles.itemBalance, isSelected && styles.itemBalanceSelected]}>
+                          {balText}
+                        </Text>
+                      )}
+                      {isSelected && <Feather name="check" size={16} color="#2563eb" />}
+                    </View>
                   </TouchableOpacity>
                 );
               }}
@@ -314,6 +329,15 @@ const styles = StyleSheet.create({
   },
   itemTextSelected: {
     fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  itemBalance: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    color: '#1B2B4B',
+  },
+  itemBalanceSelected: {
     color: '#1D4ED8',
   },
   itemBadge: {

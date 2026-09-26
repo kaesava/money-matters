@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -12,37 +12,21 @@ import {
   MobileModalDialog,
   BankProviderBadge,
   MobileInput,
-  AmountInput,
   MobileButton,
   FormLabel,
   FormErrorBanner,
-  showMobileConfirm,
-  useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { trpc } from '../lib/trpc';
-import { formatAUD } from '../lib/format';
+import { PoolLinkSelector } from './bank-accounts/PoolLinkSelector';
+import { AccountBalanceCard } from './bank-accounts/AccountBalanceCard';
+import {
+  BankAccountItemToEdit,
+  SupportedBankProvider,
+  PROVIDERS,
+} from './bank-accounts/bankAccountTypes';
+import { useBankAccountForm } from './bank-accounts/useBankAccountForm';
 
-export interface BankAccountItemToEdit {
-  id: string;
-  name: string;
-  bankProvider?: string | null;
-  lastKnownBalance?: string | null;
-  unbudgetedBuffer?: string | null;
-  isPrivate?: boolean;
-}
-
-export type SupportedBankProvider = 'CBA' | 'Westpac' | 'ANZ' | 'NAB' | 'ING' | 'Macquarie' | 'Other';
-
-const PROVIDERS: SupportedBankProvider[] = [
-  'CBA',
-  'Westpac',
-  'ANZ',
-  'NAB',
-  'ING',
-  'Macquarie',
-  'Other',
-];
+export type { BankAccountItemToEdit, SupportedBankProvider };
 
 interface BankAccountFormModalProps {
   visible: boolean;
@@ -59,148 +43,40 @@ export function BankAccountFormModal({
   onSuccess,
   onNeedsReconciliation,
 }: BankAccountFormModalProps) {
-  const isEdit = Boolean(accountToEdit?.id);
-  const toast = useMobileToast();
-  const utils = trpc.useUtils();
-
-  const [name, setName] = useState('');
-  const [provider, setProvider] = useState<SupportedBankProvider>('CBA');
-  const [balance, setBalance] = useState('0.00');
-  const [buffer, setBuffer] = useState('0.00');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [nameError, setNameError] = useState('');
-  const [generalError, setGeneralError] = useState('');
-
-  const poolsQuery = trpc.listPools.useQuery(undefined, { enabled: visible });
-  const allPools = poolsQuery.data || [];
-  const linkedPools = isEdit && accountToEdit
-    ? allPools.filter((p) => p.bankAccountId === accountToEdit.id)
-    : [];
-
-  useEffect(() => {
-    if (accountToEdit) {
-      setName(accountToEdit.name || '');
-      setProvider((accountToEdit.bankProvider as SupportedBankProvider) || 'CBA');
-      setBalance(accountToEdit.lastKnownBalance || '0.00');
-      setBuffer(accountToEdit.unbudgetedBuffer || '0.00');
-      setIsPrivate(Boolean(accountToEdit.isPrivate));
-    } else {
-      setName('');
-      setProvider('CBA');
-      setBalance('0.00');
-      setBuffer('0.00');
-      setIsPrivate(false);
-    }
-    setNameError('');
-    setGeneralError('');
-  }, [accountToEdit, visible]);
-
-  const balNum = parseFloat(balance) || 0;
-  const bufNum = parseFloat(buffer) || 0;
-  const availableToBudget = Math.max(0, balNum - bufNum);
-  const isNegativeAvailable = balNum < bufNum;
-
-  const linkedPoolsTotal = linkedPools.reduce(
-    (sum, p) => sum + (typeof p.currentBalance === 'number' ? p.currentBalance : parseFloat(String(p.currentBalance || '0'))),
-    0
-  );
-  const diffBeforeSave = Number((availableToBudget - linkedPoolsTotal).toFixed(2));
-  const hasVariance = linkedPools.length > 0 && Math.abs(diffBeforeSave) > 0.009;
-
-  const createMut = trpc.createBankAccount.useMutation();
-  const updateMut = trpc.updateBankAccount.useMutation();
-  const archiveMut = trpc.archiveBankAccount.useMutation();
-
-  const handleArchive = () => {
-    if (!accountToEdit) return;
-    showMobileConfirm({
-      title: t('settings.bankAccounts.deleteConfirmTitle'),
-      message: t('settings.bankAccounts.deleteConfirmBody').replace('{name}', accountToEdit.name),
-      confirmText: t('common.archive'),
-      isDestructive: true,
-      onConfirm: async () => {
-        try {
-          await archiveMut.mutateAsync({ accountId: accountToEdit.id });
-          toast.success(t('toasts.archived'));
-          utils.listBankAccountsWithExpected.invalidate();
-          onSuccess?.();
-          onClose();
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : t('common.error'));
-        }
-      },
-    });
-  };
-
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      setNameError(t('drawers.quickExpense.nameRequired'));
-      return;
-    }
-    if (isNegativeAvailable) {
-      setGeneralError('Unbudgeted buffer cannot exceed total bank account balance.');
-      return;
-    }
-
-    setSubmitting(true);
-    setGeneralError('');
-    try {
-      let savedAcc: any = null;
-      if (isEdit && accountToEdit?.id) {
-        savedAcc = await updateMut.mutateAsync({
-          accountId: accountToEdit.id,
-          data: {
-            name: name.trim(),
-            bankProvider: provider,
-            lastKnownBalance: balNum.toFixed(2),
-            unbudgetedBuffer: bufNum.toFixed(2),
-            isPrivate,
-          },
-        });
-      } else {
-        savedAcc = await createMut.mutateAsync({
-          name: name.trim(),
-          bankProvider: provider,
-          lastKnownBalance: balNum.toFixed(2),
-          unbudgetedBuffer: bufNum.toFixed(2),
-          isPrivate,
-        });
-      }
-
-      toast.success(t('toasts.saved'));
-      utils.listBankAccountsWithExpected.invalidate();
-      onSuccess?.();
-      onClose();
-
-      if (hasVariance && (accountToEdit || savedAcc)) {
-        onNeedsReconciliation?.({
-          id: accountToEdit?.id || savedAcc.id,
-          name: name.trim(),
-          lastKnownBalance: balNum.toFixed(2),
-          unbudgetedBuffer: bufNum.toFixed(2),
-          expectedBalance: linkedPoolsTotal,
-          linkedPools: linkedPools.map((p) => ({
-            id: p.id,
-            name: p.name,
-            poolType: p.poolType,
-            currentBalance: p.currentBalance,
-            isSurplusTarget: p.isSurplusTarget,
-          })),
-        });
-      }
-    } catch (err) {
-      setGeneralError(err instanceof Error ? err.message : t('common.error'));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const {
+    isEdit,
+    name,
+    setName,
+    provider,
+    setProvider,
+    balance,
+    setBalance,
+    buffer,
+    setBuffer,
+    isPrivate,
+    setIsPrivate,
+    selectedPoolIds,
+    submitting,
+    nameError,
+    setNameError,
+    generalError,
+    allPools,
+    linkedPools,
+    availableToBudget,
+    isNegativeAvailable,
+    linkedPoolsTotal,
+    hasVariance,
+    diffBeforeSave,
+    handleArchive,
+    handleTogglePool,
+    handleSubmit,
+  } = useBankAccountForm(visible, accountToEdit, onClose, onSuccess, onNeedsReconciliation);
 
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
-      title={isEdit ? t('settings.bankAccounts.editAccount') : t('settings.bankAccounts.addAccount')}
+      title={isEdit ? t('modals.bankAccountForm.titleEdit') : t('settings.bankAccounts.addAccount')}
       subtitle={t('tooltips.bankAccounts.content')}
       footer={
         <View style={styles.footerContainer}>
@@ -257,51 +133,27 @@ export function BankAccountFormModal({
           </ScrollView>
         </View>
 
-        <AmountInput
-          label={`${t('modals.reconciliation.actualBalance')} ($ AUD)`}
-          required
-          value={balance}
-          onChangeText={setBalance}
-          placeholder="0.00"
+        <AccountBalanceCard
+          balance={balance}
+          buffer={buffer}
+          availableToBudget={availableToBudget}
+          isNegativeAvailable={isNegativeAvailable}
+          linkedPoolsTotal={linkedPoolsTotal}
+          hasVariance={hasVariance}
+          diffBeforeSave={diffBeforeSave}
+          linkedPoolsCount={linkedPools.length}
+          onBalanceChange={setBalance}
+          onBufferChange={setBuffer}
         />
 
-        <AmountInput
-          label="Unbudgeted Buffer ($ AUD)"
-          value={buffer}
-          onChangeText={setBuffer}
-          placeholder="0.00"
-          hint="Protected buffer ring-fenced from pool allocations."
-        />
+        {!isEdit && (
+          <PoolLinkSelector
+            pools={allPools}
+            selectedPoolIds={selectedPoolIds}
+            onTogglePool={handleTogglePool}
+          />
+        )}
 
-        {/* Live Available to Budget & Variance Card */}
-        <View style={styles.varianceCard}>
-          <View style={styles.metricRow}>
-            <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.availableToBudget')}:</Text>
-            <Text style={[styles.metricVal, isNegativeAvailable ? styles.textNegative : styles.textPositive]}>
-              {formatAUD(availableToBudget)}
-            </Text>
-          </View>
-
-          {isEdit && linkedPools.length > 0 && (
-            <View style={styles.metricRowBorder}>
-              <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.expectedTotal')}:</Text>
-              <Text style={styles.metricVal}>{formatAUD(linkedPoolsTotal)}</Text>
-            </View>
-          )}
-
-          {isEdit && linkedPools.length > 0 && (
-            <View style={styles.metricRow}>
-              <Text style={styles.metricLabel}>{t('bankAccounts.reconcile.difference')}:</Text>
-              <Text style={[styles.metricValBold, hasVariance ? (diffBeforeSave > 0 ? styles.textPositive : styles.textWarning) : styles.textPositive]}>
-                {hasVariance
-                  ? (diffBeforeSave > 0 ? `+${formatAUD(diffBeforeSave)} surplus` : `-${formatAUD(Math.abs(diffBeforeSave))} shortfall`)
-                  : '✓ Balanced'}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Private Account Switch */}
         <View style={styles.switchRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.switchLabel}>{t('bankAccounts.privatePersonalAccount')}</Text>
@@ -339,52 +191,6 @@ const styles = StyleSheet.create({
   },
   providerChipActive: {
     borderColor: DESIGN_TOKENS.colors.sereneBlue,
-  },
-  varianceCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    gap: 8,
-  },
-  metricRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  metricRowBorder: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 8,
-  },
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  metricVal: {
-    fontSize: 13,
-    fontFamily: 'monospace',
-    fontWeight: '700',
-    color: '#1B2B4B',
-  },
-  metricValBold: {
-    fontSize: 13,
-    fontFamily: 'monospace',
-    fontWeight: '800',
-  },
-  textPositive: {
-    color: '#059669',
-  },
-  textWarning: {
-    color: '#D97706',
-  },
-  textNegative: {
-    color: '#E11D48',
   },
   switchRow: {
     flexDirection: 'row',

@@ -8,6 +8,7 @@ export interface TransactionRowProps {
   id?: string;
   amount: string | number;
   flowType: 'DEBIT' | 'CREDIT' | 'TRANSFER';
+  rawFlowType?: 'DEBIT' | 'CREDIT';
   poolName?: string | null;
   categoryName?: string | null;
   note?: string | null;
@@ -20,24 +21,24 @@ export interface TransactionRowProps {
 export function TransactionRow({
   amount,
   flowType,
+  rawFlowType,
   poolName,
   categoryName,
   note,
   recordedAt,
-  sourcePoolName,
-  destPoolName,
   onPress,
 }: TransactionRowProps) {
-  const isDebit = flowType === 'DEBIT';
-  const isCredit = flowType === 'CREDIT';
   const isTransfer =
     flowType === 'TRANSFER' ||
-    (note && (note.includes('Transfer to') || note.includes('Transfer from')));
+    (note && (note.includes('Transfer to') || note.includes('Transfer from') || note.includes('➔')));
 
-  const displayName =
-    sourcePoolName && destPoolName
-      ? `${sourcePoolName} ➔ ${destPoolName}`
-      : poolName || categoryName || 'Everyday Pool';
+  // Use rawFlowType (DEBIT/CREDIT) if provided, or derive from flowType
+  const effectiveFlow = rawFlowType || (flowType === 'DEBIT' ? 'DEBIT' : flowType === 'CREDIT' ? 'CREDIT' : 'DEBIT');
+  const isDebit = effectiveFlow === 'DEBIT';
+  const isCredit = effectiveFlow === 'CREDIT';
+
+  // Per user requirement: only show the pool being credited or debited
+  const displayName = poolName || categoryName || 'Everyday Pool';
 
   return (
     <TouchableOpacity
@@ -75,14 +76,10 @@ export function TransactionRow({
         <Text
           style={[
             styles.amount,
-            isTransfer
-              ? styles.transferAmount
-              : isDebit
-              ? styles.debitAmount
-              : styles.creditAmount,
+            isDebit ? styles.debitAmount : styles.creditAmount,
           ]}
         >
-          {isDebit ? '-' : isCredit ? '+' : ''}
+          {isDebit ? '-' : '+'}
           {formatAUD(amount)}
         </Text>
         <Text style={styles.date}>{formatDate(recordedAt)}</Text>

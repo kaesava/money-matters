@@ -90,7 +90,7 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
         <Feather name="calendar" size={36} color={DESIGN_TOKENS.colors.textMuted} />
         <Text style={styles.emptyTitle}>{t('badges.noUpcomingBills')}</Text>
         <Text style={styles.emptyText}>
-          {t('common.noRecordsFound') || 'No upcoming scheduled events found.'}
+          {t('common.emptySubtitle')}
         </Text>
       </View>
     );
@@ -252,7 +252,7 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
                     }}
                   >
                     <Text style={styles.entityChipText} numberOfLines={1}>
-                      {item.categoryName || t('common.pool') || 'Pool'}
+                      {item.categoryName || t('categories.typeLabel')}
                     </Text>
                     <Text style={styles.entityChipIcon}>↗</Text>
                   </TouchableOpacity>
