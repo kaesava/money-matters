@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { trpc } from '../../lib/trpc';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -31,14 +31,38 @@ export function useBankAccountForm(
     ? allPools.filter((p) => p.bankAccountId === accountToEdit.id)
     : allPools.filter((p) => selectedPoolIds.includes(p.id));
 
+  const initialRef = React.useRef({
+    name: '',
+    provider: 'CBA' as SupportedBankProvider,
+    balance: '0.00',
+    buffer: '0.00',
+    isPrivate: false,
+    selectedPoolIds: [] as string[],
+  });
+
   useEffect(() => {
     if (accountToEdit) {
-      setName(accountToEdit.name || '');
-      setProvider((accountToEdit.bankProvider as SupportedBankProvider) || 'CBA');
-      setBalance(accountToEdit.lastKnownBalance || '0.00');
-      setBuffer(accountToEdit.unbudgetedBuffer || '0.00');
-      setIsPrivate(Boolean(accountToEdit.isPrivate));
+      const initName = accountToEdit.name || '';
+      const initProvider = (accountToEdit.bankProvider as SupportedBankProvider) || 'CBA';
+      const initBalance = accountToEdit.lastKnownBalance || '0.00';
+      const initBuffer = accountToEdit.unbudgetedBuffer || '0.00';
+      const initPrivate = Boolean(accountToEdit.isPrivate);
+
+      setName(initName);
+      setProvider(initProvider);
+      setBalance(initBalance);
+      setBuffer(initBuffer);
+      setIsPrivate(initPrivate);
       setSelectedPoolIds([]);
+
+      initialRef.current = {
+        name: initName,
+        provider: initProvider,
+        balance: initBalance,
+        buffer: initBuffer,
+        isPrivate: initPrivate,
+        selectedPoolIds: [],
+      };
     } else {
       setName('');
       setProvider('CBA');
@@ -46,10 +70,27 @@ export function useBankAccountForm(
       setBuffer('0.00');
       setIsPrivate(false);
       setSelectedPoolIds([]);
+
+      initialRef.current = {
+        name: '',
+        provider: 'CBA',
+        balance: '0.00',
+        buffer: '0.00',
+        isPrivate: false,
+        selectedPoolIds: [],
+      };
     }
     setNameError('');
     setGeneralError('');
   }, [accountToEdit, visible]);
+
+  const isDirty =
+    name !== initialRef.current.name ||
+    provider !== initialRef.current.provider ||
+    balance !== initialRef.current.balance ||
+    buffer !== initialRef.current.buffer ||
+    isPrivate !== initialRef.current.isPrivate ||
+    selectedPoolIds.length > 0;
 
   const balNum = parseFloat(balance) || 0;
   const bufNum = parseFloat(buffer) || 0;
@@ -159,6 +200,7 @@ export function useBankAccountForm(
 
   return {
     isEdit,
+    isDirty,
     name,
     setName,
     provider,

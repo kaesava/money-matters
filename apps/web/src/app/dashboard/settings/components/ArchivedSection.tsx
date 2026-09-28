@@ -13,10 +13,21 @@ export function ArchivedSection() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const trpcUtils = trpc.useUtils();
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const restoreMutation = trpc.restoreItem.useMutation({
-    onSuccess: () => {
-      archivedQuery.refetch();
+    onSuccess: async () => {
+      await Promise.all([
+        archivedQuery.refetch(),
+        trpcUtils.listPools.invalidate(),
+        trpcUtils.listCategories.invalidate(),
+        trpcUtils.listIncomeSources.invalidate(),
+        trpcUtils.listExpenseSources.invalidate(),
+        trpcUtils.listBankAccounts.invalidate(),
+        trpcUtils.listBankAccountsWithExpected.invalidate(),
+        trpcUtils.getMatrixProjectionData.invalidate(),
+        trpcUtils.listTransactions.invalidate(),
+      ]);
     },
   });
 
@@ -103,7 +114,7 @@ export function ArchivedSection() {
                 onClick={() =>
                   restoreMutation.mutate({
                     itemId: item.id,
-                    itemType: item.itemType as "CATEGORY" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
+                    itemType: item.itemType as "CATEGORY" | "POOL" | "INCOME_SOURCE" | "EXPENSE_SOURCE" | "BANK_ACCOUNT",
                   })
                 }
                 disabled={restoreMutation.isPending}

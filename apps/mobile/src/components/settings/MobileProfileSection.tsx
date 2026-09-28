@@ -28,6 +28,9 @@ export function MobileProfileSection() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [storedEmail, setStoredEmail] = useState('');
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+61');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('Australia/Sydney');
   const [language, setLanguage] = useState<'en'>('en');
@@ -49,6 +52,9 @@ export function MobileProfileSection() {
 
   const initialDataRef = useRef({
     name: '',
+    notificationEmail: '',
+    phoneCountryCode: '+61',
+    phoneNumber: '',
     timezone: 'Australia/Sydney',
     language: 'en' as const,
     locale: 'auto',
@@ -58,13 +64,20 @@ export function MobileProfileSection() {
 
   useEffect(() => {
     const uName = session?.user?.name || '';
+    const uEmail = session?.user?.email || storedEmail || '';
     const uAvatar = session?.user?.image || null;
     const uTz = userPrefQuery.data?.timezone || 'Australia/Sydney';
     const uLang = 'en' as const;
     const uLoc = userPrefQuery.data?.locale || 'auto';
     const uIcons = userPrefQuery.data?.showIcons ?? true;
+    const uNotifEmail = userPrefQuery.data?.notificationEmail || uEmail;
+    const uPhoneCode = userPrefQuery.data?.phoneCountryCode || '+61';
+    const uPhoneNum = userPrefQuery.data?.phoneNumber || '';
 
     setName(uName);
+    setNotificationEmail(uNotifEmail);
+    setPhoneCountryCode(uPhoneCode);
+    setPhoneNumber(uPhoneNum);
     setAvatarUri(uAvatar);
     setTimezone(uTz);
     setLanguage(uLang);
@@ -73,6 +86,9 @@ export function MobileProfileSection() {
 
     initialDataRef.current = {
       name: uName,
+      notificationEmail: uNotifEmail,
+      phoneCountryCode: uPhoneCode,
+      phoneNumber: uPhoneNum,
       timezone: uTz,
       language: uLang,
       locale: uLoc,
@@ -83,10 +99,13 @@ export function MobileProfileSection() {
     checkBiometricsAvailable().then(setBiometricsAvailable).catch(() => {});
     getBiometricTypeLabel().then(setBiometricLabel).catch(() => {});
     isBiometricLockEnabled().then(setBiometricsEnabled).catch(() => {});
-  }, [session, userPrefQuery.data]);
+  }, [session, userPrefQuery.data, storedEmail]);
 
   const isDirty =
     name !== initialDataRef.current.name ||
+    notificationEmail !== initialDataRef.current.notificationEmail ||
+    phoneCountryCode !== initialDataRef.current.phoneCountryCode ||
+    phoneNumber !== initialDataRef.current.phoneNumber ||
     timezone !== initialDataRef.current.timezone ||
     language !== initialDataRef.current.language ||
     locale !== initialDataRef.current.locale ||
@@ -147,6 +166,9 @@ export function MobileProfileSection() {
         onConfirm: () => {
           const init = initialDataRef.current;
           setName(init.name);
+          setNotificationEmail(init.notificationEmail);
+          setPhoneCountryCode(init.phoneCountryCode);
+          setPhoneNumber(init.phoneNumber);
           setTimezone(init.timezone);
           setLanguage(init.language);
           setLocale(init.locale);
@@ -159,6 +181,8 @@ export function MobileProfileSection() {
       setIsEditing(false);
     }
   };
+
+  const updateProfileMut = trpc.updateUserProfile.useMutation();
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -176,6 +200,18 @@ export function MobileProfileSection() {
       });
 
       try {
+        await updateProfileMut.mutateAsync({
+          displayName: name.trim(),
+          notificationEmail: notificationEmail.trim() || session?.user?.email || storedEmail,
+          phoneCountryCode,
+          phoneNumber: phoneNumber.trim(),
+          avatarUrl: avatarUri || undefined,
+        });
+      } catch (_e) {
+        // Non-blocking fallback
+      }
+
+      try {
         await authClient.updateUser({
           name: name.trim(),
           image: avatarUri || undefined,
@@ -186,6 +222,9 @@ export function MobileProfileSection() {
 
       initialDataRef.current = {
         name: name.trim(),
+        notificationEmail,
+        phoneCountryCode,
+        phoneNumber,
         timezone,
         language,
         locale,
@@ -195,6 +234,7 @@ export function MobileProfileSection() {
 
       setContextShowIcons(showIcons);
       await utils.getUserPreferences.invalidate();
+      await utils.getUserProfile.invalidate();
       setIsEditing(false);
       toast.success('Profile updated successfully.', t('common.success'));
     } catch (err) {
@@ -212,6 +252,12 @@ export function MobileProfileSection() {
       <MobileProfileEditView
         name={name}
         setName={setName}
+        notificationEmail={notificationEmail}
+        setNotificationEmail={setNotificationEmail}
+        phoneCountryCode={phoneCountryCode}
+        setPhoneCountryCode={setPhoneCountryCode}
+        phoneNumber={phoneNumber}
+        setPhoneNumber={setPhoneNumber}
         avatarUri={avatarUri}
         onPickAvatar={handlePickAvatar}
         timezone={timezone}
@@ -233,6 +279,9 @@ export function MobileProfileSection() {
     <MobileProfileReadOnlyView
       name={name}
       email={session?.user?.email || storedEmail || ''}
+      notificationEmail={notificationEmail}
+      phoneCountryCode={phoneCountryCode}
+      phoneNumber={phoneNumber}
       avatarUri={avatarUri}
       timezone={timezone}
       language={language}

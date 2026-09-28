@@ -40,11 +40,11 @@ export function AccountBalanceCard({
       />
 
       <AmountInput
-        label="Unbudgeted Buffer ($ AUD)"
+        label={t('bankAccounts.unbudgetedBuffer')}
         value={buffer}
         onChangeText={onBufferChange}
         placeholder="0.00"
-        hint="Protected buffer ring-fenced from pool allocations."
+        hint={t('bankAccounts.unbudgetedBufferHint')}
       />
 
       {/* Live Available to Budget & Variance Card */}

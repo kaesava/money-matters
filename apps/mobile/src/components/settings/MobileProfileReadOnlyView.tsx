@@ -14,6 +14,9 @@ import { profileReadOnlyStyles as styles } from './profileReadOnlyStyles';
 interface MobileProfileReadOnlyViewProps {
   name: string;
   email: string;
+  notificationEmail?: string;
+  phoneCountryCode?: string;
+  phoneNumber?: string;
   avatarUri: string | null;
   timezone: string;
   language: 'en';
@@ -29,6 +32,9 @@ interface MobileProfileReadOnlyViewProps {
 export function MobileProfileReadOnlyView({
   name,
   email,
+  notificationEmail,
+  phoneCountryCode,
+  phoneNumber,
   avatarUri,
   timezone,
   language,
@@ -82,6 +88,18 @@ export function MobileProfileReadOnlyView({
         <View style={styles.detailItem}>
           <Text style={styles.detailLabel}>{t('settings.loginEmailLabel')}</Text>
           <Text style={styles.detailValue}>{email || '—'}</Text>
+        </View>
+
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>{t('settings.notificationEmailLabel')}</Text>
+          <Text style={styles.detailValue}>{notificationEmail || email || '—'}</Text>
+        </View>
+
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>{t('settings.phoneNumberLabel')}</Text>
+          <Text style={styles.detailValue}>
+            {phoneNumber ? `${phoneCountryCode || '+61'} ${phoneNumber}` : '—'}
+          </Text>
         </View>
 
         <View style={styles.detailItem}>

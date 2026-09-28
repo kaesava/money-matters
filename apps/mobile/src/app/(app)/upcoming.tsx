@@ -1,6 +1,12 @@
-import React from 'react';
-import IncomeAndBillsScreen from './paychecks';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
 
-export default function UpcomingScreen() {
-  return <IncomeAndBillsScreen initialTab="EVENTS" />;
+export default function UpcomingRedirect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/(app)/paychecks?tab=EVENTS' as never);
+  }, [router]);
+
+  return null;
 }

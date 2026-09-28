@@ -112,27 +112,34 @@ export function MobilePaydayAllocationDetailModal({
         </View>
 
         {/* Lines Breakdown */}
-        <View style={styles.linesSection}>
-          <Text style={styles.sectionHeader}>
-            {t('paydayDrawer.splitBreakdown', { count: allocation.lines.length }) || 'Income Split Breakdown'}
-          </Text>
-          {allocation.lines.map((line, idx) => {
-            const amt = parseFloat(line.confirmedAmount || line.proposedAmount || '0');
-            return (
-              <View key={line.id || idx} style={styles.lineItem}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.poolName}>
-                    {line.poolName || 'Everyday Pool'}
-                  </Text>
-                  {line.reasoning ? (
-                    <Text style={styles.lineReasoning}>{line.reasoning}</Text>
-                  ) : null}
-                </View>
-                <Text style={styles.lineAmount}>{formatAUD(amt)}</Text>
-              </View>
-            );
-          })}
-        </View>
+        {(() => {
+          const nonZeroLines = allocation.lines.filter(
+            (line) => parseFloat(line.confirmedAmount || line.proposedAmount || '0') > 0.001
+          );
+          return (
+            <View style={styles.linesSection}>
+              <Text style={styles.sectionHeader}>
+                {t('paydayDrawer.splitBreakdown', { count: nonZeroLines.length }) || 'Income Split Breakdown'}
+              </Text>
+              {nonZeroLines.map((line, idx) => {
+                const amt = parseFloat(line.confirmedAmount || line.proposedAmount || '0');
+                return (
+                  <View key={line.id || idx} style={styles.lineItem}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.poolName}>
+                        {line.poolName || 'Everyday Pool'}
+                      </Text>
+                      {line.reasoning ? (
+                        <Text style={styles.lineReasoning}>{line.reasoning}</Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.lineAmount}>{formatAUD(amt)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })()}
 
         {/* Action button */}
         {onOpenSplitStudio && !isConfirmed && (

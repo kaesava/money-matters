@@ -13,7 +13,6 @@ import { SegmentedTabs } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
 
-import { MobileMatrixPlanTab } from '../../components/paychecks/MobileMatrixPlanTab';
 import { SourceToEdit } from '../../components/IncomeExpenseFormModal';
 import { MarkPaidEvent } from '../../components/MarkPaidModal';
 import { UpcomingEventsTab } from '../../components/paychecks/UpcomingEventsTab';
@@ -27,7 +26,7 @@ import { ExpenseSourceItem } from '../../components/paychecks/ExpenseBillCard';
 import { PaycheckTransferEvent } from '../../components/paychecks/PaycheckEventSection';
 import { PaychecksModalManager } from '../../components/paychecks/PaychecksModalManager';
 
-export type PaycheckTabSegment = 'MATRIX' | 'EVENTS' | 'SOURCES';
+export type PaycheckTabSegment = 'EVENTS' | 'SOURCES';
 
 interface IncomeAndBillsScreenProps {
   initialTab?: PaycheckTabSegment;
@@ -38,11 +37,9 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
   const searchParams = useLocalSearchParams<{ tab?: string }>();
 
   const resolvedInitialTab: PaycheckTabSegment = initialTab || (
-    searchParams.tab?.toUpperCase() === 'EVENTS'
-      ? 'EVENTS'
-      : searchParams.tab?.toUpperCase() === 'SOURCES'
+    searchParams.tab?.toUpperCase() === 'SOURCES'
       ? 'SOURCES'
-      : 'MATRIX'
+      : 'EVENTS'
   );
 
   const [activeSegment, setActiveSegment] = useState<PaycheckTabSegment>(resolvedInitialTab);
@@ -165,10 +162,10 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
 
   return (
     <AppScreenWrapper
-      title={t('tooltips.incomeBills.title')}
+      title={t('nav.incomeExpenses')}
       scrollable={false}
       infoTooltip={{
-        title: t('tooltips.incomeBills.title'),
+        title: t('nav.incomeExpenses'),
         content: t('tooltips.incomeBills.content'),
       }}
     >
@@ -197,7 +194,6 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
 
           <SegmentedTabs<PaycheckTabSegment>
             tabs={[
-              { key: 'MATRIX', label: t('transactions.tabs.allocatePendingIncome') },
               { key: 'EVENTS', label: t('transactions.tabs.pendingList') },
               { key: 'SOURCES', label: t('transactions.tabs.setup') },
             ]}
@@ -205,15 +201,6 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
             onChange={setActiveSegment}
           />
         </View>
-
-        {activeSegment === 'MATRIX' && (
-          <MobileMatrixPlanTab
-            onOpenCategoryModal={(params) => {
-              setActiveCategoryDetail(params);
-              setCategoryModalVisible(true);
-            }}
-          />
-        )}
 
         {activeSegment === 'EVENTS' && (
           <UpcomingEventsTab

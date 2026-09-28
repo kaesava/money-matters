@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { FormLabel } from '@money-matters/ui/mobile';
+import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
 
 interface PoolLinkSelectorProps {
@@ -25,7 +26,7 @@ export function PoolLinkSelector({
 
   return (
     <View style={styles.container}>
-      <FormLabel>Link Pools to this Account</FormLabel>
+      <FormLabel>{t('bankAccounts.linkPoolsToAccount')}</FormLabel>
       <View style={styles.list}>
         {pools.map((pool) => {
           const isSelected = selectedPoolIds.includes(pool.id);
@@ -50,10 +51,10 @@ export function PoolLinkSelector({
                   </Text>
                   <Text style={styles.poolType}>
                     {pool.poolType === 'EVERYDAY'
-                      ? 'Everyday'
+                      ? t('poolTypes.everyday')
                       : pool.poolType === 'REGULAR'
-                      ? 'Bills'
-                      : 'Goal'}
+                      ? t('poolTypes.bills')
+                      : t('poolTypes.goals')}
                   </Text>
                 </View>
               </View>

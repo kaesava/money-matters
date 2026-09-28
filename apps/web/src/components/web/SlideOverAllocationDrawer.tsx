@@ -54,14 +54,13 @@ export function SlideOverAllocationDrawer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  const isConfirmed = plan?.status === "CONFIRMED";
   const displayLines = useMemo(() => {
     if (!plan?.lines) return [];
     return plan.lines.filter((line) => {
       const amt = parseFloat(line.confirmedAmount || line.proposedAmount || "0");
-      return !isConfirmed || amt > 0;
+      return amt > 0.001;
     });
-  }, [plan?.lines, isConfirmed]);
+  }, [plan?.lines]);
 
   if (!isOpen || !plan) return null;
 

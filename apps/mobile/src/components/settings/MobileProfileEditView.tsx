@@ -18,6 +18,12 @@ import { profileEditStyles as styles } from './profileEditStyles';
 interface MobileProfileEditViewProps {
   name: string;
   setName: (val: string) => void;
+  notificationEmail: string;
+  setNotificationEmail: (val: string) => void;
+  phoneCountryCode: string;
+  setPhoneCountryCode: (val: string) => void;
+  phoneNumber: string;
+  setPhoneNumber: (val: string) => void;
   avatarUri: string | null;
   onPickAvatar: () => void;
   timezone: string;
@@ -36,6 +42,12 @@ interface MobileProfileEditViewProps {
 export function MobileProfileEditView({
   name,
   setName,
+  notificationEmail,
+  setNotificationEmail,
+  phoneCountryCode,
+  setPhoneCountryCode,
+  phoneNumber,
+  setPhoneNumber,
   avatarUri,
   onPickAvatar,
   timezone,
@@ -108,6 +120,45 @@ export function MobileProfileEditView({
           placeholder={t('settings.displayNamePlaceholder')}
           placeholderTextColor="#94A3B8"
         />
+      </View>
+
+      {/* Notification Email Input */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>
+          {t('settings.notificationEmailLabel')} <Text style={styles.requiredStar}>*</Text>
+        </Text>
+        <TextInput
+          style={styles.textInput}
+          value={notificationEmail}
+          onChangeText={setNotificationEmail}
+          placeholder="alerts@example.com"
+          placeholderTextColor="#94A3B8"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <Text style={styles.hintText}>{t('settings.notificationEmailHint')}</Text>
+      </View>
+
+      {/* Mobile Phone Number */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>{t('settings.phoneNumberLabel')}</Text>
+        <View style={styles.phoneRow}>
+          <TextInput
+            style={styles.phoneCodeInput}
+            value={phoneCountryCode}
+            onChangeText={setPhoneCountryCode}
+            placeholder="+61"
+            placeholderTextColor="#94A3B8"
+          />
+          <TextInput
+            style={styles.phoneNumberInput}
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            placeholder="412 345 678"
+            placeholderTextColor="#94A3B8"
+            keyboardType="phone-pad"
+          />
+        </View>
       </View>
 
       {/* Language Chips */}

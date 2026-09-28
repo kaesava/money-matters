@@ -37,96 +37,103 @@ export function TransactionRow({
   const isDebit = effectiveFlow === 'DEBIT';
   const isCredit = effectiveFlow === 'CREDIT';
 
-  // Per user requirement: only show the pool being credited or debited
-  const displayName = poolName || categoryName || 'Everyday Pool';
+  // Fallback label for display
+  const displayName = categoryName || poolName || (isTransfer ? 'Transfer' : 'Transaction');
+
+  // Primary info: Date & Description (note or displayName)
+  const primaryDescription = note || displayName;
+  const secondaryPool = note ? (poolName || categoryName) : null;
 
   return (
     <TouchableOpacity
       activeOpacity={onPress ? 0.7 : 1}
       onPress={onPress}
-      style={styles.row}
+      style={styles.card}
     >
-      <View style={styles.iconWrap}>
-        {isTransfer ? (
-          <Feather name="repeat" size={16} color="#2563eb" />
-        ) : isDebit ? (
-          <Feather name="arrow-up-right" size={16} color="#ba1a1a" />
-        ) : (
-          <Feather name="arrow-down-left" size={16} color="#22c55e" />
-        )}
-      </View>
-
-      <View style={styles.left}>
-        <View style={styles.categoryRow}>
-          <Text style={styles.category} numberOfLines={1}>
-            {displayName}
-          </Text>
-          {onPress && (
-            <Feather name="arrow-up-right" size={12} color="#2563eb" style={styles.linkIcon} />
-          )}
+      <View style={styles.cardHeader}>
+        <View style={styles.left}>
+          <Text style={styles.date}>{formatDate(recordedAt)}</Text>
+          <View style={styles.descriptionRow}>
+            <Text style={styles.description} numberOfLines={1}>
+              {primaryDescription}
+            </Text>
+            {onPress && (
+              <Feather name="arrow-up-right" size={12} color="#2563eb" style={styles.linkIcon} />
+            )}
+          </View>
         </View>
-        {note && note !== displayName && (
-          <Text style={styles.note} numberOfLines={1}>
-            {note}
+
+        <View style={styles.right}>
+          <Text
+            style={[
+              styles.amount,
+              isDebit ? styles.debitAmount : styles.creditAmount,
+            ]}
+          >
+            {isDebit ? '-' : '+'}
+            {formatAUD(amount)}
           </Text>
-        )}
+        </View>
       </View>
 
-      <View style={styles.right}>
-        <Text
-          style={[
-            styles.amount,
-            isDebit ? styles.debitAmount : styles.creditAmount,
-          ]}
-        >
-          {isDebit ? '-' : '+'}
-          {formatAUD(amount)}
-        </Text>
-        <Text style={styles.date}>{formatDate(recordedAt)}</Text>
-      </View>
+      {secondaryPool && (
+        <View style={styles.cardFooter}>
+          <View style={styles.poolWrap}>
+            <View style={styles.iconWrap}>
+              {isTransfer ? (
+                <Feather name="repeat" size={11} color="#2563eb" />
+              ) : isDebit ? (
+                <Feather name="arrow-up-right" size={11} color="#ba1a1a" />
+              ) : (
+                <Feather name="arrow-down-left" size={11} color="#22c55e" />
+              )}
+            </View>
+            <Text style={styles.poolName} numberOfLines={1}>
+              {secondaryPool}
+            </Text>
+          </View>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  linkIcon: {
-    marginTop: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    gap: 12,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    padding: 14,
+    gap: 8,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
   },
   left: {
     flex: 1,
   },
-  category: {
+  date: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 3,
+  },
+  descriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  description: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1B2B4B',
   },
-  note: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
+  linkIcon: {
+    marginTop: 1,
   },
   right: {
     alignItems: 'flex-end',
@@ -142,13 +149,32 @@ const styles = StyleSheet.create({
   creditAmount: {
     color: '#22c55e',
   },
-  transferAmount: {
-    color: '#2563eb',
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+    paddingTop: 8,
   },
-  date: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
+  poolWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  iconWrap: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  poolName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
   },
 });
 

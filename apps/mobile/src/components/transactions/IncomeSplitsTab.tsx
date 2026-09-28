@@ -112,7 +112,16 @@ export function IncomeSplitsTab({
             </View>
 
             <View style={styles.planFooter}>
-              <Text style={styles.planDate}>{formatDate(item.expectedDate || item.createdAt)}</Text>
+              <View style={styles.datesCol}>
+                <Text style={styles.planDateText}>
+                  <Text style={styles.planDateLabel}>{t('paydayDrawer.incomeDate')}: </Text>
+                  {formatDate(item.expectedDate)}
+                </Text>
+                <Text style={styles.planDateText}>
+                  <Text style={styles.planDateLabel}>{t('paydayDrawer.incomeSplitDate')}: </Text>
+                  {formatDate(item.createdAt || item.expectedDate)}
+                </Text>
+              </View>
               <View style={styles.detailsBtn}>
                 <Text style={styles.detailsBtnText}>{t('transactions.details')}</Text>
                 <Feather name="chevron-right" size={14} color="#2563eb" />
@@ -269,8 +278,16 @@ const styles = StyleSheet.create({
     borderTopColor: '#F8FAFC',
     paddingTop: 8,
   },
-  planDate: {
+  datesCol: {
+    flex: 1,
+    gap: 2,
+  },
+  planDateText: {
     fontSize: 11,
+    color: '#64748B',
+  },
+  planDateLabel: {
+    fontWeight: '700',
     color: '#94A3B8',
   },
   detailsBtn: {

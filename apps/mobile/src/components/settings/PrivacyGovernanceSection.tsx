@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import JSZip from 'jszip';
 import { useMobileToast } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { trpc, setActiveSessionToken } from '../../lib/trpc';
-import { authClient } from '../../lib/auth';
+import { trpc } from '../../lib/trpc';
 import { formatIsoDate } from '../../lib/format';
-import * as SecureStore from 'expo-secure-store';
-import { DeleteHouseholdCard } from './DeleteHouseholdCard';
-import { LeaveHouseholdCard } from './LeaveHouseholdCard';
 
 export function PrivacyGovernanceSection() {
-  const router = useRouter();
   const toast = useMobileToast();
   const [isExporting, setIsExporting] = useState(false);
 
-  const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const exportQuery = trpc.exportMyData.useQuery(undefined, { enabled: false });
-  const gov = govQuery.data;
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -60,14 +52,6 @@ export function PrivacyGovernanceSection() {
     }
   };
 
-  const handleSignOutAndRedirect = async () => {
-    await authClient.signOut();
-    await SecureStore.deleteItemAsync('money-matters_session_token');
-    await SecureStore.deleteItemAsync('money-matters-session-token');
-    setActiveSessionToken(null);
-    router.replace('/(auth)/sign-in');
-  };
-
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{t('privacy.title')}</Text>
@@ -89,20 +73,13 @@ export function PrivacyGovernanceSection() {
         )}
       </TouchableOpacity>
 
-      {/* Leave Household section */}
-      {gov && (!gov.isSoleOwner || !gov.isOwner) && (
-        <LeaveHouseholdCard onLeft={handleSignOutAndRedirect} />
-      )}
 
-      {/* Delete Household section */}
-      {gov && (
-        <DeleteHouseholdCard
-          householdName={gov.householdName}
-          isOwner={gov.isOwner}
-          partnerEmail={gov.partnerEmail}
-          onDeleted={handleSignOutAndRedirect}
-        />
-      )}
+      {/* Australian Privacy Guarantee Notice */}
+      <View style={styles.footerInfo}>
+        <Text style={styles.footerText}>
+          {t('privacy.aussiePrivacyGuarantee')}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -144,5 +121,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#334155',
+  },
+  footerInfo: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });

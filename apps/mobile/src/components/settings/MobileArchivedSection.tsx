@@ -28,6 +28,7 @@ type FilterType =
 
 export function MobileArchivedSection() {
   const toast = useMobileToast();
+  const utils = trpc.useUtils();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('ALL');
   const [page, setPage] = useState(1);
@@ -35,8 +36,18 @@ export function MobileArchivedSection() {
 
   const archivedQuery = trpc.listArchivedItems.useQuery();
   const restoreMutation = trpc.restoreItem.useMutation({
-    onSuccess: () => {
-      archivedQuery.refetch();
+    onSuccess: async () => {
+      await Promise.all([
+        archivedQuery.refetch(),
+        utils.listPools.invalidate(),
+        utils.listCategories.invalidate(),
+        utils.listIncomeSources.invalidate(),
+        utils.listExpenseSources.invalidate(),
+        utils.listBankAccounts.invalidate(),
+        utils.listBankAccountsWithExpected.invalidate(),
+        utils.getMatrixProjectionData.invalidate(),
+        utils.listTransactions.invalidate(),
+      ]);
       toast.success(t('settings.archived.restoreSuccess'));
     },
     onError: (err) => {
@@ -55,7 +66,11 @@ export function MobileArchivedSection() {
   const totalPages = Math.ceil(filtered.length / pageSize) || 1;
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const handleRestore = (item: { id: string; name: string; itemType: string }) => {
+  const handleRestore = (item: {
+    id: string;
+    name: string;
+    itemType: 'CATEGORY' | 'POOL' | 'INCOME_SOURCE' | 'EXPENSE_SOURCE' | 'BANK_ACCOUNT';
+  }) => {
     showMobileConfirm({
       title: t('settings.archived.restoreTitle'),
       message: t('settings.archived.restoreConfirm', {
@@ -66,7 +81,7 @@ export function MobileArchivedSection() {
       onConfirm: async () => {
         await restoreMutation.mutateAsync({
           itemId: item.id,
-          itemType: item.itemType as never,
+          itemType: item.itemType,
         });
       },
     });
@@ -145,7 +160,13 @@ export function MobileArchivedSection() {
                 </Text>
               </View>
               <TouchableOpacity
-                onPress={() => handleRestore(item)}
+                onPress={() =>
+                  handleRestore({
+                    id: item.id,
+                    name: item.name,
+                    itemType: item.itemType as 'CATEGORY' | 'POOL' | 'INCOME_SOURCE' | 'EXPENSE_SOURCE' | 'BANK_ACCOUNT',
+                  })
+                }
                 style={styles.restoreBtn}
                 disabled={restoreMutation.isPending}
               >

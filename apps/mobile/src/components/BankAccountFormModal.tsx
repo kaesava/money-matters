@@ -15,6 +15,7 @@ import {
   MobileButton,
   FormLabel,
   FormErrorBanner,
+  showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { PoolLinkSelector } from './bank-accounts/PoolLinkSelector';
@@ -45,6 +46,7 @@ export function BankAccountFormModal({
 }: BankAccountFormModalProps) {
   const {
     isEdit,
+    isDirty,
     name,
     setName,
     provider,
@@ -72,10 +74,24 @@ export function BankAccountFormModal({
     handleSubmit,
   } = useBankAccountForm(visible, accountToEdit, onClose, onSuccess, onNeedsReconciliation);
 
+  const handleTogglePrivate = (targetVal: boolean) => {
+    showMobileConfirm({
+      title: t('bankAccounts.privacyWarningTitle'),
+      message: targetVal
+        ? t('bankAccounts.privacyWarningMakePrivate')
+        : t('bankAccounts.privacyWarningMakeShared'),
+      confirmText: t('common.confirm'),
+      cancelText: t('common.cancel'),
+      isDestructive: false,
+      onConfirm: () => setIsPrivate(targetVal),
+    });
+  };
+
   return (
     <MobileModalDialog
       visible={visible}
       onClose={onClose}
+      isDirty={isDirty}
       title={isEdit ? t('modals.bankAccountForm.titleEdit') : t('settings.bankAccounts.addAccount')}
       subtitle={t('tooltips.bankAccounts.content')}
       footer={
@@ -161,7 +177,7 @@ export function BankAccountFormModal({
           </View>
           <Switch
             value={isPrivate}
-            onValueChange={setIsPrivate}
+            onValueChange={handleTogglePrivate}
             disabled={isEdit}
             trackColor={{ false: '#E2E8F0', true: DESIGN_TOKENS.colors.sereneBlue }}
           />

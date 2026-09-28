@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { useRouter, Href } from 'expo-router';
+import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import {
@@ -17,7 +17,6 @@ import * as SecureStore from 'expo-secure-store';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { MobileProfileSection } from '../../components/settings/MobileProfileSection';
 import { HouseholdDetailsSection } from '../../components/settings/HouseholdDetailsSection';
-import { PreferencesSection } from '../../components/settings/PreferencesSection';
 import { HouseholdPartnerInviteSection } from '../../components/settings/HouseholdPartnerInviteSection';
 import { SubscriptionPlanSection } from '../../components/settings/SubscriptionPlanSection';
 import { PrivacyGovernanceSection } from '../../components/settings/PrivacyGovernanceSection';
@@ -27,15 +26,25 @@ import { MobileTenantSwitcherModal } from '../../components/settings/MobileTenan
 
 import { getMobileVersionInfo } from '../../lib/version';
 
+import { MobileBankAccountsSection } from '../../components/settings/MobileBankAccountsSection';
 import { MobileArchivedSection } from '../../components/settings/MobileArchivedSection';
 
-export type SettingsTab = 'profile' | 'household' | 'archived' | 'account-data';
+export type SettingsTab = 'profile' | 'household' | 'bank-accounts' | 'archived' | 'account-data';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const searchParams = useLocalSearchParams<{ tab?: string }>();
   const toast = useMobileToast();
   const { data: session } = authClient.useSession();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+
+  const resolvedTab = (searchParams.tab as SettingsTab) || 'profile';
+  const [activeTab, setActiveTab] = useState<SettingsTab>(resolvedTab);
+
+  React.useEffect(() => {
+    if (searchParams.tab && ['profile', 'household', 'bank-accounts', 'archived', 'account-data'].includes(searchParams.tab)) {
+      setActiveTab(searchParams.tab as SettingsTab);
+    }
+  }, [searchParams.tab]);
   const [loading, setLoading] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [tenantSwitcherVisible, setTenantSwitcherVisible] = useState(false);
@@ -87,6 +96,7 @@ export default function SettingsScreen() {
     () => [
       { key: 'profile', label: t('settings.tabs.profile') },
       { key: 'household', label: t('settings.tabs.household') },
+      { key: 'bank-accounts', label: t('settings.tabs.bankAccounts') },
       { key: 'archived', label: t('settings.tabs.archived') },
       { key: 'account-data', label: t('settings.tabs.accountData') },
     ],
@@ -106,7 +116,7 @@ export default function SettingsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top 4-Tab Segmented Control */}
+          {/* Top 5-Tab Segmented Control */}
           <SegmentedTabs
             tabs={tabs}
             activeKey={activeTab}
@@ -118,9 +128,6 @@ export default function SettingsScreen() {
             <View style={styles.tabSection}>
               {/* User Profile Details & Avatar */}
               <MobileProfileSection />
-
-              {/* App Preferences: Language, Theme, Icons, Biometrics */}
-              <PreferencesSection />
 
               {/* Push Notifications Card */}
               <View style={styles.card}>
@@ -194,64 +201,26 @@ export default function SettingsScreen() {
               {/* Family & Partner Invites */}
               <HouseholdPartnerInviteSection />
 
-              {/* Management & Logs Hub Card */}
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{t('settings.managementTitle')}</Text>
-
-                <TouchableOpacity
-                  style={styles.navLink}
-                  onPress={() => router.push('/(app)/settings/bank-accounts' as Href)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.navLinkLeft}>
-                    <Feather name="credit-card" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>
-                      {t('settings.bankAccountsLink')}
-                    </Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.navLink}
-                  onPress={() => router.push('/(setup)/income?mode=rerun' as Href)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.navLinkLeft}>
-                    <Feather name="refresh-cw" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>{t('setup.recalibrateTitle')}</Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.navLink}
-                  onPress={() => router.push('/(app)/settings/history' as Href)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.navLinkLeft}>
-                    <Feather name="clock" size={16} color="#2563eb" />
-                    <Text style={styles.navLinkText}>
-                      {t('settings.allocationHistoryLink')}
-                    </Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              </View>
-
               {/* Danger Zone */}
               <HouseholdDangerZoneSection />
             </View>
           )}
 
-          {/* TAB 3: ARCHIVED DATA */}
+          {/* TAB 3: BANK ACCOUNTS */}
+          {activeTab === 'bank-accounts' && (
+            <View style={styles.tabSection}>
+              <MobileBankAccountsSection />
+            </View>
+          )}
+
+          {/* TAB 4: ARCHIVED DATA */}
           {activeTab === 'archived' && (
             <View style={styles.tabSection}>
               <MobileArchivedSection />
             </View>
           )}
 
-          {/* TAB 4: DATA & SUBSCRIPTION */}
+          {/* TAB 5: DATA & SUBSCRIPTION */}
           {activeTab === 'account-data' && (
             <View style={styles.tabSection}>
               <SubscriptionPlanSection />

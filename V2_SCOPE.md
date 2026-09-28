@@ -625,3 +625,10 @@ signUpWithApple: "Sign up with Apple",
 
 
 
+
+
+
+* Web App: In many places, clicking on the main Name hyperlink from a table opens the item in Edit mode. Examples include Pools > Pool, Pools > Pool > Category, Income & Expenses > Upcoming, Income & Expenses > Setup > Schedule Name (both Income & Expense Schedules). Instead of a hyperlink, what if hovering over a row showed an "Edit" button on the left of the table and clicking anywhere on the row would be equivalent to clicking the hyperlink?
+We can apply to History > Income Split > Details (so instead of Details as a column, have it on hover of record with a "Details" button) and Split Income > Pool/Category (opens the side drawer using "Details" button)
+Create re-usable UI code to apply
+

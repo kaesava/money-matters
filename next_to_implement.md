@@ -2,25 +2,45 @@
 
 # Rules
 * Strict adherence to AGENTS.md
-* If you need clarity, /grill-me.
+* If you need clarity, [/grill-me](slashCommand;grill-me) (don't make assumptions)
 * I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
 
+# Mobile App
 
-# Web Application only
+## History > History
+* Why does the History > History table look different from the History > Income Splits tables. I like the latter (cards as rows). Can we ensure we consistently use the latter in format/style across the mobile app. Re-use UI code. For History > History, The key information is the Date & Description, the secondary is the Pool Name and of course, we want the amount right aligned.
+
+## History > Income Splits
+* In the list view, show bothe the Income Date and Income Split date with labels. Also, looks like there's an un-necessary space (empty line) between the Pool and date
+* In Details drawer, don't show $0 allocations (applies to web app too)
+
+## Settings > Household
+* Remove Management & Logs Card/section - aggressively ensure no redundant/un-used code/screens/UI left behind
+
+## General - the below changes apply to the screens listed in the next section.
+* Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.
+* Actively look for opportunities to rationalise en.ts keys within and across the mobile & web apps. There is a lot of repetition that makes it hard to change terminology in one place. Iteratively identify rationalisation opportunities and apply them across web and mobile apps.
+* In the mobile app, all user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent with the corresponding web app UI and importantly, re-uses en.ts keys for like-for-like functionality across web and mobile app. Do not add keys unless certain that they are specific for mobile or web and cannot be re-used.
+* Agressively cull unused/redundant keys from en.ts. No hardcoding of literals.
+* Mobile app must re-use as much UX as possible, defining UI elements (like fields, calendars, sort/search filter settings, etc.) centrally and re-using - MECE. The UI (theme, colours, general look-and-feel) must be consistent.
+* Content width of Settings > Bank 
+
+## Screens that the previous section apply to:
+* Settings > Bank Accounts
+* Settings > Bank Accounts > Add/Edit Bank Account Drawer
+* Settings > My Details (including all sub-sections/cards)
+* Settings > Household (including all sub-sections/cards)
+* Settings > Archived Data (including all sub-sections/tabs) - ensuring that all entities that can be archived can be un-archived from here (if there are gaps in mobile/web app - call out)
+* Settings > Data & Subscription
+
+
+
+
+
+
+# Web Application 
 
 ## General
-* In some modals, the currency amount field it not wide enough so I cannot see the number entered - example - Bank Account Balance. Ensure minimum width so up to 99,999.99 can be shown along with the currency symbol and increment/decrement buttons without any cut-off. Make modals wider if needed.
-
-## Navigation
-* Move Bank Accounts from the Navigation Bar to a tab in the Settings navigation (between "Household" and "Archived Data"). If paths & hyperlink changes across the app are required, ensure they are done accordingly.
-* Move "http://localhost:3000/dashboard/income-and-bills" > "Income Split" tab out of the "Schedules" screen and into it's own Navigation entry "Split Income" between "Schedules" and "History" in the Navigation. If paths & hyperlink changes across the app are required, ensure they are done accordingly.
-* Rename "Schedules" to "Income & Expenses" in Navigation
-* Move "Pools" down in the Navigation so it is just above "History"
-
-## Bank Accounts
-* When No Pools linked, instead of saying "Expected $0.00. Balanced", hide. Applies to mobile app too.
-* Align Shortfall and Surplus - show in different colours - make mobile app consistent
-* Bank Account Balance Alignment - show the "Sweep target" first in the list (even if it has $0) and by default draw down/top-up it first. If draw-down is not sufficient, user can specify other pools. Ensure parity in mobile app behaviour.
 
 
 
@@ -129,13 +149,13 @@ Bills|Goals & All|Shared|Private, pagination, History link, Progress)
 # FUNCTIONAL AUDIT
 
 ### 2. Lead Business Analyst (V1 Functional Completeness)
-* Identify all the Apps Capabilities (partially listed below), and ensure there are 0 Functional Gaps (Built per spec), no edge cases, no Code bugs, no duplicated code where code can be fully or partially reused, no inconsistencies, no friction UX, no misaligment with functional specs (allowing for the functional specs to not be current & complete), no logic flaws especially at the edges, no redundant or unused code, no dangerous or poor code, etc.
+* Identify all the Apps Capabilities (partially listed below), and ensure there are 0 Functional Gaps (Built per spec), no edge cases, no Code bugs, no duplicated code where code can be fully or partially reused, no inconsistencies, no friction UX, no misaligment with functional specs (allowing for the functional specs to not be current & complete), no logic flaws especially at the edges, no redundant or unused code, no dangerous code (for example - not defensive against misuse/abuse/bad actors), no poorly written code, etc.
 
 ### General
-* Connection interrupted message - validity, retry
-* Behaviour of tables across the web app (sort, search, pagination, skeleton loading, reasonable widths, etc.
-* Behaviour of modal screens (in particular ones with editable fields) across the web app (defensive field checks to prevent malicious or rubbish data entry), Cancel, Escape to Cancel, Errors, Warnings, COnfirmations, Success toasts, etc.
-* Landing Page (Not signed in)
+* Connection interrupted message - validity, retry logic
+* Consistent behaviour and look-and-feel of tables across the app (sort, search, pagination, skeleton loading, reasonable widths, etc.
+* Behaviour of modal/drawers screens (in particular ones with editable fields) across the web app (defensive field checks to prevent malicious or rubbish data entry), Cancel, Escape to Cancel, Errors, Warnings, COnfirmations, Success toasts, Click/Press away to Close, Dirty Edit checks, etc.
+* Landing Page (Not signed in) - consistent with actual app functionality, targets audience in language, simple yet compelling use-case
 * Privacy Page (Not signed in)
 * Sign-Up through Google, Apple, Email/password (and what if they already have one but try another)
 * Verify Password capability initiation

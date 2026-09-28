@@ -153,18 +153,18 @@ export default function AppLayout() {
         <Tabs.Screen
           name="paychecks"
           options={{
-            title: t('nav.schedules') || 'Schedules',
+            title: t('nav.incomeExpenses') || 'Income & Expenses',
             tabBarIcon: ({ color, size }) => (
               <TabIcon name="calendar" color={color} size={size} />
             ),
           }}
         />
         <Tabs.Screen
-          name="upcoming"
+          name="income-split"
           options={{
-            title: t('nav.upcoming') || 'Upcoming',
+            title: t('nav.splitIncome') || 'Split Income',
             tabBarIcon: ({ color, size }) => (
-              <TabIcon name="clock" color={color} size={size} />
+              <TabIcon name="repeat" color={color} size={size} />
             ),
           }}
         />
@@ -179,6 +179,7 @@ export default function AppLayout() {
         />
 
         {/* Hidden push routes — not in tab bar */}
+        <Tabs.Screen name="upcoming" options={{ href: null }} />
         <Tabs.Screen name="transactions" options={{ href: null }} />
         <Tabs.Screen name="settings" options={{ href: null }} />
         <Tabs.Screen name="afford-check" options={{ href: null }} />
@@ -191,10 +192,8 @@ export default function AppLayout() {
         />
         <Tabs.Screen name="settings/bank-accounts" options={{ href: null }} />
         <Tabs.Screen name="settings/notifications" options={{ href: null }} />
-        <Tabs.Screen name="settings/income" options={{ href: null }} />
         <Tabs.Screen name="settings/archived" options={{ href: null }} />
         <Tabs.Screen name="settings/history" options={{ href: null }} />
-        <Tabs.Screen name="settings/privacy" options={{ href: null }} />
       </Tabs>
 
       {/* Floating Action Button */}
