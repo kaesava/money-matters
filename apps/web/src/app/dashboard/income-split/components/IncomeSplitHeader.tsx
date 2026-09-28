@@ -42,7 +42,7 @@ export function IncomeSplitHeader({
 }: IncomeSplitHeaderProps) {
   const { fmtDate } = useLocale();
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 px-4 md:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+    <header className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 md:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
       {/* Left Navigation and Title */}
       <div className="flex items-center gap-3 min-w-0">
         <button

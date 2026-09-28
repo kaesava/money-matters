@@ -224,7 +224,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-64";
-  const isDistractionFree = pathname.startsWith("/dashboard/income-split");
 
   const avatarUrl = userProfileQuery.data?.avatarUrl || session?.user?.image || null;
 
@@ -245,13 +244,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: "var(--dash-bg)" }}>
-        {/* ── Desktop Sidebar (Hidden in distraction-free mode or on mobile) ── */}
-        {!isDistractionFree && (
-          <aside
-            style={{ backgroundColor: "var(--dash-navy)" }}
-            className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
-          >
-            {renderSidebar()}
+        {/* ── Desktop Sidebar ── */}
+        <aside
+          style={{ backgroundColor: "var(--dash-navy)" }}
+          className={`hidden md:flex flex-col border-r border-white/10 shrink-0 sticky top-0 h-screen transition-all duration-300 z-30 ${sidebarWidthClass}`}
+        >
+          {renderSidebar()}
 
             {/* Sidebar Collapse Toggle Button */}
             <button
@@ -274,10 +272,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </svg>
             </button>
           </aside>
-        )}
 
         {/* ── Mobile Navigation Drawer ── */}
-        {!isDistractionFree && mobileMenuOpen && (
+        {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-50 flex">
             {/* Backdrop mask shadow */}
             <div
@@ -296,15 +293,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* ── Main Layout Wrapper ── */}
         <div className="flex-1 flex flex-col min-w-0">
-          {!isDistractionFree && <TrialBanner />}
+          <TrialBanner />
 
           {/* Sticky top headers - Mobile only */}
-          {!isDistractionFree && (
-            <header
-              style={{ backgroundColor: "var(--dash-navy)" }}
-              className="md:hidden sticky top-0 z-40 h-14 flex items-center px-4 justify-between shadow-md"
-            >
-              <button
+          <header
+            style={{ backgroundColor: "var(--dash-navy)" }}
+            className="md:hidden sticky top-0 z-40 h-14 flex items-center px-4 justify-between shadow-md"
+          >
+            <button
                 onClick={() => setMobileMenuOpen(true)}
                 className="p-1 text-white/80 hover:text-white transition-colors"
                 aria-label="Open navigation menu"
@@ -346,12 +342,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </button>
               </div>
             </header>
-          )}
 
           {/* Global Toolbar and Main Worksheets Viewport */}
           <div className="flex-1 flex flex-col overflow-y-auto">
             {/* Main workspace */}
-            <main className={isDistractionFree ? "flex-1 w-full" : "flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8"}>
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8">
               {(isInitialLoading || isQueryFetching) ? (
                 <div className="min-h-[60vh] flex items-center justify-center p-6 text-center">
                   <Spinner size="lg" label={t("common.loading")} direction="col" />
@@ -408,30 +403,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </main>
 
             {/* App-wide Dashboard Legal & Version Footer */}
-            {!isDistractionFree && (
-              <footer className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6 border-t border-zinc-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-500 font-medium">
-                <div>
-                  <span>Money Matters {versionInfo.formattedVersion} ({versionInfo.channel})</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                    Privacy Policy
-                  </a>
-                  <span>•</span>
-                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
-                    Terms of Use
-                  </a>
-                </div>
-              </footer>
-            )}
+            <footer className="w-full max-w-7xl mx-auto px-4 md:px-8 py-6 border-t border-zinc-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-500 font-medium">
+              <div>
+                <span>Money Matters {versionInfo.formattedVersion} ({versionInfo.channel})</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
+                  Privacy Policy
+                </a>
+                <span>•</span>
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-900 transition-colors">
+                  Terms of Use
+                </a>
+              </div>
+            </footer>
           </div>
 
-          {!isDistractionFree && (
-            <QuickActionFab
-              pathname={pathname}
-              onOpenModal={() => setQuickExpenseOpen(true)}
-            />
-          )}
+          <QuickActionFab
+            pathname={pathname}
+            onOpenModal={() => setQuickExpenseOpen(true)}
+          />
 
           {quickExpenseOpen && (
             <QuickExpenseDrawer

@@ -42,19 +42,19 @@ export async function overrideEventCommand(
         updatedAt: new Date(),
       };
 
-      const newAmount = input.actualAmount || input.expectedAmount || input.amount;
+      const newAmount = input.expectedAmount || input.amount || input.actualAmount;
       if (newAmount) {
-        setPayload.actualAmount = newAmount;
-        if (!isScheduled || input.updateSeries) {
-          setPayload.expectedAmount = newAmount;
+        setPayload.expectedAmount = newAmount;
+        if (input.actualAmount || input.status === "CONFIRMED") {
+          setPayload.actualAmount = input.actualAmount || newAmount;
         }
       }
 
-      const newDate = (input as { actualDate?: string }).actualDate || input.expectedDate;
+      const newDate = input.expectedDate || (input as { actualDate?: string }).actualDate;
       if (newDate) {
-        setPayload.actualDate = newDate;
-        if (!isScheduled) {
-          setPayload.expectedDate = newDate;
+        setPayload.expectedDate = newDate;
+        if ((input as { actualDate?: string }).actualDate || input.status === "CONFIRMED") {
+          setPayload.actualDate = (input as { actualDate?: string }).actualDate || newDate;
         }
       }
 
@@ -122,19 +122,19 @@ export async function overrideEventCommand(
         updatedAt: new Date(),
       };
 
-      const newAmount = input.actualAmount || input.expectedAmount || input.amount;
+      const newAmount = input.expectedAmount || input.amount || input.actualAmount;
       if (newAmount) {
-        setPayload.actualAmount = newAmount;
-        if (!isScheduled || input.updateSeries) {
-          setPayload.expectedAmount = newAmount;
+        setPayload.expectedAmount = newAmount;
+        if (input.actualAmount || input.status === "CONFIRMED") {
+          setPayload.actualAmount = input.actualAmount || newAmount;
         }
       }
 
-      const newDate = (input as { actualDate?: string }).actualDate || input.expectedDate;
+      const newDate = input.expectedDate || (input as { actualDate?: string }).actualDate;
       if (newDate) {
-        setPayload.actualDate = newDate;
-        if (!isScheduled) {
-          setPayload.expectedDate = newDate;
+        setPayload.expectedDate = newDate;
+        if ((input as { actualDate?: string }).actualDate || input.status === "CONFIRMED") {
+          setPayload.actualDate = (input as { actualDate?: string }).actualDate || newDate;
         }
       }
 

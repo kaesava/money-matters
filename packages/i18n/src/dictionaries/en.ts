@@ -1947,11 +1947,13 @@ export const en = {
       totalAllocated: "Total Allocated",
     },
     eventOverride: {
-      title: "Override Scheduled Event",
+      title: "Edit Upcoming Event",
       subtitle: "Edit upcoming event: {name}",
-      overrideAmount: "Override Amount ($)",
-      overrideDate: "Override Date (YYYY-MM-DD)",
-      submit: "Apply Event Override",
+      overrideAmount: "Amount ($ AUD)",
+      overrideDate: "Date",
+      nameLabel: "Event Name",
+      namePlaceholder: "Enter event name",
+      submit: "Save Changes",
       editMasterSeries: "Edit Master Series",
     },
     incomeExpenseForm: {

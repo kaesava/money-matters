@@ -16,9 +16,11 @@ import {
 import { t } from "@money-matters/i18n";
 import { getTenantDateString } from "@money-matters/core";
 import { TransferModal } from "../../../../components/web/TransferModal";
+import { EditUpcomingEventModal } from "../../../../components/web/EditUpcomingEventModal";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface TimelineEventItem extends EventItem {
+  eventKind?: "INCOME" | "EXPENSE" | "TRANSFER";
   name?: string | null;
   note?: string | null;
   poolId?: string | null;
@@ -112,6 +114,7 @@ export function UpcomingTimelineTab({
   const { fmt, fmtDate: formatLocaleDate } = useLocale();
   const todayStr = useMemo(() => getTenantDateString(new Date()), []);
   const [transferModalEvent, setTransferModalEvent] = useState<TimelineEventItem | null>(null);
+  const [editEvent, setEditEvent] = useState<TimelineEventItem | null>(null);
 
   // Filter States
   const [kindFilter, setKindFilter] = useState<"ALL" | "INCOME" | "EXPENSE" | "TRANSFER">(initialKindFilter);
@@ -235,6 +238,14 @@ export function UpcomingTimelineTab({
 
   const handleTransferClick = (evt: TimelineEventItem) => {
     setTransferModalEvent(evt);
+  };
+
+  const handleEventNameClick = (evt: TimelineEventItem) => {
+    if (evt.eventKind === "TRANSFER") {
+      setTransferModalEvent(evt);
+    } else {
+      setEditEvent(evt);
+    }
   };
 
   return (
@@ -469,17 +480,21 @@ export function UpcomingTimelineTab({
                         </div>
                       </td>
 
-                      {/* Name Column (Clean without redundant badges) */}
+                      {/* Name Column (Clickable hyperlink to edit individual event) */}
                       <td className="py-3 px-4 text-left">
                         <div className="flex flex-col gap-0.5">
-                          <span className="font-bold text-zinc-900 dark:text-white">
+                          <button
+                            type="button"
+                            onClick={() => handleEventNameClick(evt)}
+                            className="font-bold text-[#2563eb] hover:underline cursor-pointer text-left focus:outline-none"
+                          >
                             {evt.name ||
                               (isIncome
                                 ? "Income Deposit"
                                 : isTransfer
                                 ? "Pool Transfer"
                                 : "Scheduled Expense")}
-                          </span>
+                          </button>
                           {evt.note && (
                             <span className="text-[11px] text-zinc-400 italic">
                               {evt.note}
@@ -756,6 +771,14 @@ export function UpcomingTimelineTab({
             setTransferModalEvent(null);
           }}
           formatAUD={fmt}
+        />
+      )}
+
+      {editEvent && (
+        <EditUpcomingEventModal
+          isOpen={Boolean(editEvent)}
+          onClose={() => setEditEvent(null)}
+          event={editEvent}
         />
       )}
     </div>
