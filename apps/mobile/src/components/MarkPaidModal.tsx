@@ -131,10 +131,13 @@ export function MarkPaidModal({
     return map;
   }, [validFundingPools]);
 
+  const groupKeys = useMemo(() => Object.keys(groupedPools).sort().join(','), [groupedPools]);
+
   // Initialize/prefill transfers when shortfall exists
   useEffect(() => {
     if (!visible || !hasShortfall) {
-      setTransferAmounts({});
+      setTransferAmounts((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+      setExpandedGroups((prev) => (Object.keys(prev).length === 0 ? prev : {}));
       return;
     }
 
@@ -148,14 +151,28 @@ export function MarkPaidModal({
         initialAmounts[surplusPool.id] = prefill.toFixed(2);
       }
     }
-    setTransferAmounts(initialAmounts);
+    setTransferAmounts((prev) => {
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(initialAmounts);
+      if (prevKeys.length === nextKeys.length && prevKeys.every((k) => prev[k] === initialAmounts[k])) {
+        return prev;
+      }
+      return initialAmounts;
+    });
 
     const initialExpanded: Record<string, boolean> = {};
     Object.keys(groupedPools).forEach((typeKey) => {
       initialExpanded[typeKey] = true;
     });
-    setExpandedGroups(initialExpanded);
-  }, [visible, hasShortfall, shortfallAmount, surplusPool, groupedPools]);
+    setExpandedGroups((prev) => {
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(initialExpanded);
+      if (prevKeys.length === nextKeys.length && prevKeys.every((k) => prev[k] === initialExpanded[k])) {
+        return prev;
+      }
+      return initialExpanded;
+    });
+  }, [visible, hasShortfall, shortfallAmount, surplusPool?.id, surplusPool?.currentBalance, groupKeys]);
 
   const toggleGroup = (typeKey: string) => {
     setExpandedGroups((prev) => ({
