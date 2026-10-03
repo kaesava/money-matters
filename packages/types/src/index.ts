@@ -33,6 +33,7 @@ export * from "./profile.types";
 export * from "./household.types";
 export * from "./bank-account.types";
 export * from "./subscription.types";
+export * from "./shortfall-allocation";
 
 /**
  * Subscription status lifecycle state machine.

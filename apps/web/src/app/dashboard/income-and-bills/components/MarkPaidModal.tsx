@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
 import { Button, AmountField, DatePickerField, ModalDialog } from "@money-matters/ui/web";
-import { validateShortfallAllocations } from "@money-matters/capability-budgeting";
+import { validateShortfallAllocations } from "@money-matters/types";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface CategoryOption {

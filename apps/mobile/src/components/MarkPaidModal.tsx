@@ -18,7 +18,7 @@ import {
   useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { validateShortfallAllocations } from '@money-matters/capability-budgeting';
+import { validateShortfallAllocations } from '@money-matters/types';
 import { trpc } from '../lib/trpc';
 import { formatAUD, formatDate } from '../lib/format';
 import { triggerHaptic } from '../lib/haptics';
