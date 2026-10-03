@@ -1,19 +1,12 @@
 "use client";
 
 import React, { useId, useState } from "react";
-import { InfoTooltip, useToast, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField, AmountField, ModalDialog } from "@money-matters/ui/web";
+import { InfoTooltip, isFormDirty, ConfirmDialog, Button, Input, GenericSelectField, AmountField, ModalDialog } from "@money-matters/ui/web";
 import { t } from "@money-matters/i18n";
 import { useLocale } from "../../../../providers/LocaleProvider";
+import { computeAccountAvailability } from "@money-matters/types";
 
 type BankName = "CBA" | "Westpac" | "ANZ" | "NAB" | "ING" | "Macquarie" | "Other";
-
-export interface PoolRecord {
-  id: string;
-  name: string;
-  poolType: string;
-  bankAccountId: string;
-  currentBalance: number;
-}
 
 export interface BankAccountFormModalProps {
   readonly isOpen: boolean;
@@ -28,10 +21,6 @@ export interface BankAccountFormModalProps {
   readonly setAccBuffer: (val: string) => void;
   readonly accIsPrivate: boolean;
   readonly setAccIsPrivate: (val: boolean) => void;
-  readonly pools: PoolRecord[];
-  readonly selectedPoolIds: string[];
-  readonly onPoolToggle: (poolId: string) => void;
-  readonly accounts: Array<{ id: string; name: string }>;
   readonly isTrialExpired: boolean;
   readonly isSaving: boolean;
   readonly bankOptions: Array<{ key: BankName; label: string; logoBg: string; textColor: string }>;
@@ -40,6 +29,11 @@ export interface BankAccountFormModalProps {
   readonly fmtMoney: (val: number | string | undefined) => string;
   readonly onArchive?: () => void;
   readonly errorMsg?: string | null;
+  // Optional legacy props to maintain non-breaking compatibility
+  readonly pools?: unknown[];
+  readonly selectedPoolIds?: string[];
+  readonly onPoolToggle?: (poolId: string) => void;
+  readonly accounts?: Array<{ id: string; name: string }>;
 }
 
 export function BankAccountFormModal({
@@ -55,10 +49,6 @@ export function BankAccountFormModal({
   setAccBuffer,
   accIsPrivate,
   setAccIsPrivate,
-  pools,
-  selectedPoolIds,
-  onPoolToggle,
-  accounts,
   isTrialExpired,
   isSaving,
   bankOptions,
@@ -69,14 +59,10 @@ export function BankAccountFormModal({
   errorMsg,
 }: BankAccountFormModalProps) {
   const { currency, currencySymbol, minorUnits } = useLocale();
-  const toast = useToast();
   const privateCheckId = useId();
 
   const [privacyWarningTarget, setPrivacyWarningTarget] = useState<boolean | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-  const [poolStealTarget, setPoolStealTarget] = useState<{ pool: PoolRecord; ownerName: string } | null>(null);
-
-  const initialPoolIds = editingAccount ? pools.filter(p => p.bankAccountId === editingAccount.id).map(p => p.id) : [];
 
   const initialState = editingAccount ? {
     name: editingAccount.name,
@@ -84,7 +70,6 @@ export function BankAccountFormModal({
     balance: (editingAccount as unknown as { lastKnownBalance?: string }).lastKnownBalance || "0",
     buffer: (editingAccount as unknown as { unbudgetedBuffer?: string }).unbudgetedBuffer || "0",
     isPrivate: Boolean((editingAccount as unknown as { isPrivate?: boolean }).isPrivate),
-    selectedPoolIds: initialPoolIds,
   } : null;
 
   const currentState = {
@@ -93,19 +78,11 @@ export function BankAccountFormModal({
     balance: accBalance,
     buffer: accBuffer,
     isPrivate: accIsPrivate,
-    selectedPoolIds,
   };
 
   const isDirty = isFormDirty(initialState, currentState);
-
-  const currentAvailable = Math.max(0, (parseFloat(accBalance) || 0) - (parseFloat(accBuffer) || 0));
-  const isNegativeAvailable = (parseFloat(accBalance) || 0) < (parseFloat(accBuffer) || 0);
-
-  const linkedPools = editingAccount
-    ? pools.filter((p) => p.bankAccountId === editingAccount.id)
-    : pools.filter((p) => selectedPoolIds.includes(p.id));
-  const linkedPoolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-  const diffBeforeSave = Number((currentAvailable - linkedPoolsTotal).toFixed(2));
+  const { actualBalance, buffer, available } = computeAccountAvailability(accBalance, accBuffer);
+  const isBufferInvalid = buffer > actualBalance;
 
   const handlePrivateCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = e.target.checked;
@@ -126,21 +103,20 @@ export function BankAccountFormModal({
       isOpen={isOpen}
       onClose={onClose}
       isDirty={isDirty}
-      title={editingAccount ? "Edit Bank Account" : "Add New Bank Account"}
+      title={editingAccount ? t("settings.bankAccountForm.editTitle") : t("settings.bankAccountForm.addTitle")}
       maxWidth="max-w-lg"
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-
-        {(errorMsg || isNegativeAvailable) && (
+        {(errorMsg || isBufferInvalid) && (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-            {isNegativeAvailable
-              ? "Unbudgeted Buffer / Reserved amount cannot exceed the Current Balance."
+            {isBufferInvalid
+              ? t("settings.bankAccountForm.bufferExceedsBalance")
               : errorMsg}
           </div>
         )}
 
         <GenericSelectField
-          label="Bank Institution"
+          label={t("settings.bankAccountForm.bankProviderLabel")}
           value={accBankProvider}
           onChange={(val) => setAccBankProvider(val as BankName)}
           options={bankOptions.map((b) => ({ value: b.key, label: b.label }))}
@@ -148,29 +124,29 @@ export function BankAccountFormModal({
         />
 
         <Input
-          label="Account Name"
+          label={t("settings.bankAccountForm.accountNameLabel")}
           type="text"
           value={accName}
           onChange={(e) => setAccName(e.target.value)}
-          placeholder="e.g. Smart Access Savings"
+          placeholder={t("settings.bankAccountForm.accountNamePlaceholder")}
           required
           autoFocus
         />
 
         <div className="flex flex-col gap-3 p-3.5 bg-zinc-50/80 rounded-2xl border border-zinc-200/80">
           <AmountField
-            label={`Current Balance (${currencySymbol})`}
+            label={`${t("settings.bankAccountForm.balanceLabel")} (${currencySymbol})`}
             value={accBalance}
             onChange={setAccBalance}
             required
-            allowNegative={true}
+            allowNegative={false}
             currency={currency}
             currencySymbol={currencySymbol}
             minorUnits={minorUnits}
           />
 
           <AmountField
-            label={`Unbudgeted Buffer / Reserved Funds (${currencySymbol})`}
+            label={`${t("settings.bankAccountForm.bufferLabel")} (${currencySymbol})`}
             value={accBuffer}
             onChange={setAccBuffer}
             placeholder="0.00"
@@ -182,101 +158,17 @@ export function BankAccountFormModal({
 
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-xs font-bold">
             <div className="flex items-center gap-1">
-              <span className="text-[#1B2B4B]">Amount Available to Budget:</span>
-              <InfoTooltip content="Net spendable funds in this account (Current Balance − Reserved Funds)." />
+              <span className="text-[#1B2B4B]">{t("settings.bankAccountForm.availableLabel")}</span>
+              <InfoTooltip content={t("settings.bankAccountForm.availableTooltip")} />
             </div>
-            <span className={`font-mono text-sm font-black ${isNegativeAvailable ? "text-rose-600" : "text-emerald-700"}`}>
-              {fmtMoney(currentAvailable)}
+            <span className={`font-mono text-sm font-black ${isBufferInvalid ? "text-rose-600" : "text-emerald-700"}`}>
+              {fmtMoney(available)}
             </span>
-          </div>
-
-          <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-100/80 border border-zinc-200 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-600 font-medium">Linked Pools Total:</span>
-              <span className="font-mono font-bold text-zinc-800">{fmtMoney(linkedPoolsTotal)}</span>
-            </div>
-            {linkedPools.length > 0 && (
-              <div className="flex items-center justify-between pt-1 border-t border-zinc-200/60">
-                <span className="text-zinc-600 font-medium">Variance to Available:</span>
-                <span className={`font-mono font-bold ${Math.abs(diffBeforeSave) > 0.009 ? (diffBeforeSave > 0 ? "text-emerald-700" : "text-amber-700") : "text-emerald-700"}`}>
-                  {Math.abs(diffBeforeSave) > 0.009
-                    ? (diffBeforeSave > 0 ? `+${fmtMoney(diffBeforeSave)} surplus` : `-${fmtMoney(Math.abs(diffBeforeSave))} shortfall`)
-                    : "✓ Balanced"}
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
-        {!editingAccount && (
-          <div className="flex flex-col gap-2 pt-1 border-t border-zinc-100">
-            <div className="flex items-center gap-1">
-              <label className="text-xs font-bold text-[#1B2B4B]">Link Pools to this Account</label>
-              <InfoTooltip content="Each pool record (Everyday, Bills, Goals) is linked to a bank account. Linked pools inherit their privacy and user access directly from this account." />
-            </div>
-            <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-              {pools.length === 0 ? (
-                <p className="text-xs text-zinc-400 italic py-2">No pools created yet.</p>
-              ) : (
-                pools.map((pool) => {
-                  const isChecked = selectedPoolIds.includes(pool.id);
-                  const isCurrentlyOwned = Boolean(editingAccount && pool.bankAccountId === (editingAccount as { id: string }).id);
-                  const currentOwner = accounts.find((a) => a.id === pool.bankAccountId && a.id !== (editingAccount as { id: string } | null)?.id);
-                  const typeLabel = pool.poolType === "EVERYDAY" ? "Everyday" : pool.poolType === "REGULAR" ? "Bills" : "Goal";
-                  const badgeStyle = pool.poolType === "EVERYDAY" ? "bg-emerald-50 text-emerald-700" : pool.poolType === "REGULAR" ? "bg-blue-50 text-[#2563eb]" : "bg-indigo-50 text-indigo-700";
-
-                  const handleToggleClick = (e: React.MouseEvent) => {
-                    e.preventDefault();
-                    if (isChecked && isCurrentlyOwned) {
-                      toast.info("To unlink this pool, link it to your target Bank Account instead.");
-                      return;
-                    }
-                    if (!isChecked && currentOwner) {
-                      setPoolStealTarget({ pool, ownerName: currentOwner.name });
-                      return;
-                    }
-                    onPoolToggle(pool.id);
-                  };
-
-                  return (
-                    <div
-                      key={pool.id}
-                      onClick={handleToggleClick}
-                      className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors ${
-                        isChecked ? "bg-blue-50/50 border-[#2563eb] text-[#1B2B4B]" : "bg-zinc-50/50 border-zinc-200 text-zinc-600"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {}}
-                          className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb]"
-                        />
-                        <div className="flex items-center gap-2">
-                          <span>{pool.name}</span>
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${badgeStyle}`}>
-                            {typeLabel}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        {currentOwner && !isChecked ? (
-                          <span className="text-[10px] font-normal text-zinc-400">Linked to: {currentOwner.name}</span>
-                        ) : (
-                          <span className="text-[10px] font-mono text-zinc-400">Available: {fmtMoney(pool.currentBalance)}</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className={`flex items-center gap-2 p-3 rounded-xl border ${Boolean(editingAccount) || isTrialExpired ? 'bg-zinc-100 border-zinc-200 opacity-70' : 'bg-slate-50 border-zinc-200'}`}>
-          <label htmlFor={privateCheckId} className={`flex items-center gap-2 text-xs font-bold text-zinc-700 flex-1 ${Boolean(editingAccount) ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+        <div className={`flex items-center gap-2 p-3 rounded-xl border ${Boolean(editingAccount) || isTrialExpired ? "bg-zinc-100 border-zinc-200 opacity-70" : "bg-slate-50 border-zinc-200"}`}>
+          <label htmlFor={privateCheckId} className={`flex items-center gap-2 text-xs font-bold text-zinc-700 flex-1 ${Boolean(editingAccount) ? "cursor-not-allowed" : "cursor-pointer"}`}>
             <input
               id={privateCheckId}
               type="checkbox"
@@ -285,12 +177,12 @@ export function BankAccountFormModal({
               onChange={handlePrivateCheckboxChange}
               className="w-4 h-4 text-[#2563eb] rounded focus:ring-2 focus:ring-[#2563eb] disabled:opacity-50"
             />
-            <span>{t("bankAccounts.privatePersonalAccount")}</span>
+            <span>{t("settings.bankAccountForm.privacyLabel")}</span>
           </label>
           {Boolean(editingAccount) ? (
-            <InfoTooltip content="Privacy level is locked after account creation to protect data integrity and tenant isolation." />
+            <InfoTooltip content={t("settings.bankAccountForm.privacyLockedTooltip")} />
           ) : isTrialExpired ? (
-            <InfoTooltip content={t("bankAccounts.upgradeToPrivate")} />
+            <InfoTooltip content={t("settings.bankAccountForm.privacyUpgradeTooltip")} />
           ) : null}
         </div>
 
@@ -300,9 +192,9 @@ export function BankAccountFormModal({
               <button
                 type="button"
                 onClick={() => setShowArchiveConfirm(true)}
-                className="text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition-colors"
+                className="text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400 transition-colors cursor-pointer"
               >
-                Archive Account
+                {t("settings.bankAccountForm.archiveAccountCta")}
               </button>
             )}
           </div>
@@ -311,87 +203,45 @@ export function BankAccountFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
+              className="px-4 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors cursor-pointer"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <Button
               type="submit"
               loading={isSaving}
-              disabled={!accName.trim() || isNegativeAvailable || !isDirty}
-              title={isNegativeAvailable ? "Reserved funds cannot exceed Current Balance" : !isDirty ? "No changes to save" : undefined}
+              disabled={!accName.trim() || isBufferInvalid || !isDirty}
+              title={isBufferInvalid ? t("settings.bankAccountForm.bufferExceedsBalance") : !isDirty ? t("modals.discardChanges.noChanges") : undefined}
             >
-              {editingAccount ? "Save Changes" : "Create Account"}
+              {editingAccount ? t("settings.bankAccountForm.saveCta") : t("settings.bankAccountForm.createCta")}
             </Button>
           </div>
         </div>
 
         <ConfirmDialog
-          isOpen={!!poolStealTarget}
-          onClose={() => setPoolStealTarget(null)}
-          onConfirm={() => {
-            if (poolStealTarget) {
-              onPoolToggle(poolStealTarget.pool.id);
-              setPoolStealTarget(null);
-            }
-          }}
-          title="Re-link Pool"
-          description={`"_${poolStealTarget?.pool.name}_" is currently linked to **${poolStealTarget?.ownerName}**. Linking it here will move it to this account. Are you sure?`}
-          confirmLabel="Link to this Account"
+          isOpen={privacyWarningTarget !== null}
+          onClose={() => setPrivacyWarningTarget(null)}
+          onConfirm={handleConfirmPrivacyChange}
+          title={t("settings.bankAccountForm.privacyConfirmTitle")}
+          description={t("settings.bankAccountForm.privacyConfirmBody")}
+          confirmLabel={t("common.confirm")}
           variant="warning"
         />
 
-        {/* Privacy Warning Confirmation Modal */}
-        {privacyWarningTarget !== null && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full border border-amber-200 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-xl">
-                ⚠️
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold text-[#1B2B4B]">Privacy Settings Warning</h4>
-                <p className="text-xs text-zinc-600 leading-relaxed">
-                  {privacyWarningTarget
-                    ? "Marking this account as Private will hide it completely from your household partner, including its name, balance, and transaction history. Are you sure?"
-                    : "Making this account Shared will allow your household partner to see its name, balance, and all past transaction history. Are you sure?"}
-                </p>
-              </div>
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
-                <button
-                  type="button"
-                  onClick={() => setPrivacyWarningTarget(null)}
-                  className="px-3.5 py-2 text-xs font-bold text-zinc-600 rounded-xl hover:bg-zinc-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmPrivacyChange}
-                  className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition-colors"
-                >
-                  Confirm Change
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          isOpen={showArchiveConfirm}
+          onClose={() => setShowArchiveConfirm(false)}
+          onConfirm={() => {
+            setShowArchiveConfirm(false);
+            if (onArchive) onArchive();
+            onClose();
+          }}
+          title={t("settings.bankAccountForm.archiveConfirmTitle")}
+          description={t("settings.bankAccountForm.archiveConfirmBody", { name: editingAccount?.name || "" })}
+          confirmLabel={t("settings.bankAccountForm.archiveAccountCta")}
+          variant="danger"
+        />
       </form>
-
-      <ConfirmDialog
-        isOpen={showArchiveConfirm}
-        onClose={() => setShowArchiveConfirm(false)}
-        onConfirm={() => {
-          setShowArchiveConfirm(false);
-          if (onArchive) onArchive();
-          onClose();
-        }}
-        title="Archive Bank Account"
-        description={`Are you sure you want to archive "${editingAccount?.name || ""}"?`}
-        confirmLabel="Archive Account"
-        variant="danger"
-      />
     </ModalDialog>
   );
 }
-
-

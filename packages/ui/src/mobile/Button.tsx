@@ -16,6 +16,7 @@ export interface ButtonProps extends TouchableOpacityProps {
   size?: 'sm' | 'md' | 'lg';
   textStyle?: StyleProp<TextStyle>;
   title?: string;
+  label?: string;
   children?: React.ReactNode;
   loading?: boolean;
 }
@@ -24,6 +25,7 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   title,
+  label,
   children,
   style,
   textStyle,
@@ -78,7 +80,7 @@ export const Button: React.FC<ButtonProps> = ({
         children
       ) : (
         <Text style={[styles.baseText, txtStyle, textStyle]}>
-          {title}
+          {label ?? title}
         </Text>
       )}
     </TouchableOpacity>

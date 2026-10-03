@@ -101,7 +101,7 @@ export const budgetingRouter = {
 
   listArchivedItems: privateTenantProcedure
     .query(async ({ ctx }) => {
-      return await listArchivedItemsQuery(ctx.tenantId!, ctx.appId!, ctx.db);
+      return await listArchivedItemsQuery(ctx.tenantId!, ctx.appId!, ctx.db, ctx.userId!);
     }),
 
   restoreItem: privateTenantProcedure

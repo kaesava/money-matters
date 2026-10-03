@@ -40,6 +40,7 @@ export interface IncomeSplitPoolTableProps {
   readonly isReadOnly: boolean;
   readonly onLineAmountChange: (poolId: string, val: string) => void;
   readonly onLineReasoningChange?: (poolId: string, reasoning: string) => void;
+  readonly onOpenPoolDrawer?: (poolId: string, poolName: string) => void;
 }
 
 function fmt(val: number) {
@@ -58,6 +59,7 @@ export function IncomeSplitPoolTable({
   isReadOnly,
   onLineAmountChange,
   onLineReasoningChange,
+  onOpenPoolDrawer,
 }: IncomeSplitPoolTableProps) {
   const { fmtDate } = useLocale();
   // Collapsed state for each group (default: none collapsed)
@@ -155,9 +157,19 @@ export function IncomeSplitPoolTable({
                               >
                                 <td className="py-3 px-4 md:px-6 text-left">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-bold text-sm text-[#1B2B4B] dark:text-white">
-                                      {l.bucketName}
-                                    </span>
+                                    {onOpenPoolDrawer ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenPoolDrawer(l.bucketId, l.bucketName)}
+                                        className="font-bold text-sm text-[#1B2B4B] dark:text-white hover:text-[#2563eb] hover:underline cursor-pointer text-left"
+                                      >
+                                        {l.bucketName}
+                                      </button>
+                                    ) : (
+                                      <span className="font-bold text-sm text-[#1B2B4B] dark:text-white">
+                                        {l.bucketName}
+                                      </span>
+                                    )}
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                       {t("paydayDrawer.autoSurplusBadge")}
                                     </span>
@@ -236,9 +248,19 @@ export function IncomeSplitPoolTable({
                               className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors"
                             >
                               <td className="py-3 px-4 md:px-6 text-left">
-                                <div className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
-                                  {l.bucketName}
-                                </div>
+                                {onOpenPoolDrawer ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenPoolDrawer(l.bucketId, l.bucketName)}
+                                    className="font-semibold text-sm text-[#1B2B4B] dark:text-white hover:text-[#2563eb] hover:underline cursor-pointer text-left"
+                                  >
+                                    {l.bucketName}
+                                  </button>
+                                ) : (
+                                  <div className="font-semibold text-sm text-[#1B2B4B] dark:text-white">
+                                    {l.bucketName}
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3 px-3 text-center font-mono text-xs text-zinc-600 dark:text-zinc-300">
                                 {targetDisplay}

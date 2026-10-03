@@ -1,10 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
 import {
-  DESIGN_TOKENS,
   SegmentedTabs,
   SegmentTabItem,
   showMobileConfirm,
@@ -25,7 +24,6 @@ import { FeedbackFormModal } from '../../components/FeedbackFormModal';
 import { MobileTenantSwitcherModal } from '../../components/settings/MobileTenantSwitcherModal';
 
 import { getMobileVersionInfo } from '../../lib/version';
-
 import { MobileBankAccountsSection } from '../../components/settings/MobileBankAccountsSection';
 import { MobileArchivedSection } from '../../components/settings/MobileArchivedSection';
 
@@ -37,14 +35,31 @@ export default function SettingsScreen() {
   const toast = useMobileToast();
   const { data: session } = authClient.useSession();
 
-  const resolvedTab = (searchParams.tab as SettingsTab) || 'profile';
+  const subStatusQuery = trpc.getSubscriptionStatus.useQuery();
+  const isTrialExpired = subStatusQuery.data?.status === 'TRIAL_EXPIRED';
+
+  const resolvedTab = (searchParams.tab as SettingsTab) || (isTrialExpired ? 'account-data' : 'profile');
   const [activeTab, setActiveTab] = useState<SettingsTab>(resolvedTab);
 
-  React.useEffect(() => {
-    if (searchParams.tab && ['profile', 'household', 'bank-accounts', 'archived', 'account-data'].includes(searchParams.tab)) {
+  // Tab switch dirty tracking
+  const [isProfileDirty, setIsProfileDirty] = useState(false);
+  const [isHouseholdDirty, setIsHouseholdDirty] = useState(false);
+  const discardProfileRef = useRef<(() => void) | null>(null);
+  const discardHouseholdRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (isTrialExpired) {
+      if (activeTab !== 'account-data') {
+        setActiveTab('account-data');
+      }
+    } else if (
+      searchParams.tab &&
+      ['profile', 'household', 'bank-accounts', 'archived', 'account-data'].includes(searchParams.tab)
+    ) {
       setActiveTab(searchParams.tab as SettingsTab);
     }
-  }, [searchParams.tab]);
+  }, [searchParams.tab, isTrialExpired]);
+
   const [loading, setLoading] = useState(false);
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [tenantSwitcherVisible, setTenantSwitcherVisible] = useState(false);
@@ -58,12 +73,50 @@ export default function SettingsScreen() {
   const versionInfo = getMobileVersionInfo();
 
   const handleCopyDiagnostics = () => {
-    toast.info(
-      `Money Matters ${versionInfo.formattedVersion} (${versionInfo.channel})\nCommit: ${versionInfo.gitCommit}`
-    );
+    const jsonStr = JSON.stringify(versionInfo, null, 2);
+    toast.info(jsonStr, 'Diagnostics Copied');
   };
 
   const utils = trpc.useUtils();
+
+  const handleTabChange = (nextTab: SettingsTab) => {
+    if (isTrialExpired && nextTab !== 'account-data') {
+      return;
+    }
+    if (nextTab === activeTab) return;
+
+    if (activeTab === 'profile' && isProfileDirty) {
+      showMobileConfirm({
+        title: t('modals.discardChanges.title'),
+        message: t('modals.discardChanges.description'),
+        confirmText: t('modals.discardChanges.discard'),
+        cancelText: t('modals.discardChanges.cancel'),
+        isDestructive: true,
+        onConfirm: () => {
+          discardProfileRef.current?.();
+          setActiveTab(nextTab);
+        },
+      });
+      return;
+    }
+
+    if (activeTab === 'household' && isHouseholdDirty) {
+      showMobileConfirm({
+        title: t('modals.discardChanges.title'),
+        message: t('modals.discardChanges.description'),
+        confirmText: t('modals.discardChanges.discard'),
+        cancelText: t('modals.discardChanges.cancel'),
+        isDestructive: true,
+        onConfirm: () => {
+          discardHouseholdRef.current?.();
+          setActiveTab(nextTab);
+        },
+      });
+      return;
+    }
+
+    setActiveTab(nextTab);
+  };
 
   const handleSignOut = async () => {
     showMobileConfirm({
@@ -130,14 +183,18 @@ export default function SettingsScreen() {
           <SegmentedTabs
             tabs={tabs}
             activeKey={activeTab}
-            onChange={setActiveTab}
+            onChange={handleTabChange}
           />
 
           {/* TAB 1: MY DETAILS */}
           {activeTab === 'profile' && (
             <View style={styles.tabSection}>
-              {/* User Profile Details & Avatar */}
-              <MobileProfileSection />
+              <MobileProfileSection
+                onDirtyChange={setIsProfileDirty}
+                registerDiscard={(fn) => {
+                  discardProfileRef.current = fn;
+                }}
+              />
 
               {/* Push Notifications Card */}
               <View style={styles.card}>
@@ -206,7 +263,12 @@ export default function SettingsScreen() {
               </View>
 
               {/* Household Profile & Location Details */}
-              <HouseholdDetailsSection />
+              <HouseholdDetailsSection
+                onDirtyChange={setIsHouseholdDirty}
+                registerDiscard={(fn) => {
+                  discardHouseholdRef.current = fn;
+                }}
+              />
 
               {/* Family & Partner Invites */}
               <HouseholdPartnerInviteSection />
@@ -308,14 +370,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     flex: 1,
-  },
-  householdIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   activeHouseholdLabel: {
     fontSize: 11,

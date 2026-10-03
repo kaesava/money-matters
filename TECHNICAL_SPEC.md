@@ -409,6 +409,11 @@ tenants (id PK, appId FK→apps.id, name, subscriptionTier, stripeCustomerId, st
 - **`PoolPicker`**:
   - Requires mandatory `showBalance: boolean` prop. Controls whether pool chips and dropdown options display current balance badges (useful for contextual selection where balance display might be redundant or clutter the UI).
   - Supports `allowAllOption?: boolean` (and `allOptionLabel?: string`) for filter dropdown contexts, rendering a pinned "All Pools" option at the top with active checkmark indicator, plus a quick clear `(X)` reset button on the trigger field when a pool/category filter is applied.
+- **`MobilePoolPicker` (`packages/ui/src/mobile/MobilePoolPicker.tsx`)**:
+  - Unified mobile pool and category selector component in 100% parity with web `PoolPicker`.
+  - Supports `mode?: 'modal' | 'inline'` (defaulting to `'inline'` for `displayStyle="field"`), avoiding nested React Native modal window manager conflicts on Android when spawned inside modal sheets.
+  - Groups pools by type (`EVERYDAY POOLS`, `BILLS POOLS`, `GOALS`, `OTHER POOLS`) with collapsible headers, real-time search filtering, formatted balances, and indented subcategories.
+  - Fully integrated into mobile Quick Actions (`QuickExpenseTab`, `QuickTransferTab`), and transfer modals (`MobileTransferModal`), retiring local ad-hoc picker sheets.
 - **Centralized LIFO Modal Stack Manager (`modalStack.ts` / `useModalDismiss`)**:
   - Managed via `@money-matters/ui/web` (`packages/ui/src/web/modalStack.ts`), maintaining a global Last-In-First-Out (LIFO) modal registry.
   - Subscribes `ConfirmDialog`, `SlideOverDrawer`, `ModalDialog`, `ReconciliationModal`, and `CrossBankTransferModal`.

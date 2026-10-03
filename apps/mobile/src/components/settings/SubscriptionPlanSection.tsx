@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Linking, StyleSheet, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useMobileToast, DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import { useMobileToast, MobileButton } from '@money-matters/ui/mobile';
 import { trpc } from '../../lib/trpc';
 import { t } from '@money-matters/i18n';
 import { formatDate } from '../../lib/format';
+import { MobilePlanPickerModal, PlanChoice } from './MobilePlanPickerModal';
+import { MobileInvoiceHistory } from './MobileInvoiceHistory';
 
 export function SubscriptionPlanSection() {
   const toast = useMobileToast();
   const [syncing, setSyncing] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
   const trpcUtils = trpc.useUtils();
   const statusQuery = trpc.getSubscriptionStatus.useQuery();
   const checkoutMut = trpc.createCheckoutSession.useMutation();
@@ -59,18 +64,22 @@ export function SubscriptionPlanSection() {
     }
   };
 
-  const handleOpenStripeCheckout = async () => {
+  const handleSelectPlan = async (plan: PlanChoice) => {
+    setCheckoutLoading(true);
     try {
       const res = await checkoutMut.mutateAsync({
-        priceId: 'price_founding_member',
+        planType: plan,
         successUrl: 'moneymatters://subscription/success',
         cancelUrl: 'moneymatters://subscription/manage',
       });
       if (res.url) {
+        setPickerVisible(false);
         Linking.openURL(res.url);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to launch checkout.', 'Checkout Error');
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -87,11 +96,6 @@ export function SubscriptionPlanSection() {
     }
   };
 
-  const handleOpenInvoiceReceipt = (url?: string | null) => {
-    if (!url) return;
-    Linking.openURL(url);
-  };
-
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
@@ -104,9 +108,9 @@ export function SubscriptionPlanSection() {
             accessibilityLabel={t('subscription.refreshTooltip')}
           >
             {syncing ? (
-              <ActivityIndicator size="small" color={D.colors.primary} />
+              <ActivityIndicator size="small" color="#2563eb" />
             ) : (
-              <Feather name="refresh-cw" size={13} color={D.colors.textMuted} />
+              <Feather name="refresh-cw" size={13} color="#64748B" />
             )}
           </TouchableOpacity>
         </View>
@@ -147,94 +151,46 @@ export function SubscriptionPlanSection() {
 
       <View style={styles.btnRow}>
         {isSubscribed ? (
-          <TouchableOpacity style={styles.secondaryBtn} onPress={handleOpenStripePortal} activeOpacity={0.8}>
-            <Text style={styles.secondaryBtnText}>
-              {isCanceling ? t('subscription.resumeSubscription') : t('subscription.mobileManageSubscription')} ↗
-            </Text>
-          </TouchableOpacity>
+          <MobileButton
+            variant="secondary"
+            label={`${isCanceling ? t('subscription.resumeSubscription') : t('subscription.mobileManageSubscription')} ↗`}
+            onPress={handleOpenStripePortal}
+          />
         ) : (
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleOpenStripeCheckout} activeOpacity={0.8}>
-            <Text style={styles.primaryBtnText}>{t('subscription.mobileUpgradePlan')}</Text>
-          </TouchableOpacity>
+          <MobileButton
+            variant="primary"
+            label={t('subscription.mobileUpgradePlan')}
+            onPress={() => setPickerVisible(true)}
+          />
         )}
       </View>
 
-      {/* Invoice History & Receipts Sub-panel */}
+      {/* Invoice History */}
       {(isSubscribed || invoices.length > 0) && (
-        <View style={styles.invoiceSection}>
-          <Text style={styles.invoiceHeaderTitle}>
-            {t('subscription.invoiceHistoryTitle')}
-          </Text>
-
-          {invoicesQuery.isLoading ? (
-            <ActivityIndicator size="small" color={D.colors.sereneBlue} style={styles.loader} />
-          ) : invoices.length === 0 ? (
-            <Text style={styles.noInvoicesText}>{t('subscription.noInvoices')}</Text>
-          ) : (
-            <View style={styles.invoicesList}>
-              {invoices.map((inv) => {
-                const receiptUrl = inv.invoicePdfUrl || inv.hostedInvoiceUrl;
-                return (
-                  <View key={inv.id} style={styles.invoiceRow}>
-                    <View style={styles.invoiceInfo}>
-                      <Text style={styles.invoiceDate}>
-                        {inv.paidAt ? formatDate(inv.paidAt) : '—'}
-                      </Text>
-                      <View style={styles.invoiceAmountRow}>
-                        <Text style={styles.invoiceAmount}>
-                          ${inv.amountPaid} {inv.currency.toUpperCase()}
-                        </Text>
-                        <View
-                          style={[
-                            styles.invoiceStatusBadge,
-                            inv.status === 'paid' ? styles.invoicePaidBadge : styles.invoiceUnpaidBadge,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.invoiceStatusText,
-                              inv.status === 'paid' ? styles.invoicePaidText : styles.invoiceUnpaidText,
-                            ]}
-                          >
-                            {inv.status}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {receiptUrl ? (
-                      <TouchableOpacity
-                        onPress={() => handleOpenInvoiceReceipt(receiptUrl)}
-                        style={styles.receiptBtn}
-                        activeOpacity={0.7}
-                      >
-                        <Feather name="download" size={12} color={D.colors.sereneBlue} />
-                        <Text style={styles.receiptBtnText}>
-                          {t('subscription.downloadReceipt')}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.noReceiptText}>—</Text>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </View>
+        <MobileInvoiceHistory
+          invoices={invoices}
+          isLoading={invoicesQuery.isLoading}
+        />
       )}
+
+      {/* 3-Tier Plan Picker Modal */}
+      <MobilePlanPickerModal
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onSelectPlan={handleSelectPlan}
+        loading={checkoutLoading}
+      />
     </View>
   );
 }
 
-const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: D.colors.surface,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: D.colors.border,
+    borderColor: '#E2E8F0',
     gap: 10,
   },
   headerRow: {
@@ -250,177 +206,55 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: D.colors.primary,
+    color: '#1B2B4B',
   },
   syncBtn: {
     padding: 4,
-    borderRadius: 6,
-  },
-  cardSubtitle: {
-    fontSize: 11,
-    color: D.colors.textMuted,
-    lineHeight: 16,
-  },
-  billingSubtext: {
-    fontSize: 11,
-    color: D.colors.textMuted,
-    fontWeight: '600',
-  },
-  cancelingSubtext: {
-    fontSize: 11,
-    color: '#92400E',
-    fontWeight: '600',
-  },
-  btnRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  primaryBtn: {
-    flex: 1,
-    backgroundColor: D.colors.sereneBlue,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    color: D.colors.onPrimary,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  secondaryBtn: {
-    flex: 1,
-    backgroundColor: D.colors.surfaceVariant,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
   },
   activeBadge: {
-    backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
+    paddingVertical: 2,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 12,
   },
   activeBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#047857',
+    fontWeight: '700',
+    color: '#15803D',
   },
   cancelingBadge: {
-    backgroundColor: '#FFFBEB',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+    paddingVertical: 2,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
   },
   cancelingBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#92400E',
   },
   planNameText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: D.colors.primary,
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1B2B4B',
   },
-  secondaryBtnText: {
-    color: D.colors.textPrimary,
+  billingSubtext: {
     fontSize: 12,
-    fontWeight: '800',
+    color: '#64748B',
+    fontWeight: '500',
   },
-  invoiceSection: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: D.colors.border,
-    gap: 8,
-  },
-  invoiceHeaderTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: D.colors.textMuted,
-  },
-  loader: {
-    paddingVertical: 8,
-  },
-  noInvoicesText: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    color: D.colors.textMuted,
-  },
-  invoicesList: {
-    gap: 8,
-  },
-  invoiceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
-  },
-  invoiceInfo: {
-    gap: 2,
-  },
-  invoiceDate: {
+  cancelingSubtext: {
     fontSize: 12,
-    fontWeight: '600',
-    color: D.colors.textPrimary,
+    color: '#B45309',
+    fontWeight: '500',
   },
-  invoiceAmountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
   },
-  invoiceAmount: {
-    fontSize: 11,
-    fontFamily: D.fonts.mono,
-    fontWeight: '700',
-    color: D.colors.textPrimary,
-  },
-  invoiceStatusBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  invoicePaidBadge: {
-    backgroundColor: '#ECFDF5',
-  },
-  invoiceUnpaidBadge: {
-    backgroundColor: '#FEF2F2',
-  },
-  invoiceStatusText: {
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  invoicePaidText: {
-    color: '#047857',
-  },
-  invoiceUnpaidText: {
-    color: '#B91C1C',
-  },
-  receiptBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: '#EFF6FF',
-  },
-  receiptBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: D.colors.sereneBlue,
-  },
-  noReceiptText: {
-    fontSize: 11,
-    color: D.colors.textMuted,
+  btnRow: {
+    marginTop: 4,
+    alignItems: 'flex-start',
   },
 });

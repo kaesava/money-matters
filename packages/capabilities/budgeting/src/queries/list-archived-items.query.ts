@@ -4,7 +4,8 @@ import { eq, and, sql } from "drizzle-orm";
 export async function listArchivedItemsQuery(
   tenantId: string,
   appId: string,
-  dbClient: DbOrTx
+  dbClient: DbOrTx,
+  userId?: string
 ) {
   const [archivedPools, archivedCats, archivedIncome, archivedExpenses, archivedAccounts] = await Promise.all([
     dbClient
@@ -14,8 +15,11 @@ export async function listArchivedItemsQuery(
         itemType: sql<string>`'POOL'`,
         subtitle: pools.poolType,
         archivedAt: pools.archivedAt,
+        isPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
       })
       .from(pools)
+      .leftJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(pools.tenantId, tenantId),
@@ -30,8 +34,12 @@ export async function listArchivedItemsQuery(
         itemType: sql<string>`'CATEGORY'`,
         subtitle: categories.monthlyAmount,
         archivedAt: categories.archivedAt,
+        isPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
       })
       .from(categories)
+      .innerJoin(pools, eq(categories.poolId, pools.id))
+      .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(categories.tenantId, tenantId),
@@ -46,8 +54,11 @@ export async function listArchivedItemsQuery(
         itemType: sql<string>`'INCOME_SOURCE'`,
         subtitle: incomeSources.amount,
         archivedAt: incomeSources.archivedAt,
+        isPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
       })
       .from(incomeSources)
+      .leftJoin(bankAccounts, eq(incomeSources.receivingAccountId, bankAccounts.id))
       .where(
         and(
           eq(incomeSources.tenantId, tenantId),
@@ -62,8 +73,12 @@ export async function listArchivedItemsQuery(
         itemType: sql<string>`'EXPENSE_SOURCE'`,
         subtitle: expenseSources.amount,
         archivedAt: expenseSources.archivedAt,
+        isPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
       })
       .from(expenseSources)
+      .innerJoin(pools, eq(expenseSources.poolId, pools.id))
+      .innerJoin(bankAccounts, eq(pools.bankAccountId, bankAccounts.id))
       .where(
         and(
           eq(expenseSources.tenantId, tenantId),
@@ -78,6 +93,8 @@ export async function listArchivedItemsQuery(
         itemType: sql<string>`'BANK_ACCOUNT'`,
         subtitle: bankAccounts.lastKnownBalance,
         archivedAt: bankAccounts.archivedAt,
+        isPrivate: bankAccounts.isPrivate,
+        bankAccountUserId: bankAccounts.userId,
       })
       .from(bankAccounts)
       .where(
@@ -89,7 +106,26 @@ export async function listArchivedItemsQuery(
       ),
   ]);
 
-  return [...archivedPools, ...archivedCats, ...archivedIncome, ...archivedExpenses, ...archivedAccounts].sort(
+  const filterVisible = <T extends { isPrivate?: boolean | null; bankAccountUserId?: string | null }>(items: T[]): T[] => {
+    if (!userId) return items;
+    return items.filter((item) => !item.isPrivate || item.bankAccountUserId === userId);
+  };
+
+  const allVisible = [
+    ...filterVisible(archivedPools),
+    ...filterVisible(archivedCats),
+    ...filterVisible(archivedIncome),
+    ...filterVisible(archivedExpenses),
+    ...filterVisible(archivedAccounts),
+  ].map(({ id, name, itemType, subtitle, archivedAt }) => ({
+    id,
+    name,
+    itemType,
+    subtitle,
+    archivedAt,
+  }));
+
+  return allVisible.sort(
     (a, b) => new Date(b.archivedAt!).getTime() - new Date(a.archivedAt!).getTime()
   );
 }

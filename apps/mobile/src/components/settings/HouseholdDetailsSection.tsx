@@ -6,7 +6,15 @@ import { trpc } from '../../lib/trpc';
 import { HouseholdReadOnlyView } from './HouseholdReadOnlyView';
 import { HouseholdEditView } from './HouseholdEditView';
 
-export function HouseholdDetailsSection() {
+interface HouseholdDetailsSectionProps {
+  onDirtyChange?: (isDirty: boolean) => void;
+  registerDiscard?: (discardFn: () => void) => void;
+}
+
+export function HouseholdDetailsSection({
+  onDirtyChange,
+  registerDiscard,
+}: HouseholdDetailsSectionProps = {}) {
   const toast = useMobileToast();
   const utils = trpc.useUtils();
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
@@ -16,14 +24,17 @@ export function HouseholdDetailsSection() {
   const [householdName, setHouseholdName] = useState('');
   const [country, setCountry] = useState('AU');
   const [currency, setCurrency] = useState('AUD');
+  const [timezone, setTimezone] = useState('Australia/Sydney');
   const [state, setState] = useState('');
   const [postcode, setPostcode] = useState('');
+  const [postcodeError, setPostcodeError] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
 
   const initialDataRef = useRef({
     householdName: '',
     country: 'AU',
     currency: 'AUD',
+    timezone: 'Australia/Sydney',
     state: '',
     postcode: '',
   });
@@ -34,12 +45,14 @@ export function HouseholdDetailsSection() {
         householdName: gov.householdName || '',
         country: gov.country || 'AU',
         currency: gov.currency || 'AUD',
+        timezone: gov.timezone || 'Australia/Sydney',
         state: gov.state || '',
         postcode: gov.postcode || '',
       };
       setHouseholdName(data.householdName);
       setCountry(data.country);
       setCurrency(data.currency);
+      setTimezone(data.timezone);
       setState(data.state);
       setPostcode(data.postcode);
       initialDataRef.current = data;
@@ -51,10 +64,10 @@ export function HouseholdDetailsSection() {
       utils.getHouseholdGovernanceInfo.invalidate();
       utils.getUserPreferences.invalidate();
       setIsEditing(false);
-      toast.success('Household details updated successfully.');
+      toast.success(t('toasts.saved'));
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to update household details.');
+      toast.error(err.message || t('common.errorTryAgain'));
     },
   });
 
@@ -64,9 +77,30 @@ export function HouseholdDetailsSection() {
     householdName !== initialDataRef.current.householdName ||
     country !== initialDataRef.current.country ||
     currency !== initialDataRef.current.currency ||
+    timezone !== initialDataRef.current.timezone ||
     state !== initialDataRef.current.state ||
     postcode !== initialDataRef.current.postcode
   );
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty && isEditing);
+  }, [isDirty, isEditing, onDirtyChange]);
+
+  const handleDiscard = React.useCallback(() => {
+    const init = initialDataRef.current;
+    setHouseholdName(init.householdName);
+    setCountry(init.country);
+    setCurrency(init.currency);
+    setTimezone(init.timezone);
+    setState(init.state);
+    setPostcode(init.postcode);
+    setPostcodeError(undefined);
+    setIsEditing(false);
+  }, []);
+
+  useEffect(() => {
+    registerDiscard?.(handleDiscard);
+  }, [handleDiscard, registerDiscard]);
 
   const handleSelectCurrency = (newCurr: string) => {
     if (!isOwner) return;
@@ -94,15 +128,7 @@ export function HouseholdDetailsSection() {
         confirmText: t('modals.discardChanges.discard'),
         cancelText: t('modals.discardChanges.cancel'),
         isDestructive: true,
-        onConfirm: () => {
-          const init = initialDataRef.current;
-          setHouseholdName(init.householdName);
-          setCountry(init.country);
-          setCurrency(init.currency);
-          setState(init.state);
-          setPostcode(init.postcode);
-          setIsEditing(false);
-        },
+        onConfirm: handleDiscard,
       });
     } else {
       setIsEditing(false);
@@ -113,14 +139,16 @@ export function HouseholdDetailsSection() {
     if (!isOwner) return;
 
     if (!householdName.trim()) {
-      toast.error('Household name cannot be blank.');
+      toast.error(t('auth.householdNameRequired'));
       return;
     }
 
     if (country === 'AU' && postcode.trim() && !/^\d{4}$/.test(postcode.trim())) {
-      toast.error('Australian postcode must be exactly 4 digits.');
+      setPostcodeError(t('validation.postcodeDigits'));
+      toast.error(t('validation.postcodeDigits'));
       return;
     }
+    setPostcodeError(undefined);
 
     setSaving(true);
     try {
@@ -128,7 +156,7 @@ export function HouseholdDetailsSection() {
         name: householdName.trim(),
         country: country.trim(),
         currency: currency.trim(),
-        timezone: gov?.timezone || 'Australia/Sydney',
+        timezone: timezone.trim(),
         state: state.trim(),
         postcode: postcode.trim(),
       });
@@ -136,6 +164,7 @@ export function HouseholdDetailsSection() {
         householdName: householdName.trim(),
         country: country.trim(),
         currency: currency.trim(),
+        timezone: timezone.trim(),
         state: state.trim(),
         postcode: postcode.trim(),
       };
@@ -159,12 +188,15 @@ export function HouseholdDetailsSection() {
         setHouseholdName={setHouseholdName}
         currency={currency}
         onSelectCurrency={handleSelectCurrency}
+        timezone={timezone}
+        setTimezone={setTimezone}
         country={country}
         setCountry={setCountry}
         state={state}
         setState={setState}
         postcode={postcode}
         setPostcode={setPostcode}
+        postcodeError={postcodeError}
         saving={saving}
         onSave={handleSave}
         onCancel={handleCancel}
@@ -176,6 +208,7 @@ export function HouseholdDetailsSection() {
     <HouseholdReadOnlyView
       householdName={householdName}
       currency={currency}
+      timezone={timezone}
       country={country}
       state={state}
       postcode={postcode}

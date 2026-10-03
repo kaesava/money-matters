@@ -48,6 +48,7 @@ export function PoolsTable({
   onPageChange,
   onPageSizeChange,
   onEditPool,
+  onOpenCategoryDrawer,
   onAddCategoryForPool,
   onEditCategory,
   onAddPool,
@@ -313,7 +314,7 @@ export function PoolsTable({
                                   ) : (
                                     <button
                                       type="button"
-                                      onClick={() => onEditPool(pool.rawPool)}
+                                      onClick={() => (onOpenCategoryDrawer ? onOpenCategoryDrawer(pool) : onEditPool(pool.rawPool))}
                                       className="font-bold text-[#2563eb] hover:underline text-left cursor-pointer"
                                     >
                                       {pool.name}

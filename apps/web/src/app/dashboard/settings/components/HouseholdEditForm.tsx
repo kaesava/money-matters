@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button, InfoTooltip, LocationFields } from "@money-matters/ui/web";
-import { SUPPORTED_CURRENCIES } from "@money-matters/types";
+import { SUPPORTED_CURRENCIES, COMMON_TIMEZONES } from "@money-matters/types";
 import { t } from "@money-matters/i18n";
 
 interface HouseholdEditFormProps {
@@ -109,20 +109,11 @@ export function HouseholdEditForm({
             onChange={(e) => setTimezone(e.target.value)}
             className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#2563eb]"
           >
-            <option value="Australia/Sydney">Sydney / Melbourne (AEST/AEDT)</option>
-            <option value="Australia/Brisbane">Brisbane (AEST)</option>
-            <option value="Australia/Adelaide">Adelaide (ACST/ACDT)</option>
-            <option value="Australia/Perth">Perth (AWST)</option>
-            <option value="Asia/Kolkata">India / Kolkata (IST)</option>
-            <option value="Pacific/Auckland">Auckland / Wellington (NZST/NZDT)</option>
-            <option value="Europe/London">London (GMT/BST)</option>
-            <option value="America/New_York">New York (EST/EDT)</option>
-            <option value="America/Chicago">Chicago (CST/CDT)</option>
-            <option value="America/Denver">Denver (MST/MDT)</option>
-            <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
-            <option value="Asia/Tokyo">Tokyo (JST)</option>
-            <option value="Asia/Singapore">Singapore (SGT)</option>
-            <option value="UTC">UTC (Universal Coordinated Time)</option>
+            {COMMON_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

@@ -552,7 +552,7 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
     - *Anonymous Visitors*: High-impact "Start 60-Day Free Trial" and transparent pricing.
     - *Active Trial Users (`TRIAL_ACTIVE`)*: Displays remaining trial days badge, "Go to Dashboard →" hero CTA, and "Lock In Founding Member Rate ($69/yr)" pricing CTA.
     - *Subscribed Members (`SUBSCRIBED`)*: Displays "Active Household Member ✓" ribbon, "Go to Your Dashboard →" hero CTA, and "Manage Subscription & Invoices →" billing portal CTA.
-    - *Grace Period Accounts (`TRIAL_GRACE`)*: Displays amber warning ribbon and read-only mode guidance with "Reactivate Full Access →" CTA.
+    - *Expired Trial Accounts (`TRIAL_EXPIRED`)*: Displays amber holding ribbon and paywall guidance with "Upgrade to Household Plan →" CTA and 1-click data export.
 - **In-Place Auth Modal (`<AuthModal />`)**:
   - Direct modal integration on `/` eliminating legacy early access gating.
   - Seamless toggle between `[Sign In]` and `[Start 60-Day Free Trial]`.
@@ -569,5 +569,347 @@ The "Can I Afford It?" feature is a stateless, pure-simulation forward cashflow 
   - `/subscription/upgrade`: Transparent pricing and founding member subscription checkout with extracted `<ActiveSubscriptionCard />`.
   - `/invite/[token]`: Household partner invitation acceptance landing page.
 
+---
 
+## 12. Complete Functional Capability Inventory (Web & Mobile Parity)
 
+This section provides the authoritative, exhaustive breakdown of every functional capability across Money Matters, detailing user interactions, fields, defensive validations, confirmation flows, alerts, and Web vs Mobile parity differences.
+
+### 12.1 General & Cross-Cutting Infrastructure
+* **Connection Interrupted Banner & Auto-Retry**:
+  - *Web*: Global network boundary detecting offline events; renders amber floating notification banner with manual "Retry Connection" button and exponential backoff retry on failed tRPC queries.
+  - *Mobile*: Integrated NetInfo listener displaying non-blocking in-app toast; pull-to-refresh on core views (`/(app)/home`) to force data synchronization; automatic 401 token refresh interceptor reloading JWT credentials from `SecureStore`.
+* **Universal Table & Card Standards (Set Once & Re-Use)**:
+  - *Web*: High-density Serene Finance tables with standardized `SortHeader` (direction indicators `▲`/`▼`), search input with `left-3.5` icon spacing and `pl-10` text indent, `<SkeletonTable />` loading states, column alignment parity (Left: text/names; Center: dates/status/actions; Right: monetary amounts `tabular-nums font-mono`), and conditional `<PaginationBar />` (rendered only when total records $\ge 5$).
+  - *Mobile*: Touch-optimized card lists (`BankAccountCard`, `TransactionRow`, `ExpenseBillCard`, `IncomeSourceCard`, `MatrixPaydayCard`) with `<SkeletonCard />` loading skeletons and conditional `<MobilePaginationBar />` ($\ge 5$ records).
+* **Modal Dialog & Drawer Behavior Hierarchy**:
+  - *Web*: Unified `<ModalDialog />` supporting centered popups and side-drawers (`<SlideOverAllocationDrawer />`, `<SlideOverCategoryDrawer />`, `<QuickExpenseDrawer />`). LIFO dismissal via Escape key, clean state checks, backdrop click-away dismissal, and `<ConfirmDialog />` discard warnings on dirty forms.
+  - *Mobile*: Bottom-sheet dialogs (`<MobileModalDialog />`, `<CategoryItemModal />`, `<LinkedPoolsModalSheet />`, `<PoolsFilterSheet />`) with native drag indicators, backdrop dismissal, and `showMobileConfirm(...)` discard warnings when form state is dirty (`isDirty`).
+* **Form Validation & Input Defenses**:
+  - *Universal*: 100% Zod `.strict()` schema-driven validation. Mandatory fields rendered with red asterisk `<FormLabel required={true}>`. Field errors rendered inline via `<FormFieldError />`. Top-level submission/API errors rendered via `<FormErrorBanner />`. Submit buttons disabled unless form is dirty and valid (`!isDirty || !isValid`).
+  - *Monetary Inputs*: `<AmountField />` (web) and `<AmountInput />` (mobile) enforcing `$` prefix, monospace font, non-negative values, max 12 digits, and max 2 decimal places. Browser spinner arrows suppressed in favor of custom steppers.
+  - *Date Pickers*: `<DatePickerField />` enforcing user presentation timezone (AEST/en-AU) and boundaries (`min` / `max` dates). Raw ISO strings (`YYYY-MM-DD`) forbidden in user views.
+* **Information Tooltips (`InfoTooltip`)**:
+  - *Universal*: Contextual `(i)` trigger rendering user-friendly plain-English financial explanations with zero technical jargon. Globally toggled on/off via the "Show information icons" switch in Settings > My Details across both Web and Mobile.
+
+### 12.2 Public Marketing, Legal & Privacy (Unauthenticated)
+* **Landing Page (`/`)**:
+  - *Web*: Interactive split hero comparing Traditional Budgeting (receipt chaos) vs Money Matters (payday ring-fencing), 4-pillar Bento showcase, Problem/Solution narrative, full-width 28-day interactive Payday Timeline Simulator (`<PaycheckSimulator />`) with pool transfers modal, dynamic pricing CTA adapted to visitor trial/auth status, and embedded `<AuthModal />`.
+  - *Mobile*: Native onboarding screen (`/(auth)/sign-in`) with brand identity, key value props, and direct auth routing.
+* **Terms of Service (`/terms`)**:
+  - *Web*: Full Australian legal framework under NSW jurisdiction, Corporations Act 2001 general advice warnings, Australian Consumer Law guarantees, and SaaS subscription terms.
+  - *Mobile*: In-app webview / browser link from Profile Settings and public footer.
+* **Privacy Policy (`/privacy`)**:
+  - *Web*: Australian Privacy Principles (APPs 12 & 13) compliance details, Consumer Data Right (CDR) privacy standards, RLS data isolation architecture, and data retention/erasure rights.
+  - *Mobile*: Dedicated Privacy section in Settings (`/(app)/settings`) with 1-click APPs 12/13 export and erasure requests.
+* **Custom 404 Page (`/invalid-route`)**:
+  - *Web*: Branded Aussie 404 screen with "Back to Dashboard" / "Back to Home" navigation buttons.
+  - *Mobile*: Expo Router fallback screen redirecting to `/(app)/home` or `/(auth)/sign-in`.
+
+### 12.3 Authentication & Account Security
+* **Sign-Up Flow (`/sign-up`, `/(auth)/sign-up`)**:
+  - *Universal*: Multi-method registration via Google OAuth, Apple Sign-In, and Email/Password. Enforces full name, valid email, and strong password complexity (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character). Features real-time visual `<PasswordStrengthIndicator />` / `<MobilePasswordStrength />`.
+  - *Duplicate Account Handling*: If an existing email is entered with a different provider, clean informative notice guides the user to sign in using their original registration provider.
+* **Sign-In Flow (`/sign-in`, `/(auth)/sign-in`)**:
+  - *Universal*: Email/Password and Social OAuth (Google, Apple). Auto-redirects to active household dashboard upon successful verification, or to `/setup` if household onboarding is pending.
+* **Password Reset & Verification (`/forgot-password`, `/(auth)/forgot-password`)**:
+  - *Universal*: Stage 1: Email submission dispatches 6-digit OTP via Resend. Stage 2: In-place OTP verification (`<OtpVerificationView />` / `<MobileOtpInput />`), new password, and password confirmation with rate limiting and automated session establishment.
+* **Partner Invitation Acceptance (`/invite/[token]`, `/(auth)/invite/[token]`)**:
+  - *Universal*: Token validation (48-hour expiration lifetime), email matching guardrail (accepting user email must match invite email), auto-association with inviting household tenant (`tenant_users` with role `MEMBER`), and instant dashboard redirect.
+
+### 12.4 Household Setup & Budget Re-calibration Wizard
+* **Initial Onboarding Wizard (`/setup`, `/(setup)/*`)**:
+  - *Step 1: Income Setup*: Dynamic addition of income sources (Primary Salary, Side Hustle, Investments) with Name, Amount ($), Frequency (Weekly, Fortnightly, Monthly), and Start Date.
+  - *Step 2: Australian Household Banking Architecture*: Archetype selection (Aussie 2-Account Blueprint, Yours Mine & Ours, All-in-One Account) with 60-Second Australian Bank Cheat Sheet modal (CBA, Up, Macquarie, ING).
+  - *Step 3: Goals & Commitments*: Targeted savings goals (Emergency Fund, Car, Holiday) with target amount and target date.
+  - *Step 4: Lifestyle Category Budgeting*: ABS 2025/2026 benchmark estimations for housing, transport, food, family, and utilities.
+  - *Step 5: Review & Confirm*: Total Monthly Income vs Total Monthly Budgeted comparison; custom category adjustments; single-click commit creating pools, categories, schedules, and setting `setupStatus = 'COMPLETED'`.
+* **Budget Re-calibration (`/setup?mode=rerun`)**:
+  - *Universal*: 3-step streamlined flow skipping lifestyle quiz: Step 1 Incomes $\rightarrow$ Step 2 Bank Accounts $\rightarrow$ Step 3 Categories & Targets.
+  - *Atomic Balance Sweep on Pool Deletion*: Prompts `<MoveMoneyModal>` to sweep positive balances ($> \$0.00$) into destination pool before pool soft-archival, recording balanced `TRANSFER_OUT`/`TRANSFER_IN` ledger entries.
+  - *Budget Impact Review Panel*: Diff preview showing +/- changes to monthly caps and effective start date before committing.
+
+### 12.5 Global Shell & Navigation
+* **Web Desktop & Tablet Shell**:
+  - Left fixed sidebar (`SideNavBar`) with brand logo, primary navigation links (`Dashboard`, `Income & Expenses`, `Pools & Categories`, `History`, `Settings`), active trial countdown badge, tenant switcher dropdown, and user profile footer with sign-out.
+  - Sticky frosted-glass top navigation bar (`TopNavBar`) with responsive mobile hamburger drawer trigger.
+* **Mobile Shell (`/(app)/_layout.tsx`)**:
+  - Fixed bottom navigation bar (`BottomNavBar`) with 4 primary destinations: Home (`/(app)/home`), Schedules (`/(app)/paychecks`), Upcoming (`/(app)/upcoming`), and Pools (`/(app)/categories`).
+  - Top app bar (`ScreenHeader`) featuring Household title, active trial badge, and User Avatar button opening `ScreenMenuModal`.
+  - Header Avatar Menu (`ScreenMenuModal`): User Identity Card, Change Household (tenant switcher modal), Bank Accounts link, History link, Settings link, and Sign Out confirmation.
+* **Multi-Household Tenant Switching**:
+  - *Web*: Inconspicuous dropdown in sidebar footer (`TenantSwitcher.tsx`).
+  - *Mobile*: Modal sheet (`MobileTenantSwitcherModal`) triggered from avatar menu, persisting active selection to `SecureStore`.
+
+### 12.6 Dashboard & Home Financial Cockpit
+* **Hero Financial Overview Card**:
+  - Displays Household Greeting, AEST formatted localized date, Total Net Worth / Available Balance.
+  - Pacing meter: Everyday Spending card with daily spendable pace (`$XX / day`), days-until-payday countdown, and pacing status (`On Track ✓`, `Pace Tightened`, `Bills at Risk`).
+  - Regular Bills Card: Shortfall alerts (`⚠️ Shortfall of $X` vs `✅ Next 14 days covered!`) and next bill due date.
+* **Goals Progress Strip (`GoalsProgressStrip`)**:
+  - Horizontal progress strip displaying top 2 goals needing attention with percentage funded, target amount, target date, and vertical time-elapsed pacing needle (Green = on track, Amber = within 20% behind, Red = lagging).
+* **Attention Queue & Action Items (`AttentionItemsList`)**:
+  - Two-tier urgency alerts: Red for overdue items; Amber for bills due within 3 days. Contextual 1-click action triggers: "Mark Paid" (opens Mark Spent modal) and "Delete".
+* **Next Payday Preview Card (`NextPaydayCard`, `MobileNextPaydayCard`)**:
+  - Upcoming paycheck deposit date, expected amount, days countdown, and "Split Income" / "Review Split" CTA button.
+* **Bank Balances Strip (`BankBalancesStrip`)**:
+  - Linked accounts horizontal strip with branded institution badges (`BankProviderBadge`), current balances, and 1-click reconciliation triggers.
+* **Missing Schedules Advisory Banner (`MissingSchedulesBanner`)**:
+  - Warns when active categories have \$0 targets with direct setup link.
+
+### 12.7 Quick Actions (Expense, Income, Transfer)
+* **Trigger**:
+  - *Web*: Header "+ Quick Action" dropdown button (`Record Expense`, `Record Income`, `Transfer between Pools`).
+  - *Mobile*: Floating Action Button (FAB) at bottom-right of screen opening `QuickExpenseModal` with tactile haptic feedback.
+* **Quick Expense / Income Drawer & Modal**:
+  - *Form Fields*: Flow Type toggle (Debit / Credit), Amount (`<AmountField>` / `<AmountInput>`), Date picker (defaults to today), Pool & Category picker (`<PoolPicker>` on web, `<MobilePoolPicker>` on mobile with inline dropdown mode, type grouping, subcategory indentation, and search filtering), optional Note.
+  - *Quick-Pick Suggestion Badges (`QuickPickBadges`)*: 1-tap chips for frequent Everyday purchases (`☕ Coffee $5.50`, `🥗 Lunch $18.00`, `🛒 Groceries $80.00`, `⛽ Fuel $70.00`), auto-filling amount and category.
+  - *Recent & Frequent Presets*: Automatically aggregates up to 2 most recent presets and 2 most frequent presets from the past 180 days.
+  - *Defensive Guardrails*: Inline liquidity warning if debit exceeds pool balance; negative amount blocking; submit button disabled until valid.
+
+### 12.8 "Can I Afford It?" Simulation Studio (`/dashboard/afford-check`, `/(app)/afford-check`)
+* **Core Modes**:
+  - *One-Off Purchase Mode*: Evaluates immediate purchase amount against available Everyday spending and upcoming bills before payday.
+  - *Recurring Commitment Mode*: Evaluates 12-month budget impact; protects bills 100% and guarantees Everyday spending remains $\ge 80\%$ of monthly allowance.
+* **6-Verdict Classification**:
+  - `SAFE_YES` (Green): Sufficient liquidity and Everyday balance $\ge$ recommended safe cushion.
+  - `PACING_TIGHT` (Amber): Affordable, but Everyday balance drops below safe cushion ($X remaining until payday).
+  - `BILLS_RISK` (Orange): Unfunded bills due before payday consume the buffer; itemizes upcoming bills.
+  - `WAIT_FOR_PAYCYCLE` (Blue): Shortfall today, but projected income by paycycle $N$ accumulates sufficient funds; offers flexible savings alternative.
+  - `GOAL_DELAYED` (Orange): Recurring commitment pushes back target dates of savings goals across 12-month forecast.
+  - `HARD_NO` (Red): Recurring commitment starves essential Everyday spending below 80% allowance.
+* **Prorated Safe Cushion**: Formatted purely as total dollars remaining until payday (`$X safe cushion`), eliminating technical velocity jargon.
+* **Pure Stateless Execution**: Performs zero database mutations.
+
+### 12.9 Pools & Categories Hub (`/dashboard/pools`, `/(app)/categories`, `/(app)/pools/[id]`)
+* **Projection Timeline Scrubber**:
+  - Draggable timeline slider (Today $\rightarrow$ +12 Months) scrubbing forward in time to inspect projected pool and category balances with real-time math simulation.
+* **Pools Table & List View**:
+  - *Web*: Full-width structured table with expandable/collapsible pool rows, SortHeader, search bar, filters (All / Everyday / Bills / Goals & All / Shared / Private), pagination, and Category itemization.
+  - *Mobile*: Filterable pool card list with `PoolsFilterSheet`, category progress badges, and dedicated Pool Detail screen (`/(app)/pools/[id]`).
+* **Add & Edit Pool Modal (`<PoolFormModal>`)**:
+  - *Fields*: Pool Name, Pool Type (`EVERYDAY`, `REGULAR`, `GOAL`), Linked Bank Account, Target Amount (for Goal pools), Target Date (for Goal pools), Surplus Target toggle (`isSurplusTarget`).
+  - *Immutable Linking Protection*: Bank Account link and Pool Type are strictly locked after creation to preserve ledger auditability.
+* **Archive & Restore Pool**:
+  - Cascades soft-archival to child categories. Blocked if active positive balance exists (prompts balance sweep) or if last remaining Everyday pool.
+  - Restoration available in Settings > Archived Data.
+* **Add & Edit Category Modal (`<CategoryFormModal>`)**:
+  - *Fields*: Category Name, Parent Pool, Target Amount ($), Frequency (Weekly, Fortnightly, Monthly, Annually), Monthly Equivalent preview ($/mo), Essential Bill toggle (`isEssential`), Lucide icon picker.
+  - *Immutable Pool Linking*: Parent Pool locked after creation.
+* **Prioritized Categories**: Categories marked `isEssential: true` receive priority funding in Step 1 of the waterfall allocation engine.
+* **Stealth Private Pools**: Pools linked to private bank accounts inherit `isPrivate: true`, masked in partner views via RLS session variables.
+
+### 12.10 Bank Accounts Management & 1-Click Alignment (`/dashboard/bank-accounts`, `/(app)/settings/bank-accounts`)
+* **Bank Accounts Table & Card Deck**:
+  - Account Name, Branded Provider Badge, Account Type, Last 4 Digits, Current Balance, Unbudgeted Buffer, Expected Pool Balance, and Linked Pools count.
+* **Add & Edit Bank Account Modal (`<BankAccountFormModal>`)**:
+  - *Fields*: Bank Provider select, Account Name, Account Type (`CHECKING`, `SAVINGS`, `OFFSET`, `CREDIT_CARD`), Last 4 Digits, Current Balance ($), Unbudgeted Buffer / Reserved Funds ($), Stealth Private toggle (`isPrivate`).
+  - *Unbudgeted Buffer Constraint*: Unbudgeted Buffer cannot exceed Current Balance; inline validation blocks invalid entries.
+  - *Stealth Private Flag*: Locks ownership to creator; masked from household partner in RLS queries.
+* **1-Click Bank Balance Alignment (`<ReconciliationModal>`, `<MobileReconciliationModal>`)**:
+  - Compares Actual Bank Balance vs Expected Balance (Sum of linked pools + Unbudgeted Buffer).
+  - *Surplus Alignment*: Allocates positive variance to designated Surplus Target pool or user-selected pool.
+  - *Shortfall Alignment*: Prompts funding source selection from non-zero pools up to available balance; records deterministic `ACCOUNT_ALIGNMENT` ledger transactions.
+* **Cross-Bank Transfer Warning Modal (`<CrossBankTransferModal>`)**:
+  - Triggered whenever an internal transfer spans pools in distinct physical bank accounts; displays source/destination bank accounts and 1-tap "Copy Amount" button for banking apps.
+
+### 12.11 Income & Expenses Command Center (`/dashboard/income-and-bills`, `/(app)/paychecks`)
+* **Tab 1: 12-Month Matrix Plan (`MatrixPlanTab`, `MobileMatrixPlanTab`)**:
+  - *Web*: 12-month forward-looking spreadsheet grid with paydays as columns and pools/bills as rows, intermediate expense deductions, assumed pro-rata Everyday burn rate, and 1.5x anti-runaway cap. Clicking any payday column header opens the Income Split action drawer.
+  - *Mobile*: Horizontally scrollable pay-cycle timeline carousel card deck where each card summarizes a pay period with expandable bill lists.
+* **Tab 2: Upcoming Queue (`UpcomingTimelineTab`, `/(app)/upcoming`)**:
+  - Chronological queue of pending Income, Expense, and Transfer events with Overdue badges, search, and type filters.
+  - Actions: "Run Split" (Income events $\rightarrow$ opens Income Split studio), "Mark Paid" (Expense events $\rightarrow$ opens Mark Spent modal), "Transfer" (Transfer events $\rightarrow$ opens Transfer modal), "Delete" (inconspicuous confirm).
+* **Tab 3: Setup & Sources (`SetupSourcesTab`)**:
+  - Structured tables for recurring Income Schedules and Expense Schedules.
+  - *Add/Edit Schedule Modal (`<IncomeExpenseFormModal>`)*: Name, Amount ($), Recurrence (Weekly, Fortnightly, Monthly, Annually), Interval ("Every N"), Start Date, End Date, Receiving/Paying Bank Account, Category link.
+  - *Burst & Re-Burst Engine*: Generates 12 months of forward occurrences. Editing schedule automatically re-bursts unperformed future events while preserving historical paid records.
+
+### 12.12 Dedicated Income Split Studio (`/dashboard/income-split`, `/(app)/paychecks/[id]`)
+* **Layout & Navigation**:
+  - *Web*: Dedicated screen route `/dashboard/income-split?id=[incomeEventId]` integrated with standard sidebar and header shell.
+  - *Mobile*: Focused screen `/(app)/paychecks/[id]` with back navigation.
+* **Header & Status Badges**:
+  - Crystal-clear plan source badges: `✨ Auto-Calculated` (5-step waterfall engine), `💾 Custom Saved Plan`, `✓ Confirmed & Executed`.
+  - Prominent "🔄 Re-calculate" button: refreshes dynamic allocations or prompts confirmation to discard custom overrides.
+* **Structured Serene Pool Table**:
+  - Collapsible category groups (`▼ Everyday Pools`, `▼ Bills Pools`, `▼ Goals`) with group subtotals.
+  - Direct amount inputs with quick percentage chips (`[100%]`, `[$0]`).
+* **Reactive Auto-Surplus & Deficit Banner**:
+  - Designated Surplus pool automatically absorbs residual funds in real time.
+  - Active deficit alert banner (`-$X.XX Deficit`) if allocations exceed net income, disabling Save and Confirm actions.
+* **Bank-Account-Aware Transfer Rollup Card**:
+  - Identifies paycheck deposit bank account; groups external transfers into **1 single transfer per destination bank account** with constituent pool breakdown and 1-click amount copy.
+* **Execution & Ledger Confirmation**:
+  - "Run Income Split" confirms allocations, generates immutable `CREDIT` entries in `transactionLedger`, marks income event and allocation plan as `CONFIRMED`, and presents the actionable transfer plan.
+
+### 12.13 Mark Paid / Spent Workflow (`<MarkPaidModal>`)
+* **Trigger**: Upcoming bills queue, Attention Items list on dashboard, or Pool detail views.
+* **Form Controls**:
+  - Event Name (editable), Actual Amount Paid (`<AmountField>`), Payment Date (`<DatePickerField max={todayStr}>` in user timezone).
+* **Shortfall Resolution Workflow**:
+  - Compares paid amount against target pool balance. If shortfall exists, prompts: "Select Funding Pools to cover shortfall:".
+  - Allows selecting non-zero pools up to their available balance, defaulting to the household Surplus Target pool.
+  - Automatically records required funding `TRANSFER_OUT`/`TRANSFER_IN` transactions before confirming the expense as `CONFIRMED`.
+
+### 12.14 Scheduled & Ad-Hoc Transfers Workflow (`<TransferModal>`, `<MobileTransferModal>`)
+* **Trigger**: Upcoming timeline, dashboard Quick Action FAB/menu, or pool cards.
+* **Form Controls**:
+  - Transfer Name, Amount (`<AmountField>`), Date (`<DatePickerField min={todayStr}>`), Source Pool select, Destination Pool select.
+* **Validation & Actions**:
+  - Source pool liquidity check (prevents overdrafting source pool).
+  - Date branching: Future dates display "Save" (updates scheduled event); Today displays "Confirm" (executes transfer immediately via `moveMoneyCommand`).
+  - Discard protection on dirty state (`isDirty`).
+
+### 12.15 History & Audit Ledger (`/dashboard/history`, `/(app)/transactions`)
+* **Tab 1: Transactions Ledger**:
+  - Paired transfer detection (`Source ➔ Dest`), search, multi-filter dropdowns (All / Spent / Received / Transfer, Pool filter), sortable headers, pagination, and CSV export.
+  - *Web*: Direct CSV download. *Mobile*: Native OS share sheet via `expo-sharing`.
+* **Tab 2: Payday Allocations History**:
+  - Historical allocation runs with Income Source, Bank Account, Payday Date, Split Execution Date, and Total Amount.
+  - Clicking any run opens `<SlideOverAllocationDrawer>` (web) or `<MobilePaydayAllocationDetailModal>` (mobile) displaying read-only pool breakdowns and ledger notes.
+
+### 12.16 Settings — My Details (Profile & Preferences)
+* **Read-Only Default Mode**: Renders in clean read-only mode by default to prevent accidental edits; explicit "Edit" button enters edit mode with "Save" and "Cancel" (with dirty discard confirm).
+* **Fields & Validation**:
+  - Display Name (mandatory), Notification Email (valid email regex), Phone Country Code (`CountrySelect`), Phone Number (`PhoneInput` with Australian mobile `04` validation), Presentation Timezone (AEST/en-AU), Locale & Date Format, UI Theme (`Light` / `Dark` / `System`), and "Show information icons" toggle.
+* **Avatar Photo Upload**:
+  - *Web*: File upload with interactive 256x256 WebP pan/zoom modal (`<AvatarCropModal>`).
+  - *Mobile*: Native image picker with built-in crop square.
+
+### 12.17 Settings — Household Management & Governance
+* **Household Details**:
+  - Household Name, Country, Base Currency (`AUD`, `USD`, `EUR`, `GBP`, `CAD`, `JPY`, `NZD`, `SGD`), Household Accounting Timezone. Currency change triggers warning dialog regarding historical non-conversion.
+* **Member Collaboration & Invites**:
+  - Active member list with avatar, role (`OWNER`, `MEMBER`), and pending status badges.
+  - Partner Invite: Owner enters email; dispatches 48-hour invite token via Inngest and Resend.
+  - Member Removal: Owner can remove member with confirmation challenge, soft-archiving their private accounts/pools.
+* **Household Danger Zone & Account Erasure**:
+  - *Leave Household*: Non-owners can leave; transfers ownership to next member or deletes private data with confirmation challenge.
+  - *Delete Household & All Data*: Sole owner deletes entire tenant with exact household name confirmation typing requirement.
+
+### 12.18 Settings — Archived Data & Cascading Restoration
+* **Archived Items Table & Cards**:
+  - Filters by Item Type (All, Pools, Categories, Bank Accounts, Income Schedules, Expense Schedules).
+  - Search input, archived timestamp, and "Restore" action button.
+* **Cascading Archival & Restoration Safeguards**:
+  - Archiving a Bank Account cascades to its Pools and Categories.
+  - Restoring a Category requires its parent Pool to be active. Restoring a Pool requires its linked Bank Account to be active. Date-sensitive integrity checks prevent orphaned child records.
+
+### 12.19 Settings — Data & Subscription Lifecycle (Stripe & Trial)
+* **60-Day Trial Status**:
+  - Prominent trial countdown badge (`X days remaining on trial`).
+  - Anti-abuse guard: Users can own at most 1 active trial household (`hasUsedTrial` flag).
+* **Hard Paywall Lockdown (`TRIAL_EXPIRED`)**:
+  - On Day 61, tenant transitions to `TRIAL_EXPIRED`, redirecting dashboard routes to `/subscription/expired`.
+  - Mutation blocking on API worker (`requiresWriteAccess`).
+  - Isolated holding screen offers Upgrade CTA, 1-click Zipped CSV Backup download (`exportMyData`), and Sign Out.
+* **Stripe Checkout & Billing Portal**:
+  - Checkout session creation ($9.95 AUD/mo or $89 AUD/yr) supporting Cards, Apple Pay, Google Pay.
+  - Synchronous verification on return (`/subscription/success?session_id=...`).
+  - Stripe Customer Portal integration for cancellation with grace access through paid period.
+* **Invoice History**: Paid and failed invoices table with direct links to Stripe-hosted invoice PDFs.
+* **1-Click Zipped CSV Backup**:
+  - Bundles 12 complete database tables into `money-matters-backup-YYYY-MM-DD.zip`.
+  - *Web*: In-memory JSZip browser download. *Mobile*: JSZip shared via native OS share sheet.
+
+### 12.20 Native Android Mobile Capabilities
+* **Biometric App Lock (`BiometricLockOverlay`)**:
+  - Optional Face ID / Touch ID / Fingerprint / Device PIN lock enabled in Profile Settings (`mm_biometric_lock_enabled`).
+  - Engages secure authentication overlay when backgrounded for $\ge 2$ minutes.
+* **Tactile Haptic Feedback**:
+  - `expo-haptics` vibrations on FAB press, expense/income submission, split execution, pull-to-refresh, and destructive action confirmations (user toggleable in Settings).
+* **Push Notifications & In-App Toast Feedback**:
+  - Expo push notification registration with background cron dispatch; foreground push listener rendering non-blocking in-app toasts.
+* **Offline Resilience & Local Cache**:
+  - SQLite local caching for offline viewing; resilient 401 token refresh in tRPC client.
+
+---
+
+## 13. Comprehensive Test Matrix & Validation Specification
+
+Money Matters enforces strict, multi-tiered test coverage across capabilities, API routers, database schemas, and user interfaces.
+
+### 13.1 Vitest Unit Test Suites (`pnpm test` & `pnpm test:coverage`)
+
+| Package / Domain | Test Suite File | Coverage Target & Key Invariants Verified |
+|---|---|---|
+| `@money-matters/capability-budgeting` | `allocation-engine.test.ts` | 5-step waterfall cascade; Step 0 deficit repair; Step 1 essential bills due $\le$ next payday; Step 2 pro-rata calendar divisors (26, 52, 12); Step 3 goal deadlines; Step 4 allowance cap; Step 5 residual surplus sweep; zero unallocated cash invariant. |
+| `@money-matters/capability-budgeting` | `bill-lifecycle-fsm.test.ts` | Finite state transitions for expense events: `PENDING` $\rightarrow$ `CONFIRMED` $\rightarrow$ `ARCHIVED`; date locks; paid bill immutability. |
+| `@money-matters/capability-budgeting` | `burst-engine.test.ts` | RFC 5545 recurrence generation; 12-month forward horizon materialization; interval ("Every N") calculations; burst idempotency. |
+| `@money-matters/capability-budgeting` | `cumulative-projection.test.ts` | Rolling 12-month simulation; intermediate expense subtractions; pro-rata Everyday burn rate; 1.5x regular pool ceiling with wealth conservation to surplus. |
+| `@money-matters/capability-budgeting` | `due-date-guardrail.test.ts` | Next payday cutoff boundaries; shortfalls detected before direct debit bounces; pro-rata delta funding. |
+| `@money-matters/capability-budgeting` | `move-money.command.test.ts` | Balanced double-entry ledger creation (`TRANSFER_OUT` + `TRANSFER_IN`); shared `transferGroupId`; source liquidity check. |
+| `@money-matters/capability-budgeting` | `archive-category.test.ts` | Archival blocking if active upcoming expenses exist; default category protection; soft delete timestamp. |
+| `@money-matters/capability-budgeting` | `archive-pool.test.ts` | Balance sweep requirement on positive funds; cascading soft delete to child categories; last Everyday pool guard. |
+| `@money-matters/capability-budgeting` | `restore-item.test.ts` | Cascading restoration integrity; parent pool dependency validation; bank account dependency validation. |
+| `@money-matters/capability-tenant` | `index.test.ts` | Tenant creation; owner role assignment; partner invitation token generation; 48-hour expiration; email identity verification on acceptance; governance info. |
+| `@money-matters/capability-transactions` | `index.test.ts` | Expense recording; double-entry transfers; idempotency key deduplication; category ledger queries; CSV generation. |
+| `@money-matters/capability-billing` | `index.test.ts` | Stripe checkout session generation; customer portal URL creation; webhook signature verification; subscription status transitions; invoice logging. |
+| `@money-matters/capability-simulation` | `can-afford-simulation.test.ts` | 6-verdict classification (`SAFE_YES`, `PACING_TIGHT`, `BILLS_RISK`, `WAIT_FOR_PAYCYCLE`, `GOAL_DELAYED`, `HARD_NO`); safe cushion math; 80% living allowance floor. |
+| `@money-matters/capability-notifications` | `email.test.ts`, `index.test.ts` | Resend email dispatch; partner invitation template; weekly digest template; push token registration and deregistration. |
+| `@money-matters/core` | `logger.test.ts`, `australian-calendar.test.ts`, `correlation-id.test.ts` | Automatic PII redaction (tokens, passwords, emails); correlation ID propagation; Australian public holiday and date formatting. |
+| `@money-matters/db` | `base.test.ts` | Standard audit column inheritance (`id`, `tenantId`, `appId`, `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, `archivedAt`); soft delete filter behavior. |
+| `@money-matters/types` | `commands.types.test.ts`, `locale.types.test.ts`, `settings.types.test.ts`, `status.types.test.ts`, `bank-account.types.ts` | Zod `.strict()` parsing; 12-digit amount cap regex; frequency enum boundaries; country code defaults. |
+| `@money-matters/ui` | `format.test.ts`, `is-dirty.test.ts`, `month-progress.test.ts`, `phone-validation.ts` | Timezone-aware date formatting; form dirty state comparator; Australian mobile phone regex validation (`04...`). |
+| `apps/api` | `app.test.ts`, `bank-reconciliation.test.ts`, `router-protections.test.ts`, `edge-context.test.ts` | Tenant isolation enforcement; `privateTenantProcedure` RLS session context injection; `ownerProcedure` role barriers; write-access lockdown on trial expiration; 1-click balance alignment ledger transactions. |
+| `apps/mobile` | `biometrics.test.ts`, `format.test.ts`, `haptics.test.ts`, `version.test.ts`, `trpc.test.ts` | SecureStore biometric persistence; currency/date formatting; tactile haptic triggers; 401 retry interceptor. |
+| `apps/web` | `bank-rollup.test.ts`, `categories.test.ts`, `simulationData.test.ts`, `trpc.test.ts` | Payday bank transfer aggregation (1 transfer per external bank); category balance hooks; interactive simulator event callouts. |
+
+---
+
+### 13.2 Comprehensive Screen-by-Screen E2E Test Suite Specification
+
+This specification governs the exhaustive end-to-end Playwright master suite (`apps/web/e2e/screen-by-screen.spec.ts`) and manual testing protocols:
+
+1. **Pre-Login & Public Flow**:
+   - `E2E-001`: Landing Hero rendering, SEO metadata, tagline accuracy, and "Start 60-Day Free Trial" CTA.
+   - `E2E-002`: Interactive Payday Simulator (`#simulator`): scrubber dragging, payday checkpoint pauses, transfer between pools modal, live plain-English narrative update.
+   - `E2E-003`: Public Legal Pages: `/terms` and `/privacy` compliance content, Australian jurisdiction clauses.
+   - `E2E-004`: Branded 404 handler (`/invalid-route`) and return navigation.
+2. **Authentication & Password Recovery**:
+   - `E2E-005`: Sign-in screen: email/password inputs, Google OAuth CTA, forgot password navigation.
+   - `E2E-006`: Sign-up screen: validation boundaries, password strength meter real-time feedback, social auth buttons.
+   - `E2E-007`: Forgot password OTP flow: 6-digit email OTP entry, password reset, confirm password validation.
+   - `E2E-008`: Partner invite acceptance: `/invite/[token]` validation and auto-tenant membership.
+3. **Onboarding & Setup Re-calibration**:
+   - `E2E-009`: Initial setup wizard (Steps 1-4): dynamic income entry, archetype selection, 60-second cheat sheet modal, ABS lifestyle sliders, review screen commit.
+   - `E2E-010`: Budget re-calibration (`/setup?mode=rerun`): pre-filled values, 3-step streamlined flow, budget impact review panel diff confirmation.
+4. **Dashboard Financial Cockpit**:
+   - `E2E-011`: Dashboard layout: Hero card, Everyday pacing meter, Bills shortfall banner, Goals progress strip, Attention queue, Next Payday card, Bank balances strip.
+   - `E2E-012`: Quick Action menu & FAB: Record Expense, Record Income, Transfer between Pools, Quick Pick badges, recent/frequent suggestions.
+   - `E2E-013`: Keyboard shortcuts modal (`?` trigger) and Escape dismissal.
+   - `E2E-014`: Multi-tenant switcher in sidebar and mobile avatar menu.
+5. **Bank Accounts & Reconciliation**:
+   - `E2E-015`: Bank accounts table: branded provider badges, last 4 digits, balances, unbudgeted buffer.
+   - `E2E-016`: Add & Edit Bank Account modal: field validation, buffer $\le$ balance constraint, stealth private toggle.
+   - `E2E-017`: 1-Click Balance Alignment modal: surplus auto-route to Surplus Target, shortfall resolution from available pools, ledger transaction creation.
+   - `E2E-018`: Cross-Bank Transfer warning modal with 1-tap copy amount button.
+6. **Pools & Categories**:
+   - `E2E-019`: Pools table: search, filter (Everyday/Bills/Goals, Shared/Private), pagination, projection scrubber.
+   - `E2E-020`: Add & Edit Pool modal: field validation, immutable bank account/type lock on edit, surplus target designation.
+   - `E2E-021`: Add & Edit Category modal: target amount, frequency select, monthly equivalent preview, essential toggle.
+   - `E2E-022`: Pool archival with positive balance: `<MoveMoneyModal>` sweep challenge and balanced transfer execution.
+7. **Income & Expenses Hub**:
+   - `E2E-023`: 12-Month Matrix Plan tab: forward paydays grid, intermediate expense deductions, slide-over category inspection drawer.
+   - `E2E-024`: Upcoming Queue tab: chronological sorting, overdue highlighting, search and type filters.
+   - `E2E-025`: Mark Spent workflow: past/today date validation, shortfall funding multi-pool selection, confirmed status lock.
+   - `E2E-026`: Scheduled Transfers workflow: date branching (Save vs Confirm), source liquidity guard.
+   - `E2E-027`: Setup & Sources tab: recurring income and expense schedule CRUD, "Every N" custom intervals, automatic re-bursting.
+8. **Dedicated Income Split Studio**:
+   - `E2E-028`: Navigation to `/dashboard/income-split?id=[id]`: plan source badges (`Auto-Calculated`, `Custom Saved`, `Confirmed`).
+   - `E2E-029`: Interactive pool adjustments: quick chips `[100%]`, `[$0]`, reactive Auto-Surplus meter, active deficit warning banner.
+   - `E2E-030`: Bank Transfer Rollup Card: aggregation into 1 transfer per external bank account, 1-click copy buttons.
+   - `E2E-031`: Confirm Income Split execution: ledger credit creation, transfer plan display, dirty discard protections.
+9. **"Can I Afford It?" Simulation**:
+   - `E2E-032`: One-off purchase simulation: safe cushion dollar check, 6-verdict badges, "What Gives" savings alternative.
+   - `E2E-033`: Recurring commitment simulation: 12-month budget feasibility, goal delay schedule impact.
+10. **History & Audit**:
+    - `E2E-034`: Transactions ledger: search, debits/credits/transfers tabs, sortable headers, CSV export download.
+    - `E2E-035`: Payday Allocations audit tab: historical runs list, slide-over detail drawer with read-only split breakdown.
+11. **Settings, Governance & Subscriptions**:
+    - `E2E-036`: My Details: read-only default mode, edit form validation, country/phone formatting, timezone picker, avatar pan/zoom upload, info tooltip toggle.
+    - `E2E-037`: Household: currency change warning, member list, partner invitation dispatch, leave household challenge.
+    - `E2E-038`: Archived Data: filter by entity type, cascading restore integrity validation.
+    - `E2E-039`: Data & Subscription: trial countdown, Stripe checkout redirect, customer portal link, invoice receipts, 1-click 12-table Zipped CSV Backup download.
+    - `E2E-040`: Household Danger Zone & Account Deletion: exact household name typing confirmation, automated database erasure dispatch.

@@ -1,58 +1,24 @@
+
 #####################################
 
 # Rules
 * Strict adherence to AGENTS.md
-* If you need clarity, [/grill-me](slashCommand;grill-me) (don't make assumptions)
+* If you need clarity, [/grill-me](slashCommand;grill-me) (don't make assumptions). Be critical.
 * I don't need walkthrough at the end. I don't need a fancy report. Just a detail implementation plan that can be unambiguously followed.
+
 
 # Mobile App
 
 ## General
-* Where there is a card list (like History > History, History Splits, Bank Accounts, Pools, etc. there are many more), suggest a standard UI indcator that suggests to the user that pressing that card will open a details drawer. What would you suggest? This should be applied across the mobile app (ensure coverage across all screens and modals that have a list). Perhaps we use the Income & Expenses > Setup? Apply once and re-use UI,
-* Where there is a card list, suggest a standard UI indicator that will take the user to another screen (i.e., a hyperlink). Ensure coverage. Apply once and re-use UI.
-* Header - Instead of "Money Matters" - show the icon, and clicking takes to home
 
-# Income & Expenses > Setup
-* Change tab name from "Setup" to "Setup Schedule" - apply across web and mobile - ensure re-use of en.ts literals. Remove redundant keys.
-* Have the search bar above the Income Schedules and Expense Schedules tabs and allow filter/search across both
-* Move the "Bank Accounts" (Income Schedules) and "Pools" filters into a Filters panel and allow sorting (sort fields consistent with web app). Re-use the Filter button and functionality from the rest of the app (like the Income & Expenses > Upcoming screen). This Filter button must be next to the Seach bar. - like the Income & Expenses > Upcoming tab.
-* In the Income & Expense Schedules, for each record/card, show the assigned Pool / Bank Account on the second line and the Amount on the right. Ensure the amount is colou-coded correctly. Also ensure the text ("Kicks off 1/10/2026" is consistent with the web app "every three months from 01/10/2026" ensuring the date forllows date format setting). Ensure all text is in literals and not hard-coded. Ensure consistency between web app and mobile app and re-use of literals across them.
-* Remove the "Add Income Schedule" & "Add Expense Schedule" buttons. The floating + sign should trigger creation of a new Expense or Income Schedule (depending on which tab is active). Note that in the Income & Expenses > Upcoming tab, the + sign should behave as today - launching the Quick Actions (One-off Expense/Income/Transfer) drawer.
-* Ensure the logic on save of a schedule (burst logic, re-burst logic, warning/infor popups, etc.) are consistent across the mobile and web apps.
+## Mobile > Pools
 
-# Expense Mark Paid
-* Don't allow user to allocate more than shortfall - applies to web app and mobile app. Ensure code logic is re-used across web and mobile app as much as possible.
+# Web App
 
-
-# Income & Expenses > Upcoming
-* Clicking on an Income event card is taking me to an "Unmatched Route" page. Fix
-* Based on the change requested in General, let's remove the "Run Split" and "Mark Spent" buttons and instead, show the incidicator to open the relevant drawer/screen. However, maybe next to the indicator, we include "Mark Spent" and "Mark Paid" given these are specific actions?
-* Remove the Delete icons from Expense Events. Instead move the Delete button to the Details drawer as an inconspicuous button (consistent in look and feel with the rest of the app) - applies to Expense & Income Event. Also, for both of these, allow the user to swipe right with the standard delete bin showing up and triggering the confirmation to delete.
-* I am suggesting this but I want you to critically review and suggest best option here: My suggestiom: Remove the Edit icons from the Expense Events. I don' think this is necessary as we can edit when Marking Paid/Running Split anyway? However, this means we now don't have a way for the user to simply edit and save an income/expense record. Introduce another inconspicuous "Save" option in the "Mark Spent" and "RUn Split" drawers. Instead of showing a red error next to the date if the user selects a future date, disable the "Mark Paid" or "Run Split" button and let the user know that they can Save but cannot mark Paid for a future date. Note that the web app has a separate Edit option. Therefore, the review I want from you is whether you go with my suggestion or have a separate way in the UI to cleanly Edit vs. Mark Paid/Run Split t be consistent with the web app.
-Remove redundant and un-used code. 
-
-* For Expense Events, it's a bit hard to accurately press the Pool/Cateogyr, but I like that it takes the user to the Pool/Cateogry details. Find a better way to show these hyperlinks. Stay consistent with my ask in the Generic section. Ensure that the Back from that screen brings me back here
-* For Income Events, I see "-" - I was expecting to see Bank Account. Ensure the same behaviour as Expense events in terms of hyperlinks.
+## Pools
 
 
 
-# Pool Filter (Picker)
-* Organise by Pool Type
-* When creating an Expense Schedule and picking a Pool, change text to "Select a Pool or Category" instead of "Select a Pool or Sub-Category" and title from "Pool" to "Pool or Category". When the Pool Picker is used when the user needs to only pick a Pool, use "Select a Pool" with title "Pool". When it's called from a filter, leave as-is "Filter by Pool" and title "Pool". Ensure all text is in literals and not hard-coded. Ensure consistency between web app and mobile app and re-use of literals across them.
-
-# Bank Filter
-* Mark Private banks (be consistent - I believe we're using the lock symbol to show private?). 
-* When called from Filter, leave as-is "Filter by Bank" but when called when selecting a Bank Account (like in the New Income Schedule), say "Select Bank Account". Ensure all text is in literals and not hard-coded. Ensure consistency between web app and mobile app and re-use of literals across them.
-
-
-## History > History
-
-
-## History > Income Splits
-* In Details
-
-## Settings > Household
-* Remove Management & Logs Card/section - aggressively ensure no redundant/un-used code/screens/UI left behind
 
 ## General - the below changes apply to the screens listed in the next section.
 * Important: Align mobile app functionality to web app (this includes required fields, branching logic, data retrieval/setting logic, calculation logic, and any functiona logic used). However, the UX for the mobile app must follow UX best practice, and must used every opportunity for reusable UX/UI so other screens have consistent look and feel. If there is significant capability gaps, check with me.
@@ -60,10 +26,11 @@ Remove redundant and un-used code.
 * In the mobile app, all user-facing literals (this includes screen/modal names, headers, titles, sub-titles, descrtiptions, filter labels, button labels, drop-down text, pagination labels, tab names, placeholder text, error messages, warning messages, information, info tooltips, etc.) must be consistent with the corresponding web app UI and importantly, re-uses en.ts keys for like-for-like functionality across web and mobile app. Do not add keys unless certain that they are specific for mobile or web and cannot be re-used.
 * Agressively cull unused/redundant keys from en.ts. No hardcoding of literals.
 * Mobile app must re-use as much UX as possible, defining UI elements (like fields, calendars, sort/search filter settings, etc.) centrally and re-using - MECE. The UI (theme, colours, general look-and-feel) must be consistent.
-* Content width of Settings > Bank 
+
 
 ## Screens that the previous section apply to:
-* Settings > Bank Accounts
+* Every screen, modal, drawer, popup, confirmation/alert/message box, edit screen, screen tab, etc.
+
 * Settings > Bank Accounts > Add/Edit Bank Account Drawer
 * Settings > My Details (including all sub-sections/cards)
 * Settings > Household (including all sub-sections/cards)
@@ -140,7 +107,7 @@ Bills|Goals & All|Shared|Private, pagination, History link, Progress)
 ### Navigation
 ### Common
 ### Dashboard
-* Pool Picker doesn't seem to be working. Needs to be in parity with web application. Re-use as much code as possible.
+* [x] Pool Picker doesn't seem to be working. Needs to be in parity with web application. Re-use as much code as possible. (Completed: MobilePoolPicker unified with inline mode & web parity, removed local ad-hoc picker)
 
 ### Income & expenses
 #### Income Split

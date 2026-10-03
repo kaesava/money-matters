@@ -63,6 +63,7 @@ export * from './TextLink';
 export * from './OtpInput';
 
 
+export * from './TypedConfirmDialog';
 export * from './fields/RecurrenceBuilder';
 export * from '../hooks/useRecurrenceBuilder';
 export * from '../hooks/DateLocaleContext';

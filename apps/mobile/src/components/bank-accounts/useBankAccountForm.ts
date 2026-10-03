@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { trpc } from '../../lib/trpc';
 import { useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
@@ -20,7 +20,6 @@ export function useBankAccountForm(
   const [balance, setBalance] = useState('0.00');
   const [buffer, setBuffer] = useState('0.00');
   const [isPrivate, setIsPrivate] = useState(false);
-  const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [nameError, setNameError] = useState('');
   const [generalError, setGeneralError] = useState('');
@@ -29,7 +28,7 @@ export function useBankAccountForm(
   const allPools = poolsQuery.data || [];
   const linkedPools = isEdit && accountToEdit
     ? allPools.filter((p) => p.bankAccountId === accountToEdit.id)
-    : allPools.filter((p) => selectedPoolIds.includes(p.id));
+    : [];
 
   const initialRef = React.useRef({
     name: '',
@@ -37,7 +36,6 @@ export function useBankAccountForm(
     balance: '0.00',
     buffer: '0.00',
     isPrivate: false,
-    selectedPoolIds: [] as string[],
   });
 
   useEffect(() => {
@@ -53,7 +51,6 @@ export function useBankAccountForm(
       setBalance(initBalance);
       setBuffer(initBuffer);
       setIsPrivate(initPrivate);
-      setSelectedPoolIds([]);
 
       initialRef.current = {
         name: initName,
@@ -61,7 +58,6 @@ export function useBankAccountForm(
         balance: initBalance,
         buffer: initBuffer,
         isPrivate: initPrivate,
-        selectedPoolIds: [],
       };
     } else {
       setName('');
@@ -69,7 +65,6 @@ export function useBankAccountForm(
       setBalance('0.00');
       setBuffer('0.00');
       setIsPrivate(false);
-      setSelectedPoolIds([]);
 
       initialRef.current = {
         name: '',
@@ -77,7 +72,6 @@ export function useBankAccountForm(
         balance: '0.00',
         buffer: '0.00',
         isPrivate: false,
-        selectedPoolIds: [],
       };
     }
     setNameError('');
@@ -89,8 +83,7 @@ export function useBankAccountForm(
     provider !== initialRef.current.provider ||
     balance !== initialRef.current.balance ||
     buffer !== initialRef.current.buffer ||
-    isPrivate !== initialRef.current.isPrivate ||
-    selectedPoolIds.length > 0;
+    isPrivate !== initialRef.current.isPrivate;
 
   const balNum = parseFloat(balance) || 0;
   const bufNum = parseFloat(buffer) || 0;
@@ -129,12 +122,6 @@ export function useBankAccountForm(
     });
   };
 
-  const handleTogglePool = (poolId: string) => {
-    setSelectedPoolIds((prev) =>
-      prev.includes(poolId) ? prev.filter((id) => id !== poolId) : [...prev, poolId]
-    );
-  };
-
   const handleSubmit = async () => {
     if (!name.trim()) {
       setNameError(t('drawers.quickExpense.nameRequired'));
@@ -147,6 +134,7 @@ export function useBankAccountForm(
 
     setSubmitting(true);
     setGeneralError('');
+
     try {
       let savedAcc: any = null;
       if (isEdit && accountToEdit?.id) {
@@ -211,7 +199,6 @@ export function useBankAccountForm(
     setBuffer,
     isPrivate,
     setIsPrivate,
-    selectedPoolIds,
     submitting,
     nameError,
     setNameError,
@@ -224,7 +211,6 @@ export function useBankAccountForm(
     hasVariance,
     diffBeforeSave,
     handleArchive,
-    handleTogglePool,
     handleSubmit,
   };
 }

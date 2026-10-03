@@ -18,7 +18,6 @@ import {
   showMobileConfirm,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { PoolLinkSelector } from './bank-accounts/PoolLinkSelector';
 import { AccountBalanceCard } from './bank-accounts/AccountBalanceCard';
 import {
   BankAccountItemToEdit,
@@ -57,12 +56,10 @@ export function BankAccountFormModal({
     setBuffer,
     isPrivate,
     setIsPrivate,
-    selectedPoolIds,
     submitting,
     nameError,
     setNameError,
     generalError,
-    allPools,
     linkedPools,
     availableToBudget,
     isNegativeAvailable,
@@ -70,7 +67,6 @@ export function BankAccountFormModal({
     hasVariance,
     diffBeforeSave,
     handleArchive,
-    handleTogglePool,
     handleSubmit,
   } = useBankAccountForm(visible, accountToEdit, onClose, onSuccess, onNeedsReconciliation);
 
@@ -135,7 +131,7 @@ export function BankAccountFormModal({
         />
 
         <View style={styles.inputGroup}>
-          <FormLabel>{t('bankAccounts.title')}</FormLabel>
+          <FormLabel label={t('bankAccounts.title')} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.providersRow}>
             {PROVIDERS.map((p) => (
               <TouchableOpacity
@@ -161,14 +157,6 @@ export function BankAccountFormModal({
           onBalanceChange={setBalance}
           onBufferChange={setBuffer}
         />
-
-        {!isEdit && (
-          <PoolLinkSelector
-            pools={allPools}
-            selectedPoolIds={selectedPoolIds}
-            onTogglePool={handleTogglePool}
-          />
-        )}
 
         <View style={styles.switchRow}>
           <View style={{ flex: 1 }}>

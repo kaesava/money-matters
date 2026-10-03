@@ -8,6 +8,8 @@ import { trpc } from "../../../../lib/trpc";
 import { IncomeSplitHeader } from "./IncomeSplitHeader";
 import { IncomeSplitCommandPanel } from "./IncomeSplitCommandPanel";
 import { IncomeSplitPoolTable } from "./IncomeSplitPoolTable";
+import { SlideOverCategoryDrawer } from "../../income-and-bills/components/SlideOverCategoryDrawer";
+import { CategoryFormModal } from "../../../../components/web/CategoryFormModal";
 
 export interface IncomeSplitScreenProps {
   readonly incomeEventId: string;
@@ -77,6 +79,9 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
   const [showRecalculateConfirm, setShowRecalculateConfirm] = useState(false);
   const [isSavedPlan, setIsSavedPlan] = useState(false);
   const [isConfirmedPlan, setIsConfirmedPlan] = useState(false);
+  const [activeDrawerPool, setActiveDrawerPool] = useState<{ id: string; name: string } | null>(null);
+  const [poolToEdit, setPoolToEdit] = useState<React.ComponentProps<typeof CategoryFormModal>["categoryToEdit"] | null>(null);
+  const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
 
   const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
 
@@ -427,9 +432,33 @@ export function IncomeSplitScreen({ incomeEventId, returnTo = "/dashboard" }: In
             isReadOnly={isReadOnly}
             onLineAmountChange={handleLineAmountChange}
             onLineReasoningChange={handleLineReasoningChange}
+            onOpenPoolDrawer={(poolId, poolName) => setActiveDrawerPool({ id: poolId, name: poolName })}
           />
         </div>
       </div>
+
+      {/* Side-Over Category / Pool Drawer */}
+      <SlideOverCategoryDrawer
+        isOpen={Boolean(activeDrawerPool)}
+        categoryName={activeDrawerPool?.name || ""}
+        categoryId={activeDrawerPool?.id}
+        onClose={() => setActiveDrawerPool(null)}
+        onEditPool={(pool) => {
+          setPoolToEdit(pool);
+          setIsPoolModalOpen(true);
+        }}
+      />
+
+      {/* Edit Pool Modal */}
+      <CategoryFormModal
+        isOpen={isPoolModalOpen}
+        onClose={() => setIsPoolModalOpen(false)}
+        categoryToEdit={poolToEdit}
+        onSuccess={() => {
+          poolsQuery.refetch();
+          previewQuery.refetch();
+        }}
+      />
 
       <ConfirmDialog
         isOpen={showDiscardConfirm}

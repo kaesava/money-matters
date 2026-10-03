@@ -1,18 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React from "react";
 import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
-import { InfoTooltip, SearchInput, ConfirmDialog, RecordFilterBadge, PoolPicker } from "@money-matters/ui/web";
-import { useSubscriptionStatus } from "../../../../hooks/useSubscriptionStatus";
-
-import { BankAccountTable, BankAccountItem, BankName, CategoryType } from "../../bank-accounts/components/BankAccountTable";
+import { InfoTooltip, SearchInput, RecordFilterBadge, PoolPicker } from "@money-matters/ui/web";
+import { BankAccountTable, BankName } from "../../bank-accounts/components/BankAccountTable";
 import { BankAccountFormModal } from "../../bank-accounts/components/BankAccountFormModal";
 import { ReconciliationModal } from "../../../../components/ReconciliationModal";
 import { QuickExpenseDrawer } from "../../../../components/web/QuickExpenseDrawer";
-
 import { useLocale } from "../../../../providers/LocaleProvider";
+import { useBankAccountsList } from "./useBankAccountsList";
 
 const BANK_OPTIONS: Array<{ key: BankName; label: string; logoBg: string; textColor: string }> = [
   { key: "CBA", label: "Commonwealth Bank (CBA)", logoBg: "bg-amber-400", textColor: "text-zinc-950" },
@@ -30,347 +27,9 @@ export function BankAccountsSection() {
     const num = typeof val === "string" ? parseFloat(val) : typeof val === "number" ? val : 0;
     return fmt(num);
   };
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const accountIdParam = searchParams.get("id");
-  const { status: subStatus } = useSubscriptionStatus();
-  const isTrialExpired = subStatus?.isTrialExpired ?? false;
-
-  const bankAccountsQuery = trpc.getBankAccountsWithMappings.useQuery();
-  const poolsQuery = trpc.listPools.useQuery();
-
-  const reconcileMut = trpc.reconcileBankBalance.useMutation();
-
-  const createAccountMut = trpc.createBankAccount.useMutation({
-    onSuccess: () => {
-      bankAccountsQuery.refetch();
-      closeModal();
-    },
-  });
-
   const utils = trpc.useUtils();
 
-  const updateAccountMut = trpc.updateBankAccount.useMutation({
-    onSuccess: () => {
-      bankAccountsQuery.refetch();
-      closeModal();
-    },
-    onError: (err: { message: string }) => {
-      setErrorMsg(err.message);
-    },
-  });
-
-  const archiveAccountMut = trpc.archiveBankAccount.useMutation({
-    onSuccess: () => {
-      bankAccountsQuery.refetch();
-      setErrorMsg(null);
-    },
-    onError: (err: { message: string }) => {
-      setErrorMsg(err.message);
-    },
-  });
-
-  // State management
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [typeFilter, setTypeFilter] = useState<string>("ALL");
-  const [sortField, setSortField] = useState<"name" | "lastKnownBalance">("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Add / Edit Account Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<BankAccountItem | null>(null);
-  const [accName, setAccName] = useState("");
-  const [accBankProvider, setAccBankProvider] = useState<BankName>("Other");
-  const [accBalance, setAccBalance] = useState("0.00");
-  const [accBuffer, setAccBuffer] = useState("0.00");
-  const [accIsPrivate, setAccIsPrivate] = useState(false);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, typeFilter, sortField, sortDir, pageSize, accountIdParam]);
-
-  const [moveMoneyOpen, setMoveMoneyOpen] = useState(false);
-  const pools = poolsQuery.data ?? [];
-
-  const accounts: BankAccountItem[] = (bankAccountsQuery.data ?? []).map((acc: Record<string, unknown>) => {
-    const accId = acc.id as string;
-    const linkedPools = pools.filter((p) => p.bankAccountId === accId);
-    const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-    const buf = parseFloat((acc.unbudgetedBuffer as string) || "0.00");
-    const expectedBalance = poolsTotal;
-    const actualBal = parseFloat((acc.lastKnownBalance as string) || "0.00");
-    const availableToBudget = Math.max(0, actualBal - buf);
-    const diff = Number((availableToBudget - expectedBalance).toFixed(2));
-    const hasDifference = linkedPools.length > 0 && Math.abs(diff) > 0.009;
-
-    return {
-      id: accId,
-      name: acc.name as string,
-      bankProvider: (acc.bankProvider as string) ?? undefined,
-      lastKnownBalance: (acc.lastKnownBalance as string) ?? "0.00",
-      unbudgetedBuffer: (acc.unbudgetedBuffer as string) ?? "0.00",
-      isPrivate: (acc.isPrivate as boolean) ?? false,
-      categoryTypes: ((acc.poolTypes || acc.categoryTypes || []) as CategoryType[]),
-      updatedAt: (acc.updatedAt as string) ?? undefined,
-      expectedBalance,
-      hasDifference,
-      differenceAmount: diff,
-      linkedPoolsCount: linkedPools.length,
-      linkedPools: linkedPools.map((p) => ({
-        id: p.id,
-        name: p.name,
-        poolType: p.poolType,
-        currentBalance: p.currentBalance || 0,
-      })),
-    };
-  });
-
-  const matchedAccount = accountIdParam ? accounts.find((a) => a.id === accountIdParam) : null;
-  const isAccountParamInvalid = Boolean(accountIdParam && !matchedAccount);
-
-  // Filter accounts
-  const filtered = accounts.filter((acc) => {
-    if (!acc || !acc.name) return false;
-    if (accountIdParam && matchedAccount && acc.id !== accountIdParam) return false;
-    const q = searchQuery.toLowerCase().trim();
-    if (q && !acc.name.toLowerCase().includes(q)) return false;
-    if (typeFilter !== "ALL") {
-      if (typeFilter === "UNLINKED") {
-        if ((acc.linkedPoolsCount ?? 0) > 0) return false;
-      } else {
-        if (!acc.linkedPools?.some((p) => p.id === typeFilter)) return false;
-      }
-    }
-    return true;
-  });
-
-  // Sort accounts
-  const sorted = [...filtered].sort((a, b) => {
-    let comp = 0;
-    if (sortField === "name") {
-      comp = a.name.localeCompare(b.name);
-    } else if (sortField === "lastKnownBalance") {
-      comp = parseFloat(a.lastKnownBalance || "0") - parseFloat(b.lastKnownBalance || "0");
-    }
-    return sortDir === "asc" ? comp : -comp;
-  });
-
-  const totalPages = Math.ceil(sorted.length / pageSize) || 1;
-  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
-
-  const toggleSort = (field: "name" | "lastKnownBalance") => {
-    if (sortField === field) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
-  };
-
-  const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
-
-  const handlePoolToggle = (poolId: string) => {
-    if (selectedPoolIds.includes(poolId)) {
-      setSelectedPoolIds(selectedPoolIds.filter((id) => id !== poolId));
-    } else {
-      setSelectedPoolIds([...selectedPoolIds, poolId]);
-    }
-  };
-
-  const openAddModal = () => {
-    setEditingAccount(null);
-    setAccName("");
-    setAccBankProvider("Other");
-    setAccBalance("0.00");
-    setAccBuffer("0.00");
-    setAccIsPrivate(false);
-    setSelectedPoolIds([]);
-    setErrorMsg(null);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (acc: BankAccountItem) => {
-    setEditingAccount(acc);
-    setAccName(acc.name);
-    setAccBankProvider(
-      acc.bankProvider && (BANK_OPTIONS.some(b => b.key === acc.bankProvider))
-        ? (acc.bankProvider as BankName)
-        : "Other"
-    );
-    setAccBalance(acc.lastKnownBalance || "0.00");
-    setAccBuffer(acc.unbudgetedBuffer || "0.00");
-    setAccIsPrivate(acc.isPrivate ?? false);
-    setSelectedPoolIds(pools.filter(p => p.bankAccountId === acc.id).map(p => p.id));
-    setErrorMsg(null);
-    setIsModalOpen(true);
-  };
-
-  const [reconcileState, setReconcileState] = useState<{
-    account: BankAccountItem;
-    newBalance: number;
-    expectedBalance: number;
-    unbudgetedBuffer?: number;
-    linkedPools: Array<{ id: string; name: string; poolType: string; currentBalance: number; isSurplusTarget?: boolean }>;
-  } | null>(null);
-
-  useEffect(() => {
-    if (poolsQuery.data) {
-      setReconcileState((prev) => {
-        if (!prev) return null;
-        const updatedLinked = (poolsQuery.data ?? []).filter((p) =>
-          prev.linkedPools.some((lp) => lp.id === p.id)
-        );
-        const newExpected = updatedLinked.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-        return {
-          ...prev,
-          expectedBalance: newExpected,
-          linkedPools: updatedLinked.map((p) => ({
-            id: p.id,
-            name: p.name,
-            poolType: p.poolType,
-            currentBalance: p.currentBalance || 0,
-          })),
-        };
-      });
-    }
-  }, [poolsQuery.data]);
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingAccount(null);
-    setErrorMsg(null);
-  };
-
-  const handleDirectAlignment = (acc: BankAccountItem) => {
-    const linkedPools = pools.filter((p) => p.bankAccountId === acc.id);
-    const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-    const buf = parseFloat(acc.unbudgetedBuffer || "0.00");
-    const actualBal = parseFloat(acc.lastKnownBalance || "0.00");
-
-    setReconcileState({
-      account: acc,
-      newBalance: actualBal,
-      expectedBalance: poolsTotal,
-      unbudgetedBuffer: buf,
-      linkedPools,
-    });
-  };
-
-  const handleSaveAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!accName.trim()) return;
-
-    const balNum = parseFloat(accBalance) || 0;
-    const bufNum = parseFloat(accBuffer) || 0;
-
-    if (bufNum > balNum) {
-      setErrorMsg("Unbudgeted Buffer / Reserved amount cannot exceed the Current Balance.");
-      return;
-    }
-
-    const linkedPools = pools.filter((p) => selectedPoolIds.includes(p.id));
-    const poolsTotal = linkedPools.reduce((sum, p) => sum + (p.currentBalance || 0), 0);
-    const expectedBankBal = poolsTotal;
-    const availableToBudget = Math.max(0, balNum - bufNum);
-    const hasVariance = linkedPools.length > 0 && Math.abs(availableToBudget - expectedBankBal) > 0.009;
-
-    let targetAccount = editingAccount;
-    if (editingAccount) {
-      await updateAccountMut.mutateAsync({
-        accountId: editingAccount.id,
-        data: {
-          name: accName.trim(),
-          bankProvider: accBankProvider,
-          lastKnownBalance: accBalance.trim() || "0.00",
-          unbudgetedBuffer: accBuffer.trim() || "0.00",
-          isPrivate: accIsPrivate,
-        },
-      });
-    } else {
-      const created = await createAccountMut.mutateAsync({
-        name: accName.trim(),
-        bankProvider: accBankProvider,
-        lastKnownBalance: accBalance.trim() || "0.00",
-        unbudgetedBuffer: accBuffer.trim() || "0.00",
-        isPrivate: accIsPrivate,
-      });
-      targetAccount = {
-        id: created.id,
-        name: created.name,
-        bankProvider: created.bankProvider as BankName,
-        lastKnownBalance: created.lastKnownBalance || "0.00",
-        unbudgetedBuffer: created.unbudgetedBuffer || "0.00",
-        isPrivate: created.isPrivate ?? false,
-        expectedBalance: expectedBankBal,
-        hasDifference: hasVariance,
-        differenceAmount: Number((availableToBudget - expectedBankBal).toFixed(2)),
-        linkedPoolsCount: linkedPools.length,
-        linkedPools: linkedPools.map((p) => ({
-          id: p.id,
-          name: p.name,
-          poolType: p.poolType,
-          currentBalance: p.currentBalance || 0,
-        })),
-      };
-    }
-
-    setIsModalOpen(false);
-
-    if (hasVariance && targetAccount) {
-      setReconcileState({
-        account: targetAccount,
-        newBalance: balNum,
-        expectedBalance: expectedBankBal,
-        unbudgetedBuffer: bufNum,
-        linkedPools,
-      });
-    }
-  };
-
-  const handleConfirmReconcile = async (splits: Array<{ poolId: string; adjustment: string }>, reason?: string) => {
-    if (!reconcileState) return;
-    const { account, newBalance, expectedBalance, unbudgetedBuffer = 0 } = reconcileState;
-    const availableToBudget = Math.max(0, newBalance - unbudgetedBuffer);
-    const diff = Number((availableToBudget - expectedBalance).toFixed(2));
-
-    if (Math.abs(diff) > 0.009 && splits.length > 0) {
-      await reconcileMut.mutateAsync({
-        accountId: account.id,
-        actualBalance: newBalance.toFixed(2),
-        clientIdempotencyToken: crypto.randomUUID(),
-        splits,
-        note: reason?.trim() || undefined,
-      });
-    }
-
-    utils.listPools.invalidate();
-    await bankAccountsQuery.refetch();
-    setReconcileState(null);
-    closeModal();
-  };
-
-  const [accountToArchive, setAccountToArchive] = useState<BankAccountItem | null>(null);
-
-  const handleArchive = (acc: BankAccountItem) => {
-    const catTypes = acc.categoryTypes || [];
-    if (catTypes.length > 0) {
-      setErrorMsg(
-        `Cannot archive account "${acc.name}" because it has category type(s) linked to it (${catTypes.join(", ")}). Re-assign these category types first.`
-      );
-      return;
-    }
-    setAccountToArchive(acc);
-  };
-
-  const confirmArchiveAccount = () => {
-    if (!accountToArchive) return;
-    archiveAccountMut.mutate({ accountId: accountToArchive.id });
-    setAccountToArchive(null);
-  };
+  const list = useBankAccountsList();
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in duration-200">
@@ -378,7 +37,7 @@ export function BankAccountsSection() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold tracking-tight text-[#1B2B4B] flex items-center gap-2">
-            <span>{t("bankAccounts.title") || "Bank Accounts"}</span>
+            <span>{t("settings.bankAccounts.title")}</span>
             <InfoTooltip
               title={t("tooltips.bankAccounts.title")}
               content={t("tooltips.bankAccounts.content")}
@@ -389,16 +48,16 @@ export function BankAccountsSection() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={openAddModal}
+            onClick={list.openAddModal}
             className="px-4 py-2.5 rounded-xl font-bold text-xs text-white bg-[#2563eb] hover:bg-blue-700 transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <span>Add Bank Account</span>
+            <span>{t("settings.bankAccounts.addAccount")}</span>
           </button>
         </div>
       </div>
 
-      {/* Household Banking Optimizer banner when user has 1 or fewer bank accounts or all pools on 1 account */}
-      {accounts.length <= 1 && (
+      {/* Household Banking Optimizer banner when user has 1 or fewer bank accounts */}
+      {list.accounts.length <= 1 && (
         <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-xs font-black text-[#1B2B4B] flex items-center gap-1.5">
@@ -418,10 +77,10 @@ export function BankAccountsSection() {
         </div>
       )}
 
-      {errorMsg && (
+      {list.errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center justify-between shadow-xs">
-          <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg(null)} className="text-rose-500 hover:text-rose-800 font-bold ml-2">
+          <span>{list.errorMsg}</span>
+          <button onClick={() => list.setErrorMsg(null)} className="text-rose-500 hover:text-rose-800 font-bold ml-2">
             ✕
           </button>
         </div>
@@ -430,43 +89,43 @@ export function BankAccountsSection() {
       {/* Filter and Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-zinc-200 shadow-xs">
         <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search bank accounts by name..."
+          value={list.searchQuery}
+          onChange={list.setSearchQuery}
+          placeholder={t("settings.archived.searchPlaceholder")}
         />
 
         <div className="flex items-center gap-3">
           <div className="h-6 w-px bg-zinc-200 hidden sm:block" />
           <div className="w-64">
             <PoolPicker
-              pools={pools.map((p) => ({
+              pools={list.pools.map((p) => ({
                 id: p.id,
                 name: p.name,
                 poolType: p.poolType,
                 currentBalance: p.currentBalance || 0,
               }))}
               showBalance={false}
-              selectedPoolId={typeFilter === "ALL" ? null : typeFilter}
+              selectedPoolId={list.typeFilter === "ALL" ? null : list.typeFilter}
               allowCategorySelection={false}
               allowAllOption={true}
               placeholder={t("common.allPools")}
-              onChange={(sel) => setTypeFilter(sel.poolId || "ALL")}
+              onChange={(sel) => list.setTypeFilter(sel.poolId || "ALL")}
             />
           </div>
         </div>
       </div>
 
-      {accountIdParam && (
+      {list.accountIdParam && (
         <div className="flex items-center gap-3 flex-wrap">
           <RecordFilterBadge
-            label={matchedAccount ? `Filtered to Account: ${matchedAccount.name}` : "Filter: Item unavailable"}
+            label={list.matchedAccount ? `Filtered to Account: ${list.matchedAccount.name}` : "Filter: Item unavailable"}
             onClear={() => {
               const url = new URL(window.location.href);
               url.searchParams.delete("id");
-              router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
+              list.router.push(url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""));
             }}
           />
-          {isAccountParamInvalid && (
+          {list.isAccountParamInvalid && (
             <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg font-medium">
               Requested item was not found or is archived. Showing all records.
             </span>
@@ -476,87 +135,73 @@ export function BankAccountsSection() {
 
       {/* Primary Bank Accounts Table */}
       <BankAccountTable
-        accounts={paginated}
-        page={page}
-        totalPages={totalPages}
-        pageSize={pageSize}
-        totalItems={sorted.length}
-        sortField={sortField}
-        sortDir={sortDir}
-        toggleSort={toggleSort}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        openEditModal={openEditModal}
-        openAlignmentModal={handleDirectAlignment}
+        accounts={list.paginated}
+        page={list.page}
+        totalPages={list.totalPages}
+        pageSize={list.pageSize}
+        totalItems={list.sorted.length}
+        sortField={list.sortField}
+        sortDir={list.sortDir}
+        toggleSort={list.toggleSort}
+        onPageChange={list.setPage}
+        onPageSizeChange={list.setPageSize}
+        openEditModal={list.openEditModal}
+        openAlignmentModal={list.handleDirectAlignment}
         fmtMoney={fmtMoney}
-        isLoading={bankAccountsQuery.isLoading}
+        isLoading={list.bankAccountsQuery.isLoading}
       />
 
       {/* Add / Edit Account Modal */}
-      {isModalOpen && (
+      {list.isModalOpen && (
         <BankAccountFormModal
-          isOpen={isModalOpen}
-          editingAccount={editingAccount}
-          accName={accName}
-          setAccName={setAccName}
-          accBankProvider={accBankProvider}
-          setAccBankProvider={setAccBankProvider}
-          accBalance={accBalance}
-          setAccBalance={setAccBalance}
-          accBuffer={accBuffer}
-          setAccBuffer={setAccBuffer}
-          accIsPrivate={accIsPrivate}
-          setAccIsPrivate={setAccIsPrivate}
-          pools={pools}
-          selectedPoolIds={selectedPoolIds}
-          onPoolToggle={handlePoolToggle}
-          accounts={accounts}
-          isTrialExpired={isTrialExpired}
-          isSaving={createAccountMut.isPending || updateAccountMut.isPending}
+          isOpen={list.isModalOpen}
+          editingAccount={list.editingAccount}
+          accName={list.accName}
+          setAccName={list.setAccName}
+          accBankProvider={list.accBankProvider}
+          setAccBankProvider={list.setAccBankProvider}
+          accBalance={list.accBalance}
+          setAccBalance={list.setAccBalance}
+          accBuffer={list.accBuffer}
+          setAccBuffer={list.setAccBuffer}
+          accIsPrivate={list.accIsPrivate}
+          setAccIsPrivate={list.setAccIsPrivate}
+          isTrialExpired={list.isTrialExpired}
+          isSaving={list.isSaving}
           bankOptions={BANK_OPTIONS}
-          onClose={closeModal}
-          onSubmit={handleSaveAccount}
+          onClose={list.closeModal}
+          onSubmit={list.handleSaveAccount}
           fmtMoney={fmtMoney}
-          onArchive={editingAccount ? () => handleArchive(editingAccount) : undefined}
-          errorMsg={errorMsg}
+          onArchive={list.editingAccount ? () => list.handleArchiveAccount(list.editingAccount!) : undefined}
+          errorMsg={list.errorMsg}
         />
       )}
 
       {/* Reconciliation Modal */}
-      {reconcileState && (
+      {list.reconcileState && (
         <ReconciliationModal
-          isOpen={!!reconcileState}
-          onClose={() => setReconcileState(null)}
-          accountName={reconcileState.account.name}
-          expectedBalance={reconcileState.expectedBalance}
-          newBalance={reconcileState.newBalance}
-          unbudgetedBuffer={reconcileState.unbudgetedBuffer ?? 0}
-          pools={reconcileState.linkedPools}
-          onConfirm={handleConfirmReconcile}
-          onOpenTransferModal={() => setMoveMoneyOpen(true)}
+          isOpen={!!list.reconcileState}
+          onClose={() => list.setReconcileState(null)}
+          accountName={list.reconcileState.account.name}
+          expectedBalance={list.reconcileState.expectedBalance}
+          newBalance={list.reconcileState.newBalance}
+          unbudgetedBuffer={list.reconcileState.unbudgetedBuffer ?? 0}
+          pools={list.reconcileState.linkedPools}
+          onConfirm={list.handleConfirmReconcile}
+          onOpenTransferModal={() => list.setMoveMoneyOpen(true)}
         />
       )}
 
       {/* Quick Action Drawer for Transfer capability */}
-      {moveMoneyOpen && (
+      {list.moveMoneyOpen && (
         <QuickExpenseDrawer
           onClose={() => {
-            setMoveMoneyOpen(false);
+            list.setMoveMoneyOpen(false);
             utils.listPools.invalidate();
           }}
           initialTab="TRANSFER"
         />
       )}
-
-      <ConfirmDialog
-        isOpen={!!accountToArchive}
-        onClose={() => setAccountToArchive(null)}
-        onConfirm={confirmArchiveAccount}
-        title="Archive Bank Account"
-        description={`Are you sure you want to archive bank account "${accountToArchive?.name || ""}"?`}
-        confirmLabel="Archive Account"
-        variant="danger"
-      />
     </div>
   );
 }

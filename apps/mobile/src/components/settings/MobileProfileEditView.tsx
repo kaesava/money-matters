@@ -6,14 +6,17 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import {
+  MobileButton,
+  FormLabel,
+  FormFieldError,
+  SwitchRow,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { SUPPORTED_LOCALES } from '@money-matters/types';
-import { MOBILE_COMMON_TIMEZONES } from './timezones';
-import { profileEditStyles as styles } from './profileEditStyles';
+import { SUPPORTED_LOCALES, COMMON_TIMEZONES } from '@money-matters/types';
 
 interface MobileProfileEditViewProps {
   name: string;
@@ -24,6 +27,7 @@ interface MobileProfileEditViewProps {
   setPhoneCountryCode: (val: string) => void;
   phoneNumber: string;
   setPhoneNumber: (val: string) => void;
+  phoneError?: string;
   avatarUri: string | null;
   onPickAvatar: () => void;
   timezone: string;
@@ -48,6 +52,7 @@ export function MobileProfileEditView({
   setPhoneCountryCode,
   phoneNumber,
   setPhoneNumber,
+  phoneError,
   avatarUri,
   onPickAvatar,
   timezone,
@@ -62,57 +67,49 @@ export function MobileProfileEditView({
   onSave,
   onCancel,
 }: MobileProfileEditViewProps) {
+  const initials = name
+    ? name
+        .split(' ')
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '?';
+
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>{t('settings.myDetailsTitle')}</Text>
+        <Text style={styles.cardTitle}>{t('settings.editProfileTitle')}</Text>
         <View style={styles.actionRow}>
           <TouchableOpacity onPress={onCancel} style={styles.cancelBtn}>
             <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onSave}
-            disabled={saving}
-            style={[styles.saveBtnTop, saving && { opacity: 0.6 }]}
-          >
-            {saving ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.saveBtnTextTop}>{t('common.save')}</Text>
-            )}
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Avatar Picker */}
+      {/* Avatar Picker Row */}
       <View style={styles.avatarRow}>
-        <TouchableOpacity onPress={onPickAvatar} style={styles.avatarContainer}>
+        <View style={styles.avatarContainer}>
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>
-                {(name || 'U').charAt(0).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarInitials}>{initials}</Text>
             </View>
           )}
-          <View style={styles.cameraPill}>
-            <Feather name="camera" size={11} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-
-        <View style={{ flex: 1 }}>
-          <TouchableOpacity onPress={onPickAvatar} style={styles.changePhotoBtn}>
-            <Text style={styles.changePhotoText}>{t('settings.avatarUploadLabel')}</Text>
+          <TouchableOpacity onPress={onPickAvatar} style={styles.cameraPill}>
+            <Feather name="camera" size={14} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity onPress={onPickAvatar} style={styles.changePhotoBtn}>
+          <Text style={styles.changePhotoText}>{t('settings.avatarUploadLabel')}</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Name Input */}
+      {/* Name (Mandatory) */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          {t('settings.displayNameLabel')} <Text style={styles.requiredStar}>*</Text>
-        </Text>
+        <FormLabel label={t('settings.displayNameLabel')} required />
         <TextInput
           style={styles.textInput}
           value={name}
@@ -120,13 +117,14 @@ export function MobileProfileEditView({
           placeholder={t('settings.displayNamePlaceholder')}
           placeholderTextColor="#94A3B8"
         />
+        {!name.trim() && (
+          <FormFieldError error={t('settings.displayNameRequired')} />
+        )}
       </View>
 
-      {/* Notification Email Input */}
+      {/* Notification Email (Mandatory) */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          {t('settings.notificationEmailLabel')} <Text style={styles.requiredStar}>*</Text>
-        </Text>
+        <FormLabel label={t('settings.notificationEmailLabel')} required />
         <TextInput
           style={styles.textInput}
           value={notificationEmail}
@@ -139,9 +137,9 @@ export function MobileProfileEditView({
         <Text style={styles.hintText}>{t('settings.notificationEmailHint')}</Text>
       </View>
 
-      {/* Mobile Phone Number */}
+      {/* Phone Number */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('settings.phoneNumberLabel')}</Text>
+        <FormLabel label={t('settings.phoneNumberLabel')} />
         <View style={styles.phoneRow}>
           <TextInput
             style={styles.phoneCodeInput}
@@ -159,11 +157,12 @@ export function MobileProfileEditView({
             keyboardType="phone-pad"
           />
         </View>
+        {phoneError ? <FormFieldError error={phoneError} /> : null}
       </View>
 
-      {/* Language Chips */}
+      {/* Language */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('settings.language')}</Text>
+        <FormLabel label={t('settings.language')} />
         <View style={styles.chipRow}>
           <TouchableOpacity
             onPress={() => setLanguage('en')}
@@ -176,9 +175,9 @@ export function MobileProfileEditView({
         </View>
       </View>
 
-      {/* Date Format Chips */}
+      {/* Date Format */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('settings.dateFormat')}</Text>
+        <FormLabel label={t('settings.dateFormat')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
           {SUPPORTED_LOCALES.map((l) => {
             const isSelected = locale === l.code;
@@ -197,11 +196,11 @@ export function MobileProfileEditView({
         </ScrollView>
       </View>
 
-      {/* Timezone Chips */}
+      {/* Timezone (COMMON_TIMEZONES) */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>{t('settings.items.timezone')}</Text>
+        <FormLabel label={t('settings.items.timezone')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollRow}>
-          {MOBILE_COMMON_TIMEZONES.map((tz) => {
+          {COMMON_TIMEZONES.map((tz) => {
             const isSelected = timezone === tz.value;
             return (
               <TouchableOpacity
@@ -218,38 +217,197 @@ export function MobileProfileEditView({
         </ScrollView>
       </View>
 
-      {/* Show Information Icons Toggle */}
-      <View style={styles.toggleRow}>
-        <View style={{ flex: 1, paddingRight: 10 }}>
-          <Text style={styles.toggleTitle}>{t('settings.items.showIcons')}</Text>
-          <Text style={styles.toggleSubtitle}>{t('settings.items.showIconsHint')}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => setShowIcons(!showIcons)}
-          style={[styles.toggleBtn, showIcons && styles.toggleBtnActive]}
-        >
-          <View style={[styles.toggleThumb, showIcons && styles.toggleThumbActive]} />
-        </TouchableOpacity>
-      </View>
+      {/* Show Icons Switch */}
+      <SwitchRow
+        label={t('settings.items.showIcons')}
+        hint={t('settings.items.showIconsHint')}
+        value={showIcons}
+        onValueChange={setShowIcons}
+      />
 
-      {/* Footer Save / Cancel */}
+      {/* Bottom Actions */}
       <View style={styles.footerRow}>
-        <TouchableOpacity onPress={onCancel} style={styles.cancelBtnBottom}>
-          <Text style={styles.cancelBtnBottomText}>{t('common.cancel')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        <MobileButton
+          variant="secondary"
+          label={t('common.cancel')}
+          onPress={onCancel}
+        />
+        <MobileButton
+          variant="primary"
+          label={t('settings.saveProfileCta')}
           onPress={onSave}
-          disabled={saving}
-          style={[styles.saveBtnBottom, saving && { opacity: 0.6 }]}
-        >
-          {saving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.saveBtnBottomText}>{t('settings.saveProfileCta')}</Text>
-          )}
-        </TouchableOpacity>
+          loading={saving}
+          disabled={saving || !name.trim() || !notificationEmail.trim()}
+        />
       </View>
     </View>
   );
 }
 
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    gap: 14,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1B2B4B',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cancelBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  cancelBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 12,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatarImg: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+  },
+  avatarPlaceholder: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#1B2B4B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  cameraPill: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    padding: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  changePhotoBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignSelf: 'flex-start',
+  },
+  changePhotoText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2563eb',
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1B2B4B',
+  },
+  hintText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  phoneCodeInput: {
+    width: 80,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1B2B4B',
+  },
+  phoneNumberInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#1B2B4B',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  scrollRow: {
+    flexDirection: 'row',
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    marginRight: 8,
+  },
+  chipSelected: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563eb',
+  },
+  chipText: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  chipTextSelected: {
+    color: '#2563eb',
+    fontWeight: '700',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
+  },
+});

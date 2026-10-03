@@ -29,6 +29,10 @@ export * from "./app-preferences";
 export * from "./onboarding-quiz";
 export * from "./locale.types";
 export * from "./auth.types";
+export * from "./profile.types";
+export * from "./household.types";
+export * from "./bank-account.types";
+export * from "./subscription.types";
 
 /**
  * Subscription status lifecycle state machine.

@@ -560,6 +560,52 @@ export const tenantRouter = {
         isPending: m.inviteStatus === "PENDING",
       }));
 
+      const otherMembers = dbMembers.filter((m) => m.userId !== ctx.userId && m.role !== "OWNER");
+      let leaveWarning: { key: string; params?: Record<string, string | number> };
+      if (myMember?.role !== "OWNER") {
+        leaveWarning = {
+          key: "privacy.leaveMemberWarning",
+          params: {
+            householdName: tenant?.name ?? "Household",
+            email: partnerMember?.inviteEmail ?? partnerMember?.email ?? "the owner",
+          },
+        };
+      } else if (otherMembers.length <= 1) {
+        const targetEmail =
+          otherMembers[0]?.email ||
+          otherMembers[0]?.displayName ||
+          partnerMember?.inviteEmail ||
+          partnerMember?.email ||
+          "your partner";
+        leaveWarning = {
+          key: "privacy.leaveOwnerSingleMemberWarning",
+          params: { email: targetEmail },
+        };
+      } else {
+        const successor = otherMembers[0]?.email || otherMembers[0]?.displayName || "the next member";
+        leaveWarning = {
+          key: "privacy.leaveOwnerMultiMemberWarning",
+          params: {
+            successor,
+            count: otherMembers.length,
+          },
+        };
+      }
+
+      let deleteWarning: { key: string; params?: Record<string, string | number> } | null = null;
+      if (partnerMember) {
+        if (otherMembers.length > 1) {
+          deleteWarning = {
+            key: "privacy.deleteMultiPartnerWarning",
+          };
+        } else {
+          deleteWarning = {
+            key: "privacy.deletePartnerWarning",
+            params: { email: partnerMember.inviteEmail ?? partnerMember.email ?? "" },
+          };
+        }
+      }
+
       return {
         householdId: ctx.tenantId!,
         householdName: tenant?.name ?? "Household",
@@ -574,6 +620,8 @@ export const tenantRouter = {
         state: tenant?.state ?? null,
         postcode: tenant?.postcode ?? null,
         membersList,
+        leaveWarning,
+        deleteWarning,
       };
     }),
 

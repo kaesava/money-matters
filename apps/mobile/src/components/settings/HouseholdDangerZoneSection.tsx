@@ -2,236 +2,145 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useMobileToast } from '@money-matters/ui/mobile';
+import { useMobileToast, MobileButton, TypedConfirmDialog } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import * as SecureStore from 'expo-secure-store';
-import { trpc, setActiveSessionToken } from '../../lib/trpc';
+import { trpc, setActiveSessionToken, setActiveTenantId } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 
 export function HouseholdDangerZoneSection() {
   const router = useRouter();
   const toast = useMobileToast();
+  const utils = trpc.useUtils();
   const govQuery = trpc.getHouseholdGovernanceInfo.useQuery();
   const deleteMutation = trpc.deleteMyAccount.useMutation();
   const leaveMutation = trpc.leaveMyHousehold.useMutation();
 
   const [activeModal, setActiveModal] = useState<'LEAVE' | 'DELETE' | null>(null);
-  const [typedConfirm, setTypedConfirm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const gov = govQuery.data;
   if (!gov) return null;
 
-  const isLeaveValid = typedConfirm.trim().toUpperCase() === 'LEAVE HOUSEHOLD';
-  const isDeleteValid =
-    typedConfirm.trim().toLowerCase() === (gov.householdName || '').trim().toLowerCase();
-
-  const handleSignOutAndExit = async () => {
+  const handleSignOutAndExit = async (hasOtherHousehold: boolean) => {
     await authClient.signOut();
     await SecureStore.deleteItemAsync('money-matters_session_token');
     await SecureStore.deleteItemAsync('money-matters-session-token');
+    await SecureStore.deleteItemAsync('money_matters_active_tenant_id').catch(() => {});
     setActiveSessionToken(null);
-    router.replace('/(auth)/sign-in');
+    setActiveTenantId(null);
+    await utils.invalidate().catch(() => {});
+    router.replace((hasOtherHousehold ? '/(auth)/sign-in' : '/(auth)/sign-in') as never);
   };
 
   const handleLeaveHousehold = async () => {
-    if (!isLeaveValid || isSubmitting) return;
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await leaveMutation.mutateAsync();
+      const res = await leaveMutation.mutateAsync();
+      toast.success(t('privacy.leftHouseholdSuccess'), t('common.success'));
       setActiveModal(null);
-      toast.success(
-        t('privacy.leftHouseholdSuccess'),
-        'Household Left'
-      );
-      handleSignOutAndExit();
+      await handleSignOutAndExit(Boolean(res.hasOtherHousehold));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to leave household.', t('common.error'));
+      toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'), t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteHousehold = async () => {
-    if (!isDeleteValid || isSubmitting) return;
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await deleteMutation.mutateAsync();
+      toast.success(t('privacy.deletionConfirmedBody'), t('privacy.deletionConfirmedTitle'));
       setActiveModal(null);
-      toast.success(
-        t('privacy.deletionConfirmedBody'),
-        t('privacy.deletionConfirmedTitle')
-      );
-      handleSignOutAndExit();
+      await handleSignOutAndExit(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete household.', t('common.error'));
+      toast.error(err instanceof Error ? err.message : t('common.errorTryAgain'), t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const leaveWarningText = gov.leaveWarning
+    ? t(gov.leaveWarning.key, gov.leaveWarning.params)
+    : '';
+
+  const deleteWarningText = gov.deleteWarning
+    ? t(gov.deleteWarning.key, gov.deleteWarning.params)
+    : '';
+
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <Feather name="alert-triangle" size={16} color="#B91C1C" />
-        <Text style={styles.cardTitle}>DANGER ZONE</Text>
+        <Text style={styles.cardTitle}>{t('settings.dangerZone.title')}</Text>
       </View>
       <Text style={styles.cardSubtitle}>
-        Irreversible household governance actions. Exercise extreme caution.
+        {t('settings.dangerZone.subtitle')}
       </Text>
 
       <View style={styles.btnRow}>
         {(!gov.isSoleOwner || !gov.isOwner) && (
-          <TouchableOpacity
-            style={styles.leaveBtn}
-            onPress={() => {
-              setTypedConfirm('');
-              setActiveModal('LEAVE');
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.leaveBtnText}>Leave Household</Text>
-          </TouchableOpacity>
+          <MobileButton
+            variant="secondary"
+            label={t('settings.dangerZone.leaveCta')}
+            onPress={() => setActiveModal('LEAVE')}
+          />
         )}
 
         {gov.isOwner && (
-          <TouchableOpacity
-            style={styles.deleteBtn}
-            onPress={() => {
-              setTypedConfirm('');
-              setActiveModal('DELETE');
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.deleteBtnText}>Delete Household & Data</Text>
-          </TouchableOpacity>
+          <MobileButton
+            variant="danger"
+            label={t('settings.dangerZone.deleteCta')}
+            onPress={() => setActiveModal('DELETE')}
+          />
         )}
       </View>
 
-      {/* Confirmation Modal */}
-      <Modal
-        visible={activeModal !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setActiveModal(null)}
+      {/* Leave Household Modal */}
+      <TypedConfirmDialog
+        visible={activeModal === 'LEAVE'}
+        onClose={() => setActiveModal(null)}
+        onConfirm={handleLeaveHousehold}
+        title={t('privacy.leaveHouseholdModalTitle')}
+        subtitle={t('privacy.leaveHouseholdModalSubtitle')}
+        confirmPhrase={t('settings.dangerZone.leaveConfirmPhrase')}
+        confirmLabel={t('settings.dangerZone.leaveConfirmLabel')}
+        confirmButtonText={t('privacy.confirmLeaveCta')}
+        variant="danger"
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalBackdrop}
-        >
-          <View style={styles.modalCard}>
-            {activeModal === 'LEAVE' ? (
-              <>
-                <Text style={styles.modalTitle}>Confirm Departure</Text>
-                <Text style={styles.modalDesc}>
-                  {gov.isOwner
-                    ? t('privacy.leaveOwnerWarning', { email: gov.partnerEmail || 'your partner' })
-                    : t('privacy.leaveMemberWarning', {
-                        householdName: gov.householdName,
-                        email: gov.partnerEmail || 'the owner',
-                      })}
-                </Text>
+        <View style={styles.warningBox}>
+          <Text style={styles.warningText}>{leaveWarningText}</Text>
+        </View>
+      </TypedConfirmDialog>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>
-                    Type <Text style={styles.boldMono}>LEAVE HOUSEHOLD</Text> to confirm:
-                  </Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    value={typedConfirm}
-                    onChangeText={setTypedConfirm}
-                    placeholder="LEAVE HOUSEHOLD"
-                    placeholderTextColor="#94A3B8"
-                    autoCapitalize="characters"
-                  />
-                </View>
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={styles.cancelModalBtn}
-                    onPress={() => setActiveModal(null)}
-                  >
-                    <Text style={styles.cancelModalBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.confirmLeaveBtn,
-                      (!isLeaveValid || isSubmitting) && styles.btnDisabled,
-                    ]}
-                    onPress={handleLeaveHousehold}
-                    disabled={!isLeaveValid || isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.confirmLeaveBtnText}>Confirm & Leave</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.modalTitleDanger}>Delete Household & Data</Text>
-                <Text style={styles.modalDesc}>
-                  {t('privacy.deleteHouseholdNotice')}
-                </Text>
-                {gov.partnerEmail ? (
-                  <Text style={styles.partnerWarningText}>
-                    {t('privacy.deletePartnerWarning', { email: gov.partnerEmail })}
-                  </Text>
-                ) : null}
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>
-                    Type exact household name (
-                    <Text style={styles.boldMono}>{gov.householdName}</Text>) to confirm:
-                  </Text>
-                  <TextInput
-                    style={styles.modalInputDanger}
-                    value={typedConfirm}
-                    onChangeText={setTypedConfirm}
-                    placeholder={gov.householdName}
-                    placeholderTextColor="#FDA4AF"
-                  />
-                </View>
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={styles.cancelModalBtn}
-                    onPress={() => setActiveModal(null)}
-                  >
-                    <Text style={styles.cancelModalBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.confirmDeleteBtn,
-                      (!isDeleteValid || isSubmitting) && styles.btnDisabled,
-                    ]}
-                    onPress={handleDeleteHousehold}
-                    disabled={!isDeleteValid || isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.confirmDeleteBtnText}>Erase Permanently</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {/* Delete Household Modal */}
+      <TypedConfirmDialog
+        visible={activeModal === 'DELETE'}
+        onClose={() => setActiveModal(null)}
+        onConfirm={handleDeleteHousehold}
+        title={t('privacy.deleteHouseholdModalTitle')}
+        subtitle={t('privacy.deleteHouseholdModalTooltip')}
+        confirmPhrase={gov.householdName}
+        confirmLabel={t('settings.dangerZone.deleteConfirmLabel', {
+          name: gov.householdName,
+        })}
+        confirmButtonText={t('privacy.confirmDeleteHouseholdCta')}
+        variant="danger"
+      >
+        <View style={styles.dangerBox}>
+          <Text style={styles.dangerText}>{t('privacy.deleteHouseholdNotice')}</Text>
+          {deleteWarningText ? (
+            <Text style={styles.dangerSubtext}>⚠️ {deleteWarningText}</Text>
+          ) : null}
+        </View>
+      </TypedConfirmDialog>
     </View>
   );
 }
@@ -255,6 +164,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#B91C1C',
     letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   cardSubtitle: {
     fontSize: 11,
@@ -267,152 +177,37 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-  leaveBtn: {
+  warningBox: {
     backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FCD34D',
     borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
-  leaveBtnText: {
+  warningText: {
     fontSize: 12,
-    fontWeight: '800',
     color: '#92400E',
+    lineHeight: 16,
+    fontWeight: '600',
   },
-  deleteBtn: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
+  dangerBox: {
+    backgroundColor: '#FEF2F2',
     borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  deleteBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#DC2626',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    width: '100%',
-    maxWidth: 400,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1E293B',
-  },
-  modalTitleDanger: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#DC2626',
-  },
-  modalDesc: {
-    fontSize: 12,
-    color: '#475569',
-    lineHeight: 18,
-  },
-  partnerWarningText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#991B1B',
-    backgroundColor: '#FEE2E2',
-    padding: 8,
-    borderRadius: 8,
-  },
-  inputGroup: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
     gap: 6,
   },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  boldMono: {
-    fontWeight: '900',
-    fontFamily: 'monospace',
-    color: '#0F172A',
-  },
-  modalInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: '#0F172A',
-    fontWeight: '700',
-  },
-  modalInputDanger: {
-    backgroundColor: '#FFF5F5',
-    borderWidth: 1,
-    borderColor: '#FDA4AF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
+  dangerText: {
+    fontSize: 12,
     color: '#991B1B',
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  dangerSubtext: {
+    fontSize: 12,
+    color: '#DC2626',
     fontWeight: '700',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-    marginTop: 6,
-  },
-  cancelModalBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
-  },
-  cancelModalBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  confirmLeaveBtn: {
-    backgroundColor: '#D97706',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 10,
-  },
-  confirmLeaveBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  confirmDeleteBtn: {
-    backgroundColor: '#DC2626',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 10,
-  },
-  confirmDeleteBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  btnDisabled: {
-    opacity: 0.5,
+    marginTop: 4,
   },
 });
-
-export default HouseholdDangerZoneSection;

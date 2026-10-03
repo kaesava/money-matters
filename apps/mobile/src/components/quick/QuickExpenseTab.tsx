@@ -6,15 +6,13 @@ import {
   AmountInput,
   MobileDatePickerField,
   MobileInput,
-  FormLabel,
-  FormFieldError,
   MobileButton,
+  MobilePoolPicker,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { formatAUD } from '../../lib/format';
 import { QuickPresetItem } from './useMobileQuickAction';
 import { QuickPresetsRow } from './QuickPresetsRow';
-import { MobilePoolCategoryPickerSheet } from './MobilePoolCategoryPickerSheet';
 
 export interface QuickExpenseTabProps {
   name: string;
@@ -62,14 +60,12 @@ export function QuickExpenseTab({
   onSubmit,
   onCancel,
 }: QuickExpenseTabProps) {
-  const [pickerVisible, setPickerVisible] = useState(false);
   const [amountError, setAmountError] = useState('');
   const [nameError, setNameError] = useState('');
   const [poolError, setPoolError] = useState('');
 
   const isFutureDate = date > todayStr;
   const selectedPool = pools.find((p) => p.id === selectedPoolId);
-  const selectedSubCat = categories.find((c) => c.id === selectedSubCategoryId);
 
   const getPoolBal = (p?: { currentBalance?: number | string }) =>
     typeof p?.currentBalance === 'number'
@@ -161,38 +157,21 @@ export function QuickExpenseTab({
       />
 
       {/* Pool / Category Selection */}
-      <View style={styles.inputGroup}>
-        <FormLabel required>{t('drawers.quickExpense.category')}</FormLabel>
-        <TouchableOpacity
-          onPress={() => setPickerVisible(true)}
-          style={[styles.pickerTrigger, !!poolError && styles.pickerTriggerError]}
-        >
-          <View style={styles.pickerLeft}>
-            <Text style={selectedPool ? styles.pickerValText : styles.pickerPlaceholderText}>
-              {selectedSubCat
-                ? `${selectedPool?.name} ➔ ${selectedSubCat.name}`
-                : selectedPool
-                ? selectedPool.name
-                : t('drawers.quickExpense.selectPoolOrCategoryPlaceholder')}
-            </Text>
-            {selectedPool && (
-              <Text style={styles.pickerBalText}>({formatAUD(poolBal)})</Text>
-            )}
-          </View>
-          <Feather name="chevron-down" size={16} color="#64748B" />
-        </TouchableOpacity>
-        <FormFieldError error={poolError} />
-      </View>
-
-      <MobilePoolCategoryPickerSheet
-        visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
+      <MobilePoolPicker
+        label={t('drawers.quickExpense.category')}
+        required
+        displayStyle="field"
+        mode="inline"
+        allowCategorySelection={true}
+        allowAllOption={false}
         pools={enrichedPools}
         selectedPoolId={selectedPoolId}
-        selectedSubCategoryId={selectedSubCategoryId}
-        onSelect={({ poolId, subCategoryId }) => {
+        selectedCategoryId={selectedSubCategoryId}
+        placeholder={t('drawers.quickExpense.selectPoolOrCategoryPlaceholder')}
+        error={poolError}
+        onSelectCategory={(poolId, catId) => {
           setSelectedPoolId(poolId);
-          setSelectedSubCategoryId(subCategoryId || null);
+          setSelectedSubCategoryId(catId);
           setPoolError('');
         }}
       />
@@ -228,40 +207,6 @@ const styles = StyleSheet.create({
     color: DESIGN_TOKENS.colors.critical,
     fontWeight: '600',
     marginTop: 2,
-  },
-  pickerTrigger: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#F8FAFC',
-  },
-  pickerTriggerError: {
-    borderColor: DESIGN_TOKENS.colors.critical,
-  },
-  pickerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  pickerValText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1B2B4B',
-  },
-  pickerPlaceholderText: {
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  pickerBalText: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    color: '#64748B',
   },
   btnRow: {
     flexDirection: 'row',

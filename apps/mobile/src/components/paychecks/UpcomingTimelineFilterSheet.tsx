@@ -49,7 +49,7 @@ export function UpcomingTimelineFilterSheet({
       sections={[
         {
           id: 'scope',
-          title: t('settings.household'),
+          title: t('settings.household.title'),
           options: [
             { id: 'ALL', label: t('transactions.filterAll') || 'All' },
             { id: 'SHARED', label: t('categories.householdBadge').replace(/[()]/g, '') || 'Shared' },

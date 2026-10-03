@@ -6,6 +6,7 @@ import { t } from "@money-matters/i18n";
 import { trpc } from "../../../../lib/trpc";
 import { useToast, InfoTooltip, Button, fmtDateIso } from "@money-matters/ui/web";
 import { useLocale } from "../../../../providers/LocaleProvider";
+import { buildExportFileName } from "@money-matters/types";
 
 export function PrivacySection() {
   const toast = useToast();
@@ -29,17 +30,17 @@ export function PrivacySection() {
         const a = document.createElement("a");
         a.href = url;
         const dateStr = fmtDateIso(undefined, userTimezone);
-        a.download = `money-matters-backup-${dateStr}.zip`;
+        a.download = buildExportFileName(dateStr);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         toast.success(t("toasts.exportSuccess"));
       } else {
-        toast.error("No export data returned.");
+        toast.error(t("common.errorTryAgain"));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to generate zip export");
+      toast.error(err instanceof Error ? err.message : t("common.errorTryAgain"));
     } finally {
       setExporting(false);
     }
@@ -52,12 +53,12 @@ export function PrivacySection() {
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-extrabold text-[#1B2B4B]">
-                Data Privacy & Complete Export
+                {t("privacy.title")}
               </h2>
-              <InfoTooltip content="Bank-grade encryption, Australian Privacy Principles compliance, and stealth data isolation." />
+              <InfoTooltip content={t("privacy.aussiePrivacyGuarantee")} />
             </div>
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Your financial data is 100% private to your household. We use bank-grade encryption, stealth tenant isolation, and strict Australian Privacy Principles (Privacy Act 1988 Cth). You can download a complete 1-click zipped CSV archive of all your accounts, pools, transactions, and income splits anytime.
+              {t("privacy.aussiePrivacyDetail")}
             </p>
             <div>
               <a
@@ -66,7 +67,7 @@ export function PrivacySection() {
                 rel="noopener noreferrer"
                 className="text-xs font-bold text-[#2563eb] hover:underline inline-flex items-center gap-1"
               >
-                <span>Read our full Privacy Policy</span>
+                <span>{t("privacy.viewPublicPrivacyPolicyLink")}</span>
                 <span className="text-[10px] text-blue-400">↗</span>
               </a>
             </div>
@@ -78,7 +79,7 @@ export function PrivacySection() {
             loading={exporting}
             className="shrink-0"
           >
-            Download Zipped CSV Backup
+            {t("privacy.exportZipButton")}
           </Button>
         </div>
       </section>

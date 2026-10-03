@@ -119,7 +119,7 @@ export function SidebarContent({
         <div
           onClick={onNavigateToSettings}
           className={`flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group ${sidebarCollapsed ? "justify-center" : ""}`}
-          title={t("settings.profile")}
+          title={t("settings.profile.title")}
         >
           {effectiveAvatar ? (
             <Image

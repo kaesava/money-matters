@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { useIconVisibility, useMobileToast, showMobileConfirm } from '@money-matters/ui/mobile';
+import {
+  useIconVisibility,
+  useMobileToast,
+  showMobileConfirm,
+  validateMobileNumber,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { trpc } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
@@ -15,12 +20,23 @@ import * as SecureStore from 'expo-secure-store';
 import { MobileProfileReadOnlyView } from './MobileProfileReadOnlyView';
 import { MobileProfileEditView } from './MobileProfileEditView';
 
-export function MobileProfileSection() {
+interface MobileProfileSectionProps {
+  onDirtyChange?: (isDirty: boolean) => void;
+  registerDiscard?: (discardFn: () => void) => void;
+}
+
+export function MobileProfileSection({
+  onDirtyChange,
+  registerDiscard,
+}: MobileProfileSectionProps = {}) {
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
   const toast = useMobileToast();
   const { setShowIcons: setContextShowIcons } = useIconVisibility();
 
+  const userProfileQuery = trpc.getUserProfile.useQuery(undefined, {
+    enabled: !!session?.user,
+  });
   const userPrefQuery = trpc.getUserPreferences.useQuery(undefined, {
     enabled: !!session?.user,
   });
@@ -31,6 +47,7 @@ export function MobileProfileSection() {
   const [notificationEmail, setNotificationEmail] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('+61');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState<string | undefined>();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [timezone, setTimezone] = useState('Australia/Sydney');
   const [language, setLanguage] = useState<'en'>('en');
@@ -63,16 +80,19 @@ export function MobileProfileSection() {
   });
 
   useEffect(() => {
-    const uName = session?.user?.name || '';
-    const uEmail = session?.user?.email || storedEmail || '';
-    const uAvatar = session?.user?.image || null;
-    const uTz = userPrefQuery.data?.timezone || 'Australia/Sydney';
+    const prof = userProfileQuery.data;
+    const pref = userPrefQuery.data;
+
+    const uName = prof?.displayName || session?.user?.name || '';
+    const uEmail = prof?.email || session?.user?.email || storedEmail || '';
+    const uAvatar = prof?.avatarUrl || session?.user?.image || null;
+    const uTz = prof?.timezone || pref?.timezone || 'Australia/Sydney';
     const uLang = 'en' as const;
-    const uLoc = userPrefQuery.data?.locale || 'auto';
-    const uIcons = userPrefQuery.data?.showIcons ?? true;
-    const uNotifEmail = userPrefQuery.data?.notificationEmail || uEmail;
-    const uPhoneCode = userPrefQuery.data?.phoneCountryCode || '+61';
-    const uPhoneNum = userPrefQuery.data?.phoneNumber || '';
+    const uLoc = pref?.locale || 'auto';
+    const uIcons = prof?.showIcons ?? pref?.showIcons ?? true;
+    const uNotifEmail = prof?.notificationEmail || pref?.notificationEmail || uEmail;
+    const uPhoneCode = prof?.phoneCountryCode || pref?.phoneCountryCode || '+61';
+    const uPhoneNum = prof?.phoneNumber || pref?.phoneNumber || '';
 
     setName(uName);
     setNotificationEmail(uNotifEmail);
@@ -99,7 +119,7 @@ export function MobileProfileSection() {
     checkBiometricsAvailable().then(setBiometricsAvailable).catch(() => {});
     getBiometricTypeLabel().then(setBiometricLabel).catch(() => {});
     isBiometricLockEnabled().then(setBiometricsEnabled).catch(() => {});
-  }, [session, userPrefQuery.data, storedEmail]);
+  }, [userProfileQuery.data, userPrefQuery.data, session, storedEmail]);
 
   const isDirty =
     name !== initialDataRef.current.name ||
@@ -112,10 +132,35 @@ export function MobileProfileSection() {
     showIcons !== initialDataRef.current.showIcons ||
     avatarUri !== initialDataRef.current.avatarUri;
 
+  useEffect(() => {
+    onDirtyChange?.(isDirty && isEditing);
+  }, [isDirty, isEditing, onDirtyChange]);
+
+  const handleDiscard = React.useCallback(() => {
+    const init = initialDataRef.current;
+    setName(init.name);
+    setNotificationEmail(init.notificationEmail);
+    setPhoneCountryCode(init.phoneCountryCode);
+    setPhoneNumber(init.phoneNumber);
+    setTimezone(init.timezone);
+    setLanguage(init.language);
+    setLocale(init.locale);
+    setShowIcons(init.showIcons);
+    setAvatarUri(init.avatarUri);
+    setPhoneError(undefined);
+    setIsEditing(false);
+  }, []);
+
+  useEffect(() => {
+    registerDiscard?.(handleDiscard);
+  }, [handleDiscard, registerDiscard]);
+
   const handleToggleBiometrics = async () => {
     const nextState = !biometricsEnabled;
     if (nextState) {
-      const authenticated = await authenticateWithBiometrics('Enable biometric security for Money Matters');
+      const authenticated = await authenticateWithBiometrics(
+        'Enable biometric security for Money Matters'
+      );
       if (authenticated) {
         await setBiometricLockEnabled(true);
         setBiometricsEnabled(true);
@@ -127,6 +172,7 @@ export function MobileProfileSection() {
   };
 
   const updatePrefMut = trpc.updateUserPreferences.useMutation();
+  const updateProfileMut = trpc.updateUserProfile.useMutation();
 
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -148,6 +194,10 @@ export function MobileProfileSection() {
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
+        toast.error('Avatar image must be under 2MB.');
+        return;
+      }
       const imageBase64 = asset.base64
         ? `data:image/jpeg;base64,${asset.base64}`
         : asset.uri;
@@ -163,32 +213,30 @@ export function MobileProfileSection() {
         confirmText: t('modals.discardChanges.discard'),
         cancelText: t('modals.discardChanges.cancel'),
         isDestructive: true,
-        onConfirm: () => {
-          const init = initialDataRef.current;
-          setName(init.name);
-          setNotificationEmail(init.notificationEmail);
-          setPhoneCountryCode(init.phoneCountryCode);
-          setPhoneNumber(init.phoneNumber);
-          setTimezone(init.timezone);
-          setLanguage(init.language);
-          setLocale(init.locale);
-          setShowIcons(init.showIcons);
-          setAvatarUri(init.avatarUri);
-          setIsEditing(false);
-        },
+        onConfirm: handleDiscard,
       });
     } else {
       setIsEditing(false);
     }
   };
 
-  const updateProfileMut = trpc.updateUserProfile.useMutation();
-
   const handleSave = async () => {
     if (!name.trim()) {
       toast.error('Name is required.', t('common.error'));
       return;
     }
+    if (!notificationEmail.trim()) {
+      toast.error('Notification email is required.', t('common.error'));
+      return;
+    }
+
+    const phoneCheck = validateMobileNumber(phoneCountryCode, phoneNumber);
+    if (!phoneCheck.isValid) {
+      setPhoneError(phoneCheck.errorMessage);
+      toast.error(phoneCheck.errorMessage || 'Invalid phone number');
+      return;
+    }
+    setPhoneError(undefined);
 
     setSaving(true);
     try {
@@ -199,17 +247,13 @@ export function MobileProfileSection() {
         showIcons,
       });
 
-      try {
-        await updateProfileMut.mutateAsync({
-          displayName: name.trim(),
-          notificationEmail: notificationEmail.trim() || session?.user?.email || storedEmail,
-          phoneCountryCode,
-          phoneNumber: phoneNumber.trim(),
-          avatarUrl: avatarUri || undefined,
-        });
-      } catch (_e) {
-        // Non-blocking fallback
-      }
+      await updateProfileMut.mutateAsync({
+        displayName: name.trim(),
+        notificationEmail: notificationEmail.trim(),
+        phoneCountryCode,
+        phoneNumber: phoneNumber.trim(),
+        avatarUrl: avatarUri || undefined,
+      });
 
       try {
         await authClient.updateUser({
@@ -222,9 +266,9 @@ export function MobileProfileSection() {
 
       initialDataRef.current = {
         name: name.trim(),
-        notificationEmail,
+        notificationEmail: notificationEmail.trim(),
         phoneCountryCode,
-        phoneNumber,
+        phoneNumber: phoneNumber.trim(),
         timezone,
         language,
         locale,
@@ -233,8 +277,10 @@ export function MobileProfileSection() {
       };
 
       setContextShowIcons(showIcons);
-      await utils.getUserPreferences.invalidate();
-      await utils.getUserProfile.invalidate();
+      await Promise.all([
+        utils.getUserPreferences.invalidate(),
+        utils.getUserProfile.invalidate(),
+      ]);
       setIsEditing(false);
       toast.success('Profile updated successfully.', t('common.success'));
     } catch (err) {
@@ -258,6 +304,7 @@ export function MobileProfileSection() {
         setPhoneCountryCode={setPhoneCountryCode}
         phoneNumber={phoneNumber}
         setPhoneNumber={setPhoneNumber}
+        phoneError={phoneError}
         avatarUri={avatarUri}
         onPickAvatar={handlePickAvatar}
         timezone={timezone}

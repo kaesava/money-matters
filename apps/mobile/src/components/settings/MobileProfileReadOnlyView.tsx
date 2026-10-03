@@ -4,12 +4,17 @@ import {
   Text,
   TouchableOpacity,
   Image,
+  StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import {
+  DESIGN_TOKENS,
+  SettingsCard,
+  ReadOnlyField,
+  SwitchRow,
+} from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
 import { SUPPORTED_LOCALES } from '@money-matters/types';
-import { profileReadOnlyStyles as styles } from './profileReadOnlyStyles';
 
 interface MobileProfileReadOnlyViewProps {
   name: string;
@@ -48,116 +53,152 @@ export function MobileProfileReadOnlyView({
 }: MobileProfileReadOnlyViewProps) {
   const selectedLocale = SUPPORTED_LOCALES.find((l) => l.code === locale) || SUPPORTED_LOCALES[0];
 
+  const initials = name
+    ? name
+        .split(' ')
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '?';
+
   return (
-    <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.cardTitle}>{t('settings.myDetailsTitle')}</Text>
+    <SettingsCard
+      title={t('settings.myDetailsTitle')}
+      action={
         <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
           <Feather name="edit-2" size={13} color="#2563eb" />
           <Text style={styles.editBtnText}>{t('common.edit')}</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Avatar Row */}
-      <View style={styles.avatarRow}>
-        <View style={styles.avatarContainer}>
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>
-                {(name || 'U').charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text style={styles.userName}>{name || t('common.user')}</Text>
-          <Text style={styles.userEmail}>{email || '—'}</Text>
-        </View>
-      </View>
-
-      {/* Read-Only Details Grid */}
-      <View style={styles.detailsGrid}>
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.displayNameLabel')}</Text>
-          <Text style={styles.detailValue}>{name || '—'}</Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.loginEmailLabel')}</Text>
-          <Text style={styles.detailValue}>{email || '—'}</Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.notificationEmailLabel')}</Text>
-          <Text style={styles.detailValue}>{notificationEmail || email || '—'}</Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.phoneNumberLabel')}</Text>
-          <Text style={styles.detailValue}>
-            {phoneNumber ? `${phoneCountryCode || '+61'} ${phoneNumber}` : '—'}
-          </Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.language')}</Text>
-          <Text style={styles.detailValue}>
-            {language === 'en' ? 'English (en)' : 'English (en)'}
-          </Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.dateFormat')}</Text>
-          <Text style={styles.detailValue}>
-            {selectedLocale.label} ({selectedLocale.dateFormatExample})
-          </Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.items.timezone')}</Text>
-          <Text style={styles.detailValue}>{timezone}</Text>
-        </View>
-
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>{t('settings.items.showIcons')}</Text>
-          <Text style={styles.detailValue}>
-            {showIcons ? '✓ Visible' : '✕ Hidden'}
-          </Text>
-        </View>
-      </View>
-
-      {/* Biometric Security Toggle */}
-      {biometricsAvailable && (
-        <View style={styles.securityRow}>
-          <View style={{ flex: 1, paddingRight: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Feather name="shield" size={15} color="#2563eb" />
-              <Text style={styles.securityTitle}>{biometricLabel} App Lock</Text>
-            </View>
-            <Text style={styles.securitySubtitle}>
-              Auto-locks after 2 minutes of background inactivity to protect your stealth privacy.
-            </Text>
+      }
+    >
+      <View style={styles.container}>
+        {/* Avatar & Identity Header */}
+        <View style={styles.avatarRow}>
+          <View style={styles.avatarContainer}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </View>
+            )}
           </View>
-          <TouchableOpacity
-            onPress={onToggleBiometrics}
-            style={[
-              styles.toggleBtn,
-              biometricsEnabled && styles.toggleBtnActive,
-            ]}
-          >
-            <View
-              style={[
-                styles.toggleThumb,
-                biometricsEnabled && styles.toggleThumbActive,
-              ]}
-            />
-          </TouchableOpacity>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.userName}>{name || t('common.user')}</Text>
+            <Text style={styles.userEmail}>{email || '—'}</Text>
+          </View>
         </View>
-      )}
-    </View>
+
+        {/* Read-Only Details */}
+        <View style={styles.detailsList}>
+          <ReadOnlyField label={t('settings.displayNameLabel')} value={name} />
+          <ReadOnlyField label={t('settings.loginEmailLabel')} value={email} />
+          <ReadOnlyField
+            label={t('settings.notificationEmailLabel')}
+            value={notificationEmail || email}
+          />
+          <ReadOnlyField
+            label={t('settings.phoneNumberLabel')}
+            value={phoneNumber ? `${phoneCountryCode || '+61'} ${phoneNumber}` : '—'}
+          />
+          <ReadOnlyField
+            label={t('settings.language')}
+            value={language === 'en' ? 'English (en)' : 'English (en)'}
+          />
+          <ReadOnlyField
+            label={t('settings.dateFormat')}
+            value={`${selectedLocale.label} (${selectedLocale.dateFormatExample})`}
+          />
+          <ReadOnlyField label={t('settings.items.timezone')} value={timezone} />
+          <ReadOnlyField
+            label={t('settings.items.showIcons')}
+            value={showIcons ? '✓ Visible' : '✕ Hidden'}
+          />
+        </View>
+
+        {/* Biometrics Switch */}
+        {biometricsAvailable && (
+          <View style={styles.biometricsContainer}>
+            <SwitchRow
+              label={`${biometricLabel} App Lock`}
+              hint="Auto-locks after 2 minutes of background inactivity to protect your stealth privacy."
+              value={biometricsEnabled}
+              onValueChange={onToggleBiometrics}
+            />
+          </View>
+        )}
+      </View>
+    </SettingsCard>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    gap: 12,
+  },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+  },
+  editBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatarImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#2563eb',
+  },
+  avatarPlaceholder: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#1B2B4B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1B2B4B',
+  },
+  userEmail: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  detailsList: {
+    gap: 4,
+  },
+  biometricsContainer: {
+    marginTop: 4,
+  },
+});

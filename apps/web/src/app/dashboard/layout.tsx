@@ -132,7 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setIsRetrying(false);
       setCooldownSeconds(3); // 3s anti-spam throttle
     }
-  }, [cooldownSeconds, isRetrying, clearGlobalError, categoriesQuery, tenantsQuery, userPrefQuery, utils]);
+  }, [cooldownSeconds, isRetrying, clearGlobalError, categoriesQuery, tenantsQuery, userPrefQuery, userProfileQuery, utils]);
 
   const isInitialLoading = (!categoriesQuery.data || !tenantsQuery.data) && (categoriesQuery.isLoading || tenantsQuery.isLoading || userPrefQuery.isLoading);
   const isQueryFetching = isRetrying;
@@ -319,8 +319,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   type="button"
                   onClick={() => router.push("/dashboard/settings")}
                   className="cursor-pointer rounded-full overflow-hidden"
-                  title={t("settings.profile")}
-                  aria-label={t("settings.profile")}
+                  title={t("settings.profile.title")}
+                  aria-label={t("settings.profile.title")}
                 >
                   {avatarUrl ? (
                     <Image

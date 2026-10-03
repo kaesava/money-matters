@@ -8,16 +8,21 @@ import { triggerHaptic } from '../lib/haptics';
 
 export interface QuickActionFabProps {
   visible?: boolean;
+  onCustomPress?: () => void;
 }
 
-export function QuickActionFab({ visible = true }: QuickActionFabProps) {
+export function QuickActionFab({ visible = true, onCustomPress }: QuickActionFabProps) {
   const [modalVisible, setModalVisible] = useState(false);
 
   if (!visible) return null;
 
   const handlePress = () => {
     triggerHaptic('light');
-    setModalVisible(true);
+    if (onCustomPress) {
+      onCustomPress();
+    } else {
+      setModalVisible(true);
+    }
   };
 
   return (

@@ -6,15 +6,12 @@ import {
   AmountInput,
   MobileDatePickerField,
   MobileInput,
-  FormLabel,
-  FormFieldError,
   MobileButton,
+  MobilePoolPicker,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
-import { formatAUD } from '../../lib/format';
 import { QuickPresetItem } from './useMobileQuickAction';
 import { QuickPresetsRow } from './QuickPresetsRow';
-import { MobilePoolCategoryPickerSheet } from './MobilePoolCategoryPickerSheet';
 
 export interface QuickTransferTabProps {
   name: string;
@@ -60,24 +57,12 @@ export function QuickTransferTab({
   onSubmit,
   onCancel,
 }: QuickTransferTabProps) {
-  const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
-  const [destPickerVisible, setDestPickerVisible] = useState(false);
   const [amountError, setAmountError] = useState('');
   const [sourceError, setSourceError] = useState('');
   const [destError, setDestError] = useState('');
   const [dateError, setDateError] = useState('');
 
   const isFutureDate = date > todayStr;
-  const sourcePool = pools.find((p) => p.id === sourcePoolId);
-  const destPool = pools.find((p) => p.id === destPoolId);
-
-  const getPoolBal = (p?: { currentBalance?: number | string }) =>
-    typeof p?.currentBalance === 'number'
-      ? p.currentBalance
-      : parseFloat((p?.currentBalance as string) || '0');
-
-  const sourceBal = getPoolBal(sourcePool);
-  const destBal = getPoolBal(destPool);
 
   const handleValidateAndSubmit = () => {
     let hasError = false;
@@ -135,44 +120,40 @@ export function QuickTransferTab({
       />
 
       {/* Source Pool Picker */}
-      <View style={styles.inputGroup}>
-        <FormLabel required>{t('drawers.quickExpense.fromPool')}</FormLabel>
-        <TouchableOpacity
-          onPress={() => setSourcePickerVisible(true)}
-          style={[styles.pickerTrigger, !!sourceError && styles.pickerTriggerError]}
-        >
-          <View style={styles.pickerLeft}>
-            <Text style={sourcePool ? styles.pickerValText : styles.pickerPlaceholderText}>
-              {sourcePool ? sourcePool.name : t('drawers.quickExpense.selectSourcePoolPlaceholder')}
-            </Text>
-            {sourcePool && (
-              <Text style={styles.pickerBalText}>({formatAUD(sourceBal)})</Text>
-            )}
-          </View>
-          <Feather name="chevron-down" size={16} color="#64748B" />
-        </TouchableOpacity>
-        <FormFieldError error={sourceError} />
-      </View>
+      <MobilePoolPicker
+        label={t('drawers.quickExpense.fromPool')}
+        required
+        displayStyle="field"
+        mode="inline"
+        allowCategorySelection={false}
+        allowAllOption={false}
+        pools={pools}
+        selectedPoolId={sourcePoolId}
+        placeholder={t('drawers.quickExpense.selectSourcePoolPlaceholder')}
+        error={sourceError}
+        onSelectPool={(pId) => {
+          setSourcePoolId(pId);
+          setSourceError('');
+        }}
+      />
 
       {/* Destination Pool Picker */}
-      <View style={styles.inputGroup}>
-        <FormLabel required>{t('drawers.quickExpense.toPoolDestination')}</FormLabel>
-        <TouchableOpacity
-          onPress={() => setDestPickerVisible(true)}
-          style={[styles.pickerTrigger, !!destError && styles.pickerTriggerError]}
-        >
-          <View style={styles.pickerLeft}>
-            <Text style={destPool ? styles.pickerValText : styles.pickerPlaceholderText}>
-              {destPool ? destPool.name : t('drawers.quickExpense.selectDestinationPoolPlaceholder')}
-            </Text>
-            {destPool && (
-              <Text style={styles.pickerBalText}>({formatAUD(destBal)})</Text>
-            )}
-          </View>
-          <Feather name="chevron-down" size={16} color="#64748B" />
-        </TouchableOpacity>
-        <FormFieldError error={destError} />
-      </View>
+      <MobilePoolPicker
+        label={t('drawers.quickExpense.toPoolDestination')}
+        required
+        displayStyle="field"
+        mode="inline"
+        allowCategorySelection={false}
+        allowAllOption={false}
+        pools={pools.filter((p) => p.id !== sourcePoolId)}
+        selectedPoolId={destPoolId}
+        placeholder={t('drawers.quickExpense.selectDestinationPoolPlaceholder')}
+        error={destError}
+        onSelectPool={(pId) => {
+          setDestPoolId(pId);
+          setDestError('');
+        }}
+      />
 
       <View style={styles.inputGroup}>
         <AmountInput
@@ -197,32 +178,6 @@ export function QuickTransferTab({
         }}
         required
         error={dateError}
-      />
-
-      <MobilePoolCategoryPickerSheet
-        visible={sourcePickerVisible}
-        onClose={() => setSourcePickerVisible(false)}
-        pools={pools}
-        selectedPoolId={sourcePoolId}
-        allowSubcategories={false}
-        title={t('drawers.quickExpense.selectSourcePoolPlaceholder')}
-        onSelect={({ poolId }) => {
-          setSourcePoolId(poolId);
-          setSourceError('');
-        }}
-      />
-
-      <MobilePoolCategoryPickerSheet
-        visible={destPickerVisible}
-        onClose={() => setDestPickerVisible(false)}
-        pools={pools.filter((p) => p.id !== sourcePoolId)}
-        selectedPoolId={destPoolId}
-        allowSubcategories={false}
-        title={t('drawers.quickExpense.selectDestinationPoolPlaceholder')}
-        onSelect={({ poolId }) => {
-          setDestPoolId(poolId);
-          setDestError('');
-        }}
       />
 
       {/* Footer Buttons */}
@@ -250,40 +205,6 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     gap: 6,
-  },
-  pickerTrigger: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#F8FAFC',
-  },
-  pickerTriggerError: {
-    borderColor: DESIGN_TOKENS.colors.critical,
-  },
-  pickerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  pickerValText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1B2B4B',
-  },
-  pickerPlaceholderText: {
-    fontSize: 14,
-    color: '#94A3B8',
-  },
-  pickerBalText: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    color: '#64748B',
   },
   btnRow: {
     flexDirection: 'row',

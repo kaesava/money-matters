@@ -12,7 +12,7 @@ import { CategoryFormModal } from "../../../components/web/CategoryFormModal";
 import { CategoryItemModal } from "../../../components/web/CategoryItemModal";
 import { CategorySummaryItem, CategoryItem, PoolTableRow } from "./types";
 import { PoolsTable } from "./components/PoolsTable";
-import { CategoryDrawer } from "./components/CategoryDrawer";
+import { SlideOverCategoryDrawer } from "../income-and-bills/components/SlideOverCategoryDrawer";
 import { useLocale } from "../../../providers/LocaleProvider";
 
 type PoolTypeFilter = "ALL" | "EVERYDAY" | "REGULAR" | "GOAL";
@@ -712,17 +712,17 @@ function PoolsPageContent() {
       />
 
       {/* Category Side Drawer */}
-      <CategoryDrawer
-        pool={selectedPoolForDrawer}
+      <SlideOverCategoryDrawer
+        isOpen={Boolean(selectedPoolForDrawer)}
+        categoryName={selectedPoolForDrawer?.name || ""}
+        categoryId={selectedPoolForDrawer?.id}
         onClose={() => setSelectedPoolForDrawer(null)}
-        onAddCategory={(poolId) => {
-          if (showProjectionMatrix) return;
-          handleOpenAddCategoryModal(poolId);
+        onEditPool={(pool) => {
+          setPoolToEdit(pool);
+          setIsPoolModalOpen(true);
         }}
-        onEditCategory={(cat) => {
-          if (showProjectionMatrix) return;
-          handleOpenEditCategoryModal(cat);
-        }}
+        onEditCategory={handleOpenEditCategoryModal}
+        onAddCategory={handleOpenAddCategoryModal}
       />
 
       {/* Archive Confirmation Dialog */}

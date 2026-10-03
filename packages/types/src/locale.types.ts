@@ -34,7 +34,47 @@ export const SUPPORTED_LOCALES: LocaleOption[] = [
   { code: "en-US", label: "English (United States)", dateFormatExample: "12/31/2026" },
   { code: "en-GB", label: "English (United Kingdom)", dateFormatExample: "31/12/2026" },
   { code: "en-CA", label: "English (Canada)", dateFormatExample: "2026-12-31" },
-  { code: "ja-JP", label: "日本語 (Japan)", dateFormatExample: "2026/12/31" },
+];
+
+export interface TimezoneOption {
+  value: string;
+  label: string;
+  labelKey?: string;
+}
+
+export const COMMON_TIMEZONES: TimezoneOption[] = [
+  { value: "Australia/Sydney", label: "Sydney / Melbourne / Canberra (AEST/AEDT)", labelKey: "timezones.sydney" },
+  { value: "Australia/Brisbane", label: "Brisbane (AEST - No DST)", labelKey: "timezones.brisbane" },
+  { value: "Australia/Adelaide", label: "Adelaide (ACST/ACDT)", labelKey: "timezones.adelaide" },
+  { value: "Australia/Perth", label: "Perth (AWST)", labelKey: "timezones.perth" },
+  { value: "Pacific/Auckland", label: "Auckland / Wellington (NZST/NZDT)", labelKey: "timezones.auckland" },
+  { value: "Asia/Kolkata", label: "India / Mumbai / Delhi (IST)", labelKey: "timezones.kolkata" },
+  { value: "America/Toronto", label: "Toronto / Montreal (EST/EDT)", labelKey: "timezones.toronto" },
+  { value: "America/Vancouver", label: "Vancouver (PST/PDT)", labelKey: "timezones.vancouver" },
+  { value: "America/New_York", label: "New York (EST/EDT)", labelKey: "timezones.newYork" },
+  { value: "America/Chicago", label: "Chicago (CST/CDT)", labelKey: "timezones.chicago" },
+  { value: "America/Denver", label: "Denver (MST/MDT)", labelKey: "timezones.denver" },
+  { value: "America/Los_Angeles", label: "Los Angeles (PST/PDT)", labelKey: "timezones.losAngeles" },
+  { value: "Europe/London", label: "London (GMT/BST)", labelKey: "timezones.london" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)", labelKey: "timezones.tokyo" },
+  { value: "Asia/Singapore", label: "Singapore (SGT)", labelKey: "timezones.singapore" },
+  { value: "UTC", label: "UTC (Universal Coordinated Time)", labelKey: "timezones.utc" },
+];
+
+export interface AuStateOption {
+  code: string;
+  name: string;
+}
+
+export const AU_STATES: AuStateOption[] = [
+  { code: "NSW", name: "New South Wales (NSW)" },
+  { code: "VIC", name: "Victoria (VIC)" },
+  { code: "QLD", name: "Queensland (QLD)" },
+  { code: "WA", name: "Western Australia (WA)" },
+  { code: "SA", name: "South Australia (SA)" },
+  { code: "TAS", name: "Tasmania (TAS)" },
+  { code: "ACT", name: "Australian Capital Territory (ACT)" },
+  { code: "NT", name: "Northern Territory (NT)" },
 ];
 
 export interface CountryDefaults {

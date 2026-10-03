@@ -8,7 +8,6 @@ import {
   AmountInput,
   MobileInput,
   FormErrorBanner,
-  FormLabel,
   MobilePoolPicker,
   useMobileToast,
   showMobileConfirm,
@@ -228,33 +227,35 @@ export function MobileTransferModal({
           }}
         />
 
-        <View style={styles.pickerSection}>
-          <FormLabel label={t('drawers.quickExpense.fromPool')} />
-          <MobilePoolPicker
-            pools={formattedPools}
-            selectedPoolId={sourcePoolId}
-            allowCategorySelection={false}
-            placeholder={t('common.selectPool')}
-            onSelectPool={(pId) => {
-              setSourcePoolId(pId);
-              if (errorMsg) setErrorMsg('');
-            }}
-          />
-        </View>
+        <MobilePoolPicker
+          label={t('drawers.quickExpense.fromPool')}
+          required
+          displayStyle="field"
+          mode="inline"
+          pools={formattedPools}
+          selectedPoolId={sourcePoolId}
+          allowCategorySelection={false}
+          placeholder={t('common.selectPool')}
+          onSelectPool={(pId) => {
+            setSourcePoolId(pId);
+            if (errorMsg) setErrorMsg('');
+          }}
+        />
 
-        <View style={styles.pickerSection}>
-          <FormLabel label={t('drawers.quickExpense.toPoolDestination')} />
-          <MobilePoolPicker
-            pools={formattedPools}
-            selectedPoolId={destinationPoolId}
-            allowCategorySelection={false}
-            placeholder={t('common.selectPool')}
-            onSelectPool={(pId) => {
-              setDestinationPoolId(pId);
-              if (errorMsg) setErrorMsg('');
-            }}
-          />
-        </View>
+        <MobilePoolPicker
+          label={t('drawers.quickExpense.toPoolDestination')}
+          required
+          displayStyle="field"
+          mode="inline"
+          pools={formattedPools}
+          selectedPoolId={destinationPoolId}
+          allowCategorySelection={false}
+          placeholder={t('common.selectPool')}
+          onSelectPool={(pId) => {
+            setDestinationPoolId(pId);
+            if (errorMsg) setErrorMsg('');
+          }}
+        />
 
         <View style={styles.actionsRow}>
           <TouchableOpacity
@@ -298,9 +299,6 @@ const styles = StyleSheet.create({
   formContainer: {
     gap: 12,
     paddingBottom: 8,
-  },
-  pickerSection: {
-    gap: 4,
   },
   actionsRow: {
     flexDirection: 'row',

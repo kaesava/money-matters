@@ -9,6 +9,7 @@ import { Feather } from '@expo/vector-icons';
 import { trpc, setActiveTenantId, getActiveTenantId, switchActiveTenant } from '../../lib/trpc';
 import { authClient } from '../../lib/auth';
 import { QuickActionFab } from '../../components/QuickActionFab';
+import { CategoryFormModal } from '../../components/CategoryFormModal';
 
 function TabIcon({
   name,
@@ -30,6 +31,7 @@ export default function AppLayout() {
   const insets = useSafeAreaInsets();
   const { data: session } = authClient.useSession();
   const { showToast } = useMobileToast();
+  const [poolModalVisible, setPoolModalVisible] = React.useState(false);
 
   const tenantStatusQuery = trpc.getTenantStatus.useQuery(undefined, {
     enabled: !!session?.user,
@@ -184,6 +186,7 @@ export default function AppLayout() {
         <Tabs.Screen name="settings" options={{ href: null }} />
         <Tabs.Screen name="afford-check" options={{ href: null }} />
         <Tabs.Screen name="pools/[id]" options={{ href: null }} />
+        <Tabs.Screen name="pools/projection" options={{ href: null }} />
         <Tabs.Screen name="categories/[id]" options={{ href: null }} />
         <Tabs.Screen name="paychecks/[id]" options={{ href: null }} />
         <Tabs.Screen
@@ -197,7 +200,24 @@ export default function AppLayout() {
       </Tabs>
 
       {/* Floating Action Button */}
-      <QuickActionFab visible={!isFabHidden} />
+      <QuickActionFab
+        visible={!isFabHidden}
+        onCustomPress={
+          currentScreen === 'categories'
+            ? () => setPoolModalVisible(true)
+            : undefined
+        }
+      />
+
+      {/* Quick New Pool modal triggered from FAB when on Categories screen */}
+      <CategoryFormModal
+        visible={poolModalVisible}
+        onClose={() => setPoolModalVisible(false)}
+        onSuccess={() => {
+          utils.listPools.invalidate();
+          utils.listCategories.invalidate();
+        }}
+      />
     </View>
   );
 }
