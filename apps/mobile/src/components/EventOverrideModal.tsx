@@ -25,9 +25,10 @@ interface EventOverrideModalProps {
   eventToEdit: EventToOverride | null;
   onClose: () => void;
   onSuccess?: () => void;
+  onDelete?: (event: EventToOverride) => void;
 }
 
-export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }: EventOverrideModalProps) {
+export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess, onDelete }: EventOverrideModalProps) {
   const toast = useMobileToast();
   const [expectedDate, setExpectedDate] = useState('');
   const [expectedAmount, setExpectedAmount] = useState('');
@@ -67,7 +68,11 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
   };
 
   const isPending = overrideEventMut.isPending;
-  const D = DESIGN_TOKENS;
+  const handleDelete = () => {
+    if (!eventToEdit || !onDelete) return;
+    onDelete(eventToEdit);
+    onClose();
+  };
 
   return (
     <MobileModalDialog
@@ -75,6 +80,35 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
       onClose={onClose}
       title={t('modals.eventOverride.title')}
       subtitle={eventToEdit ? t('modals.eventOverride.subtitle', { name: eventToEdit.name }) : ''}
+      footer={
+        <View style={styles.footerRow}>
+          {onDelete ? (
+            <TouchableOpacity
+              onPress={handleDelete}
+              disabled={isPending}
+              style={styles.deleteLink}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.deleteLinkText}>{t('common.delete') || 'Delete'}</Text>
+            </TouchableOpacity>
+          ) : (
+            <View />
+          )}
+
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={isPending}
+            style={styles.submitBtn}
+            activeOpacity={0.8}
+          >
+            {isPending ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <Text style={styles.submitBtnText}>{t('common.save')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      }
     >
       <FormErrorBanner message={errorMsg} />
 
@@ -97,31 +131,35 @@ export function EventOverrideModal({ visible, eventToEdit, onClose, onSuccess }:
           if (errorMsg) setErrorMsg('');
         }}
       />
-
-      <TouchableOpacity
-        onPress={handleSubmit}
-        disabled={isPending}
-        style={styles.submitBtn}
-        activeOpacity={0.8}
-      >
-        {isPending ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <Text style={styles.submitBtnText}>{t('common.save')}</Text>
-        )}
-      </TouchableOpacity>
     </MobileModalDialog>
   );
 }
 
 const D = DESIGN_TOKENS;
 const styles = StyleSheet.create({
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  deleteLink: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  deleteLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
   submitBtn: {
     backgroundColor: '#2563eb',
-    paddingVertical: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
     borderRadius: D.radius.md,
     alignItems: 'center',
-    marginTop: 12,
+    justifyContent: 'center',
+    minWidth: 100,
   },
-  submitBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
+  submitBtnText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
 });

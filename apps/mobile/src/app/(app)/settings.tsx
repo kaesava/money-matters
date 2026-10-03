@@ -33,7 +33,7 @@ export type SettingsTab = 'profile' | 'household' | 'bank-accounts' | 'archived'
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const searchParams = useLocalSearchParams<{ tab?: string }>();
+  const searchParams = useLocalSearchParams<{ tab?: string; returnTo?: string }>();
   const toast = useMobileToast();
   const { data: session } = authClient.useSession();
 
@@ -103,10 +103,20 @@ export default function SettingsScreen() {
     []
   );
 
+  const returnTo = searchParams.returnTo;
+
   return (
     <View style={{ flex: 1 }}>
       <AppScreenWrapper
         title={t('settings.title')}
+        showBack={Boolean(returnTo)}
+        onBackPress={() => {
+          if (returnTo) {
+            router.push(returnTo as Href);
+          } else {
+            router.back();
+          }
+        }}
         infoTooltip={{
           title: t('tooltips.settings.title'),
           content: t('tooltips.settings.content'),

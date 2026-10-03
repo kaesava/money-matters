@@ -29,7 +29,7 @@ import { CategoryFormModal } from '../../../components/CategoryFormModal';
 import { QuickExpenseModal } from '../../../components/QuickExpenseModal';
 
 export default function PoolDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const utils = trpc.useUtils();
@@ -139,9 +139,17 @@ export default function PoolDetailScreen() {
     );
   }
 
+  const handleBack = () => {
+    if (returnTo) {
+      router.push(returnTo as any);
+    } else {
+      router.back();
+    }
+  };
+
   if (!pool) {
     return (
-      <MobileScreenWrapper title={t('categories.poolNotFound')} showBack onBackPress={() => router.back()}>
+      <MobileScreenWrapper title={t('categories.poolNotFound')} showBack onBackPress={handleBack}>
         <View style={styles.notFoundContainer}>
           <Text style={styles.notFoundText}>{t('categories.poolNotFound')}</Text>
         </View>
@@ -154,7 +162,7 @@ export default function PoolDetailScreen() {
       title={pool.name}
       user={session?.user}
       showBack
-      onBackPress={() => router.back()}
+      onBackPress={handleBack}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}

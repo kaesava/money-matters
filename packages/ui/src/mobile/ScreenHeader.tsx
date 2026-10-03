@@ -5,6 +5,7 @@ import { t } from "@money-matters/i18n";
 import { DESIGN_TOKENS } from "../tokens";
 
 import { InfoTooltip } from "./InfoTooltip";
+import { MobileLogo } from "./Logo";
 
 interface ScreenHeaderProps {
   title?: string;
@@ -50,8 +51,10 @@ export function ScreenHeader({
             disabled={!onNavigateHome}
             style={styles.brandContainer}
             activeOpacity={0.7}
+            accessibilityLabel={t("app.title")}
+            accessibilityRole="button"
           >
-            <Text style={styles.brandText}>{t("app.title")}</Text>
+            <MobileLogo size={32} style={{ marginBottom: 0 }} />
           </TouchableOpacity>
         )}
       </View>

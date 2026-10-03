@@ -102,7 +102,7 @@ export default function IncomeSplitStudioScreen() {
       const initReasoningMap: Record<string, string> = {};
       rawLines.forEach((line) => {
         initMap[line.bucketId] = line.proposedAmount.toFixed(2);
-        if (line.reasoning) initReasoningMap[line.bucketId] = line.reasoning;
+        if (line.reasoning && line.proposedAmount > 0) initReasoningMap[line.bucketId] = line.reasoning;
       });
       setLinesMap(initMap);
       setInitialLinesMap(initMap);
@@ -170,9 +170,14 @@ export default function IncomeSplitStudioScreen() {
     }
     if (parts[1] && parts[1].length > 2) cleaned = `${parts[0]}.${parts[1].slice(0, 2)}`;
     setLinesMap((prev) => ({ ...prev, [bucketId]: cleaned }));
+    if ((parseFloat(cleaned) || 0) <= 0) {
+      setReasoningMap((prev) => ({ ...prev, [bucketId]: '' }));
+    }
   };
 
   const handleLineReasoningChange = (bucketId: string, reasoning: string) => {
+    const currentVal = bucketId === sweepPool?.id ? sweepPoolRemainder : parseFloat(linesMap[bucketId] ?? '0') || 0;
+    if (currentVal <= 0) return;
     setReasoningMap((prev) => ({ ...prev, [bucketId]: reasoning }));
   };
 
@@ -274,11 +279,14 @@ export default function IncomeSplitStudioScreen() {
 
       const effectiveMap = { ...linesMap };
       if (sweepPool) effectiveMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
-      const payload = Object.entries(effectiveMap).map(([pId, val]) => ({
-        poolId: pId,
-        proposedAmount: (parseFloat(val) || 0).toFixed(2),
-        reasoning: reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined),
-      }));
+      const payload = Object.entries(effectiveMap).map(([pId, val]) => {
+        const amt = parseFloat(val) || 0;
+        return {
+          poolId: pId,
+          proposedAmount: amt.toFixed(2),
+          reasoning: amt <= 0 ? undefined : (reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined)),
+        };
+      });
 
       await saveBulkAllocationsMut.mutateAsync({
         incomeEventId: id!,
@@ -322,11 +330,14 @@ export default function IncomeSplitStudioScreen() {
 
           const effectiveMap = { ...linesMap };
           if (sweepPool) effectiveMap[sweepPool.id] = sweepPoolRemainder.toFixed(2);
-          const payload = Object.entries(effectiveMap).map(([pId, val]) => ({
-            poolId: pId,
-            amount: (parseFloat(val) || 0).toFixed(2),
-            reasoning: reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined),
-          }));
+          const payload = Object.entries(effectiveMap).map(([pId, val]) => {
+            const amt = parseFloat(val) || 0;
+            return {
+              poolId: pId,
+              amount: amt.toFixed(2),
+              reasoning: amt <= 0 ? undefined : (reasoningMap[pId] ?? (lines.find((l) => l.bucketId === pId)?.reasoning || undefined)),
+            };
+          });
 
           await confirmPaydayMut.mutateAsync({
             incomeEventId: id!,

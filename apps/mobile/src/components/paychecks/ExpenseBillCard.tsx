@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { CardDrawerIndicator, EntityLinkChip } from '@money-matters/ui/mobile';
 import { formatAUD, formatScheduleDetail } from '../../lib/format';
 
 export interface ExpenseSourceItem {
@@ -29,7 +31,9 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
   onEdit,
   onOccurrences,
 }) => {
+  const router = useRouter();
   const displayBucket = categoryName || exp.poolName || exp.categoryName;
+  const targetPoolId = exp.poolId || exp.categoryId;
 
   return (
     <TouchableOpacity
@@ -37,47 +41,35 @@ export const ExpenseBillCard: React.FC<ExpenseBillCardProps> = ({
       onPress={() => onEdit(exp)}
       activeOpacity={0.7}
     >
+      {/* Row 1: Schedule Name + Recurrence Detail Text + Drawer Chevron */}
       <View style={styles.header}>
         <View style={styles.titleGroup}>
           <Text style={styles.title} numberOfLines={1}>
             {exp.name}
           </Text>
-          {displayBucket ? (
-            <View style={styles.poolTag}>
-              <Feather name="folder" size={11} color="#64748B" />
-              <Text style={styles.poolText} numberOfLines={1}>
-                {displayBucket}
-              </Text>
-            </View>
+          <Text style={styles.freqText} numberOfLines={1}>
+            • {formatScheduleDetail(exp.rrule, exp.startDate).detailText}
+          </Text>
+        </View>
+
+        <CardDrawerIndicator size={16} color="#94A3B8" />
+      </View>
+
+      {/* Row 2: Entity Chip on Left, Amount on Right */}
+      <View style={styles.detailRow}>
+        <View style={styles.chipWrap}>
+          {displayBucket && targetPoolId ? (
+            <EntityLinkChip
+              label={displayBucket}
+              icon="folder"
+              onPress={() => {
+                router.push(`/(app)/pools/${targetPoolId}?returnTo=/(app)/paychecks` as Href);
+              }}
+            />
           ) : null}
         </View>
 
-        <Feather name="chevron-right" size={18} color="#94A3B8" />
-      </View>
-
-      <View style={styles.detailRow}>
         <Text style={styles.amount}>−{formatAUD(exp.amount)}</Text>
-        <View style={styles.rightDetailGroup}>
-          {onOccurrences ? (
-            <TouchableOpacity
-              style={styles.occurrencesBtn}
-              onPress={(e) => {
-                e.stopPropagation();
-                onOccurrences(exp);
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Feather name="calendar" size={11} color="#2563eb" />
-              <Text style={styles.freqText}>
-                {formatScheduleDetail(exp.rrule, exp.startDate).detailText}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.freqText}>
-              {formatScheduleDetail(exp.rrule, exp.startDate).detailText}
-            </Text>
-          )}
-        </View>
       </View>
     </TouchableOpacity>
   );
@@ -131,7 +123,13 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  chipWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   amount: {
     fontSize: 16,
@@ -143,14 +141,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
-  },
-  rightDetailGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  occurrencesBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    flexShrink: 1,
   },
 });

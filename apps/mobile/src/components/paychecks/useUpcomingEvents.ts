@@ -31,14 +31,15 @@ export function useUpcomingEvents({
     const list: TimelineEventItem[] = [];
 
     rawIncomeEvents.forEach((e) => {
-      const acct = bankAccounts.find((b) => b.id === (e as any).receivingAccountId);
+      const targetBankId = (e as any).bankAccountId || (e as any).receivingAccountId;
+      const acct = bankAccounts.find((b) => b.id === targetBankId);
       list.push({
         id: e.id,
         kind: 'INCOME',
         name: e.name || t('badges.income') || 'Income',
         expectedAmount: e.expectedAmount,
         expectedDate: e.expectedDate,
-        accountId: acct?.id || (e as any).receivingAccountId,
+        accountId: acct?.id || targetBankId,
         accountName: acct?.name || null,
         isPrivate: acct?.isPrivate || false,
         rawIncome: {
@@ -46,9 +47,9 @@ export function useUpcomingEvents({
           name: e.name,
           expectedAmount: e.expectedAmount,
           expectedDate: e.expectedDate,
-          accountId: acct?.id,
-          accountName: acct?.name,
-          isPrivate: acct?.isPrivate,
+          accountId: acct?.id || targetBankId,
+          accountName: acct?.name || null,
+          isPrivate: acct?.isPrivate || false,
         },
       });
     });

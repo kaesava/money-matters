@@ -1,9 +1,14 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { t } from '@money-matters/i18n';
-import { DESIGN_TOKENS } from '@money-matters/ui/mobile';
+import {
+  DESIGN_TOKENS,
+  CardDrawerIndicator,
+  EntityLinkChip,
+  SwipeableCard,
+} from '@money-matters/ui/mobile';
 import { formatAUD, formatDate, formatIsoDate } from '../../lib/format';
 
 export interface PaycheckIncomeEvent {
@@ -105,233 +110,162 @@ export const PaycheckEventSection: React.FC<PaycheckEventSectionProps> = ({
         const isExpense = item.kind === 'EXPENSE';
 
         const handleCardPress = () => {
-          if (isIncome) {
-            onOpenPaydayWizard(item.id);
-          } else if (isExpense) {
-            onMarkExpensePaid(item.id, item.expectedAmount);
-          } else if (isTransfer && item.rawTransfer && onExecuteTransfer) {
-            onExecuteTransfer(item.rawTransfer);
+          if (isIncome && item.rawIncome && onEditUpcomingIncome) {
+            onEditUpcomingIncome(item.rawIncome);
+          } else if (isExpense && item.rawExpense && onEditUpcomingExpense) {
+            onEditUpcomingExpense(item.rawExpense);
+          }
+        };
+
+        const handleSwipeDelete = () => {
+          if (isIncome && onDeleteUpcomingIncome && item.rawIncome) {
+            onDeleteUpcomingIncome(item.rawIncome);
+          } else if (isExpense && onDeleteUpcomingExpense && item.rawExpense) {
+            onDeleteUpcomingExpense(item.rawExpense);
+          } else if (isTransfer && onDeleteUpcomingTransfer && item.rawTransfer) {
+            onDeleteUpcomingTransfer(item.rawTransfer);
           }
         };
 
         return (
-          <TouchableOpacity
+          <SwipeableCard
             key={`${item.kind}_${item.id}`}
-            style={styles.card}
-            activeOpacity={0.7}
-            onPress={handleCardPress}
+            onSwipeDelete={handleSwipeDelete}
           >
-            {/* Top Row: Date + Overdue Badge + Edit/Delete Icons */}
-            <View style={styles.topRow}>
-              <View style={styles.dateContainer}>
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.7}
+              onPress={handleCardPress}
+            >
+              {/* Top Row: Date + Overdue Badge + Drawer Indicator */}
+              <View style={styles.topRow}>
+                <View style={styles.dateContainer}>
+                  <Text
+                    style={[
+                      styles.cardDate,
+                      isPast && styles.cardDateOverdue,
+                    ]}
+                  >
+                    {formatDate(item.expectedDate)}
+                  </Text>
+                  {isPast && (
+                    <View style={styles.overdueBadge}>
+                      <Text style={styles.overdueBadgeText}>
+                        {t('common.overdue') || 'Overdue'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <CardDrawerIndicator size={16} color="#94A3B8" />
+              </View>
+
+              {/* Middle Row: Name + Color-Coded Amount */}
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {item.name}
+                </Text>
                 <Text
                   style={[
-                    styles.cardDate,
-                    isPast && styles.cardDateOverdue,
+                    styles.cardAmount,
+                    isIncome && styles.cardAmountIncome,
+                    isExpense && styles.cardAmountExpense,
+                    isTransfer && styles.cardAmountTransfer,
                   ]}
                 >
-                  {formatDate(item.expectedDate)}
+                  {isIncome ? '+' : isTransfer ? '↔' : '−'}
+                  {formatAUD(item.expectedAmount)}
                 </Text>
-                {isPast && (
-                  <View style={styles.overdueBadge}>
-                    <Text style={styles.overdueBadgeText}>
-                      {t('common.overdue') || 'Overdue'}
-                    </Text>
-                  </View>
-                )}
               </View>
 
-              <View style={styles.headerActions}>
-                {/* Edit Button */}
-                {isIncome && onEditUpcomingIncome && item.rawIncome && (
-                  <TouchableOpacity
-                    style={styles.iconBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onEditUpcomingIncome(item.rawIncome!);
-                    }}
-                  >
-                    <Feather name="edit-2" size={14} color="#94A3B8" />
-                  </TouchableOpacity>
-                )}
-                {isExpense && onEditUpcomingExpense && item.rawExpense && (
-                  <TouchableOpacity
-                    style={styles.iconBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onEditUpcomingExpense(item.rawExpense!);
-                    }}
-                  >
-                    <Feather name="edit-2" size={14} color="#94A3B8" />
-                  </TouchableOpacity>
-                )}
-
-                {/* Delete Button */}
-                {isIncome && onDeleteUpcomingIncome && item.rawIncome && (
-                  <TouchableOpacity
-                    style={styles.iconBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onDeleteUpcomingIncome(item.rawIncome!);
-                    }}
-                  >
-                    <Feather name="trash-2" size={14} color="#94A3B8" />
-                  </TouchableOpacity>
-                )}
-                {isExpense && onDeleteUpcomingExpense && item.rawExpense && (
-                  <TouchableOpacity
-                    style={styles.iconBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onDeleteUpcomingExpense(item.rawExpense!);
-                    }}
-                  >
-                    <Feather name="trash-2" size={14} color="#94A3B8" />
-                  </TouchableOpacity>
-                )}
-                {isTransfer && onDeleteUpcomingTransfer && item.rawTransfer && (
-                  <TouchableOpacity
-                    style={styles.iconBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onDeleteUpcomingTransfer(item.rawTransfer!);
-                    }}
-                  >
-                    <Feather name="trash-2" size={14} color="#94A3B8" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            {/* Middle Row: Name + Color-Coded Amount */}
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text
-                style={[
-                  styles.cardAmount,
-                  isIncome && styles.cardAmountIncome,
-                  isExpense && styles.cardAmountExpense,
-                  isTransfer && styles.cardAmountTransfer,
-                ]}
-              >
-                {isIncome ? '+' : isTransfer ? '↔' : '−'}
-                {formatAUD(item.expectedAmount)}
-              </Text>
-            </View>
-
-            {/* Bottom Row: Context-aware Link Chip + Action Trigger Button */}
-            <View style={styles.bottomRow}>
-              {/* Entity Navigation Chip */}
-              <View style={styles.entityContainer}>
-                {isIncome && item.accountId ? (
-                  <TouchableOpacity
-                    style={styles.entityChip}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      router.push(`/(app)/settings/bank-accounts` as never);
-                    }}
-                  >
-                    <Text style={styles.entityChipText} numberOfLines={1}>
-                      {item.accountName || t('common.account') || 'Account'}
-                    </Text>
-                    <Text style={styles.entityChipIcon}>↗</Text>
-                  </TouchableOpacity>
-                ) : isExpense && item.poolId ? (
-                  <TouchableOpacity
-                    style={styles.entityChip}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      router.push(`/(app)/pools/${item.poolId}` as never);
-                    }}
-                  >
-                    <Text style={styles.entityChipText} numberOfLines={1}>
-                      {item.categoryName || t('categories.typeLabel')}
-                    </Text>
-                    <Text style={styles.entityChipIcon}>↗</Text>
-                  </TouchableOpacity>
-                ) : isTransfer && item.sourcePoolId ? (
-                  <View style={styles.transferEntities}>
-                    <TouchableOpacity
-                      style={styles.entityChip}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        router.push(`/(app)/pools/${item.sourcePoolId}` as never);
+              {/* Bottom Row: Context-aware Link Chip + Action Trigger Button */}
+              <View style={styles.bottomRow}>
+                {/* Entity Navigation Chip */}
+                <View style={styles.entityContainer}>
+                  {isIncome && item.accountId ? (
+                    <EntityLinkChip
+                      label={item.accountName || t('common.account') || 'Account'}
+                      isPrivate={item.isPrivate}
+                      icon="credit-card"
+                      onPress={() => {
+                        router.push('/(app)/settings?tab=bank-accounts&returnTo=/(app)/paychecks' as Href);
                       }}
-                    >
-                      <Text style={styles.entityChipText} numberOfLines={1}>
-                        {item.sourcePoolName || 'Source'}
-                      </Text>
-                      <Text style={styles.entityChipIcon}>↗</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.transferArrow}>➔</Text>
-                    {item.destinationPoolId && (
-                      <TouchableOpacity
-                        style={styles.entityChip}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          router.push(`/(app)/pools/${item.destinationPoolId}` as never);
+                    />
+                  ) : isExpense && item.poolId ? (
+                    <EntityLinkChip
+                      label={item.categoryName || t('categories.typeLabel')}
+                      icon="folder"
+                      onPress={() => {
+                        router.push(`/(app)/pools/${item.poolId}?returnTo=/(app)/paychecks` as Href);
+                      }}
+                    />
+                  ) : isTransfer && item.sourcePoolId ? (
+                    <View style={styles.transferEntities}>
+                      <EntityLinkChip
+                        label={item.sourcePoolName || 'Source'}
+                        icon="folder"
+                        onPress={() => {
+                          router.push(`/(app)/pools/${item.sourcePoolId}?returnTo=/(app)/paychecks` as Href);
                         }}
-                      >
-                        <Text style={styles.entityChipText} numberOfLines={1}>
-                          {item.destinationPoolName || 'Dest'}
-                        </Text>
-                        <Text style={styles.entityChipIcon}>↗</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                      />
+                      <Text style={styles.transferArrow}>➔</Text>
+                      {item.destinationPoolId && (
+                        <EntityLinkChip
+                          label={item.destinationPoolName || 'Dest'}
+                          icon="folder"
+                          onPress={() => {
+                            router.push(`/(app)/pools/${item.destinationPoolId}?returnTo=/(app)/paychecks` as Href);
+                          }}
+                        />
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={styles.entityFallbackText}>
+                      {item.accountName || item.categoryName || '—'}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Action Button */}
+                {isIncome ? (
+                  <TouchableOpacity
+                    style={styles.processBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onOpenPaydayWizard(item.id);
+                    }}
+                  >
+                    <Feather name="play" size={12} color="#FFF" />
+                    <Text style={styles.processBtnText}>{t('common.runSplit')}</Text>
+                  </TouchableOpacity>
+                ) : isTransfer ? (
+                  <TouchableOpacity
+                    style={styles.transferBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      if (item.rawTransfer && onExecuteTransfer) {
+                        onExecuteTransfer(item.rawTransfer);
+                      }
+                    }}
+                  >
+                    <Feather name="repeat" size={12} color="#FFF" />
+                    <Text style={styles.transferBtnText}>{t('common.transfer')}</Text>
+                  </TouchableOpacity>
                 ) : (
-                  <Text style={styles.entityFallbackText}>
-                    {item.accountName || item.categoryName || '—'}
-                  </Text>
+                  <TouchableOpacity
+                    style={styles.payBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onMarkExpensePaid(item.id, item.expectedAmount);
+                    }}
+                  >
+                    <Feather name="check" size={12} color="#FFF" />
+                    <Text style={styles.payBtnText}>{t('common.markSpent')}</Text>
+                  </TouchableOpacity>
                 )}
               </View>
-
-              {/* Action Button */}
-              {isIncome ? (
-                <TouchableOpacity
-                  style={styles.processBtn}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    onOpenPaydayWizard(item.id);
-                  }}
-                >
-                  <Feather name="play" size={12} color="#FFF" />
-                  <Text style={styles.processBtnText}>{t('common.runSplit')}</Text>
-                </TouchableOpacity>
-              ) : isTransfer ? (
-                <TouchableOpacity
-                  style={styles.transferBtn}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    if (item.rawTransfer && onExecuteTransfer) {
-                      onExecuteTransfer(item.rawTransfer);
-                    }
-                  }}
-                >
-                  <Feather name="repeat" size={12} color="#FFF" />
-                  <Text style={styles.transferBtnText}>{t('common.transfer')}</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.payBtn}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    onMarkExpensePaid(item.id, item.expectedAmount);
-                  }}
-                >
-                  <Feather name="check" size={12} color="#FFF" />
-                  <Text style={styles.payBtnText}>{t('common.markSpent')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </SwipeableCard>
         );
       })}
     </View>

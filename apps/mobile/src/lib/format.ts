@@ -175,29 +175,109 @@ export function formatScheduleDetail(
   }
 
   if (!isRecurring) {
+    const dateText = formattedDate || '';
     return {
       isRecurring: false,
       badgeText: 'One-off',
-      detailText: formattedDate ? `Expected ${formattedDate}` : 'One-off schedule',
+      detailText: dateText
+        ? t('schedules.oneOffOn', { date: dateText })
+        : 'One-off schedule',
       frequencyLabel: 'One-off',
     };
   }
 
+  // Parse FREQ and INTERVAL from rrule (e.g. "FREQ=MONTHLY;INTERVAL=3")
+  const freqMatch = rrule?.match(/FREQ=([A-Z]+)/);
+  const intervalMatch = rrule?.match(/INTERVAL=(\d+)/);
+  const freq = freqMatch ? freqMatch[1] : '';
+  const interval = intervalMatch ? parseInt(intervalMatch[1], 10) : 1;
+
+  const numberWordMap: Record<number, string> = {
+    2: t('schedules.num2'),
+    3: t('schedules.num3'),
+    4: t('schedules.num4'),
+    5: t('schedules.num5'),
+    6: t('schedules.num6'),
+    7: t('schedules.num7'),
+    8: t('schedules.num8'),
+    9: t('schedules.num9'),
+    10: t('schedules.num10'),
+    11: t('schedules.num11'),
+    12: t('schedules.num12'),
+  };
+
+  const getIntervalWord = (n: number) => numberWordMap[n] || String(n);
+
   let frequencyLabel = 'Recurring';
-  if (rrule?.includes('INTERVAL=2') && rrule?.includes('WEEKLY')) {
-    frequencyLabel = 'Fortnightly';
-  } else if (rrule?.includes('FREQ=WEEKLY')) {
-    frequencyLabel = 'Weekly';
-  } else if (rrule?.includes('FREQ=MONTHLY')) {
-    frequencyLabel = 'Monthly';
-  } else if (rrule?.includes('FREQ=YEARLY') || rrule?.includes('ANNUALLY')) {
-    frequencyLabel = 'Annually';
+  let detailText = '';
+  const dateText = formattedDate || '';
+
+  if (freq === 'DAILY') {
+    frequencyLabel = 'Daily';
+    if (!dateText) {
+      detailText = frequencyLabel;
+    } else if (interval > 1) {
+      detailText = t('schedules.everyIntervalFrom', {
+        interval: getIntervalWord(interval),
+        unit: t('schedules.days'),
+        date: dateText,
+      });
+    } else {
+      detailText = t('schedules.everyUnitFrom', { unit: t('schedules.day'), date: dateText });
+    }
+  } else if (freq === 'WEEKLY') {
+    if (interval === 2) {
+      frequencyLabel = 'Fortnightly';
+      detailText = dateText ? t('schedules.fortnightlyFrom', { date: dateText }) : frequencyLabel;
+    } else if (interval > 1) {
+      frequencyLabel = `Every ${interval} weeks`;
+      detailText = dateText
+        ? t('schedules.everyIntervalFrom', {
+            interval: getIntervalWord(interval),
+            unit: t('schedules.weeks'),
+            date: dateText,
+          })
+        : frequencyLabel;
+    } else {
+      frequencyLabel = 'Weekly';
+      detailText = dateText ? t('schedules.weeklyFrom', { date: dateText }) : frequencyLabel;
+    }
+  } else if (freq === 'MONTHLY') {
+    if (interval > 1) {
+      frequencyLabel = `Every ${interval} months`;
+      detailText = dateText
+        ? t('schedules.everyIntervalFrom', {
+            interval: getIntervalWord(interval),
+            unit: t('schedules.months'),
+            date: dateText,
+          })
+        : frequencyLabel;
+    } else {
+      frequencyLabel = 'Monthly';
+      detailText = dateText ? t('schedules.monthlyFrom', { date: dateText }) : frequencyLabel;
+    }
+  } else if (freq === 'YEARLY' || rrule?.includes('ANNUALLY')) {
+    if (interval > 1) {
+      frequencyLabel = `Every ${interval} years`;
+      detailText = dateText
+        ? t('schedules.everyIntervalFrom', {
+            interval: getIntervalWord(interval),
+            unit: t('schedules.years'),
+            date: dateText,
+          })
+        : frequencyLabel;
+    } else {
+      frequencyLabel = 'Annually';
+      detailText = dateText ? t('schedules.annuallyFrom', { date: dateText }) : frequencyLabel;
+    }
+  } else {
+    detailText = formattedDate ? `from ${formattedDate}` : frequencyLabel;
   }
 
   return {
     isRecurring: true,
     badgeText: frequencyLabel,
-    detailText: formattedDate ? `Kicks off ${formattedDate}` : frequencyLabel,
+    detailText: detailText.trim(),
     frequencyLabel,
   };
 }

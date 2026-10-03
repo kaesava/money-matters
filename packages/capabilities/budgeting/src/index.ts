@@ -32,3 +32,4 @@ export * from "./queries/list-bill-coverage.query.js";
 export * from "./engine/matrix-projection-engine.js";
 export * from "./engine/cumulative-projection.js";
 export * from "./engine/bill-lifecycle-fsm.js";
+export * from "./engine/shortfall-allocation.js";

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { BankProviderBadge } from '@money-matters/ui/mobile';
+import { BankProviderBadge, CardDrawerIndicator } from '@money-matters/ui/mobile';
 import { formatAUD } from '../../lib/format';
 import { LinkedPoolItem } from './LinkedPoolsModalSheet';
 
@@ -107,14 +107,17 @@ export function BankAccountCard({
           )}
         </View>
 
-        {/* Balance Display */}
-        <View style={styles.balanceCol}>
-          <Text style={styles.balanceAmount}>{formatAUD(availBal)}</Text>
-          <Text style={styles.balanceSub}>
-            {buffer > 0
-              ? `Actual: ${formatAUD(actualBal)} (Buffer ${formatAUD(buffer)})`
-              : 'Available'}
-          </Text>
+        {/* Balance Display with Drawer Indicator */}
+        <View style={styles.balWrap}>
+          <View style={styles.balanceCol}>
+            <Text style={styles.balanceAmount}>{formatAUD(availBal)}</Text>
+            <Text style={styles.balanceSub}>
+              {buffer > 0
+                ? `Actual: ${formatAUD(actualBal)} (Buffer ${formatAUD(buffer)})`
+                : 'Available'}
+            </Text>
+          </View>
+          <CardDrawerIndicator size={18} />
         </View>
       </View>
 
@@ -279,6 +282,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: '#B45309',
+  },
+  balWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   balanceCol: {
     alignItems: 'flex-end',

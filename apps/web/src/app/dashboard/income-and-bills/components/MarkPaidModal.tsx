@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { t } from "@money-matters/i18n";
 import { Button, AmountField, DatePickerField, ModalDialog } from "@money-matters/ui/web";
+import { validateShortfallAllocations } from "@money-matters/capability-budgeting";
 import { useLocale } from "../../../../providers/LocaleProvider";
 
 export interface CategoryOption {
@@ -78,9 +79,6 @@ export function MarkPaidModal({
     const parsed = parseFloat(amountStr);
     return isNaN(parsed) || parsed < 0 ? 0 : parsed;
   }, [amountStr]);
-
-  const isDateValid = Boolean(dateStr && dateStr <= todayStr);
-  const isAmountValid = numAmount > 0;
 
   // Find target pool balance
   const targetPool = useMemo(() => {
@@ -181,7 +179,13 @@ export function MarkPaidModal({
     }, 0);
   }, [transferAmounts]);
 
-  const isFulfilled = !hasShortfall || totalAllocated >= shortfallAmount - 0.001;
+  const shortfallValidation = useMemo(() => {
+    return validateShortfallAllocations(shortfallAmount, transferAmounts);
+  }, [shortfallAmount, transferAmounts]);
+
+  const isFulfilled = shortfallValidation.isValid;
+  const isDateValid = Boolean(dateStr && dateStr <= todayStr);
+  const isAmountValid = numAmount > 0;
   const isValid = isAmountValid && isDateValid && isFulfilled;
 
   if (!isOpen) return null;
@@ -388,10 +392,21 @@ export function MarkPaidModal({
                   shortfall: fmt(shortfallAmount),
                 })}
               </span>
-              <span className={isFulfilled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
-                {isFulfilled ? t("incomeBillsTabs.shortfallCovered") : t("incomeBillsTabs.shortfallRemaining", { amount: fmt(Math.max(0, shortfallAmount - totalAllocated)) })}
+              <span className={shortfallValidation.isValid ? "text-emerald-600 dark:text-emerald-400" : shortfallValidation.isOverAllocated ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}>
+                {shortfallValidation.isValid
+                  ? t("incomeBillsTabs.shortfallCovered")
+                  : shortfallValidation.isOverAllocated
+                  ? t("incomeBillsTabs.shortfallOverAllocated", { amount: fmt(shortfallValidation.difference) })
+                  : t("incomeBillsTabs.shortfallRemaining", { amount: fmt(shortfallValidation.difference) })}
               </span>
             </div>
+
+            {shortfallValidation.isOverAllocated && (
+              <div className="p-2.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{t("incomeBillsTabs.shortfallOverAllocated", { amount: fmt(shortfallValidation.difference) })}</span>
+              </div>
+            )}
 
             {onOpenTransferModal && (
               <div className="pt-1 text-center">

@@ -32,6 +32,7 @@ export interface PaychecksModalManagerProps {
     expectedAmount: string;
   } | null;
   onCloseOverride: () => void;
+  onDeleteOverride?: (event: { id: string; eventType: 'INCOME' | 'EXPENSE'; name: string }) => void;
   transferModalVisible: boolean;
   activeTransfer: TransferEventData | null;
   pools: { id: string; name: string; poolType?: string; currentBalance?: string | number | null; isPrivate?: boolean | null }[];
@@ -66,6 +67,7 @@ export function PaychecksModalManager({
   overrideModalVisible,
   eventToOverride,
   onCloseOverride,
+  onDeleteOverride,
   transferModalVisible,
   activeTransfer,
   pools,
@@ -115,6 +117,31 @@ export function PaychecksModalManager({
         eventToEdit={eventToOverride}
         onClose={onCloseOverride}
         onSuccess={refetchAll}
+        onDelete={(evt) => {
+          if (onDeleteOverride) {
+            onDeleteOverride(evt);
+          } else if (evt.eventType === 'INCOME') {
+            showMobileConfirm({
+              title: t('payday.deleteIncomeEvent') || 'Delete Income Event',
+              message: t('payday.deleteIncomeEventConfirm') || 'Are you sure you want to delete this upcoming income event?',
+              confirmText: t('common.delete') || 'Delete',
+              isDestructive: true,
+              onConfirm: () => {
+                deleteIncomeEventMut.mutate({ eventId: evt.id }, { onSuccess: refetchAll });
+              },
+            });
+          } else {
+            showMobileConfirm({
+              title: 'Delete Expense Event',
+              message: `Are you sure you want to delete "${evt.name || 'Expense'}"?`,
+              confirmText: t('common.delete') || 'Delete',
+              isDestructive: true,
+              onConfirm: () => {
+                deleteExpenseEventMut.mutate({ eventId: evt.id }, { onSuccess: refetchAll });
+              },
+            });
+          }
+        }}
       />
 
       <MobileTransferModal

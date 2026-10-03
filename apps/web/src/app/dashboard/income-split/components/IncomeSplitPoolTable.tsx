@@ -144,6 +144,7 @@ export function IncomeSplitPoolTable({
                         const currentValStr = isSweep
                           ? sweepPoolRemainder.toFixed(2)
                           : (linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2));
+                        const isZeroAllocation = (parseFloat(currentValStr) || 0) <= 0;
 
                         // Sweep Pool Row (Auto Surplus)
                         if (isSweep) {
@@ -182,7 +183,7 @@ export function IncomeSplitPoolTable({
                                       type="button"
                                       onClick={() => toggleReasoning(l.bucketId)}
                                       className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                                        openReasoningPools[l.bucketId] || Boolean(reasoningMap?.[l.bucketId] ?? l.reasoning)
+                                        openReasoningPools[l.bucketId] || (!isZeroAllocation && Boolean(reasoningMap?.[l.bucketId] ?? l.reasoning))
                                           ? "bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                                           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                                       }`}
@@ -202,11 +203,12 @@ export function IncomeSplitPoolTable({
                                       </span>
                                       <input
                                         type="text"
-                                        value={reasoningMap?.[l.bucketId] ?? l.reasoning ?? ""}
-                                        disabled={isReadOnly}
-                                        placeholder={t("paydayDrawer.reasoningPlaceholder")}
+                                        value={isZeroAllocation ? "" : (reasoningMap?.[l.bucketId] ?? l.reasoning ?? "")}
+                                        disabled={isReadOnly || isZeroAllocation}
+                                        readOnly={isZeroAllocation}
+                                        placeholder={isZeroAllocation ? "" : t("paydayDrawer.reasoningPlaceholder")}
                                         onChange={(e) => onLineReasoningChange?.(l.bucketId, e.target.value)}
-                                        className="flex-1 px-3 py-1.5 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60"
+                                        className="flex-1 px-3 py-1.5 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-zinc-100 dark:disabled:bg-zinc-800/50"
                                       />
                                     </div>
                                   </td>
@@ -268,7 +270,7 @@ export function IncomeSplitPoolTable({
                                     type="button"
                                     onClick={() => toggleReasoning(l.bucketId)}
                                     className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                                      openReasoningPools[l.bucketId] || Boolean(reasoningMap?.[l.bucketId] ?? l.reasoning)
+                                      openReasoningPools[l.bucketId] || (!isZeroAllocation && Boolean(reasoningMap?.[l.bucketId] ?? l.reasoning))
                                         ? "bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
                                         : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                                     }`}
@@ -288,11 +290,12 @@ export function IncomeSplitPoolTable({
                                     </span>
                                     <input
                                       type="text"
-                                      value={reasoningMap?.[l.bucketId] ?? l.reasoning ?? ""}
-                                      disabled={isReadOnly}
-                                      placeholder={t("paydayDrawer.reasoningPlaceholder")}
+                                      value={isZeroAllocation ? "" : (reasoningMap?.[l.bucketId] ?? l.reasoning ?? "")}
+                                      disabled={isReadOnly || isZeroAllocation}
+                                      readOnly={isZeroAllocation}
+                                      placeholder={isZeroAllocation ? "" : t("paydayDrawer.reasoningPlaceholder")}
                                       onChange={(e) => onLineReasoningChange?.(l.bucketId, e.target.value)}
-                                      className="flex-1 px-3 py-1.5 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60"
+                                      className="flex-1 px-3 py-1.5 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#2563eb] disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-zinc-100 dark:disabled:bg-zinc-800/50"
                                     />
                                   </div>
                                 </td>

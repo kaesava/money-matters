@@ -49,7 +49,7 @@ describe('Mobile Format Utilities', () => {
     const recurring = formatScheduleDetail('FREQ=WEEKLY;INTERVAL=2', '2026-07-01');
     expect(recurring.isRecurring).toBe(true);
     expect(recurring.badgeText).toBe('Fortnightly');
-    expect(recurring.detailText).toBe('Kicks off 01/07/2026');
+    expect(recurring.detailText).toBe('every fortnight from 01/07/2026');
 
     const weekly = formatScheduleDetail('FREQ=WEEKLY', null);
     expect(weekly.badgeText).toBe('Weekly');
@@ -64,12 +64,12 @@ describe('Mobile Format Utilities', () => {
     const oneOff = formatScheduleDetail(null, '2026-08-15');
     expect(oneOff.isRecurring).toBe(false);
     expect(oneOff.badgeText).toBe('One-off');
-    expect(oneOff.detailText).toBe('Expected 15/08/2026');
+    expect(oneOff.detailText).toBe('one-off on 15/08/2026');
 
     const oneOffNoDate = formatScheduleDetail(null, null);
     expect(oneOffNoDate.detailText).toBe('One-off schedule');
 
     const invalidDate = formatScheduleDetail(null, 'invalid-date');
-    expect(invalidDate.detailText).toBe('Expected invalid-date');
+    expect(invalidDate.detailText).toBe('one-off on invalid-date');
   });
 });

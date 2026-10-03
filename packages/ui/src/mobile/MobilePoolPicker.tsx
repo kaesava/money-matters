@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  FlatList,
+  SectionList,
   SafeAreaView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -87,6 +87,22 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
     });
   }, [pools, searchQuery]);
 
+  const sections = useMemo(() => {
+    const regularGroup = { type: 'REGULAR', title: t('categories.regularBills') || 'Bills Pools', data: [] as MobilePoolOption[] };
+    const goalGroup = { type: 'GOAL', title: t('categories.savingsGoals') || 'Goals', data: [] as MobilePoolOption[] };
+    const everydayGroup = { type: 'EVERYDAY', title: t('categories.typeEveryday') || 'Everyday Pools', data: [] as MobilePoolOption[] };
+    const otherGroup = { type: 'OTHER', title: 'Other Pools', data: [] as MobilePoolOption[] };
+
+    for (const p of filteredPools) {
+      if (p.poolType === 'REGULAR') regularGroup.data.push(p);
+      else if (p.poolType === 'GOAL') goalGroup.data.push(p);
+      else if (p.poolType === 'EVERYDAY') everydayGroup.data.push(p);
+      else otherGroup.data.push(p);
+    }
+
+    return [regularGroup, goalGroup, everydayGroup, otherGroup].filter((g) => g.data.length > 0);
+  }, [filteredPools]);
+
   const handleSelect = (poolId: string, categoryId: string | null = null) => {
     if (onSelectCategory) {
       onSelectCategory(poolId, categoryId);
@@ -97,6 +113,17 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
     setModalVisible(false);
     setSearchQuery('');
   };
+
+  const modalTitle = useMemo(() => {
+    if (allowCategorySelection) return t('categories.poolOrCategory');
+    return t('categories.typeLabel');
+  }, [allowCategorySelection]);
+
+  const modalSubtitle = useMemo(() => {
+    if (allowCategorySelection) return t('categories.selectPoolOrCategory');
+    if (displayStyle === 'field') return t('categories.selectPool');
+    return t('transactions.filterByPool');
+  }, [allowCategorySelection, displayStyle]);
 
   return (
     <>
@@ -160,10 +187,8 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <View>
-                <Text style={styles.title}>{t('categories.typeLabel') || 'Pool'}</Text>
-                <Text style={styles.subtitle}>
-                  {allowCategorySelection ? 'Select a Pool or Sub-Category' : t('transactions.filterByPool')}
-                </Text>
+                <Text style={styles.title}>{modalTitle}</Text>
+                <Text style={styles.subtitle}>{modalSubtitle}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
@@ -196,11 +221,16 @@ export const MobilePoolPicker: React.FC<MobilePoolPickerProps> = ({
             </View>
 
             {/* Options List */}
-            <FlatList
-              data={filteredPools}
+            <SectionList
+              sections={sections}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
+              renderSectionHeader={({ section: { title } }) => (
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionHeaderText}>{title}</Text>
+                </View>
+              )}
               ListHeaderComponent={
                 allowAllOption && !searchQuery.trim() ? (
                   <TouchableOpacity
@@ -398,6 +428,21 @@ const styles = StyleSheet.create({
   emptyWrap: {
     paddingVertical: 30,
     alignItems: 'center',
+  },
+  sectionHeader: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 6,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  sectionHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   emptyText: {
     fontSize: 12,

@@ -142,7 +142,11 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
             <View style={styles.header}>
               <View>
                 <Text style={styles.title}>{t('bankAccounts.title') || 'Bank Accounts'}</Text>
-                <Text style={styles.subtitle}>{t('transactions.filterByBank')}</Text>
+                <Text style={styles.subtitle}>
+                  {displayStyle === 'field'
+                    ? t('bankAccounts.selectBankAccount') || 'Select Bank Account'
+                    : t('transactions.filterByBank') || 'Filter by Bank'}
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
@@ -211,6 +215,9 @@ export const MobileBankPicker: React.FC<MobileBankPickerProps> = ({
                     onPress={() => handleSelect(item.id)}
                   >
                     <View style={styles.itemInfo}>
+                      {item.isPrivate && (
+                        <Feather name="lock" size={13} color="#94A3B8" style={{ marginRight: 2 }} />
+                      )}
                       <Text style={[styles.itemText, isSelected && styles.itemTextSelected]}>
                         {item.name}
                       </Text>

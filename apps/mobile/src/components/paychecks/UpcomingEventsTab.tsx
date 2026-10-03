@@ -19,6 +19,7 @@ interface UpcomingEventsTabProps {
   onOpenPaydayWizard: (eventId: string) => void;
   onMarkExpensePaid: (expenseId: string, amount: string) => void;
   onEditExpense: (expense: any) => void;
+  onEditIncome?: (income: any) => void;
   onDeleteIncomeEvent: (item: { id: string; name?: string | null }) => void;
   onDeleteExpenseEvent: (item: { id: string; name?: string | null }) => void;
   onExecuteTransfer: (item: PaycheckTransferEvent) => void;
@@ -34,6 +35,7 @@ export function UpcomingEventsTab({
   onOpenPaydayWizard,
   onMarkExpensePaid,
   onEditExpense,
+  onEditIncome,
   onDeleteIncomeEvent,
   onDeleteExpenseEvent,
   onExecuteTransfer,
@@ -107,7 +109,9 @@ export function UpcomingEventsTab({
         events={paginatedUpcomingEvents}
         onOpenPaydayWizard={onOpenPaydayWizard}
         onMarkExpensePaid={onMarkExpensePaid}
+        onEditUpcomingIncome={onEditIncome}
         onEditUpcomingExpense={onEditExpense}
+        onDeleteUpcomingIncome={onDeleteIncomeEvent}
         onDeleteUpcomingExpense={onDeleteExpenseEvent}
         onExecuteTransfer={onExecuteTransfer}
         onDeleteUpcomingTransfer={onDeleteTransferEvent}

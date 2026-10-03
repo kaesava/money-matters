@@ -16,6 +16,7 @@ import {
   SkeletonCard,
   SearchInput,
   RecordFilterBadge,
+  CardDrawerIndicator,
 } from '@money-matters/ui/mobile';
 import { AppScreenWrapper } from '../../components/AppScreenWrapper';
 import { t } from '@money-matters/i18n';
@@ -326,11 +327,14 @@ export default function PoolsScreen() {
                           )}
                         </View>
 
-                        <View style={styles.balCol}>
-                          <Text style={styles.balNum}>{formatAUD(bal)}</Text>
-                          <Text style={styles.balSub}>
-                            {nestedCount > 0 ? t('categories.nestedCategories', { count: nestedCount }) : t('categories.mainPool')}
-                          </Text>
+                        <View style={styles.balWrap}>
+                          <View style={styles.balCol}>
+                            <Text style={styles.balNum}>{formatAUD(bal)}</Text>
+                            <Text style={styles.balSub}>
+                              {nestedCount > 0 ? t('categories.nestedCategories', { count: nestedCount }) : t('categories.mainPool')}
+                            </Text>
+                          </View>
+                          <CardDrawerIndicator size={18} />
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -373,11 +377,14 @@ export default function PoolsScreen() {
                           )}
                         </View>
 
-                        <View style={styles.balCol}>
-                          <Text style={styles.balNum}>{formatAUD(bal)}</Text>
-                          <Text style={styles.balSub}>
-                            {nestedCount > 0 ? t('categories.nestedCategories', { count: nestedCount }) : t('categories.mainPool')}
-                          </Text>
+                        <View style={styles.balWrap}>
+                          <View style={styles.balCol}>
+                            <Text style={styles.balNum}>{formatAUD(bal)}</Text>
+                            <Text style={styles.balSub}>
+                              {nestedCount > 0 ? t('categories.nestedCategories', { count: nestedCount }) : t('categories.mainPool')}
+                            </Text>
+                          </View>
+                          <CardDrawerIndicator size={18} />
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -421,11 +428,14 @@ export default function PoolsScreen() {
                           )}
                         </View>
 
-                        <View style={styles.balCol}>
-                          <Text style={styles.balNum}>{formatAUD(bal)}</Text>
-                          <Text style={styles.balSub}>
-                            {target > 0 ? `${pct}% of ${formatAUD(target)}` : t('categories.noTarget')}
-                          </Text>
+                        <View style={styles.balWrap}>
+                          <View style={styles.balCol}>
+                            <Text style={styles.balNum}>{formatAUD(bal)}</Text>
+                            <Text style={styles.balSub}>
+                              {target > 0 ? `${pct}% of ${formatAUD(target)}` : t('categories.noTarget')}
+                            </Text>
+                          </View>
+                          <CardDrawerIndicator size={18} />
                         </View>
                       </View>
 
@@ -722,6 +732,11 @@ const styles = StyleSheet.create({
   bankNameText: {
     fontSize: 11,
     color: '#64748B',
+  },
+  balWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   balCol: {
     alignItems: 'flex-end',

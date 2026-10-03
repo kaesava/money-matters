@@ -107,7 +107,8 @@ export function MobileIncomeSplitPoolList({
                     ? sweepPoolRemainder.toFixed(2)
                     : (linesMap[l.bucketId] ?? l.proposedAmount.toFixed(2));
 
-                  const hasReasoning = Boolean(reasoningMap[l.bucketId] || l.reasoning);
+                  const isZeroAllocation = (parseFloat(currentValStr) || 0) <= 0;
+                  const hasReasoning = !isZeroAllocation && Boolean(reasoningMap[l.bucketId] || l.reasoning);
                   const isReasoningOpen = Boolean(openReasoningPools[l.bucketId]);
 
                   return (
@@ -194,10 +195,13 @@ export function MobileIncomeSplitPoolList({
                             {t('paydayDrawer.reasoningLabel')}
                           </Text>
                           <TextInput
-                            style={styles.reasoningInput}
-                            value={reasoningMap[l.bucketId] ?? l.reasoning ?? ''}
-                            editable={!isReadOnly}
-                            placeholder={t('paydayDrawer.reasoningPlaceholder')}
+                            style={[
+                              styles.reasoningInput,
+                              isZeroAllocation && styles.reasoningInputDisabled,
+                            ]}
+                            value={isZeroAllocation ? '' : (reasoningMap[l.bucketId] ?? l.reasoning ?? '')}
+                            editable={!isReadOnly && !isZeroAllocation}
+                            placeholder={isZeroAllocation ? '' : t('paydayDrawer.reasoningPlaceholder')}
                             placeholderTextColor="#94A3B8"
                             onChangeText={(val) => onLineReasoningChange(l.bucketId, val)}
                           />
@@ -390,5 +394,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
+  },
+  reasoningInputDisabled: {
+    backgroundColor: '#F1F5F9',
+    color: '#94A3B8',
   },
 });

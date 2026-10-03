@@ -10,6 +10,8 @@ interface UseRecurringSchedulesProps {
   selectedIncomeBankId: string;
   selectedExpensePoolId: string;
   scheduleSearchQuery: string;
+  sortField?: 'name' | 'amount' | 'date';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export function useRecurringSchedules({
@@ -20,6 +22,8 @@ export function useRecurringSchedules({
   selectedIncomeBankId,
   selectedExpensePoolId,
   scheduleSearchQuery,
+  sortField = 'name',
+  sortOrder = 'asc',
 }: UseRecurringSchedulesProps) {
   const enrichedIncomeSources: IncomeSourceItem[] = useMemo(() => {
     return incomeSources.map((s) => {
@@ -32,7 +36,7 @@ export function useRecurringSchedules({
   }, [incomeSources, bankAccounts]);
 
   const filteredIncomeSources = useMemo(() => {
-    return enrichedIncomeSources.filter((s) => {
+    const list = enrichedIncomeSources.filter((s) => {
       if (selectedIncomeBankId !== 'ALL' && s.receivingAccountId !== selectedIncomeBankId) {
         return false;
       }
@@ -44,7 +48,19 @@ export function useRecurringSchedules({
         String(s.amount).includes(q)
       );
     });
-  }, [enrichedIncomeSources, selectedIncomeBankId, scheduleSearchQuery]);
+
+    return list.sort((a, b) => {
+      let comp = 0;
+      if (sortField === 'name') {
+        comp = a.name.localeCompare(b.name);
+      } else if (sortField === 'amount') {
+        comp = parseFloat(a.amount || '0') - parseFloat(b.amount || '0');
+      } else if (sortField === 'date') {
+        comp = (a.startDate || '').localeCompare(b.startDate || '');
+      }
+      return sortOrder === 'asc' ? comp : -comp;
+    });
+  }, [enrichedIncomeSources, selectedIncomeBankId, scheduleSearchQuery, sortField, sortOrder]);
 
   const enrichedExpenseSources: ExpenseSourceItem[] = useMemo(() => {
     return expenseSources.map((s) => {
@@ -57,7 +73,7 @@ export function useRecurringSchedules({
   }, [expenseSources, pools]);
 
   const filteredExpenseSources = useMemo(() => {
-    return enrichedExpenseSources.filter((s) => {
+    const list = enrichedExpenseSources.filter((s) => {
       if (selectedExpensePoolId !== 'ALL' && (s.poolId || s.categoryId) !== selectedExpensePoolId) {
         return false;
       }
@@ -70,7 +86,19 @@ export function useRecurringSchedules({
         String(s.amount).includes(q)
       );
     });
-  }, [enrichedExpenseSources, selectedExpensePoolId, scheduleSearchQuery]);
+
+    return list.sort((a, b) => {
+      let comp = 0;
+      if (sortField === 'name') {
+        comp = a.name.localeCompare(b.name);
+      } else if (sortField === 'amount') {
+        comp = parseFloat(a.amount || '0') - parseFloat(b.amount || '0');
+      } else if (sortField === 'date') {
+        comp = (a.startDate || '').localeCompare(b.startDate || '');
+      }
+      return sortOrder === 'asc' ? comp : -comp;
+    });
+  }, [enrichedExpenseSources, selectedExpensePoolId, scheduleSearchQuery, sortField, sortOrder]);
 
   return { filteredIncomeSources, filteredExpenseSources };
 }

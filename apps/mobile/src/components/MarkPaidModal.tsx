@@ -18,6 +18,7 @@ import {
   useMobileToast,
 } from '@money-matters/ui/mobile';
 import { t } from '@money-matters/i18n';
+import { validateShortfallAllocations } from '@money-matters/capability-budgeting';
 import { trpc } from '../lib/trpc';
 import { formatAUD, formatDate } from '../lib/format';
 import { triggerHaptic } from '../lib/haptics';
@@ -203,7 +204,11 @@ export function MarkPaidModal({
     }, 0);
   }, [transferAmounts]);
 
-  const isFulfilled = !hasShortfall || totalAllocated >= shortfallAmount - 0.001;
+  const shortfallValidation = useMemo(() => {
+    return validateShortfallAllocations(shortfallAmount, transferAmounts);
+  }, [shortfallAmount, transferAmounts]);
+
+  const isFulfilled = shortfallValidation.isValid;
   const isDateValid = Boolean(actualDate && actualDate <= todayStr);
   const isAmountValid = numAmount > 0;
   const isValid = isAmountValid && isDateValid && isFulfilled;
@@ -459,14 +464,38 @@ export function MarkPaidModal({
                   shortfall: formatAUD(shortfallAmount),
                 })}
               </Text>
-              <Text style={[styles.progressStatus, isFulfilled ? styles.progressCovered : styles.progressRemaining]}>
-                {isFulfilled
+              <Text
+                style={[
+                  styles.progressStatus,
+                  shortfallValidation.isValid
+                    ? styles.progressCovered
+                    : shortfallValidation.isOverAllocated
+                    ? styles.progressOverAllocated
+                    : styles.progressRemaining,
+                ]}
+              >
+                {shortfallValidation.isValid
                   ? t('incomeBillsTabs.shortfallCovered')
+                  : shortfallValidation.isOverAllocated
+                  ? t('incomeBillsTabs.shortfallOverAllocated', {
+                      amount: formatAUD(shortfallValidation.difference),
+                    })
                   : t('incomeBillsTabs.shortfallRemaining', {
-                      amount: formatAUD(Math.max(0, shortfallAmount - totalAllocated)),
+                      amount: formatAUD(shortfallValidation.difference),
                     })}
               </Text>
             </View>
+
+            {shortfallValidation.isOverAllocated && (
+              <View style={styles.overAllocatedBanner}>
+                <Feather name="alert-triangle" size={14} color="#DC2626" style={{ marginTop: 1 }} />
+                <Text style={styles.overAllocatedBannerText}>
+                  {t('incomeBillsTabs.shortfallOverAllocated', {
+                    amount: formatAUD(shortfallValidation.difference),
+                  })}
+                </Text>
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.sufficientBanner}>
@@ -716,6 +745,26 @@ const styles = StyleSheet.create({
   },
   progressRemaining: {
     color: '#B45309',
+  },
+  progressOverAllocated: {
+    color: '#DC2626',
+  },
+  overAllocatedBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 10,
+    padding: 10,
+  },
+  overAllocatedBannerText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#B91C1C',
+    fontWeight: '600',
   },
   sufficientBanner: {
     flexDirection: 'row',

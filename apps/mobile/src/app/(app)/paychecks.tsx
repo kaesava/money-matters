@@ -210,7 +210,7 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
             bankAccounts={bankAccounts}
             pools={pools}
             onOpenPaydayWizard={(eventId) => {
-              router.push(`/(app)/quick?tab=payday&eventId=${eventId}` as any);
+              router.push(`/(app)/paychecks/${eventId}` as any);
             }}
             onMarkExpensePaid={(eventId, amount) => {
               const expense = rawExpenseEvents.find((e) => e.id === eventId);
@@ -234,6 +234,19 @@ export default function IncomeAndBillsScreen({ initialTab }: IncomeAndBillsScree
                   name: fullExpense.name || 'Expense',
                   expectedDate: fullExpense.expectedDate,
                   expectedAmount: fullExpense.expectedAmount,
+                });
+                setOverrideModalVisible(true);
+              }
+            }}
+            onEditIncome={(income) => {
+              const fullIncome = rawIncomeEvents.find((e) => e.id === income.id);
+              if (fullIncome) {
+                setEventToOverride({
+                  id: fullIncome.id,
+                  eventType: 'INCOME',
+                  name: fullIncome.name || 'Income',
+                  expectedDate: fullIncome.expectedDate,
+                  expectedAmount: fullIncome.expectedAmount,
                 });
                 setOverrideModalVisible(true);
               }
